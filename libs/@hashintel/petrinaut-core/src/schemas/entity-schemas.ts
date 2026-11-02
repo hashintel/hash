@@ -18,6 +18,8 @@ import type {
   Color,
   ComponentInstance,
   DifferentialEquation,
+  Fusion,
+  FusionMember,
   InputArc,
   OutputArc,
   Parameter,
@@ -418,6 +420,65 @@ export const componentInstanceSchema = z
       "A placed instance of a subnet. Parent nets connect to exposed subnet ports with transition arcs.",
   }) satisfies z.ZodType<ComponentInstance>;
 
+/** A fusion member names a place the way an arc endpoint does. */
+export const fusionMemberSchema = arcEndpointSchema.meta({
+  description:
+    'A fusion member: `kind: "place"` names a place of the net the fusion belongs to; `kind: "componentPort"` names a port of one of that net\'s component instances.',
+}) satisfies z.ZodType<FusionMember>;
+
+const fusionMemberKey = (member: FusionMember): string =>
+  member.kind === "place"
+    ? `place:${member.placeId}`
+    : `componentPort:${member.componentInstanceId}:${member.portPlaceId}`;
+
+export const fusionSchema = z
+  .strictObject({
+    id: idSchema,
+    name: displayNameSchema.optional().meta({
+      description:
+        "Optional display name for the fused place. Omitted, the anchor place's name, else the first port's, stands in.",
+    }),
+    description: descriptionSchema,
+    members: z
+      .array(fusionMemberSchema)
+      .min(2)
+      .check((context) => {
+        const seen = new Set<string>();
+        let anchors = 0;
+        for (const [index, member] of context.value.entries()) {
+          const key = fusionMemberKey(member);
+          if (seen.has(key)) {
+            context.issues.push({
+              code: "custom",
+              path: [index],
+              message: "A fusion names each place or port once.",
+              input: member,
+            });
+          }
+          seen.add(key);
+          if (member.kind === "place") {
+            anchors += 1;
+          }
+        }
+        if (anchors > 1) {
+          context.issues.push({
+            code: "custom",
+            message:
+              "A fusion holds at most one place of its own net; the other members are ports of component instances.",
+            input: context.value,
+          });
+        }
+      })
+      .meta({
+        description:
+          "The places and ports that are one place when the net runs: at most one place of the net itself, plus ports of its component instances. At least two members.",
+      }),
+  })
+  .meta({
+    description:
+      "A fusion set: a place of the net and ports of its component instances that act as one place in simulation.",
+  }) satisfies z.ZodType<Fusion>;
+
 export const subnetSchema = z
   .strictObject({
     id: idSchema,
@@ -444,6 +505,10 @@ export const subnetSchema = z
     componentInstances: z.array(componentInstanceSchema).optional().meta({
       description: "Nested component instances local to this subnet.",
     }),
+    fusions: z.array(fusionSchema).optional().meta({
+      description:
+        "Fusions among this subnet's places and its nested instances' ports.",
+    }),
   })
   .meta({
     description:
@@ -457,3 +522,4 @@ export type DifferentialEquationSchema = typeof differentialEquationSchema;
 export type ParameterSchema = typeof parameterSchema;
 export type ComponentInstanceSchema = typeof componentInstanceSchema;
 export type SubnetSchema = typeof subnetSchema;
+export type FusionSchema = typeof fusionSchema;
