@@ -26,6 +26,15 @@
         "@blockprotocol/graph#build"
       ]
     },
+    "lint:oxlint": {
+      "dependsOn": [
+        "codegen",
+        "@local/hash-isomorphic-utils#build",
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-sdk#build",
+        "@blockprotocol/graph#build"
+      ]
+    },
     "fix:eslint": {
       "dependsOn": [
         "codegen",
