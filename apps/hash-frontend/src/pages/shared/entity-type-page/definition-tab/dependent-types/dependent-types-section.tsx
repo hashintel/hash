@@ -171,6 +171,7 @@ export const DependentTypesSection = ({
         layout === "byType" ? (
           <DependentTypesByTypeTable
             entityTypeTitle={entityTypeTitle}
+            parentLatestVersion={parentLatestVersion}
             rows={shownRows}
             isLinkType={isLinkType}
             onOpenType={onOpenType}

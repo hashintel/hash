@@ -20,6 +20,8 @@ export type DependentTypeRow = Omit<
   lastVersion: number;
   parentVersions: number[];
   ranges: DependentTypeVersionRange[];
+  /** Each version of the type that extends the parent, oldest first. */
+  versions: { version: number; parentVersions: number[] }[];
 };
 
 const byNumber = (left: number, right: number) => left - right;
@@ -59,6 +61,17 @@ const toRow = ({
   versionsByParentVersion,
   ...dependentType
 }: DependentType): DependentTypeRow => {
+  const parentVersionsByVersion = new Map<number, number[]>();
+
+  for (const [parentVersion, versions] of versionsByParentVersion) {
+    for (const { version } of versions) {
+      parentVersionsByVersion.set(version, [
+        ...(parentVersionsByVersion.get(version) ?? []),
+        parentVersion,
+      ]);
+    }
+  }
+
   const ranges = [...versionsByParentVersion]
     .flatMap(([parentVersion, versions]) => toRanges(versions, parentVersion))
     .sort(
@@ -73,6 +86,12 @@ const toRow = ({
     lastVersion: Math.max(...ranges.map((range) => range.lastVersion)),
     parentVersions: [...versionsByParentVersion.keys()].sort(byNumber),
     ranges,
+    versions: [...parentVersionsByVersion]
+      .map(([version, parentVersions]) => ({
+        version,
+        parentVersions: parentVersions.toSorted(byNumber),
+      }))
+      .sort((left, right) => left.version - right.version),
   };
 };
 
