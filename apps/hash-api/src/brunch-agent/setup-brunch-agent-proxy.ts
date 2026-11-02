@@ -187,10 +187,11 @@ export const setupBrunchAgentProxy = (
         response.status(upstream.status);
         // The durable-streams client reads its next offset, cursor and
         // up-to-date state from these headers; cross-origin JS cannot see
-        // them unless they are exposed.
+        // them unless they are exposed. Mirrors Brunch's CORS expose list in
+        // `apps/brunch-agent/src/server/http/cors.ts` by hand.
         response.setHeader(
           "access-control-expose-headers",
-          "location, stream-next-offset, stream-cursor, stream-up-to-date, stream-closed, flue-error-ref",
+          "location, stream-next-offset, stream-cursor, stream-up-to-date, stream-closed, stream-sse-data-encoding, flue-error-ref",
         );
         // Flue builds `streamUrl` and `Location` from the URL it was reached
         // at, which names Brunch's internal origin. Point both back through
