@@ -156,6 +156,10 @@ export default defineConfig({
         "src/module.ts": long,
         "src/module.test.ts": long,
         "src/module.test-d.ts": long,
+        "src/component.test.tsx": long,
+        "src/component.test-d.tsx": long,
+        "tests/module.test.ts": long,
+        "tests/module.test-d.ts": long,
       },
       "max-lines",
     );
