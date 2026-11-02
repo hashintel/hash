@@ -1,0 +1,30 @@
+connector: demo
+sources:
+  header:
+    rest:
+      url: https://api.example.org
+      auth:
+        type: header
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  bearer:
+    rest:
+      url: https://api.example.org
+      auth:
+        type: bearer
+        name: X-Api-Key
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  next:
+    rest:
+      url: https://api.example.org
+      pagination:
+        type: next-link
+    primaryKey: [id]
+  offset:
+    rest:
+      url: https://api.example.org
+      pagination:
+        type: offset
+        field: next
+    primaryKey: [id]

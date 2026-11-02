@@ -1,0 +1,10 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/source-postgres-connection.yaml
+---
+3:3: sources.scheme: connection must be a PostgreSQL URI without a fragment
+11:3: sources.inline: connection credentials must come from the referenced User Secret
+19:3: sources.query: connection credentials must come from the referenced User Secret
+27:3: sources.tls: sslmode must be disable, require or verify-full
+35:3: sources.port: connection must specify a host, database and nonzero port
