@@ -64,9 +64,7 @@ describe("Option", () => {
     expectTypeOf(Option.filter(isString)(option)).toEqualTypeOf<
       Option.Option<string>
     >();
-    expect(Option.filter(Option.some(1 as string | number), isString)).toEqual(
-      Option.none(),
-    );
+    expect(Option.filter(Option.some(1), isString)).toEqual(Option.none());
   });
 
   it("lift_predicate_call_forms", () => {

@@ -100,7 +100,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -115,7 +115,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -168,23 +168,17 @@ export const lookup = Effect.fn("lookup")(function* (
 
   // we cannot determine the TTL of lookup records, therefore we set it to infinity
   // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs
-  const aRecords = satisfying.map(
-    (record) =>
-      ({
-        type: "A",
-        address: record.address,
-        timeToLive: Duration.infinity,
-      }) as DnsRecord,
-  );
+  const aRecords = satisfying.map((record): DnsRecord => ({
+    type: "A",
+    address: record.address,
+    timeToLive: Duration.infinity,
+  }));
 
-  const aaaaRecords = excluded.map(
-    (record) =>
-      ({
-        type: "AAAA",
-        address: record.address,
-        timeToLive: Duration.infinity,
-      }) as DnsRecord,
-  );
+  const aaaaRecords = excluded.map((record): DnsRecord => ({
+    type: "AAAA",
+    address: record.address,
+    timeToLive: Duration.infinity,
+  }));
 
   const output: DnsRecord[] = [];
 

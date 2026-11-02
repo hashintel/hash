@@ -1,10 +1,9 @@
-import reactX from "eslint-plugin-react-x";
-
 import {
   defineConfig,
   createBase,
   disableRules,
 } from "@local/eslint/deprecated";
+import { reactX } from "@local/eslint/plugins";
 
 export default [
   ...createBase(import.meta.dirname),

@@ -216,7 +216,7 @@ describe("Iterable", () => {
   });
 
   it("zip_lazy", () => {
-    const first = vi.fn(function* first() {
+    const first = vi.fn(function* readFirst() {
       yield 1;
       yield 2;
     });
