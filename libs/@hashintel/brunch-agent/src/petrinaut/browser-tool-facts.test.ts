@@ -170,6 +170,7 @@ describe("what the browser decides about each tool the server issues to it", () 
     ["getLatestNetDefinition", netRead("parsed-by-schema")],
     ["getNetCompilationErrors", netRead("parsed-by-schema")],
     ["createExperiment", netRead("parsed-by-schema")],
+    ["readPetrinautDoc", netRead("parsed-by-schema")],
     // The filtered net readers.
     ["readNetOutline", netRead("parsed-by-schema")],
     ["readNetStructure", netRead("parsed-by-schema")],
@@ -182,6 +183,7 @@ describe("what the browser decides about each tool the server issues to it", () 
     ["petrinaut_set_net_title", change],
     ["petrinaut_layout_auto", change],
     ["petrinaut_create_experiment", netRead("parsed-by-schema")],
+    ["petrinaut_read_guide", netRead("parsed-by-schema")],
     // The reviewed experiment draft runs through its own card.
     [
       brunchTools.draftPetrinautExperiment,

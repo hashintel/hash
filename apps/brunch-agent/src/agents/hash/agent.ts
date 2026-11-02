@@ -20,9 +20,7 @@ import { createFlueClient } from "@flue/sdk";
 
 import {
   browserToolFacts,
-  CANONICAL_PETRINAUT_TOOL_NAMES,
   canonicalContent,
-  hashReplacedPetrinautOperations,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
@@ -39,7 +37,6 @@ import {
   createNetViewTracker,
   expectedNetRevision,
 } from "../../shared/conversation/net-freshness.ts";
-import { asyncCanonicalPetrinautTools } from "../../shared/petrinaut-tools.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
@@ -140,15 +137,8 @@ export const HashAgent = ({ id }: AgentProps): string => {
         signal,
       });
     };
-    // HASH's own tools read, change and run the net; of Petrinaut's own, only
-    // what they don't replace stays (the user guide).
-    for (const tool of asyncCanonicalPetrinautTools(
-      executeBrowserTool,
-      CANONICAL_PETRINAUT_TOOL_NAMES.filter(
-        (name) => !hashReplacedPetrinautOperations.has(name),
-      ),
-    ))
-      useTool(tool);
+    // HASH's own tools read, change and run the net and read the user guide;
+    // none of Petrinaut's own is mounted.
     for (const tool of createHashPetrinautTools(executeBrowserTool))
       useTool(tool);
     useTool(createQueryBasisTool({ browser: initialData, history }));

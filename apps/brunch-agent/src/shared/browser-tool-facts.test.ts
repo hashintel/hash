@@ -192,7 +192,11 @@ describe("what the server decides about each tool it issues to the browser", () 
       },
     ],
     ...(
-      ["petrinaut_get_diagnostics", "petrinaut_create_experiment"] as const
+      [
+        "petrinaut_get_diagnostics",
+        "petrinaut_create_experiment",
+        "petrinaut_read_guide",
+      ] as const
     ).map((name): [string, ServerSide] => [
       name,
       {
@@ -223,16 +227,18 @@ describe("what the server decides about each tool it issues to the browser", () 
         hashAgentShowsString: "as-json",
       },
     ],
-    [
-      "createExperiment",
-      {
-        freshView: false,
-        onFailure: "unchanged",
-        netCall: true,
-        netView: "nothing",
-        hashAgentShowsString: "as-json",
-      },
-    ],
+    ...(["createExperiment", "readPetrinautDoc"] as const).map(
+      (name): [string, ServerSide] => [
+        name,
+        {
+          freshView: false,
+          onFailure: "unchanged",
+          netCall: true,
+          netView: "nothing",
+          hashAgentShowsString: "as-json",
+        },
+      ],
+    ),
     // The filtered net readers.
     ...(["readNetOutline", "readNetStructure"] as const).map(
       (name): [string, ServerSide] => [

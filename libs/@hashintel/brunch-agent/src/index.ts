@@ -40,7 +40,6 @@ export { vHashSaveInput, parseHashSaveInput } from "./hash/save";
 export {
   hashPetrinautTools,
   hashProcessEditorId,
-  hashReplacedPetrinautOperations,
   type HashPetrinautToolName,
 } from "./hash/petrinaut-tools";
 export * from "./ledger";

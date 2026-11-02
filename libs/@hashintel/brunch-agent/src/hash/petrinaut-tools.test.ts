@@ -3,28 +3,19 @@ import { expect, test } from "vitest";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import {
-  hashPetrinautTools,
-  hashProcessEditorId,
-  hashReplacedPetrinautOperations,
-} from "./petrinaut-tools";
+import { hashPetrinautTools, hashProcessEditorId } from "./petrinaut-tools";
 
-/** Catalogue operations the HASH agent still mounts under Petrinaut's names, until their own tools exist. */
-const stillCanonical = ["readPetrinautDoc"];
 /** Catalogue operations the HASH agent drops for its per-kind tools. */
 const dropped = ["deleteItemsByIds", "commitNodePositions"];
 
-test("every catalogue operation is run by one of HASH's tools, dropped, or still canonical for now", () => {
+test("every catalogue operation is run by one of HASH's tools or dropped, so none stays canonical", () => {
   const mapped = Object.values(hashPetrinautTools).flatMap(
     ({ operations }) => operations,
   );
   // Each operation has one HASH tool.
   expect(new Set(mapped).size).toBe(mapped.length);
-  expect([...mapped, ...dropped, ...stillCanonical].toSorted()).toEqual(
+  expect([...mapped, ...dropped].toSorted()).toEqual(
     Object.keys(petrinautAiTools).toSorted(),
-  );
-  expect([...hashReplacedPetrinautOperations].toSorted()).toEqual(
-    [...mapped, ...dropped].toSorted(),
   );
 });
 
