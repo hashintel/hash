@@ -7,6 +7,7 @@ import {
   componentInstanceSchema as currentComponentInstanceSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
+  fusionSchema as currentFusionSchema,
   inputArcSchema as currentInputArcSchema,
   metadataSchema,
   outputArcSchema as currentOutputArcSchema,
@@ -170,6 +171,7 @@ const subnetSchema = z.object({
   differentialEquations: z.array(differentialEquationSchema).default([]),
   parameters: z.array(parameterSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
+  fusions: z.array(currentFusionSchema).default([]),
 });
 
 export const sdcpnSchema = z.object({
@@ -184,6 +186,7 @@ export const sdcpnSchema = z.object({
   metrics: z.array(metricSchema).default([]),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
+  fusions: z.array(currentFusionSchema).default([]),
 });
 
 const fileMetaSchema = z.object({
