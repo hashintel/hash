@@ -196,14 +196,14 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         canonicalCalls: noCanonicalCalls,
       },
     ],
-    [brunchTools.queryHashEntities, hashGraphRead(parseHashEntityReadInput)],
+    [brunchTools.hashQueryEntities, hashGraphRead(parseHashEntityReadInput)],
     [
-      brunchTools.queryHashEntityTypes,
+      brunchTools.hashQueryEntityTypes,
       hashGraphRead(parseHashEntityTypeReadInput),
     ],
-    [brunchTools.queryHashWebs, hashGraphRead(parseHashWebReadInput)],
+    [brunchTools.hashQueryWebs, hashGraphRead(parseHashWebReadInput)],
     [
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       {
         ...changes,
         // HASH's process page runs it through its editor's Save, which writes

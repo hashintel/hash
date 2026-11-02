@@ -202,7 +202,7 @@ const runHashRead = async (
   };
 };
 
-export const hashEntityReadDescription = `Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles (each with its entityTypeId when two types in the read share that title), its name (cut short when long), and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (\`<webId>~<uuid>\`, with \`~<draftId>\` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A property's short name, here and in nested values, comes from its base URL, unless two properties in the read would share one: then both show by their full base URL, so a name holds within one read only. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most ${formattedQueryLimit} matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with ${brunchTools.queryHashWebs} first, for the web ids to filter by; then read the types of the entities found with ${brunchTools.queryHashEntityTypes}, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.`;
+export const hashEntityReadDescription = `Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles (each with its entityTypeId when two types in the read share that title), its name (cut short when long), and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (\`<webId>~<uuid>\`, with \`~<draftId>\` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A property's short name, here and in nested values, comes from its base URL, unless two properties in the read would share one: then both show by their full base URL, so a name holds within one read only. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most ${formattedQueryLimit} matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with ${brunchTools.hashQueryWebs} first, for the web ids to filter by; then read the types of the entities found with ${brunchTools.hashQueryEntityTypes}, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.`;
 
 export const hashEntityReadEmptyNote =
   "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, or filed under another type title or web.";
@@ -322,14 +322,14 @@ export const hashEntityReadForModel = (
 /** The entity read, executed by whatever `execute` reaches HASH through. */
 export const createHashEntityReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
-    name: brunchTools.queryHashEntities,
+    name: brunchTools.hashQueryEntities,
     description: hashEntityReadDescription,
     input: vHashEntityReadInput,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
         {
-          toolName: brunchTools.queryHashEntities,
+          toolName: brunchTools.hashQueryEntities,
           input: data,
           toolCallId,
           signal,
@@ -338,7 +338,7 @@ export const createHashEntityReadTool = (execute: BrowserToolExecutor) =>
       ),
   });
 
-export const hashEntityTypeReadDescription = `List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns compact text: each type headed by its title and entityTypeId (a versioned URL), then its description, its properties (inherited ones included), each by its short name and its title, and its links, each by its title and linkEntityTypeId, with the entity types it may point to (any, when not limited). A type's title or entityTypeId can filter an entity read. The graph returns at most ${formattedQueryLimit} types at once; when it stopped there, the text says more may match than shown. A read that failed returns { error }. Read it after ${brunchTools.queryHashWebs} and ${brunchTools.queryHashEntities}, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.`;
+export const hashEntityTypeReadDescription = `List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns compact text: each type headed by its title and entityTypeId (a versioned URL), then its description, its properties (inherited ones included), each by its short name and its title, and its links, each by its title and linkEntityTypeId, with the entity types it may point to (any, when not limited). A type's title or entityTypeId can filter an entity read. The graph returns at most ${formattedQueryLimit} types at once; when it stopped there, the text says more may match than shown. A read that failed returns { error }. Read it after ${brunchTools.hashQueryWebs} and ${brunchTools.hashQueryEntities}, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.`;
 
 const hashEntityTypeReadEmptyNote =
   "No entity types matched that the signed-in user can see.";
@@ -399,14 +399,14 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
 /** The entity type read, executed by whatever `execute` reaches HASH through. */
 export const createHashEntityTypeReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
-    name: brunchTools.queryHashEntityTypes,
+    name: brunchTools.hashQueryEntityTypes,
     description: hashEntityTypeReadDescription,
     input: vHashEntityTypeReadInput,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
         {
-          toolName: brunchTools.queryHashEntityTypes,
+          toolName: brunchTools.hashQueryEntityTypes,
           input: data,
           toolCallId,
           signal,
@@ -415,7 +415,7 @@ export const createHashEntityTypeReadTool = (execute: BrowserToolExecutor) =>
       ),
   });
 
-export const hashWebReadDescription = `List the signed-in user's own HASH web and the webs of the organizations they belong to. Returns compact text, one line per web: its kind (user or organization), its name and @shortname where it has them, and its webId. A web id can limit an entity or entity type read. A read that failed returns { error }. Read it first, before ${brunchTools.queryHashEntities} and ${brunchTools.queryHashEntityTypes}.`;
+export const hashWebReadDescription = `List the signed-in user's own HASH web and the webs of the organizations they belong to. Returns compact text, one line per web: its kind (user or organization), its name and @shortname where it has them, and its webId. A web id can limit an entity or entity type read. A read that failed returns { error }. Read it first, before ${brunchTools.hashQueryEntities} and ${brunchTools.hashQueryEntityTypes}.`;
 
 /** What the model is shown of a settled web read: one line per web. */
 export const hashWebReadForModel = (output: unknown) => {
@@ -439,14 +439,14 @@ export const hashWebReadForModel = (output: unknown) => {
 /** The web read, executed by whatever `execute` reaches HASH through. */
 export const createHashWebReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
-    name: brunchTools.queryHashWebs,
+    name: brunchTools.hashQueryWebs,
     description: hashWebReadDescription,
     input: vHashWebReadInput,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
         {
-          toolName: brunchTools.queryHashWebs,
+          toolName: brunchTools.hashQueryWebs,
           input: data,
           toolCallId,
           signal,

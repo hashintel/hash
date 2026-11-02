@@ -38,7 +38,10 @@ import type {
   createBrunchPanelTransport,
 } from "../client/brunch-panel-transport";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
-import type { BrunchMutationApprovalCoordinator } from "./tools/brunch-mutation-approval";
+import type {
+  BrunchHostSave,
+  BrunchMutationApprovalCoordinator,
+} from "./tools/brunch-mutation-approval";
 import type { BrunchOpenDocument } from "./use-brunch-assistant";
 import type {
   AgentConversationObservationSnapshot,
@@ -516,7 +519,7 @@ const stubSaveCall = (expectedRevision: string) => {
       return Response.json({
         capability: "capability",
         binding: target.searchParams.get("binding"),
-        toolName: brunchTools.saveHashNet,
+        toolName: brunchTools.appSaveNet,
         input: { documentId: netOneId },
         expectedRevision,
       });
@@ -569,11 +572,14 @@ const renderSaveAwaitingCard = async (
   const posted = stubSaveCall(expectedRevisionOf(handle));
   const rendered = renderAssistant({
     openDocument: document,
-    readSaveState: () => ({
-      title: "Net",
-      lastSavedTime: null,
-      refusal: null,
-    }),
+    hostSave: {
+      read: () => ({
+        title: "Net",
+        lastSavedTime: null,
+        refusal: null,
+      }),
+      save: vi.fn<BrunchHostSave["save"]>(),
+    },
   });
   await waitFor(() =>
     expect(rendered.assistant().inBandBrowserTools).toBeDefined(),
@@ -592,7 +598,7 @@ const renderSaveAwaitingCard = async (
   const run = rendered.assistant().inBandBrowserTools?.run(
     {
       toolCallId: "save-1",
-      toolName: brunchTools.saveHashNet,
+      toolName: brunchTools.appSaveNet,
       input: { documentId: netOneId },
       signal: new AbortController().signal,
     },
@@ -745,10 +751,10 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       "readNetOutline",
       "readNetStructure",
       brunchTools.draftPetrinautExperiment,
-      brunchTools.queryHashEntities,
-      brunchTools.queryHashEntityTypes,
-      brunchTools.queryHashWebs,
-      brunchTools.saveHashNet,
+      brunchTools.hashQueryEntities,
+      brunchTools.hashQueryEntityTypes,
+      brunchTools.hashQueryWebs,
+      brunchTools.appSaveNet,
       ...Object.keys(hashPetrinautTools),
     ].toSorted(),
   );
@@ -756,7 +762,7 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
   // A host that can't save offers no save card.
   expect(
     aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-  ).not.toContain(brunchTools.saveHashNet);
+  ).not.toContain(brunchTools.appSaveNet);
 });
 
 test("a host's own tools run beside Brunch's while a document is bound", async () => {
@@ -777,7 +783,7 @@ test("a host's own tools run beside Brunch's while a document is bound", async (
     }),
   };
   const hashRead = {
-    toolName: brunchTools.queryHashEntities,
+    toolName: brunchTools.hashQueryEntities,
     inputParser: { parse: (value: unknown) => value },
     outputParser: { parse: (value: unknown) => value },
     execute: async () => ({ entities: [] }),
@@ -792,13 +798,65 @@ test("a host's own tools run beside Brunch's while a document is bound", async (
     expect.arrayContaining(["getLatestNetDefinition", "readNetOutline"]),
   );
   expect(
-    aiAssistant.inBandBrowserTools?.has(brunchTools.queryHashEntities),
+    aiAssistant.inBandBrowserTools?.has(brunchTools.hashQueryEntities),
   ).toBe(true);
 
   rendered.rerender({ ...rendered.input, openDocument: null });
   expect(rendered.result.current.assistant?.automaticTools ?? []).not.toContain(
     hashRead,
   );
+});
+
+test("a host that can save gives the agent's save, which runs the host's save of the net it names", async () => {
+  flueClientMock.current = {
+    history: async () => ({
+      conversation: {
+        conversationId: ordinaryConstructionConversationIdFrom(netOneId),
+        settlements: [],
+        messages: [],
+      },
+      offset: "offset-0",
+    }),
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({ phase: "absent" }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  };
+  const outcome = {
+    status: "saved",
+    decisionTime: "2026-10-24T01:00:00.000Z",
+    title: "Net",
+    stillDirty: false,
+  } as const;
+  const save = vi.fn<BrunchHostSave["save"]>(async () => outcome);
+  const rendered = renderAssistant({
+    hostSave: {
+      read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+      save,
+    },
+  });
+  await waitFor(() => expect(rendered.assistant()).toBeDefined());
+
+  await expect(
+    executeAutomaticTool(rendered.assistant(), brunchTools.appSaveNet, "s1", {
+      documentId: netOneId,
+    }),
+  ).resolves.toEqual(outcome);
+  expect(save).toHaveBeenCalledExactlyOnceWith(
+    netOneId,
+    expect.any(AbortSignal),
+  );
+  await expect(
+    Promise.resolve().then(() =>
+      executeAutomaticTool(rendered.assistant(), brunchTools.appSaveNet, "s2", {
+        documentId: netOneId,
+        title: "Net",
+      }),
+    ),
+  ).rejects.toThrow(/Invalid key/u);
+  expect(save).toHaveBeenCalledOnce();
 });
 
 test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {

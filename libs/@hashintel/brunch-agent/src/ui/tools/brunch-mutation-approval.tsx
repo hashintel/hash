@@ -12,7 +12,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
-import { parseHashSaveInput } from "../../hash/save";
+import { parseHashSaveInput, type HashSaveOutcome } from "../../hash/save";
 import {
   browserExecutedToolNames,
   browserExecutedTools,
@@ -35,6 +35,7 @@ import {
 
 import type { InBandBrowserCallAdmission } from "../../client/tools/in-band-browser-call";
 import type { ToolApprovalState } from "../../client/tools/tool-approval-state";
+import type { PetrinautAiAutomaticTool } from "../chat/ai-automatic-tool";
 
 type BrunchMutationApprovalChoice = "allow" | "always-allow" | "deny";
 
@@ -73,7 +74,7 @@ export interface BrunchMutationApprovalCoordinator {
   open(): void;
 }
 
-const saveToolName = brunchTools.saveHashNet;
+const saveToolName = brunchTools.appSaveNet;
 
 /**
  * What the host's own Save would do with the open document now: the title and
@@ -92,6 +93,23 @@ export interface BrunchDocumentSaveState {
 export type ReadBrunchDocumentSaveState = (
   documentId: string,
 ) => BrunchDocumentSaveState;
+
+/**
+ * The host's own Save, for its agent: what it would do now, and running it.
+ * Brunch builds the agent's save, its card and its refusals from it.
+ */
+export interface BrunchHostSave {
+  readonly read: ReadBrunchDocumentSaveState;
+  /**
+   * Runs the host's Save of the document `documentId` names, once the person
+   * has approved it, and settles with its outcome. Rejects, settling
+   * nothing, when `signal` aborts first.
+   */
+  readonly save: (
+    documentId: string,
+    signal: AbortSignal,
+  ) => Promise<HashSaveOutcome>;
+}
 
 type ApprovalPolicy = {
   readonly canAlwaysAllow: boolean;
@@ -397,6 +415,24 @@ const removalDescriptions = (
 /** The document a save names. */
 const saveInputParser = { parse: parseHashSaveInput };
 
+const passthrough = { parse: (value: unknown) => value };
+
+const saveNotStarted = (reason: string): HashSaveOutcome => ({
+  status: "not-started",
+  reason,
+});
+
+/** The agent's save, run in the page through the host's own Save. */
+export const createBrunchHostSaveTool = (
+  hostSave: BrunchHostSave,
+): PetrinautAiAutomaticTool => ({
+  toolName: saveToolName,
+  inputParser: saveInputParser,
+  outputParser: passthrough,
+  execute: ({ input, signal }) =>
+    hostSave.save(saveInputParser.parse(input).documentId, signal),
+});
+
 /**
  * Later calls stay queued behind a waiting approval; a denial settles as not
  * applied. A save asks every time, after the host's own refusals, which
@@ -405,25 +441,25 @@ const saveInputParser = { parse: parseHashSaveInput };
 export const createBrunchMutationAdmission =
   (
     approval: BrunchMutationApprovalCoordinator,
-    readSaveState?: ReadBrunchDocumentSaveState,
+    hostSave?: BrunchHostSave,
   ): InBandBrowserCallAdmission =>
   async ({ toolCallId, toolName, input, signal }) => {
     if (toolName === saveToolName) {
-      if (readSaveState === undefined)
+      if (hostSave === undefined)
         throw new Error("This editor has no save for the agent to run.");
-      const { refusal } = readSaveState(
+      const { refusal } = hostSave.read(
         saveInputParser.parse(input).documentId,
       );
       if (refusal !== null)
-        return {
-          admitted: false,
-          output: { applied: false, reason: refusal },
-        };
-    } else {
-      if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
-      // An approval row renders only for inputs its schema accepts.
-      parseIssuedInput(toolName, input);
+        return { admitted: false, output: saveNotStarted(refusal) };
+      const decision = await approval.request({ toolCallId, toolName, signal });
+      return decision.decision === "allow"
+        ? { admitted: true }
+        : { admitted: false, output: saveNotStarted(decision.reason) };
     }
+    if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
+    // An approval row renders only for inputs its schema accepts.
+    parseIssuedInput(toolName, input);
     const decision = await approval.request({ toolCallId, toolName, signal });
     return decision.decision === "allow"
       ? { admitted: true }
@@ -570,8 +606,6 @@ export const createBrunchSaveApprovalWidget = (
   return Widget;
 };
 
-const passthrough = { parse: (value: unknown) => value };
-
 /**
  * Approval widgets for the calls in `pending`, a coordinator snapshot. Build
  * them from each new snapshot: a widget shows only while its call waits.
@@ -592,7 +626,7 @@ export type BrunchMutationApprovalComponents = Readonly<
  */
 export const createBrunchMutationApprovalComponents = (
   coordinator: BrunchMutationApprovalCoordinator,
-  readSaveState?: ReadBrunchDocumentSaveState,
+  hostSave?: BrunchHostSave,
 ): BrunchMutationApprovalComponents => ({
   ...(Object.fromEntries(
     destructiveToolNames.map((toolName) => {
@@ -605,12 +639,12 @@ export const createBrunchMutationApprovalComponents = (
       return [toolName, component];
     }),
   ) as Record<string, ApprovalComponent>),
-  ...(readSaveState === undefined
+  ...(hostSave === undefined
     ? {}
     : {
         [saveToolName]: createBrunchSaveApprovalWidget(
           coordinator,
-          readSaveState,
+          hostSave.read,
         ),
       }),
 });
@@ -663,7 +697,7 @@ export const createBrunchMutationApprovalInteractiveTools = (
  */
 export const useBrunchMutationApprovalTools = (
   coordinator: BrunchMutationApprovalCoordinator,
-  readSaveState?: ReadBrunchDocumentSaveState,
+  hostSave?: BrunchHostSave,
 ): readonly PetrinautAiInteractiveTool[] => {
   const pending = useSyncExternalStore(
     coordinator.subscribe,
@@ -671,8 +705,8 @@ export const useBrunchMutationApprovalTools = (
     coordinator.getPendingSnapshot,
   );
   const components = useMemo(
-    () => createBrunchMutationApprovalComponents(coordinator, readSaveState),
-    [coordinator, readSaveState],
+    () => createBrunchMutationApprovalComponents(coordinator, hostSave),
+    [coordinator, hostSave],
   );
   return useMemo(
     () => createBrunchMutationApprovalInteractiveTools(components, pending),

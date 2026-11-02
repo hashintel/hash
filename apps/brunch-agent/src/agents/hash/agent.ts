@@ -32,7 +32,10 @@ import {
   selectChatThinking,
 } from "../../shared/chat-model.ts";
 import { createBrunchContextProjection } from "../../shared/context-projection.ts";
-import { issueBrowserCall } from "../../shared/conversation/browser-call-rendezvous.ts";
+import {
+  BrowserCallNotStartedError,
+  issueBrowserCall,
+} from "../../shared/conversation/browser-call-rendezvous.ts";
 import {
   createNetViewTracker,
   expectedNetRevision,
@@ -124,7 +127,7 @@ export const HashAgent = ({ id }: AgentProps): string => {
         : undefined;
       // HASH's own read is the one to make; the refusal is otherwise the same.
       if (expected && "refusal" in expected)
-        throw new Error(hashNoNetViewRefusal);
+        throw new BrowserCallNotStartedError(hashNoNetViewRefusal);
       return issueBrowserCall({
         instanceId: id,
         toolCallId,

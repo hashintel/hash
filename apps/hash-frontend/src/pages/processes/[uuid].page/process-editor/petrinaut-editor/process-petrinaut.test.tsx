@@ -9,11 +9,10 @@ import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 
 import { ProcessPetrinaut } from "./process-petrinaut";
 
-import type { SaveNetForAgent } from "./brunch-hash-save";
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   BrunchAssistantHost,
-  ReadBrunchDocumentSaveState,
+  BrunchHostSave,
   useBrunchAssistant,
 } from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
@@ -116,13 +115,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const readSaveState: ReadBrunchDocumentSaveState = () => ({
-  title: "Net",
-  lastSavedTime: null,
-  refusal: null,
-});
-const saveNetForAgent: SaveNetForAgent = () =>
-  Promise.reject(new Error("These tests never save"));
+const hostSave: BrunchHostSave = {
+  read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+  save: () => Promise.reject(new Error("These tests never save")),
+};
 
 const renderEditor = (props: {
   savedEntityId: EntityId | null;
@@ -133,8 +129,7 @@ const renderEditor = (props: {
       <ProcessPetrinaut
         handle={handle}
         readTitle={() => "Net"}
-        readSaveState={readSaveState}
-        saveNetForAgent={saveNetForAgent}
+        hostSave={hostSave}
         versionLoad={undefined}
         setTitle={() => {}}
         title="Net"

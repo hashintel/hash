@@ -313,7 +313,7 @@ const settlingQueryFailure = async <Result>(
 export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
 ): PetrinautAiAutomaticTool => ({
-  toolName: brunchTools.queryHashEntities,
+  toolName: brunchTools.hashQueryEntities,
   inputParser: { parse: parseHashEntityReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
@@ -418,7 +418,7 @@ export type QueryEntityTypes = (
 export const createHashEntityTypeReadTool = (
   queryEntityTypes: QueryEntityTypes,
 ): PetrinautAiAutomaticTool => ({
-  toolName: brunchTools.queryHashEntityTypes,
+  toolName: brunchTools.hashQueryEntityTypes,
   inputParser: { parse: parseHashEntityTypeReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
@@ -476,7 +476,7 @@ export const hashWebReadResult = (
 export const createHashWebReadTool = (
   currentUser: () => HashWebReadUser | undefined,
 ): PetrinautAiAutomaticTool => ({
-  toolName: brunchTools.queryHashWebs,
+  toolName: brunchTools.hashQueryWebs,
   inputParser: { parse: parseHashWebReadInput },
   outputParser: { parse: (value) => value },
   execute: () => hashWebReadResult(currentUser()),

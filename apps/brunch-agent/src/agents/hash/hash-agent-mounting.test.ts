@@ -216,7 +216,7 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
     `The net is open in one editor, whose \`editor_id\` is \`"${hashProcessEditorId}"\``,
   );
   // The save names the bound net, the one the editor that sent the turn has open.
-  expect(mounted.descriptions.get(brunchTools.saveHashNet)).toBe(
+  expect(mounted.descriptions.get(brunchTools.appSaveNet)).toBe(
     hashSaveDescription("document"),
   );
   expect(hashSaveDescription("document")).toContain(
@@ -226,13 +226,13 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
   expect(hashSaveDescription("document")).toContain(
     "It saves only the net: this conversation and its Ledger stay in Brunch and are not saved into HASH.",
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toBe(
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntities)).toBe(
     hashEntityReadDescription,
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntityTypes)).toBe(
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntityTypes)).toBe(
     hashEntityTypeReadDescription,
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashWebs)).toBe(
+  expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toBe(
     hashWebReadDescription,
   );
   // Petrinaut, runtime, experiment and query_basis guidance live in the
@@ -273,13 +273,13 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(hashPrompt).toContain(hashGraphParagraph);
   expect(hashPrompt).toContain("Load `hash-graph`");
   expect(mounted.skills).toContain("hash-graph");
-  expect(mounted.descriptions.get(brunchTools.queryHashWebs)).toContain(
+  expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toContain(
     "Read it first, before hash_query_entities and hash_query_entity_types.",
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntityTypes)).toContain(
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntityTypes)).toContain(
     "Read it after hash_query_webs and hash_query_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toContain(
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntities)).toContain(
     "Read webs with hash_query_webs first, for the web ids to filter by; then read the types of the entities found with hash_query_entity_types, by their entityTypeIds",
   );
 
@@ -289,8 +289,8 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(petrinautPrompt).not.toContain(hashGraphParagraph);
   expect(petrinautPrompt).not.toContain("hash-graph");
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
-  expect(mounted.descriptions.has(brunchTools.queryHashWebs)).toBe(false);
-  expect(mounted.descriptions.has(brunchTools.saveHashNet)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.hashQueryWebs)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.appSaveNet)).toBe(false);
 });
 
 /** Every description of the evidenced origin in the parameters Flue sends for the mounted `ledger_commit`. */

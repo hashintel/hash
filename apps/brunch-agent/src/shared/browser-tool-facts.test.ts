@@ -262,11 +262,11 @@ describe("what the server decides about each tool it issues to the browser", () 
         hashAgentShowsString: "as-json",
       },
     ],
-    [brunchTools.queryHashEntities, hashRead],
-    [brunchTools.queryHashEntityTypes, hashRead],
-    [brunchTools.queryHashWebs, hashRead],
+    [brunchTools.hashQueryEntities, hashRead],
+    [brunchTools.hashQueryEntityTypes, hashRead],
+    [brunchTools.hashQueryWebs, hashRead],
     [
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       {
         freshView: true,
         onFailure: "unknown",

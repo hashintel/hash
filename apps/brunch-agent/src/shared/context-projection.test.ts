@@ -84,7 +84,7 @@ const hashRead = (output: unknown): ContextProjectionEntry => ({
   message: {
     role: "toolResult",
     toolCallId: "h1",
-    toolName: brunchTools.queryHashEntities,
+    toolName: brunchTools.hashQueryEntities,
     isError: false,
     content: [
       {

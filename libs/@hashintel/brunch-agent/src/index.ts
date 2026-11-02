@@ -36,7 +36,12 @@ export {
   type HashReadFailure,
   type HashWebReadResult,
 } from "./hash/graph-reads";
-export { vHashSaveInput, parseHashSaveInput } from "./hash/save";
+export {
+  vHashSaveInput,
+  parseHashSaveInput,
+  parseHashSaveOutcome,
+  type HashSaveOutcome,
+} from "./hash/save";
 export {
   hashPetrinautTools,
   hashProcessEditorId,
