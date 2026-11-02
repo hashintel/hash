@@ -1318,3 +1318,43 @@ test("leaving a net while Brunch's agent save of it is pending settles the save 
   expect(topBar()).toMatchObject({ title: "B", persistPending: false });
   expect(url()).toBe(`/processes/${uuidB}`);
 });
+
+test("an update save's editability reaches its own load, including Brunch's save state, and never a later load of the same net", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  const firstHandle = editor().handle;
+  const readSaveState = observed.brunch?.readSaveState;
+  expect(readSaveState?.(netAId).refusal).toBeNull();
+
+  // A save after which the user may no longer edit: the same load turns
+  // read-only, keeping its handle, and Brunch's save state refuses.
+  graph.editableAfterWrite = false;
+  editTitle("A2");
+  pressSave();
+  await settle();
+  expect(editor()).toMatchObject({ readonly: true, handle: firstHandle });
+  expect(readSaveState?.(netAId).refusal).toBe(
+    "The user can't edit this net, so they can't save it.",
+  );
+});
+
+test("an update save finishing after the user picks a revision of the same net leaves that later load's editability as it was", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  editTitle("A2");
+  pressSave();
+  await settle();
+  graph.editableAfterWrite = false;
+  editTitle("A3");
+  const release = holdNextWrite();
+  pressSave();
+  await settle();
+  const [, earlier] = topBar().revisions;
+  act(() => topBar().onLoadRevision(earlier!));
+  await settle();
+  const pickedHandle = editor().handle;
+
+  act(() => release());
+  await settle();
+  expect(graph.nets.get(netAId)?.editable).toBe(false);
+  expect(editor()).toMatchObject({ readonly: false, handle: pickedHandle });
+  expect(observed.brunch?.readSaveState?.(netAId).refusal).toBeNull();
+});
