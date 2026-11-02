@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 
-import { getDependentTypeRows } from "./dependent-type-rows";
+import {
+  getDependentTypeRows,
+  getParentVersionRows,
+} from "./dependent-type-rows";
 
 import type {
   BaseUrl,
@@ -53,7 +56,7 @@ const rowsFor = (
 /** Each row as its title and its ranges, written as `v<first>–v<last> → v<parent>`. */
 const summarize = (result: ReturnType<typeof getDependentTypeRows>) =>
   result.rows.map((row) => ({
-    title: row.entityType.schema.title,
+    title: `${row.entityType.schema.title}${row.former ? " (former)" : ""}`,
     ranges: row.ranges.map(
       ({ firstVersion, lastVersion, parentVersion }) =>
         `v${firstVersion}–v${lastVersion} → v${parentVersion}`,
@@ -105,10 +108,16 @@ describe("getDependentTypeRows", () => {
     ]);
   });
 
-  it("leaves out a type whose latest version no longer extends the parent", () => {
+  it("marks a type whose latest version no longer extends the parent as former, at its highest version that does", () => {
+    const formerV2 = makeVersion("former", "Former", 2, [1]);
     const formerV1 = makeVersion("former", "Former", 1, [1]);
 
-    expect(summarize(rowsFor([formerV1], []))).toEqual([]);
+    const result = rowsFor([formerV2, formerV1], []);
+
+    expect(summarize(result)).toEqual([
+      { title: "Former (former)", ranges: ["v1–v2 → v1"] },
+    ]);
+    expect(result.rows[0]?.entityType.schema.$id).toBe(formerV2.schema.$id);
   });
 
   it("leaves out a type that only the latest-version query returned", () => {
@@ -187,6 +196,64 @@ describe("getDependentTypeRows", () => {
     expect(rowsWithCursors(undefined, cursor).incomplete).toBe(true);
     expect(summarize(rowsWithCursors(cursor, cursor))).toEqual([
       { title: "Machine", ranges: ["v1–v1 → v1"] },
+    ]);
+  });
+
+  it("lists each version of a type that extends the parent, with the parent versions it extends", () => {
+    const mixedVersions = [
+      makeVersion("mixed", "Mixed", 4, [2]),
+      makeVersion("mixed", "Mixed", 2, [1, 2]),
+      makeVersion("mixed", "Mixed", 1, [1]),
+    ];
+
+    expect(
+      rowsFor(mixedVersions, [mixedVersions[0]!]).rows[0]?.versions,
+    ).toEqual([
+      { version: 1, parentVersions: [1] },
+      { version: 2, parentVersions: [1, 2] },
+      { version: 4, parentVersions: [2] },
+    ]);
+  });
+});
+
+describe("getParentVersionRows", () => {
+  it("lists every parent version, newest first, each with the types and ranges that extend it", () => {
+    const userVersions = [
+      makeVersion("user", "User", 4, [2]),
+      makeVersion("user", "User", 3, [1, 2]),
+      makeVersion("user", "User", 2, [1]),
+    ];
+    const machine = makeVersion("machine", "Machine", 1, [1]);
+    const { rows } = rowsFor(
+      [...userVersions, machine],
+      [userVersions[0]!, machine],
+    );
+
+    expect(
+      getParentVersionRows({ rows, parentLatestVersion: 3 }).map(
+        ({ parentVersion, types }) => ({
+          parentVersion,
+          types: types.map(
+            ({ row, ranges, highestVersionId }) =>
+              `${row.entityType.schema.title} ${ranges
+                .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
+                .join(", ")} opens ${highestVersionId}`,
+          ),
+        }),
+      ),
+    ).toEqual([
+      { parentVersion: 3, types: [] },
+      {
+        parentVersion: 2,
+        types: [`User v3–v4 opens ${typeBaseUrl("user")}v/4`],
+      },
+      {
+        parentVersion: 1,
+        types: [
+          `Machine v1–v1 opens ${typeBaseUrl("machine")}v/1`,
+          `User v2–v3 opens ${typeBaseUrl("user")}v/3`,
+        ],
+      },
     ]);
   });
 });

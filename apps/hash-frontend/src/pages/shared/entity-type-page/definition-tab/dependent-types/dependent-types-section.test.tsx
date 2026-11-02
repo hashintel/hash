@@ -22,38 +22,55 @@ import type {
 import type { ComponentProps } from "react";
 
 const typeId = (title: string, version: number) =>
-  `https://example.com/@alice/types/entity-type/${title.toLowerCase()}/v/${version}` as VersionedUrl;
+  `https://example.com/@alice/types/entity-type/${title.toLowerCase().replaceAll(" ", "-")}/v/${version}` as VersionedUrl;
 
 /**
- * A row for `title`, whose latest version is `latestVersion`, with ranges
- * given as `[firstVersion, lastVersion, parentVersion]`.
+ * A row for `title`, named by version `version`, with ranges given as
+ * `[firstVersion, lastVersion, parentVersion]`.
  */
 const makeRow = (
   title: string,
-  latestVersion: number,
+  version: number,
   ranges: [number, number, number][],
-): DependentTypeRow => ({
-  entityType: {
-    schema: {
-      $schema: ENTITY_TYPE_META_SCHEMA,
-      kind: "entityType",
-      $id: typeId(title, latestVersion),
-      title,
-      description: `A ${title}`,
-      type: "object",
-      properties: {},
-    },
-  } as EntityTypeWithMetadata,
-  firstVersion: Math.min(...ranges.map(([first]) => first)),
-  lastVersion: Math.max(...ranges.map(([, last]) => last)),
-  parentVersions: [...new Set(ranges.map(([, , parent]) => parent))].sort(),
-  ranges: ranges.map(([firstVersion, lastVersion, parentVersion]) => ({
-    firstVersion,
-    lastVersion,
-    lastVersionId: typeId(title, lastVersion),
-    parentVersion,
-  })),
-});
+  former = false,
+): DependentTypeRow => {
+  const versions = new Map<number, number[]>();
+  for (const [first, last, parent] of ranges) {
+    for (let current = first; current <= last; current += 1) {
+      versions.set(current, [...(versions.get(current) ?? []), parent]);
+    }
+  }
+
+  return {
+    entityType: {
+      schema: {
+        $schema: ENTITY_TYPE_META_SCHEMA,
+        kind: "entityType",
+        $id: typeId(title, version),
+        title,
+        description: `A ${title}`,
+        type: "object",
+        properties: {},
+      },
+    } as EntityTypeWithMetadata,
+    former,
+    firstVersion: Math.min(...ranges.map(([first]) => first)),
+    lastVersion: Math.max(...ranges.map(([, last]) => last)),
+    parentVersions: [...new Set(ranges.map(([, , parent]) => parent))].sort(),
+    ranges: ranges.map(([firstVersion, lastVersion, parentVersion]) => ({
+      firstVersion,
+      lastVersion,
+      lastVersionId: typeId(title, lastVersion),
+      parentVersion,
+    })),
+    versions: [...versions]
+      .map(([current, parentVersions]) => ({
+        version: current,
+        parentVersions,
+      }))
+      .sort((left, right) => left.version - right.version),
+  };
+};
 
 const user = makeRow("User", 7, [
   [2, 3, 1],
@@ -63,6 +80,7 @@ const machine = makeRow("Machine", 2, [
   [1, 1, 1],
   [2, 2, 2],
 ]);
+const shellCompany = makeRow("Shell Company", 2, [[1, 2, 1]], true);
 
 const renderSection = (
   props: Partial<ComponentProps<typeof DependentTypesSection>> = {},
@@ -73,6 +91,7 @@ const renderSection = (
     <ThemeProvider theme={theme}>
       <DependentTypesSection
         entityTypeTitle="Actor"
+        parentLatestVersion={2}
         rows={undefined}
         incomplete={false}
         error={undefined}
@@ -89,14 +108,7 @@ const renderSection = (
   };
 };
 
-const rowToggle = (section: HTMLElement, name: string) =>
-  within(section).getByRole("button", { name, expanded: false });
-
-/** The text of each cell in the table row that contains `text`. */
-const cellsOfRowWith = (section: HTMLElement, text: string) =>
-  within(within(section).getByText(text).closest("tr")!)
-    .getAllByRole("cell")
-    .map((cell) => cell.textContent.trim());
+const userToggleName = "User v7, versions v2–v7, extends Actor v1, v2";
 
 describe("DependentTypesSection", () => {
   afterEach(cleanup);
@@ -113,12 +125,12 @@ describe("DependentTypesSection", () => {
     expect(section.getAttribute("aria-busy")).toBe("true");
   });
 
-  it("says so when there are no types", () => {
+  it("says so when no type extends the type, and offers no controls", () => {
     const { section } = renderSection({ rows: [] });
 
     expect(section.getAttribute("aria-busy")).toBe("false");
     expect(section.textContent).toContain("No types extend Actor yet.");
-    expect(within(section).queryByRole("table")).toBeNull();
+    expect(within(section).queryByRole("switch")).toBeNull();
   });
 
   it("shows an error message when loading fails", () => {
@@ -130,41 +142,47 @@ describe("DependentTypesSection", () => {
     );
   });
 
-  it("shows one collapsed row per type, with its version span and the versions of the type it extends", () => {
-    const { section } = renderSection({ rows: [machine, user] });
+  it("shows one collapsed row per current type, with its version span and the versions of the type it extends", () => {
+    const { section } = renderSection({
+      rows: [machine, shellCompany, user],
+    });
 
     expect(
       within(section)
-        .getAllByRole("columnheader")
-        .map((header) => header.textContent),
-    ).toEqual(["Type", "Versions", "Extends Actor", ""]);
-
-    rowToggle(section, "User v7");
-    expect(cellsOfRowWith(section, "v2–v7")).toEqual([
-      "User v7",
-      "v2–v7",
-      "v1, v2",
-      "",
+        .getAllByRole("button", { expanded: false })
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual([
+      "Machine v2, versions v1–v2, extends Actor v1, v2",
+      userToggleName,
     ]);
-
-    expect(within(section).queryByText("v2–v3")).toBeNull();
   });
 
-  it("expands a row into its version ranges when the row is clicked, and collapses it again", () => {
+  it("expands a row into its version ranges, and collapses it again", () => {
     const { section } = renderSection({ rows: [user] });
 
-    fireEvent.click(within(section).getByText("v2–v7"));
+    fireEvent.click(
+      within(section).getByRole("button", { name: userToggleName }),
+    );
 
-    const toggle = within(section).getByRole("button", {
-      name: "User v7",
-      expanded: true,
+    const ranges = within(section).getByRole("group", {
+      name: "Version ranges of User",
     });
-    expect(cellsOfRowWith(section, "v2–v3")).toEqual(["", "v2–v3", "v1", ""]);
-    expect(cellsOfRowWith(section, "v4–v7")).toEqual(["", "v4–v7", "v2", ""]);
+    expect(ranges.textContent).toContain("v2–v3");
+    expect(ranges.textContent).toContain("v4–v7");
+    within(ranges).getByRole("button", {
+      name: "Open User v3, the highest version in v2–v3",
+    });
 
-    fireEvent.click(toggle);
+    fireEvent.click(
+      within(section).getByRole("button", {
+        name: userToggleName,
+        expanded: true,
+      }),
+    );
 
-    rowToggle(section, "User v7");
+    expect(
+      within(section).queryByRole("group", { name: "Version ranges of User" }),
+    ).toBeNull();
   });
 
   it("opens a type's latest version from its row without expanding the row", () => {
@@ -175,18 +193,81 @@ describe("DependentTypesSection", () => {
     );
 
     expect(onOpenType).toHaveBeenCalledWith(typeId("User", 7));
-    rowToggle(section, "User v7");
+    within(section).getByRole("button", {
+      name: userToggleName,
+      expanded: false,
+    });
   });
 
   it("opens a range at its highest version", () => {
     const { onOpenType, section } = renderSection({ rows: [user] });
 
-    fireEvent.click(rowToggle(section, "User v7"));
     fireEvent.click(
-      within(section).getByRole("button", { name: "Open User v3" }),
+      within(section).getByRole("button", { name: userToggleName }),
+    );
+    fireEvent.click(
+      within(section).getByRole("button", {
+        name: "Open User v3, the highest version in v2–v3",
+      }),
     );
 
     expect(onOpenType).toHaveBeenCalledWith(typeId("User", 3));
+  });
+
+  it("lists former types, marked as former, once current children only is turned off", () => {
+    const { onOpenType, section } = renderSection({
+      rows: [shellCompany, user],
+    });
+
+    const currentOnly = within(section).getByRole("switch", {
+      name: "Current children only",
+    });
+    expect((currentOnly as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(currentOnly);
+
+    within(section).getByRole("button", {
+      name: "Shell Company, former, versions v1–v2, extends Actor v1",
+    });
+    fireEvent.click(
+      within(section).getByRole("button", {
+        name: "Open Shell Company v2, its highest version that extends Actor",
+      }),
+    );
+    expect(onOpenType).toHaveBeenCalledWith(typeId("Shell Company", 2));
+  });
+
+  it("says no type extends the type when only former types do, and keeps the switch", () => {
+    const { section } = renderSection({ rows: [shellCompany] });
+
+    expect(section.textContent).toContain("No types extend Actor yet.");
+    within(section).getByRole("switch", { name: "Current children only" });
+  });
+
+  it("switches between the layouts", () => {
+    const { section } = renderSection({ rows: [user] });
+
+    const byChild = within(section).getByRole("button", {
+      name: "By child type",
+    });
+    const byParent = within(section).getByRole("button", {
+      name: "By parent version",
+    });
+    expect(byChild.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(byParent);
+
+    expect(byParent.getAttribute("aria-pressed")).toBe("true");
+    expect(
+      within(section).queryByRole("button", { name: userToggleName }),
+    ).toBeNull();
+  });
+
+  it("explains each control", () => {
+    const { section } = renderSection({ rows: [user] });
+
+    within(section).getByRole("button", { name: "About the layouts" });
+    within(section).getByRole("button", { name: "About current children" });
   });
 
   it("warns that types or versions may be missing when a query reached its row limit", () => {
@@ -195,7 +276,6 @@ describe("DependentTypesSection", () => {
     within(section).getByText(
       "Some types or versions may be missing from this table.",
     );
-    within(section).getByRole("table");
   });
 
   it("does not warn when every query came back complete", () => {
