@@ -248,6 +248,10 @@ async fn capture_disk_limit_context(#[case] load: bool) {
         matches!(report.downcast_ref::<StatementError>(), Some(StatementError::DiskLimit { used, limit }) if used > limit),
         "the error should retain the measured usage and limit: {report:?}"
     );
+    workspace
+        .close()
+        .await
+        .expect("the workspace should close after the disk-limit failure");
 }
 
 #[tokio::test]
