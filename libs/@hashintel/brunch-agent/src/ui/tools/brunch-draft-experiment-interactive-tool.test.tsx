@@ -231,9 +231,9 @@ const renderWidget = ({
     },
     editor: { navigate: vi.fn() },
   };
-  const widget = (
+  const widgetIn = (widgetState: WidgetState) => (
     <BrunchDraftExperimentWidget
-      {...state}
+      {...widgetState}
       api={api}
       input={input}
       readTitle={() => "Support desk"}
@@ -246,16 +246,21 @@ const renderWidget = ({
       toolCallId={toolCallId}
     />
   );
-  const withAuthority = (value: LocalToolCallAuthority) => (
+  const withAuthority = (
+    value: LocalToolCallAuthority,
+    widgetState: WidgetState = state,
+  ) => (
     <LocalToolCallAuthorityContext value={value}>
-      {widget}
+      {widgetIn(widgetState)}
     </LocalToolCallAuthorityContext>
   );
-  const utils = render(authority ? withAuthority(authority) : widget);
+  const utils = render(authority ? withAuthority(authority) : widgetIn(state));
   return {
     ...utils,
-    rerenderWithAuthority: (value: LocalToolCallAuthority) =>
-      utils.rerender(withAuthority(value)),
+    rerenderWithAuthority: (
+      value: LocalToolCallAuthority,
+      widgetState?: WidgetState,
+    ) => utils.rerender(withAuthority(value, widgetState)),
     submit,
     claimAndSubmit,
     api,
@@ -646,6 +651,44 @@ describe("BrunchDraftExperimentWidget", () => {
     rerenderWithAuthority({ deliveredHere, deliveries: 1 });
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(claim).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a call another panel delivered as prepared there, not here", async () => {
+    const claim = vi.fn(async () => {});
+    renderWidget({
+      input: makeInput(),
+      toolCallId: "delivered-elsewhere",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      claim,
+      authority: { deliveredHere: () => false, deliveries: 0 },
+    });
+
+    await waitFor(() =>
+      expect(heading()).toEqual(["Preparing in another editor"]),
+    );
+    expect(screen.getByText(/being prepared in another editor/u)).toBeTruthy();
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  it("marks a call another panel delivered as not retained once it settles", async () => {
+    const authority = { deliveredHere: () => false, deliveries: 0 };
+    const { rerenderWithAuthority } = renderWidget({
+      input: makeInput(),
+      toolCallId: "settled-elsewhere",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      authority,
+    });
+    await waitFor(() =>
+      expect(heading()).toEqual(["Preparing in another editor"]),
+    );
+
+    rerenderWithAuthority(authority, submitted);
+    expect(heading()).toEqual(["Not retained in this editor"]);
+    expect(screen.queryByText(/being prepared/u)).toBeNull();
   });
 
   it("reports a failed claim or submission on the card", async () => {

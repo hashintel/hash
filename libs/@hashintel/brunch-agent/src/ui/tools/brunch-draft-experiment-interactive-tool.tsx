@@ -308,9 +308,15 @@ export const BrunchDraftExperimentWidget = ({
     kind: "prepare" | "submit";
     message: string;
   } | null>(null);
-  const [submissionPending, setSubmissionPending] = useState(
-    state === "awaiting",
-  );
+  // Whether this panel delivered the call is known only once the effect below
+  // has run, so until then an awaiting card reads as prepared here.
+  const [preparation, setPreparation] = useState<
+    "unchecked" | "here" | "elsewhere" | "finished"
+  >("unchecked");
+  const submissionPending =
+    preparation === "here" ||
+    (preparation === "unchecked" && state === "awaiting");
+  const pendingElsewhere = preparation === "elsewhere" && state === "awaiting";
 
   const { deliveredHere, deliveries } = use(LocalToolCallAuthorityContext);
 
@@ -320,21 +326,21 @@ export const BrunchDraftExperimentWidget = ({
   // delivered the call claims it; another panel shows it as pending until
   // the history settles it.
   useEffect(() => {
-    if (
-      state !== "awaiting" ||
-      preparedOnceRef.current ||
-      !deliveredHere(toolCallId)
-    )
+    if (state !== "awaiting" || preparedOnceRef.current) return;
+    if (!deliveredHere(toolCallId)) {
+      // eslint-disable-next-line react/set-state-in-effect -- whether this panel delivered the call is readable only from effects
+      setPreparation("elsewhere");
       return;
+    }
     preparedOnceRef.current = true;
+    setPreparation("here");
     const initialDefinition = handle.doc();
     if (!initialDefinition) {
-      // eslint-disable-next-line react/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
       setPreparationFailure({
         kind: "prepare",
         message: "The bound browser document is unavailable.",
       });
-      setSubmissionPending(false);
+      setPreparation("finished");
       return;
     }
     let candidate: Parameters<typeof editorDrafts.register>[0] | undefined;
@@ -408,11 +414,11 @@ export const BrunchDraftExperimentWidget = ({
           kind: "submit",
           message: caught instanceof Error ? caught.message : String(caught),
         });
-        setSubmissionPending(false);
+        setPreparation("finished");
         return;
       }
       if (candidate) editorDrafts.register(candidate);
-      setSubmissionPending(false);
+      setPreparation("finished");
     };
     void submitAndRegister();
   }, [
@@ -527,7 +533,9 @@ export const BrunchDraftExperimentWidget = ({
         ? preparationFailure.kind === "prepare"
           ? "Draft could not be prepared"
           : "Draft could not be submitted"
-        : "Not retained in this editor"
+        : pendingElsewhere
+          ? "Preparing in another editor"
+          : "Not retained in this editor"
     : draft.invalid !== null
       ? "Could not be prepared"
       : draft.dismissed
@@ -641,7 +649,9 @@ export const BrunchDraftExperimentWidget = ({
                 ? preparationFailure.kind === "prepare"
                   ? `The experiment proposal could not be prepared: ${preparationFailure.message}`
                   : `The prepared proposal could not be submitted: ${preparationFailure.message}`
-                : "This draft is from an earlier session. Ask the AI assistant to draft it again to run it.")}
+                : pendingElsewhere
+                  ? "This experiment proposal is being prepared in another editor."
+                  : "This draft is from an earlier session. Ask the AI assistant to draft it again to run it.")}
         </p>
       )}
       <p className={sectionLabelStyle}>Declared</p>
