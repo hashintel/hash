@@ -30,7 +30,7 @@ Records say what was entered, not what happens. What happened last Tuesday, or h
 1. `query_hash_webs`, to learn the USER's web and their organisations'.
 2. `query_hash_entities` by `webIds` from those webs, and by type title if you already know it, with `traversalDepth: 0`, to see what records each web holds. A title in `entityTypes` matches every type with that title, in any web and at any version; a versioned `entityTypeId` matches that version only.
 3. `query_hash_entity_types` with the `entityTypeIds` those entities carry, to learn their properties' titles and links. Without filters it lists every type the USER can see, which is large: filter by `entityTypeIds`.
-4. Follow up on a found entity by its `entityId` rather than widening the filter. Use a `traversalDepth` above 0 only when links matter, such as which supplier provides a part, and go no deeper than they need.
+4. Follow up on a found entity by its `entityId` rather than widening the filter. Use a `traversalDepth` above 0 only when links matter, such as which supplier provides a part, and go no deeper than they need. It is at most 3; each link is followed in either direction, so mixed chains (A → B ← C) are included, and reading a link entity includes its endpoints.
 
 An entity's `properties` are keyed by property-type base URL; the types read gives each base URL's title.
 
