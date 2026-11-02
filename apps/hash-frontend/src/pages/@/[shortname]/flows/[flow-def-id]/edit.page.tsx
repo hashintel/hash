@@ -94,7 +94,10 @@ const FlowEditor = ({
 
   const archiveFlow = async () => {
     /* Saving first, so that no save is made after the flow is archived, which would be refused. */
-    await flush();
+    if (!(await flush())) {
+      throw new Error("Its latest edits couldn't be saved");
+    }
+
     await archiveFlowDefinition({ variables: { flowDefinitionEntityId } });
     await router.push("/flows");
   };

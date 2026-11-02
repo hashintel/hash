@@ -46,8 +46,8 @@ export const useAutosavedFlowEditor = ({
   status: FlowSaveStatus;
   changedElsewhere: boolean;
   dismissChangedElsewhere: () => void;
-  /** Saves any edits not saved yet, after the save in flight, if any. */
-  flush: () => Promise<void>;
+  /** Saves any edits not saved yet, after the save in flight, if any. Resolves to whether every edit is saved. */
+  flush: () => Promise<boolean>;
 } => {
   const [editor, setEditor] = useState(() =>
     createFlowEditor(flow.flowDefinition),
@@ -115,7 +115,7 @@ export const useAutosavedFlowEditor = ({
     }
 
     if (!unsavedRef.current) {
-      return;
+      return true;
     }
 
     const saveInFlight = save();
@@ -126,6 +126,8 @@ export const useAutosavedFlowEditor = ({
     } finally {
       saveInFlightRef.current = null;
     }
+
+    return !unsavedRef.current;
   }, [save]);
 
   useEffect(

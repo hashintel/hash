@@ -151,9 +151,10 @@ describe("useAutosavedFlowEditor", () => {
     expect(saveFlowDefinition.mock.calls[2]![1]).toBe("edition-9");
   });
 
-  it("shows a failed save, and tries it again with the next edit against the same edition", async () => {
+  it("shows a failed save, reports it from flush, and tries it again with the next edit against the same edition", async () => {
     const saveFlowDefinition = vi
       .fn()
+      .mockRejectedValueOnce(new Error("Network error"))
       .mockRejectedValueOnce(new Error("Network error"))
       .mockResolvedValueOnce(editionId("edition-2"));
     const { result, addStep } = renderEditor({ saveFlowDefinition });
@@ -163,14 +164,20 @@ describe("useAutosavedFlowEditor", () => {
     expect(result.current.status).toBe("failed");
     expect(leavingIsConfirmed()).toBe(true);
 
+    let flushed: boolean | undefined;
+    await act(async () => {
+      flushed = await result.current.flush();
+    });
+    expect(flushed).toBe(false);
+
     addStep("second");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
-    expect(saveFlowDefinition).toHaveBeenCalledTimes(2);
-    expect(stepIdsOf(saveFlowDefinition.mock.calls[1]![0])).toEqual([
+    expect(saveFlowDefinition).toHaveBeenCalledTimes(3);
+    expect(stepIdsOf(saveFlowDefinition.mock.calls[2]![0])).toEqual([
       "first",
       "second",
     ]);
-    expect(saveFlowDefinition.mock.calls[1]![1]).toBe("edition-1");
+    expect(saveFlowDefinition.mock.calls[2]![1]).toBe("edition-1");
     expect(result.current.status).toBe("saved");
   });
 });
