@@ -7,6 +7,7 @@ const config: OxlintConfig = defineConfig({
   runtime: "browser",
   rules: {
     "effecttsgo/unstable-api-usage": "allow", // we make deliberate use of unstable APIs, to avoid external dependencies
+    "jsdoc/require-throws-type": "allow", // TSDoc has no braces after `@throws`, so the thrown type opens the tag's text
   },
   overrides: [
     {

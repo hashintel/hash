@@ -64,7 +64,7 @@ export const makeOption = <S extends Schema.Constraint>(schema: S) => {
 /**
  * Validates the schema's decoded type side.
  *
- * @throws {Error} If validation fails or exhausts the call stack. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails or exhausts the call stack. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 export const make = <S extends Schema.Constraint>(schema: S) => {
   const run = makeResult(schema);

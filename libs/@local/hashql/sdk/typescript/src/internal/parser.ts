@@ -273,7 +273,7 @@ export const nextChar: Parser.Append<string, ScalarReason> = and(character);
  *
  * Zero appends an empty string without examining the input. Short input and isolated surrogates produce a failed {@link Parser.Return}.
  *
- * @throws {RangeError} If `length` is not an integer in [0, 2³² − 1].
+ * @throws `RangeError` If `length` is not an integer in [0, 2³² − 1].
  */
 export const nextSlice = (
   length: number,
@@ -285,7 +285,7 @@ export const nextSlice = (
  *
  * The reader stops at the maximum or the end of input. It fails if fewer than the minimum remain. An isolated surrogate before the maximum fails with {@link ExpectedScalar}, even after the minimum. A later parser cannot make this reader return characters it has consumed.
  *
- * @throws {RangeError} If the counts violate {@link SliceBounds}.
+ * @throws `RangeError` If the counts violate {@link SliceBounds}.
  */
 export const nextSliceBetween = (
   bounds: SliceBounds,

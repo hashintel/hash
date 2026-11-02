@@ -26,7 +26,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * Each element must be an expression, and `#type` can be any text. The result is a new tuple. `options.disableChecks` skips the identifier, label and numeric-spelling checks inside nested values but keeps the structural requirements. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Tuple =

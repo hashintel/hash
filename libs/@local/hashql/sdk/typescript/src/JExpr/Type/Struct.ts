@@ -1,7 +1,7 @@
 /**
  * Struct type syntax, written `(name: T)`, or `(:)` without members.
  *
- * {@link make} checks a decoded object such as `{ _tag: "Struct", members: [[name, type]] }` rather than source text, so each member name is an identifier object. It checks each name, that no two share a {@link @local/hashql!JExpr.Ident.name | name}, and the paths and identifiers inside each type. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ * {@link make} checks a decoded object such as `{ _tag: "Struct", members: [[name, type]] }` rather than source text, so each member name is an identifier object. It checks each name, that no two share a {@link @local/hashql#JExpr.Ident.name | name}, and the paths and identifiers inside each type. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
  *
  * @module
  */
@@ -24,7 +24,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks a decoded struct object and returns it.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Struct =

@@ -24,9 +24,9 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks field names, field expressions and an optional type annotation.
  *
- * Field names must be identifiers, such as `name` or `` `+` ``. Field values must be expressions. `#type` can be any text. The result is a new struct. `options.disableChecks` skips the field-name check and the checks inside nested values. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * Field names must be identifiers, such as `name` or <code>\`+\`</code>. Field values must be expressions. `#type` can be any text. The result is a new struct. `options.disableChecks` skips the field-name check and the checks inside nested values. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Struct =

@@ -27,7 +27,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * The schema has no checks, so this confirms only that the input is a string. HashQL parses the text when it compiles the program. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (

@@ -200,7 +200,7 @@ export const compileResult = (
  *
  * Serialization does not validate. A literal that `JExpr.make` would reject keeps its stored text, so the output can contain non-JSON text such as `NaN`. Check a tree from an untrusted source with `JExpr.make` before compiling it.
  *
- * @throws {TypeError} If an object in the tree has no constructor key.
+ * @throws `TypeError` If an object in the tree has no constructor key.
  *
  * @example <caption>Serialize exact numbers, unlike JSON.stringify.</caption>
  * ```ts

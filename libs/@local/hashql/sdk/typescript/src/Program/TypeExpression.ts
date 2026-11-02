@@ -3,7 +3,7 @@
  *
  * A {@link TypeExpression} carries syntax or a construction failure alongside a type-level descriptor. A {@link Constructor} specializes a named generic type while preserving its semantic argument tuple. Declarations supply these descriptors. The HashQL compiler validates their use in the emitted program.
  *
- * Use {@link fromType} for existing J-Expr type syntax, {@link reference} for a named type and {@link constructor} for a generic type. These operations and {@link fromResult} attach a trusted descriptor without checking it against the syntax.
+ * Use {@link fromType} for existing J-Expr type syntax, {@link reference} for a named type and {@link "constructor"} for a generic type. These operations and {@link fromResult} attach a trusted descriptor without checking it against the syntax.
  *
  * A failed construction stays inside the type expression. Read the syntax or its failure with {@link toType}.
  *

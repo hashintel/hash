@@ -113,7 +113,7 @@ const derive = memoize((expression: Readonly<RegExp>) => {
  *
  * Membership requires exactly one scalar to match the whole pattern. First derivation scans the runtime's Unicode range and caches the resulting arbitrary. An empty class constructs successfully. Sampling it exhausts Effect's discard budget.
  *
- * @throws {SyntaxError} If the regular-expression source is invalid.
+ * @throws `SyntaxError` If the regular-expression source is invalid.
  */
 export const characterClass = ({
   name,

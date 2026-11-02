@@ -26,7 +26,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * The object needs exactly one key, `:` followed by an identifier, and an expression as its value. `options.disableChecks` skips the key checks along with the checks inside the value. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (

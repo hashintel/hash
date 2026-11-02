@@ -26,7 +26,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks a decoded generic entry object and returns it.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Generic =
