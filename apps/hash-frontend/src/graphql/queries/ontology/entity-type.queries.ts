@@ -6,6 +6,16 @@ export const queryEntityTypesQuery = gql`
   }
 `;
 
+export const queryDependentEntityTypesQuery = gql`
+  query queryDependentEntityTypes(
+    $allVersions: QueryEntityTypesParams!
+    $latestVersions: QueryEntityTypesParams!
+  ) {
+    allVersions: queryEntityTypes(request: $allVersions)
+    latestVersions: queryEntityTypes(request: $latestVersions)
+  }
+`;
+
 export const searchEntityTypesQuery = gql`
   query searchEntityTypes($request: SearchEntityTypesRequest!) {
     searchEntityTypes(request: $request)

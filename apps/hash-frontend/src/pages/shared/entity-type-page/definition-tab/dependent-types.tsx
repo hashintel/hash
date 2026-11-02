@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../../shared/is-archived";
+import { getDependentTypeRows } from "./dependent-types/dependent-type-rows";
 import { DependentTypesSection } from "./dependent-types/dependent-types-section";
 import { useDependentTypes } from "./dependent-types/use-dependent-types";
 
@@ -25,9 +26,7 @@ export const DependentTypes = ({
 
   const hidden = !entityTypeBaseUrl || isTypeArchived(entityType);
 
-  const { children, error } = useDependentTypes(
-    hidden ? null : entityType.schema.$id,
-  );
+  const { data, error } = useDependentTypes(hidden ? null : entityTypeBaseUrl);
 
   if (hidden) {
     return null;
@@ -48,7 +47,14 @@ export const DependentTypes = ({
     <DependentTypesSection
       heading={heading}
       emptyMessage={emptyMessage}
-      types={children}
+      types={
+        data
+          ? getDependentTypeRows({
+              parentBaseUrl: entityTypeBaseUrl,
+              ...data,
+            }).rows.map((row) => row.entityType)
+          : undefined
+      }
       error={error}
       isLinkType={isLinkType}
       onTypeClick={(typeId) => onNavigateToType("entityType", typeId)}
