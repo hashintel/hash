@@ -309,7 +309,10 @@ export const DependentTypesByVersionTable = ({
     <TableCard>
       <HeaderRow gridTemplateColumns={gridTemplateColumns}>
         <Box sx={{ ...cellSx, overflow: "hidden", textOverflow: "ellipsis" }}>
-          {entityType.schema.title} version
+          <Box component="span" sx={{ fontWeight: 700 }}>
+            {entityType.schema.title}
+          </Box>{" "}
+          version
         </Box>
         <Box sx={innerCellSx}>Extended by</Box>
         <Box sx={innerCellSx}>Versions</Box>
