@@ -56,11 +56,6 @@ export type EditorUi = {
   zoomBase?: number;
   /** A screen state's + handles show on hover only; the Figma frame draws the + beside the selected step in J2 A and B2 alone. */
   quietPortAdd?: boolean;
-  /**
-   * J1.1–J2.4's panel (3 Nov): a grey step type, a 12 px description, a quiet "Inputs" label, and no Settings or
-   * Outputs. Every later frame (J2.5 on) draws the full panel, which is also the panel in normal use.
-   */
-  earlyPanel?: boolean;
   /** For each boxes (and "In parallel" rows) folded, in the Steps tree and on the canvas alike (J1.13). */
   collapsed?: string[];
   /** Option F (2 Nov): the left rail's pick, which the panel beside it shows. */

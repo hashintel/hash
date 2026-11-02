@@ -122,7 +122,6 @@ const panelBodyStyle = css({
   // J2.51: 24 px between the header and each section.
   gap: "6",
   padding: "4",
-  "&[data-early-panel]": { gap: "5" },
 });
 
 /** The icon and tile colour a node shows on the canvas, for the chips that point at it. */
@@ -357,7 +356,6 @@ const PanelHeader = ({
               whiteSpace: "pre",
               textStyle: "sm",
               color: "neutral.fg.muted.hover",
-              "[data-early-panel] &": { display: "none" },
             })}
           >
             {"Action · "}
@@ -433,7 +431,7 @@ const fieldFor = (
 };
 
 const ActionPanel = ({ step }: { step: DraftActionStep }) => {
-  const { document, validation, ui } = useEditor();
+  const { document, validation } = useEditor();
   const entry = getCatalogEntry(step.actionDefinitionId);
   if (!entry) {
     return null;
@@ -462,7 +460,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         description={step.description}
       />
       {visibleInputs.length > 0 ? (
-        <Section title="Inputs" quiet={ui.earlyPanel}>
+        <Section title="Inputs">
           {visibleInputs.map((input) => {
             const kinds = acceptedKinds(document, step.stepId, input, entry);
             // Query builders stack: key above, builder below (Journey 3).
@@ -527,11 +525,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
           })}
         </Section>
       ) : null}
-      {/* J1's frames show a new step's inputs only; Settings and Outputs come in from J2.5 on. */}
-      {ui.earlyPanel ? null : (
-        <StepSettings actionDefinitionId={step.actionDefinitionId} />
-      )}
-      {ui.earlyPanel ? null : (
+      <StepSettings actionDefinitionId={step.actionDefinitionId} />
       <Section title="Outputs">
         {/* Kind badge under each name, users as a short list under it (26 Oct sync; `outputs.tsx`). */}
         <OutputRows
@@ -561,7 +555,6 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
           />
         ) : null}
       </Section>
-      )}
       <Checks stepId={step.stepId} />
     </>
   );
@@ -619,7 +612,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         }
         stepId={step.stepId}
       />
-      <Section title="Inputs" quiet={ui.earlyPanel}>
+      <Section title="Inputs">
         <PropertyRow label="List" hover="List of any kind · required" required>
           <div
             ref={anchorRef}
@@ -697,12 +690,9 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
           </PropertyRow>
         ) : null}
       </Section>
-      {ui.earlyPanel ? null : (
-        <Section title="Settings">
-          <span className={emptyValueStyle}>None</span>
-        </Section>
-      )}
-      {ui.earlyPanel ? null : (
+      <Section title="Settings">
+        <span className={emptyValueStyle}>None</span>
+      </Section>
       <Section title="Outputs">
         <PropertyRow
           label="Collect"
@@ -772,7 +762,6 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
           ) : null}
         </PropertyRow>
       </Section>
-      )}
       <Checks stepId={step.stepId} />
     </>
   );
@@ -1608,10 +1597,7 @@ export const PropertiesPanel = () => {
   return (
     <aside className={panelStyle} aria-label="Properties">
       <OverlayScrollArea>
-        <div
-          className={panelBodyStyle}
-          data-early-panel={ui.earlyPanel || undefined}
-        >
+        <div className={panelBodyStyle}>
           {ui.run ? (
             <RunPanel />
           ) : trigger ? (

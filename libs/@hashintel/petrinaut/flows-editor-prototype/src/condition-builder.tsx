@@ -64,7 +64,6 @@ import {
   mockEntityTypes,
 } from "./mock-graph";
 import { SourceMenu } from "./source-menu";
-import { keyStyle } from "./ui";
 
 import type { StepInputSource } from "./engine";
 
@@ -391,6 +390,10 @@ const filterFitStyle = css({
 
 /** The ⋮ as the chip's last segment: the chip's hairline on three sides, its divider on the left. */
 const menuSegmentStyle = css({
+  // 2 Nov: a row's ⋮ shows while the row is hovered, focused or its menu is open.
+  "[data-condition-row]:not(:hover):not(:focus-within) &": {
+    "&[class]:not([aria-expanded=true])": { display: "none" },
+  },
   "&[class]": {
     alignSelf: "stretch",
     flexShrink: 0,
@@ -1256,12 +1259,10 @@ const AddCondition = ({
   properties,
   onAdd,
   label,
-  className,
 }: {
   properties: BuilderProperty[];
   onAdd: (property: BuilderProperty) => void;
   label: string;
-  className?: string;
 }) => (
   <Menu
     items={[
@@ -1276,7 +1277,7 @@ const AddCondition = ({
       },
     ]}
     trigger={
-      <Button size="sm" variant="subtle" iconName="plus" className={className}>
+      <Button size="sm" variant="subtle" iconName="plus">
         {label}
       </Button>
     }
@@ -1296,11 +1297,6 @@ export const UseVariable = ({
     <VariableRow />
   </Button>
 );
-
-/** J1.1's Add condition: the DS filter's add pill, its label muted. */
-const addConditionStyle = css({
-  "&[class]": { color: "neutral.fg.muted.hover", fontWeight: "medium" },
-});
 
 export const ConditionBuilder = ({
   step,
@@ -1325,9 +1321,7 @@ export const ConditionBuilder = ({
   /** An empty builder shows one empty "Where" row instead of only "Add filter" (If, Filter list; Figma Q12). */
   startWithRow?: boolean;
 }) => {
-  const { ui, setUi } = useEditor();
-  // J1–J2.4 draw the query before the full builder: no "Where", "Add condition", no "Clear all filters".
-  const early = !!ui.earlyPanel && forGraph;
+  const { setUi } = useEditor();
   const groups = draft.groups ?? [];
   const allIds = [
     ...draft.conditions,
@@ -1363,37 +1357,29 @@ export const ConditionBuilder = ({
       ? newRow()
       : null;
   const topRows = emptyRow ? [emptyRow] : draft.conditions;
-  const allRows = [...topRows, ...groups.flatMap((group) => group.conditions)];
-  // Nothing to clear: no rows, or one row with nothing set.
-  const clearable =
-    allRows.length > 1 || allRows.some((row) => row.propertyBaseUrl);
 
   if (properties.length === 0) {
-    // J1.1, J2.2: with the type left at Any, the query finds every entity; Add condition first asks for a type.
+    // J2.2: with the type left at Any there is nothing to filter on yet; Add filter first asks for a type.
     return (
-      <>
-        <span className={keyStyle}>All of this type</span>
-        <div>
-          <Button
-            size="sm"
-            variant="subtle"
-            iconName="plus"
-            className={addConditionStyle}
-            onClick={() =>
-              setUi((current) => ({
-                ...current,
-                openField: {
-                  stepId: step.stepId,
-                  inputName: "entityType",
-                  mode: "menu",
-                },
-              }))
-            }
-          >
-            Add condition
-          </Button>
-        </div>
-      </>
+      <div>
+        <Button
+          size="sm"
+          variant="subtle"
+          iconName="plus"
+          onClick={() =>
+            setUi((current) => ({
+              ...current,
+              openField: {
+                stepId: step.stepId,
+                inputName: "entityType",
+                mode: "menu",
+              },
+            }))
+          }
+        >
+          Add filter
+        </Button>
+      </div>
     );
   }
 
@@ -1411,13 +1397,10 @@ export const ConditionBuilder = ({
               properties={properties}
               forGraph={forGraph}
               prefix={
-                // J1.4, J2.4: a single row stands alone, with no "Where" before it.
-                early && topRows.length === 1 && groups.length === 0 ? null : (
-                  <Joiner
-                    conjunction={index === 0 ? undefined : draft.conjunction}
-                    onPick={index === 0 ? undefined : setConjunction}
-                  />
-                )
+                <Joiner
+                  conjunction={index === 0 ? undefined : draft.conjunction}
+                  onPick={index === 0 ? undefined : setConjunction}
+                />
               }
               onChange={(change) =>
                 setRows(
@@ -1455,13 +1438,16 @@ export const ConditionBuilder = ({
           {groups.map((group, groupIndex) => {
             const first = topRows.length === 0 && groupIndex === 0;
             return (
+              // 2 Nov: a group sits on its own line under its joiner and takes the panel's full width.
               <div
                 key={group.id}
                 className={css({
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "flex-start",
                   gap: "1",
                   alignSelf: "stretch",
+                  "& > [data-condition-group]": { alignSelf: "stretch" },
                 })}
               >
                 <Joiner
@@ -1548,22 +1534,13 @@ export const ConditionBuilder = ({
       ) : null}
       <div className={footerStyle}>
         <AddCondition
-          label={early ? "Add condition" : "Add filter"}
-          className={early ? addConditionStyle : undefined}
+          label="Add filter"
           properties={properties}
           onAdd={(property) =>
             setRows([...(emptyRow ? [] : draft.conditions), newRow(property)])
           }
         />
-        {clearable && !early ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => update({ ...draft, conditions: [], groups: [] })}
-          >
-            Clear all filters
-          </Button>
-        ) : null}
+        {/* 2 Nov frames (J2.4–J2.8) end the builder with Add filter alone; rows go one by one from their ⋮. */}
       </div>
     </div>
   );

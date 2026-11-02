@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { liveScreenIds } from "./screen-builds";
 import {
@@ -16,44 +16,30 @@ const hidden = new URLSearchParams(globalThis.location.search).has("clean");
 
 export const screenHref = (id: string) => `?screen=${id}`;
 
-const tagStyle = cva({
-  base: {
-    display: "inline-flex",
-    alignItems: "center",
-    flexShrink: 0,
-    height: "[18px]",
-    paddingX: "1.5",
-    borderRadius: "sm",
-    textStyle: "xs",
-    fontWeight: "medium",
-    whiteSpace: "nowrap",
-  },
-  variants: {
-    tag: {
-      Ready: { backgroundColor: "green.bg.surface", color: "green.fg.body" },
-      "Ready after fix": {
-        backgroundColor: "blue.bg.surface",
-        color: "blue.fg.body",
-      },
-      Redo: { backgroundColor: "orange.bg.surface", color: "orange.fg.body" },
-      Waiting: {
-        backgroundColor: "neutral.bg.subtle",
-        color: "neutral.fg.body",
-      },
-      History: {
-        backgroundColor: "neutral.bg.surface",
-        color: "neutral.fg.subtle",
-      },
-      None: {
-        backgroundColor: "neutral.bg.surface",
-        color: "neutral.fg.subtle",
-      },
-    },
-  },
+/**
+ * Each screen's Figma tag is Claude's note on it, not a status Aakarsh approved (2 Nov: every Tag frame reads
+ * "Claude: … · not approved by Aakarsh"), so it shows as a plain, quiet note.
+ */
+const tagStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  flexShrink: 0,
+  height: "[18px]",
+  paddingX: "1.5",
+  borderRadius: "sm",
+  textStyle: "xs",
+  whiteSpace: "nowrap",
+  backgroundColor: "neutral.bg.surface",
+  color: "neutral.fg.subtle",
 });
 
 export const TagPill = ({ tag }: { tag: FigmaTag }) => (
-  <span className={tagStyle({ tag })}>{tag === "None" ? "No tag" : tag}</span>
+  <span
+    className={tagStyle}
+    title="Claude's note on the Figma frame, not approved by Aakarsh"
+  >
+    {tag === "None" ? "No note" : `Claude's note: ${tag}`}
+  </span>
 );
 
 const sectionKey = (screen: FigmaScreen) => screen.section;
@@ -201,11 +187,7 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
                       <a
                         key={screen.id}
                         href={screenHref(screen.id)}
-                        title={
-                          screen.why
-                            ? `${screen.tag} · ${screen.why}`
-                            : screen.tag
-                        }
+                        title={`Claude's note: ${screen.tag}${screen.why ? ` · ${screen.why}` : ""} (not approved by Aakarsh)`}
                         className={css({
                           display: "flex",
                           alignItems: "center",

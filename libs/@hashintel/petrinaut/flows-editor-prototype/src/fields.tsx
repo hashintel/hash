@@ -1440,7 +1440,7 @@ export const QueryField = ({
   /** False for a trigger's condition, which has nothing earlier to refer to. */
   allowVariables?: boolean;
 }) => {
-  const { document, setDocument, ui } = useEditor();
+  const { document, setDocument } = useEditor();
   const key = fieldKey(step.stepId, input.name);
   const draft: QueryDraft = document.queries[key] ?? { conditions: [] };
   const typeBaseUrl = mode === "query" ? draft.entityTypeBaseUrl : typeHint;
@@ -1502,13 +1502,10 @@ export const QueryField = ({
         })}
       >
         {/* No header over a filter (Find entities, If): its rows start with Where (T23, 22:35). */}
-        {/* J1.1–J2.4 label it "Query"; from J2.5 on its first row reads "Where". */}
-        {(mode === "query" && ui.earlyPanel) ||
-        (mode !== "query" && mode !== "condition") ? (
-          <span className={keyStyle}>
-            {mode === "query" ? "Query" : input.label}
-          </span>
-        ) : null}
+        {/* No header over a filter (Find entities, If): its rows start with Where (T23, 22:35). */}
+        {mode === "query" || mode === "condition" ? null : (
+          <span className={keyStyle}>{input.label}</span>
+        )}
         <ConditionBuilder
           step={step}
           input={input}

@@ -40,7 +40,7 @@ const editor = (
 ): ScreenBuild => ({
   page: "editor",
   document,
-  ui: { ...initialUi, viewport: startViewport, plainQuery: true, ...ui },
+  ui: { ...initialUi, viewport: startViewport, ...ui },
 });
 
 const pause = (ms: number) =>
@@ -152,12 +152,6 @@ const queryViewport: Partial<EditorUi> = {
   viewport: { left: 156, top: 389, zoom: 1 },
 };
 
-/** J1's frames draw the early panel (see `EditorUi.earlyPanel`). */
-const early = (
-  document: EditorDocument,
-  ui: Partial<EditorUi> = {},
-): ScreenBuild => editor(document, { earlyPanel: true, ...ui });
-
 /** Presses the pointer on an element, for DS menus that open on pointer down. */
 const press = (selector: string) => {
   const element = globalThis.document.querySelector<HTMLElement>(selector);
@@ -185,7 +179,6 @@ const press = (selector: string) => {
 export const newFlowUi = (): EditorUi => ({
   ...initialUi,
   viewport: startViewport,
-  plainQuery: true,
 });
 
 /** J0.2's list: the flow just made, and two older ones. */
@@ -253,24 +246,24 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
   }),
   "J1.1": () => {
     const { document, stepId } = firstStep();
-    return early(document, { selectedId: stepId });
+    return editor(document, { selectedId: stepId });
   },
   "J1.2": () => {
     const { document, stepId } = firstStep();
     return {
-      ...early(document, { selectedId: stepId }),
+      ...editor(document, { selectedId: stepId }),
       act: () => {
         typeInto('[aria-label="Step description"]', "Shipments this month");
       },
     };
   },
   "J1.3": () =>
-    early(supplierCertificatesExample("shipments"), {
+    editor(supplierCertificatesExample("shipments"), {
       selectedId: SHIPMENTS,
       showPortAddOn: SHIPMENTS,
     }),
   "J1.4": () => ({
-    ...early(supplierCertificatesExample("suppliers"), {
+    ...editor(supplierCertificatesExample("suppliers"), {
       ...ninetyPercent,
       selectedId: SUPPLIERS,
       showPortAddOn: SUPPLIERS,
@@ -285,30 +278,30 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
     },
   }),
   "J1.7": () =>
-    early(supplierCertificatesExample("empty-for-each"), {
+    editor(supplierCertificatesExample("empty-for-each"), {
       ...sixtyTwoPercent,
       selectedId: EACH_SUPPLIER,
       openField: { stepId: EACH_SUPPLIER, inputName: "over", mode: "menu" },
     }),
   "J1.8": () =>
-    early(supplierCertificatesExample("for-each-list"), {
+    editor(supplierCertificatesExample("for-each-list"), {
       ...sixtyTwoPercent,
       selectedId: EACH_SUPPLIER,
     }),
   "J1.9": () =>
-    early(supplierCertificatesExample("for-each-list"), {
+    editor(supplierCertificatesExample("for-each-list"), {
       ...sixtyTwoPercent,
       selectedId: EACH_SUPPLIER,
       recent: recentSteps,
       picker: { parentId: EACH_SUPPLIER, anchor: "group" },
     }),
   "J1.10": () =>
-    early(supplierCertificatesExample("fetch-file"), {
+    editor(supplierCertificatesExample("fetch-file"), {
       ...sixtyTwoPercent,
       selectedId: CERTIFICATES,
     }),
   "J1.13": () => ({
-    ...early(supplierCertificatesExample("fetch-file"), {
+    ...editor(supplierCertificatesExample("fetch-file"), {
       ...sixtyTwoPercent,
       selectedId: EACH_SUPPLIER,
     }),
@@ -320,7 +313,7 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
   "J1.16": () => {
     const { document, stepId } = firstStep();
     return {
-      ...early(document, { selectedId: stepId }),
+      ...editor(document, { selectedId: stepId }),
       act: () =>
         rightClick(`.react-flow__node[data-id="${stepId}"] > *`, 702, 468),
     };
@@ -328,14 +321,14 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
   "J1.20": () => {
     const { document, stepId } = firstStep();
     return {
-      ...early(document, { selectedId: stepId }),
+      ...editor(document, { selectedId: stepId }),
       act: () => rightClick(".react-flow__edge-interaction", 500, 476),
     };
   },
   "J1.21": () => {
     const { document, stepId } = firstStep();
     return {
-      ...early(document, { selectedId: stepId }),
+      ...editor(document, { selectedId: stepId }),
       act: () =>
         rightClick(
           `.react-flow__node[data-id="${START_ID}"] .react-flow__handle.source`,
@@ -345,7 +338,7 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
     };
   },
   "J1.19": () => ({
-    ...early(supplierCertificatesExample("empty-for-each"), {
+    ...editor(supplierCertificatesExample("empty-for-each"), {
       ...sixtyTwoPercent,
       selectedId: EACH_SUPPLIER,
     }),
@@ -356,10 +349,10 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
   // J2.2 and J1.1 are the same frame: a new Find entities, its type left at Any.
   "J2.2": () => {
     const { document, stepId } = firstStep();
-    return early(document, { selectedId: stepId });
+    return editor(document, { selectedId: stepId });
   },
   "J2.4": () =>
-    early(shipmentsAfterSeptember(), {
+    editor(shipmentsAfterSeptember(), {
       selectedId: SHIPMENTS,
       showPortAddOn: SHIPMENTS,
     }),
