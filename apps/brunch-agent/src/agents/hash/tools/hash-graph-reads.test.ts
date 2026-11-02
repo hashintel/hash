@@ -243,6 +243,54 @@ test("strings are JSON-quoted, and two properties sharing a slug are told apart"
   expect(text).toContain("  count: 3");
 });
 
+const aliceQuantity = "https://hash.ai/@alice/types/property-type/quantity/";
+const acmeQuantity = "https://hash.ai/@acme/types/property-type/quantity/";
+
+test("nested keys sharing a slug are told apart", () => {
+  const text = hashEntityReadForModel(
+    read([
+      {
+        ...person,
+        properties: {
+          [property("order")]: { [aliceQuantity]: 5, [acmeQuantity]: 7 },
+        },
+      },
+    ]),
+  );
+  expect(text).toContain(`  order: {${aliceQuantity}: 5, ${acmeQuantity}: 7}`);
+});
+
+test("a nested key whose slug a top-level property carries is told apart from it, at any entity", () => {
+  const order = {
+    ...person,
+    entityId: `${personWebId}~order`,
+    properties: { [property("order")]: { [acmeQuantity]: 7 } },
+  };
+  const text = hashEntityReadForModel({
+    ...read([{ ...person, properties: { [aliceQuantity]: 5 } }, order]),
+    propertyTypes: [{ baseUrl: aliceQuantity, title: "Quantity" }],
+  });
+  expect(text).toContain(`  ${aliceQuantity}: Quantity`);
+  expect(text).toContain(`  ${aliceQuantity}: 5`);
+  expect(text).toContain(`  order: {${acmeQuantity}: 7}`);
+  expect(text).not.toMatch(/\bquantity: /);
+});
+
+test("a summarised object's shape names its keys as the read does", () => {
+  const big = "z".repeat(600);
+  const text = hashEntityReadForModel(
+    read([
+      {
+        ...person,
+        properties: {
+          [property("order")]: { [aliceQuantity]: big, [acmeQuantity]: big },
+        },
+      },
+    ]),
+  );
+  expect(text).toContain(`: ${aliceQuantity}, ${acmeQuantity}>`);
+});
+
 test("a title with a line break stays on its own line, so it can't pose as another line of the read", () => {
   const forged = "User\nentities: 0";
   const text = hashEntityReadForModel({
@@ -276,7 +324,7 @@ test("a result in an unknown shape fails the read rather than reaching the model
   );
 });
 
-test("entity types render one block each, with property names as an entity read shows them", () => {
+test("entity types render one block each, with each property by its short name and title", () => {
   const text = hashEntityTypeReadForModel({
     entityTypes: [
       {
@@ -310,6 +358,24 @@ test("entity types render one block each, with property names as an entity read 
       "    Has: https://hash.ai/@h/types/entity-type/has/v/1 -> any",
     ].join("\n"),
   );
+});
+
+test("properties of entity types sharing a slug are told apart", () => {
+  const text = hashEntityTypeReadForModel({
+    entityTypes: [
+      {
+        entityTypeId: "https://hash.ai/@acme/types/entity-type/order/v/1",
+        title: "Order",
+        properties: [
+          { baseUrl: aliceQuantity, title: "Quantity" },
+          { baseUrl: acmeQuantity, title: "Quantity" },
+        ],
+        links: [],
+      },
+    ],
+  });
+  expect(text).toContain(`    ${aliceQuantity}: Quantity`);
+  expect(text).toContain(`    ${acmeQuantity}: Quantity`);
 });
 
 test("webs render one line each, with their ids", () => {
