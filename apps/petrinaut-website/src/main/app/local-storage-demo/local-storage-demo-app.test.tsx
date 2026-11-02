@@ -221,27 +221,16 @@ const recordEditorRender = (
 };
 
 /**
- * Stands in for the editor's view. Like the real one, it shows the chosen
- * running assistant, else the first, and mounts Brunch's content, which marks
- * Brunch as shown, only while it shows Brunch.
+ * Stands in for the editor's view. It shows the assistant the test chose in
+ * the user settings, and mounts Brunch's content, which marks Brunch as shown,
+ * only while that is Brunch. Which assistant the editor shows without a
+ * choice is the editor's to test.
  */
 const FakeEditorView = (props: Record<string, unknown>) => {
   "use no memo"; // Records every render, which memoization would skip.
   const settings = use(UserSettingsContext);
   const host = use(BrunchAssistantContext);
-  const assistants = (
-    (props.plugins ?? []) as readonly PetrinautPlugin[]
-  ).filter(
-    ({ manifest }) =>
-      manifest.assistant === true &&
-      !settings.disabledPluginIds.includes(manifest.id),
-  );
-  const shownId = (
-    assistants.find(
-      ({ manifest }) => manifest.id === settings.assistantPluginId,
-    ) ?? assistants[0]
-  )?.manifest.id;
-  const brunchShown = shownId === "website.brunch";
+  const brunchShown = settings.assistantPluginId === "website.brunch";
   const documentId = (props.handle as { id: string }).id;
   const show = host?.show;
   useLayoutEffect(
@@ -336,6 +325,15 @@ const seedStoredNet = (revisionId?: string) => {
   );
 };
 
+/** A user who chose Brunch: saved for the demo and in the editor's settings. */
+const seedBrunchChoice = () => {
+  localStorage.setItem(assistantSelectionStorageKey, "brunch");
+  localStorage.setItem(
+    "petrinaut:user-settings",
+    JSON.stringify({ assistantPluginId: "website.brunch" }),
+  );
+};
+
 /**
  * The demo as `/local/$netId` mounts it: open on the most recently edited net,
  * and following its own requests to open another.
@@ -356,7 +354,7 @@ describe("local storage demo Brunch voice integration", () => {
   test("registers no brunch_ask tool in the production Brunch preview", async () => {
     renderedPetrinaut.aiAssistant = null;
     stubStorage();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -424,7 +422,7 @@ describe("local storage demo Brunch voice integration", () => {
   test("waits for a durable offset before baselining present Ledger history", async () => {
     renderedPetrinaut.aiAssistant = null;
     stubStorage();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -464,7 +462,7 @@ describe("local storage demo Brunch voice integration", () => {
   test("keeps durable Flue Stop distinct from local playback cancellation", async () => {
     renderedPetrinaut.aiAssistant = null;
     stubStorage();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     let snapshot: AgentConversationObservationSnapshot = {
       conversation: {
         conversationId: "conversation-stop",
@@ -807,7 +805,7 @@ describe("local document revision persistence", () => {
   test("retains direct document changes across handle reopen", async () => {
     flueClientOptions.current = null;
     seedStoredNet("local-revision-1");
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     const firstView = render(<DemoApp onSearchChange={() => {}} search={{}} />);
     const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
 
@@ -1155,7 +1153,7 @@ describe("local document revision persistence", () => {
       title: "Second net",
     });
     localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     brunchPanelTransportSessions.current = [];
     flueClientMock.current = {
       observe: () => ({
@@ -1231,7 +1229,7 @@ describe("local storage demo Brunch controls", () => {
 
   test("clearing ordinary Brunch starts a persisted fresh conversation without replacing the model", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = {
       history: async () => ({
         conversation: { settlements: [], messages: [] },
@@ -1272,7 +1270,7 @@ describe("local storage demo Brunch controls", () => {
 
   test("a destructive edit waiting for approval settles when the conversation is replaced", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = {
       url: "http://brunch.local/agents/petrinaut/instance",
       history: async () => ({
@@ -1354,7 +1352,7 @@ describe("local storage demo Brunch controls", () => {
 
   test("mounts document-bound Brunch with canonical overrides and the complete static catalogue", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = {
       history: async () => ({
         conversation: {
@@ -1687,7 +1685,7 @@ describe("assistant selection", () => {
     "gates interview length separately from saved level %s",
     async (savedLevel, expectedLevel) => {
       seedStoredNet();
-      localStorage.setItem(assistantSelectionStorageKey, "brunch");
+      seedBrunchChoice();
       if (savedLevel)
         localStorage.setItem("petrinaut-website:interview-budget", savedLevel);
       flueClientMock.current = flueHistoryClient();
@@ -1792,9 +1790,9 @@ describe("assistant selection", () => {
     },
   );
 
-  test("a saved Brunch choice shows Brunch first, and choosing Stock mounts nothing of Brunch", async () => {
+  test("a saved Brunch choice shows Brunch, and choosing Stock mounts nothing of Brunch", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = flueHistoryClient();
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
@@ -1813,7 +1811,7 @@ describe("assistant selection", () => {
 
   test("defaults Voice on for saved Brunch, preserves an explicit opt-out, and removes it for Stock", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = flueHistoryClient();
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 10_000 }),
@@ -1859,7 +1857,7 @@ describe("assistant selection", () => {
 
   test("does not render Voice when the persisted preference is on but capability is unavailable", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     localStorage.setItem(voicePreferenceStorageKey, "true");
     flueClientMock.current = flueHistoryClient();
     vi.stubGlobal(
@@ -1976,7 +1974,7 @@ describe("assistant selection", () => {
 
   test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     let snapshot: AgentConversationObservationSnapshot = {
       conversation: undefined,
       offset: undefined,
@@ -2128,7 +2126,7 @@ describe("assistant selection", () => {
       title: "Second net",
     });
     localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = flueHistoryClient();
 
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
@@ -2174,7 +2172,7 @@ describe("assistant selection", () => {
 
   test("I does not execute a canonical write while history is loading", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -2206,7 +2204,7 @@ describe("assistant selection", () => {
 
   test("a pending bound mutation in history is not executed again after reload", async () => {
     seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    seedBrunchChoice();
     const pendingPlace = {
       id: "pending",
       name: "Pending",
@@ -2284,19 +2282,12 @@ describe("assistant selection", () => {
       brunchPlugin,
       petrinautAiPlugin,
     ]);
-    await waitFor(() => expect(currentAssistant()).toBeDefined());
 
-    // Switched off, Brunch is not shown even while chosen.
     chooseAssistant("website.brunch");
-    act(() =>
-      renderedPetrinaut.settings?.setPluginEnabled("website.brunch", false),
-    );
-    await waitFor(() => expect(currentAssistant()).toBeUndefined());
-
-    act(() =>
-      renderedPetrinaut.settings?.setPluginEnabled("website.brunch", true),
-    );
     await waitFor(() => expect(currentAssistant()).toBeDefined());
+
+    chooseAssistant("website.petrinaut-ai");
+    await waitFor(() => expect(currentAssistant()).toBeUndefined());
   });
 
   test("without a configured Brunch endpoint there is no choice to make", () => {
