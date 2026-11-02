@@ -77,7 +77,7 @@ test("a type's page lists each type that extends any of its versions, with the v
     for (const version of ["v1", "v2"]) {
       await expect(
         ranges.getByRole("button", {
-          name: `Open ${childName} ${version}, the highest version in ${version}`,
+          name: `Open ${childName} ${version}, the highest version in ${version}, which extends ${parentName} ${version}`,
         }),
       ).toBeVisible();
     }

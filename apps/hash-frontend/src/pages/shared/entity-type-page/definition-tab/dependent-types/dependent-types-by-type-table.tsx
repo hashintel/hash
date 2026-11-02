@@ -11,6 +11,7 @@ import {
   formatVersions,
   openColumnWidth,
   rowHeight,
+  visuallyHidden,
 } from "./dependent-types-table-layout";
 import {
   HeaderRow,
@@ -35,11 +36,13 @@ const gridTemplateColumns = "minmax(0, 1fr) 128px 196px";
 const RangeRow = ({
   range,
   title,
+  parentTitle,
   last,
   onOpenType,
 }: {
   range: DependentTypeVersionRange;
   title: string;
+  parentTitle: string;
   last: boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
@@ -68,10 +71,15 @@ const RangeRow = ({
       >
         <Box sx={cellSx} />
         <Box sx={cellSx}>{versions}</Box>
-        <Box sx={cellSx}>{`v${range.parentVersion}`}</Box>
+        <Box sx={cellSx}>
+          <Box component="span" sx={visuallyHidden}>
+            extends {parentTitle}{" "}
+          </Box>
+          {`v${range.parentVersion}`}
+        </Box>
       </Box>
       <OpenTypeButton
-        label={`Open ${title} v${range.lastVersion}, the highest version in ${versions}`}
+        label={`Open ${title} v${range.lastVersion}, the highest version in ${versions}, which extends ${parentTitle} v${range.parentVersion}`}
         onClick={() => onOpenType(range.lastVersionId)}
       />
       <TreeLines last={last} />
@@ -206,6 +214,7 @@ const DependentTypeTableRow = ({
                   key={`${range.firstVersion}-${range.parentVersion}`}
                   range={range}
                   title={title}
+                  parentTitle={parentTitle}
                   last={index === row.ranges.length - 1}
                   onOpenType={onOpenType}
                 />
