@@ -4,3 +4,4 @@ Library crates for [`apps/hash-integrations`](../../../apps/hash-integrations). 
 
 - `definition`: Holds the checked model of an integration definition.
 - `engine`: Runs an integration's pipelines in DuckDB.
+- `orchestration`: Runs integrations as sequences of durable steps.
