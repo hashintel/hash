@@ -15,7 +15,7 @@ Before drafting or creating an experiment, read `references/experiments.md` for 
 
 ## Tools
 
-Make every net change through the mounted tools; never emit free-form net JSON. They use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions. The mounted schemas, not this prose, govern exact payload fields.
+Make every net change through the mounted tools; never emit free-form net JSON. The `petrinaut_create_*`, `petrinaut_update_*` and `petrinaut_remove_*` tools change the net, one tool per kind of element; each names the editor it acts on with `editor_id`. They take Petrinaut's own mutation inputs, so include stable IDs, full entity objects where required, and canvas positions for places and transitions. One update can change an element's fields and its position together, and one `petrinaut_update_arc` can change an arc's endpoint, type and weight together. The mounted schemas, not this prose, govern exact payload fields.
 
 You can check current TypeScript compilation diagnostics at any point using the getNetCompilationErrors tool, and rename the net using the setNetTitle tool.
 
@@ -41,7 +41,7 @@ On a failure, a no-op or an unknown outcome, inspect the result and the current 
 
 Required `x` and `y` are provisional presentation values: place new nodes on a rough grid, then use layout. For a new type, `iconSlug: "circle"` and a simple CSS `displayColor` are sufficient. Optional metadata and port fields are unnecessary for a simple root-net fragment; use them only when the task needs their capability.
 
-For separately wired transitions, start with empty `inputArcs` and `outputArcs`, then use `addArc` operations. Uncoloured places use `colorId: null`; a place without dynamics uses `dynamicsEnabled: false` and omits `dynamics`. Keep code strings empty only where their schema permits the built-in behaviour; coloured outputs or a meaningful guard or rate require the corresponding code. Arc weights are token multiplicities, never branch probabilities.
+For separately wired transitions, start with empty `inputArcs` and `outputArcs`, then use `petrinaut_create_arc` operations. Uncoloured places use `colorId: null`; a place without dynamics uses `dynamicsEnabled: false` and omits `dynamics`. Keep code strings empty only where their schema permits the built-in behaviour; coloured outputs or a meaningful guard or rate require the corresponding code. Arc weights are token multiplicities, never branch probabilities.
 
 ### Acceptance
 
@@ -101,7 +101,7 @@ This needs `extensions.colors` and `extensions.dynamics`, and `extensions.stocha
 
 Validate every code-writing change. After the step that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call getNetCompilationErrors once for the whole step, and send every repair it calls for in one further step before relying on the new code. Mutations validate only the schema, not the runtime contract. Saved scenario and metric code is compiled separately, when an experiment is created, so a clean diagnostic does not prove it.
 
-Place names are part of the code surface, so they must be identifiers matching `^[A-Z][a-zA-Z]*\d*$`: letters only, starting uppercase, digits only at the end (`TankLevel`, `Bay2`; never `Tank_Level`, `Level5m` or `Last reading`). Lambdas/kernels read `input.PlaceName`, metrics read `state.places.PlaceName.count`, and scenario code-mode initial state keys are place names. Renaming a place via `updatePlace` requires updating every dependent lambda, kernel, dynamics, metric, visualizer, and scenario in the same batch — otherwise you will silently break references.
+Place names are part of the code surface, so they must be identifiers matching `^[A-Z][a-zA-Z]*\d*$`: letters only, starting uppercase, digits only at the end (`TankLevel`, `Bay2`; never `Tank_Level`, `Level5m` or `Last reading`). Lambdas/kernels read `input.PlaceName`, metrics read `state.places.PlaceName.count`, and scenario code-mode initial state keys are place names. Renaming a place via `petrinaut_update_place` requires updating every dependent lambda, kernel, dynamics, metric, visualizer, and scenario in the same batch — otherwise you will silently break references.
 
 ## Finishing a change
 

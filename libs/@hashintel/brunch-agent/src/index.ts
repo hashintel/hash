@@ -40,6 +40,7 @@ export { vHashSaveInput, parseHashSaveInput } from "./hash/save";
 export {
   hashPetrinautTools,
   hashProcessEditorId,
+  hashReplacedPetrinautOperations,
   type HashPetrinautToolName,
 } from "./hash/petrinaut-tools";
 export * from "./ledger";
@@ -51,6 +52,8 @@ export {
 export {
   browserExecutedToolNames,
   browserToolFacts,
+  canonicalCallsOf,
+  type CanonicalPetrinautCall,
 } from "./petrinaut/browser-executed-tools";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {

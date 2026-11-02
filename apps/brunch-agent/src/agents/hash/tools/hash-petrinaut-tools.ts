@@ -22,11 +22,6 @@ import {
 export const unknownEditorRefusal = (editorId: string) =>
   `Not started: editor_id ${JSON.stringify(editorId)} names no open editor; the open editor is ${JSON.stringify(hashProcessEditorId)}.`;
 
-/** The canonical operations HASH's Petrinaut tools stand in for. */
-export const hashPetrinautOperations: ReadonlySet<string> = new Set(
-  Object.values(hashPetrinautTools).map(({ operation }) => operation),
-);
-
 /** HASH's Petrinaut tools, executed by whatever `execute` reaches HASH's page through. */
 export const createHashPetrinautTools = (execute: BrowserToolExecutor) =>
   (Object.keys(hashPetrinautTools) as HashPetrinautToolName[]).map(

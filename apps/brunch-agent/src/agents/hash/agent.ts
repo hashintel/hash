@@ -21,6 +21,7 @@ import {
   browserToolFacts,
   CANONICAL_PETRINAUT_TOOL_NAMES,
   canonicalContent,
+  hashReplacedPetrinautOperations,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
@@ -46,10 +47,7 @@ import { useGuidance } from "./guidance.ts";
 import { createHashPetrinautSaveTool } from "./petrinaut/save-net.ts";
 import { withPetrinautVersionLoadNotes } from "./petrinaut/version-load-note.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
-import {
-  createHashPetrinautTools,
-  hashPetrinautOperations,
-} from "./tools/hash-petrinaut-tools.ts";
+import { createHashPetrinautTools } from "./tools/hash-petrinaut-tools.ts";
 
 import type { BrowserToolExecutor } from "../../shared/conversation/browser-tool-executor.ts";
 
@@ -146,9 +144,10 @@ export const HashAgent = ({ id }: AgentProps): string => {
           );
       },
       executeBrowserTool,
-      // HASH's own Petrinaut tools stand in for the operations they map.
+      // HASH's own Petrinaut tools stand in for the operations they run, and
+      // the per-kind removes and position updates for the batch operations.
       canonicalToolNames: CANONICAL_PETRINAUT_TOOL_NAMES.filter(
-        (name) => !hashPetrinautOperations.has(name),
+        (name) => !hashReplacedPetrinautOperations.has(name),
       ),
     });
     for (const tool of createHashPetrinautTools(executeBrowserTool))
