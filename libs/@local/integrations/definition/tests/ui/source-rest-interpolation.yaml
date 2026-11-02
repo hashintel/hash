@@ -1,0 +1,26 @@
+connector: demo
+vars:
+  API: https://api.example.org/items
+  PARAM: status
+  VALUE: active
+  HEADER: X-Api-Key
+  RESULTS: data.items
+  NEXT: pagination.next
+sources:
+  api:
+    rest:
+      url: ${API}
+      params:
+        ${PARAM}: ${VALUE}
+      auth:
+        type: header
+        name: ${HEADER}
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+      resultsField: ${RESULTS}
+      pagination:
+        type: next-link
+        field: ${NEXT}
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: api

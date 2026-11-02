@@ -1,0 +1,11 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/source-rest-unknown-variables.yaml
+---
+5:12: sources.api.rest.url: `${API}` is not declared in `vars`
+7:9: sources.api.rest.params["${PARAM}"]: `${PARAM}` is not declared in `vars`
+7:19: sources.api.rest.params["${PARAM}"]: `${VALUE}` is not declared in `vars`
+10:15: sources.api.rest.auth.name: `${HEADER}` is not declared in `vars`
+12:21: sources.api.rest.resultsField: `${RESULTS}` is not declared in `vars`
+15:16: sources.api.rest.pagination.field: `${NEXT}` is not declared in `vars`

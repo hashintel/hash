@@ -1,0 +1,9 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/source-rest-variant-fields.yaml
+---
+7:9: sources.header.rest.auth: `name` is required
+15:15: sources.bearer.rest.auth.name: `name` does not apply here
+22:9: sources.next.rest.pagination: `field` is required
+29:16: sources.offset.rest.pagination.field: `field` does not apply here
