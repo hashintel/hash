@@ -37,6 +37,11 @@ export {
   type HashWebReadResult,
 } from "./hash/graph-reads";
 export { vHashSaveInput, parseHashSaveInput } from "./hash/save";
+export {
+  hashPetrinautTools,
+  hashProcessEditorId,
+  type HashPetrinautToolName,
+} from "./hash/petrinaut-tools";
 export * from "./ledger";
 export {
   canonicalContent,
@@ -81,7 +86,6 @@ export {
 } from "./petrinaut/net-element-ids";
 export {
   netElementKinds,
-  petrinautToolTargets,
   petrinautToolEffects,
   type PetrinautToolCapability,
 } from "./petrinaut/petrinaut-tool-effects";

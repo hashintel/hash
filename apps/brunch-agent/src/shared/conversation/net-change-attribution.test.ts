@@ -43,6 +43,11 @@ const snapshot = {
           typeId: "customer",
           element: { elementId: "age", name: "age", type: "real" },
         }),
+        applied("place", "petrinaut_create_place", {
+          editor_id: "process-editor",
+          id: "queue",
+          name: "Queue",
+        }),
       ],
     },
   ],
@@ -59,6 +64,10 @@ test("a change is attributed by the element kinds its canonical tool targets, no
   expect(attributed("type", "inhibitor")).toEqual([]);
   // A type element belongs to its type.
   expect(attributed("type", "customer")).toEqual(["element"]);
+});
+
+test("a HASH Petrinaut tool's change is attributed by the element kinds its canonical operation targets", () => {
+  expect(attributed("place", toPetrinautId("queue"))).toEqual(["place"]);
 });
 
 test("a change written with the model's own ids is attributed to the converted element the document holds", () => {

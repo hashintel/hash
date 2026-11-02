@@ -16,12 +16,15 @@ import {
 } from "./petrinaut-tools/petrinaut-construction.ts";
 
 import type { BrowserToolExecutor } from "./conversation/browser-tool-executor.ts";
+import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
 
 type SdcpnToolOptions = {
   readonly executeBrowserTool?: BrowserToolExecutor;
   readonly authorizeDraft?: Parameters<
     typeof createDraftExperimentTool
   >[0]["authorizeDraft"];
+  /** The canonical tools to mount; every one when omitted. */
+  readonly canonicalToolNames?: readonly PetrinautAiToolName[];
 };
 
 /** Mounts the Petrinaut browser tools in a document-bound conversation. */
@@ -42,7 +45,10 @@ export const usePetrinautTools = (options?: SdcpnToolOptions): void => {
         executeBrowserTool: options.executeBrowserTool,
       }),
     );
-    for (const tool of asyncCanonicalPetrinautTools(options.executeBrowserTool))
+    for (const tool of asyncCanonicalPetrinautTools(
+      options.executeBrowserTool,
+      options.canonicalToolNames,
+    ))
       useTool(tool);
     for (const tool of netReaderTools(options.executeBrowserTool))
       useTool(tool);

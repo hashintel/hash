@@ -19,6 +19,7 @@ import { createFlueClient } from "@flue/sdk";
 
 import {
   browserToolFacts,
+  CANONICAL_PETRINAUT_TOOL_NAMES,
   canonicalContent,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
@@ -45,6 +46,10 @@ import { useGuidance } from "./guidance.ts";
 import { createHashPetrinautSaveTool } from "./petrinaut/save-net.ts";
 import { withPetrinautVersionLoadNotes } from "./petrinaut/version-load-note.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
+import {
+  createHashPetrinautTools,
+  hashPetrinautOperations,
+} from "./tools/hash-petrinaut-tools.ts";
 
 import type { BrowserToolExecutor } from "../../shared/conversation/browser-tool-executor.ts";
 
@@ -141,7 +146,13 @@ export const HashAgent = ({ id }: AgentProps): string => {
           );
       },
       executeBrowserTool,
+      // HASH's own Petrinaut tools stand in for the operations they map.
+      canonicalToolNames: CANONICAL_PETRINAUT_TOOL_NAMES.filter(
+        (name) => !hashPetrinautOperations.has(name),
+      ),
     });
+    for (const tool of createHashPetrinautTools(executeBrowserTool))
+      useTool(tool);
     useTool(createQueryBasisTool({ browser: initialData, history }));
     // HASH's page runs them as the signed-in user, like net reads.
     for (const read of createHashGraphReadTools(executeBrowserTool))

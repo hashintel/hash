@@ -174,6 +174,8 @@ describe("what the server decides about each tool it issues to the browser", () 
     // Canonical Petrinaut tools, one per capability, and both kinds of read.
     ["addPlace", change],
     ["applyAutoLayout", change],
+    // HASH's Petrinaut tools are their canonical operation's change.
+    ["petrinaut_create_place", change],
     [
       "getLatestNetDefinition",
       {

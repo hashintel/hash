@@ -19,7 +19,6 @@ import {
 } from "@hashintel/petrinaut/react";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
-import { canonicalPetrinautClientToolNames } from "../../client/tools/brunch-client-tools";
 import { ExperimentExecutionCard } from "../chat/ai-assistant-panel";
 import {
   definePetrinautAiInteractiveTool,
@@ -185,7 +184,7 @@ export const resolveDraftAuthorityFromHistory = async (
   // The draft must follow a net read with no document change after it.
   const relevant = calls.filter(
     (call) =>
-      canonicalPetrinautClientToolNames.has(call.toolName) &&
+      browserToolFacts(call.toolName).runsOnNet &&
       (call.toolName === getLatestNetDefinitionToolName ||
         browserToolFacts(call.toolName).documentRevision === "change"),
   );

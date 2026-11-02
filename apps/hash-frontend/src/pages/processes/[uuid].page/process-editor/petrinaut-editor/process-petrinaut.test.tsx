@@ -73,6 +73,7 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
     .createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
+  hashPetrinautHostTools: [],
   useBrunchAssistant: (
     input: Parameters<typeof BrunchUi.useBrunchAssistant>[0],
   ) => {

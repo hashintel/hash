@@ -741,6 +741,7 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       brunchTools.queryHashEntityTypes,
       brunchTools.queryHashWebs,
       brunchTools.saveHashNet,
+      "petrinaut_create_place",
     ].toSorted(),
   );
   expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);

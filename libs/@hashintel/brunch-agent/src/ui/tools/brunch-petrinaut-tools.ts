@@ -53,7 +53,10 @@ export const issuedCanonicalCallsFromHistory = async ({
     if (message.role !== "assistant" || message.purpose !== "assistant")
       continue;
     for (const part of message.parts) {
-      if (part.type !== "dynamic-tool" || !(part.toolName in petrinautAiTools))
+      if (
+        part.type !== "dynamic-tool" ||
+        !browserToolFacts(part.toolName).runsOnNet
+      )
         continue;
       const recorded =
         part.state === "output-available" ? part.output : undefined;

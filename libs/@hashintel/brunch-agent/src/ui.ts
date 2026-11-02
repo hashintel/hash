@@ -14,6 +14,7 @@ export * from "./ui/editor-api-plugin";
 export * from "./ui/interview-budget/interview-budget-control";
 export * from "./ui/tools/brunch-petrinaut-tools";
 export * from "./ui/tools/brunch-tool-presentation";
+export { hashPetrinautHostTools } from "./ui/tools/hash-petrinaut-host-tools";
 export { createHashPetrinautSaveTool } from "./ui/tools/hash-petrinaut-save";
 export * from "./ui/tools/shared/document-revision";
 export * from "./ui/use-brunch-assistant";
