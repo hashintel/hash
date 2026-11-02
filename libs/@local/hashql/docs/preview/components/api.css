@@ -1,0 +1,63 @@
+/* The preview loads fumadocs' prebuilt stylesheet and no Tailwind, so the
+   generated pages' own elements are styled here with its variables. */
+
+.api-export {
+  border-top: 1px solid var(--color-fd-border);
+  padding-block: 1.5rem;
+}
+
+.api-export-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.prose .api-export-header h3 {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 1.125rem;
+}
+
+.api-kind {
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+.prose .api-source {
+  display: inline-flex;
+  margin-inline-start: auto;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-source svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.prose .api-source:hover {
+  color: var(--color-fd-foreground);
+}
+
+.prose .api-section-title {
+  margin-block: 1.25rem 0.5rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-code-link {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.api-code-link:hover {
+  text-decoration-style: solid;
+}
