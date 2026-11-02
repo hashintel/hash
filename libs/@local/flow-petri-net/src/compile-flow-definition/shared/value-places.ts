@@ -4,15 +4,17 @@ import {
   generateCopyKey,
   generateCopyOutputTransitionKey,
   generateCopyPlaceKey,
+  generateDonePortKey,
   generateInputConsumerKey,
   generateInputValueKey,
   generateInstanceKey,
   generateItemValueKey,
   generateOutputPortKey,
   generateOutputValueKey,
+  generateRunAfterConsumerKey,
   generateValuePlaceKey,
 } from "../../flow-net-keys.js";
-import { getActionDefinition } from "./flow-steps.js";
+import { getActionDefinition, getRunAfterStepIds } from "./flow-steps.js";
 import {
   createTransition,
   inputArc,
@@ -23,9 +25,14 @@ import {
 
 import type { FlowSteps, ValueShape } from "./flow-steps.js";
 import type { NetBuilder } from "./net-builder.js";
-import type { ArcEndpoint, OutputArc } from "@hashintel/petrinaut-core";
+import type {
+  ArcEndpoint,
+  InputArc,
+  OutputArc,
+} from "@hashintel/petrinaut-core";
 import type {
   FlowDefinition,
+  StepDefinition,
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -90,6 +97,13 @@ const itemValueKeyIn = (scope: string[]) => {
 
 export const consumes = (source: StepInputSource) =>
   source.kind !== "constant" && source.access === "consume";
+
+const isSameEndpoint = (endpoint: ArcEndpoint, other: ArcEndpoint) =>
+  endpoint.kind === "place"
+    ? other.kind === "place" && other.placeId === endpoint.placeId
+    : other.kind === "componentPort" &&
+      other.componentInstanceId === endpoint.componentInstanceId &&
+      other.portPlaceId === endpoint.portPlaceId;
 
 /**
  * The arcs to and from the places every value is held in.
@@ -220,6 +234,38 @@ export const placeValues = ({
           consumes: true,
         },
       );
+    }
+  }
+
+  /*
+   * A step waits for a step it runs after by reading one of its outputs, which a step produces all at once. An action
+   * with no outputs has none, so `runAfterArcs` reads its `Done` port instead.
+   */
+  const completionValueKey = (stepId: string): string | null => {
+    const { step } = steps.getStep(stepId);
+
+    if (step.kind === "for-each") {
+      return generateOutputValueKey(stepId, step.collect.as);
+    }
+
+    const [firstOutput] = getActionDefinition(step).outputs;
+
+    return firstOutput
+      ? generateOutputValueKey(stepId, firstOutput.name)
+      : null;
+  };
+
+  for (const { step } of steps.entries) {
+    for (const beforeStepId of getRunAfterStepIds(step)) {
+      const valueKey = completionValueKey(beforeStepId);
+
+      if (valueKey) {
+        addConsumer(valueKey, {
+          key: generateRunAfterConsumerKey(step.stepId, beforeStepId),
+          label: `${step.stepId} (after ${beforeStepId})`,
+          consumes: false,
+        });
+      }
     }
   }
 
@@ -381,6 +427,46 @@ export const placeValues = ({
       }
 
       return arc;
+    },
+
+    /** The read arcs a step waits on the steps it runs after through, except any it already has from `valueArcs`. */
+    runAfterArcs: (
+      step: StepDefinition,
+      valueArcs: { endpoint: ArcEndpoint }[],
+    ): (InputArc & { endpoint: ArcEndpoint })[] => {
+      const arcs: (InputArc & { endpoint: ArcEndpoint })[] = [];
+
+      for (const beforeStepId of getRunAfterStepIds(step)) {
+        const { step: before } = steps.getStep(beforeStepId);
+
+        const arc =
+          consumerInputArc(
+            generateRunAfterConsumerKey(step.stepId, beforeStepId),
+          ) ??
+          (before.kind === "action"
+            ? inputArc(
+                portEndpoint(
+                  generateInstanceKey(beforeStepId),
+                  generateDonePortKey(steps.getSubnetName(before)),
+                ),
+                "read",
+              )
+            : null);
+
+        if (!arc) {
+          throw new Error(`Step "${beforeStepId}" has nothing to wait on`);
+        }
+
+        if (
+          ![...valueArcs, ...arcs].some(({ endpoint }) =>
+            isSameEndpoint(endpoint, arc.endpoint),
+          )
+        ) {
+          arcs.push(arc);
+        }
+      }
+
+      return arcs;
     },
 
     /** Arcs putting a for-each step's item where each step inside it takes it from. */

@@ -104,7 +104,7 @@ const getProducerRunStepId = ({
   return producerStepId;
 };
 
-const getStepReadiness = (params: {
+export const getStepReadiness = (params: {
   step: FlowStep;
   flow: LocalFlowRun;
   flowDefinition: FlowDefinition;
@@ -121,6 +121,21 @@ const getStepReadiness = (params: {
     skippedStepIds,
     failedStepIds,
   } = params;
+
+  /**
+   * Whether a step of the run has finished. A for-each step is processed once it starts its branches, but only
+   * finishes once every branch has.
+   */
+  const hasFinished = (runStepId: string) => {
+    const runStep = getAllStepsInFlow(flow).find(
+      ({ stepId }) => stepId === runStepId,
+    );
+
+    return (
+      processedStepIds.includes(runStepId) &&
+      (runStep?.kind !== "for-each" || runStep.collected !== undefined)
+    );
+  };
 
   /**
    * The readiness of one missing value, from the source that would provide it.
@@ -156,19 +171,7 @@ const getStepReadiness = (params: {
       return required ? "skip" : "ready";
     }
 
-    const producer = getAllStepsInFlow(flow).find(
-      ({ stepId }) => stepId === producerStepId,
-    );
-
-    /*
-     * A for-each step is processed once it starts its branches, but its collected output only exists once every
-     * branch has finished.
-     */
-    const producerHasFinished =
-      processedStepIds.includes(producerStepId) &&
-      (producer?.kind !== "for-each" || producer.collected !== undefined);
-
-    if (!producerHasFinished) {
+    if (!hasFinished(producerStepId)) {
       /* Wait for the producer to finish, even for an optional input, so that it's provided if produced. */
       return "waiting";
     }
@@ -186,6 +189,29 @@ const getStepReadiness = (params: {
       ? "skip"
       : "waiting";
   };
+
+  /* A step waits for the steps it runs after to finish or be skipped. If one failed, it never becomes ready. */
+  const { runAfter = [] } = getStepDefinitionFromFlowDefinition({
+    step,
+    flowDefinition,
+  });
+
+  const waitsForStepItRunsAfter = runAfter.some(({ stepId }) => {
+    const beforeStepId = getProducerRunStepId({
+      flow,
+      consumerStepId: step.stepId,
+      producerStepId: stepId,
+    });
+
+    return (
+      !skippedStepIds.includes(beforeStepId) &&
+      (!hasFinished(beforeStepId) || failedStepIds.includes(beforeStepId))
+    );
+  });
+
+  if (waitsForStepItRunsAfter) {
+    return "waiting";
+  }
 
   if (step.kind === "for-each") {
     if (step.over) {

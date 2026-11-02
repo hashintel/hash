@@ -57,6 +57,12 @@ export const generateArrayConsumerKey = (forEachStepId: string) =>
 export const generateCollectConsumerKey = (forEachStepId: string) =>
   joinKey(forEachStepId, "collect");
 
+/** A step reading a step it runs after, to wait for it to finish. */
+export const generateRunAfterConsumerKey = (
+  stepId: string,
+  beforeStepId: string,
+) => joinKey(stepId, "runAfter", beforeStepId);
+
 /**
  * A value's copy for one consumer to take. Copies have a namespace of their own, apart from values' keys (which
  * start `input`, `output` or `item`), as a value's key can contain the separator: a flow input's name can be
