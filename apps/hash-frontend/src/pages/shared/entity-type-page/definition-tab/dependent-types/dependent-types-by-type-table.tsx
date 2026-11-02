@@ -17,6 +17,7 @@ import {
   TableCard,
   TypeLabel,
 } from "./dependent-types-table-parts";
+import { VersionGraphTooltip } from "./version-graph-tooltip";
 
 import type {
   DependentTypeRow,
@@ -70,11 +71,13 @@ const RangeRow = ({
 const DependentTypeTableRow = ({
   row,
   parentTitle,
+  parentLatestVersion,
   isLink,
   onOpenType,
 }: {
   row: DependentTypeRow;
   parentTitle: string;
+  parentLatestVersion: number;
   isLink: boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
@@ -87,65 +90,84 @@ const DependentTypeTableRow = ({
   const parentVersions = formatVersionList(row.parentVersions);
 
   return (
-    <Box>
-      <Box sx={toggleRowSx}>
-        <RowToggle
-          gridTemplateColumns={gridTemplateColumns}
-          aria-expanded={expanded}
-          aria-label={
-            former
-              ? `${title}, former, versions ${versions}, extends ${parentTitle} ${parentVersions}`
-              : `${title} v${version}, versions ${versions}, extends ${parentTitle} ${parentVersions}`
-          }
-          onClick={() => setExpanded(!expanded)}
-        >
-          <Box sx={{ ...cellSx, maxWidth: 1 }}>
-            <TypeLabel
-              entityType={entityType}
-              former={former}
-              isLink={isLink}
-              version={version}
+    <VersionGraphTooltip
+      row={row}
+      parentTitle={parentTitle}
+      parentLatestVersion={parentLatestVersion}
+    >
+      {({ rowProps, toggleProps, hide }) => (
+        <Box>
+          <Box
+            ref={rowProps.ref}
+            onMouseEnter={rowProps.onMouseEnter}
+            onMouseLeave={rowProps.onMouseLeave}
+            sx={toggleRowSx}
+          >
+            <RowToggle
+              {...toggleProps}
+              gridTemplateColumns={gridTemplateColumns}
+              aria-expanded={expanded}
+              aria-label={
+                former
+                  ? `${title}, former, versions ${versions}, extends ${parentTitle} ${parentVersions}`
+                  : `${title} v${version}, versions ${versions}, extends ${parentTitle} ${parentVersions}`
+              }
+              onClick={() => {
+                hide();
+                setExpanded(!expanded);
+              }}
+            >
+              <Box sx={{ ...cellSx, maxWidth: 1 }}>
+                <TypeLabel
+                  entityType={entityType}
+                  former={former}
+                  isLink={isLink}
+                  version={version}
+                />
+              </Box>
+              <Box sx={cellSx}>{versions}</Box>
+              <Box sx={cellSx}>{parentVersions}</Box>
+            </RowToggle>
+            <ExpandChevron expanded={expanded} />
+            <OpenTypeButton
+              label={
+                former
+                  ? `Open ${title} v${version}, its highest version that extends ${parentTitle}`
+                  : `Open ${title} v${version}`
+              }
+              onClick={() => onOpenType($id)}
             />
           </Box>
-          <Box sx={cellSx}>{versions}</Box>
-          <Box sx={cellSx}>{parentVersions}</Box>
-        </RowToggle>
-        <ExpandChevron expanded={expanded} />
-        <OpenTypeButton
-          label={
-            former
-              ? `Open ${title} v${version}, its highest version that extends ${parentTitle}`
-              : `Open ${title} v${version}`
-          }
-          onClick={() => onOpenType($id)}
-        />
-      </Box>
-      {expanded ? (
-        <Box role="group" aria-label={`Version ranges of ${title}`}>
-          {row.ranges.map((range, index) => (
-            <RangeRow
-              key={`${range.firstVersion}-${range.parentVersion}`}
-              range={range}
-              title={title}
-              parentTitle={parentTitle}
-              last={index === row.ranges.length - 1}
-              onOpenType={onOpenType}
-            />
-          ))}
+          {expanded ? (
+            <Box role="group" aria-label={`Version ranges of ${title}`}>
+              {row.ranges.map((range, index) => (
+                <RangeRow
+                  key={`${range.firstVersion}-${range.parentVersion}`}
+                  range={range}
+                  title={title}
+                  parentTitle={parentTitle}
+                  last={index === row.ranges.length - 1}
+                  onOpenType={onOpenType}
+                />
+              ))}
+            </Box>
+          ) : null}
         </Box>
-      ) : null}
-    </Box>
+      )}
+    </VersionGraphTooltip>
   );
 };
 
 /** One row per dependent type, expandable into its version ranges. */
 export const DependentTypesByTypeTable = ({
   entityTypeTitle,
+  parentLatestVersion,
   rows,
   isLinkType,
   onOpenType,
 }: {
   entityTypeTitle: string;
+  parentLatestVersion: number;
   rows: DependentTypeRow[];
   isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
@@ -166,6 +188,7 @@ export const DependentTypesByTypeTable = ({
         key={row.entityType.schema.$id}
         row={row}
         parentTitle={entityTypeTitle}
+        parentLatestVersion={parentLatestVersion}
         isLink={isLinkType(row.entityType)}
         onOpenType={onOpenType}
       />

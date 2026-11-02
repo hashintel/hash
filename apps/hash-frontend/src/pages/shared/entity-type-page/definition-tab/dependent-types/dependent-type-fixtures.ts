@@ -51,6 +51,13 @@ export const makeRow = (
   ranges: [number, number, number][],
   former = false,
 ): DependentTypeRow => {
+  const versions = new Map<number, number[]>();
+  for (const [first, last, parent] of ranges) {
+    for (let current = first; current <= last; current += 1) {
+      versions.set(current, [...(versions.get(current) ?? []), parent]);
+    }
+  }
+
   return {
     entityType: {
       schema: {
@@ -74,5 +81,11 @@ export const makeRow = (
       lastVersionId: typeId(title, lastVersion),
       parentVersion,
     })),
+    versions: [...versions]
+      .map(([current, parentVersions]) => ({
+        version: current,
+        parentVersions,
+      }))
+      .sort((left, right) => left.version - right.version),
   };
 };
