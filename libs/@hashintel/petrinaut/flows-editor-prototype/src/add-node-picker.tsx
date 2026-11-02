@@ -1,13 +1,15 @@
 import { useState } from "react";
 
-import {
-  type IconName,
-  type ItemOrGroup,
-  type MenuItem,
-} from "@hashintel/ds-components";
+import { type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { type CatalogEntry, catalog, isOffered } from "./catalog";
+import {
+  type CatalogEntry,
+  catalog,
+  isOffered,
+  groupEntries,
+  stepGroups,
+} from "./catalog";
 import {
   START_ID,
   addStep,
@@ -20,35 +22,8 @@ import { OpenMenu } from "./open-menu";
 import { SearchHeader } from "./source-menu";
 import { OriginMark } from "./ui";
 
-/** The Figma menu's Browse all groups (535:7480), with each one's icon and the catalog groups it holds. */
-const browseGroups: Array<{
-  name: string;
-  icon: IconName;
-  from: (entry: CatalogEntry) => boolean;
-}> = [
-  {
-    name: "People",
-    icon: "user",
-    from: (entry) => entry.id === "requestReview",
-  },
-  { name: "Messages", icon: "at", from: (entry) => entry.id === "sendEmail" },
-  {
-    name: "Documents",
-    icon: "download",
-    from: (entry) => entry.category === "Files and web",
-  },
-  {
-    name: "Entities",
-    icon: "cube",
-    from: (entry) => entry.category === "Entities",
-  },
-  {
-    name: "Flow control",
-    icon: "rotate",
-    from: (entry) => entry.category === "Logic",
-  },
-  { name: "AI", icon: "sparkles", from: () => false },
-];
+/** J0.10: the first step added from Start's + offers these three before Recent and Browse all. */
+const recommendedFirstSteps = ["queryEntities", "requestReview", "sendEmail"];
 
 /** Where a step comes from, when it is not on main: the mock or open-PR mark as the item's suffix. */
 const originSuffix = (entry: CatalogEntry) =>
@@ -203,15 +178,15 @@ export const AddNodePicker = ({
     suffix: originSuffix(entry) ?? side,
     onClick: () => pick(entry),
   });
-  const browseAll: MenuItem[] = browseGroups.map((group) => {
-    const inGroup = available.filter(group.from);
+  const browseAll: MenuItem[] = stepGroups.map((group) => {
+    const groupSteps = groupEntries(group, available);
     return {
       id: `group:${group.name}`,
       text: group.name,
       icon: group.icon,
       subItems:
-        inGroup.length > 0
-          ? inGroup.map((entry) => entryItem(entry, "browse"))
+        groupSteps.length > 0
+          ? groupSteps.map((entry) => entryItem(entry, "browse"))
           : [
               {
                 id: `group:${group.name}:none`,
@@ -237,14 +212,23 @@ export const AddNodePicker = ({
                     onClick: () => undefined,
                   },
                 ]
-              : [
-                  ...matches.map((entry) =>
-                    entryItem(entry, "result", entry.category),
-                  ),
-                ],
+              : matches.map((entry) => entryItem(entry, "result")),
         },
       ]
     : [
+        ...(picker.anchor === "port" && document.steps.length === 0
+          ? [
+              {
+                id: "recommended",
+                label: "Recommended",
+                items: recommendedFirstSteps.flatMap((id) =>
+                  available
+                    .filter((entry) => entry.id === id)
+                    .map((entry) => entryItem(entry, "recommended")),
+                ),
+              },
+            ]
+          : []),
         ...(recent.length > 0
           ? [
               {

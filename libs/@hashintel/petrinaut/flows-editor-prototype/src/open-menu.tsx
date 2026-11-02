@@ -59,43 +59,38 @@ export const OpenMenu = ({
   const firstAnchor = useRef(anchor);
 
   useEffect(() => {
-    // Two frames later: an anchor its parent sets in an effect, or one inside a DS part that mounts its own pieces
-    // late (a Filter's value slot), is in place by then.
-    let inner = 0;
-    const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() => {
-        const element = firstAnchor.current.current;
-        const box = element?.getBoundingClientRect() ?? null;
-        const panel = element?.closest("aside");
-        const canvas = element?.closest(".react-flow");
-        setRect(
-          box && panel && alignToPanel
+    // A moment later (about two frames): an anchor its parent sets in an effect, or one inside a DS part that mounts
+    // its own pieces late (a Filter's value slot), is in place by then. A timer, not animation frames, so a screen
+    // opened in a background tab opens its menu too.
+    const timer = setTimeout(() => {
+      const element = firstAnchor.current.current;
+      const box = element?.getBoundingClientRect() ?? null;
+      const panel = element?.closest("aside");
+      const canvas = element?.closest(".react-flow");
+      setRect(
+        box && panel && alignToPanel
+          ? new DOMRect(
+              panel.getBoundingClientRect().right - panelInset - box.width,
+              box.top,
+              box.width,
+              box.height,
+            )
+          : box && canvas && keepInCanvasWidth
             ? new DOMRect(
-                panel.getBoundingClientRect().right - panelInset - box.width,
+                Math.min(
+                  box.left,
+                  canvas.getBoundingClientRect().right -
+                    canvasInset -
+                    keepInCanvasWidth,
+                ),
                 box.top,
                 box.width,
                 box.height,
               )
-            : box && canvas && keepInCanvasWidth
-              ? new DOMRect(
-                  Math.min(
-                    box.left,
-                    canvas.getBoundingClientRect().right -
-                      canvasInset -
-                      keepInCanvasWidth,
-                  ),
-                  box.top,
-                  box.width,
-                  box.height,
-                )
-              : box,
-        );
-      });
-    });
-    return () => {
-      cancelAnimationFrame(outer);
-      cancelAnimationFrame(inner);
-    };
+            : box,
+      );
+    }, 40);
+    return () => clearTimeout(timer);
     // The anchor names the place once, as the first anchor does.
   }, [alignToPanel, keepInCanvasWidth]);
 

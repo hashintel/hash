@@ -1,18 +1,14 @@
 import { useState } from "react";
 
-import {
-  Button,
-  Icon,
-  type IconName,
-  TextInput,
-} from "@hashintel/ds-components";
+import { Icon, type IconName, TextInput } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import {
   type CatalogEntry,
   catalog as fullCatalog,
-  categories,
+  groupEntries,
+  stepGroups,
   isOffered,
 } from "./catalog";
 
@@ -65,7 +61,7 @@ const headerStyle = css({
  * the tab set only, 20 px between tabs, 32 px items 3 px in, the selected one with a 2 px indicator exactly under its label. No full-width
  * header border (21 Oct).
  */
-const tabListStyle = css({
+export const tabListStyle = css({
   display: "flex",
   alignItems: "flex-start",
   gap: "5",
@@ -74,7 +70,7 @@ const tabListStyle = css({
   borderBottomColor: "neutral.bd.solid",
 });
 
-const tabStyle = css({
+export const tabStyle = css({
   position: "relative",
   display: "flex",
   alignItems: "center",
@@ -116,13 +112,16 @@ const rowStyle = css({
   textAlign: "left",
   cursor: "pointer",
   textStyle: "sm",
-  color: "neutral.fg.heading",
+  lineHeight: "[14px]",
+  fontWeight: "medium",
+  // J1.1 (3 Nov): a row is muted; the selected one is dark, with no blue and no fill (ledger, 2 Nov).
+  color: "neutral.fg.muted.hover",
   _hover: { backgroundColor: "neutral.bg.surface.active" },
   _focusVisible: {
     backgroundColor: "neutral.bg.surface.active",
     outline: "none",
   },
-  "&[aria-current=true]": { color: "blue.fg.link" },
+  "&[aria-current=true]": { color: "neutral.fg.heading" },
 });
 
 const chevronSlotStyle = css({
@@ -130,7 +129,8 @@ const chevronSlotStyle = css({
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
-  width: "[12px]",
+  // J1.1: the expand slot is 8 px at 4 px in; with the row's 6 px gap the tile lands 16 px in.
+  width: "[6px]",
   height: "[16px]",
   color: "neutral.fg.subtle",
   "& svg": { width: "[10px]", height: "[10px]" },
@@ -142,33 +142,23 @@ const tileStyle = cva({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-    width: "[20px]",
-    height: "[20px]",
-    borderRadius: "sm",
+    // D19 A tile (2 Nov): 14 px, 3 px corners, grey for every type; only the 10 px glyph keeps its colour.
+    width: "[14px]",
+    height: "[14px]",
+    borderRadius: "[3px]",
+    backgroundColor: "neutral.bgSolid.surface.active",
     "&[class] svg": {
-      width: "[12px]",
-      height: "[12px]",
-      "--icon-size": "12px",
+      width: "[10px]",
+      height: "[10px]",
+      "--icon-size": "10px",
     },
   },
   variants: {
     tone: {
-      green: {
-        backgroundColor: "green.bgSolid.surface.active",
-        color: "green.fg.muted",
-      },
-      orange: {
-        backgroundColor: "orange.bgSolid.surface.active",
-        color: "orange.fg.muted",
-      },
-      blue: {
-        backgroundColor: "blue.bgSolid.surface.active",
-        color: "blue.fg.muted",
-      },
-      neutral: {
-        backgroundColor: "blue.bgSolid.surface.active",
-        color: "neutral.fg.muted",
-      },
+      green: { color: "green.fg.muted" },
+      orange: { color: "orange.fg.muted" },
+      blue: { color: "blue.fg.muted" },
+      neutral: { color: "neutral.fg.muted" },
     },
   },
 });
@@ -488,9 +478,10 @@ const Library = () => {
                   entry.category.toLowerCase().includes(query),
               )
               .map((entry) => entryRow(entry, false))
-          : categories.map((category) => {
-              const entries = catalog.filter(
-                (entry) => entry.category === category,
+          : stepGroups.map(({ name: category, ...group }) => {
+              const entries = groupEntries(
+                { name: category, ...group },
+                catalog,
               );
               const expanded = open.includes(category);
               return (
@@ -514,7 +505,11 @@ const Library = () => {
                       />
                     </span>
                     <span className={labelStyle}>{category}</span>
-                    <span className={countStyle}>{entries.length}</span>
+                    <span className={countStyle}>
+                      {entries.length === 1
+                        ? "1 step"
+                        : `${entries.length} steps`}
+                    </span>
                   </button>
                   {expanded
                     ? entries.map((entry) => entryRow(entry, true))
@@ -529,28 +524,6 @@ const Library = () => {
 
 export const LeftPanel = () => {
   const [tab, setTab] = useState<"flow" | "add">("flow");
-  const [collapsed, setCollapsed] = useState(false);
-  if (collapsed) {
-    return (
-      <div
-        className={css({
-          position: "absolute",
-          top: "3",
-          left: "3",
-          zIndex: "[5]",
-        })}
-      >
-        <Button
-          size="sm"
-          variant="subtle"
-          iconName="sidebar"
-          aria-label="Show the steps panel"
-          tooltip="Show the steps panel"
-          onClick={() => setCollapsed(false)}
-        />
-      </div>
-    );
-  }
   return (
     <aside className={panelStyle} aria-label="Steps">
       <div className={headerStyle}>
@@ -574,22 +547,6 @@ export const LeftPanel = () => {
             Add
           </button>
         </div>
-        <span
-          className={css({
-            display: "flex",
-            marginLeft: "auto",
-            alignSelf: "center",
-          })}
-        >
-          <Button
-            size="xs"
-            variant="ghost"
-            iconName="sidebar"
-            aria-label="Hide the steps panel"
-            tooltip="Hide the steps panel"
-            onClick={() => setCollapsed(true)}
-          />
-        </span>
       </div>
       <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
         {tab === "flow" ? <FlowList /> : <Library />}

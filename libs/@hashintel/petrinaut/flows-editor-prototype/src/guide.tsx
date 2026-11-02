@@ -26,12 +26,11 @@ const code = css({
 
 const urls: [string, string][] = [
   ["?task=1", "Task 1 (also ?task=2, ?task=3)"],
-  ["", "A blank flow, with the world briefing"],
+  ["", "J0.1: the empty flows list, the start of the click-through"],
   [
-    "?home",
-    "The flows list: one example flow per design journey, plus the Supplier review",
+    "?screen=J2.54",
+    "One Figma screen by its id; ⌘K lists them all with their Figma tags",
   ],
-  ["?screens", "Every designed screen side by side, grouped by journey"],
   [
     "?state=j3-a1&full",
     "Add &full to a screen to show the panel rows its Figma frame leaves out",

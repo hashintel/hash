@@ -1,21 +1,18 @@
-import { ReactFlowProvider } from "@xyflow/react";
-
-import { Avatar, Button, TextInput } from "@hashintel/ds-components";
+import { Avatar, Button, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import hashLockup from "./assets/hash-lockup.svg";
-// The ds-icons infinity used on J1 · 1 (Figma 378:3535), exported as drawn.
-import infinityBlue from "./assets/infinity-blue.svg";
-import infinityGrey from "./assets/infinity-grey.svg";
-import { FlowThumbnail } from "./canvas";
-import { EditorContext, initialUi } from "./editor-context";
-import { validateDocument } from "./shapes";
 
 import type { EditorDocument } from "./document";
 
-export type FlowListEntry = { id: string; document: EditorDocument };
+export type FlowListEntry = {
+  id: string;
+  document: EditorDocument;
+  /** J0.2's "Last edited" column. */
+  lastEdited: string;
+};
 
-/** The HASH app header on J1 · 1: 56 px, the lockup, and the search box (here it searches flows). */
+/** The HASH app header on J0.1: 56 px, the lockup, and the search box (here it searches flows). */
 const headerStyle = css({
   position: "relative",
   display: "flex",
@@ -28,7 +25,7 @@ const headerStyle = css({
   borderBottomColor: "neutral.bd.subtle",
 });
 
-/** Where J1 · 1 places the search: 180 px in, 380 px wide, centred in the 56 px header. */
+/** Where J0.1 places the search: 180 px in, 380 px wide, centred in the 56 px header. */
 const searchSlotStyle = css({
   position: "absolute",
   left: "[180px]",
@@ -37,48 +34,51 @@ const searchSlotStyle = css({
   width: "[380px]",
 });
 
-/** The DS Button at the empty state's size: 32 px, 10 px in, regular 14 px text. */
-const newFlowStyle = css({
-  "&[class]": { height: "[32px]", paddingX: "2.5", fontWeight: "normal" },
-});
-
-const cardStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  textAlign: "left",
-  cursor: "pointer",
-  backgroundColor: "neutral.bgSolid.min",
+/** J0.1's empty state and J0.2's table share this frame: 1200 wide, 12 px corners, a hairline. */
+const boxStyle = css({
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.bd.subtle.hover",
+  borderColor: "neutral.bd.subtle",
   borderRadius: "xl",
   overflow: "hidden",
-  transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
-  _hover: {
-    borderColor: "neutral.bd.solid.hover",
-    boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.08)]",
-  },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
 });
 
-/** A read-only editor context, so the thumbnail can reuse the canvas's own node views. */
-const ThumbnailContext = ({ document }: { document: EditorDocument }) => (
-  <EditorContext
-    value={{
-      document,
-      setDocument: () => undefined,
-      ui: initialUi,
-      setUi: () => undefined,
-      validation: validateDocument(document),
-    }}
-  >
-    <ReactFlowProvider>
-      <FlowThumbnail />
-    </ReactFlowProvider>
-  </EditorContext>
-);
+/** The DS table on J0.2: a 32 px grey header row, 48 px rows, hairline dividers. */
+const tableStyle = css({
+  width: "[100%]",
+  borderCollapse: "collapse",
+  "& th": {
+    height: "[32px]",
+    paddingX: "3",
+    textAlign: "left",
+    textStyle: "xs",
+    lineHeight: "[12px]",
+    fontWeight: "medium",
+    color: "neutral.fg.muted.hover",
+    backgroundColor: "neutral.bgSolid.surface.hover",
+    borderBottomWidth: "thin",
+    borderBottomStyle: "solid",
+    borderBottomColor: "neutral.bgSolid.subtle",
+  },
+  "& td": {
+    height: "[48px]",
+    paddingX: "3",
+    textStyle: "sm",
+    lineHeight: "[14px]",
+    fontWeight: "medium",
+    borderBottomWidth: "thin",
+    borderBottomStyle: "solid",
+    borderBottomColor: "neutral.bgSolid.subtle",
+  },
+  "& tr:last-child td": { borderBottomWidth: "[0]" },
+  "& th:first-child, & td:first-child": { paddingLeft: "6" },
+  "& tbody tr": {
+    cursor: "pointer",
+    _hover: { backgroundColor: "neutral.bgSolid.surface.hover" },
+  },
+});
 
-/** The flows list: a static preview per flow. Its search stays as it was when you come back. */
+/** The flows list: J0.1 with no flows (the DS EmptyState), J0.2 as a table. Its search stays as it was when you come back. */
 export const Home = ({
   flows,
   search,
@@ -95,6 +95,17 @@ export const Home = ({
   const visible = flows.filter((flow) =>
     flow.document.name.toLowerCase().includes(search.trim().toLowerCase()),
   );
+  const newFlow = (
+    <Button
+      size="md"
+      variant="solid"
+      tone="neutral"
+      iconName="plus"
+      onClick={onNew}
+    >
+      New flow
+    </Button>
+  );
   return (
     <div
       className={`${css({
@@ -106,7 +117,7 @@ export const Home = ({
     >
       <header className={headerStyle}>
         <img src={hashLockup} alt="HASH" width={100} height={18} />
-        {/* Figma J1 · 1: `input_string` md with _showIconLeft (no suffix shown). */}
+        {/* Figma J0.1: `input_string` md with _showIconLeft (no suffix shown). */}
         <div className={searchSlotStyle}>
           <TextInput
             size="md"
@@ -135,21 +146,21 @@ export const Home = ({
           paddingBottom: "12",
         })}
       >
-        <div
-          className={css({ display: "flex", alignItems: "center", gap: "3" })}
-        >
-          <img src={infinityGrey} alt="" width={28} height={28} />
+        {/* The DS page header (h1 page title), with New flow on the right once a flow exists. */}
+        <div className={css({ display: "flex", alignItems: "flex-start" })}>
           <div
             className={css({
               display: "flex",
               flexDirection: "column",
-              gap: "1",
+              gap: "[2px]",
               flex: "1",
             })}
           >
             <h1
               className={css({
-                textStyle: "lg",
+                // The DS page header's h1 is 28/32, between the DS 2xl and 3xl text styles.
+                fontSize: "[28px]", // token-guard: allow DS header h1 page title is 28 px
+                lineHeight: "[32px]",
                 fontWeight: "semibold",
                 color: "neutral.fg.heading",
                 margin: "[0]",
@@ -160,39 +171,28 @@ export const Home = ({
             <span
               className={css({
                 textStyle: "sm",
-                color: "neutral.fg.muted.disabled",
+                lineHeight: "[21px]",
+                color: "neutral.fg.muted.hover",
               })}
             >
               Processes that workers can monitor and manage
             </span>
           </div>
           {flows.length > 0 ? (
-            <Button
-              size="sm"
-              variant="solid"
-              tone="brand"
-              iconName="plus"
-              className={newFlowStyle}
-              onClick={onNew}
-            >
-              New flow
-            </Button>
+            <div className={css({ marginTop: "3" })}>{newFlow}</div>
           ) : null}
         </div>
         {visible.length === 0 ? (
-          // J1 · 1: the empty state, in a bordered box.
+          // J0.1: the DS EmptyState in a bordered box.
           <div
-            className={css({
+            className={`${boxStyle} ${css({
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               gap: "4",
               paddingY: "[96px]",
-              borderWidth: "thin",
-              borderStyle: "solid",
               borderColor: "neutral.bd.subtle.hover",
-              borderRadius: "xl",
-            })}
+            })}`}
           >
             <span
               className={css({
@@ -201,12 +201,15 @@ export const Home = ({
                 justifyContent: "center",
                 width: "[48px]",
                 height: "[48px]",
-                borderRadius: "xl",
-                backgroundColor: "blue.bgSolid.surface.active",
-                color: "blue.fg.muted",
+                borderRadius: "full",
+                backgroundColor: "neutral.bgSolid.surface.active",
+                borderWidth: "thin",
+                borderStyle: "solid",
+                borderColor: "neutral.bd.subtle",
+                color: "neutral.fg.muted.hover",
               })}
             >
-              <img src={infinityBlue} alt="" width={24} height={24} />
+              <Icon name="infinity" size="md" />
             </span>
             <div
               className={css({
@@ -236,67 +239,54 @@ export const Home = ({
                   : `Nothing is called “${search}”.`}
               </span>
             </div>
-            <Button
-              size="sm"
-              variant="solid"
-              tone="brand"
-              iconName="plus"
-              className={newFlowStyle}
-              onClick={onNew}
-            >
-              New flow
-            </Button>
+            {flows.length === 0 ? newFlow : null}
           </div>
         ) : (
-          <div
-            className={css({
-              display: "grid",
-              gridTemplateColumns: "[repeat(auto-fill, minmax(280px, 1fr))]",
-              gap: "4",
-            })}
-          >
-            {visible.map((flow) => (
-              // A div, not a button: the preview inside holds the canvas's own (inert) buttons.
-              <div
-                key={flow.id}
-                role="button"
-                tabIndex={0}
-                className={cardStyle}
-                onClick={() => onOpen(flow.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onOpen(flow.id);
-                  }
-                }}
-                aria-label={`Open ${flow.document.name}`}
-                data-flow-card={flow.id}
-              >
-                <div
-                  inert
-                  className={css({
-                    height: "[160px]",
-                    backgroundColor: "neutral.bgSolid.surface",
-                  })}
-                >
-                  <ThumbnailContext document={flow.document} />
-                </div>
-                <div
-                  className={css({
-                    paddingX: "4",
-                    paddingY: "3",
-                    textStyle: "sm",
-                    fontWeight: "medium",
-                    color: "neutral.fg.heading",
-                    borderTopWidth: "thin",
-                    borderTopStyle: "solid",
-                    borderTopColor: "neutral.bd.subtle",
-                  })}
-                >
-                  {flow.document.name}
-                </div>
-              </div>
-            ))}
+          <div className={boxStyle}>
+            <table className={tableStyle}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th className={css({ width: "[143px]" })}>Last edited</th>
+                  <th
+                    className={css({ width: "[56px]" })}
+                    aria-label="Actions"
+                  />
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((flow) => (
+                  <tr
+                    key={flow.id}
+                    tabIndex={0}
+                    data-flow-row={flow.id}
+                    onClick={() => onOpen(flow.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        onOpen(flow.id);
+                      }
+                    }}
+                  >
+                    <td className={css({ color: "neutral.fg.heading" })}>
+                      {flow.document.name}
+                    </td>
+                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                      {flow.lastEdited}
+                    </td>
+                    <td>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        tone="neutral"
+                        iconName="ellipsis"
+                        aria-label={`More for ${flow.document.name}`}
+                        onClick={(event) => event.stopPropagation()}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </main>

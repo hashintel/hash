@@ -221,7 +221,9 @@ const handleStyle = css({
 
 const portAddStyle = css({
   position: "absolute",
-  right: "[-32px]",
+  // Centred on the 7 px port it belongs to (J0.5, J2.4: the + replaces the port dot on hover).
+  left: "[50%]",
+  top: "[50%]",
   width: "[22px]",
   height: "[22px]",
   borderRadius: "full",
@@ -236,18 +238,8 @@ const portAddStyle = css({
   cursor: "pointer",
   opacity: "[0]",
   transition: "[opacity 0.15s ease]",
-  transform: "[translateY(-50%)]",
+  transform: "[translate(-50%, -50%)]",
   zIndex: "[2]",
-  // An invisible bridge back to the port, so the + stays while the pointer crosses the gap.
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: "[0]",
-    bottom: "[0]",
-    // From just past the 7 px port, so the port itself still takes a drag.
-    left: "[-6px]",
-    width: "[6px]",
-  },
   _hover: { borderColor: "blue.bd.strong", color: "blue.fg.muted" },
   _focusVisible: {
     opacity: "[1]",
@@ -256,16 +248,8 @@ const portAddStyle = css({
 });
 
 /** E3: the + on a port, which opens the picker and wires the new step to this port. */
-const PortAdd = ({
-  stepId,
-  port,
-  top,
-}: {
-  stepId: string;
-  port: string;
-  top: string;
-}) => {
-  const { document, setUi } = useEditor();
+const PortAdd = ({ stepId, port }: { stepId: string; port: string }) => {
+  const { document, ui, setUi } = useEditor();
   const dangling = !document.wires.some(
     (wire) => wire.source === stepId && wire.sourcePort === port,
   );
@@ -273,14 +257,14 @@ const PortAdd = ({
     <button
       type="button"
       aria-label="Add a step after this one"
-      className={`${portAddStyle} nodrag nopan`}
-      style={{ top }}
+      className={portAddStyle}
+      style={ui.showPortAddOn === stepId ? { opacity: 1 } : undefined}
       data-port-add={`${stepId}:${port}`}
       data-dangling={dangling || undefined}
       onClick={(event) => {
         event.stopPropagation();
-        setUi((ui) => ({
-          ...ui,
+        setUi((current) => ({
+          ...current,
           picker: { after: { stepId, port }, anchor: "port" },
         }));
       }}
@@ -459,12 +443,10 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
                 position={Position.Right}
                 className={handleStyle}
                 style={{ top: PORT_ROW / 2 }}
-              />
-              <PortAdd
-                stepId={id}
-                port={port.outputName}
-                top={`${PORT_ROW / 2}px`}
-              />
+              >
+                {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+                <PortAdd stepId={id} port={port.outputName} />
+              </Handle>
             </div>
           ))}
         </div>
@@ -476,8 +458,10 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             position={Position.Right}
             className={handleStyle}
             style={{ top: STEP_HEIGHT / 2 }}
-          />
-          <PortAdd stepId={id} port="next" top={`${STEP_HEIGHT / 2}px`} />
+          >
+            {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+            <PortAdd stepId={id} port="next" />
+          </Handle>
         </>
       )}
       <ProblemDot stepId={id} />
@@ -525,8 +509,10 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
         position={Position.Right}
         className={handleStyle}
         style={{ top: STEP_HEIGHT / 2 }}
-      />
-      <PortAdd stepId={START_ID} port="next" top={`${STEP_HEIGHT / 2}px`} />
+      >
+        {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+        <PortAdd stepId={START_ID} port="next" />
+      </Handle>
     </div>
   );
 };
@@ -651,8 +637,10 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         position={Position.Right}
         className={handleStyle}
         style={{ top: GROUP_HEADER / 2 }}
-      />
-      <PortAdd stepId={id} port="next" top={`${GROUP_HEADER / 2}px`} />
+      >
+        {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+        <PortAdd stepId={id} port="next" />
+      </Handle>
       <ProblemDot stepId={id} />
     </div>
   );
@@ -925,6 +913,8 @@ export const FlowCanvas = ({
         )
       }
       data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
+      // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
+      connectOnClick={false}
       fitView={!startViewport}
       fitViewOptions={fitOptions}
       defaultViewport={startViewport}

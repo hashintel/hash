@@ -337,3 +337,34 @@ export const getCatalogEntry = (id: string): CatalogEntry | undefined =>
  * a stand-in.
  */
 export const popularFirstSteps = ["queryEntities", "readEntity", "forEach"];
+
+/**
+ * The groups the picker's Browse all and the Add tab list, in the order J0.6 draws them, each with the steps Figma
+ * puts in it, in Figma's order (J0.6 Entities, J1.5 Flow control). Read entity stays under Entities: Monthly supplier
+ * review uses it.
+ */
+export const stepGroups: Array<{
+  name: string;
+  icon: IconName;
+  ids: string[];
+}> = [
+  { name: "People", icon: "user", ids: ["requestReview"] },
+  { name: "Messages", icon: "at", ids: ["sendEmail"] },
+  { name: "Documents", icon: "download", ids: ["getFileFromUrl"] },
+  {
+    name: "Entities",
+    icon: "cube",
+    ids: ["queryEntities", "readEntity", "createEntity", "updateEntity"],
+  },
+  {
+    name: "Flow control",
+    icon: "rotate",
+    ids: ["if", "forEach", "filterList"],
+  },
+];
+
+/** A group's steps among `entries`, in the group's order. */
+export const groupEntries = (
+  group: (typeof stepGroups)[number],
+  entries: CatalogEntry[],
+) => group.ids.flatMap((id) => entries.filter((entry) => entry.id === id));

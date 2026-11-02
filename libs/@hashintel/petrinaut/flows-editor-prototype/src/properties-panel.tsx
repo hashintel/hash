@@ -1589,18 +1589,16 @@ export const PropertiesPanel = () => {
     !ui.selectedId || ui.selectedId === START_ID
       ? null
       : findStep(document, ui.selectedId);
+  // J0.3 (3 Nov): with nothing selected there is no panel; the canvas runs to the right edge.
+  if (!ui.selectedId && !ui.run) {
+    return null;
+  }
   return (
     <aside className={panelStyle} aria-label="Properties">
       <OverlayScrollArea>
         <div className={panelBodyStyle}>
           {ui.run ? (
             <RunPanel />
-          ) : !ui.selectedId ? (
-            // J4 B1: with nothing selected, the panel names the flow.
-            <div className={panelHeaderStyle}>
-              <span className={typeLineStyle}>{document.name}</span>
-              <span className={descriptionInputStyle}>Nothing selected</span>
-            </div>
           ) : trigger ? (
             <TriggerPanel key={trigger.id} trigger={trigger} />
           ) : ui.selectedId === START_ID ? (

@@ -159,34 +159,55 @@ export const FlowToolbar = ({
     <div className={barStyle} role="toolbar" aria-label="Canvas tools">
       <Menu
         position="top-start"
+        // The DS menu's own width (`_menuContent`, 208 px), as J0.13 draws it.
+        className={css({ minWidth: "[208px]" })}
+        // J0.13: zoom in and out, then fit and 100%, in two groups.
         items={[
           {
-            id: "in",
-            text: "Zoom in",
-            onClick: () => {
-              flow.zoomIn().catch(() => undefined);
-            },
+            id: "step",
+            label: "",
+            items: [
+              {
+                id: "in",
+                text: "Zoom in",
+                icon: "zoomIn",
+                onClick: () => {
+                  flow.zoomIn().catch(() => undefined);
+                },
+              },
+              {
+                id: "out",
+                text: "Zoom out",
+                icon: "zoomOut",
+                onClick: () => {
+                  flow.zoomOut().catch(() => undefined);
+                },
+              },
+            ],
           },
           {
-            id: "out",
-            text: "Zoom out",
-            onClick: () => {
-              flow.zoomOut().catch(() => undefined);
-            },
-          },
-          {
-            id: "reset",
-            text: "Reset to 100%",
-            onClick: () => {
-              flow.zoomTo(1).catch(() => undefined);
-            },
-          },
-          {
-            id: "fit",
-            text: "Zoom to fit",
-            onClick: () => {
-              flow.fitView({ padding: 0.2, maxZoom: 1 }).catch(() => undefined);
-            },
+            id: "set",
+            label: "",
+            items: [
+              {
+                id: "fit",
+                text: "Zoom to fit",
+                icon: "expand",
+                onClick: () => {
+                  flow
+                    .fitView({ padding: 0.2, maxZoom: 1 })
+                    .catch(() => undefined);
+                },
+              },
+              {
+                id: "reset",
+                text: "Zoom to 100%",
+                icon: "oneHundred",
+                onClick: () => {
+                  flow.zoomTo(1).catch(() => undefined);
+                },
+              },
+            ],
           },
         ]}
         trigger={

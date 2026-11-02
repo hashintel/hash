@@ -12,24 +12,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { AddNodePicker } from "./add-node-picker";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
-import {
-  EditorContext,
-  type EditorUi,
-  inScreenState,
-  showFull,
-} from "./editor-context";
-import { LeftPanel } from "./left-panel";
+import { EditorContext, type EditorUi } from "./editor-context";
+import { LeftPanel, tabListStyle, tabStyle } from "./left-panel";
 import { PropertiesPanel } from "./properties-panel";
 import { RunForm } from "./run-dialogs";
 import { validateDocument } from "./shapes";
-import { journeyTitles, screenStates } from "./states";
-import {
-  findTask,
-  newSession,
-  type TaskSession,
-  tasks,
-  writeSession,
-} from "./tasks";
+import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, organize } from "./toolbar";
 
 import type { EditorDocument } from "./document";
@@ -85,17 +73,21 @@ const titleInputStyle = css({
   backgroundColor: "[transparent]",
   borderWidth: "[0]",
   borderRadius: "sm",
-  paddingY: "0.5",
-  paddingRight: "1",
-  paddingLeft: "[0]",
-  // The breadcrumb puts 6 px after the back button; the bar's own gap is 12.
-  marginLeft: "[-6px]",
+  paddingY: "1",
+  paddingRight: "1.5",
+  paddingLeft: "1.5",
+  // The breadcrumb puts 6 px after the back button (the bar's own gap is 12); the field's 6 px padding sits in it.
+  marginLeft: "[-12px]",
   fieldSizing: "content",
   minWidth: "[40px]",
   maxWidth: "[480px]",
   outline: "none",
   _hover: { backgroundColor: "neutral.bg.surface.active" },
-  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
+  // J0.4: while renamed, the name sits in a 298 px grey field, with no ring.
+  "&:focus, &[data-editing]": {
+    backgroundColor: "neutral.bg.surface.active",
+    minWidth: "[298px]",
+  },
 });
 
 /** The top bar's 32 px bordered buttons (Run and ⋮), as the DS IconButton draws them. */
@@ -112,11 +104,29 @@ const barButtonStyle = css({
   "&[class]:hover": { backgroundColor: "neutral.bgSolid.surface.hover" },
 });
 
-/** Run: 28 px, 14 px regular text after a 14 px play icon. */
-const runStyle = css({
-  "&[class]": { height: "[28px]", fontWeight: "normal", paddingX: "2" },
-  "&[class] svg": { width: "[14px]", height: "[14px]" },
+/** Simulate (J4.4): the DS outline sm button, its label muted, after Start's 14 px grey play tile. */
+const simulateStyle = css({
+  "&[class]": { color: "neutral.fg.muted.hover" },
 });
+
+/** Start's play glyph on its 14 px grey tile (D19 A tile · Start), as Simulate shows it. */
+const StartGlyph = () => (
+  <span
+    className={css({
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "[14px]",
+      height: "[14px]",
+      borderRadius: "[3px]",
+      backgroundColor: "neutral.bgSolid.surface.active",
+      color: "neutral.fg.muted",
+      "& svg": { width: "[10px]", height: "[10px]", "--icon-size": "10px" },
+    })}
+  >
+    <Icon name="play" size="xs" />
+  </span>
+);
 
 const squareStyle = css({
   "&[class]": {
@@ -133,6 +143,7 @@ export const Editor = ({
   showBriefing = false,
   initialTaskId = null,
   onBack,
+  onArchive,
 }: {
   initialDocument: EditorDocument;
   initialUi: EditorUi;
@@ -140,6 +151,8 @@ export const Editor = ({
   initialTaskId?: number | null;
   /** Back to the flows list, handing it the flow as it is now. */
   onBack?: (document: EditorDocument) => void;
+  /** ⋮ › Archive: the flow leaves the list. */
+  onArchive?: (document: EditorDocument) => void;
 }) => {
   const [document, setDocumentState] = useState(initialDocument);
   const [ui, setUiState] = useState(initialUi);
@@ -171,13 +184,6 @@ export const Editor = ({
       });
     }
   }, [document, session]);
-
-  const startTask = (taskId: number) => {
-    goalReachedAt.current = null;
-    const started = newSession(taskId);
-    writeSession(started);
-    setSession(started);
-  };
 
   const finishTask = () => {
     if (!session) {
@@ -231,9 +237,8 @@ export const Editor = ({
       .filter((diagnostic) => diagnostic.severity === "error").length +
     validation.incomplete.size;
   const mockCount = validation.mockFields.size;
-  // In normal use a flow with a trigger can be run; a `?state=` screen shows Run only with its form open.
-  const showRun =
-    showFull || ui.runOpen || (!inScreenState && document.triggers.length > 0);
+  // J4.4: Run only when the flow can be started by hand. The mock has no manual trigger kind yet.
+  const hasManualStart = false;
   const allMessages = [
     ...validation.flowLevel.map((diagnostic) => diagnostic.message),
     ...[...validation.byStep.values()]
@@ -255,109 +260,114 @@ export const Editor = ({
       <EditorContext value={context}>
         <div ref={portalRef} className={`${rootStyle} petrinaut-root`}>
           <header className={topBarStyle}>
-            <Button
-              size="xs"
-              variant="ghost"
-              iconName="arrowLeft"
-              className={backStyle}
-              aria-label="Back to flows"
-              tooltip="Back to flows"
-              disabled={!onBack}
-              onClick={() => onBack?.(document)}
-            />
-            <input
-              className={titleInputStyle}
-              value={document.name}
-              aria-label="Flow name"
-              onChange={(event) => {
-                const name = event.target.value;
-                setDocumentState((current) => ({ ...current, name }));
-              }}
-            />
             <div
               className={css({
-                marginLeft: "auto",
                 display: "flex",
                 alignItems: "center",
                 gap: "3",
+                flex: "1",
+                minWidth: "[0]",
               })}
             >
-              {/* A small way to every screen state, for walking a reviewer through: ?full shows it. */}
-              {showFull ? (
-                <a
-                  href="?screens"
-                  className={css({
-                    textStyle: "xs",
-                    color: "neutral.fg.subtle",
-                    marginRight: "2",
-                    _hover: {
-                      color: "neutral.fg.heading",
-                      textDecoration: "underline",
-                    },
-                  })}
+              <Button
+                size="xs"
+                variant="ghost"
+                iconName="arrowLeft"
+                className={backStyle}
+                aria-label="Back to flows"
+                tooltip="Back to flows"
+                disabled={!onBack}
+                onClick={() => onBack?.(document)}
+              />
+              <input
+                className={titleInputStyle}
+                value={document.name}
+                aria-label="Flow name"
+                data-flow-name
+                onBlur={(event) => {
+                  event.currentTarget.removeAttribute("data-editing");
+                }}
+                onChange={(event) => {
+                  const name = event.target.value;
+                  setDocumentState((current) => ({ ...current, name }));
+                }}
+              />
+            </div>
+            {/* J4.4 (agreed 2 Nov): Editor | Runs in the middle, as the same underlined tabs as Steps | Add. */}
+            <div role="tablist" aria-label="Flow view" className={tabListStyle}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected
+                className={tabStyle}
+              >
+                Editor
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={false}
+                className={tabStyle}
+                title="Runs are designed next (J4.5–J4.16)"
+              >
+                Runs
+              </button>
+            </div>
+            <div
+              className={css({
+                flex: "1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: "2",
+              })}
+            >
+              {/* Run shows only when the flow can be started by hand; no trigger kind does that yet. */}
+              {hasManualStart ? (
+                <Button
+                  size="sm"
+                  variant="subtle"
+                  tone="neutral"
+                  className={simulateStyle}
                 >
-                  All screens
-                </a>
+                  Run
+                </Button>
               ) : null}
-              {/* The Run button shows with its form open (J4 · B1), with ?full, and in normal use once a trigger exists. */}
-              {showRun ? (
-                <>
-                  {/* The Run form opens under this button (J4 · B1). */}
-                  <span
-                    ref={runRef}
-                    className={css({ display: "inline-flex" })}
-                  >
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className={cx(barButtonStyle, runStyle)}
-                      prefix={<Icon name="play" size="sm" />}
-                      tooltip={
-                        errorCount > 0
-                          ? allMessages.slice(0, 6).join(" · ") ||
-                            "Some steps are not set up yet"
-                          : mockCount > 0
-                            ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
-                            : "The engine's validator finds no errors"
-                      }
-                      onClick={() =>
-                        setUiState((current) => ({ ...current, runOpen: true }))
-                      }
-                    >
-                      Run
-                    </Button>
-                  </span>
-                </>
-              ) : null}
+              {/* Simulate: a dry run without the trigger. Its form opens under it. */}
+              <span ref={runRef} className={css({ display: "inline-flex" })}>
+                <Button
+                  size="sm"
+                  variant="subtle"
+                  tone="neutral"
+                  className={simulateStyle}
+                  prefix={<StartGlyph />}
+                  tooltip={
+                    errorCount > 0
+                      ? allMessages.slice(0, 6).join(" · ") ||
+                        "Some steps are not set up yet"
+                      : mockCount > 0
+                        ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
+                        : "The engine's validator finds no errors"
+                  }
+                  onClick={() =>
+                    setUiState((current) => ({ ...current, runOpen: true }))
+                  }
+                >
+                  Simulate
+                </Button>
+              </span>
+              <Button size="sm" variant="solid" tone="neutral">
+                Publish
+              </Button>
+              {/* J0.12 (2 Nov): flows are archived, never deleted, so ⋮ holds Archive only. */}
               <Menu
+                position="bottom-end"
+                className={css({ minWidth: "[208px]" })}
                 items={[
                   {
-                    id: "status",
-                    text:
-                      errorCount > 0
-                        ? `${errorCount} to fix`
-                        : mockCount > 0
-                          ? `Ready · ${mockCount} mock`
-                          : "Ready",
-                    icon: errorCount > 0 ? "warning" : "circleCheck",
-                    tone: errorCount > 0 ? "error" : "neutral",
-                    disabled: true,
-                    onClick: () => undefined,
-                  },
-                  {
-                    id: "tasks",
-                    label: "Test tasks",
-                    items: tasks.map((task) => ({
-                      id: String(task.id),
-                      text: `Task ${task.id}`,
-                      onClick: () => startTask(task.id),
-                    })),
-                  },
-                  {
-                    id: "about",
-                    text: "About this prototype",
-                    icon: "info",
-                    onClick: reopenBriefing,
+                    id: "archive",
+                    text: "Archive",
+                    onClick: () => (onArchive ?? onBack)?.(document),
                   },
                 ]}
                 trigger={
@@ -367,7 +377,6 @@ export const Editor = ({
                     iconName="ellipsisVertical"
                     className={cx(barButtonStyle, squareStyle)}
                     aria-label="More"
-                    tooltip="More"
                   />
                 }
               />
@@ -438,180 +447,5 @@ export const Editor = ({
         </div>
       </EditorContext>
     </PortalContainerContext>
-  );
-};
-
-const screensStyle = css({
-  minHeight: "[100vh]",
-  backgroundColor: "neutral.bgSolid.surface.hover",
-  padding: "8",
-  fontFamily: "body",
-  color: "neutral.fg.heading",
-});
-
-/** One screen: a static image of the editor in that state, with its name linking to the live screen. */
-const ScreenFrame = ({
-  state,
-  base,
-}: {
-  state: (typeof screenStates)[number];
-  base: string;
-}) => {
-  const [missing, setMissing] = useState(false);
-  return (
-    <figure className={css({ margin: "[0]" })}>
-      <div
-        className={css({
-          position: "relative",
-          width: "[100%]",
-          aspectRatio: "[1440 / 900]",
-          overflow: "hidden",
-          borderRadius: "lg",
-          borderWidth: "thin",
-          borderStyle: "solid",
-          borderColor: "neutral.bd.subtle",
-          backgroundColor: "neutral.bgSolid.min",
-        })}
-      >
-        {missing ? (
-          <div
-            className={css({
-              position: "absolute",
-              inset: "[0]",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textStyle: "sm",
-              color: "neutral.fg.muted",
-              backgroundColor: "neutral.bgSolid.surface.hover",
-            })}
-          >
-            {state.title}
-          </div>
-        ) : (
-          <img
-            // A static capture (capture:flows-editor-prototype-screens): the site's frame-ancestors policy blocks iframes.
-            src={`${import.meta.env.BASE_URL}screens/${state.id}.webp`}
-            alt={state.title}
-            width={1440}
-            height={900}
-            loading="lazy"
-            onError={() => setMissing(true)}
-            className={css({
-              position: "absolute",
-              top: "[0]",
-              left: "[0]",
-              width: "[100%]",
-              height: "[100%]",
-              objectFit: "cover",
-            })}
-          />
-        )}
-      </div>
-      <figcaption
-        className={css({
-          display: "flex",
-          alignItems: "baseline",
-          gap: "2",
-          marginTop: "2",
-        })}
-      >
-        <a
-          href={`${base}?state=${state.id}`}
-          className={css({
-            textStyle: "sm",
-            fontWeight: "semibold",
-            color: "blue.fg.muted",
-          })}
-        >
-          {state.title}
-        </a>
-        <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
-          {state.caption}
-        </span>
-      </figcaption>
-    </figure>
-  );
-};
-
-/**
- * Every screen side by side, in labelled rows of two, each a captured image of the editor in its starting state.
- */
-export const Screens = () => {
-  // Grouped by Figma journey, in ↳ Current's order; within a journey, the states' own rows.
-  const journeys = ([1, 2, 3, 4] as const).filter((journey) =>
-    screenStates.some((state) => state.journey === journey),
-  );
-  const base = `${globalThis.location.pathname}`;
-  return (
-    <div className={`${screensStyle} petrinaut-root`}>
-      <h1
-        className={css({
-          textStyle: "xl",
-          fontWeight: "semibold",
-          marginBottom: "1",
-        })}
-      >
-        Flows editor prototype · screens
-      </h1>
-      <p
-        className={css({
-          textStyle: "sm",
-          color: "neutral.fg.muted",
-          marginBottom: "6",
-        })}
-      >
-        Each frame is the live editor. Open one to click through it.
-      </p>
-      {journeys.map((journey) => (
-        <section key={journey} className={css({ marginBottom: "10" })}>
-          <h2
-            className={css({
-              textStyle: "lg",
-              fontWeight: "semibold",
-              color: "neutral.fg.heading",
-              marginBottom: "4",
-            })}
-          >
-            {journeyTitles[journey]}
-          </h2>
-          {[
-            ...new Set(
-              screenStates
-                .filter((state) => state.journey === journey)
-                .map((state) => state.row),
-            ),
-          ].map((row) => (
-            <div key={row} className={css({ marginBottom: "6" })}>
-              <h3
-                className={css({
-                  textStyle: "xs",
-                  fontWeight: "medium",
-                  color: "neutral.fg.subtle",
-                  marginBottom: "2",
-                })}
-              >
-                {row}
-              </h3>
-              <div
-                className={css({
-                  display: "grid",
-                  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
-                  gap: "6",
-                })}
-              >
-                {screenStates
-                  .filter(
-                    (state) => state.journey === journey && state.row === row,
-                  )
-                  .map((state) => (
-                    <ScreenFrame key={state.id} state={state} base={base} />
-                  ))}
-              </div>
-            </div>
-          ))}
-        </section>
-      ))}
-    </div>
   );
 };

@@ -46,6 +46,8 @@ export type EditorUi = {
   zoomBase?: number;
   /** A screen state's + handles show on hover only; the Figma frame draws the + beside the selected step in J2 A and B2 alone. */
   quietPortAdd?: boolean;
+  /** A screen that draws the pointer on a port (J0.5): that step's + shows as if hovered. */
+  showPortAddOn?: string;
   /** The step card a hovered reference comes from: the canvas highlights it while the pointer is on the reference. */
   hoverSourceId?: string | null;
 };
@@ -81,8 +83,8 @@ const query = new URLSearchParams(globalThis.location.search);
 /** `?debug` shows engine diagnostics and origin marks; `?full` shows every field, Outputs and Paths. Neither is in the default UI. */
 export const showDebug = query.has("debug");
 export const showFull = query.has("full");
-/** A `?state=` screen shows only what its Figma frame shows; with none, the editor is in normal use. */
-export const inScreenState = query.has("state");
+/** A `?state=` or `?screen=` screen shows only what its Figma frame shows; with neither, the editor is in normal use. */
+export const inScreenState = query.has("state") || query.has("screen");
 
 /** The card a reference reads from: its step, Start for a flow input, the For each box for an item. */
 const sourceCardId = (

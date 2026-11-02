@@ -1015,14 +1015,6 @@ export const screenStates: ScreenState[] = figmaStates.map((state) => {
   };
 });
 
-/** The journey sections on ↳ Current, in Figma order (file 69r6JuKZ2kAr61h7Ci40kh). */
-export const journeyTitles: Record<ScreenState["journey"], string> = {
-  1: "Journey 1 · Start a new flow",
-  2: "Journey 2 · Build the first steps by hand",
-  3: "Journey 3 · Where each input comes from",
-  4: "Journey 4 · How a flow starts",
-};
-
 export const findScreenState = (id: string | null) =>
   screenStates.find((state) => state.id === id);
 
