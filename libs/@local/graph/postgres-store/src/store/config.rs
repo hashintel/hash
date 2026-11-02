@@ -1,13 +1,41 @@
 use core::{fmt, num::NonZero, pin::Pin};
+use std::path::PathBuf;
 
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
-use tokio_postgres::Config;
+use rustls::RootCertStore;
+use tokio_postgres::{Config, config::SslMode};
+use tokio_postgres_rustls::MakeRustlsConnect;
+
+use crate::store::postgres::connection::{RootCertificateError, connector, load_root_certificates};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum DatabaseType {
     #[default]
     Postgres,
+}
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+pub enum DatabaseSslMode {
+    /// Connect without TLS.
+    #[default]
+    Disable,
+    /// Connect with TLS if the server supports it, otherwise without.
+    Prefer,
+    /// Connect with TLS and fail if the server does not support it.
+    Require,
+}
+
+impl From<DatabaseSslMode> for SslMode {
+    fn from(mode: DatabaseSslMode) -> Self {
+        match mode {
+            DatabaseSslMode::Disable => Self::Disable,
+            DatabaseSslMode::Prefer => Self::Prefer,
+            DatabaseSslMode::Require => Self::Require,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +108,33 @@ pub struct DatabaseConnectionInfo {
         )
     )]
     database: String,
+
+    /// Whether to connect to the database over TLS.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long = "pg-ssl-mode",
+            default_value = "disable",
+            value_enum,
+            env = "HASH_GRAPH_PG_SSL_MODE",
+            global = true
+        )
+    )]
+    ssl_mode: DatabaseSslMode,
+
+    /// Path to the PEM-encoded root certificate the database server is verified against.
+    ///
+    /// Required unless `--pg-ssl-mode` is `disable`.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long = "pg-ssl-root-cert",
+            env = "HASH_GRAPH_PG_SSL_ROOT_CERT",
+            required_if_eq_any = [("ssl_mode", "prefer"), ("ssl_mode", "require")],
+            global = true
+        )
+    )]
+    ssl_root_cert: Option<PathBuf>,
 }
 
 impl DatabaseConnectionInfo {
@@ -99,6 +154,8 @@ impl DatabaseConnectionInfo {
             host,
             port,
             database,
+            ssl_mode: DatabaseSslMode::Disable,
+            ssl_root_cert: None,
         }
     }
 
@@ -113,8 +170,30 @@ impl DatabaseConnectionInfo {
             .password(self.password.expose())
             .host(&self.host)
             .port(self.port)
-            .dbname(&self.database);
+            .dbname(&self.database)
+            .ssl_mode(SslMode::from(self.ssl_mode));
         config
+    }
+
+    /// The TLS connector to connect with, using the [`config`](Self::config).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RootCertificateError`] if TLS is enabled and the root certificate is missing or
+    /// cannot be loaded.
+    pub fn tls(&self) -> Result<MakeRustlsConnect, Report<RootCertificateError>> {
+        match (self.ssl_mode, &self.ssl_root_cert) {
+            // `config` sets `SslMode::Disable`, so tokio-postgres never uses the connector.
+            (DatabaseSslMode::Disable, _) => Ok(connector(RootCertStore::empty())),
+            (DatabaseSslMode::Prefer | DatabaseSslMode::Require, Some(path)) => {
+                load_root_certificates(path)
+                    .map(connector)
+                    .attach_with(|| path.display().to_string())
+            }
+            (DatabaseSslMode::Prefer | DatabaseSslMode::Require, None) => {
+                Err(Report::new(RootCertificateError).attach("TLS is enabled without one"))
+            }
+        }
     }
 
     #[must_use]
@@ -191,7 +270,7 @@ mod tests {
     use hash_crypto::Secret;
     use tokio_postgres::config::Host;
 
-    use super::{DatabaseConnectionInfo, DatabaseType};
+    use super::{DatabaseConnectionInfo, DatabaseSslMode, DatabaseType};
 
     #[test]
     fn config_reserved_characters() {
@@ -223,5 +302,93 @@ mod tests {
             Some("hash"),
             "the database should be set"
         );
+    }
+
+    fn local_info(ssl_mode: DatabaseSslMode) -> DatabaseConnectionInfo {
+        DatabaseConnectionInfo {
+            ssl_mode,
+            ..DatabaseConnectionInfo::new(
+                DatabaseType::Postgres,
+                "graph".to_owned(),
+                Secret::from_string("graph".to_owned()),
+                "localhost".to_owned(),
+                5432,
+                "graph".to_owned(),
+            )
+        }
+    }
+
+    #[test]
+    fn tls_disabled_without_root_cert() {
+        assert!(
+            local_info(DatabaseSslMode::Disable).tls().is_ok(),
+            "disabled TLS should not need a root certificate"
+        );
+    }
+
+    #[test]
+    fn tls_enabled_without_root_cert() {
+        for mode in [DatabaseSslMode::Prefer, DatabaseSslMode::Require] {
+            assert!(
+                local_info(mode).tls().is_err(),
+                "{mode:?} should require a root certificate"
+            );
+        }
+    }
+
+    #[cfg(feature = "clap")]
+    mod cli {
+        use std::path::Path;
+
+        use clap::{Parser, error::ErrorKind};
+        use tokio_postgres::config::SslMode;
+
+        use super::super::DatabaseConnectionInfo;
+
+        #[derive(Debug, Parser)]
+        struct Cli {
+            #[clap(flatten)]
+            info: DatabaseConnectionInfo,
+        }
+
+        #[test]
+        fn ssl_disabled_by_default() {
+            let cli = Cli::try_parse_from(["graph"]).expect("no arguments should parse");
+
+            assert_eq!(cli.info.config().get_ssl_mode(), SslMode::Disable);
+            assert_eq!(cli.info.ssl_root_cert, None);
+        }
+
+        #[test]
+        fn ssl_requires_root_cert() {
+            for mode in ["prefer", "require"] {
+                let error = Cli::try_parse_from(["graph", "--pg-ssl-mode", mode])
+                    .expect_err("a TLS mode without a root certificate should be rejected");
+
+                assert_eq!(
+                    error.kind(),
+                    ErrorKind::MissingRequiredArgument,
+                    "`{mode}` should require `--pg-ssl-root-cert`"
+                );
+            }
+        }
+
+        #[test]
+        fn ssl_with_root_cert() {
+            let cli = Cli::try_parse_from([
+                "graph",
+                "--pg-ssl-mode",
+                "require",
+                "--pg-ssl-root-cert",
+                "/etc/ssl/rds.pem",
+            ])
+            .expect("a TLS mode with a root certificate should parse");
+
+            assert_eq!(cli.info.config().get_ssl_mode(), SslMode::Require);
+            assert_eq!(
+                cli.info.ssl_root_cert.as_deref(),
+                Some(Path::new("/etc/ssl/rds.pem"))
+            );
+        }
     }
 }

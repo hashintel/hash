@@ -50,7 +50,7 @@ use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
-use tokio_postgres::{Client as PostgresClient, NoTls};
+use tokio_postgres::Client as PostgresClient;
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
 use uuid::Uuid;
@@ -767,7 +767,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.db_pool_config,
-        NoTls,
         PostgresStoreSettings {
             validate_links: !args.config.skip_link_validation,
             skip_embedding_creation: args.config.skip_embedding_creation,

@@ -81,7 +81,7 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_telemetry::logging::env_filter;
-use tokio_postgres::{NoTls, Transaction};
+use tokio_postgres::Transaction;
 use type_system::{
     knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
@@ -189,13 +189,9 @@ impl DatabaseTestWrapper {
             database,
         );
 
-        let pool = PostgresStorePool::new(
-            &connection_info,
-            &DatabasePoolConfig::default(),
-            NoTls,
-            settings,
-        )
-        .expect("could not connect to database");
+        let pool =
+            PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), settings)
+                .expect("could not connect to database");
 
         let connection = pool
             .acquire_owned(None)

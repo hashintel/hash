@@ -30,7 +30,6 @@ use hash_middleware::{
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
 use tokio::time::timeout;
-use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, UserId};
 
@@ -102,7 +101,6 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
         &DatabasePoolConfig {
             max_connections: nz!(1),
         },
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("an unconnected pool should construct without reaching a database");

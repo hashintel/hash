@@ -6,7 +6,7 @@ mod validation;
 pub mod postgres;
 
 pub use self::{
-    config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
+    config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseSslMode, DatabaseType},
     postgres::{
         AsClient, BeginReadOnlyTransaction, EntityDeletion, EntityEnd, EntityEvent,
         EntityEventStream, EntityUpdate, GenericClientIter, InTransaction, IsolationLevel,

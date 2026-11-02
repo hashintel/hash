@@ -16,7 +16,6 @@ use hash_telemetry::Telemetry;
 use opentelemetry::metrics::Meter;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -158,7 +157,6 @@ async fn run_atlas(
         PostgresStorePool::new(
             &args.db_info,
             &args.db_pool_config,
-            NoTls,
             PostgresStoreSettings {
                 filter_protection,
                 ..PostgresStoreSettings::default()

@@ -15,6 +15,7 @@
 mod message;
 #[cfg(test)]
 mod tests;
+mod tls;
 
 use core::{
     error::Error,
@@ -32,26 +33,18 @@ use futures::{
 };
 use tokio::task::JoinHandle;
 use tokio_postgres::{
-    AsyncMessage, Client, Config, Socket,
+    AsyncMessage, Client, Config,
     error::{DbError, Severity},
-    tls::{MakeTlsConnect, TlsConnect},
 };
+use tokio_postgres_rustls::MakeRustlsConnect;
 
 use self::message::MessageStream;
+pub use self::tls::RootCertificateError;
+pub(crate) use self::tls::{connector, load_root_certificates};
 
 /// Identifies a connection within its pool.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct ConnectionId(u64);
-
-/// The TLS setup a connection is established with.
-pub trait PostgresTls = Clone
-    + MakeTlsConnect<
-        Socket,
-        Stream: Send + Sync,
-        TlsConnect: TlsConnect<Socket, Future: Send> + Send + Sync,
-    > + Send
-    + Sync
-    + 'static;
 
 /// The target a message from the server is recorded under.
 ///
@@ -222,22 +215,22 @@ impl ManagedConnection {
 }
 
 /// Creates and recycles [`ManagedConnection`]s for a pool.
-pub(crate) struct ConnectionManager<Tls> {
+pub(crate) struct ConnectionManager {
     config: Config,
-    tls: Tls,
+    tls: MakeRustlsConnect,
     next_id: AtomicU64,
 }
 
-impl<Tls> fmt::Debug for ConnectionManager<Tls> {
+impl fmt::Debug for ConnectionManager {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("ConnectionManager")
             .finish_non_exhaustive()
     }
 }
 
-impl<Tls: PostgresTls> ConnectionManager<Tls> {
+impl ConnectionManager {
     /// Creates a manager handing out connections built from `config`.
-    pub(crate) const fn new(config: Config, tls: Tls) -> Self {
+    pub(crate) const fn new(config: Config, tls: MakeRustlsConnect) -> Self {
         Self {
             config,
             tls,
@@ -246,7 +239,7 @@ impl<Tls: PostgresTls> ConnectionManager<Tls> {
     }
 }
 
-impl<Tls: PostgresTls> deadpool::managed::Manager for ConnectionManager<Tls> {
+impl deadpool::managed::Manager for ConnectionManager {
     type Error = tokio_postgres::Error;
     type Type = ManagedConnection;
 
