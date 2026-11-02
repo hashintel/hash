@@ -4,7 +4,7 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { brunchTools, hashGraphReadToolNames } from "../constants";
 import {
-  browserExecutedToolInputSchemas,
+  browserExecutedToolInputParsers,
   browserExecutedToolNames,
   browserNetToolNames,
 } from "./browser-executed-tools";
@@ -52,12 +52,12 @@ describe("browser-executed tools", () => {
     [brunchTools.queryHashWebs, {}],
     [brunchTools.saveHashNet, { documentId: "web~net" }],
   ])("compare %s input as the server issued it", (name, issued) => {
-    expect(browserExecutedToolInputSchemas[name]?.parse(issued)).toBe(issued);
+    expect(browserExecutedToolInputParsers[name]?.parse(issued)).toBe(issued);
   });
 
   test("parse a net reader's input strictly", () => {
-    const schema = browserExecutedToolInputSchemas[netReaderToolNames.outline];
-    expect(schema?.parse({})).toEqual({});
-    expect(() => schema?.parse({ extra: true })).toThrow(/Invalid key/u);
+    const parser = browserExecutedToolInputParsers[netReaderToolNames.outline];
+    expect(parser?.parse({})).toEqual({});
+    expect(() => parser?.parse({ extra: true })).toThrow(/Invalid key/u);
   });
 });

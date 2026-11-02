@@ -367,7 +367,7 @@ const removalDescriptions = (
 };
 
 /** The document a save names, as the agent's schema has already checked it. */
-const saveInputSchema = z.object({ documentId: z.string() });
+const zSaveInput = z.object({ documentId: z.string() });
 
 /**
  * Later calls stay queued behind a waiting approval; a denial settles as not
@@ -383,9 +383,7 @@ export const createBrunchMutationAdmission =
     if (toolName === saveToolName) {
       if (readSaveState === undefined)
         throw new Error("This editor has no save for the agent to run.");
-      const { refusal } = readSaveState(
-        saveInputSchema.parse(input).documentId,
-      );
+      const { refusal } = readSaveState(zSaveInput.parse(input).documentId);
       if (refusal !== null)
         return {
           admitted: false,
@@ -516,7 +514,7 @@ export const createBrunchSaveApprovalWidget = (
 ) => {
   const Widget = ({ input, toolCallId }: WidgetProps) => {
     const { title, lastSavedTime } = readSaveState(
-      saveInputSchema.parse(input).documentId,
+      zSaveInput.parse(input).documentId,
     );
     return (
       <section className={containerStyle} aria-label="Approve saving the net">
@@ -599,10 +597,10 @@ export const createBrunchMutationApprovalInteractiveTools = (
     ...destructiveToolNames.map((toolName) =>
       definePetrinautAiInteractiveTool<unknown, unknown>({
         toolName,
-        inputSchema: {
+        inputParser: {
           parse: (value) => mutationActionInputSchemas[toolName].parse(value),
         },
-        outputSchema: passthrough,
+        outputParser: passthrough,
         // Earlier rows of the same tool keep their normal presentation.
         shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
         component: components[toolName],
@@ -613,8 +611,8 @@ export const createBrunchMutationApprovalInteractiveTools = (
       : [
           definePetrinautAiInteractiveTool<unknown, unknown>({
             toolName: saveToolName,
-            inputSchema: saveInputSchema,
-            outputSchema: passthrough,
+            inputParser: zSaveInput,
+            outputParser: passthrough,
             shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
             component: saveComponent,
           }),

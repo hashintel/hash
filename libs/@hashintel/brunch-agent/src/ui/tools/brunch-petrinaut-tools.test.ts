@@ -240,7 +240,7 @@ describe("net freshness", () => {
       documentRevision: { before },
     });
     expect(() =>
-      tool("readNetStructure").inputSchema.parse({ extra: 1 }),
+      tool("readNetStructure").inputParser.parse({ extra: 1 }),
     ).toThrow();
   });
 

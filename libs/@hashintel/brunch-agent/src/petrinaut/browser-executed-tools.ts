@@ -6,11 +6,11 @@ import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
 
 /**
  * Every tool the server issues to the bound browser and awaits in band, by
- * the schema that parses its input: Petrinaut's canonical tools, the filtered
+ * the parser for its input: Petrinaut's canonical tools, the filtered
  * net readers, the reviewed experiment draft, HASH's graph reads and HASH's
  * Save.
  */
-export const browserExecutedToolInputSchemas: Readonly<
+export const browserExecutedToolInputParsers: Readonly<
   Record<string, { readonly parse: (input: unknown) => unknown }>
 > = {
   ...Object.fromEntries(
@@ -38,7 +38,7 @@ export const browserExecutedToolInputSchemas: Readonly<
 };
 
 export const browserExecutedToolNames: ReadonlySet<string> = new Set(
-  Object.keys(browserExecutedToolInputSchemas),
+  Object.keys(browserExecutedToolInputParsers),
 );
 
 /**
