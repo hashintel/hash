@@ -102,14 +102,20 @@ import { token, type Token } from "@hashintel/ds-helpers/tokens";
 
 ## Color Token Naming
 
-### Static Colors
+### Black & White (mode-relative poles)
 
-Opaque base colors with alpha scales (steps of 5):
+Base colors with alpha scales (steps of 5). These invert in dark mode
+(`white` → `#000000`, `black` → `#ffffff`, alpha scales likewise), mirroring
+the neutral scale's `s00`/`a125` endpoints — `white` means "the surface pole",
+`black` "the ink pole":
 
 ```
 black, black.a00–a125
 white, white.a00–a125
 ```
+
+Truly static shadows and scrims must use literal rgba values instead of these
+tokens.
 
 ### Palettes
 

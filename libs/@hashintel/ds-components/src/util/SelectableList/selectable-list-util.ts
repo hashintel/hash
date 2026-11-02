@@ -3,6 +3,7 @@ import { useMemo } from "react";
 
 import { type IconName } from "../../components/Icon/icon";
 import { type Tone } from "../form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../keyboard";
 
 import type { UseMenuContext } from "@ark-ui/react/menu";
 import type { ExclusifyUnion } from "type-fest";
@@ -364,7 +365,10 @@ export const useCustomRowNavigation = (
     if (row instanceof HTMLElement) {
       const rowId = row.getAttribute("data-selectable-list-custom") ?? "";
 
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (
+        (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+        !hasCaretModifier(event)
+      ) {
         event.preventDefault();
         event.stopPropagation();
         const direction = event.key === "ArrowDown" ? 1 : -1;
@@ -386,7 +390,7 @@ export const useCustomRowNavigation = (
         return;
       }
 
-      if (event.key === "Tab") {
+      if (event.key === "Tab" && !hasCommandModifier(event)) {
         const direction = event.shiftKey ? -1 : 1;
         const rowTabbables = getVisibleTabbables(row);
         const focusedIndex = rowTabbables.findIndex(
@@ -423,7 +427,7 @@ export const useCustomRowNavigation = (
 
     // Focus is on the content itself (activedescendant navigation). Only Tab
     // is augmented, and only when a focusable custom row exists.
-    if (event.key !== "Tab") {
+    if (event.key !== "Tab" || hasCommandModifier(event)) {
       return;
     }
     const stops = getTabStops();
@@ -503,7 +507,8 @@ export const useLoopSelection = (items: Array<ItemOrGroup<Item>>) => {
   return (event: React.KeyboardEvent, menu: UseMenuContext) => {
     const isDown = event.key === "ArrowDown";
     const isUp = event.key === "ArrowUp";
-    if (!isDown && !isUp) {
+    // Cmd+Down means "jump to end", not "wrap to top".
+    if ((!isDown && !isUp) || hasCommandModifier(event)) {
       return;
     }
 

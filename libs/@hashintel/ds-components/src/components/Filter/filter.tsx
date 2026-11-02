@@ -18,6 +18,7 @@ import {
   isRejectedNumberInputKey,
   preventAutocompleteProps,
 } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
@@ -606,6 +607,9 @@ export const Filter = <
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
       return;
     }
+    if (hasCaretModifier(event)) {
+      return;
+    }
     if (
       operatorDropdownOpenRef.current ||
       isSelectDropdownOpen(inputRefs.current)
@@ -680,7 +684,11 @@ export const Filter = <
     event: React.KeyboardEvent<Element>,
     inputIndex: number,
   ) => {
-    if (event.key === "Enter") {
+    // An IME owns Enter (confirm) and Escape (cancel) while composing.
+    if (event.nativeEvent.isComposing) {
+      return;
+    }
+    if (event.key === "Enter" && !hasCommandModifier(event)) {
       event.preventDefault();
       // Enter submits from any input, so a multi-input draft filled out of
       // order still commits; while the draft is incomplete it instead
