@@ -11,6 +11,7 @@ import { getOutlineArcPath } from "./shared/outline-arcs";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
+import type { ArcEdgeType, CanvasEdgeType } from "./react-flow-types";
 
 afterEach(cleanup);
 
@@ -66,6 +67,7 @@ const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
 };
 const scene: CanvasScene = {
   nodes,
+  fusions: [],
   dimensions: compactNodeDimensions,
   focusActive: false,
   arcs: [
@@ -93,6 +95,10 @@ const scene: CanvasScene = {
     },
   ],
 };
+
+/** The arcs among the hook's edges, which also carry the fusion links. */
+const arcEdges = (edges: CanvasEdgeType[]): ArcEdgeType[] =>
+  edges.filter((edge): edge is ArcEdgeType => edge.type === "default");
 
 describe("arc rendering", () => {
   it.each([false, true])(
@@ -126,7 +132,7 @@ describe("arc rendering", () => {
         }),
       );
 
-      const data = result.current.edges.find(
+      const data = arcEdges(result.current.edges).find(
         (edge) => edge.id === "input",
       )?.data;
       if (!data?.sourceOutline || !data.targetOutline) {
@@ -145,7 +151,9 @@ describe("arc rendering", () => {
 
   it("attaches arcs to node outlines and subnet port arcs to the port's handle", () => {
     const { result } = renderHook(() => useReactFlowElements(scene));
-    const edges = new Map(result.current.edges.map((edge) => [edge.id, edge]));
+    const edges = new Map(
+      arcEdges(result.current.edges).map((edge) => [edge.id, edge]),
+    );
 
     for (const id of ["input", "output"]) {
       expect(edges.get(id)?.data?.sourceOutline).not.toBeNull();
@@ -174,8 +182,9 @@ describe("arc rendering", () => {
       (input: CanvasScene) => useReactFlowElements(input),
       { initialProps: scene },
     );
-    const previous = result.current.edges.find((edge) => edge.id === "input")
-      ?.data?.targetOutline;
+    const previous = arcEdges(result.current.edges).find(
+      (edge) => edge.id === "input",
+    )?.data?.targetOutline;
     rerender({
       ...scene,
       nodes: nodes.map((node) =>
@@ -185,7 +194,7 @@ describe("arc rendering", () => {
       ),
     });
     expect(
-      result.current.edges.find((edge) => edge.id === "input")?.data
+      arcEdges(result.current.edges).find((edge) => edge.id === "input")?.data
         ?.targetOutline,
     ).not.toEqual(previous);
     expect(scene).toEqual(snapshot);
@@ -221,8 +230,8 @@ describe("arc rendering", () => {
         expect(node).toBe(original);
       }
     }
-    for (const edge of result.current.edges) {
-      const original = previous.edges.find(
+    for (const edge of arcEdges(result.current.edges)) {
+      const original = arcEdges(previous.edges).find(
         (candidate) => candidate.id === edge.id,
       );
       if (edge.id === "input") {
