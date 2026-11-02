@@ -526,7 +526,13 @@ export const PetrinautEditor = ({
               ? "The user can't edit this net, so they can't save it."
               : live.savePending || agentSaveRef.current?.handle === live.handle
                 ? "A save of this net is already in progress."
-                : null;
+                : !computeIsDirty(
+                      live.handle.doc() ?? live.definition,
+                      live.title,
+                      live.savedSnapshot,
+                    )
+                  ? "There are no unsaved changes to save."
+                  : null;
       return {
         title: live?.title ?? "",
         lastSavedTime: live?.savedSnapshot?.decisionTime ?? null,
