@@ -7,6 +7,8 @@ import {
 import defaultMdxComponents from "@fumadocs/base-ui/mdx";
 import { notFound } from "next/navigation.js";
 
+import { Body } from "../../../../../lib/components.js";
+import { components } from "../../../../components/api.js";
 import { source } from "../../../../lib/source.js";
 
 import type { Metadata } from "next";
@@ -23,14 +25,24 @@ export default async function Page({ params }: Props): Promise<ReactNode> {
     notFound();
   }
 
-  const Body = page.data.body;
+  const { data } = page;
 
   return (
-    <DocsPage toc={page.data.toc}>
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+    <DocsPage toc={data.toc}>
+      <DocsTitle>{data.title}</DocsTitle>
+      <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
-        <Body components={defaultMdxComponents} />
+        {"hast" in data ? (
+          <Body
+            tree={data.hast}
+            components={components}
+            html={defaultMdxComponents}
+            // oxlint-disable-next-line react-perf/jsx-no-new-function-as-prop -- rendered once, on the server
+            resolve={(href) => source.resolveHref(href, page)}
+          />
+        ) : (
+          <data.body components={defaultMdxComponents} />
+        )}
       </DocsBody>
     </DocsPage>
   );
