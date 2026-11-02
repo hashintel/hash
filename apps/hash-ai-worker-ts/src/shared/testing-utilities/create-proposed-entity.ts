@@ -1,4 +1,4 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
@@ -17,9 +17,7 @@ export const createProposedEntity = ({
   provenance: { actorType: "ai", origin: { type: "flow" } },
   propertyMetadata: { value: {} },
   localEntityId: localEntityId as EntityId,
-  entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/thing/v/1" as VersionedUrl,
-  ],
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/thing/v/1"],
   properties: {},
   ...fields,
 });
