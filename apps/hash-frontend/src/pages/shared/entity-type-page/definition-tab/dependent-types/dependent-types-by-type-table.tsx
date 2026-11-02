@@ -90,19 +90,14 @@ const DependentTypeTableRow = ({
   const parentVersions = formatVersionList(row.parentVersions);
 
   return (
-    <VersionGraphTooltip
-      row={row}
-      parentTitle={parentTitle}
-      parentLatestVersion={parentLatestVersion}
-    >
-      {({ rowProps, toggleProps, hide }) => (
-        <Box>
-          <Box
-            ref={rowProps.ref}
-            onMouseEnter={rowProps.onMouseEnter}
-            onMouseLeave={rowProps.onMouseLeave}
-            sx={toggleRowSx}
-          >
+    <Box>
+      <VersionGraphTooltip
+        row={row}
+        parentTitle={parentTitle}
+        parentLatestVersion={parentLatestVersion}
+      >
+        {({ toggleProps, hide }) => (
+          <Box sx={toggleRowSx}>
             <RowToggle
               {...toggleProps}
               gridTemplateColumns={gridTemplateColumns}
@@ -138,23 +133,23 @@ const DependentTypeTableRow = ({
               onClick={() => onOpenType($id)}
             />
           </Box>
-          {expanded ? (
-            <Box role="group" aria-label={`Version ranges of ${title}`}>
-              {row.ranges.map((range, index) => (
-                <RangeRow
-                  key={`${range.firstVersion}-${range.parentVersion}`}
-                  range={range}
-                  title={title}
-                  parentTitle={parentTitle}
-                  last={index === row.ranges.length - 1}
-                  onOpenType={onOpenType}
-                />
-              ))}
-            </Box>
-          ) : null}
+        )}
+      </VersionGraphTooltip>
+      {expanded ? (
+        <Box role="group" aria-label={`Version ranges of ${title}`}>
+          {row.ranges.map((range, index) => (
+            <RangeRow
+              key={`${range.firstVersion}-${range.parentVersion}`}
+              range={range}
+              title={title}
+              parentTitle={parentTitle}
+              last={index === row.ranges.length - 1}
+              onOpenType={onOpenType}
+            />
+          ))}
         </Box>
-      )}
-    </VersionGraphTooltip>
+      ) : null}
+    </Box>
   );
 };
 

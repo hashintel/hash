@@ -1,12 +1,5 @@
-import { Box, Popper } from "@mui/material";
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { Box, Tooltip } from "@mui/material";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 
 import {
   openColumnWidth,
@@ -25,17 +18,12 @@ import {
 
 import type { DependentTypeRow } from "./dependent-type-rows";
 import type { PopperProps, Theme } from "@mui/material";
-import type { KeyboardEvent, ReactNode, RefObject } from "react";
+import type { KeyboardEvent, ReactElement, ReactNode, RefObject } from "react";
 
 type VersionGraphTooltipTriggerProps = {
-  /** Spread on the row: hovering it shows the tooltip, and the tooltip is placed against it. */
-  rowProps: {
-    ref: (element: HTMLElement | null) => void;
-    onMouseEnter: () => void;
-    onMouseLeave: () => void;
-  };
   /** Spread on the row's toggle button: focusing it with the keyboard shows the tooltip at once. */
   toggleProps: {
+    ref: (element: HTMLElement | null) => void;
     "aria-describedby"?: string;
     onFocusVisible: () => void;
     onBlur: () => void;
@@ -46,16 +34,13 @@ type VersionGraphTooltipTriggerProps = {
 };
 
 const showDelay = 300;
-const hideDelay = 120;
+const hideDelay = 80;
 const arrowKeyScroll = 120;
 
 /** Places the tooltip's right edge level with the left edge of the row's open column. */
 const popperModifiers: PopperProps["modifiers"] = [
   { name: "offset", options: { offset: [-openColumnWidth, 0] } },
 ];
-
-/** Hides the open tooltip, so that hovering another row can replace it at once. */
-let hideOpenTooltip: (() => void) | null = null;
 
 type PillLook = "parent" | "version" | "gap";
 
@@ -289,7 +274,7 @@ const VersionGraphCard = ({
 
 /**
  * Shows a graph of a dependent type's versions against the parent's versions
- * while its row is hovered or its toggle has focus.
+ * while its row is hovered or its toggle has keyboard focus.
  */
 export const VersionGraphTooltip = ({
   row,
@@ -300,73 +285,24 @@ export const VersionGraphTooltip = ({
   row: DependentTypeRow;
   parentTitle: string;
   parentLatestVersion: number;
-  children: (props: VersionGraphTooltipTriggerProps) => ReactNode;
+  /** Renders the row; hovering it shows the tooltip. */
+  children: (props: VersionGraphTooltipTriggerProps) => ReactElement;
 }) => {
   const id = useId();
-  const [rowElement, setRowElement] = useState<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [maxWidth, setMaxWidth] = useState(0);
-  const showTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const toggleElement = useRef<HTMLElement | null>(null);
   const scrollElement = useRef<HTMLDivElement | null>(null);
 
-  const clearTimers = useCallback(() => {
-    clearTimeout(showTimer.current);
-    clearTimeout(hideTimer.current);
-  }, []);
-
-  const hide = useCallback(() => {
-    clearTimers();
-    setOpen(false);
-  }, [clearTimers]);
-
-  const show = useCallback(() => {
-    clearTimers();
-    if (hideOpenTooltip !== hide) {
-      hideOpenTooltip?.();
-    }
+  const show = () => {
     setMaxWidth(
-      getVersionGraphTooltipMaxWidth(rowElement?.offsetWidth ?? Infinity),
+      getVersionGraphTooltipMaxWidth(
+        toggleElement.current?.offsetWidth ?? Infinity,
+      ),
     );
     setOpen(true);
-  }, [clearTimers, hide, rowElement]);
-
-  const showSoon = useCallback(() => {
-    if (hideOpenTooltip) {
-      show();
-      return;
-    }
-    clearTimers();
-    showTimer.current = setTimeout(show, showDelay);
-  }, [clearTimers, show]);
-
-  const hideSoon = useCallback(() => {
-    clearTimers();
-    hideTimer.current = setTimeout(hide, hideDelay);
-  }, [clearTimers, hide]);
-
-  useEffect(() => clearTimers, [clearTimers]);
-
-  useEffect(() => {
-    if (!open) {
-      return undefined;
-    }
-
-    hideOpenTooltip = hide;
-    const hideOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        hide();
-      }
-    };
-    document.addEventListener("keydown", hideOnEscape);
-
-    return () => {
-      if (hideOpenTooltip === hide) {
-        hideOpenTooltip = null;
-      }
-      document.removeEventListener("keydown", hideOnEscape);
-    };
-  }, [open, hide]);
+  };
+  const hide = () => setOpen(false);
 
   const scrollWithArrowKeys = (event: KeyboardEvent<HTMLElement>) => {
     if (
@@ -384,35 +320,30 @@ export const VersionGraphTooltip = ({
   };
 
   return (
-    <>
-      {children({
-        rowProps: {
-          ref: setRowElement,
-          onMouseEnter: showSoon,
-          onMouseLeave: hideSoon,
+    <Tooltip
+      id={id}
+      open={open}
+      onOpen={show}
+      onClose={hide}
+      enterDelay={showDelay}
+      enterNextDelay={showDelay}
+      leaveDelay={hideDelay}
+      disableFocusListener
+      describeChild
+      placement="bottom-end"
+      slotProps={{
+        popper: { modifiers: popperModifiers },
+        tooltip: {
+          sx: {
+            p: 0,
+            m: "6px 0 !important",
+            maxWidth: "none",
+            background: "none",
+            font: "inherit",
+          },
         },
-        toggleProps: {
-          "aria-describedby": open ? id : undefined,
-          onFocusVisible: show,
-          onBlur: hide,
-          onKeyDown: scrollWithArrowKeys,
-        },
-        hide,
-      })}
-      <Popper
-        id={id}
-        open={open}
-        anchorEl={rowElement}
-        placement="bottom-end"
-        modifiers={popperModifiers}
-        onMouseEnter={show}
-        onMouseLeave={hideSoon}
-        sx={{
-          zIndex: "tooltip",
-          pt: 0.75,
-          '&[data-popper-placement^="top"]': { pt: 0, pb: 0.75 },
-        }}
-      >
+      }}
+      title={
         <VersionGraphCard
           row={row}
           parentTitle={parentTitle}
@@ -420,7 +351,20 @@ export const VersionGraphTooltip = ({
           maxWidth={maxWidth}
           scrollRef={scrollElement}
         />
-      </Popper>
-    </>
+      }
+    >
+      {children({
+        toggleProps: {
+          ref: (element) => {
+            toggleElement.current = element;
+          },
+          "aria-describedby": open ? id : undefined,
+          onFocusVisible: show,
+          onBlur: hide,
+          onKeyDown: scrollWithArrowKeys,
+        },
+        hide,
+      })}
+    </Tooltip>
   );
 };

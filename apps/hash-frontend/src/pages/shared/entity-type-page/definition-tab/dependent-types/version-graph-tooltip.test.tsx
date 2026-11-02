@@ -47,13 +47,8 @@ const renderRows = (rows: DependentTypeRow[]) => {
             parentTitle="Company"
             parentLatestVersion={3}
           >
-            {({ rowProps, toggleProps, hide }) => (
-              <div
-                ref={rowProps.ref}
-                data-testid={title}
-                onMouseEnter={rowProps.onMouseEnter}
-                onMouseLeave={rowProps.onMouseLeave}
-              >
+            {({ toggleProps, hide }) => (
+              <div data-testid={title}>
                 <ButtonBase {...toggleProps} onClick={hide}>
                   {title}
                 </ButtonBase>
@@ -70,6 +65,9 @@ const wait = (milliseconds: number) =>
   act(() => {
     vi.advanceTimersByTime(milliseconds);
   });
+
+/** Lets a closing tooltip finish fading out, after which MUI unmounts it. */
+const waitForFadeOut = () => wait(300);
 
 // jsdom never matches `:focus-visible`, which MUI checks to tell keyboard focus from a mouse press.
 const focusWithKeyboard = (element: HTMLElement) => {
@@ -101,7 +99,7 @@ describe("VersionGraphTooltip", () => {
   it("shows the graph 300 ms after the pointer enters the row", () => {
     renderRows([shellCompany]);
 
-    fireEvent.mouseEnter(screen.getByTestId("Shell Company"));
+    fireEvent.mouseOver(screen.getByTestId("Shell Company"));
     wait(299);
     expect(screen.queryByRole("tooltip")).toBeNull();
 
@@ -113,25 +111,27 @@ describe("VersionGraphTooltip", () => {
     renderRows([shellCompany]);
 
     const row = screen.getByTestId("Shell Company");
-    fireEvent.mouseEnter(row);
+    fireEvent.mouseOver(row);
     wait(200);
     fireEvent.mouseLeave(row);
     wait(1000);
 
+    waitForFadeOut();
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("hides the graph 120 ms after the pointer leaves the row", () => {
+  it("hides the graph 80 ms after the pointer leaves the row", () => {
     renderRows([shellCompany]);
 
     const row = screen.getByTestId("Shell Company");
-    fireEvent.mouseEnter(row);
+    fireEvent.mouseOver(row);
     wait(300);
     fireEvent.mouseLeave(row);
-    wait(119);
+    wait(79);
     screen.getByRole("tooltip");
 
     wait(1);
+    waitForFadeOut();
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
@@ -139,28 +139,34 @@ describe("VersionGraphTooltip", () => {
     renderRows([shellCompany]);
 
     const row = screen.getByTestId("Shell Company");
-    fireEvent.mouseEnter(row);
+    fireEvent.mouseOver(row);
     wait(300);
     fireEvent.mouseLeave(row);
-    wait(100);
+    wait(50);
     const tooltip = screen.getByRole("tooltip");
-    fireEvent.mouseEnter(tooltip);
+    fireEvent.mouseOver(tooltip);
     wait(1000);
     screen.getByRole("tooltip");
 
     fireEvent.mouseLeave(tooltip);
-    wait(120);
+    wait(80);
+    waitForFadeOut();
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("replaces an open graph at once when the pointer moves to another row", () => {
+  it("waits the same delay on every row, so only one graph shows at a time", () => {
     renderRows([machine, shellCompany]);
 
-    fireEvent.mouseEnter(screen.getByTestId("Machine"));
+    fireEvent.mouseOver(screen.getByTestId("Machine"));
     wait(300);
     fireEvent.mouseLeave(screen.getByTestId("Machine"));
-    fireEvent.mouseEnter(screen.getByTestId("Shell Company"));
+    fireEvent.mouseOver(screen.getByTestId("Shell Company"));
+    // The first graph closes after 80 ms and finishes its 200 ms fade before the second opens.
+    wait(80);
+    wait(219);
+    expect(screen.queryByRole("tooltip")).toBeNull();
 
+    wait(1);
     expect(
       screen.getAllByRole("tooltip").map((tooltip) => tooltip.textContent),
     ).toEqual([expect.stringContaining(shellCompanySummary)]);
@@ -198,6 +204,7 @@ describe("VersionGraphTooltip", () => {
       toggle.blur();
     });
 
+    waitForFadeOut();
     expect(screen.queryByRole("tooltip")).toBeNull();
     expect(toggle.hasAttribute("aria-describedby")).toBe(false);
   });
@@ -209,16 +216,18 @@ describe("VersionGraphTooltip", () => {
     focusWithKeyboard(toggle);
     fireEvent.keyDown(toggle, { key: "Escape" });
 
+    waitForFadeOut();
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
   it("hides the graph on Escape while the pointer is on the row", () => {
     renderRows([shellCompany]);
 
-    fireEvent.mouseEnter(screen.getByTestId("Shell Company"));
+    fireEvent.mouseOver(screen.getByTestId("Shell Company"));
     wait(300);
     fireEvent.keyDown(document.body, { key: "Escape" });
 
+    waitForFadeOut();
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
@@ -229,6 +238,7 @@ describe("VersionGraphTooltip", () => {
     focusWithKeyboard(toggle);
     fireEvent.click(toggle);
 
+    waitForFadeOut();
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
