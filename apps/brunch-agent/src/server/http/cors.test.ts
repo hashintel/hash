@@ -3,11 +3,11 @@ import { describe, expect, test } from "vitest";
 
 import {
   agentOwnershipHeaders,
-  brunchEnv,
   brunchHeaders,
   brunchRoutes,
 } from "@hashintel/brunch-agent";
 
+import { brunchEnv } from "../../env.ts";
 import { flueConversationId } from "../../shared/conversation/identity.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./cors.ts";
 import { agentOwnershipGuard } from "./ownership.ts";

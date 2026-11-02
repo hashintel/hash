@@ -20,9 +20,10 @@ import { createFlueClient, FlueExecutionError } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
-import { agentOwnershipHeaders, brunchEnv } from "@hashintel/brunch-agent";
+import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { brunchEnv } from "../../../src/env.ts";
 import {
   defaultChatOrigin,
   localPanelListen,

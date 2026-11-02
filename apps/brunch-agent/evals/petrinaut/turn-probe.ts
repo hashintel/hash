@@ -18,12 +18,12 @@ import { createFlueClient } from "@flue/sdk";
 
 import {
   agentOwnershipHeaders,
-  brunchEnv,
   foldCommits,
   projectLedger,
   renderLedgerMarkdown,
 } from "@hashintel/brunch-agent";
 
+import { brunchEnv } from "../../src/env.ts";
 import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,

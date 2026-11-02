@@ -1,11 +1,21 @@
 import { randomUUID } from "node:crypto";
 
-import { brunchEnv, brunchHeaders } from "@hashintel/brunch-agent";
+import { brunchHeaders } from "@hashintel/brunch-agent";
 
 import {
   validatePersistedHistory,
   validateUiMessageStream,
 } from "./deployment-smoke-validation.ts";
+
+const smokeEnv = {
+  baseUrl: "BRUNCH_SMOKE_BASE_URL",
+  conversationId: "BRUNCH_SMOKE_CONVERSATION_ID",
+  expectedText: "BRUNCH_SMOKE_EXPECTED_TEXT",
+  mode: "BRUNCH_SMOKE_MODE",
+  principal: "BRUNCH_SMOKE_PRINCIPAL",
+  prompt: "BRUNCH_SMOKE_PROMPT",
+  requestId: "BRUNCH_SMOKE_REQUEST_ID",
+} as const;
 
 const required = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -15,14 +25,14 @@ const required = (name: string): string => {
   return value;
 };
 
-const baseUrl = required(brunchEnv.smokeBaseUrl).replace(/\/$/u, "");
-const principal = required(brunchEnv.smokePrincipal);
-const mode = process.env[brunchEnv.smokeMode] ?? "turn";
+const baseUrl = required(smokeEnv.baseUrl).replace(/\/$/u, "");
+const principal = required(smokeEnv.principal);
+const mode = process.env[smokeEnv.mode] ?? "turn";
 const conversationId =
   mode === "history"
-    ? required(brunchEnv.smokeConversationId)
-    : process.env[brunchEnv.smokeConversationId]?.trim() || randomUUID();
-const requestId = process.env[brunchEnv.smokeRequestId]?.trim() || randomUUID();
+    ? required(smokeEnv.conversationId)
+    : process.env[smokeEnv.conversationId]?.trim() || randomUUID();
+const requestId = process.env[smokeEnv.requestId]?.trim() || randomUUID();
 const headers = new Headers({
   "content-type": "application/json",
   [brunchHeaders.principal]: principal,
@@ -41,7 +51,7 @@ if (mode === "history") {
   }
   const messages = validatePersistedHistory(
     await response.json(),
-    required(brunchEnv.smokeExpectedText),
+    required(smokeEnv.expectedText),
   );
   process.stdout.write(
     `${JSON.stringify({
@@ -65,7 +75,7 @@ if (mode === "history") {
             {
               type: "text",
               text:
-                process.env[brunchEnv.smokePrompt] ??
+                process.env[smokeEnv.prompt] ??
                 "Activate the elicitation skill, call ping once, then briefly confirm the restricted deployment path.",
             },
           ],
@@ -98,5 +108,5 @@ if (mode === "history") {
     })}\n`,
   );
 } else {
-  throw new Error(`${brunchEnv.smokeMode} must be either "turn" or "history".`);
+  throw new Error(`${smokeEnv.mode} must be either "turn" or "history".`);
 }

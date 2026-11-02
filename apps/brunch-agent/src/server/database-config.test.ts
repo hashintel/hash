@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
-
+import { brunchEnv } from "../env.ts";
 import { loadDatabaseConfig } from "./database-config.ts";
 
 const productionEnvironment = {

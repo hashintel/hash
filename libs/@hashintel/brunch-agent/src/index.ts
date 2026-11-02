@@ -6,7 +6,6 @@
  */
 
 export {
-  brunchEnv,
   brunchHeaders,
   brunchRoutes,
   brunchSignals,
