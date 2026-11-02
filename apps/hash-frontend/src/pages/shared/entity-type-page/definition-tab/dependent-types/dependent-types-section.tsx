@@ -51,18 +51,25 @@ const ColumnWidths = () => (
   </colgroup>
 );
 
-const tableSx: SxProps<Theme> = ({ palette }) => ({
+const tableSx: SxProps<Theme> = ({ palette, typography }) => ({
   tableLayout: "fixed",
   [`.${tableCellClasses.root}`]: {
+    ...typography.smallTextLabels,
+    color: palette.gray[80],
     border: "none",
     px: 1.5,
     py: 0.5,
     height: 40,
   },
   [`.${tableCellClasses.head}`]: {
+    fontWeight: 600,
     height: 42,
     borderBottom: `1px solid ${palette.gray[20]}`,
   },
+});
+
+const rangeRowSx: SxProps<Theme> = ({ palette }) => ({
+  [`.${tableCellClasses.root}`]: { color: palette.gray[60] },
 });
 
 const OpenTypeButton = ({
@@ -103,9 +110,13 @@ const DependentTypeTableRow = ({
   return (
     <>
       <TableRow
-        hover
         onClick={() => setExpanded(!expanded)}
-        sx={{ cursor: "pointer" }}
+        sx={({ palette }) => ({
+          cursor: "pointer",
+          [`&:hover .${tableCellClasses.root}`]: {
+            background: palette.gray[10],
+          },
+        })}
       >
         <TableCell>
           <ButtonBase
@@ -175,6 +186,7 @@ const DependentTypeTableRow = ({
                 {row.ranges.map((range) => (
                   <TableRow
                     key={`${range.firstVersion}-${range.parentVersion}`}
+                    sx={rangeRowSx}
                   >
                     <TableCell />
                     <TableCell>
@@ -276,16 +288,12 @@ export const DependentTypesSection = ({
             <Table sx={tableSx}>
               <ColumnWidths />
               <TableHead>
-                <Typography
-                  component={TableRow}
-                  variant="smallTextLabels"
-                  sx={{ fontWeight: 600 }}
-                >
+                <TableRow>
                   <TableCell>Type</TableCell>
                   <TableCell>Versions</TableCell>
                   <TableCell>Extends {boldTitle}</TableCell>
                   <TableCell />
-                </Typography>
+                </TableRow>
               </TableHead>
               <TableBody>
                 {rows.map((row) => (
