@@ -150,7 +150,8 @@ impl Workspace {
     /// # Errors
     ///
     /// Returns [`CaptureError::Read`] for invalid Parquet, [`CaptureError::Query`] for a failed
-    /// import, or [`CaptureError::Stopped`] if the workspace thread stops.
+    /// import, [`CaptureError::DiskUsage`] for a failed workspace disk-limit check, or
+    /// [`CaptureError::Stopped`] if the workspace thread stops.
     pub async fn load_capture(
         &self,
         capture: SourceCapture,
@@ -177,7 +178,8 @@ impl Workspace {
     ///
     /// # Errors
     ///
-    /// Returns [`CaptureError::Query`] for invalid SQL or a workspace limit failure,
+    /// Returns [`CaptureError::Query`] for invalid SQL or failed query execution,
+    /// [`CaptureError::DiskUsage`] for a failed workspace disk-limit check,
     /// [`CaptureError::WorkspaceFile`] if `target` names a workspace file,
     /// [`CaptureError::Exists`] if `target` already exists, [`CaptureError::Write`] for a failed
     /// write, or [`CaptureError::Stopped`] if the workspace thread stops.

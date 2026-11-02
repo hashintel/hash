@@ -83,7 +83,7 @@ impl Connection {
         writer.close().change_context(CaptureError::Write)?;
         self.metrics.rows(Operation::Capture, rows);
         self.check_disk_limit()
-            .change_context(CaptureError::Query)?;
+            .change_context(CaptureError::DiskUsage)?;
         self.check_capture_cancelled()?;
         SourceCapture::publish(partial, target, rows)
     }
@@ -185,6 +185,7 @@ impl Connection {
         }
         self.check_capture_cancelled()?;
         transaction.commit().change_context(CaptureError::Query)?;
-        self.check_disk_limit().change_context(CaptureError::Query)
+        self.check_disk_limit()
+            .change_context(CaptureError::DiskUsage)
     }
 }

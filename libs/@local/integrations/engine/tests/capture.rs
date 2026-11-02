@@ -13,7 +13,7 @@ use arrow_array::{Array as _, Int64Array, ListArray, StringArray};
 use duckdb::types::Value;
 use hash_integrations_definition::{VariableName, Variables};
 use hash_integrations_engine::{
-    CaptureError, SourceCapture, StatementError, Workspace, WorkspaceConfig,
+    ByteSize, CaptureError, SourceCapture, StatementError, Workspace, WorkspaceConfig,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use pretty_assertions::assert_eq;
@@ -187,6 +187,67 @@ fn check_capture_file(capture: &SourceCapture, row_count: u32, start: i64, batch
         }
     }
     assert_eq!(rows, row_count, "every captured row should be verified");
+}
+
+#[rstest]
+#[case::capture(false)]
+#[case::load(true)]
+#[tokio::test]
+async fn capture_disk_limit_context(#[case] load: bool) {
+    let source_directory = TempDir::new().expect("the source directory should be created");
+    let source = open(&source_directory).await;
+    let capture = source
+        .capture(
+            "SELECT 1 AS id".into(),
+            source_directory.path().join("source.parquet"),
+        )
+        .await
+        .expect("the source capture should be published");
+    source
+        .close()
+        .await
+        .expect("the source workspace should close");
+
+    let directory = TempDir::new().expect("the workspace directory should be created");
+    let workspace = Workspace::open(
+        directory.path().join("workspace.duckdb"),
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(2 * 1024 * 1024)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await
+    .expect("the workspace should open");
+    let temp = directory.path().join("workspace.duckdb.tmp");
+    fs::create_dir_all(&temp).expect("the temporary directory should be created");
+    fs::write(temp.join("spilled"), vec![0_u8; 3 * 1024 * 1024])
+        .expect("the workspace should exceed its disk limit");
+
+    let target = directory.path().join("capture.parquet");
+    let report = if load {
+        workspace
+            .load_capture(capture, "restored".into())
+            .await
+            .expect_err("loading should report the workspace disk limit")
+    } else {
+        let report = workspace
+            .capture("SELECT 1 AS id".into(), target.clone())
+            .await
+            .expect_err("capture should report the workspace disk limit");
+        assert!(
+            !target.exists(),
+            "the failed capture should remain unpublished"
+        );
+        report
+    };
+    assert!(
+        matches!(report.current_context(), CaptureError::DiskUsage),
+        "the error should identify the disk-limit check: {report:?}"
+    );
+    assert!(
+        matches!(report.downcast_ref::<StatementError>(), Some(StatementError::DiskLimit { used, limit }) if used > limit),
+        "the error should retain the measured usage and limit: {report:?}"
+    );
 }
 
 #[tokio::test]

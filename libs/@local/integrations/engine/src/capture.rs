@@ -17,6 +17,8 @@ pub enum CaptureError {
     Read,
     #[display("the source capture could not be written")]
     Write,
+    #[display("the workspace disk-limit check failed")]
+    DiskUsage,
     #[display("a capture already exists at `{}`", path.display())]
     Exists { path: PathBuf },
     #[display("`{}` is one of the workspace's own files", path.display())]
