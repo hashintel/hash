@@ -70,12 +70,15 @@ const openPrototypeOntology = async (
         return;
       }
 
-      // The real response carries the API's CORS headers; only its body is replaced.
-      const response = await route.fetch();
+      // The API runs on another origin, so the answer needs its CORS headers.
+      const headers = {
+        "access-control-allow-origin": route.request().headers().origin ?? "",
+        "access-control-allow-credentials": "true",
+      };
 
       if (fail) {
         await route.fulfill({
-          response,
+          headers,
           json: {
             errors: [
               {
@@ -89,7 +92,7 @@ const openPrototypeOntology = async (
       }
 
       await route.fulfill({
-        response,
+        headers,
         json: respondWith(
           filter.includes('"latest"')
             ? latestVersionsResult
