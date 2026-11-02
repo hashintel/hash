@@ -25,7 +25,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-const gridTemplateColumns = "164px minmax(0, 1fr) 128px";
+const gridTemplateColumns = "240px minmax(0, 1fr) 128px";
 
 const innerCellSx = { ...cellSx, pl: 1.5 } as const;
 
@@ -297,7 +297,9 @@ export const DependentTypesByVersionTable = ({
   <>
     <TableCard>
       <HeaderRow gridTemplateColumns={gridTemplateColumns}>
-        <Box sx={cellSx}>{entityType.schema.title} version</Box>
+        <Box sx={{ ...cellSx, overflow: "hidden", textOverflow: "ellipsis" }}>
+          {entityType.schema.title} version
+        </Box>
         <Box sx={innerCellSx}>Extended by</Box>
         <Box sx={innerCellSx}>Versions</Box>
       </HeaderRow>
