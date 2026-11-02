@@ -14,6 +14,7 @@ use type_system::{
         entity_type::{
             ClosedEntityType, EntityType, EntityTypeMetadata, schema::PartialEntityType,
         },
+        id::{BaseUrl, OntologyTypeVersion},
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
@@ -202,6 +203,7 @@ pub struct CountEntityTypesParams<'p> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct CommonQueryEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
@@ -221,6 +223,10 @@ pub struct CommonQueryEntityTypesParams<'p> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_edition_created_by_ids: bool,
+    /// Returns the highest version of each matched type, archived versions included.
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub include_latest_versions: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -331,6 +337,10 @@ pub struct QueryEntityTypesResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    /// The highest version of each returned type, archived versions included.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub latest_versions: Option<HashMap<BaseUrl, OntologyTypeVersion>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]

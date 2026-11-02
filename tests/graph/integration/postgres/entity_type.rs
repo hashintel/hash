@@ -1,4 +1,5 @@
 use core::assert_matches;
+use std::collections::HashMap;
 
 use hash_graph_postgres_store::store::error::LinkToLinkConstraint;
 use hash_graph_store::{
@@ -118,6 +119,7 @@ async fn query() {
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,
+                    include_latest_versions: false,
                 },
                 include_entity_types: None,
             },
@@ -214,6 +216,7 @@ async fn update() {
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,
+                    include_latest_versions: false,
                 },
                 include_entity_types: None,
             },
@@ -236,6 +239,7 @@ async fn update() {
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,
+                    include_latest_versions: false,
                 },
                 include_entity_types: None,
             },
@@ -497,5 +501,96 @@ async fn update_link_destination_link() {
         Some(LinkToLinkConstraint::Destination { entity_type_id, destination_id })
             if *entity_type_id == befriending_v2.id && *destination_id == friend_of.id,
         "should name the entity type and its link destination"
+    );
+}
+
+fn versioned_type_id(version: u32) -> VersionedUrl {
+    format!("https://blockprotocol.org/@alice/types/entity-type/versioned/v/{version}")
+        .parse()
+        .expect("should be a valid versioned URL")
+}
+
+/// An entity type without properties, so that its versions differ only in their number.
+fn versioned_type(version: u32) -> EntityType {
+    serde_json::from_value(json!({
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+        "kind": "entityType",
+        "$id": versioned_type_id(version),
+        "type": "object",
+        "title": "Versioned",
+        "description": "An entity type with several versions.",
+        "properties": {}
+    }))
+    .expect("should be a valid entity type")
+}
+
+/// Creates `Versioned` v1 and updates it to v2.
+async fn create_versioned_v1_and_v2(api: &mut DatabaseApi<'_>) {
+    api.create_entity_type(
+        api.account_id,
+        CreateEntityTypeParams {
+            schema: versioned_type(1),
+            ownership: OntologyOwnership::Local {
+                web_id: WebId::new(api.account_id),
+            },
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: provenance(),
+        },
+    )
+    .await
+    .expect("should create v1");
+
+    api.update_entity_type(
+        api.account_id,
+        UpdateEntityTypesParams {
+            schema: versioned_type(2),
+            provenance: provenance(),
+        },
+    )
+    .await
+    .expect("should create v2");
+}
+
+fn query_with_latest_versions(id: &VersionedUrl) -> QueryEntityTypesParams<'_> {
+    QueryEntityTypesParams {
+        request: CommonQueryEntityTypesParams {
+            filter: Filter::for_versioned_url(id),
+            temporal_axes: QueryTemporalAxesUnresolved::all(),
+            after: None,
+            limit: None,
+            include_count: false,
+            include_web_ids: false,
+            include_edition_created_by_ids: false,
+            include_latest_versions: true,
+        },
+        include_entity_types: None,
+    }
+}
+
+/// Querying an older version with `include_latest_versions` reports the type's latest version.
+#[tokio::test]
+async fn latest_versions_of_an_older_version() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed([], [], [])
+        .await
+        .expect("should seed the database");
+    create_versioned_v1_and_v2(&mut api).await;
+
+    let v1 = versioned_type_id(1);
+    let response = api
+        .query_entity_types(Some(api.account_id), query_with_latest_versions(&v1))
+        .await
+        .expect("should query the entity types");
+
+    let returned_ids = response
+        .entity_types
+        .iter()
+        .map(|entity_type| &entity_type.schema.id)
+        .collect::<Vec<_>>();
+    assert_eq!(returned_ids, [&v1]);
+    assert_eq!(
+        response.latest_versions,
+        Some(HashMap::from([(v1.base_url, versioned_type_id(2).version)]))
     );
 }

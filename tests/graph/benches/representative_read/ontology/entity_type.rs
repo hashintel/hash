@@ -38,6 +38,7 @@ pub fn bench_get_entity_type_by_id(
                             include_count: false,
                             include_web_ids: false,
                             include_edition_created_by_ids: false,
+                            include_latest_versions: false,
                         },
                         include_entity_types: None,
                     },

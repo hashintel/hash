@@ -13,9 +13,11 @@ import type {
 import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
+  BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
@@ -80,6 +82,7 @@ export type QueryEntityTypesResponse = Omit<
   | "definitions"
   | "webIds"
   | "editionCreatedByIds"
+  | "latestVersions"
 > & {
   closedEntityTypes?: ClosedEntityType[];
   entityTypes: EntityTypeWithMetadata[];
@@ -87,6 +90,7 @@ export type QueryEntityTypesResponse = Omit<
   definitions?: EntityTypeResolveDefinitions;
   webIds?: Record<WebId, number>;
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
+  latestVersions?: Record<BaseUrl, OntologyTypeVersion>;
 };
 
 const mapGraphApiEntityTypesToEntityTypes = (
@@ -119,6 +123,9 @@ export const queryEntityTypes = (
       webIds: response.webIds as Record<WebId, number> | undefined,
       editionCreatedByIds: response.editionCreatedByIds as
         | Record<ActorEntityUuid, number>
+        | undefined,
+      latestVersions: response.latestVersions as
+        | Record<BaseUrl, OntologyTypeVersion>
         | undefined,
     }));
 

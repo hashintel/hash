@@ -4208,6 +4208,10 @@
           "includeEditionCreatedByIds": {
             "type": "boolean"
           },
+          "includeLatestVersions": {
+            "type": "boolean",
+            "description": "Returns the highest version of each matched type, archived versions included."
+          },
           "includeWebIds": {
             "type": "boolean"
           },
@@ -9732,6 +9736,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EntityTypeWithMetadata"
+            }
+          },
+          "latestVersions": {
+            "type": "object",
+            "description": "The highest version of each returned type, archived versions included.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OntologyTypeVersion"
             }
           },
           "webIds": {
