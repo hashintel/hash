@@ -31,7 +31,7 @@ const spreadAround = (
 const formatList = (versions: number[]) =>
   versions.map((version) => `v${version}`).join(" and ");
 
-export type VersionGraphLayout = {
+type VersionGraphLayout = {
   width: number;
   parentLabelX: number;
   labelX: number;
@@ -165,6 +165,5 @@ export const getVersionGraphLayout = ({
   };
 };
 
-/** The tooltip grows with the graph up to 640 px, or the row's width less 80 px. */
 export const getVersionGraphTooltipMaxWidth = (rowWidth: number) =>
   Math.min(maxTooltipWidth, rowWidth - rowInset);
