@@ -185,9 +185,9 @@ test("app registration admits HASH's entity read as a browser tool, beside allow
       { stopReason: "toolUse" },
     );
   faux.setResponses([
-    proposal("query_hash_entities"),
-    proposal("query_hash_entities", "ledger_commit"),
-    proposal("query_hash_entities", "task"),
+    proposal("hash_query_entities"),
+    proposal("hash_query_entities", "ledger_commit"),
+    proposal("hash_query_entities", "task"),
   ]);
   const admit = () =>
     registration!.interceptor(
@@ -199,7 +199,7 @@ test("app registration admits HASH's entity read as a browser tool, beside allow
   const beside = await admit();
   await expect(admit()).rejects.toThrow(/Mixed browser\/server proposal/u);
   expect(alone.content).toEqual([
-    expect.objectContaining({ name: "query_hash_entities" }),
+    expect.objectContaining({ name: "hash_query_entities" }),
   ]);
   expect(beside.content.map((part) => part.type)).toEqual([
     "toolCall",
