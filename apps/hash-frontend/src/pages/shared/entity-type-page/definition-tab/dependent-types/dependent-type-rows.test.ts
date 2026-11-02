@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 
-import {
-  getDependentTypeRows,
-  getParentVersionRows,
-} from "./dependent-type-rows";
+import { getDependentTypeRows } from "./dependent-type-rows";
 
 import type {
   BaseUrl,
@@ -214,64 +211,6 @@ describe("getDependentTypeRows", () => {
       { title: "Machine", ranges: ["v1–v1 → v1"] },
     ]);
   });
-
-  it("lists each version of a type that extends the parent, with the parent versions it extends", () => {
-    const mixedVersions = [
-      makeVersion("mixed", "Mixed", 4, [2]),
-      makeVersion("mixed", "Mixed", 2, [1, 2]),
-      makeVersion("mixed", "Mixed", 1, [1]),
-    ];
-
-    expect(
-      rowsFor(mixedVersions, [mixedVersions[0]!]).rows[0]?.versions,
-    ).toEqual([
-      { version: 1, parentVersions: [1] },
-      { version: 2, parentVersions: [1, 2] },
-      { version: 4, parentVersions: [2] },
-    ]);
-  });
-});
-
-describe("getParentVersionRows", () => {
-  it("lists every parent version, newest first, each with the types and ranges that extend it", () => {
-    const userVersions = [
-      makeVersion("user", "User", 4, [2]),
-      makeVersion("user", "User", 3, [1, 2]),
-      makeVersion("user", "User", 2, [1]),
-    ];
-    const machine = makeVersion("machine", "Machine", 1, [1]);
-    const { rows } = rowsFor(
-      [...userVersions, machine],
-      [userVersions[0]!, machine],
-    );
-
-    expect(
-      getParentVersionRows({ rows, parentLatestVersion: 3 }).map(
-        ({ parentVersion, types }) => ({
-          parentVersion,
-          types: types.map(
-            ({ row, ranges, highestVersionId }) =>
-              `${row.entityType.schema.title} ${ranges
-                .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
-                .join(", ")} opens ${highestVersionId}`,
-          ),
-        }),
-      ),
-    ).toEqual([
-      { parentVersion: 3, types: [] },
-      {
-        parentVersion: 2,
-        types: [`User v3–v4 opens ${typeBaseUrl("user")}v/4`],
-      },
-      {
-        parentVersion: 1,
-        types: [
-          `Machine v1–v1 opens ${typeBaseUrl("machine")}v/1`,
-          `User v2–v3 opens ${typeBaseUrl("user")}v/3`,
-        ],
-      },
-    ]);
-  });
 });
 
 describe("on an example ontology of companies", () => {
@@ -400,53 +339,6 @@ describe("on an example ontology of companies", () => {
         title: "Subsidiary",
         opens: "subsidiary/v/26",
         ranges: ["v1–v8 → v1", "v9–v17 → v2", "v18–v26 → v3"],
-      },
-    ]);
-  });
-
-  it("lists each Company version, newest first, with the types that extend it and their ranges", () => {
-    expect(
-      getParentVersionRows({ rows, parentLatestVersion: 3 }).map(
-        ({ parentVersion, types }) => ({
-          parentVersion,
-          types: types.map(
-            ({ row, ranges, highestVersionId }) =>
-              `${row.entityType.schema.title} ${ranges
-                .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
-                .join(", ")} opens ${shortId(highestVersionId)}`,
-          ),
-        }),
-      ),
-    ).toEqual([
-      {
-        parentVersion: 3,
-        types: [
-          "Charity v3–v3 opens charity/v/3",
-          "Form 8-K Issuer v2–v3 opens form-8k/v/3",
-          "Sole Trader v4–v4 opens sole-trader/v/4",
-          "Subsidiary v18–v26 opens subsidiary/v/26",
-        ],
-      },
-      {
-        parentVersion: 2,
-        types: [
-          "Charity v2–v2 opens charity/v/2",
-          "Partnership v1–v1, v3–v3 opens partnership/v/3",
-          "Public Company v3–v5 opens public-company/v/5",
-          "Sole Trader v1–v2 opens sole-trader/v/2",
-          "Subsidiary v9–v17 opens subsidiary/v/17",
-        ],
-      },
-      {
-        parentVersion: 1,
-        types: [
-          "Charity v1–v1 opens charity/v/1",
-          "Form 10-K Issuer v1–v4 opens form-10k/v/4",
-          "Holding Company v1–v1 opens holding-company/v/1",
-          "Public Company v1–v3, v6–v6 opens public-company/v/6",
-          "Shell Company v1–v2 opens shell-company/v/2",
-          "Subsidiary v1–v8 opens subsidiary/v/8",
-        ],
       },
     ]);
   });
