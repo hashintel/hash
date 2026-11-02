@@ -13,7 +13,6 @@ import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
-  OntologyTypeVersion,
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -24,7 +23,6 @@ type DefinitionTabProps = {
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
   entityTypeBaseUrl: BaseUrl | null;
-  latestVersion: OntologyTypeVersion | null;
   onNavigateToType: (
     kind: "entityType" | "dataType",
     url: VersionedUrl,
@@ -35,7 +33,6 @@ type DefinitionTabProps = {
 export const DefinitionTab = ({
   entityTypeAndPropertyTypes,
   entityTypeBaseUrl,
-  latestVersion,
   onNavigateToType,
   readonly,
 }: DefinitionTabProps) => {
@@ -115,7 +112,6 @@ export const DefinitionTab = ({
       <DependentTypes
         entityType={entityTypeAndPropertyTypes.entityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
-        latestVersion={latestVersion}
         onOpenType={(entityTypeId) =>
           onNavigateToType("entityType", entityTypeId)
         }

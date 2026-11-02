@@ -32,8 +32,6 @@ export type DependentTypeRow = {
   lastVersion: number;
   parentVersions: number[];
   ranges: DependentTypeVersionRange[];
-  /** Each version of the type that extends the parent, oldest first. */
-  versions: { version: number; parentVersions: number[] }[];
 };
 
 type DependentTypeVersion = { version: number; entityTypeId: VersionedUrl };
@@ -78,13 +76,12 @@ const toRanges = (
 type DependentTypeEdges = {
   highestVersion: EntityTypeWithMetadata;
   byParentVersion: Map<number, DependentTypeVersion[]>;
-  parentVersionsByVersion: Map<number, number[]>;
 };
 
 const toRow = (
   entityType: EntityTypeWithMetadata,
   former: boolean,
-  { byParentVersion, parentVersionsByVersion }: DependentTypeEdges,
+  { byParentVersion }: DependentTypeEdges,
 ): DependentTypeRow => {
   const ranges = [...byParentVersion]
     .flatMap(([parentVersion, versions]) => toRanges(versions, parentVersion))
@@ -102,12 +99,6 @@ const toRow = (
     lastVersion: Math.max(...ranges.map((range) => range.lastVersion)),
     parentVersions: [...byParentVersion.keys()].sort(byNumber),
     ranges,
-    versions: [...parentVersionsByVersion]
-      .map(([version, parentVersions]) => ({
-        version,
-        parentVersions: parentVersions.toSorted(byNumber),
-      }))
-      .sort((left, right) => left.version - right.version),
   };
 };
 
@@ -149,7 +140,6 @@ export const getDependentTypeRows = ({
       const edges = edgesByBaseUrl.get(metadata.recordId.baseUrl) ?? {
         highestVersion: entityType,
         byParentVersion: new Map(),
-        parentVersionsByVersion: new Map(),
       };
       edgesByBaseUrl.set(metadata.recordId.baseUrl, edges);
 
@@ -159,10 +149,6 @@ export const getDependentTypeRows = ({
       edges.byParentVersion.set(parentVersion, [
         ...(edges.byParentVersion.get(parentVersion) ?? []),
         { version, entityTypeId: schema.$id },
-      ]);
-      edges.parentVersionsByVersion.set(version, [
-        ...(edges.parentVersionsByVersion.get(version) ?? []),
-        parentVersion,
       ]);
     }
   }
@@ -203,49 +189,3 @@ export const getDependentTypeRows = ({
     incomplete: !!allVersions.cursor || !!latestVersions.cursor,
   };
 };
-
-export type ParentVersionRow = {
-  parentVersion: number;
-  /** The types with a version that extends this parent version, sorted by title. */
-  types: {
-    row: DependentTypeRow;
-    /** The type's ranges that extend this parent version. */
-    ranges: DependentTypeVersionRange[];
-    /** The type's highest version that extends this parent version. */
-    highestVersion: number;
-    highestVersionId: VersionedUrl;
-  }[];
-};
-
-/** Groups dependent types by the parent version they extend, newest parent version first. */
-export const getParentVersionRows = ({
-  rows,
-  parentLatestVersion,
-}: {
-  rows: DependentTypeRow[];
-  parentLatestVersion: number;
-}): ParentVersionRow[] =>
-  Array.from({ length: parentLatestVersion }, (_, index) => {
-    const parentVersion = parentLatestVersion - index;
-
-    return {
-      parentVersion,
-      types: rows.flatMap((row) => {
-        const ranges = row.ranges.filter(
-          (range) => range.parentVersion === parentVersion,
-        );
-        const highestRange = ranges.at(-1);
-
-        return highestRange
-          ? [
-              {
-                row,
-                ranges,
-                highestVersion: highestRange.lastVersion,
-                highestVersionId: highestRange.lastVersionId,
-              },
-            ]
-          : [];
-      }),
-    };
-  });

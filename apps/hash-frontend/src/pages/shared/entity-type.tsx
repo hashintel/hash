@@ -74,7 +74,6 @@ const TypeDefinition = ({
   entityTypeBaseUrl,
   isFile,
   isImage,
-  latestVersion,
   onNavigateToType,
   readonly,
 }: {
@@ -91,7 +90,6 @@ const TypeDefinition = ({
   entityTypeBaseUrl: BaseUrl | null;
   isFile: boolean;
   isImage: boolean;
-  latestVersion: OntologyTypeVersion | null;
   onNavigateToType: (
     kind: "entityType" | "dataType",
     url: VersionedUrl,
@@ -107,7 +105,6 @@ const TypeDefinition = ({
           <DefinitionTab
             entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
             entityTypeBaseUrl={entityTypeBaseUrl}
-            latestVersion={latestVersion}
             onNavigateToType={onNavigateToType}
             readonly={readonly}
           />
@@ -594,7 +591,6 @@ export const EntityType = ({
                   entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
                   isFile={isFile}
                   isImage={isImage}
-                  latestVersion={latestVersion}
                   onNavigateToType={onNavigateToType}
                   readonly={isReadonly}
                 />
