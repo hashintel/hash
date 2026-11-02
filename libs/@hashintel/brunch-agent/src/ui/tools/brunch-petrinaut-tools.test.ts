@@ -60,7 +60,8 @@ const setup = (
     }),
   });
   // The plugin's refusal-aware edits over the same instance the handle backs.
-  const { edit } = createTestEditorApi(instance, { refusal }).document;
+  const api = createTestEditorApi(instance, { refusal });
+  const { edit } = api.document;
   const adapter = createCanonicalPetrinautHostTools({
     handle: instance.handle,
     readTitle: () => "Untitled",
@@ -81,6 +82,8 @@ const setup = (
     toolCallId,
     handle: instance.handle,
     edit,
+    document: api.document,
+    experiments: api.experiments,
     readDiagnosticsContext: async () => "No diagnostics",
     signal: new AbortController().signal,
   });

@@ -12,6 +12,7 @@ import { canonicalContent, hashProcessEditorId } from "@hashintel/brunch-agent";
 import {
   createJsonDocHandle,
   createPetrinaut,
+  type PetrinautExperimentResult,
   type SDCPN,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
@@ -107,7 +108,13 @@ const runIssuedCall = async (
   {
     initial = emptyNet,
     admit,
-  }: { initial?: SDCPN; admit?: InBandBrowserCallAdmission } = {},
+    editor = {},
+  }: {
+    initial?: SDCPN;
+    admit?: InBandBrowserCallAdmission;
+    /** The editor's title, title setter, refusal and experiment runner. */
+    editor?: Parameters<typeof createTestEditorApi>[1];
+  } = {},
 ) => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
@@ -116,7 +123,8 @@ const runIssuedCall = async (
       capabilities: { disabledExtensions: [] },
     }),
   });
-  const { edit } = createTestEditorApi(instance).document;
+  const api = createTestEditorApi(instance, editor);
+  const { edit } = api.document;
   const host = createCanonicalPetrinautHostTools({
     handle: instance.handle,
     readTitle: () => "Untitled",
@@ -177,7 +185,9 @@ const runIssuedCall = async (
           input: tool.inputParser.parse(issued),
           edit,
           handle: instance.handle,
-          readDiagnosticsContext: async () => "",
+          readDiagnosticsContext: async () => "No diagnostics",
+          document: api.document,
+          experiments: api.experiments,
           toolCallId: "call",
           signal: new AbortController().signal,
         }),
@@ -334,6 +344,127 @@ test("a HASH remove waits on the destructive-edit card, which offers Always allo
   expect(definition.places.map(({ name }) => name)).toEqual(["Buffer"]);
   // Its arc went with it.
   expect(definition.transitions[0]?.inputArcs).toEqual([]);
+});
+
+test("petrinaut_get_net reads the net at the detail asked for, with its title and the revision it observed", async () => {
+  const readAt = async (detail: string) =>
+    (
+      await runIssuedCall(
+        "petrinaut_get_net",
+        { editor_id: hashProcessEditorId, detail },
+        { initial: servedNet, editor: { title: "Replenishment" } },
+      )
+    ).outcome();
+  const transitionAt = async (detail: string) => {
+    const { result, before } = await readAt(detail);
+    expect(result?.output).toMatchObject({ title: "Replenishment" });
+    expect(
+      (result?.metadata as ClientToolResultMetadata | undefined)
+        ?.documentRevision,
+    ).toEqual({ before });
+    return (
+      result?.output as
+        | { definition: { transitions: Record<string, unknown>[] } }
+        | undefined
+    )?.definition.transitions[0];
+  };
+  const outline = await transitionAt("outline");
+  expect(outline).toMatchObject({ name: "Serve" });
+  expect(outline).not.toHaveProperty("lambdaCode");
+  expect(outline).not.toHaveProperty("x");
+  const structure = await transitionAt("structure");
+  expect(structure).toHaveProperty("lambdaCode");
+  expect(structure).not.toHaveProperty("x");
+  expect(await transitionAt("full")).toHaveProperty("x");
+});
+
+test("petrinaut_get_diagnostics reports the editor's diagnostics", async () => {
+  const { result } = await (
+    await runIssuedCall("petrinaut_get_diagnostics", {
+      editor_id: hashProcessEditorId,
+    })
+  ).outcome();
+  expect(result?.output).toBe("No diagnostics");
+});
+
+test("petrinaut_set_net_title renames the net, and a read-only editor refuses it", async () => {
+  const setTitle = vi.fn<(title: string) => void>();
+  const renamed = await (
+    await runIssuedCall(
+      "petrinaut_set_net_title",
+      { editor_id: hashProcessEditorId, title: "Replenishment" },
+      { editor: { title: "Untitled", setTitle } },
+    )
+  ).outcome();
+  expect(setTitle).toHaveBeenCalledWith("Replenishment");
+  expect(renamed.result?.output).toEqual({
+    applied: true,
+    title: 'Renamed net to "Replenishment"',
+    detail: "Previous title: Untitled",
+  });
+  const refused = await (
+    await runIssuedCall(
+      "petrinaut_set_net_title",
+      { editor_id: hashProcessEditorId, title: "Replenishment" },
+      {
+        editor: {
+          setTitle,
+          refusal: () => ({ kind: "host-readonly" }),
+        },
+      },
+    )
+  ).outcome();
+  expect(refused.result?.output).toMatchObject({
+    applied: false,
+    blocked: "host-readonly",
+  });
+  expect(setTitle).toHaveBeenCalledOnce();
+});
+
+test("petrinaut_layout_auto lays the net out at once", async () => {
+  const { result } = await (
+    await runIssuedCall(
+      "petrinaut_layout_auto",
+      { editor_id: hashProcessEditorId },
+      { initial: servedNet },
+    )
+  ).outcome();
+  expect(result?.output).toMatchObject({ applied: true });
+});
+
+test("petrinaut_create_experiment runs the experiment through the editor and settles with its result", async () => {
+  const experimentResult: PetrinautExperimentResult = {
+    status: "complete",
+    experimentId: "experiment-1",
+    name: "Queue study",
+    runsCompleted: 2,
+    metrics: [],
+  };
+  const runExperiment = vi.fn(async () => experimentResult);
+  const request = {
+    name: "Queue study",
+    scenarioId: "scenario-1",
+    scenarioParameterValues: {},
+    runCount: 2,
+    seed: 1,
+    dt: 0.1,
+    maxTime: 10,
+    metricIds: ["metric-1"],
+    execution: { mode: "simulate" },
+  };
+  const { result, before, revision, failure } = await (
+    await runIssuedCall(
+      "petrinaut_create_experiment",
+      { editor_id: hashProcessEditorId, ...request },
+      { editor: { runExperiment } },
+    )
+  ).outcome();
+  expect(failure).toBeUndefined();
+  expect(runExperiment).toHaveBeenCalledWith(
+    expect.objectContaining({ name: "Queue study", runCount: 2 }),
+  );
+  expect(result?.output).toEqual(experimentResult);
+  expect(revision).toBe(before);
 });
 
 test("the revision chain survives a reload through a settled HASH Petrinaut change in history", async () => {

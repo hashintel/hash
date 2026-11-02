@@ -1,10 +1,10 @@
 # Experiments
 
-The experiment request, its limits, and what the draft and run tools do. Whether an experiment is ready, and which stated condition fills which field, is the `modelling` skill's concern.
+The experiment request, its limits, and when to run one. Whether an experiment is ready, and which stated condition fills which field, is the `modelling` skill's concern.
 
 ## The request
 
-`PetrinautExperimentRequest` is the draft tool's `experiment` input and `createExperiment`'s input. Take every identifier in it from a current read of the net; never compose one from names.
+`PetrinautExperimentRequest` is `petrinaut_create_experiment`'s input, beside `editor_id`. Take every identifier in it from a current read of the net; never compose one from names.
 
 | Field                                 | Takes                                                                                               | Limits                                                                                                                                                                                                                        |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -15,26 +15,16 @@ The experiment request, its limits, and what the draft and run tools do. Whether
 | `maxTime`, `dt`                       | simulation time units                                                                               | `dt ≤ maxTime` and `maxTime / dt ≤ 1,000,000`; integer divisibility is not required.                                                                                                                                          |
 | `runCount`, `seed`                    | run count and random seed                                                                           | `runsPerStep ≤ runCount`.                                                                                                                                                                                                     |
 
-The request carries no units and no constraints or constraint policy, so no restriction reaches execution. Saved scenario and metric code is compiled when the experiment is created, not by getNetCompilationErrors.
+The request carries no units and no constraints or constraint policy, so no restriction reaches execution. Saved scenario and metric code is compiled when the experiment is created, not by `petrinaut_get_diagnostics`.
 
 ## Size
 
 A run takes `maxTime / dt` steps. A simulation makes `runCount` runs; an optimization makes `steps × runsPerStep`. Choose `dt` as coarse as the fastest change the metrics depend on allows, not as fine as possible: a level read every five minutes needs steps of about a minute, not hundredths. Compare named options as separate `simulate` requests with fixed values, and optimize only when the USER wants the best setting of a lever over a range.
 
-## Drafting
+## Proposing and running
 
-Call `draft_petrinaut_experiment` once with `{ experiment, declarations, unsupported }`. If an `unsupported` entry names a `reportedByMetricId`, include that metric in `experiment.metricIds`. The host finds the latest read of the net in the conversation; do not put a basis table, locator, hash, revision or observation call ID in the input.
+Propose the experiment in the conversation first: the scenario, the metrics, the runs (how many, how long, at what step), and each restriction or threshold the USER stated that the run will not enforce, since the request carries none. Call `petrinaut_create_experiment` only once the USER agrees to that proposal in the conversation, and after the net changes it depends on.
 
-The tool drafts a proposal in this editor's memory and returns `{ status, summary, diagnostics }`. It does not run anything, save anything with the document or navigate. Say "drafted for review, not run", not "added to the model". A redraft supersedes the earlier card. If `status` is `invalid`, repair from the diagnostics against a fresh read and redraft; do not ask the USER to fix identifiers.
+`petrinaut_create_experiment` creates the experiment and runs it at once; there is no draft to review. It holds the turn until every run finishes, and nothing stops it early, so keep a run small: roughly 20,000 steps in total across its runs. For a larger study, describe its set-up (scenario, parameter values or ranges, metrics, runs, `dt` and `maxTime`) for the USER to run in Petrinaut's experiments view, and say that it was not run.
 
-Draft after the net changes the experiment depends on. A card checks the net it was drafted against, so any later change, including one meant only as a demonstration, makes it report that the model changed. After changing the net, read it again and redraft.
-
-The USER runs a drafted proposal from the card's Run action. Approval of a draft in conversation is not a request to execute it: point them to the card. Run and Dismiss happen later in the card and are not reported to the conversation, nor is eventual completion, so do not infer any of those events or describe them as observed.
-
-## Running
-
-Call `createExperiment` instead of drafting only when the USER explicitly asks to run now. It carries no restrictions either, so first name each restriction or threshold they stated that the run will not enforce.
-
-`createExperiment` holds the turn until every run finishes, and nothing stops it early, so keep a direct run small: roughly 20,000 steps in total across its runs. A larger study is a draft, which the USER runs from its card.
-
-Never open or pre-fill the experiment creation drawer, or return manual set-up instructions in place of a tool call.
+Its result reports each metric over the runs. Report what it shows as a run of the model, not as evidence about the system.

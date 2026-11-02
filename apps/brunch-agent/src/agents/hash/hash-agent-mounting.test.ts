@@ -12,7 +12,6 @@ import {
   petrinautContextualUserMessageBody,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { flueConversationId } from "../../shared/conversation/identity.ts";
 import {
@@ -154,7 +153,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test("a document binding mounts the guidance, the canonical catalogue with HASH's Petrinaut tools in place of the operations they map, the Ledger, the draft and HASH's graph reads", async () => {
+test("a document binding mounts the guidance, the Ledger, HASH's graph reads and Save, and HASH's own Petrinaut tools with only the user guide left canonical", async () => {
   mounted.initialData = bound;
   const { HashAgent: renderAgent } = await import("./agent.ts");
   expect(renderAgent({ id: "bound" })).toBe(await systemPrompt());
@@ -165,37 +164,24 @@ test("a document binding mounts the guidance, the canonical catalogue with HASH'
     "petrinaut",
     "hash-graph",
   ]);
-  expect(mounted.tools).toEqual(
-    expect.arrayContaining([
+  // No net readers, no experiment draft and no canonical Petrinaut tool but
+  // the user guide: the net is read, changed and run only through HASH's own.
+  expect(mounted.tools.toSorted()).toEqual(
+    [
       brunchTools.ledgerCommit,
       brunchTools.ledgerCompile,
       brunchTools.queryBasis,
       brunchTools.ping,
-      "readNetOutline",
-      "readNetStructure",
-      brunchTools.draftPetrinautExperiment,
       brunchTools.queryHashEntities,
       brunchTools.queryHashEntityTypes,
       brunchTools.queryHashWebs,
       brunchTools.saveHashNet,
-    ]),
-  );
-  // Petrinaut's net is changed only through HASH's own tools; the reads, the
-  // title, the layout, the user guide and the experiment stay canonical for now.
-  expect(
-    mounted.tools
-      .filter(
-        (name) => name in petrinautAiTools || name.startsWith("petrinaut_"),
-      )
-      .toSorted(),
-  ).toEqual(
-    [
-      "getLatestNetDefinition",
-      "getNetCompilationErrors",
-      "setNetTitle",
-      "applyAutoLayout",
       "readPetrinautDoc",
-      "createExperiment",
+      "petrinaut_get_net",
+      "petrinaut_get_diagnostics",
+      "petrinaut_set_net_title",
+      "petrinaut_layout_auto",
+      "petrinaut_create_experiment",
       ...[
         "place",
         "transition",

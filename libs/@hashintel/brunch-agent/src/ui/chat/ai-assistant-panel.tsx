@@ -39,18 +39,15 @@ import {
   type PetrinautAiMutationToolName,
   readPetrinautDocToolInputSchema,
   readPetrinautDocToolName,
-  setNetTitleToolInputSchema,
   setNetTitleToolName,
-  type ApplyAutoLayoutResult,
 } from "@hashintel/petrinaut-core";
 import { formatReadOnlyReason } from "@hashintel/petrinaut/react";
 import {
-  describeRefusal,
-  type EditResult,
   useAssistantPanel,
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
 
+import { browserToolFacts } from "../../petrinaut/browser-executed-tools";
 import { useTemporaryEditRefusal } from "../temporary-editor-compat";
 import {
   AiAssistantContents,
@@ -64,6 +61,10 @@ import {
   AiAssistantEditorApiContext,
   type AiAssistantEditorApi,
 } from "./ai-assistant-panel/editor-api";
+import {
+  applyPetrinautAiCommand,
+  executeSetNetTitle,
+} from "./ai-assistant-panel/editor-commands";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import {
   getInteractiveTool,
@@ -107,6 +108,10 @@ export type {
 // Owned helpers Brunch's tools use beside the chat, which imports them too.
 export { ExperimentExecutionCard } from "./ai-assistant-panel/ai-assistant-contents/experiment-execution-card";
 export { executePetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
+export {
+  applyPetrinautAiCommand,
+  executeSetNetTitle,
+} from "./ai-assistant-panel/editor-commands";
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
@@ -536,34 +541,6 @@ export const addMappedToolOutput = async ({
   } finally {
     if (containingMessage && submissionState) {
       finishVoiceToolSubmission(updateMessages, containingMessage.id);
-    }
-  }
-};
-
-const applyPetrinautAiCommand = async ({
-  aiToolCall,
-  applyAutoLayout,
-}: {
-  aiToolCall: Extract<AiToolCall, { toolName: AiCommandActionName }>;
-  /** The plugin's layout edit, which frames the result once drawn. */
-  applyAutoLayout: () => Promise<EditResult<ApplyAutoLayoutResult>>;
-}): Promise<AiToolOutput> => {
-  // Exhaustive switch over AiCommandActionName — extending the AI command
-  // surface will surface a TypeScript error here until the new case is added.
-  switch (aiToolCall.toolName) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    case "applyAutoLayout": {
-      const result = await applyAutoLayout();
-      if (!result.applied) {
-        return toBlockedOutput(result.reason);
-      }
-      return toPetrinautAiToolOutput(
-        summarizeApplyAutoLayout({ commitCount: result.value.commitCount }),
-      );
-    }
-    default: {
-      const unhandledToolName: never = aiToolCall.toolName;
-      return unhandledToolName;
     }
   }
 };
@@ -1024,6 +1001,8 @@ const ConversationAiAssistantPanel = ({
             await automaticTool.execute({
               input: toolInput,
               edit: document.edit,
+              document,
+              experiments,
               handle,
               readDiagnosticsContext,
               toolCallId: toolCall.toolCallId,
@@ -1148,38 +1127,10 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === setNetTitleToolName) {
-      const parsedSetNetTitleInput = setNetTitleToolInputSchema.parse(
-        toolCall.input,
-      );
-      const previousTitle = document.title.get();
-      // The plugin refuses without a host title setter, or while read-only.
-      const renamed = document.setTitle(parsedSetNetTitleInput.title);
-      if (!renamed.applied) {
-        await addAutomaticToolOutput({
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output:
-            renamed.reason.kind === "no-title-setter"
-              ? ({
-                  applied: false,
-                  reason: describeRefusal(renamed.reason),
-                } satisfies AiToolOutput)
-              : toBlockedOutput(renamed.reason),
-        });
-        return;
-      }
-
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: {
-          applied: true,
-          title: `Renamed net to "${parsedSetNetTitleInput.title}"`,
-          detail:
-            previousTitle && previousTitle !== parsedSetNetTitleInput.title
-              ? `Previous title: ${previousTitle}`
-              : undefined,
-        } satisfies AiToolOutput,
+        output: executeSetNetTitle({ input: toolCall.input, document }),
       });
       return;
     }
@@ -1284,8 +1235,8 @@ const ConversationAiAssistantPanel = ({
           outputs.push(output);
         },
       );
-      if (toolCall.toolName === createExperimentToolName) {
-        // The source was captured on entry; simulation need not hold the lane.
+      // A run that captured its source on entry need not hold the lane.
+      if (browserToolFacts(toolCall.toolName).releasesDocumentLane) {
         experimentExecuting = true;
         yieldLane();
       }

@@ -23,6 +23,7 @@ import {
   type BrowserCallClaim,
   brunchTools,
   canonicalContent,
+  hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -233,7 +234,11 @@ test("a step proposing the read beside a net read issues both to the browser, an
           fauxToolCall(brunchTools.queryHashEntities, readInput, {
             id: "m1",
           }),
-          fauxToolCall("readNetOutline", {}, { id: "m2" }),
+          fauxToolCall(
+            "petrinaut_get_net",
+            { editor_id: hashProcessEditorId, detail: "outline" },
+            { id: "m2" },
+          ),
         ],
         { stopReason: "toolUse" },
       ),
@@ -250,7 +255,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
     claimed(chat.instanceId, "m2", chat.binding),
   ]);
   expect(entityClaim.toolName).toBe(brunchTools.queryHashEntities);
-  expect(netClaim.toolName).toBe("readNetOutline");
+  expect(netClaim.toolName).toBe("petrinaut_get_net");
   const outline = {
     title: "Supply",
     definition: { places: [] },
@@ -262,7 +267,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
       toolCallId: "m2",
       capability: netClaim.capability,
       binding: netClaim.binding,
-      toolName: "readNetOutline",
+      toolName: "petrinaut_get_net",
       canonicalInput: netClaim.input,
       output: outline,
       metadata: { documentRevision: { before: "r1" } },

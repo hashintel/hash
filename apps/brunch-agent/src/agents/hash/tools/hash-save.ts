@@ -19,7 +19,7 @@ import {
   type BrowserToolExecutor,
   browserResultEnvelope,
 } from "../../../shared/conversation/browser-tool-executor.ts";
-import { noNetViewRefusal } from "../../../shared/conversation/net-freshness.ts";
+import { hashNoNetViewRefusal } from "./hash-petrinaut-tools.ts";
 
 /** What the model is told whenever a save may or may not have written a version. */
 export const hashSaveUnconfirmedNote = `The save is not confirmed: a version may or may not have been written. Tell the user, who can check the version list, and don't call ${brunchTools.saveHashNet} again until they ask.`;
@@ -62,7 +62,7 @@ export const hashSaveForModel = (output: unknown) => {
  * shape included, may have followed a save the page started.
  */
 const notStartedFailures: ReadonlySet<string> = new Set([
-  noNetViewRefusal,
+  hashNoNetViewRefusal,
   BROWSER_CALL_STALE_ERROR,
   BROWSER_CALL_UNSTARTED_ERROR,
 ]);

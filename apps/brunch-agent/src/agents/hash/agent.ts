@@ -2,9 +2,9 @@
 /**
  * Brunch for HASH: the Petrinaut agent's guidance (prompt and skills, copied
  * here so they can diverge), the Ledger and `query_basis` tools both agents
- * mount from `../shared/`, over the shared Petrinaut browser tools, net
- * freshness and transport, plus reads of the HASH graph that HASH's process
- * page executes. HASH's process page talks to it.
+ * mount from `../shared/`, HASH's own Petrinaut tools over the shared browser
+ * calls, net freshness and transport, plus reads of the HASH graph and Save
+ * that HASH's process page executes. HASH's process page talks to it.
  */
 
 import {
@@ -34,18 +34,20 @@ import {
 } from "../../shared/chat-model.ts";
 import { createBrunchContextProjection } from "../../shared/context-projection.ts";
 import { issueBrowserCall } from "../../shared/conversation/browser-call-rendezvous.ts";
-import { latestCanonicalNetReadBefore } from "../../shared/conversation/net-changes.ts";
 import {
   createNetViewTracker,
   expectedNetRevision,
 } from "../../shared/conversation/net-freshness.ts";
-import { usePetrinautTools } from "../../shared/petrinaut-tools.ts";
+import { asyncCanonicalPetrinautTools } from "../../shared/petrinaut-tools.ts";
 import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
-import { createHashPetrinautTools } from "./tools/hash-petrinaut-tools.ts";
+import {
+  createHashPetrinautTools,
+  hashNoNetViewRefusal,
+} from "./tools/hash-petrinaut-tools.ts";
 import { createHashSaveTool } from "./tools/hash-save.ts";
 import { withVersionLoadNotes } from "./version-load-note.ts";
 
@@ -123,7 +125,9 @@ export const HashAgent = ({ id }: AgentProps): string => {
             netViewTracker.view(id),
           )
         : undefined;
-      if (expected && "refusal" in expected) throw new Error(expected.refusal);
+      // HASH's own read is the one to make; the refusal is otherwise the same.
+      if (expected && "refusal" in expected)
+        throw new Error(hashNoNetViewRefusal);
       return issueBrowserCall({
         instanceId: id,
         toolCallId,
@@ -136,20 +140,15 @@ export const HashAgent = ({ id }: AgentProps): string => {
         signal,
       });
     };
-    usePetrinautTools({
-      authorizeDraft: async (draftCallId: string) => {
-        if (!latestCanonicalNetReadBefore(await history(), draftCallId))
-          throw new Error(
-            "Experiment draft requires a prior canonical net read.",
-          );
-      },
+    // HASH's own tools read, change and run the net; of Petrinaut's own, only
+    // what they don't replace stays (the user guide).
+    for (const tool of asyncCanonicalPetrinautTools(
       executeBrowserTool,
-      // HASH's own Petrinaut tools stand in for the operations they run, and
-      // the per-kind removes and position updates for the batch operations.
-      canonicalToolNames: CANONICAL_PETRINAUT_TOOL_NAMES.filter(
+      CANONICAL_PETRINAUT_TOOL_NAMES.filter(
         (name) => !hashReplacedPetrinautOperations.has(name),
       ),
-    });
+    ))
+      useTool(tool);
     for (const tool of createHashPetrinautTools(executeBrowserTool))
       useTool(tool);
     useTool(createQueryBasisTool({ browser: initialData, history }));

@@ -24,6 +24,7 @@ import {
   type BrowserCallFailureDisposition,
   brunchTools,
   canonicalContent,
+  hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -152,6 +153,8 @@ test("a save with no view of the net in context is refused as not started and ne
   expect(JSON.stringify(refused?.content)).toContain(
     "Not started: no current view of the net is in your context",
   );
+  // The HASH agent's own read is the one it is told to make.
+  expect(JSON.stringify(refused?.content)).toContain("petrinaut_get_net");
   expect(JSON.stringify(refused?.content)).not.toContain(
     hashSaveUnconfirmedNote,
   );
@@ -175,9 +178,16 @@ const saveAfterRead = async (
   let seenText: string | undefined;
   steps.push(
     () =>
-      fauxAssistantMessage([fauxToolCall("readNetOutline", {}, { id: "n1" })], {
-        stopReason: "toolUse",
-      }),
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            "petrinaut_get_net",
+            { editor_id: hashProcessEditorId, detail: "outline" },
+            { id: "n1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
     () =>
       fauxAssistantMessage(
         [fauxToolCall(brunchTools.saveHashNet, saveInput, { id: "s1" })],
@@ -197,7 +207,7 @@ const saveAfterRead = async (
       toolCallId: "n1",
       capability: read.capability,
       binding: read.binding,
-      toolName: "readNetOutline",
+      toolName: "petrinaut_get_net",
       canonicalInput: read.input,
       output: { title: "Replenishment", definition: {}, extensions: {} },
       metadata: { documentRevision: { before: "r1" } },

@@ -130,9 +130,16 @@ const createPlaceAfterRead = async (
   let seen: Extract<Message, { role: "toolResult" }> | undefined;
   steps.push(
     () =>
-      fauxAssistantMessage([fauxToolCall("readNetOutline", {}, { id: "n1" })], {
-        stopReason: "toolUse",
-      }),
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            "petrinaut_get_net",
+            { editor_id: hashProcessEditorId, detail: "structure" },
+            { id: "n1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
     () =>
       fauxAssistantMessage(
         [
@@ -161,7 +168,7 @@ const createPlaceAfterRead = async (
       toolCallId: "n1",
       capability: read.capability,
       binding: read.binding,
-      toolName: "readNetOutline",
+      toolName: "petrinaut_get_net",
       canonicalInput: read.input,
       output: { title: "Replenishment", definition: {}, extensions: {} },
       metadata: { documentRevision: { before: "r1" } },
@@ -188,7 +195,7 @@ const readBack = {
   parameters: [],
 };
 
-test("a call naming the page's editor is issued as a change against the model's last view, and the model next sees the net read back", async () => {
+test("a call naming the page's editor is issued as a change against the revision of the model's last petrinaut_get_net read, and the model next sees the net read back", async () => {
   const output = { applied: true, title: "Added place Queue" };
   const { seen, claim } = await createPlaceAfterRead(
     hashProcessEditorId,
@@ -236,4 +243,47 @@ test("a call naming another editor is not started and never issued", async () =>
     `Not started: editor_id \\"another-editor\\" names no open editor; the open editor is \\"${hashProcessEditorId}\\".`,
   );
   expect(claimBrowserCall(instanceId, "p1", issuedBinding)).toBeUndefined();
+});
+
+test("a change with no read of the net in context is not started, and the model is told to read it with petrinaut_get_net", async () => {
+  const instanceId = crypto.randomUUID();
+  const binding = { conversationId: instanceId, documentId: "web~net" };
+  const router = createAgentRouter(hashAgent);
+  const client = createFlueClient({
+    url: `http://flue.test/${instanceId}`,
+    fetch: async (input, init) =>
+      router.fetch(input instanceof Request ? input : new Request(input, init)),
+  });
+  let seen: Extract<Message, { role: "toolResult" }> | undefined;
+  steps.push(
+    () =>
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            toolName,
+            { editor_id: hashProcessEditorId, ...place },
+            { id: "p0" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    (context) => {
+      seen = toolResult(context, "p0");
+      return fauxAssistantMessage([fauxText("I need to read the net.")]);
+    },
+  );
+  const receipt = await client.send({
+    initialData: { binding },
+    message: { kind: "user", body: "Add a queue." },
+  });
+  await client.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+  expect(seen?.isError).toBe(true);
+  expect(JSON.stringify(seen?.content)).toContain(
+    "Not started: no current view of the net is in your context",
+  );
+  expect(JSON.stringify(seen?.content)).toContain("petrinaut_get_net");
+  expect(JSON.stringify(seen?.content)).not.toContain("readNetOutline");
+  expect(
+    claimBrowserCall(instanceId, "p0", canonicalContent(binding)),
+  ).toBeUndefined();
 });

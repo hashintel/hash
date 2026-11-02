@@ -1,6 +1,6 @@
 ---
 name: petrinaut
-description: Using the Petrinaut tools and writing net code. Use before the first net change, before writing lambda, kernel, dynamics, visualizer, metric or scenario code, before drafting or creating an experiment, and when the USER asks how something in the Petrinaut UI works.
+description: Using the Petrinaut tools and writing net code. Use before the first net change, before writing lambda, kernel, dynamics, visualizer, metric or scenario code, before proposing or running an experiment, and when the USER asks how something in the Petrinaut UI works.
 ---
 
 # Petrinaut
@@ -11,21 +11,21 @@ When the USER asks how a Petrinaut UI workflow works, or you need to confirm a U
 
 When you need a worked example of a complete net definition (coloured tokens, stochastic and predicate transitions, kernels with distributions, continuous dynamics, parameters, visualizer code, metrics and scenarios), read `references/examples.md`.
 
-Before drafting or creating an experiment, read `references/experiments.md` for the request's fields and limits and what the draft and run tools do.
+Before proposing or running an experiment, read `references/experiments.md` for the request's fields and limits and when to run one.
 
 ## Tools
 
 Make every net change through the mounted tools; never emit free-form net JSON. The `petrinaut_create_*`, `petrinaut_update_*` and `petrinaut_remove_*` tools change the net, one tool per kind of element; each names the editor it acts on with `editor_id`. They take Petrinaut's own mutation inputs, so include stable IDs, full entity objects where required, and canvas positions for places and transitions. One update can change an element's fields and its position together, and one `petrinaut_update_arc` can change an arc's endpoint, type and weight together. The mounted schemas, not this prose, govern exact payload fields.
 
-You can check current TypeScript compilation diagnostics at any point using the getNetCompilationErrors tool, and rename the net using the setNetTitle tool.
+You can check current TypeScript compilation diagnostics at any point using `petrinaut_get_diagnostics`, and rename the net using `petrinaut_set_net_title`.
 
 ### Reading the net
 
-Three tools read the current net, each returning `{ title, definition, extensions }`: the user-visible net title, the SDCPN, and the active extension capabilities for this document.
+`petrinaut_get_net` reads the current net, returning `{ title, definition, extensions }`: the user-visible net title, the SDCPN, and the active extension capabilities for this document. Its `detail` says how much of the net:
 
-- `readNetOutline` leaves out code and expressions (including parameter overrides, component parameter values and scenario initial states beyond the shape of an ad-hoc one), canvas positions and visual settings.
-- `readNetStructure` adds that code and those expressions.
-- `getLatestNetDefinition` returns the complete definition, including positions and visualizer code.
+- `outline` leaves out code and expressions (including parameter overrides, component parameter values and scenario initial states beyond the shape of an ad-hoc one), canvas positions and visual settings.
+- `structure` adds that code and those expressions.
+- `full` returns the complete definition, including positions and visualizer code.
 
 A change is refused unless a read of the net is in context, so read it before the first change. Don't reread at the start of an exchange in case the USER edited the net: a change against an edited net is refused without starting, and the refusal tells you to read again. After a step of changes, use the last result's `netAfterChanges` instead of rereading. Read again only for code or fields `netAfterChanges` omits, before a live explanation, and at delivery. Consult `extensions` before authoring extension-specific content, and `title` when deciding whether the net needs a more descriptive name.
 
@@ -99,14 +99,14 @@ This needs `extensions.colors` and `extensions.dynamics`, and `extensions.stocha
 
 ### After a code change
 
-Validate every code-writing change. After the step that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call getNetCompilationErrors once for the whole step, and send every repair it calls for in one further step before relying on the new code. Mutations validate only the schema, not the runtime contract. Saved scenario and metric code is compiled separately, when an experiment is created, so a clean diagnostic does not prove it.
+Validate every code-writing change. After the step that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call `petrinaut_get_diagnostics` once for the whole step, and send every repair it calls for in one further step before relying on the new code. Mutations validate only the schema, not the runtime contract. Saved scenario and metric code is compiled separately, when an experiment is created, so a clean diagnostic does not prove it.
 
 Place names are part of the code surface, so they must be identifiers matching `^[A-Z][a-zA-Z]*\d*$`: letters only, starting uppercase, digits only at the end (`TankLevel`, `Bay2`; never `Tank_Level`, `Level5m` or `Last reading`). Lambdas/kernels read `input.PlaceName`, metrics read `state.places.PlaceName.count`, and scenario code-mode initial state keys are place names. Renaming a place via `petrinaut_update_place` requires updating every dependent lambda, kernel, dynamics, metric, visualizer, and scenario in the same batch — otherwise you will silently break references.
 
 ## Finishing a change
 
 - Keep executable code self-contained and readable.
-- Title the net. After building or substantially extending a model, check the title from your latest read. If it is `Untitled` or an obvious placeholder, call `setNetTitle` with a concise, descriptive title (sentence case, ideally under ~60 characters). Don't overwrite a USER-chosen title without being asked.
+- Title the net. After building or substantially extending a model, check the title from your latest read. If it is `Untitled` or an obvious placeholder, call `petrinaut_set_net_title` with a concise, descriptive title (sentence case, ideally under ~60 characters). Don't overwrite a USER-chosen title without being asked.
 - Place visualizers are compact, single-glance SVGs sized for a place node, following the place visualizer rules under Code surfaces.
 
-Auto-layout policy. Once you've finished adding or restructuring places and transitions, call `applyAutoLayout` so the canvas isn't littered with overlapping nodes at the origin. Pass `askUserFirst: false` ONLY when the net was empty at the start of the conversation and you built it from scratch. If USER-arranged content existed beforehand — even if you only added a few nodes to it — pass `askUserFirst: true` and the USER will be shown a Yes/No prompt. If they decline, leave the layout alone and continue without retrying unless they ask.
+Auto-layout policy. Once you've finished adding or restructuring places and transitions, call `petrinaut_layout_auto` so the canvas isn't littered with overlapping nodes at the origin. It applies at once and repositions every node, and the USER can undo it in one step. If USER-arranged content existed beforehand, even if you only added a few nodes to it, ask in the conversation before laying it out, and leave the layout alone if they decline.

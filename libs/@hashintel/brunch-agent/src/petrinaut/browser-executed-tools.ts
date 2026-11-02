@@ -1,4 +1,5 @@
 import {
+  createExperimentToolName,
   getLatestNetDefinitionToolName,
   petrinautAiTools,
   type PetrinautAiToolName,
@@ -43,6 +44,12 @@ interface BrowserToolFacts {
   readonly targets: readonly NetElementKind[];
   /** It removes what the user built, so the user approves each call first. */
   readonly destructive: boolean;
+  /**
+   * Once started it has read what it needs of the net, so later calls in the
+   * same step needn't wait for it to finish; a started run still reports a
+   * failure after Stop.
+   */
+  readonly releasesDocumentLane: boolean;
 }
 
 /** One canonical Petrinaut call a tool's call makes. */
@@ -73,6 +80,7 @@ const reads: BrowserToolFacts = {
   textResult: false,
   targets: [],
   destructive: false,
+  releasesDocumentLane: false,
 };
 
 /** A tool that may change the bound document. */
@@ -101,6 +109,8 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
       ? changes
       : reads),
     observesNet: name === getLatestNetDefinitionToolName,
+    // An experiment runs on the snapshot it captured as it started.
+    releasesDocumentLane: name === createExperimentToolName,
     targets,
     destructive,
     inputSchema: petrinautAiTools[name].inputSchema,
@@ -112,16 +122,22 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
  * One of HASH's Petrinaut tools: a change, which can change what its
  * operations can and is destructive when any of them is.
  */
+/**
+ * One of HASH's Petrinaut tools: what its first canonical operation is (every
+ * operation of a merged update is a mutation), able to change what its
+ * operations can, and destructive when any of them is.
+ */
 const hashPetrinaut = ({
   operations,
   inputSchema,
   parseCall,
 }: (typeof hashPetrinautTools)[keyof typeof hashPetrinautTools]): BrowserToolDescriptor => {
+  const [first] = operations;
   const effects = operations.map(
     (operation) => petrinautToolEffects[operation],
   );
   return {
-    ...changes,
+    ...canonical(first),
     targets: [...new Set(effects.flatMap(({ targets }) => targets))],
     destructive: effects.some(({ destructive }) => destructive),
     inputSchema,

@@ -77,11 +77,14 @@ const history = () => {
     (tool) => tool.toolName === "getLatestNetDefinition",
   );
   if (!read) throw new Error("Missing canonical read");
+  const api = createTestEditorApi(instance);
   const output = read.execute({
     input: {},
     toolCallId: "read-1",
     handle: instance.handle,
-    edit: createTestEditorApi(instance).document.edit,
+    edit: api.document.edit,
+    document: api.document,
+    experiments: api.experiments,
     readDiagnosticsContext: async () => "",
     signal: new AbortController().signal,
   });
