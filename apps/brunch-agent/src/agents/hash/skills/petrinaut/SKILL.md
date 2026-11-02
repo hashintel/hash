@@ -7,7 +7,7 @@ description: Using the Petrinaut tools and writing net code. Use before the firs
 
 ## Routing
 
-When the USER asks how a Petrinaut UI workflow works, or you need to confirm a UI detail before instructing them, read `references/docs.md` for the user-guide pages `readPetrinautDoc` can return.
+When the USER asks how a Petrinaut UI workflow works, or you need to confirm a UI detail before instructing them, read `references/docs.md` for the user-guide pages `petrinaut_read_guide` can return.
 
 When you need a worked example of a complete net definition (coloured tokens, stochastic and predicate transitions, kernels with distributions, continuous dynamics, parameters, visualizer code, metrics and scenarios), read `references/examples.md`.
 
@@ -95,7 +95,7 @@ A stochastic lambda's rate makes the time to firing exponentially distributed, w
 3. give the in-progress place a differential equation of arity 1 returning `-1` for it: `return { remaining_time: -1 };`;
 4. guard the completing transition with a predicate: `return input.InProgress[0].remaining_time <= 0;`.
 
-This needs `extensions.colors` and `extensions.dynamics`, and `extensions.stochasticity` for a `Distribution`. Durations are in simulation time units. The `useful-patterns` page that `readPetrinautDoc` returns has the full example.
+This needs `extensions.colors` and `extensions.dynamics`, and `extensions.stochasticity` for a `Distribution`. Durations are in simulation time units. The `useful-patterns` page that `petrinaut_read_guide` returns has the full example.
 
 ### After a code change
 

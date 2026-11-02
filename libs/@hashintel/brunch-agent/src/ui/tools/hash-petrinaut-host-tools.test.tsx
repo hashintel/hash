@@ -21,6 +21,7 @@ import {
   createInBandBrowserCalls,
   type InBandBrowserCallAdmission,
 } from "../../client/tools/in-band-browser-call";
+import { readUserGuidePage } from "../chat/docs/user-guide";
 import { createTestEditorApi } from "../chat/testing/create-test-editor-api";
 import {
   createBrunchMutationAdmission,
@@ -376,6 +377,40 @@ test("petrinaut_get_net reads the net at the detail asked for, with its title an
   expect(structure).toHaveProperty("lambdaCode");
   expect(structure).not.toHaveProperty("x");
   expect(await transitionAt("full")).toHaveProperty("x");
+});
+
+test("petrinaut_read_guide returns the user-guide page readPetrinautDoc returns, Brunch's own assistant page included", async () => {
+  const readPage = async (doc: string) =>
+    (
+      await (
+        await runIssuedCall("petrinaut_read_guide", {
+          editor_id: hashProcessEditorId,
+          doc,
+        })
+      ).outcome()
+    ).result?.output;
+  const simulation = await readPage("simulation");
+  expect(simulation).toBe(readUserGuidePage("simulation"));
+  expect(String(simulation)).toContain("#");
+  expect(await readPage("ai-assistant")).toBe(
+    readUserGuidePage("ai-assistant"),
+  );
+});
+
+test("petrinaut_read_guide naming an editor the page doesn't show fails as started", async () => {
+  const { failure, posted } = await (
+    await runIssuedCall("petrinaut_read_guide", {
+      editor_id: "another-editor",
+      doc: "simulation",
+    })
+  ).outcome();
+  expect(failure).toBeInstanceOf(Error);
+  expect(posted).toEqual([
+    expect.objectContaining({
+      url: expect.stringMatching(/\/call\/fail$/u) as unknown,
+      body: expect.objectContaining({ disposition: "failed" }) as unknown,
+    }),
+  ]);
 });
 
 test("petrinaut_get_diagnostics reports the editor's diagnostics", async () => {

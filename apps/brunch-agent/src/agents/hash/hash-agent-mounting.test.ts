@@ -153,7 +153,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test("a document binding mounts the guidance, the Ledger, HASH's graph reads and Save, and HASH's own Petrinaut tools with only the user guide left canonical", async () => {
+test("a document binding mounts the guidance, the Ledger, HASH's graph reads and Save, and HASH's own Petrinaut tools, with no canonical Petrinaut tool left", async () => {
   mounted.initialData = bound;
   const { HashAgent: renderAgent } = await import("./agent.ts");
   expect(renderAgent({ id: "bound" })).toBe(await systemPrompt());
@@ -165,8 +165,8 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
     "hash-graph",
   ]);
   // HASH's names throughout; no `ping`, no net readers, no experiment draft,
-  // and no canonical Petrinaut tool but the user guide: the net is read,
-  // changed and run only through HASH's own.
+  // and no canonical Petrinaut tool: the net is read, changed and run, and the
+  // user guide read, only through HASH's own.
   expect(mounted.tools.toSorted()).toEqual(
     [
       "ledger_commit",
@@ -176,7 +176,7 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
       "hash_query_entity_types",
       "hash_query_webs",
       "app_save_net",
-      "readPetrinautDoc",
+      "petrinaut_read_guide",
       "petrinaut_get_net",
       "petrinaut_get_diagnostics",
       "petrinaut_set_net_title",

@@ -3,7 +3,10 @@ import {
   type HashPetrinautToolName,
   hashProcessEditorId,
 } from "@hashintel/brunch-agent";
-import { petrinautExperimentRequestSchema } from "@hashintel/petrinaut-core";
+import {
+  petrinautExperimentRequestSchema,
+  readPetrinautDocToolInputSchema,
+} from "@hashintel/petrinaut-core";
 
 import { netDetailSchema } from "../../hash/petrinaut-tools";
 import {
@@ -11,6 +14,7 @@ import {
   executePetrinautAiMutation,
   executeSetNetTitle,
 } from "../chat/ai-assistant-panel";
+import { readUserGuidePage } from "../chat/docs/user-guide";
 import { netReadOutput } from "./brunch-petrinaut-tools";
 
 import type {
@@ -94,6 +98,9 @@ const standIns: Partial<
   // Run as the canonical experiment runs, on its own: Stop doesn't cancel it.
   petrinaut_create_experiment: (input, { experiments }) =>
     experiments.run(petrinautExperimentRequestSchema.parse(input)),
+  // The page `readPetrinautDoc` reads: Brunch's own for its assistant.
+  petrinaut_read_guide: (input) =>
+    readUserGuidePage(readPetrinautDocToolInputSchema.parse(input).doc),
 };
 
 const hashPetrinautHostTool = (

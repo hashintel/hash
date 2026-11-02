@@ -13,6 +13,7 @@ import {
   mutationActionInputSchemas,
   petrinautAiTools,
   petrinautExperimentRequestSchema,
+  readPetrinautDocToolInputSchema,
   setNetTitleToolInputSchema,
   type PetrinautAiMutationToolInput,
   type PetrinautAiMutationToolName,
@@ -400,20 +401,10 @@ export const hashPetrinautTools = {
     operation: "createExperiment",
     shape: petrinautExperimentRequestSchema.shape,
   }),
+  petrinaut_read_guide: standIn({
+    operation: "readPetrinautDoc",
+    shape: readPetrinautDocToolInputSchema.shape,
+  }),
 } as const satisfies Record<string, HashPetrinautTool>;
 
 export type HashPetrinautToolName = keyof typeof hashPetrinautTools;
-
-/**
- * The canonical operations the HASH agent doesn't mount: those its own tools
- * run, and those it drops (`deleteItemsByIds`, for the per-kind removes;
- * `commitNodePositions`, for the position updates).
- */
-export const hashReplacedPetrinautOperations: ReadonlySet<PetrinautAiToolName> =
-  new Set<PetrinautAiToolName>([
-    ...Object.values(hashPetrinautTools).flatMap(
-      ({ operations }) => operations,
-    ),
-    "deleteItemsByIds",
-    "commitNodePositions",
-  ]);
