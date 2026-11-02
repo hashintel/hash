@@ -33,18 +33,18 @@ const id = v.pipe(
   v.maxLength(512),
   v.regex(/^[\w.:-]+$/),
 );
-const flueIdentitySchema = v.object({
+const vFlueIdentity = v.object({
   instanceId: id,
   conversationId: id,
   submissionId: id,
   operationId: id,
   turnId: id,
 });
-const identitySchema = v.union([
-  flueIdentitySchema,
+const vIdentity = v.union([
+  vFlueIdentity,
   v.strictObject({ kind: v.literal("pi"), sessionId: id, requestId: id }),
 ]);
-export type RequestIdentity = v.InferOutput<typeof identitySchema>;
+export type RequestIdentity = v.InferOutput<typeof vIdentity>;
 const identityKey = (identity: RequestIdentity) =>
   "kind" in identity
     ? `pi:${identity.sessionId}:${identity.requestId}`
@@ -60,7 +60,7 @@ const stopReasons = [
   "error",
   "aborted",
 ] as const satisfies readonly StopReason[];
-const usageSchema = v.object({
+const vUsage = v.object({
   input: count,
   output: count,
   cacheRead: count,
@@ -77,26 +77,26 @@ const usageSchema = v.object({
   }),
 });
 const _usageSchemaRecordsProviderUsage = (
-  usage: v.InferOutput<typeof usageSchema>,
+  usage: v.InferOutput<typeof vUsage>,
 ): Usage => usage;
-const observationSchema = v.object({
+const vObservation = v.object({
   provider: id,
   model: id,
   stopReason: v.picklist(stopReasons),
   responseId: v.optional(id),
-  usage: usageSchema,
+  usage: vUsage,
 });
-const callSchema = v.looseObject({
+const vCall = v.looseObject({
   sequence: positiveCount,
   status: v.picklist(["complete", "not-started", "unknown"]),
   reservedUsd: amount,
   actualUsd: v.optional(amount), // Historical name means catalogue estimate, NOT invoice amount.
-  usage: v.optional(usageSchema),
-  partialUsage: v.optional(usageSchema),
+  usage: v.optional(vUsage),
+  partialUsage: v.optional(vUsage),
   accountingVersion: v.optional(v.literal(1)),
   journalPending: v.optional(v.boolean()),
   runId: v.optional(id),
-  identity: v.optional(identitySchema),
+  identity: v.optional(vIdentity),
   provider: v.optional(v.literal("anthropic")),
   model: v.optional(v.literal(STEP_A_MODEL_ID)),
   maxOutputTokens: v.optional(positiveCount),
@@ -104,9 +104,9 @@ const callSchema = v.looseObject({
   invocation: v.optional(v.picklist(["not-started", "started"])),
   transport: v.optional(v.picklist(["not-started", "started"])),
   cancelledOrFailed: v.optional(v.boolean()),
-  terminal: v.optional(observationSchema),
+  terminal: v.optional(vObservation),
 });
-const ledgerSchema = v.looseObject({
+const vLedger = v.looseObject({
   limits: v.object({ calls: positiveCount, usd: amount }),
   reservation: v.looseObject({
     runId: id,
@@ -126,9 +126,9 @@ const ledgerSchema = v.looseObject({
     outstandingReservedCalls: count,
     outstandingReservedUsd: amount,
   }),
-  calls: v.array(callSchema),
+  calls: v.array(vCall),
 });
-type Ledger = v.InferOutput<typeof ledgerSchema>;
+type Ledger = v.InferOutput<typeof vLedger>;
 type Call = Ledger["calls"][number];
 const fail = (): never => {
   throw new Error(
@@ -137,7 +137,7 @@ const fail = (): never => {
 };
 const near = (left: number, right: number) => Math.abs(left - right) < 1e-9;
 const validateUsage = (usage: AssistantMessage["usage"]) => {
-  const parsed = v.parse(usageSchema, usage);
+  const parsed = v.parse(vUsage, usage);
   if (
     parsed.totalTokens !==
       parsed.input + parsed.output + parsed.cacheRead + parsed.cacheWrite ||
@@ -255,10 +255,7 @@ export class RequestLedger {
     if (this.#poisoned) fail();
     let ledger: Ledger;
     try {
-      ledger = v.parse(
-        ledgerSchema,
-        JSON.parse(readFileSync(this.path, "utf8")),
-      );
+      ledger = v.parse(vLedger, JSON.parse(readFileSync(this.path, "utf8")));
     } catch {
       return fail();
     }
@@ -363,9 +360,9 @@ export class RequestLedger {
     context: FlueExecutionContext | RequestIdentity | undefined,
     model: Model<Api>,
   ) {
-    let identity: v.InferOutput<typeof identitySchema>;
+    let identity: v.InferOutput<typeof vIdentity>;
     try {
-      identity = v.parse(identitySchema, context);
+      identity = v.parse(vIdentity, context);
     } catch {
       return fail();
     }
@@ -503,7 +500,7 @@ export class RequestLedger {
         }),
       terminal: (message: AssistantMessage) =>
         update((current) => {
-          const observation = v.parse(observationSchema, {
+          const observation = v.parse(vObservation, {
             provider: message.provider,
             model: message.model,
             stopReason: message.stopReason,

@@ -25,10 +25,10 @@ export const netReaderToolNames = {
 
 export type NetReaderLevel = keyof typeof netReaderToolNames;
 
-export const netReaderInputSchema = v.strictObject({});
+export const vNetReaderInput = v.strictObject({});
 
 export const parseNetReaderInput = (value: unknown) =>
-  v.parse(netReaderInputSchema, value);
+  v.parse(vNetReaderInput, value);
 
 export const netReaderDescriptions: Record<NetReaderLevel, string> = {
   outline:

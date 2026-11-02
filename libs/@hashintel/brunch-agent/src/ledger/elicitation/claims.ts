@@ -1,8 +1,7 @@
 import * as v from "valibot";
 
 import {
-  createEpistemicFields,
-  type OriginSchema,
+  epistemicFieldsWith,
   resolveStatus,
   vOrigin,
 } from "../shared/epistemics";
@@ -12,7 +11,7 @@ import {
   vEntityReference,
 } from "../shared/references";
 
-export const createClaim = (origin: OriginSchema) =>
+export const vClaimWith = (origin: typeof vOrigin) =>
   v.pipe(
     v.strictObject({
       text: v.pipe(
@@ -28,7 +27,7 @@ export const createClaim = (origin: OriginSchema) =>
           "References to the entities this claim is about: existing entity IDs or $index references to entity entries in this call. At least one, unless the claim is open or conflicted; the map shows any other claim only under its entities.",
         ),
       ),
-      ...createEpistemicFields(origin),
+      ...epistemicFieldsWith(origin),
       supersedes: v.optional(
         v.pipe(
           v.array(vClaimReference),
@@ -45,6 +44,6 @@ export const createClaim = (origin: OriginSchema) =>
     ),
   );
 
-export const vClaim = createClaim(vOrigin);
+export const vClaim = vClaimWith(vOrigin);
 
 export type Claim = v.InferOutput<typeof vClaim>;

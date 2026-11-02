@@ -7,7 +7,7 @@ import {
   brunchTools,
   hashGraphReadToolNames,
   petrinautContextualUserMessageBody,
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -140,8 +140,8 @@ test("a conversation without initial data mounts the guidance and Ledger without
 });
 
 test("the agent admits a document binding or no initial data", () => {
-  expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
-  expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
+  expect(v.parse(vSdcpnInitialData, bound)).toEqual(bound);
+  expect(v.parse(vSdcpnInitialData, undefined)).toBeUndefined();
 });
 
 test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {

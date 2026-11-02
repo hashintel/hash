@@ -1,7 +1,7 @@
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { brunchTools, hashGraphReadToolNames } from "../constants";
-import { draftPetrinautExperimentInputSchema } from "./draft-experiment";
+import { zDraftPetrinautExperimentInput } from "./draft-experiment";
 import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
 
 /**
@@ -24,7 +24,7 @@ export const browserExecutedToolInputSchemas: Readonly<
       { parse: parseNetReaderInput },
     ]),
   ),
-  [brunchTools.draftPetrinautExperiment]: draftPetrinautExperimentInputSchema,
+  [brunchTools.draftPetrinautExperiment]: zDraftPetrinautExperimentInput,
   // The HASH agent owns these reads' schemas. They have no defaults or
   // transforms, so the input the server issues is the model's, and both sides
   // compare it as it is.

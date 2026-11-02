@@ -9,7 +9,7 @@ import {
   brunchRoutes,
   brunchTools,
   petrinautContextualUserMessageBody,
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -281,8 +281,8 @@ test("only the HASH agent counts records it read from HASH as evidence", async (
 });
 
 test("the agent admits a document binding or no initial data", () => {
-  expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
-  expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
+  expect(v.parse(vSdcpnInitialData, bound)).toEqual(bound);
+  expect(v.parse(vSdcpnInitialData, undefined)).toBeUndefined();
 });
 
 test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {

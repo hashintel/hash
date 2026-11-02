@@ -8,7 +8,7 @@ const evidencedDescription =
  * shared; an agent that also reads records on the USER's behalf passes a
  * description that names them.
  */
-export const createOrigin = (evidenced: string = evidencedDescription) =>
+export const vOriginWith = (evidenced: string = evidencedDescription) =>
   v.pipe(
     v.union([
       v.pipe(
@@ -29,9 +29,7 @@ export const createOrigin = (evidenced: string = evidencedDescription) =>
     ),
   );
 
-export const vOrigin = createOrigin();
-
-export type OriginSchema = typeof vOrigin;
+export const vOrigin = vOriginWith();
 
 export const vStatus = v.pipe(
   v.union([
@@ -79,7 +77,7 @@ export const questionStatuses: ReadonlySet<Status> = new Set([
  * defaults to `stated`, and only a stated entry may leave its status to
  * default to `confirmed`. Pair with {@link resolveStatus} on the object.
  */
-export const createEpistemicFields = (origin: OriginSchema) => ({
+export const epistemicFieldsWith = (origin: typeof vOrigin) => ({
   origin: v.optional(origin, "stated"),
   status: v.optional(vStatus),
 });

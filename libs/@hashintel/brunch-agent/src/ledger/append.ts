@@ -2,9 +2,9 @@ import * as v from "valibot";
 
 import { vObligation } from "./construction/obligations";
 import { vReflection } from "./construction/reflections";
-import { createClaim } from "./elicitation/claims";
-import { createEntity, createEntityUpdate } from "./elicitation/entities";
-import { type OriginSchema, vOrigin } from "./shared/epistemics";
+import { vClaimWith } from "./elicitation/claims";
+import { vEntityWith, vEntityUpdateWith } from "./elicitation/entities";
+import { vOrigin } from "./shared/epistemics";
 import { entityIdGrammar } from "./shared/references";
 
 const vEntityUpdateRoute = v.pipe(
@@ -17,12 +17,12 @@ const vEntityUpdateRoute = v.pipe(
   ),
 );
 
-const createLedgerEntry = (origin: OriginSchema) =>
+const vLedgerEntryWith = (origin: typeof vOrigin) =>
   v.pipe(
     v.union([
-      v.strictTuple([v.literal("entity/create"), createEntity(origin)]),
-      v.strictTuple([vEntityUpdateRoute, createEntityUpdate(origin)]),
-      v.strictTuple([v.literal("claim/create"), createClaim(origin)]),
+      v.strictTuple([v.literal("entity/create"), vEntityWith(origin)]),
+      v.strictTuple([vEntityUpdateRoute, vEntityUpdateWith(origin)]),
+      v.strictTuple([v.literal("claim/create"), vClaimWith(origin)]),
       v.strictTuple([v.literal("reflection/create"), vReflection]),
       v.strictTuple([v.literal("obligation/create"), vObligation]),
     ]),
@@ -31,7 +31,7 @@ const createLedgerEntry = (origin: OriginSchema) =>
     ),
   );
 
-export const vLedgerEntry = createLedgerEntry(vOrigin);
+export const vLedgerEntry = vLedgerEntryWith(vOrigin);
 
 export type LedgerEntry = v.InferOutput<typeof vLedgerEntry>;
 
@@ -105,11 +105,11 @@ const localReferenceProblem = (entries: LedgerEntry[]): string | undefined => {
  * accepts exactly the batches {@link vLedgerAppend} does; only the
  * descriptions a model reads differ.
  */
-export const createLedgerAppend = (origin: OriginSchema) =>
+export const vLedgerAppendWith = (origin: typeof vOrigin) =>
   v.pipe(
     v.strictObject({
       entries: v.pipe(
-        v.array(createLedgerEntry(origin)),
+        v.array(vLedgerEntryWith(origin)),
         v.rawCheck(({ dataset, addIssue }) => {
           if (!dataset.typed) return;
           const message = localReferenceProblem(dataset.value);
@@ -133,6 +133,6 @@ export const createLedgerAppend = (origin: OriginSchema) =>
     ),
   );
 
-export const vLedgerAppend = createLedgerAppend(vOrigin);
+export const vLedgerAppend = vLedgerAppendWith(vOrigin);
 
 export type LedgerAppend = v.InferOutput<typeof vLedgerAppend>;
