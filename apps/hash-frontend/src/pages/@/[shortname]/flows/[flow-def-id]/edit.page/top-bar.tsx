@@ -157,7 +157,7 @@ export const TopBar = ({
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
         <EllipsisMenu
           iconName="ellipsisVertical"
-          size="sm"
+          size="md"
           items={[
             {
               id: "archive",

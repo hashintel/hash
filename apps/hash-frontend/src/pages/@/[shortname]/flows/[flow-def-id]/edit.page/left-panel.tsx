@@ -25,7 +25,7 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
       <Box sx={{ p: 1 }}>
         {/* The design system has no tabs yet (a gap logged in Notion), so a segmented control stands in for them. */}
         <SegmentedControl
-          size="sm"
+          size="md"
           aria-label="Left panel"
           value={tab}
           onChange={setTab}
@@ -47,9 +47,13 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
             >
               {steps.length} {steps.length === 1 ? "step" : "steps"}
             </Typography>
-            <Button variant="link" size="sm" disabled>
-              Collapse all
-            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              iconName="collapse"
+              tooltip="Collapse all"
+              disabled
+            />
           </Stack>
           {steps.length === 0 && (
             <Typography

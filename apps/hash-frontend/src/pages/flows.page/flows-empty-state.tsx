@@ -5,12 +5,7 @@ import { Icon } from "@hashintel/ds-components";
 import { DsComponentsScope } from "../shared/ds-components-scope";
 import { NewFlowButton } from "./new-flow-button";
 
-/**
- * Shown on the flows page when there are no flows yet.
- *
- * The design system has no empty-state component yet (logged on "Flows editor: design system gaps" in Notion), so
- * this only lays out design system parts. Replace it with that component once it exists.
- */
+/** Shown on the flows page when there are no flows yet. */
 export const FlowsEmptyState = () => (
   <Stack
     alignItems="center"
@@ -21,8 +16,19 @@ export const FlowsEmptyState = () => (
       borderRadius: 3,
     }}
   >
-    <DsComponentsScope sx={{ display: "contents" }}>
-      <Icon name="infinity" size="lg" />
+    <DsComponentsScope
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 48,
+        height: 48,
+        borderRadius: "50%",
+        background: ({ palette }) => palette.gray[10],
+        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+      }}
+    >
+      <Icon name="infinity" size="md" />
     </DsComponentsScope>
     <Stack alignItems="center" gap={0.5}>
       <Typography sx={{ fontSize: 16, fontWeight: 600 }}>

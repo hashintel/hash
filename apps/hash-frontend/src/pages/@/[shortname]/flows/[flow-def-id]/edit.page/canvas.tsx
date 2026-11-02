@@ -11,13 +11,7 @@ import {
 import { useState } from "react";
 import "@xyflow/react/dist/style.css";
 
-import {
-  Button,
-  ButtonGroup,
-  Icon,
-  Menu,
-  SegmentedControl,
-} from "@hashintel/ds-components";
+import { Button, ButtonGroup, Icon, Menu } from "@hashintel/ds-components";
 
 /** What dragging on the canvas does: pan it, or select what's in the dragged box. */
 type CanvasTool = "hand" | "select";
@@ -31,30 +25,30 @@ const CanvasToolbar = ({
 }) => {
   const { zoom } = useViewport();
   const { zoomIn, zoomOut, fitView, zoomTo } = useReactFlow();
+  const zoomPercent = `${Math.round(zoom * 100)}%`;
 
   return (
     <Box
       sx={{
-        p: 0.75,
+        p: 0.5,
         borderRadius: 2,
         background: ({ palette }) => palette.common.white,
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         boxShadow: ({ boxShadows }) => boxShadows.sm,
       }}
     >
-      {/* The design system has no divider yet (a gap logged in Notion), so nothing separates hand and select from the buttons after them. */}
-      <ButtonGroup spacing="sm" noWrap>
+      <ButtonGroup spacing="xxs" noWrap>
         <Menu
           position="top-start"
           trigger={
             <Button
-              variant="subtle"
+              variant="ghost"
               size="sm"
-              aria-label="Zoom"
+              aria-label={`Zoom ${zoomPercent}`}
               prefix={<Icon name="search" size="sm" />}
               suffix={<Icon name="chevronDown" size="sm" />}
             >
-              {`${Math.round(zoom * 100)}%`}
+              {zoomPercent}
             </Button>
           }
           items={[
@@ -104,26 +98,41 @@ const CanvasToolbar = ({
             },
           ]}
         />
-        <SegmentedControl
-          size="sm"
-          aria-label="Canvas tool"
-          value={tool}
-          onChange={onToolChange}
-          items={[
-            { value: "hand", iconName: "hand", tooltip: "Hand" },
-            { value: "select", iconName: "cursor", tooltip: "Select" },
-          ]}
+        <Button
+          variant={tool === "hand" ? "solid" : "ghost"}
+          tone={tool === "hand" ? "brand" : "neutral"}
+          size="md"
+          iconName="hand"
+          tooltip="Hand"
+          aria-pressed={tool === "hand"}
+          onClick={() => onToolChange("hand")}
+        />
+        <Button
+          variant={tool === "select" ? "solid" : "ghost"}
+          tone={tool === "select" ? "brand" : "neutral"}
+          size="md"
+          iconName="cursor"
+          tooltip="Select"
+          aria-pressed={tool === "select"}
+          onClick={() => onToolChange("select")}
+        />
+        <Box
+          sx={{
+            width: "1px",
+            height: 20,
+            background: "var(--colors-neutral-bd-solid)",
+          }}
         />
         <Button
           variant="ghost"
-          size="sm"
+          size="md"
           iconName="plus"
           tooltip="Add step"
           disabled
         />
         <Button
           variant="ghost"
-          size="sm"
+          size="md"
           iconName="list"
           tooltip="Organize"
           disabled

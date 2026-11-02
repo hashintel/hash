@@ -79,7 +79,6 @@ export const NewFlowButton = () => {
     <DsComponentsScope sx={{ display: "contents" }}>
       <Button
         variant="solid"
-        tone="brand"
         size="md"
         iconName="plus"
         loading={creating}
