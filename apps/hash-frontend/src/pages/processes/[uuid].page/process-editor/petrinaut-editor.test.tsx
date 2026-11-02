@@ -102,6 +102,7 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
   return {
     BrunchAssistantContext: brunchHostContext,
     brunchPlugin: brunchPluginMarker,
+    hashPetrinautHostTools: [{ toolName: "petrinaut_create_place" }],
     // Mirrors the hook's contract: its runner's `documentHandle` is the
     // open document's editor handle, and its failures go to the tracker the
     // hook reads where it is called.
@@ -263,10 +264,12 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },
   });
-  // The page's graph reads, then the agent's save through the editor's Save.
+  // The page's graph reads, then the agent's save through the editor's Save,
+  // then its Petrinaut tools.
   expect(lastBrunchInput()?.hostTools).toEqual([
     ...observed.hashGraphReadTools,
     expect.objectContaining({ toolName: brunchTools.saveHashNet }),
+    { toolName: "petrinaut_create_place" },
   ]);
   expect(identityRequests).toEqual([
     {

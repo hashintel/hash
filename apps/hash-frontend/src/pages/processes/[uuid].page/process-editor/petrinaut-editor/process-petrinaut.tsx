@@ -13,6 +13,7 @@ import {
   BrunchAssistantContext,
   type BrunchOpenDocument,
   brunchPlugin,
+  hashPetrinautHostTools,
   type PetrinautAiAssistant,
   type PetrinautAiAutomaticTool,
   type ReadBrunchDocumentSaveState,
@@ -144,8 +145,9 @@ const BrunchSession = memo(
     /** The editor shows Brunch's assistant. */
     shown: boolean;
     /**
-     * Reads of the HASH graph, run here as the signed-in user, and the agent's
-     * save, run through the editor's Save once the user approves it.
+     * Reads of the HASH graph, run here as the signed-in user; the agent's
+     * save, run through the editor's Save once the user approves it; and the
+     * agent's Petrinaut tools, run on the editor.
      */
     hostTools: readonly PetrinautAiAutomaticTool[];
     readSaveState: ReadBrunchDocumentSaveState;
@@ -215,7 +217,11 @@ export const ProcessPetrinaut = ({
   const ownerKey = useBrunchOwnerKey();
   const graphReads = useBrunchHashGraphReadTools();
   const hostTools = useMemo(
-    () => [...graphReads, createHashSaveTool(saveNetForAgent)],
+    () => [
+      ...graphReads,
+      createHashSaveTool(saveNetForAgent),
+      ...hashPetrinautHostTools,
+    ],
     [graphReads, saveNetForAgent],
   );
   const [brunchAssistant, setBrunchAssistant] =

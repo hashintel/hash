@@ -15,6 +15,7 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { StrictMode, use, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { hashPetrinautTools } from "@hashintel/brunch-agent";
 import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
 
 import ProcessRoutePage from "../[uuid].page";
@@ -289,9 +290,13 @@ vi.mock(
   () => ({ topBarPlugin: { id: "top-bar" } }),
 );
 
-vi.mock("@hashintel/brunch-agent/ui", () => ({
+vi.mock("@hashintel/brunch-agent/ui", async () => ({
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
+  // Stand-ins named for HASH's real Petrinaut tools; Brunch runs them.
+  hashPetrinautHostTools: Object.keys(
+    (await import("@hashintel/brunch-agent")).hashPetrinautTools,
+  ).map((toolName) => ({ toolName })),
   useBrunchAssistant: (input: BrunchInput) => {
     useLayoutEffect(() => {
       observed.brunch = input;
@@ -698,6 +703,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
     "query_hash_entity_types",
     "query_hash_webs",
     "save_hash_net",
+    ...Object.keys(hashPetrinautTools),
   ]);
 
   // The route rerendering with the same URL is not a load.

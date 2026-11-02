@@ -87,15 +87,3 @@ export const petrinautToolEffects = {
   readPetrinautDoc: read,
   createExperiment: { capability: "petrinaut-experiment", targets: [] },
 } as const satisfies Record<PetrinautAiToolName, PetrinautToolEffect>;
-
-const canonicalEffectOf = (
-  toolName: string,
-): PetrinautToolEffect | undefined =>
-  Object.hasOwn(petrinautToolEffects, toolName)
-    ? petrinautToolEffects[toolName as PetrinautAiToolName]
-    : undefined;
-
-/** The element kinds a canonical tool's document change can name; none for other tools. */
-export const petrinautToolTargets = (
-  toolName: string,
-): readonly NetElementKind[] => canonicalEffectOf(toolName)?.targets ?? [];

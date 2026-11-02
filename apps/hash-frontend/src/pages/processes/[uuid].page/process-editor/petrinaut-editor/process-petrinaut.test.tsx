@@ -62,6 +62,7 @@ vi.mock("@hashintel/petrinaut", () => ({
 vi.mock("@hashintel/brunch-agent/ui", () => ({
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
+  hashPetrinautHostTools: [],
   useBrunchAssistant: (input: Parameters<typeof useBrunchAssistant>[0]) => {
     observed.brunchInputs.push(input);
     return { assistant: { presentation: "brunch" }, openAIVoiceConfig: null };

@@ -6,7 +6,6 @@ import {
   generatedArcId,
   namesId,
   parseClientToolResultMetadata,
-  petrinautToolTargets,
   type NetStructure,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
@@ -90,7 +89,7 @@ const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
 const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
   if (call.toolName === "deleteItemsByIds")
     return hasId(call.input, generatedArcId(arc));
-  if (!petrinautToolTargets(call.toolName).includes("arc")) return false;
+  if (!browserToolFacts(call.toolName).targets.includes("arc")) return false;
   const input = call.input;
   if (typeof input !== "object" || input === null) return false;
   if (
@@ -120,7 +119,7 @@ export const callsForElement = (
       isAppliedChange(call) &&
       (element.arc
         ? matchesArc(call, element.arc)
-        : petrinautToolTargets(call.toolName).includes(element.kind) &&
+        : browserToolFacts(call.toolName).targets.includes(element.kind) &&
           (hasId(call.input, element.id) || hasId(call.output, element.id))),
   );
 

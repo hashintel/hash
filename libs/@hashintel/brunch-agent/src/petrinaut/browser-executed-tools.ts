@@ -10,10 +10,14 @@ import {
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
 } from "../hash/graph-reads";
+import { hashPetrinautTools } from "../hash/petrinaut-tools";
 import { parseHashSaveInput } from "../hash/save";
 import { zDraftPetrinautExperimentInput } from "./draft-experiment";
 import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
-import { petrinautToolEffects } from "./petrinaut-tool-effects";
+import {
+  type NetElementKind,
+  petrinautToolEffects,
+} from "./petrinaut-tool-effects";
 
 /** What each decision about a browser-executed tool needs to know of it. */
 interface BrowserToolFacts {
@@ -35,6 +39,8 @@ interface BrowserToolFacts {
   readonly observesNet: boolean;
   /** Its output is already text rendered for the model. */
   readonly textResult: boolean;
+  /** Element kinds whose meaning a change it makes can change, and so whose IDs it can name. */
+  readonly targets: readonly NetElementKind[];
 }
 
 interface BrowserToolDescriptor extends BrowserToolFacts {
@@ -51,6 +57,7 @@ const reads: BrowserToolFacts = {
   documentRevision: "before",
   observesNet: false,
   textResult: false,
+  targets: [],
 };
 
 /** A tool that may change the bound document. */
@@ -72,13 +79,14 @@ const unknownTool: BrowserToolFacts = {
 };
 
 const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
-  const { capability } = petrinautToolEffects[name];
+  const { capability, targets } = petrinautToolEffects[name];
   return {
     ...(capability === "petrinaut-mutation" ||
     capability === "petrinaut-command"
       ? changes
       : reads),
     observesNet: name === getLatestNetDefinitionToolName,
+    targets,
     inputSchema: petrinautAiTools[name].inputSchema,
   };
 };
@@ -95,13 +103,21 @@ const hashGraphRead = (
 
 /**
  * Every tool the server issues to the bound browser and awaits in band:
- * Petrinaut's canonical tools, the filtered net readers, the reviewed
- * experiment draft, HASH's graph reads and HASH's Save.
+ * Petrinaut's canonical tools, HASH's Petrinaut tools over them, the filtered
+ * net readers, the reviewed experiment draft, HASH's graph reads and HASH's
+ * Save.
  */
 export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
   new Map<string, BrowserToolDescriptor>([
     ...(Object.keys(petrinautAiTools) as PetrinautAiToolName[]).map(
       (name): [string, BrowserToolDescriptor] => [name, canonical(name)],
+    ),
+    // Each does what its canonical operation does, under its own input.
+    ...Object.entries(hashPetrinautTools).map(
+      ([name, { operation, inputSchema }]): [string, BrowserToolDescriptor] => [
+        name,
+        { ...canonical(operation), inputSchema },
+      ],
     ),
     ...Object.values(netReaderToolNames).map(
       (name): [string, BrowserToolDescriptor] => [
