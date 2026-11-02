@@ -40,7 +40,7 @@ const InfoButton = ({ label, text }: { label: string; text: string }) => (
     <IconButton
       aria-label={label}
       size="small"
-      sx={({ palette }) => ({ color: palette.gray[50] })}
+      sx={({ palette }) => ({ color: palette.gray[70] })}
     >
       <FontAwesomeIcon icon={faCircleInfo} sx={{ fontSize: 14 }} />
     </IconButton>
