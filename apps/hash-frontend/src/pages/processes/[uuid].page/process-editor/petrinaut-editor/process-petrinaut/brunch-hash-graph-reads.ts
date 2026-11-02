@@ -533,10 +533,10 @@ export const createHashWebReadTool = (
 });
 
 /**
- * The host tools HASH gives Brunch, bound to the page's Apollo client and
+ * The HASH graph reads the page gives Brunch, bound to the page's Apollo client and
  * signed-in user. The list keeps its identity while the user is refetched.
  */
-export const useBrunchHashHostTools =
+export const useBrunchHashGraphReadTools =
   (): readonly PetrinautAiAutomaticTool[] => {
     const apolloClient = useApolloClient();
     const { authenticatedUser } = useAuthInfo();

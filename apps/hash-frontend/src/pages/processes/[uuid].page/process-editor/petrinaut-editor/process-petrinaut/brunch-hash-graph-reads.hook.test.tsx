@@ -8,7 +8,7 @@ import { brunchTools } from "@hashintel/brunch-agent";
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import {
   type HashWebReadUser,
-  useBrunchHashHostTools,
+  useBrunchHashGraphReadTools,
 } from "./brunch-hash-graph-reads";
 
 import type { PetrinautAiAutomaticToolExecuteParams } from "@hashintel/brunch-agent/ui";
@@ -45,7 +45,7 @@ const userWith = (shortname: string, orgs: string[]): HashWebReadUser => ({
 
 const renderTools = (initialUser: HashWebReadUser) => {
   auth.authenticatedUser = initialUser;
-  const rendered = renderHook(() => useBrunchHashHostTools());
+  const rendered = renderHook(() => useBrunchHashGraphReadTools());
   return {
     ...rendered,
     signIn: (user: HashWebReadUser) => {
@@ -56,7 +56,7 @@ const renderTools = (initialUser: HashWebReadUser) => {
 };
 
 const execute = (
-  tools: ReturnType<typeof useBrunchHashHostTools>,
+  tools: ReturnType<typeof useBrunchHashGraphReadTools>,
   toolName: string,
   input: unknown,
 ) =>
