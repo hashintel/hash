@@ -98,13 +98,27 @@ const propertyNamer = (baseUrls: Iterable<string>) => {
   };
 };
 
-/** A small value on one line, with URL keys shown by their slug. */
-const renderInline = (value: unknown): string => {
+type PropertyNamer = ReturnType<typeof propertyNamer>;
+
+/** Adds to `found` the type URLs `value` uses as keys, at any depth. */
+const collectNestedTypeUrls = (value: unknown, found: Set<string>) => {
+  if (Array.isArray(value)) {
+    for (const item of value) collectNestedTypeUrls(item, found);
+  } else if (typeof value === "object" && value !== null) {
+    for (const [key, item] of Object.entries(value)) {
+      if (slugName(key) !== key) found.add(key);
+      collectNestedTypeUrls(item, found);
+    }
+  }
+};
+
+/** A small value on one line, with URL keys shown by their read's names. */
+const renderInline = (value: unknown, nameOf: PropertyNamer): string => {
   if (Array.isArray(value))
-    return `[${value.map((item) => renderInline(item)).join(", ")}]`;
+    return `[${value.map((item) => renderInline(item, nameOf)).join(", ")}]`;
   if (typeof value === "object" && value !== null)
     return `{${Object.entries(value)
-      .map(([key, item]) => `${slugName(key)}: ${renderInline(item)}`)
+      .map(([key, item]) => `${nameOf(key)}: ${renderInline(item, nameOf)}`)
       .join(", ")}}`;
   return JSON.stringify(value);
 };
@@ -113,7 +127,11 @@ const renderInline = (value: unknown): string => {
 const oneLine = (text: string) => text.replace(/\s+/g, " ");
 
 /** The kind, size and top-level shape of a value too large to show. */
-const summarise = (value: unknown, bytes: number): string => {
+const summarise = (
+  value: unknown,
+  bytes: number,
+  nameOf: PropertyNamer,
+): string => {
   const size = formatBytes(bytes);
   if (typeof value === "string") {
     const preview = oneLine(value).slice(0, 80);
@@ -123,7 +141,7 @@ const summarise = (value: unknown, bytes: number): string => {
   if (typeof value === "object" && value !== null) {
     const entries = Object.entries(value as Record<string, unknown>);
     const shown = entries.slice(0, 8).map(([key, item]) => {
-      const name = slugName(key);
+      const name = nameOf(key);
       return Array.isArray(item)
         ? `${item.length} ${name}`
         : typeof item === "object" && item !== null
@@ -146,13 +164,14 @@ const summarise = (value: unknown, bytes: number): string => {
 const renderValue = (
   value: unknown,
   full: boolean,
+  nameOf: PropertyNamer,
 ): { text: string; summarised: boolean } => {
   const json = JSON.stringify(value);
   if (full) return { text: json, summarised: false };
   const bytes = byteLength(json);
   return bytes > valueSummaryThresholdBytes
-    ? { text: summarise(value, bytes), summarised: true }
-    : { text: renderInline(value), summarised: false };
+    ? { text: summarise(value, bytes, nameOf), summarised: true }
+    : { text: renderInline(value, nameOf), summarised: false };
 };
 
 /** A one-line description of a property or type, from its title and description. */
@@ -221,7 +240,7 @@ export const vHashEntityReadInput = v.strictObject({
 export type HashEntityReadInput = v.InferOutput<typeof vHashEntityReadInput>;
 
 export const hashEntityReadDescription =
-  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles, its name, and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (`<webId>~<uuid>`, with `~<draftId>` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most 1,000 matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.";
+  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles, its name, and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (`<webId>~<uuid>`, with `~<draftId>` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A property's short name, here and in nested values, comes from its base URL, unless two properties in the read would share one: then both show by their full base URL, so a name holds within one read only. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most 1,000 matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.";
 
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */
 const vHashEntity = v.object({
@@ -291,7 +310,10 @@ export const hashEntityReadForModel = (
   const carriedBaseUrls = new Set(
     entities.flatMap(({ properties }) => Object.keys(properties)),
   );
-  const nameOf = propertyNamer(carriedBaseUrls);
+  const namedBaseUrls = new Set(carriedBaseUrls);
+  for (const { properties } of entities)
+    collectNestedTypeUrls(Object.values(properties), namedBaseUrls);
+  const nameOf = propertyNamer(namedBaseUrls);
   const typeTitles = new Map(
     entityTypes.map(({ entityTypeId, title }) => [
       entityTypeId,
@@ -305,7 +327,7 @@ export const hashEntityReadForModel = (
     const properties = Object.entries(entity.properties).map(
       ([baseUrl, value]) => ({
         name: nameOf(baseUrl),
-        ...renderValue(value, isFull),
+        ...renderValue(value, isFull, nameOf),
       }),
     );
     const types = entity.entityTypeIds
@@ -399,7 +421,7 @@ export type HashEntityTypeReadInput = v.InferOutput<
 >;
 
 export const hashEntityTypeReadDescription =
-  "List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns compact text: each type headed by its title and entityTypeId (a versioned URL), then its description, its properties (inherited ones included), each by the name an entity read shows it by and its title, and its links, each by its title and linkEntityTypeId, with the entity types it may point to (any, when not limited). A type's title or entityTypeId can filter an entity read. The graph returns at most 1,000 types at once; when it stopped there, the text says more may match than shown. A read that failed returns { error }. Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.";
+  "List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns compact text: each type headed by its title and entityTypeId (a versioned URL), then its description, its properties (inherited ones included), each by its short name and its title, and its links, each by its title and linkEntityTypeId, with the entity types it may point to (any, when not limited). A type's title or entityTypeId can filter an entity read. The graph returns at most 1,000 types at once; when it stopped there, the text says more may match than shown. A read that failed returns { error }. Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.";
 
 const vHashEntityType = v.object({
   entityTypeId: v.string(),
