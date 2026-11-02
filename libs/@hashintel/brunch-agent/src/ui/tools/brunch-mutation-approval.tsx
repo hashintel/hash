@@ -242,7 +242,7 @@ const parseIssuedInput = (toolName: string, input: unknown): unknown => {
   const tool = browserExecutedTools.get(toolName);
   if (tool === undefined)
     throw new Error(`${toolName} is not issued to the browser.`);
-  return tool.inputSchema.parse(input);
+  return tool.inputParser.parse(input);
 };
 
 const requiresBrunchMutationApproval = (toolName: string): boolean =>

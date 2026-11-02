@@ -21,7 +21,7 @@ export type HashSaveInput = v.InferOutput<typeof vHashSaveInput>;
 export const parseHashSaveInput = (input: unknown): HashSaveInput =>
   v.parse(vHashSaveInput, input);
 
-const hashSaveOutcomeSchema = v.variant("status", [
+const vHashSaveOutcome = v.variant("status", [
   v.object({
     status: v.literal("saved"),
     /** The saved version's time, as the editor's save result gives it. */
@@ -37,8 +37,8 @@ const hashSaveOutcomeSchema = v.variant("status", [
 ]);
 
 /** What a save settles with in the page. */
-export type HashSaveOutcome = v.InferOutput<typeof hashSaveOutcomeSchema>;
+export type HashSaveOutcome = v.InferOutput<typeof vHashSaveOutcome>;
 
 /** Throws on anything but a save's outcome. */
 export const parseHashSaveOutcome = (value: unknown): HashSaveOutcome =>
-  v.parse(hashSaveOutcomeSchema, value);
+  v.parse(vHashSaveOutcome, value);
