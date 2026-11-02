@@ -203,7 +203,6 @@ pub struct CountEntityTypesParams<'p> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct CommonQueryEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
@@ -223,10 +222,6 @@ pub struct CommonQueryEntityTypesParams<'p> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_edition_created_by_ids: bool,
-    /// Returns the highest version of each matched type, archived versions included.
-    #[serde(default)]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub include_latest_versions: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -237,6 +232,10 @@ pub struct QueryEntityTypesParams<'p> {
     pub request: CommonQueryEntityTypesParams<'p>,
     #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
+    /// Returns the highest version of each returned type, archived versions included.
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub include_latest_versions: bool,
 }
 
 /// Parameters for [`EntityTypeStore::search_entity_types`].

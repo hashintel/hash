@@ -119,9 +119,9 @@ async fn query() {
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,
-                    include_latest_versions: false,
                 },
                 include_entity_types: None,
+                include_latest_versions: false,
             },
         )
         .await
@@ -216,9 +216,9 @@ async fn update() {
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,
-                    include_latest_versions: false,
                 },
                 include_entity_types: None,
+                include_latest_versions: false,
             },
         )
         .await
@@ -239,9 +239,9 @@ async fn update() {
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,
-                    include_latest_versions: false,
                 },
                 include_entity_types: None,
+                include_latest_versions: false,
             },
         )
         .await
@@ -524,8 +524,15 @@ fn versioned_type(version: u32) -> EntityType {
     .expect("should be a valid entity type")
 }
 
-/// Creates `Versioned` v1 and updates it to v2.
-async fn create_versioned_v1_and_v2(api: &mut DatabaseApi<'_>) {
+/// Querying an older version with `include_latest_versions` reports the type's latest version.
+#[tokio::test]
+async fn latest_versions_of_an_older_version() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed([], [], [])
+        .await
+        .expect("should seed the database");
+
     api.create_entity_type(
         api.account_id,
         CreateEntityTypeParams {
@@ -549,37 +556,25 @@ async fn create_versioned_v1_and_v2(api: &mut DatabaseApi<'_>) {
     )
     .await
     .expect("should create v2");
-}
-
-fn query_with_latest_versions(id: &VersionedUrl) -> QueryEntityTypesParams<'_> {
-    QueryEntityTypesParams {
-        request: CommonQueryEntityTypesParams {
-            filter: Filter::for_versioned_url(id),
-            temporal_axes: QueryTemporalAxesUnresolved::all(),
-            after: None,
-            limit: None,
-            include_count: false,
-            include_web_ids: false,
-            include_edition_created_by_ids: false,
-            include_latest_versions: true,
-        },
-        include_entity_types: None,
-    }
-}
-
-/// Querying an older version with `include_latest_versions` reports the type's latest version.
-#[tokio::test]
-async fn latest_versions_of_an_older_version() {
-    let mut database = DatabaseTestWrapper::new().await;
-    let mut api = database
-        .seed([], [], [])
-        .await
-        .expect("should seed the database");
-    create_versioned_v1_and_v2(&mut api).await;
 
     let v1 = versioned_type_id(1);
     let response = api
-        .query_entity_types(Some(api.account_id), query_with_latest_versions(&v1))
+        .query_entity_types(
+            Some(api.account_id),
+            QueryEntityTypesParams {
+                request: CommonQueryEntityTypesParams {
+                    filter: Filter::for_versioned_url(&v1),
+                    temporal_axes: QueryTemporalAxesUnresolved::all(),
+                    after: None,
+                    limit: None,
+                    include_count: false,
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
+                },
+                include_entity_types: None,
+                include_latest_versions: true,
+            },
+        )
         .await
         .expect("should query the entity types");
 

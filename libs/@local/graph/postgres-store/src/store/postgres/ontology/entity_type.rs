@@ -57,7 +57,7 @@ use type_system::{
                 LINK_ENTITY_TYPE_BASE_URL, PartialEntityType,
             },
         },
-        id::{BaseUrl, OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
+        id::{OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
         json_schema::OntologyTypeResolver,
         property_type::PropertyTypeUuid,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
@@ -656,46 +656,6 @@ where
             (entity_types, cursor)
         };
 
-        let latest_versions = if params.include_latest_versions {
-            let base_urls = entity_types
-                .iter()
-                .map(|entity_type| entity_type.schema.id.base_url.clone())
-                .collect::<HashSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>();
-
-            Some(
-                self.as_client()
-                    .query(
-                        "
-                            SELECT base_url, MAX(version)
-                            FROM ontology_ids
-                            WHERE base_url = ANY($1)
-                            GROUP BY base_url;
-                        ",
-                        &[&base_urls],
-                    )
-                    .instrument(tracing::info_span!(
-                        "SELECT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(QueryError)?
-                    .into_iter()
-                    .map(|row| {
-                        (
-                            row.get::<_, BaseUrl>(0),
-                            row.get::<_, OntologyTypeVersion>(1),
-                        )
-                    })
-                    .collect::<HashMap<_, _>>(),
-            )
-        } else {
-            None
-        };
-
         Ok(QueryEntityTypesResponse {
             cursor,
             entity_types,
@@ -704,7 +664,7 @@ where
             count,
             web_ids,
             edition_created_by_ids,
-            latest_versions,
+            latest_versions: None,
         })
     }
 
@@ -1143,9 +1103,9 @@ where
                         include_count: false,
                         include_web_ids: false,
                         include_edition_created_by_ids: false,
-                        include_latest_versions: false,
                     },
                     include_entity_types: None,
+                    include_latest_versions: false,
                 },
             )
             .await
@@ -1338,6 +1298,38 @@ where
             }
         }
 
+        if params.include_latest_versions {
+            let base_urls = response
+                .entity_types
+                .iter()
+                .map(|entity_type| &entity_type.schema.id.base_url)
+                .collect::<Vec<_>>();
+
+            response.latest_versions = Some(
+                self.as_client()
+                    .query(
+                        "
+                            SELECT base_url, MAX(version)
+                            FROM ontology_ids
+                            WHERE base_url = ANY($1)
+                            GROUP BY base_url;
+                        ",
+                        &[&base_urls],
+                    )
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
+                    .await
+                    .change_context(QueryError)?
+                    .into_iter()
+                    .map(|row| (row.get(0), row.get(1)))
+                    .collect(),
+            );
+        }
+
         Ok(response)
     }
 
@@ -1453,9 +1445,9 @@ where
                         include_count: false,
                         include_web_ids: false,
                         include_edition_created_by_ids: false,
-                        include_latest_versions: false,
                     },
                     include_entity_types: None,
+                    include_latest_versions: false,
                 },
             )
             .await?;
@@ -1885,9 +1877,9 @@ where
                         include_count: false,
                         include_web_ids: false,
                         include_edition_created_by_ids: false,
-                        include_latest_versions: false,
                     },
                     include_entity_types: None,
+                    include_latest_versions: false,
                 },
             )
             .await

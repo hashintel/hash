@@ -4208,10 +4208,6 @@
           "includeEditionCreatedByIds": {
             "type": "boolean"
           },
-          "includeLatestVersions": {
-            "type": "boolean",
-            "description": "Returns the highest version of each matched type, archived versions included."
-          },
           "includeWebIds": {
             "type": "boolean"
           },
@@ -9690,6 +9686,10 @@
                   }
                 ],
                 "nullable": true
+              },
+              "includeLatestVersions": {
+                "type": "boolean",
+                "description": "Returns the highest version of each returned type, archived versions included."
               }
             }
           }
