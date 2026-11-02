@@ -9,9 +9,6 @@ import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 const typesThatExtend = (page: Page, typeName: string) =>
   page.getByRole("region", { name: `Types that extend ${typeName}` });
 
-const childCard = (page: Page, parentName: string, childName: string) =>
-  typesThatExtend(page, parentName).getByRole("link", { name: childName });
-
 const typeSchema = (
   title: string,
   parent?: EntityTypeWithMetadata,
@@ -45,7 +42,7 @@ const saveNextVersion = (
 const typePath = (entityType: EntityTypeWithMetadata) =>
   new URL(entityType.metadata.recordId.baseUrl).pathname.replace(/\/$/, "");
 
-test("a type's page lists the latest version of each type that extends it", async ({
+test("a type's page lists each type that extends any of its versions, with the version ranges that extend each version", async ({
   page,
 }) => {
   const parentName = randomTypeName();
@@ -59,22 +56,48 @@ test("a type's page lists the latest version of each type that extends it", asyn
 
   const childName = randomTypeName();
   const child = await createType(page, childName, parent);
-  await saveNextVersion(page, child, parent);
+  const parentV2 = await saveNextVersion(page, parent);
+  await saveNextVersion(page, child, parentV2);
+
+  for (const path of [parentPath, `${parentPath}/v/1`]) {
+    await openTypePage(page, path);
+
+    const section = typesThatExtend(page, parentName);
+    const toggle = section.getByRole("button", {
+      name: `${childName} v2`,
+      exact: true,
+    });
+    await expect(toggle).toHaveCount(1);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      toggle.locator("xpath=ancestor::tr[1]").getByRole("cell"),
+    ).toHaveText([`${childName} v2`, "v1–v2", "v1, v2", ""]);
+
+    await toggle.click();
+
+    // Each range's open button comes after the row's own, which also opens v2.
+    for (const version of ["v1", "v2"]) {
+      await expect(
+        section
+          .getByRole("button", { name: `Open ${childName} ${version}` })
+          .last()
+          .locator("xpath=ancestor::tr[1]")
+          .getByRole("cell"),
+      ).toHaveText(["", version, version, ""]);
+    }
+  }
 
   await openTypePage(page, parentPath);
-
-  const card = childCard(page, parentName, childName);
-  await expect(card).toHaveCount(1);
-  await expect(card).toContainText("v2");
-
-  await card.click();
+  await typesThatExtend(page, parentName)
+    .getByRole("button", { name: `Open ${childName} v2` })
+    .click();
 
   // Slides render inside MUI's Backdrop, which is aria-hidden, so role queries cannot see them.
   await expect(page.locator("h1").filter({ hasText: childName })).toBeVisible();
   await expect(page).toHaveURL((url) => url.pathname === parentPath);
 });
 
-test("a type's page still lists a child whose newer version dropped it, at the version that extends it", async ({
+test("a type's page leaves out a type whose latest version no longer extends it", async ({
   page,
 }) => {
   const parentName = randomTypeName();
@@ -82,59 +105,6 @@ test("a type's page still lists a child whose newer version dropped it, at the v
   const childName = randomTypeName();
   const child = await createType(page, childName, parent);
   await saveNextVersion(page, child);
-
-  await openTypePage(page, typePath(parent));
-  await expect(childCard(page, parentName, childName)).toContainText("v1");
-});
-
-test("an older version's page does not list a type that extends only a newer version", async ({
-  page,
-}) => {
-  const parentName = randomTypeName();
-  const parent = await createType(page, parentName);
-  const parentV2 = await saveNextVersion(page, parent);
-  const childName = randomTypeName();
-  await createType(page, childName, parentV2);
-
-  await openTypePage(page, typePath(parent));
-  await expect(childCard(page, parentName, childName)).toContainText("v1");
-
-  await openTypePage(page, `${typePath(parent)}/v/1`);
-  await expect(typesThatExtend(page, parentName)).toContainText(
-    `No types extend ${parentName} yet.`,
-  );
-});
-
-test("an older version's page lists a child at the version that extends it, after the child was upgraded", async ({
-  page,
-}) => {
-  const parentName = randomTypeName();
-  const parent = await createType(page, parentName);
-  const childName = randomTypeName();
-  const child = await createType(page, childName, parent);
-
-  const parentV2 = await saveNextVersion(page, parent);
-  await saveNextVersion(page, child, parentV2);
-
-  await openTypePage(page, typePath(parent));
-  await expect(childCard(page, parentName, childName)).toContainText("v2");
-
-  await openTypePage(page, `${typePath(parent)}/v/1`);
-  await expect(childCard(page, parentName, childName)).toContainText("v1");
-});
-
-test("the newest version's page does not list a child left on an older version", async ({
-  page,
-}) => {
-  const parentName = randomTypeName();
-  const parent = await createType(page, parentName);
-  const childName = randomTypeName();
-  await createType(page, childName, parent);
-
-  await saveNextVersion(page, parent);
-
-  await openTypePage(page, `${typePath(parent)}/v/1`);
-  await expect(childCard(page, parentName, childName)).toContainText("v1");
 
   await openTypePage(page, typePath(parent));
   await expect(typesThatExtend(page, parentName)).toContainText(
