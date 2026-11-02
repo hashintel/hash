@@ -11,7 +11,6 @@ import {
   generateItemValueKey,
   generateOutputPortKey,
   generateOutputValueKey,
-  generateRunAfterConsumerKey,
   generateValuePlaceKey,
 } from "../../flow-net-keys.js";
 import { getActionDefinition, getRunAfterStepIds } from "./flow-steps.js";
@@ -58,6 +57,8 @@ type Value = {
     | { kind: "placed" };
   consumers: Consumer[];
   isFlowOutput: boolean;
+  /** Read by a step that runs after the value's step, to tell that it has finished. */
+  isWaitedOn: boolean;
 };
 
 /**
@@ -131,8 +132,15 @@ export const placeValues = ({
 }) => {
   const values = new Map<string, Value>();
 
-  const addValue = (value: Omit<Value, "consumers" | "isFlowOutput">) => {
-    values.set(value.key, { ...value, consumers: [], isFlowOutput: false });
+  const addValue = (
+    value: Omit<Value, "consumers" | "isFlowOutput" | "isWaitedOn">,
+  ) => {
+    values.set(value.key, {
+      ...value,
+      consumers: [],
+      isFlowOutput: false,
+      isWaitedOn: false,
+    });
   };
 
   for (const input of flowDefinition.inputs) {
@@ -260,11 +268,7 @@ export const placeValues = ({
       const valueKey = completionValueKey(beforeStepId);
 
       if (valueKey) {
-        addConsumer(valueKey, {
-          key: generateRunAfterConsumerKey(step.stepId, beforeStepId),
-          label: `${step.stepId} (after ${beforeStepId})`,
-          consumes: false,
-        });
+        getValue(valueKey).isWaitedOn = true;
       }
     }
   }
@@ -281,7 +285,9 @@ export const placeValues = ({
     const colorId = net.registerPayloadColor(value.shape);
     const takers = value.consumers.filter(({ consumes: taken }) => taken);
     const isShared =
-      value.isFlowOutput || takers.length < value.consumers.length;
+      value.isFlowOutput ||
+      value.isWaitedOn ||
+      takers.length < value.consumers.length;
 
     if (value.producer.kind === "port") {
       const port = portEndpoint(
@@ -438,24 +444,22 @@ export const placeValues = ({
 
       for (const beforeStepId of getRunAfterStepIds(step)) {
         const { step: before } = steps.getStep(beforeStepId);
+        const valueKey = completionValueKey(beforeStepId);
 
-        const arc =
-          consumerInputArc(
-            generateRunAfterConsumerKey(step.stepId, beforeStepId),
-          ) ??
-          (before.kind === "action"
-            ? inputArc(
-                portEndpoint(
-                  generateInstanceKey(beforeStepId),
-                  generateDonePortKey(steps.getSubnetName(before)),
-                ),
-                "read",
+        const waitedOn = valueKey
+          ? getValueLocation(valueKey).shared
+          : before.kind === "action"
+            ? portEndpoint(
+                generateInstanceKey(beforeStepId),
+                generateDonePortKey(steps.getSubnetName(before)),
               )
-            : null);
+            : null;
 
-        if (!arc) {
+        if (!waitedOn) {
           throw new Error(`Step "${beforeStepId}" has nothing to wait on`);
         }
+
+        const arc = inputArc(waitedOn, "read");
 
         if (
           ![...valueArcs, ...arcs].some(({ endpoint }) =>
