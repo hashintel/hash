@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
+  "compilerOptions": {
+    "lib": ["es2024"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [],
+    "verbatimModuleSyntax": true,
+    "noEmit": true
+  },
+  "include": ["oxlint.config.ts"]
+}

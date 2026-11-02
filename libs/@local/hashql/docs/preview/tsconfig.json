@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "es2024"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "plugins": [{ "name": "next" }]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".source/**/*.ts"
+  ]
+}
