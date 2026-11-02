@@ -145,7 +145,7 @@ const ParentVersionTableRow = ({
       >
         <ButtonBase
           className="dependent-type-row-toggle"
-          aria-expanded={expanded}
+          aria-expanded={empty ? undefined : expanded}
           aria-label={
             empty
               ? `${parentLabel}, extended by no types`
