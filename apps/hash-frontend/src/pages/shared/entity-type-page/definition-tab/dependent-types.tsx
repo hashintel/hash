@@ -6,21 +6,21 @@ import { getDependentTypeRows } from "./dependent-types/dependent-type-rows";
 import { DependentTypesSection } from "./dependent-types/dependent-types-section";
 import { useDependentTypes } from "./dependent-types/use-dependent-types";
 
-import type { OnNavigateToType } from "../shared/on-navigate-to-type";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 
 export const DependentTypes = ({
   entityType,
   entityTypeBaseUrl,
-  onNavigateToType,
+  onOpenType,
 }: {
   entityType: EntityTypeWithMetadata;
   /** `null` for a draft type, which nothing can refer to yet */
   entityTypeBaseUrl: BaseUrl | null;
-  onNavigateToType: OnNavigateToType;
+  onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -54,7 +54,7 @@ export const DependentTypes = ({
         isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ??
         false
       }
-      onOpenType={(typeId) => onNavigateToType("entityType", typeId)}
+      onOpenType={onOpenType}
     />
   );
 };

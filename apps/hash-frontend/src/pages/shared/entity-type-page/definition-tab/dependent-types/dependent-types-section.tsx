@@ -39,15 +39,13 @@ const formatVersions = (firstVersion: number, lastVersion: number) =>
     ? `v${firstVersion}`
     : `v${firstVersion}–v${lastVersion}`;
 
-const openColumnWidth = 56;
-
 /** The same column widths for the table and for each row's nested range table, so their columns line up. */
 const ColumnWidths = () => (
   <colgroup>
     <col />
     <col style={{ width: "20%" }} />
     <col style={{ width: "20%" }} />
-    <col style={{ width: openColumnWidth }} />
+    <col style={{ width: 56 }} />
   </colgroup>
 );
 
