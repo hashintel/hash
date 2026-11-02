@@ -44,6 +44,7 @@ import {
   showFull,
   useEditor,
 } from "./editor-context";
+import { mockRuns, stepRunStatus } from "./mock-runs";
 import { describeSource } from "./shapes";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
@@ -384,6 +385,33 @@ const errorDotStyle = css({
   borderColor: "neutral.bgSolid.min",
 });
 
+/** A run picked in Runs (option F): a green dot on each step it got through, red on the one it failed at. */
+const runDotStyle = css({
+  position: "absolute",
+  top: "[-4px]",
+  right: "[-4px]",
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "full",
+  "&[data-status=done]": { backgroundColor: "green.bg.solid" },
+  "&[data-status=failed]": { backgroundColor: "red.bg.solid" },
+});
+
+const RunDot = ({ stepId }: { stepId: string }) => {
+  const { document, ui } = useEditor();
+  const run = ui.viewRunId
+    ? mockRuns(document).find((candidate) => candidate.id === ui.viewRunId)
+    : undefined;
+  const status = run ? stepRunStatus(document, run, stepId) : null;
+  return status ? (
+    <span
+      className={runDotStyle}
+      data-status={status}
+      aria-label={status === "done" ? "Ran" : "Failed here"}
+    />
+  ) : null;
+};
+
 const ProblemDot = ({ stepId }: { stepId: string }) => {
   const { validation } = useEditor();
   const problems = [
@@ -565,6 +593,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         </>
       )}
       <ProblemDot stepId={id} />
+      <RunDot stepId={id} />
     </div>
   );
 };
@@ -614,6 +643,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
         {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
         <PortAdd stepId={START_ID} port="next" />
       </PortHandle>
+      <RunDot stepId={START_ID} />
     </div>
   );
 };
@@ -773,6 +803,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         <PortAdd stepId={id} port="next" />
       </PortHandle>
       <ProblemDot stepId={id} />
+      <RunDot stepId={id} />
     </div>
   );
 };
@@ -869,7 +900,6 @@ const FlowEdge = ({
     </>
   );
 };
-
 
 const edgeTypes = { flow: FlowEdge };
 

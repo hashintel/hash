@@ -218,9 +218,11 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
   }),
   "J0.5": () => editor(emptyDocument(), { showPortAddOn: START_ID }),
   "J0.6": () => ({
-    ...editor(emptyDocument(), { picker: { anchor: "toolbar" } }),
+    ...editor(emptyDocument(), {
+      picker: { anchor: "toolbar" },
+      leftPanel: "add",
+    }),
     act: async () => {
-      click('[aria-label="Steps"] [role="tab"]:nth-child(2)');
       await pause(300);
       hover(byText('[role="menuitem"]', "Entities"));
       await pause(300);
@@ -228,11 +230,9 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
     },
   }),
   "J0.7": () => ({
-    ...editor(emptyDocument()),
-    act: async () => {
-      click('[aria-label="Steps"] [role="tab"]:nth-child(2)');
-      await pause(200);
-      typeInto('[aria-label="Steps"] input', "em");
+    ...editor(emptyDocument(), { leftPanel: "add" }),
+    act: () => {
+      typeInto('[aria-label="Add a step"] input', "em");
     },
   }),
   "J0.10": () =>

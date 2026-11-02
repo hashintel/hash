@@ -4,6 +4,7 @@ import {
   Button,
   Icon,
   type IconName,
+  SegmentedControl,
   TextInput,
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
@@ -30,6 +31,7 @@ import {
   stepTitle,
 } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
+import { mockRuns, runStatus } from "./mock-runs";
 
 type Tone = "green" | "orange" | "neutral" | "blue";
 
@@ -47,60 +49,6 @@ const panelStyle = css({
   borderRightWidth: "thin",
   borderRightStyle: "solid",
   borderRightColor: "neutral.bd.subtle",
-});
-
-/** The DS Tabs header: 40 px, 12 px in on the left, tabs 20 px apart, then a divider and an icon button. */
-/** The panel header: the tabs sit on its bottom edge, 8 px in, as on ↳ Current (Header · tabs, 40 px). */
-const headerStyle = css({
-  display: "flex",
-  alignItems: "flex-end",
-  gap: "2",
-  height: "[40px]",
-  paddingLeft: "2",
-  paddingRight: "2",
-  flexShrink: 0,
-});
-
-/**
- * Figma DS `Tabs` variant=underlined, size=md as shipped (DS file 18895:12227; code has no Tabs): one hairline under
- * the tab set only, 20 px between tabs, 32 px items 3 px in, the selected one with a 2 px indicator exactly under its label. No full-width
- * header border (21 Oct).
- */
-export const tabListStyle = css({
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "5",
-  borderBottomWidth: "thin",
-  borderBottomStyle: "solid",
-  borderBottomColor: "neutral.bd.solid",
-});
-
-export const tabStyle = css({
-  position: "relative",
-  display: "flex",
-  alignItems: "center",
-  height: "[32px]",
-  paddingX: "[3px]",
-  textStyle: "sm",
-  lineHeight: "none",
-  fontWeight: "medium",
-  // `_TabItemUnderlined` variant=simple (ds-map): an unselected tab is subtle, as ↳ Current draws it.
-  color: "neutral.fg.subtle",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-  _hover: { color: "neutral.fg.heading" },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
-  "&[aria-selected=true]": { color: "neutral.fg.heading" },
-  // The indicator is exactly as wide as the label, and sits on the one baseline rule.
-  "&[aria-selected=true]::after": {
-    content: '""',
-    position: "absolute",
-    left: "[3px]",
-    right: "[3px]",
-    bottom: "[-1px]",
-    height: "[2px]",
-    backgroundColor: "neutral.fg.heading",
-  },
 });
 
 /** A D19 A row: 32 px, 4 px in, 6 px corners, a 12 px chevron slot, a 20 px tile and a 13 px label. */
@@ -530,35 +478,159 @@ const Library = () => {
   );
 };
 
-export const LeftPanel = () => {
-  const [tab, setTab] = useState<"flow" | "add">("flow");
-  return (
-    <aside className={panelStyle} aria-label="Steps">
-      <div className={headerStyle}>
-        <div role="tablist" className={tabListStyle}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "flow"}
-            className={tabStyle}
-            onClick={() => setTab("flow")}
-          >
-            Steps
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "add"}
-            className={tabStyle}
-            onClick={() => setTab("add")}
-          >
-            Add
-          </button>
-        </div>
+/** Option F's rail (2 Nov): 44 px, white, a hairline on its right, the DS SegmentedControl standing up in it. */
+const railStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  flexShrink: 0,
+  width: "[44px]",
+  height: "[100%]",
+  paddingTop: "2",
+  backgroundColor: "neutral.bgSolid.min",
+  borderRightWidth: "thin",
+  borderRightStyle: "solid",
+  borderRightColor: "neutral.bd.subtle",
+});
+
+/** The panel's title: "Steps", "Add a step", "Runs", 14 px semibold, 8 px in, in a 40 px header. */
+const panelTitleStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
+  height: "[40px]",
+  paddingX: "2",
+  textStyle: "sm",
+  fontWeight: "semibold",
+  color: "neutral.fg.heading",
+  borderBottomWidth: "thin",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.bd.subtle",
+});
+
+const panelTitles = {
+  steps: "Steps",
+  add: "Add a step",
+  runs: "Runs",
+} as const;
+
+/** Runs (Explorations 903:39224): the flow's runs, newest first; one picked shows on the canvas. */
+const RunsList = () => {
+  const { document, ui, setUi } = useEditor();
+  const runs = mockRuns(document);
+  if (runs.length === 0) {
+    return (
+      <div
+        className={css({
+          paddingX: "4",
+          paddingY: "3",
+          textStyle: "sm",
+          color: "neutral.fg.subtle",
+        })}
+      >
+        No runs yet. Runs show here once the flow is published and starts.
       </div>
-      <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
-        {tab === "flow" ? <FlowList /> : <Library />}
-      </OverlayScrollArea>
-    </aside>
+    );
+  }
+  return (
+    <div
+      className={css({
+        display: "flex",
+        flexDirection: "column",
+        gap: "[1px]",
+        padding: "2",
+        paddingTop: "4",
+      })}
+    >
+      {runs.map((run) => (
+        <button
+          key={run.id}
+          type="button"
+          aria-current={ui.viewRunId === run.id || undefined}
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: "[2px]",
+            paddingX: "2",
+            paddingY: "1.5",
+            borderRadius: "md",
+            textAlign: "left",
+            cursor: "pointer",
+            _hover: { backgroundColor: "neutral.bg.surface.active" },
+            "&[aria-current=true]": {
+              backgroundColor: "neutral.bg.subtle",
+            },
+          })}
+          onClick={() =>
+            setUi((current) => ({
+              ...current,
+              viewRunId: run.id,
+              // The run shows on the canvas alone, as Explorations 903:39224 draws it.
+              selectedId: null,
+              selectedIds: [],
+              picker: null,
+              openField: null,
+            }))
+          }
+        >
+          <span
+            className={css({ textStyle: "sm", color: "neutral.fg.heading" })}
+          >
+            {run.when}
+          </span>
+          <span
+            className={css({
+              textStyle: "xs",
+              color: run.failedAt ? "red.fg.body" : "green.fg.body",
+            })}
+          >
+            {runStatus(run)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+export const LeftPanel = () => {
+  const { ui, setUi } = useEditor();
+  const panel = ui.leftPanel ?? "steps";
+  return (
+    <>
+      <nav className={railStyle} aria-label="Panels">
+        <SegmentedControl
+          aria-label="Panels"
+          layout="vertical"
+          size="md"
+          value={panel}
+          onChange={(next) =>
+            setUi((current) => ({
+              ...current,
+              leftPanel: next,
+              // Leaving Runs goes back to editing.
+              viewRunId: next === "runs" ? current.viewRunId : null,
+            }))
+          }
+          items={[
+            { value: "steps", iconName: "list", tooltip: "Steps" },
+            { value: "add", iconName: "plus", tooltip: "Add a step" },
+            { value: "runs", iconName: "clockRotateLeft", tooltip: "Runs" },
+          ]}
+        />
+      </nav>
+      <aside className={panelStyle} aria-label={panelTitles[panel]}>
+        <div className={panelTitleStyle}>{panelTitles[panel]}</div>
+        <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
+          {panel === "steps" ? (
+            <FlowList />
+          ) : panel === "add" ? (
+            <Library />
+          ) : (
+            <RunsList />
+          )}
+        </OverlayScrollArea>
+      </aside>
+    </>
   );
 };

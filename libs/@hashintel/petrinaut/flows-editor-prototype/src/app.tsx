@@ -13,7 +13,8 @@ import { AddNodePicker } from "./add-node-picker";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
-import { LeftPanel, tabListStyle, tabStyle } from "./left-panel";
+import { LeftPanel } from "./left-panel";
+import { mockRuns, runStatus } from "./mock-runs";
 import { PropertiesPanel } from "./properties-panel";
 import { RunForm } from "./run-dialogs";
 import { validateDocument } from "./shapes";
@@ -102,6 +103,30 @@ const barButtonStyle = css({
     color: "neutral.fg.muted",
   },
   "&[class]:hover": { backgroundColor: "neutral.bgSolid.surface.hover" },
+});
+
+/** The run banner: a white card at the top of the canvas, centred, with Back to editing at its end. */
+const runBannerStyle = css({
+  position: "absolute",
+  top: "5",
+  left: "[50%]",
+  transform: "[translateX(-50%)]",
+  zIndex: "[6]",
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  paddingY: "1",
+  paddingLeft: "3.5",
+  paddingRight: "1",
+  textStyle: "sm",
+  color: "neutral.fg.heading",
+  whiteSpace: "nowrap",
+  backgroundColor: "neutral.bgSolid.min",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "lg",
+  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.08)]",
 });
 
 /** Simulate (J4.4): the DS outline sm button, its label muted, after Start's 14 px grey play tile. */
@@ -228,6 +253,9 @@ export const Editor = ({
     zoom: (by: number) => void;
   } | null>(null);
 
+  const viewedRun = ui.viewRunId
+    ? mockRuns(document).find((run) => run.id === ui.viewRunId)
+    : undefined;
   const validation = validateDocument(document);
   const errorCount =
     validation.flowLevel.filter((diagnostic) => diagnostic.severity === "error")
@@ -292,26 +320,6 @@ export const Editor = ({
                   setDocumentState((current) => ({ ...current, name }));
                 }}
               />
-            </div>
-            {/* J4.4 (agreed 2 Nov): Editor | Runs in the middle, as the same underlined tabs as Steps | Add. */}
-            <div role="tablist" aria-label="Flow view" className={tabListStyle}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected
-                className={tabStyle}
-              >
-                Editor
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={false}
-                className={tabStyle}
-                title="Runs are designed next (J4.5–J4.16)"
-              >
-                Runs
-              </button>
             </div>
             <div
               className={css({
@@ -423,6 +431,37 @@ export const Editor = ({
                   }}
                 />
                 <AddNodePicker toolbarAnchor={addNodeRef} />
+                {viewedRun ? (
+                  // Option F (Explorations 903:39224): the run picked in Runs, on the same canvas.
+                  <div className={runBannerStyle} role="status">
+                    <span className={css({ fontWeight: "medium" })}>
+                      Run · {viewedRun.when}
+                    </span>
+                    <span
+                      className={css({
+                        color: viewedRun.failedAt
+                          ? "red.fg.body"
+                          : "green.fg.body",
+                      })}
+                    >
+                      {runStatus(viewedRun)}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="subtle"
+                      tone="neutral"
+                      onClick={() =>
+                        setUiState((current) => ({
+                          ...current,
+                          viewRunId: null,
+                          leftPanel: "steps",
+                        }))
+                      }
+                    >
+                      Back to editing
+                    </Button>
+                  </div>
+                ) : null}
                 {session ? (
                   <TaskCard
                     session={session}
