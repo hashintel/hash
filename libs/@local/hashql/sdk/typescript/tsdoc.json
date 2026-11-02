@@ -22,6 +22,15 @@
     "@category": true,
     "@stability": true,
     "@since": true,
-    "@module": true
-  }
+    "@module": true,
+    "@link": true,
+    "@param": true,
+    "@returns": true,
+    "@throws": true,
+    "@example": true,
+    "@see": true,
+    "@internal": true
+  },
+  "supportedHtmlElements": ["caption", "code"],
+  "reportUnsupportedHtmlElements": true
 }
