@@ -98,7 +98,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * A path needs at least one segment. The constructor accepts ordinary field records, and an existing instance keeps its identity. The schema construction options apply to nested values too.
  *
- * @throws {Error} If a name, argument type or path structure fails validation. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If a name, argument type or path structure fails validation. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Path =

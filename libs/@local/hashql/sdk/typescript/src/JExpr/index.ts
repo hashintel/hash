@@ -80,7 +80,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * The result is a new tree without keys outside the matched constructor. Numeric literal objects may omit `_tag`, which the result supplies. `options.disableChecks` skips the identifier, label and numeric-spelling checks but still requires the tree's structure. `options.parseOptions` passes Effect parse options, such as `onExcessProperty: "error"` to reject unknown keys. Use {@link makeOption} when only validity matters, or {@link makeEffect} to inspect a {@link SchemaIssue.Issue} with the failing node's location.
  *
- * @throws {Error} If validation fails. The error carries a {@link SchemaIssue.Issue} in its `cause`.
+ * @throws `Error` If validation fails. The error carries a {@link SchemaIssue.Issue} in its `cause`.
  *
  * @example <caption>Check a struct and detect an invalid field name.</caption>
  * ```ts
@@ -199,7 +199,7 @@ export const tuple = (...items: readonly Expression[]): Defs.TupleType => ({
 /**
  * Creates a struct with named fields.
  *
- * Field names must be identifiers, such as `name`, `+` or `` `+` ``. {@link make} checks the names, and this builder does not. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. The tree holds the given record object rather than a copy. See {@link make} for a struct example.
+ * Field names must be identifiers, such as `name`, `+` or <code>\`+\`</code>. {@link make} checks the names, and this builder does not. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. The tree holds the given record object rather than a copy. See {@link make} for a struct example.
  */
 export const struct = (
   fields: Record.ReadonlyRecord<string, Expression>,

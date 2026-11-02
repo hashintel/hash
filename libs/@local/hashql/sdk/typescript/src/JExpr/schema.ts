@@ -14,7 +14,7 @@ const ExpressionRef: ExpressionRef = Schema.suspend(
   (): Schema.Codec<ExpressionType, ExpressionEncoded> => Expression,
 );
 
-/** Whether `input` is a single identifier in source form, such as `name`, `+` or `` `+` ``. */
+/** Whether `input` is a single identifier in source form, such as `name`, `+` or <code>\`+\`</code>. */
 const isIdentSource = flow(parseIdent, Result.isSuccess);
 
 /**

@@ -122,7 +122,7 @@ export interface Query<
     ) => P & Accept<I, P>,
   ) => Query<S, I, V, I>;
 
-  /** Ends the query as a list of its vertices. This is {@link @local/hashql!Program.Query.collect | Query.collect}. */
+  /** Ends the query as a list of its vertices. This is {@link @local/hashql#Program.Query.collect | Query.collect}. */
   readonly collect: () => Expression.Expression<Type.List<V>, R>;
 }
 
@@ -132,7 +132,7 @@ export interface Queries<S extends Scope.Scope.Any, I> {
     graph: G & Graph.Check<G> & Accept<I, G>,
   ): Query<S, I, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
 
-  /** Starts a query from every entity at the temporal axes `axis`, whose input requirements fit the schema. This is {@link @local/hashql!Program.Query.entities | Query.entities}. */
+  /** Starts a query from every entity at the temporal axes `axis`, whose input requirements fit the schema. This is {@link @local/hashql#Program.Query.entities | Query.entities}. */
   readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
     axis: A & Accept<I, A>,
   ) => Query<S, I, Entity, Expression.Value.Inputs<A>>;

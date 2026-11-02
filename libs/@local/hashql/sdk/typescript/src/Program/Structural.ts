@@ -1,7 +1,7 @@
 /**
  * Structural shorthand for HashQL types and values.
  *
- * {@link type} normalizes host constructors, tuples and records into type syntax. {@link struct} and {@link tuple} infer their fields and positions from values. {@link list} and {@link dict} take explicit type definitions, including for empty collections. {@link input} accepts the same type shorthand.
+ * {@link "type"} normalizes host constructors, tuples and records into type syntax. {@link struct} and {@link tuple} infer their fields and positions from values. {@link list} and {@link dict} take explicit type definitions, including for empty collections. {@link input} accepts the same type shorthand.
  *
  * {@link value} accepts a structural value only when its semantic descriptor matches the requested type. Value construction combines input requirements from every possible host-side alternative. Nested host arrays denote tuples and records denote structs. Construct a nested list or dictionary explicitly before placing it inside another value.
  *
@@ -27,7 +27,7 @@ interface Fields extends Record.ReadonlyRecord<string, Definition> {}
 /**
  * A type handle, a supported host primitive constructor, a tuple of definitions or a record of field definitions.
  *
- * `BigInt`, `Number`, `String` and `Boolean` denote their HashQL primitive types. Arrays denote tuples, not lists. Use a declared generic type constructor for lists and dictionaries. See {@link type} for normalization.
+ * `BigInt`, `Number`, `String` and `Boolean` denote their HashQL primitive types. Arrays denote tuples, not lists. Use a declared generic type constructor for lists and dictionaries. See {@link "type"} for normalization.
  */
 export type Definition =
   | TypeExpression.TypeExpression.Any
@@ -388,7 +388,7 @@ type Annotated<V extends Value.Any, A extends Annotation> = A extends readonly [
  *
  * Nested records and arrays follow {@link value}. Invalid field names, two keys that decode to the same name and nested construction failures remain in the returned expression.
  *
- * Pass `type`, a type expression or structural shorthand as {@link type} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with `Expression.assume`, and the HashQL compiler does.
+ * Pass `type`, a type expression or structural shorthand as {@link "type"} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with `Expression.assume`, and the HashQL compiler does.
  *
  * @example <caption>Infer a record's fields and project one of them.</caption>
  * ```ts

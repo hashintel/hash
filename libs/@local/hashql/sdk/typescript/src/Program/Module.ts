@@ -337,7 +337,7 @@ class ModuleImpl<
  *
  * `name` must be an absolute path such as `::core::math`. Each declaration binds to that path extended by its key, so a value declared as `rem` emits `::core::math::rem`. An existing type expression, expression or module keeps its identity and the syntax it already emits. Child modules retain their own paths, including when mounted under an alias. Copying and freezing the records prevents caller mutations from adding or replacing exports afterward. The caller's tables are not frozen.
  *
- * Every enumerable own string key becomes an export, including `__proto__`. A non-enumerable key exports nothing. A key must be a HashQL identifier. Emitted paths quote an operator name such as `%`, as in `` ::core::math::`%` ``.
+ * Every enumerable own string key becomes an export, including `__proto__`. A non-enumerable key exports nothing. A key must be a HashQL identifier. Emitted paths quote an operator name such as `%`, as in <code>::core::math::\`%\`</code>.
  *
  * Invalid paths, export names and generic arities return a {@link ProgramError.Construction} failure. Its reason is `InvalidModulePath` for a malformed path, `RelativeModulePath` for a relative path, `InvalidExportName` for a key that is not an identifier and `InvalidTypeArity` for an invalid generic arity. Binding stops at the first failure, checking the module, type and value tables in that order.
  *

@@ -1,7 +1,7 @@
 /**
  * Single HashQL identifiers and their source spelling.
  *
- * An {@link Ident} stores its kind and its value without backticks, like `Ident` in `hashql-core`. Use {@link decodeResult} to read source syntax such as `foo`, `+`, `` `+` `` or `` `https://example.com/` ``, and {@link compile} to write it back. Paths, field access and the `_` placeholder are wider string expressions rather than identifiers.
+ * An {@link Ident} stores its kind and its value without backticks, like `Ident` in `hashql-core`. Use {@link decodeResult} to read source syntax such as `foo`, `+`, <code>\`+\`</code> or <code>\`https://example.com/\`</code>, and {@link compile} to write it back. Paths, field access and the `_` placeholder are wider string expressions rather than identifiers.
  *
  * @module
  */
@@ -136,7 +136,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * Use {@link decodeResult} for source text. Without `_tag`, the result takes the kind whose pattern matches `value`.
  *
- * @throws {Error} If `value` is not valid for the given kind. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If `value` is not valid for the given kind. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Ident =
@@ -200,7 +200,7 @@ export const decodeResult: (
 /**
  * Writes an identifier as source text.
  *
- * Quotes symbols and base URLs in backticks, so the bare `+` decodes and compiles to `` `+` ``, while lexical values keep their spelling.
+ * Quotes symbols and base URLs in backticks, so the bare `+` decodes and compiles to <code>\`+\`</code>, while lexical values keep their spelling.
  *
  * Nothing validates the value first.
  */
