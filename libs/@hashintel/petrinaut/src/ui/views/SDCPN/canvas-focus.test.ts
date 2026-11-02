@@ -47,6 +47,7 @@ const net: ActiveNetDefinition = {
   differentialEquations: [],
   parameters: [],
   componentInstances: [],
+  fusions: [],
 };
 
 const placeKey = (placeId: string) =>

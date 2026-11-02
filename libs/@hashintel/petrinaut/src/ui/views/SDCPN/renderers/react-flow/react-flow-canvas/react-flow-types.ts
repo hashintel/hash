@@ -7,6 +7,7 @@ import type { SimulationFrameReader } from "../../../../../../react/simulation/c
 import type {
   CanvasArc,
   CanvasComponentInstanceNode,
+  CanvasFusionLink,
   CanvasPlaceNode,
   CanvasTransitionNode,
 } from "../../../canvas-scene";
@@ -51,4 +52,19 @@ export type ArcData = Pick<
   hasReverseArc: boolean;
 };
 
-export type ArcEdgeType = Edge<ArcData>;
+export type ArcEdgeType = Edge<ArcData, "default">;
+
+export type FusionEdgeData = Pick<
+  CanvasFusionLink,
+  "fusionId" | "name" | "focus" | "severity"
+>;
+
+export type FusionEdgeType = Edge<FusionEdgeData, "fusion">;
+
+export type CanvasEdgeType = ArcEdgeType | FusionEdgeType;
+
+/** The fusion an edge draws, or `null` for an arc. */
+export const fusionIdOfEdge = (edge: Edge): string | null =>
+  edge.type === "fusion" && typeof edge.data?.fusionId === "string"
+    ? edge.data.fusionId
+    : null;

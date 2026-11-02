@@ -32,6 +32,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Drawing a Net](drawing-a-net.md) -- Top bar, Canvas and Definitions views, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
 - [Petri Net Extensions](petri-net-extensions.md) -- Types, dynamics, transition kernels, firing rules, read/inhibitor arcs, as well as parameters and state visualizers.
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
+- [Composition](composition.md) -- Components and instances, ports, and fusing places so they act as one place.
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.
 - [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- The scenario form: define initial state and parameters inline for one run, or save them as a scenario.
