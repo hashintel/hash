@@ -9688,8 +9688,7 @@
                 "nullable": true
               },
               "includeLatestVersions": {
-                "type": "boolean",
-                "description": "Returns the highest version of each returned type, archived versions included."
+                "type": "boolean"
               }
             }
           }
@@ -9740,7 +9739,7 @@
           },
           "latestVersions": {
             "type": "object",
-            "description": "The highest version of each returned type, archived versions included.",
+            "description": "The highest version of each returned type, keyed by base URL.",
             "additionalProperties": {
               "$ref": "#/components/schemas/OntologyTypeVersion"
             }

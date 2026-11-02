@@ -232,7 +232,6 @@ pub struct QueryEntityTypesParams<'p> {
     pub request: CommonQueryEntityTypesParams<'p>,
     #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
-    /// Returns the highest version of each returned type, archived versions included.
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_latest_versions: bool,
@@ -336,7 +335,7 @@ pub struct QueryEntityTypesResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
-    /// The highest version of each returned type, archived versions included.
+    /// The highest version of each returned type, keyed by base URL.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub latest_versions: Option<HashMap<BaseUrl, OntologyTypeVersion>>,

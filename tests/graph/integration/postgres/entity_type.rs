@@ -510,7 +510,6 @@ fn versioned_type_id(version: u32) -> VersionedUrl {
         .expect("should be a valid versioned URL")
 }
 
-/// An entity type without properties, so that its versions differ only in their number.
 fn versioned_type(version: u32) -> EntityType {
     serde_json::from_value(json!({
         "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
@@ -524,7 +523,6 @@ fn versioned_type(version: u32) -> EntityType {
     .expect("should be a valid entity type")
 }
 
-/// Querying an older version with `include_latest_versions` reports the type's latest version.
 #[tokio::test]
 async fn latest_versions_of_an_older_version() {
     let mut database = DatabaseTestWrapper::new().await;
