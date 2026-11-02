@@ -24,7 +24,7 @@ export {
   type ClientToolResultMetadata,
 } from "./petrinaut/browser-metadata";
 export {
-  browserExecutedToolInputSchemas,
+  browserExecutedToolInputParsers,
   browserExecutedToolNames,
   browserNetToolNames,
 } from "./petrinaut/browser-executed-tools";

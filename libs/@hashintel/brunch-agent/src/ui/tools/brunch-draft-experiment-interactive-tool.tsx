@@ -827,8 +827,8 @@ export const createBrunchDraftExperimentInteractiveTool = ({
   >({
     toolName: brunchTools.draftPetrinautExperiment,
     placement: "card",
-    inputSchema: zDraftPetrinautExperimentInput,
-    outputSchema: zDraftPetrinautExperimentOutput,
+    inputParser: zDraftPetrinautExperimentInput,
+    outputParser: zDraftPetrinautExperimentOutput,
     component: (props) => (
       <WithBrunchEditorApi>
         {(api) => (

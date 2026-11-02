@@ -8,7 +8,7 @@ import type { PetrinautAiAutomaticTool } from "@hashintel/brunch-agent/ui";
  * The input Brunch's HASH agent issues for its save. The agent's schema is
  * the authority and has already validated it; this only narrows it.
  */
-const hashSaveInputSchema = z.object({ documentId: z.string() });
+const zHashSaveInput = z.object({ documentId: z.string() });
 
 /**
  * What an agent's save settles with: the result of the editor's save it
@@ -41,8 +41,8 @@ export const createHashSaveTool = (
   save: SaveNetForAgent,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.saveHashNet,
-  inputSchema: hashSaveInputSchema,
-  outputSchema: { parse: (value) => value },
+  inputParser: zHashSaveInput,
+  outputParser: { parse: (value) => value },
   execute: ({ input, signal }) =>
-    save(hashSaveInputSchema.parse(input).documentId, signal),
+    save(zHashSaveInput.parse(input).documentId, signal),
 });

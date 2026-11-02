@@ -1,6 +1,6 @@
 import {
   agentOwnershipHeaders,
-  browserExecutedToolInputSchemas,
+  browserExecutedToolInputParsers,
   browserNetToolNames,
   brunchRoutes,
   brunchTools,
@@ -100,19 +100,19 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputSchema = browserExecutedToolInputSchemas[call.toolName];
+    const inputParser = browserExecutedToolInputParsers[call.toolName];
     if (
       !issued ||
       issued.toolName !== call.toolName ||
       issued.binding !== canonicalContent(input.binding) ||
-      !inputSchema
+      !inputParser
     )
       throw new Error("Browser call was not issued for this document.");
     // Both sides parse, so ids compare converted whether or not the server
     // that issued the call converts them.
     if (
-      canonicalContent(inputSchema.parse(call.input)) !==
-      canonicalContent(inputSchema.parse(issued.input))
+      canonicalContent(inputParser.parse(call.input)) !==
+      canonicalContent(inputParser.parse(issued.input))
     )
       throw new Error("Issued browser input does not match the admitted call.");
     const claimed = issued;

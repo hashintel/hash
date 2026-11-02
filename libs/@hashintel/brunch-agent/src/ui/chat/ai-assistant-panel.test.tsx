@@ -1282,8 +1282,8 @@ describe("AiAssistantPanel composer submissions", () => {
     const mapText = vi.fn(({ text }: { text: string }) => ({ answer: text }));
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { answer: string } },
       fromComposerText: mapText,
       component: ({ input }) => <span>{input.question}</span>,
     });
@@ -1362,8 +1362,8 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { answer: string } },
       component: ExternalQuestion,
     });
     const config: PetrinautAiAssistant = {
@@ -1477,8 +1477,8 @@ describe("AiAssistantPanel composer submissions", () => {
       const mapText = vi.fn(({ text }: { text: string }) => ({ answer: text }));
       const hostTool = definePetrinautAiInteractiveTool({
         toolName: "answerQuestion",
-        inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-        outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+        inputParser: { parse: (raw: unknown) => raw as { question: string } },
+        outputParser: { parse: (raw: unknown) => raw as { answer: string } },
         fromComposerText: mapText,
         component: ({ input, submit }) => (
           <button
@@ -2457,10 +2457,10 @@ describe("AiAssistantPanel composer submissions", () => {
     );
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -3239,10 +3239,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -4042,8 +4042,8 @@ describe("AiAssistantPanel composer submissions", () => {
         automaticTools: [
           {
             toolName: "hostAutomatic",
-            inputSchema: { parse: (raw: unknown) => raw as { value: number } },
-            outputSchema: { parse: (raw: unknown) => raw as { done: true } },
+            inputParser: { parse: (raw: unknown) => raw as { value: number } },
+            outputParser: { parse: (raw: unknown) => raw as { done: true } },
             execute,
           },
         ],
@@ -4837,8 +4837,8 @@ describe("AiAssistantPanel composer submissions", () => {
   test("keeps a local Stop with its turn across followed history, and leaves another tab's pending turn live", async () => {
     const releaseTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { approved: boolean } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { approved: boolean } },
       component: ({ input, submit }) => (
         <button type="button" onClick={() => submit({ approved: true })}>
           {input.question}
@@ -4988,8 +4988,8 @@ describe("AiAssistantPanel composer submissions", () => {
   test("ends the turn when the follow-up to a completed host widget is empty", async () => {
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { approved: boolean } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { approved: boolean } },
       component: ({ input, submit }) => (
         <button type="button" onClick={() => submit({ approved: true })}>
           {input.question}
@@ -5221,10 +5221,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmAction",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { confirmed: boolean },
       },
       component: ({ input, submit }) => (
@@ -5652,10 +5652,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -5742,10 +5742,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -5914,10 +5914,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6352,10 +6352,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6467,10 +6467,10 @@ describe("AiAssistantPanel composer submissions", () => {
     const results: unknown[] = [];
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6554,10 +6554,10 @@ describe("AiAssistantPanel composer submissions", () => {
     const results: unknown[] = [];
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6624,10 +6624,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { approved: boolean },
       },
       component: ({ input }) => <span>{input.question}</span>,
@@ -6746,10 +6746,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6825,10 +6825,10 @@ describe("AiAssistantPanel host interactive tools", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { approved: boolean },
       },
       component: ({ input, submit, toolCallId }) => (
@@ -6945,10 +6945,10 @@ describe("AiAssistantPanel host interactive tools", () => {
               automaticTools: [
                 {
                   toolName: "hostAutomatic",
-                  inputSchema: {
+                  inputParser: {
                     parse: (raw: unknown) => raw as { value: number },
                   },
-                  outputSchema: {
+                  outputParser: {
                     parse: (raw: unknown) => raw as { doubled: number },
                   },
                   execute,
@@ -7030,8 +7030,8 @@ describe("AiAssistantPanel host interactive tools", () => {
         automaticTools: [
           {
             toolName: "hostReadDiagnostics",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
+            inputParser: passthrough,
+            outputParser: passthrough,
             execute: async ({ readDiagnosticsContext }) => {
               const context = await readDiagnosticsContext();
               diagnosticsOutputs.push(context);
@@ -7040,8 +7040,8 @@ describe("AiAssistantPanel host interactive tools", () => {
           },
           {
             toolName: "hostAddPlace",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
+            inputParser: passthrough,
+            outputParser: passthrough,
             execute: ({ edit }) => {
               edit.addPlace({
                 id: "host-place",
@@ -7124,10 +7124,10 @@ describe("AiAssistantPanel host interactive tools", () => {
               automaticTools: [
                 {
                   toolName: "hostAutomatic",
-                  inputSchema: {
+                  inputParser: {
                     parse: (raw: unknown) => raw as { value: number },
                   },
-                  outputSchema: {
+                  outputParser: {
                     parse: (raw: unknown) => raw as { doubled: number },
                   },
                   execute,

@@ -1019,8 +1019,8 @@ const ConversationAiAssistantPanel = ({
         automaticToolAbortsRef.current.add(abortController);
         let output: unknown;
         try {
-          const toolInput = automaticTool.inputSchema.parse(toolCall.input);
-          output = automaticTool.outputSchema.parse(
+          const toolInput = automaticTool.inputParser.parse(toolCall.input);
+          output = automaticTool.outputParser.parse(
             await automaticTool.execute({
               input: toolInput,
               edit: document.edit,

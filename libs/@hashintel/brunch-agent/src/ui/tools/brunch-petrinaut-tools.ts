@@ -165,8 +165,8 @@ export const createCanonicalPetrinautHostTools = (
   };
   const readNetTool: PetrinautAiAutomaticTool = {
     toolName: getLatestNetDefinitionToolName,
-    inputSchema: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
-    outputSchema: passthrough,
+    inputParser: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
+    outputParser: passthrough,
     execute: ({ toolCallId, handle }) =>
       readNet(
         getLatestNetDefinitionToolName,
@@ -179,8 +179,8 @@ export const createCanonicalPetrinautHostTools = (
     Object.keys(netReaderToolNames) as NetReaderLevel[]
   ).map((level) => ({
     toolName: netReaderToolNames[level],
-    inputSchema: { parse: parseNetReaderInput },
-    outputSchema: passthrough,
+    inputParser: { parse: parseNetReaderInput },
+    outputParser: passthrough,
     execute: ({ toolCallId, handle }) =>
       readNet(
         netReaderToolNames[level],
@@ -191,8 +191,8 @@ export const createCanonicalPetrinautHostTools = (
   }));
   const diagnosticsTool: PetrinautAiAutomaticTool = {
     toolName: getNetCompilationErrorsToolName,
-    inputSchema: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
-    outputSchema: passthrough,
+    inputParser: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
+    outputParser: passthrough,
     execute: async ({ toolCallId, readDiagnosticsContext }) => {
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
@@ -209,8 +209,8 @@ export const createCanonicalPetrinautHostTools = (
     ["addPlace", "addTransition", "addArc"] as const
   ).map((toolName) => ({
     toolName,
-    inputSchema: mutationActionInputSchemas[toolName],
-    outputSchema: passthrough,
+    inputParser: mutationActionInputSchemas[toolName],
+    outputParser: passthrough,
     execute: ({ toolCallId, input: rawInput, handle, edit }) => {
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;

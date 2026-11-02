@@ -770,8 +770,8 @@ test("a host's own tools run beside Brunch's while a document is bound", async (
   };
   const hashRead = {
     toolName: brunchTools.queryHashEntities,
-    inputSchema: { parse: (value: unknown) => value },
-    outputSchema: { parse: (value: unknown) => value },
+    inputParser: { parse: (value: unknown) => value },
+    outputParser: { parse: (value: unknown) => value },
     execute: async () => ({ entities: [] }),
   };
 

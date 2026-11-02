@@ -265,8 +265,8 @@ export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashEntities,
-  inputSchema: zHashEntityReadInput,
-  outputSchema: { parse: (value) => value },
+  inputParser: zHashEntityReadInput,
+  outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const readInput = zHashEntityReadInput.parse(input);
     const request = hashEntityReadRequest(readInput);
@@ -384,8 +384,8 @@ export const createHashEntityTypeReadTool = (
   queryEntityTypes: QueryEntityTypes,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashEntityTypes,
-  inputSchema: zHashEntityTypeReadInput,
-  outputSchema: { parse: (value) => value },
+  inputParser: zHashEntityTypeReadInput,
+  outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const request = hashEntityTypeReadRequest(
       zHashEntityTypeReadInput.parse(input),
@@ -440,8 +440,8 @@ export const createHashWebReadTool = (
   currentUser: () => HashWebReadUser | undefined,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashWebs,
-  inputSchema: z.object({}),
-  outputSchema: { parse: (value) => value },
+  inputParser: z.object({}),
+  outputParser: { parse: (value) => value },
   execute: () => hashWebReadResult(currentUser()),
 });
 
