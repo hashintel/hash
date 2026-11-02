@@ -12,7 +12,7 @@ const nonempty = z.string().min(1);
  * a numeric field, whether a metric is last-frame, accumulated or peak, that a
  * budget number is agent inference, or what the result must not claim.
  */
-const declarationSchema = z.strictObject({
+const zDeclaration = z.strictObject({
   subject: nonempty.describe(
     "The request field or metric ID the sentence is about, or `result` for what the result must not claim.",
   ),
@@ -24,7 +24,7 @@ const declarationSchema = z.strictObject({
 /** Core's AI request schema has no constraints field. Preparation currently forwards
  * constraints: [] and constraintPolicy: null downstream; that is not AI constraint carriage.
  * A stated condition is disclosed rather than silently dropped. */
-const unsupportedConditionSchema = z.strictObject({
+const zUnsupportedCondition = z.strictObject({
   condition: nonempty.describe(
     "The restriction, threshold or condition in the person's words.",
   ),
@@ -48,19 +48,19 @@ const unsupportedConditionSchema = z.strictObject({
  * The drafted proposal. `experiment` is core's request, unchanged and
  * separable; the other fields disclose the proposal, not host protocol identity.
  */
-export const draftPetrinautExperimentInputSchema = z
+export const zDraftPetrinautExperimentInput = z
   .strictObject({
     experiment: petrinautExperimentRequestSchema.describe(
       "The experiment to draft, in Petrinaut's own request shape. Use identifiers from the latest canonical getLatestNetDefinition result; the host finds that read in history, not a model-supplied hash or call ID. Drafting does not run it.",
     ),
     declarations: z
-      .array(declarationSchema)
+      .array(zDeclaration)
       .min(1)
       .describe(
         "Mandatory disclosures the person reads beside the settings: every numeric field's unit and conversion, every metric's kind and role, every budget number's inference, and what the result must not claim.",
       ),
     unsupported: z
-      .array(unsupportedConditionSchema)
+      .array(zUnsupportedCondition)
       .describe(
         "Every restriction, threshold or condition the request cannot carry, each with a one-line reason. Empty means the person stated none, not that any is enforced.",
       ),
@@ -85,7 +85,7 @@ export const draftPetrinautExperimentInputSchema = z
   );
 
 export type DraftPetrinautExperimentInput = z.output<
-  typeof draftPetrinautExperimentInputSchema
+  typeof zDraftPetrinautExperimentInput
 >;
 
 /**
@@ -93,12 +93,12 @@ export type DraftPetrinautExperimentInput = z.output<
  * once, when preparation finishes; Run and Dismiss happen after it and are not
  * reported through this channel.
  */
-export const draftPetrinautExperimentOutputSchema = z.strictObject({
+export const zDraftPetrinautExperimentOutput = z.strictObject({
   status: z.enum(["drafted", "invalid"]),
   summary: z.string(),
   diagnostics: z.array(z.string()),
 });
 
 export type DraftPetrinautExperimentOutput = z.output<
-  typeof draftPetrinautExperimentOutputSchema
+  typeof zDraftPetrinautExperimentOutput
 >;

@@ -6,7 +6,7 @@
  */
 
 export {
-  createLedgerAppend,
+  vLedgerAppendWith,
   vLedgerAppend,
   type LedgerAppend,
 } from "./ledger/append";
@@ -19,7 +19,7 @@ export {
   foldCommits,
   isRefusedLedgerCommit,
   latestLedgerTurnId,
-  ledgerAppendOutputSchema,
+  vLedgerAppendOutput,
   prepareAppend,
   type FoldedLedger,
   type LedgerHistory,
@@ -39,6 +39,6 @@ export {
   vReflection,
   type NetElementAddress,
 } from "./ledger/construction/reflections";
-export { createOrigin, vOrigin, vStatus } from "./ledger/shared/epistemics";
+export { vOriginWith, vOrigin, vStatus } from "./ledger/shared/epistemics";
 export { traceLedger, type LedgerTrace } from "./ledger/trace";
 export * from "./ledger/projection";

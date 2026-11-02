@@ -27,7 +27,7 @@ export type BrunchFlueAdapter = FlueAiSdkAdapter<PetrinautAiMessage>;
  * Petrinaut declares but does not check at runtime. Keys Petrinaut does not
  * render are dropped rather than rejected, so agents may add metadata freely.
  */
-const petrinautMessageMetadataSchema = z.object({
+const zPetrinautMessageMetadata = z.object({
   source: z.literal("voice").optional(),
   stopped: z.literal(true).optional(),
   failed: z.literal(true).optional(),
@@ -66,7 +66,7 @@ export const createBrunchFlueAdapter = (
     ...tools,
     ...reporting,
     mapToolOutput: browserToolOutput,
-    metadataSchema: petrinautMessageMetadataSchema,
+    metadataSchema: zPetrinautMessageMetadata,
     projectMetadata: projectBrunchMessageMetadata,
     userSignalTags: new Set([brunchSignals.ledgerComments]),
   });

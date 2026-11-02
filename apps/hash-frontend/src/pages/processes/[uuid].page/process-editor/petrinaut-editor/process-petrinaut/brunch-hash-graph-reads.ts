@@ -43,7 +43,7 @@ import type {
  * The input Brunch's HASH agent issues for its entity read. The agent's
  * schema is the authority and has already validated it; this only narrows it.
  */
-const hashEntityReadInputSchema = z.object({
+const zHashEntityReadInput = z.object({
   entityTypes: z.array(z.string()).optional(),
   webIds: z.array(z.string()).optional(),
   entityIds: z.array(z.string()).optional(),
@@ -52,7 +52,7 @@ const hashEntityReadInputSchema = z.object({
 });
 
 /** An entity read as the agent issued it to the page, narrowed. */
-export type IssuedHashEntityRead = z.infer<typeof hashEntityReadInputSchema>;
+export type IssuedHashEntityRead = z.infer<typeof zHashEntityReadInput>;
 
 const defaultTraversalDepth = 1;
 
@@ -232,12 +232,10 @@ export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashEntities,
-  inputSchema: hashEntityReadInputSchema,
+  inputSchema: zHashEntityReadInput,
   outputSchema: { parse: (value) => value },
   execute: async ({ input, signal }) => {
-    const request = hashEntityReadRequest(
-      hashEntityReadInputSchema.parse(input),
-    );
+    const request = hashEntityReadRequest(zHashEntityReadInput.parse(input));
     return settlingQueryFailure(signal, async () =>
       hashEntityReadResult(await queryEntitySubgraph(request, signal)),
     );
@@ -248,15 +246,13 @@ export const createHashEntityReadTool = (
  * The input Brunch's HASH agent issues for its entity type read, narrowed as
  * for the entity read.
  */
-const hashEntityTypeReadInputSchema = z.object({
+const zHashEntityTypeReadInput = z.object({
   entityTypeIds: z.array(z.string()).optional(),
   webIds: z.array(z.string()).optional(),
 });
 
 /** An entity type read as the agent issued it to the page, narrowed. */
-export type IssuedHashEntityTypeRead = z.infer<
-  typeof hashEntityTypeReadInputSchema
->;
+export type IssuedHashEntityTypeRead = z.infer<typeof zHashEntityTypeReadInput>;
 
 export type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
 
@@ -351,11 +347,11 @@ export const createHashEntityTypeReadTool = (
   queryEntityTypes: QueryEntityTypes,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashEntityTypes,
-  inputSchema: hashEntityTypeReadInputSchema,
+  inputSchema: zHashEntityTypeReadInput,
   outputSchema: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const request = hashEntityTypeReadRequest(
-      hashEntityTypeReadInputSchema.parse(input),
+      zHashEntityTypeReadInput.parse(input),
     );
     return settlingQueryFailure(signal, async () =>
       hashEntityTypeReadResult(await queryEntityTypes(request, signal)),

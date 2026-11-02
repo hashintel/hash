@@ -23,7 +23,7 @@ import {
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -149,4 +149,4 @@ export function PetrinautAgent({ id }: AgentProps) {
  * of this agent takes its own.
  */
 PetrinautAgent.agentName = "brunch-chat-agent";
-PetrinautAgent.initialData = sdcpnInitialDataSchema;
+PetrinautAgent.initialData = vSdcpnInitialData;

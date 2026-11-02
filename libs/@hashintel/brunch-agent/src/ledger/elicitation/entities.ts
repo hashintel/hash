@@ -1,8 +1,7 @@
 import * as v from "valibot";
 
 import {
-  createEpistemicFields,
-  type OriginSchema,
+  epistemicFieldsWith,
   resolveStatus,
   vOrigin,
   vStatus,
@@ -155,12 +154,12 @@ export const vEntityKind = v.pipe(
   ),
 );
 
-export const createEntity = (origin: OriginSchema) =>
+export const vEntityWith = (origin: typeof vOrigin) =>
   v.pipe(
     v.strictObject({
       name: vEntityName,
       kind: vEntityKind,
-      ...createEpistemicFields(origin),
+      ...epistemicFieldsWith(origin),
       ...resolvesField,
     }),
     resolveStatus(),
@@ -169,10 +168,10 @@ export const createEntity = (origin: OriginSchema) =>
     ),
   );
 
-export const vEntity = createEntity(vOrigin);
+export const vEntity = vEntityWith(vOrigin);
 
 /** An entity/update payload: it replaces every field, so no field defaults. */
-export const createEntityUpdate = (origin: OriginSchema) =>
+export const vEntityUpdateWith = (origin: typeof vOrigin) =>
   v.pipe(
     v.strictObject({
       name: vEntityName,
@@ -192,7 +191,7 @@ export const createEntityUpdate = (origin: OriginSchema) =>
     ),
   );
 
-export const vEntityUpdate = createEntityUpdate(vOrigin);
+export const vEntityUpdate = vEntityUpdateWith(vOrigin);
 
 export type EntityKind = v.InferOutput<typeof vEntityKind>;
 export type Entity = v.InferOutput<typeof vEntity>;

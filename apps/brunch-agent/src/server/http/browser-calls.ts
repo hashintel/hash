@@ -2,9 +2,9 @@ import { Hono, type Context } from "hono";
 import * as v from "valibot";
 
 import {
-  browserCallFailureBodySchema,
-  browserCallLeaseBodySchema,
-  browserCallResultBodySchema,
+  vBrowserCallFailureBody,
+  vBrowserCallLeaseBody,
+  vBrowserCallResultBody,
   brunchRoutes,
 } from "@hashintel/brunch-agent";
 
@@ -43,7 +43,7 @@ export const createBrowserCallRouter = (): Hono => {
   });
 
   router.post(`${callRoute}/lease`, async (context) => {
-    const body = await readBody(context, browserCallLeaseBodySchema);
+    const body = await readBody(context, vBrowserCallLeaseBody);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
     return renewBrowserCall({ instanceId: id, toolCallId: callId, ...body })
@@ -52,7 +52,7 @@ export const createBrowserCallRouter = (): Hono => {
   });
 
   router.post(callRoute, async (context) => {
-    const body = await readBody(context, browserCallResultBodySchema);
+    const body = await readBody(context, vBrowserCallResultBody);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
     return settleBrowserCall({
@@ -65,7 +65,7 @@ export const createBrowserCallRouter = (): Hono => {
   });
 
   router.post(`${callRoute}/fail`, async (context) => {
-    const body = await readBody(context, browserCallFailureBodySchema);
+    const body = await readBody(context, vBrowserCallFailureBody);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
     return failBrowserCall({ instanceId: id, toolCallId: callId, ...body })

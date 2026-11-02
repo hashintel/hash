@@ -1,6 +1,6 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
-import { createLedgerAppend, createOrigin } from "@hashintel/brunch-agent";
+import { vLedgerAppendWith, vOriginWith } from "@hashintel/brunch-agent";
 
 import { interviewBudgetInstruction } from "../petrinaut/interview-budget-instruction.ts";
 import { createLedgerTools } from "../petrinaut/tools/ledger.ts";
@@ -21,7 +21,7 @@ import type {
 export const hashEvidencedDescription =
   "It is in material the USER shared, such as a log or a document, or in records of the USER's own organisation that the agent read from HASH. What a tool computed, such as a run or an optimization, is not evidence for the account: record what it showed in a reflection.";
 
-const ledgerAppend = createLedgerAppend(createOrigin(hashEvidencedDescription));
+const ledgerAppend = vLedgerAppendWith(vOriginWith(hashEvidencedDescription));
 
 /**
  * Everything the model reads, and every tool that writes or reads the Ledger.

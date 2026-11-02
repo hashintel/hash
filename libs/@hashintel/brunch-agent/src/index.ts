@@ -45,7 +45,7 @@ export {
 export {
   isNetObservationTool,
   netReaderDescriptions,
-  netReaderInputSchema,
+  vNetReaderInput,
   netReaderToolNames,
   parseNetReaderInput,
   netStructureOf,
@@ -68,13 +68,13 @@ export {
   type PetrinautToolCapability,
 } from "./petrinaut/petrinaut-tool-effects";
 export {
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
   type BrowserContext,
   type SdcpnInitialData,
 } from "./petrinaut/initial-data";
 export {
-  draftPetrinautExperimentInputSchema,
-  draftPetrinautExperimentOutputSchema,
+  zDraftPetrinautExperimentInput,
+  zDraftPetrinautExperimentOutput,
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./petrinaut/draft-experiment";

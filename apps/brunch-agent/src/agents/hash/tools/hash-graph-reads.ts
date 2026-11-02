@@ -31,11 +31,11 @@ const webIdsDescription =
  * A read whose query failed in HASH's page: the page settles the call with
  * the failure's message rather than failing it, so the model can read why.
  */
-const hashReadFailureSchema = v.object({ error: v.string() });
+const vHashReadFailure = v.object({ error: v.string() });
 
 /** What the model is shown of a read that failed in HASH's page. */
 const hashReadFailureForModel = (output: unknown) => {
-  const parsed = v.safeParse(hashReadFailureSchema, output);
+  const parsed = v.safeParse(vHashReadFailure, output);
   return parsed.success
     ? {
         error: parsed.output.error,
@@ -48,7 +48,7 @@ const hashReadFailureForModel = (output: unknown) => {
  * The graph returns at most a page of matches, and the page reports
  * `truncated` when it stopped there; the reads don't fetch further pages.
  */
-const truncatedSchema = v.optional(v.literal(true));
+const vTruncated = v.optional(v.literal(true));
 
 /** A settled read as the model is shown it, told when it was truncated. */
 const withTruncationNote = <Result extends { truncated?: true }>(
@@ -83,7 +83,7 @@ const runHashRead = async (
  * No defaults or transforms: the browser compares the input it was issued
  * with the model's call as it is. HASH's page applies the defaults.
  */
-export const hashEntityReadInputSchema = v.strictObject({
+export const vHashEntityReadInput = v.strictObject({
   entityTypes: identifiers(
     "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
   ),
@@ -112,15 +112,13 @@ export const hashEntityReadInputSchema = v.strictObject({
   ),
 });
 
-export type HashEntityReadInput = v.InferOutput<
-  typeof hashEntityReadInputSchema
->;
+export type HashEntityReadInput = v.InferOutput<typeof vHashEntityReadInput>;
 
 export const hashEntityReadDescription =
   "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. An empty { entities } means only that nothing visible matched. Filters combine: an entity must match every filter given. Returns { entities }, each with its entityId, editionId (the exact version read), webId, entityTypeIds, properties (keyed by property type URL), draft, whether it matched the filters (matched) or was reached by following links, and, for a link entity, its linkData. The graph returns at most 1,000 matches at once; when it stopped there, the result also has truncated: true, and more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds, and follow up on a found entity by its entityId.";
 
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */
-const hashEntitySchema = v.object({
+const vHashEntity = v.object({
   entityId: v.string(),
   editionId: v.string(),
   webId: v.string(),
@@ -133,18 +131,16 @@ const hashEntitySchema = v.object({
   ),
 });
 
-const hashEntityReadResultSchema = v.object({
-  entities: v.array(hashEntitySchema),
-  truncated: truncatedSchema,
+const vHashEntityReadResult = v.object({
+  entities: v.array(vHashEntity),
+  truncated: vTruncated,
 });
 
-export type HashEntityReadResult = v.InferOutput<
-  typeof hashEntityReadResultSchema
->;
+export type HashEntityReadResult = v.InferOutput<typeof vHashEntityReadResult>;
 
 /** What the model is shown of a settled entity read. */
 export const hashEntityReadForModel = (output: unknown) => {
-  const parsed = v.safeParse(hashEntityReadResultSchema, output);
+  const parsed = v.safeParse(vHashEntityReadResult, output);
   if (!parsed.success)
     throw new Error("HASH's page returned an entity read in an unknown shape.");
   return withTruncationNote(parsed.output);
@@ -155,7 +151,7 @@ export const createHashEntityReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
     name: brunchTools.queryHashEntities,
     description: hashEntityReadDescription,
-    input: hashEntityReadInputSchema,
+    input: vHashEntityReadInput,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
@@ -170,7 +166,7 @@ export const createHashEntityReadTool = (execute: BrowserToolExecutor) =>
   });
 
 /** No defaults or transforms, as for the entity read. */
-export const hashEntityTypeReadInputSchema = v.strictObject({
+export const vHashEntityTypeReadInput = v.strictObject({
   entityTypeIds: identifiers(
     "Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from query_hash_entities. Those exact versions are read.",
   ),
@@ -180,13 +176,13 @@ export const hashEntityTypeReadInputSchema = v.strictObject({
 });
 
 export type HashEntityTypeReadInput = v.InferOutput<
-  typeof hashEntityTypeReadInputSchema
+  typeof vHashEntityTypeReadInput
 >;
 
 export const hashEntityTypeReadDescription =
   "List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns { entityTypes }, each with its entityTypeId (a versioned URL), title, description, properties (inherited ones included), each with its baseUrl (the key an entity's properties use) and title, and links, each with its linkEntityTypeId, title and the entity types it may point to (destinationEntityTypeIds, absent when any may). A type's title can filter an entity read. An empty { entityTypes } means only that nothing visible matched. The graph returns at most 1,000 types at once; when it stopped there, the result also has truncated: true, and more may match than shown. A read that failed returns { error }. Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.";
 
-const hashEntityTypeSchema = v.object({
+const vHashEntityType = v.object({
   entityTypeId: v.string(),
   title: v.string(),
   description: v.optional(v.string()),
@@ -202,18 +198,18 @@ const hashEntityTypeSchema = v.object({
   ),
 });
 
-const hashEntityTypeReadResultSchema = v.object({
-  entityTypes: v.array(hashEntityTypeSchema),
-  truncated: truncatedSchema,
+const vHashEntityTypeReadResult = v.object({
+  entityTypes: v.array(vHashEntityType),
+  truncated: vTruncated,
 });
 
 export type HashEntityTypeReadResult = v.InferOutput<
-  typeof hashEntityTypeReadResultSchema
+  typeof vHashEntityTypeReadResult
 >;
 
 /** What the model is shown of a settled entity type read. */
 export const hashEntityTypeReadForModel = (output: unknown) => {
-  const parsed = v.safeParse(hashEntityTypeReadResultSchema, output);
+  const parsed = v.safeParse(vHashEntityTypeReadResult, output);
   if (!parsed.success)
     throw new Error(
       "HASH's page returned an entity type read in an unknown shape.",
@@ -226,7 +222,7 @@ export const createHashEntityTypeReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
     name: brunchTools.queryHashEntityTypes,
     description: hashEntityTypeReadDescription,
-    input: hashEntityTypeReadInputSchema,
+    input: vHashEntityTypeReadInput,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
@@ -240,12 +236,12 @@ export const createHashEntityTypeReadTool = (execute: BrowserToolExecutor) =>
       ),
   });
 
-export const hashWebReadInputSchema = v.strictObject({});
+export const vHashWebReadInput = v.strictObject({});
 
 export const hashWebReadDescription =
   "List the signed-in user's own HASH web and the webs of the organizations they belong to. Returns { webs }, each with its webId, kind (user or organization), and its shortname and name where it has them. A web id can limit an entity or entity type read. A read that failed returns { error }. Read it first, before query_hash_entities and query_hash_entity_types.";
 
-const hashWebReadResultSchema = v.object({
+const vHashWebReadResult = v.object({
   webs: v.array(
     v.object({
       webId: v.string(),
@@ -256,11 +252,11 @@ const hashWebReadResultSchema = v.object({
   ),
 });
 
-export type HashWebReadResult = v.InferOutput<typeof hashWebReadResultSchema>;
+export type HashWebReadResult = v.InferOutput<typeof vHashWebReadResult>;
 
 /** What the model is shown of a settled web read. */
 export const hashWebReadForModel = (output: unknown) => {
-  const parsed = v.safeParse(hashWebReadResultSchema, output);
+  const parsed = v.safeParse(vHashWebReadResult, output);
   if (!parsed.success)
     throw new Error("HASH's page returned a web read in an unknown shape.");
   return parsed.output;
@@ -271,7 +267,7 @@ export const createHashWebReadTool = (execute: BrowserToolExecutor) =>
   defineTool({
     name: brunchTools.queryHashWebs,
     description: hashWebReadDescription,
-    input: hashWebReadInputSchema,
+    input: vHashWebReadInput,
     run: ({ data, toolCallId, signal }) =>
       runHashRead(
         execute,
