@@ -20,7 +20,17 @@ import type {
   PetrinautAiAutomaticToolExecuteParams,
 } from "@hashintel/brunch-agent/ui";
 
-const notArchived = { equal: [{ path: ["archived"] }, { parameter: false }] };
+const archivedUrl = "https://hash.ai/@h/types/property-type/archived/";
+/** Neither archived by the metadata flag, nor, as pages are, by the `archived` property. */
+const notArchived = [
+  { equal: [{ path: ["archived"] }, { parameter: false }] },
+  {
+    any: [
+      { not: { exists: { path: ["properties", archivedUrl] } } },
+      { equal: [{ path: ["properties", archivedUrl] }, { parameter: false }] },
+    ],
+  },
+];
 
 /** Along a link from the entity it points from, to the entity it points to. */
 const forward = [
@@ -42,7 +52,7 @@ const oneLinkDeep = [{ edges: forward }, { edges: backward }, ...linkEndpoints];
 
 test("a read with no filters asks for every visible, unarchived entity one link deep, without drafts", () => {
   expect(hashEntityReadRequest({})).toMatchObject({
-    filter: { all: [notArchived] },
+    filter: { all: notArchived },
     traversalPaths: oneLinkDeep,
     includeDrafts: false,
     includePermissions: false,
@@ -85,7 +95,7 @@ test("each given filter must match, and within one any listed value matches", ()
           { equal: [{ path: ["webId"] }, { parameter: "org-web" }] },
         ],
       },
-      notArchived,
+      ...notArchived,
     ],
   });
   expect(request.includeDrafts).toBe(true);
@@ -108,7 +118,7 @@ test("an entity id that names a draft reads that draft, even when drafts weren't
           },
         ],
       },
-      notArchived,
+      ...notArchived,
     ],
   });
   expect(request.includeDrafts).toBe(true);
@@ -278,6 +288,43 @@ test("the read runs the request it built and returns each entity from its own ed
       },
     ],
   });
+});
+
+test("an entity reached by following links is left out when archived by its property, as pages are", async () => {
+  const { subgraph } = response.queryEntitySubgraph;
+  const withArchivedPage = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      subgraph: {
+        ...subgraph,
+        vertices: {
+          ...subgraph.vertices,
+          "alice-web~page": {
+            "2026-10-24T00:00:00Z": entity({
+              entityId: "alice-web~page",
+              editionId: "edition-3",
+              properties: { [archivedUrl]: true },
+            }),
+          },
+          "alice-web~live-page": {
+            "2026-10-24T00:00:00Z": entity({
+              entityId: "alice-web~live-page",
+              editionId: "edition-4",
+              properties: { [archivedUrl]: false },
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+
+  const output = await run(() => Promise.resolve(withArchivedPage), {});
+
+  expect(
+    (output as { entities: { entityId: string }[] }).entities.map(
+      ({ entityId }) => entityId,
+    ),
+  ).toEqual(["alice-web~supplier", "alice-web~link", "alice-web~live-page"]);
 });
 
 test("a failed query settles the read with its message, so the agent can tell the model why", async () => {

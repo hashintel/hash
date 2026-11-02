@@ -17,8 +17,10 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   generateEntityIdFilter,
+  pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
@@ -132,6 +134,7 @@ export const hashEntityReadRequest = (
           })),
         ),
         { equal: [{ path: ["archived"] }, { parameter: false }] },
+        pageOrNotificationNotArchivedFilter,
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
@@ -143,9 +146,14 @@ export const hashEntityReadRequest = (
   };
 };
 
+const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
+
 /**
  * Every entity edition in the response, each described only from itself, so
- * its edition id is the edition whose properties it carries.
+ * its edition id is the edition whose properties it carries. An entity
+ * archived through its `archived` property, as pages are, is left out: the
+ * request's filter applies only to the matches, not to the entities reached
+ * by following links.
  */
 export const hashEntityReadResult = (response: QueryEntitySubgraphQuery) => {
   const { subgraph } = deserializeQueryEntitySubgraphResponse(
@@ -154,8 +162,11 @@ export const hashEntityReadResult = (response: QueryEntitySubgraphQuery) => {
   const matched = new Set(
     getRoots(subgraph).map(({ metadata }) => metadata.recordId.editionId),
   );
+  const entities = getEntities(subgraph, false).filter(
+    (entity) => entity.properties[archivedBaseUrl] !== true,
+  );
   return {
-    entities: getEntities(subgraph, false).map((entity) => {
+    entities: entities.map((entity) => {
       const { entityId, editionId } = entity.metadata.recordId;
       const { linkData } = entity;
       return {
