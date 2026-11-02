@@ -220,7 +220,7 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
     "Read it first, before query_hash_entities and query_hash_entity_types.",
   );
   expect(mounted.descriptions.get(brunchTools.queryHashEntityTypes)).toContain(
-    "Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters every entity type the user can see is listed, which is very large.",
+    "Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
   );
   expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toContain(
     "Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds",

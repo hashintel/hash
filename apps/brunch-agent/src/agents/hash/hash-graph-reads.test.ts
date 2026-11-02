@@ -435,6 +435,24 @@ test("the web read is offered, issued as a read in a fresh conversation, and the
 });
 
 test.each([
+  [brunchTools.queryHashEntities, readInput, { entities: [supplier] }],
+  [brunchTools.queryHashEntityTypes, {}, { entityTypes: [supplierType] }],
+])(
+  "%s settled as truncated tells the model more may match than it shows",
+  async (toolName, input, output) => {
+    const { seen } = await readOnce(toolName, input, {
+      ...output,
+      truncated: true,
+    });
+    expect(seen).toEqual({
+      ...output,
+      truncated: true,
+      note: "More may match than shown; narrow the filter.",
+    });
+  },
+);
+
+test.each([
   [brunchTools.queryHashEntities, readInput],
   [brunchTools.queryHashEntityTypes, {}],
   [brunchTools.queryHashWebs, {}],

@@ -327,6 +327,23 @@ test("an entity reached by following links is left out when archived by its prop
   ).toEqual(["alice-web~supplier", "alice-web~link", "alice-web~live-page"]);
 });
 
+test("a response with a cursor, which the graph sets when it stopped at its limit, marks the read truncated", async () => {
+  const withCursor = (cursor: unknown) =>
+    ({
+      queryEntitySubgraph: { ...response.queryEntitySubgraph, cursor },
+    }) as unknown as QueryEntitySubgraphQuery;
+
+  await expect(
+    run(() => Promise.resolve(withCursor({ editionId: "x" })), {}),
+  ).resolves.toMatchObject({ truncated: true });
+  await expect(
+    run(() => Promise.resolve(withCursor(null)), {}),
+  ).resolves.not.toHaveProperty("truncated");
+  await expect(
+    run(() => Promise.resolve(response), {}),
+  ).resolves.not.toHaveProperty("truncated");
+});
+
 test("a failed query settles the read with its message, so the agent can tell the model why", async () => {
   const graphQlError = new Error("Response not successful: GraphQL error");
   await expect(run(() => Promise.reject(graphQlError), {})).resolves.toEqual({
@@ -492,6 +509,27 @@ test("the type read runs the request it built and returns each type closed, with
       },
     ],
   });
+});
+
+test("a type response with a cursor marks the type read truncated", async () => {
+  const withCursor = {
+    queryEntityTypes: {
+      ...typesResponse.queryEntityTypes,
+      cursor: typeUrl("supplier"),
+    },
+  } as unknown as QueryEntityTypesQuery;
+  await expect(
+    runTool(
+      createHashEntityTypeReadTool(() => Promise.resolve(withCursor)),
+      {},
+    ),
+  ).resolves.toMatchObject({ truncated: true });
+  await expect(
+    runTool(
+      createHashEntityTypeReadTool(() => Promise.resolve(typesResponse)),
+      {},
+    ),
+  ).resolves.not.toHaveProperty("truncated");
 });
 
 test("a failed type query settles the read with its message", async () => {
