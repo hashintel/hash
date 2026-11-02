@@ -152,7 +152,7 @@ export const Canvas = () => {
     <ReactFlow
       nodes={[]}
       edges={[]}
-      panOnDrag={tool === "hand" ? true : [1, 2]}
+      panOnDrag={tool === "hand" ? true : [1]}
       selectionOnDrag={tool === "select"}
       proOptions={{ hideAttribution: true }}
     >
