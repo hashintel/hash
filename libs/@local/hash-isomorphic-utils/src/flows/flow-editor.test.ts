@@ -336,6 +336,25 @@ describe("createFlowEditor", () => {
     });
   });
 
+  it("disconnects a for-each step from the steps inside it too", () => {
+    const definition = structuredClone(flowDefinition);
+    const [, , each] = definition.steps;
+
+    if (each?.kind !== "for-each" || !each.steps[0]) {
+      throw new Error("The for-each step has changed");
+    }
+
+    each.steps[0].runAfter = [{ stepId: "first" }, { stepId: "each" }];
+    const editor = createFlowEditor(definition);
+
+    editor.disconnectStep("each");
+
+    expect(stepOf(editor, "each")).toMatchObject({
+      steps: [{ stepId: "answer", runAfter: [{ stepId: "first" }] }, {}],
+    });
+    expect(stepOf(editor, "each")).not.toHaveProperty("runAfter");
+  });
+
   it("saves a half-built step and lists its problems on it", () => {
     const editor = loadFlow();
 

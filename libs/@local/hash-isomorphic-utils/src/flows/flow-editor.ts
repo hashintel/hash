@@ -329,9 +329,12 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     /** Removes every connection to and from a step. */
     disconnectStep: (stepId: string) => {
       setSteps(
-        replaceStep(
-          removeConnectionsFrom(state.flowDefinition.steps, new Set([stepId])),
-          setRunAfter(getStep(stepId), []),
+        removeConnectionsFrom(
+          replaceStep(
+            state.flowDefinition.steps,
+            setRunAfter(getStep(stepId), []),
+          ),
+          new Set([stepId]),
         ),
       );
     },
