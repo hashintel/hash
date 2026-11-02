@@ -12,14 +12,9 @@ export function useStore<T>(store: ReadableStore<T>): T {
   return useSyncExternalStore(subscribe, getSnapshot);
 }
 
-/**
- * A value selected from `store`; the caller re-renders when `isEqual`, by
- * default `Object.is`, tells the selected value changed.
- */
 export function useStoreSelector<T, U>(
   store: ReadableStore<T>,
   selector: (value: T) => U,
-  isEqual?: (previous: U, next: U) => boolean,
 ): U {
   const subscribe = useCallback(
     (onStoreChange: () => void) => store.subscribe(onStoreChange),
@@ -31,6 +26,5 @@ export function useStoreSelector<T, U>(
     getSnapshot,
     undefined,
     selector,
-    isEqual,
   );
 }

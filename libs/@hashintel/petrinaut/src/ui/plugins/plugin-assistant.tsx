@@ -11,6 +11,7 @@ import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { PluginBoundary } from "./plugin-boundary";
 import {
   type RunningPlugin,
+  usePluginStatuses,
   useRunningPluginsSelector,
 } from "./plugins-provider";
 
@@ -71,22 +72,16 @@ export const AssistantPanelTitle = ({
  * The assistant the editor shows among `assistants`: the one the user chose
  * while it is there, else the first.
  */
-const pickAssistant = (
-  assistants: readonly RunningPlugin[],
+const pickAssistant = <
+  Assistant extends { readonly manifest: { readonly id: string } },
+>(
+  assistants: readonly Assistant[],
   chosenId: string | null,
-): RunningPlugin | undefined =>
+): Assistant | undefined =>
   assistants.find(({ manifest }) => manifest.id === chosenId) ?? assistants[0];
 
 const providesAssistant = ({ manifest, contributions }: RunningPlugin) =>
   manifest.assistant === true && contributions.assistant !== undefined;
-
-/** Whether two lists hold the same plugins in the same order. */
-const samePlugins = (
-  previous: readonly RunningPlugin[],
-  next: readonly RunningPlugin[],
-) =>
-  previous.length === next.length &&
-  previous.every(({ manifest }, index) => manifest === next[index]?.manifest);
 
 /** The running plugin whose assistant the editor shows, or `undefined`. */
 export const usePluginAssistant = () => {
@@ -103,12 +98,17 @@ export const usePluginAssistant = () => {
  */
 export const useAssistantChoice = () => {
   const { assistantPluginId, setAssistantPluginId } = use(UserSettingsContext);
-  // Compared by plugin, so an assistant republishing its contributions, as a
-  // streaming chat does, re-renders none of the choice's readers.
-  const assistants = useRunningPluginsSelector(
-    (running) => running.filter(providesAssistant),
-    samePlugins,
-  );
+  // Selected as a string, so an assistant republishing its contributions, as
+  // a streaming chat does, re-renders none of the choice's readers.
+  const assistantIds = useRunningPluginsSelector((running) =>
+    running
+      .filter(providesAssistant)
+      .map(({ manifest }) => manifest.id)
+      .join("\n"),
+  ).split("\n");
+  const assistants = usePluginStatuses()
+    .map(({ plugin }) => plugin)
+    .filter(({ manifest }) => assistantIds.includes(manifest.id));
 
   return {
     assistants: assistants.map(({ manifest }) => manifest),
