@@ -264,7 +264,7 @@ test("an unconfirmed save tells the model it is not confirmed and not to save ag
     note: hashSaveUnconfirmedNote,
   });
   expect(hashSaveUnconfirmedNote).toContain(
-    "don't call save_hash_net again until they ask",
+    "don't call app_save_net again until they ask",
   );
 });
 

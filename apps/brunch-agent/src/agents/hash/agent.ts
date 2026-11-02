@@ -1,8 +1,9 @@
 "use agent";
 /**
  * Brunch for HASH: the Petrinaut agent's guidance (prompt and skills, copied
- * here so they can diverge), the Ledger and `query_basis` tools both agents
- * mount from `../shared/`, HASH's own Petrinaut tools over the shared browser
+ * here so they can diverge), the Ledger and basis-query tools both agents
+ * mount from `../shared/` (under HASH's names: `ledger_query`,
+ * `ledger_query_basis`), HASH's own Petrinaut tools over the shared browser
  * calls, net freshness and transport, plus reads of the HASH graph and Save
  * that HASH's process page executes. HASH's process page talks to it.
  */
@@ -39,7 +40,6 @@ import {
   expectedNetRevision,
 } from "../../shared/conversation/net-freshness.ts";
 import { asyncCanonicalPetrinautTools } from "../../shared/petrinaut-tools.ts";
-import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
@@ -160,7 +160,7 @@ export const HashAgent = ({ id }: AgentProps): string => {
       createHashSaveTool(executeBrowserTool, initialData.binding.documentId),
     );
   }
-  useTool(ping);
+  // `ping` serves diagnostics runs only; the HASH agent's model doesn't get it.
 
   return system;
 };

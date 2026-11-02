@@ -18,7 +18,9 @@ export const visibleOrdinaryBrunchToolNames = [
   brunchTools.readSkillResource,
   brunchTools.ledgerCommit,
   brunchTools.ledgerCompile,
+  brunchTools.ledgerQuery,
   brunchTools.queryBasis,
+  brunchTools.ledgerQueryBasis,
   brunchTools.ping,
   netReaderToolNames.outline,
   netReaderToolNames.structure,
@@ -26,6 +28,17 @@ export const visibleOrdinaryBrunchToolNames = [
 
 type VisibleOrdinaryBrunchToolName =
   (typeof visibleOrdinaryBrunchToolNames)[number];
+
+const readingTheLedger = {
+  pending: "Read the Ledger",
+  success: "Read the Ledger",
+  error: "Could not read the Ledger",
+};
+const checkingRecordedBasis = {
+  pending: "Check recorded basis",
+  success: "Checked recorded basis",
+  error: "Could not check recorded basis",
+};
 
 type LifecycleTitles = Readonly<
   Record<PetrinautAiToolPresentationState, string>
@@ -56,11 +69,9 @@ const lifecycleTitles = {
     success: "Recorded in the Ledger",
     error: "Could not record in the Ledger",
   },
-  [brunchTools.ledgerCompile]: {
-    pending: "Read the Ledger",
-    success: "Read the Ledger",
-    error: "Could not read the Ledger",
-  },
+  // The Petrinaut agent's name and the HASH agent's for the same tool.
+  [brunchTools.ledgerCompile]: readingTheLedger,
+  [brunchTools.ledgerQuery]: readingTheLedger,
   [netReaderToolNames.outline]: {
     pending: "Read the net outline",
     success: "Read the net outline",
@@ -71,11 +82,8 @@ const lifecycleTitles = {
     success: "Read the net structure",
     error: "Could not read the net structure",
   },
-  [brunchTools.queryBasis]: {
-    pending: "Check recorded basis",
-    success: "Checked recorded basis",
-    error: "Could not check recorded basis",
-  },
+  [brunchTools.queryBasis]: checkingRecordedBasis,
+  [brunchTools.ledgerQueryBasis]: checkingRecordedBasis,
   [brunchTools.ping]: {
     pending: "Check connection to the AI assistant",
     success: "Checked connection to the AI assistant",

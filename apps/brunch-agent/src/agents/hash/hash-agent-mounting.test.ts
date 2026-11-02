@@ -164,18 +164,18 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
     "petrinaut",
     "hash-graph",
   ]);
-  // No net readers, no experiment draft and no canonical Petrinaut tool but
-  // the user guide: the net is read, changed and run only through HASH's own.
+  // HASH's names throughout; no `ping`, no net readers, no experiment draft,
+  // and no canonical Petrinaut tool but the user guide: the net is read,
+  // changed and run only through HASH's own.
   expect(mounted.tools.toSorted()).toEqual(
     [
-      brunchTools.ledgerCommit,
-      brunchTools.ledgerCompile,
-      brunchTools.queryBasis,
-      brunchTools.ping,
-      brunchTools.queryHashEntities,
-      brunchTools.queryHashEntityTypes,
-      brunchTools.queryHashWebs,
-      brunchTools.saveHashNet,
+      "ledger_commit",
+      "ledger_query",
+      "ledger_query_basis",
+      "hash_query_entities",
+      "hash_query_entity_types",
+      "hash_query_webs",
+      "app_save_net",
       "readPetrinautDoc",
       "petrinaut_get_net",
       "petrinaut_get_diagnostics",
@@ -241,10 +241,8 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
   expect(mounted.descriptions.get(brunchTools.ledgerCommit)).toBe(
     commitToolDescription,
   );
-  expect(mounted.descriptions.get(brunchTools.ledgerCompile)).toBe(
-    compileToolDescription,
-  );
-  expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
+  expect(mounted.descriptions.get("ledger_query")).toBe(compileToolDescription);
+  expect(mounted.descriptions.get("ledger_query_basis")).toBe(
     queryBasisToolDescription,
   );
 });
@@ -258,13 +256,7 @@ test("a conversation without initial data mounts the guidance and Ledger without
     "petrinaut",
     "hash-graph",
   ]);
-  expect(mounted.tools.sort()).toEqual(
-    [
-      brunchTools.ledgerCommit,
-      brunchTools.ledgerCompile,
-      brunchTools.ping,
-    ].sort(),
-  );
+  expect(mounted.tools.sort()).toEqual(["ledger_commit", "ledger_query"]);
   expect(mounted.instructions).toEqual([]);
 });
 
@@ -282,13 +274,13 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(hashPrompt).toContain("Load `hash-graph`");
   expect(mounted.skills).toContain("hash-graph");
   expect(mounted.descriptions.get(brunchTools.queryHashWebs)).toContain(
-    "Read it first, before query_hash_entities and query_hash_entity_types.",
+    "Read it first, before hash_query_entities and hash_query_entity_types.",
   );
   expect(mounted.descriptions.get(brunchTools.queryHashEntityTypes)).toContain(
-    "Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
+    "Read it after hash_query_webs and hash_query_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
   );
   expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toContain(
-    "Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds",
+    "Read webs with hash_query_webs first, for the web ids to filter by; then read the types of the entities found with hash_query_entity_types, by their entityTypeIds",
   );
 
   mounted.skills.length = 0;

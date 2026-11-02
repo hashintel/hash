@@ -37,7 +37,7 @@ const observed = vi.hoisted(() => ({
   petrinautFailure: null as null | { error: Error; source: string },
   brunchFailure: null as null | { error: Error; source: string },
   /** The HASH graph reads the page gives Brunch. */
-  hashGraphReadTools: [{ toolName: "query_hash_entities" }],
+  hashGraphReadTools: [{ toolName: "hash_query_entities" }],
 }));
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));

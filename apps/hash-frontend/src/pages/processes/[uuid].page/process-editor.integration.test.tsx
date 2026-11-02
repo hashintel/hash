@@ -15,7 +15,7 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { StrictMode, use, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { hashPetrinautTools } from "@hashintel/brunch-agent";
+import { brunchTools, hashPetrinautTools } from "@hashintel/brunch-agent";
 import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
 
 import ProcessRoutePage from "../[uuid].page";
@@ -699,10 +699,10 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
     editor: { handle: first },
   });
   expect(observed.brunch?.hostTools?.map(({ toolName }) => toolName)).toEqual([
-    "query_hash_entities",
-    "query_hash_entity_types",
-    "query_hash_webs",
-    "save_hash_net",
+    brunchTools.queryHashEntities,
+    brunchTools.queryHashEntityTypes,
+    brunchTools.queryHashWebs,
+    brunchTools.saveHashNet,
     ...Object.keys(hashPetrinautTools),
   ]);
 
@@ -1198,7 +1198,7 @@ const agentSave = (
   signal = new AbortController().signal,
 ) => {
   const tool = observed.brunch?.hostTools?.find(
-    ({ toolName }) => toolName === "save_hash_net",
+    ({ toolName }) => toolName === brunchTools.saveHashNet,
   );
   if (!tool) {
     throw new Error("The page gave Brunch no save");

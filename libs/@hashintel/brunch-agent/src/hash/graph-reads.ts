@@ -8,6 +8,8 @@
 
 import * as v from "valibot";
 
+import { brunchTools } from "../constants";
+
 /** How many links an entity read follows when the model names no depth. */
 export const hashEntityReadDefaultTraversalDepth = 1;
 
@@ -73,7 +75,7 @@ export const parseHashEntityReadInput = (input: unknown): HashEntityReadInput =>
 
 export const vHashEntityTypeReadInput = v.strictObject({
   entityTypeIds: identifiers(
-    "Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from query_hash_entities. Those exact versions are read.",
+    `Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from ${brunchTools.queryHashEntities}. Those exact versions are read.`,
   ),
   webIds: identifiers(
     "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
