@@ -280,13 +280,19 @@ describe("createFlowEditor", () => {
       expect(editor.getState().problemsByStepId.size).toBe(0);
     });
 
-    it("clears an input, whose problem is then listed on its step", () => {
+    it("clears an input, listing every problem of the step on it", () => {
       const editor = loadFlow();
 
+      editor.setInputSource("second", "context", explanationOf("missing"));
       editor.setInputSource("second", "question", null);
 
-      expect(stepOf(editor, "second")).toMatchObject({ inputs: {} });
-      expect(problemCodesOf(editor, "second")).toEqual(["missingInput"]);
+      expect(stepOf(editor, "second")).toMatchObject({
+        inputs: { context: explanationOf("missing") },
+      });
+      expect(problemCodesOf(editor, "second")).toEqual([
+        "unknownStep",
+        "missingInput",
+      ]);
     });
   });
 
