@@ -27,7 +27,7 @@ import type { DependentTypeRow } from "./dependent-type-rows";
 import type { PopperProps, Theme } from "@mui/material";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 
-export type VersionGraphTooltipTriggerProps = {
+type VersionGraphTooltipTriggerProps = {
   /** Spread on the row: hovering it shows the tooltip, and the tooltip is placed against it. */
   rowProps: {
     ref: (element: HTMLElement | null) => void;

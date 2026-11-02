@@ -1,6 +1,5 @@
 export const rowHeight = 40;
 
-/** The width of the open button at the end of each row. */
 export const openColumnWidth = 40;
 
 export const formatVersions = (firstVersion: number, lastVersion: number) =>

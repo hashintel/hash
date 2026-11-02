@@ -230,13 +230,7 @@ export const getParentVersionRows = ({
         const ranges = row.ranges.filter(
           (range) => range.parentVersion === parentVersion,
         );
-        const highestRange = ranges.reduce<DependentTypeVersionRange | null>(
-          (highest, range) =>
-            !highest || range.lastVersion > highest.lastVersion
-              ? range
-              : highest,
-          null,
-        );
+        const highestRange = ranges.at(-1);
 
         return highestRange
           ? [{ row, ranges, highestVersionId: highestRange.lastVersionId }]
