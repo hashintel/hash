@@ -8,6 +8,7 @@ import { createContext, use, useEffect, useMemo, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { hasCaretModifier, hasCommandModifier } from "../keyboard";
 import { usePortalContainerRef } from "../portal-container-context";
 import { isEmptyString } from "../string";
 import { ItemBody } from "./selectable-list-item";
@@ -125,9 +126,9 @@ const handleRowKeyDown = (as: SelectableListAs, event: React.KeyboardEvent) => {
     event.key === "Tab" ||
     event.key === "Escape" ||
     (as === "Select" &&
-      (event.key === "ArrowDown" ||
-        event.key === "ArrowUp" ||
-        event.key === "Enter"));
+      (((event.key === "ArrowDown" || event.key === "ArrowUp") &&
+        !hasCaretModifier(event)) ||
+        (event.key === "Enter" && !hasCommandModifier(event))));
   if (!passThrough) {
     event.stopPropagation();
   }

@@ -1358,30 +1358,28 @@ describe("ProductionScheduleView", () => {
       clientHeight: { configurable: true, value: 600 },
       clientWidth: { configurable: true, value: 800 },
     });
-    frame.getBoundingClientRect = () =>
-      ({
-        bottom: 600,
-        height: 600,
-        left: 0,
-        right: 800,
-        top: 0,
-        width: 800,
-        x: 0,
-        y: 0,
-        toJSON: () => ({}),
-      }) as DOMRect;
-    batch.getBoundingClientRect = () =>
-      ({
-        bottom: 430,
-        height: 30,
-        left: 600,
-        right: 700,
-        top: 400,
-        width: 100,
-        x: 600,
-        y: 400,
-        toJSON: () => ({}),
-      }) as DOMRect;
+    frame.getBoundingClientRect = () => ({
+      bottom: 600,
+      height: 600,
+      left: 0,
+      right: 800,
+      top: 0,
+      width: 800,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    batch.getBoundingClientRect = () => ({
+      bottom: 430,
+      height: 30,
+      left: 600,
+      right: 700,
+      top: 400,
+      width: 100,
+      x: 600,
+      y: 400,
+      toJSON: () => ({}),
+    });
 
     fireEvent.change(
       screen.getByRole("searchbox", {

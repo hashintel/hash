@@ -14,6 +14,7 @@ import {
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { hasCommandModifier } from "../../util/keyboard";
 import { OverflowRow } from "../../util/OverflowRow/overflow-row";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
@@ -503,7 +504,11 @@ export const Select = <TValue extends string>({
   const lastKeyWasListNavRef = useRef(false);
   const handleSearchSpaceKeyDown = (event: React.KeyboardEvent): boolean => {
     const api = selectApiRef.current;
-    if (!api?.open || event.nativeEvent.isComposing) {
+    if (
+      !api?.open ||
+      event.nativeEvent.isComposing ||
+      hasCommandModifier(event)
+    ) {
       return false;
     }
     const target = event.target as Element;
@@ -538,7 +543,7 @@ export const Select = <TValue extends string>({
   // so zag never sees the key; all movement is programmatic.
   const handleTabKeyDown = (event: React.KeyboardEvent) => {
     const api = selectApiRef.current;
-    if (!api?.open) {
+    if (!api?.open || hasCommandModifier(event)) {
       return;
     }
     event.preventDefault();
@@ -1057,7 +1062,7 @@ export const Select = <TValue extends string>({
           <ArkSelect.Trigger
             id={inputId}
             {...resolveAutoFocusProps(autoFocus)}
-            ref={internalRef as React.Ref<HTMLButtonElement>}
+            ref={internalRef}
             className={classes.trigger}
             data-part="trigger"
             data-testid={testId}

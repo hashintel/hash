@@ -20,7 +20,7 @@ import type {
 const require = createRequire(import.meta.url);
 
 const typescriptVersion = (
-  require("typescript-7/package.json") as { version: string }
+  require("typescript/package.json") as { version: string }
 ).version;
 
 /** Bumped whenever the walker's output changes for the same input. */

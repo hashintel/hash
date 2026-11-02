@@ -16,11 +16,15 @@ import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events
 import type { FlowRunRecord } from "@local/hash-isomorphic-utils/flows/run-record";
 import type { GraphQLObjectType } from "graphql/index.js";
 
-const mocks = vi.hoisted(() => ({
-  getFlowRunEntityById: vi.fn(),
-  getFlowRunRecord: vi.fn(),
-  flowRun: {} as Record<string, unknown>,
-}));
+const mocks = vi.hoisted(() => {
+  const flowRun: Record<string, unknown> = {};
+
+  return {
+    getFlowRunEntityById: vi.fn(),
+    getFlowRunRecord: vi.fn(),
+    flowRun,
+  };
+});
 
 vi.mock("@local/hash-backend-utils/flows", () => ({
   getFlowRunEntityById: mocks.getFlowRunEntityById,

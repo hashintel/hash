@@ -176,29 +176,12 @@ export const createSchema = (nodes: NodeSpecs) =>
            */
           {
             tag: "b",
-            getAttrs: (node) => {
-              /**
-               * It is always a Node for tag rules but the types aren't
-               * smart enough for that
-               *
-               * @todo remove the need for this cast
-               */
-              const castNode = node as unknown as HTMLElement;
-
-              return castNode.style.fontWeight !== "normal" && null;
-            },
+            getAttrs: (node) => node.style.fontWeight !== "normal" && null,
           },
           {
             style: "font-weight",
             getAttrs(value) {
-              /**
-               * It is always a string for style rules but the types aren't
-               * smart enough for that
-               *
-               * @todo remove the need for this cast
-               */
-              const castValue = value as unknown as string;
-              if (/^(bold(er)?|[5-9]\d{2,})$/.test(castValue)) {
+              if (/^(bold(er)?|[5-9]\d{2,})$/.test(value)) {
                 return null;
               }
               return false;

@@ -29,7 +29,8 @@ export const validateBaseUrl = (
     };
   }
   try {
-    void new URL(url);
+    // eslint-disable-next-line no-new -- The constructor validates by throwing; its result is unused.
+    new URL(url);
     if (url.endsWith("/")) {
       return {
         type: "Ok",

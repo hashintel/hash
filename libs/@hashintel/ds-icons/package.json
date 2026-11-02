@@ -42,7 +42,7 @@
     "dev:lib": "vite build --watch",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
+    "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
     "test:unit": "vitest"
   },
@@ -56,7 +56,6 @@
     "@testing-library/react": "16.3.2",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@vitejs/plugin-react": "6.1.1",
     "jsdom": "24.1.3",
     "oxc-transform-react": "0.152.0",
@@ -66,6 +65,7 @@
     "react-dom": "19.2.6",
     "rolldown": "1.2.6",
     "rolldown-plugin-dts": "0.28.3",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   },

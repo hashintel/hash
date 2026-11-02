@@ -315,7 +315,7 @@ export const useDashboardItemConfig = ({
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
             },
           },
-        } as PropertyPatchOperation);
+        });
       }
 
       // Set status to ready

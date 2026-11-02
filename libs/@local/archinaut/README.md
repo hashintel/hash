@@ -64,7 +64,7 @@ drawing alone.
 ## Facts providers
 
 **TypeScript** facts come from the native TypeScript compiler, the 7.1 line,
-through its API (`typescript-7/sync`). Every covered TypeScript package goes
+through its API (`typescript/sync`). Every covered TypeScript package goes
 into one program, with `paths` mapping workspace packages to their source
 entries so a cross-package reference lands on the defining source file rather
 than on a built declaration file. The program lives in a worker thread

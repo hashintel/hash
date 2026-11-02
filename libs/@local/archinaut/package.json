@@ -39,7 +39,7 @@
     "remark-frontmatter": "5.0.0",
     "remark-gfm": "4.0.1",
     "tsx": "catalog:",
-    "typescript-7": "npm:typescript@7.1.0-dev.20261012.1",
+    "typescript": "catalog:beta",
     "unist-util-visit": "5.1.0",
     "vite": "catalog:",
     "zod": "4.6.7"
@@ -52,7 +52,6 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "oxlint": "1.86.0",
-    "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {

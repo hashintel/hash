@@ -73,6 +73,10 @@ const ShadowSwatch = ({
           height: "[80px]",
           borderRadius: "lg",
           bg: "neutral.s00",
+          _dark: {
+            bg: "neutral.s15",
+            border: "[1px solid {colors.neutral.s40}]",
+          },
         })}
         style={{ boxShadow: shadowValue }}
       />
@@ -99,6 +103,10 @@ const InsetSwatch = ({
           height: "[80px]",
           borderRadius: "lg",
           bg: "neutral.s10",
+          _dark: {
+            bg: "neutral.s15",
+            border: "[1px solid {colors.neutral.s40}]",
+          },
         })}
         style={{ boxShadow: shadowValue }}
       />
@@ -126,6 +134,10 @@ const ElevationSwatch = ({
         className={css({
           borderRadius: "lg",
           bg: "neutral.s00",
+          _dark: {
+            bg: "neutral.s15",
+            border: "[1px solid {colors.neutral.s40}]",
+          },
         })}
         style={{
           width: `var(--w, ${size === "[120px]" ? "120px" : "64px"})`,

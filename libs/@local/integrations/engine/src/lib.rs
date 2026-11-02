@@ -16,6 +16,7 @@
 extern crate alloc;
 
 mod byte_size;
+mod capture;
 mod entity_id;
 mod pipeline;
 mod progress;
@@ -25,6 +26,7 @@ mod workspace;
 
 pub use self::{
     byte_size::ByteSize,
+    capture::{CaptureError, SourceCapture},
     entity_id::derive_entity_id,
     pipeline::{
         AssertionFailure, PreparationError, PreparedLink, PreparedPipeline, PreparedSink,

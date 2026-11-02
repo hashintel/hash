@@ -82,7 +82,6 @@ export const tokens = {
         "var(--font-geist-mono), Geist Mono, ui-monospace, SFMono-Regular, monospace",
     },
   },
-  colors: staticColors,
   sizes: pandaPreset.theme.tokens.sizes,
   shadows: pandaPreset.theme.tokens.shadows,
   spacing: scaledSpacing,
@@ -95,6 +94,7 @@ export const tokens = {
 export const semanticTokens = {
   colors: {
     DEFAULT: createSemanticSet("colors.neutral", "neutral"),
+    ...staticColors,
     ...basePalettes,
     status: {
       info: blue,

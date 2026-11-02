@@ -37,7 +37,7 @@ import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-hea
 import type { Org, User } from "../../../lib/user-and-org";
 import type { ProfilePageTab } from "./util";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent } from "react";
 
@@ -139,9 +139,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("updated-at-desc");
 
-  const webId = (
-    profile.kind === "user" ? profile.accountId : profile.webId
-  ) as WebId;
+  const webId = profile.kind === "user" ? profile.accountId : profile.webId;
 
   const { lastRootPageIndex } = useAccountPages(webId);
   const [createUntitledPage] = useCreatePage({

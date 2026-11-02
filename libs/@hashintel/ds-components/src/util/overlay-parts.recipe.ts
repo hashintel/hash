@@ -32,7 +32,8 @@ export const overlayPartsStyles = sva({
   ],
   base: {
     backdrop: {
-      background: "black.a60",
+      // Static scrim: stays dark in both modes (black/white tokens invert).
+      background: "[rgba(0, 0, 0, 0.4)]",
       position: "fixed",
       inset: "0",
       width: "[100dvw]",
@@ -204,7 +205,7 @@ export const overlayPartsStyles = sva({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "[rgba(255, 255, 255, 0.88)]",
+      background: "white.a110",
       zIndex: "[1]",
       borderRadius: "[inherit]",
     },
