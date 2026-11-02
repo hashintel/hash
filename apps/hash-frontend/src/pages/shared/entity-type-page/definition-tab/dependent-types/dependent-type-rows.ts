@@ -89,3 +89,49 @@ export const getDependentTypeRows = ({
         { numeric: true },
       ),
     );
+
+export type ParentVersionRow = {
+  parentVersion: number;
+  /** The types with a version that extends this parent version, sorted by title. */
+  types: {
+    row: DependentTypeRow;
+    /** The type's ranges that extend this parent version. */
+    ranges: DependentTypeVersionRange[];
+    /** The type's highest version that extends this parent version. */
+    highestVersion: number;
+    highestVersionId: VersionedUrl;
+  }[];
+};
+
+/** Groups dependent types by the parent version they extend, newest parent version first. */
+export const getParentVersionRows = ({
+  rows,
+  parentLatestVersion,
+}: {
+  rows: DependentTypeRow[];
+  parentLatestVersion: number;
+}): ParentVersionRow[] =>
+  Array.from({ length: parentLatestVersion }, (_, index) => {
+    const parentVersion = parentLatestVersion - index;
+
+    return {
+      parentVersion,
+      types: rows.flatMap((row) => {
+        const ranges = row.ranges.filter(
+          (range) => range.parentVersion === parentVersion,
+        );
+        const highestRange = ranges.at(-1);
+
+        return highestRange
+          ? [
+              {
+                row,
+                ranges,
+                highestVersion: highestRange.lastVersion,
+                highestVersionId: highestRange.lastVersionId,
+              },
+            ]
+          : [];
+      }),
+    };
+  });

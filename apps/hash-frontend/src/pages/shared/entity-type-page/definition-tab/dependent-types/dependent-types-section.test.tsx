@@ -49,6 +49,7 @@ const renderSection = (
     <ThemeProvider theme={theme}>
       <DependentTypesSection
         entityType={actor}
+        knownParentLatestVersion={2}
         rows={undefined}
         incomplete={false}
         error={undefined}
@@ -199,6 +200,25 @@ describe("DependentTypesSection", () => {
 
     expect(section.textContent).toContain("No types extend Actor yet.");
     within(section).getByRole("switch", { name: "Include former types" });
+  });
+
+  it("switches between the layouts", () => {
+    const { section } = renderSection({ rows: [user] });
+
+    const byChild = within(section).getByRole("button", {
+      name: "By child type",
+    });
+    const byParent = within(section).getByRole("button", {
+      name: "By parent version",
+    });
+    expect(byChild.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(byParent);
+
+    expect(byParent.getAttribute("aria-pressed")).toBe("true");
+    expect(
+      within(section).queryByRole("button", { name: userToggleName }),
+    ).toBeNull();
   });
 
   it("warns that types or versions may be missing when a query reached its row limit", () => {
