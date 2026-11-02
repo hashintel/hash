@@ -49,7 +49,7 @@ const InfoButton = ({ label, text }: { label: string; text: string }) => (
 
 export const DependentTypesSection = ({
   entityType,
-  parentLatestVersion,
+  knownParentLatestVersion,
   rows,
   incomplete,
   error,
@@ -59,7 +59,7 @@ export const DependentTypesSection = ({
   /** The type on the page. */
   entityType: EntityTypeWithMetadata;
   /** The latest version of the type on the page, if known. */
-  parentLatestVersion: number | null;
+  knownParentLatestVersion: number | null;
   /** Current and former dependent types; `undefined` until they have loaded. */
   rows: DependentTypeRow[] | undefined;
   /** Whether a query stopped at the Graph's row limit, so rows or versions can be missing. */
@@ -78,8 +78,8 @@ export const DependentTypesSection = ({
   const failed = rows === undefined && !!error;
   const loading = rows === undefined && !error;
   const shownRows = currentOnly ? rows?.filter((row) => !row.former) : rows;
-  const latestParentVersion =
-    parentLatestVersion ??
+  const parentLatestVersion =
+    knownParentLatestVersion ??
     Math.max(1, ...(rows ?? []).flatMap((row) => row.parentVersions));
 
   const boldTitle: ReactNode = (
@@ -166,7 +166,7 @@ export const DependentTypesSection = ({
         layout === "byType" ? (
           <DependentTypesByTypeTable
             entityTypeTitle={entityTypeTitle}
-            parentLatestVersion={latestParentVersion}
+            parentLatestVersion={parentLatestVersion}
             rows={shownRows}
             isLinkType={isLinkType}
             onOpenType={onOpenType}
@@ -176,7 +176,7 @@ export const DependentTypesSection = ({
             entityType={entityType}
             parentVersionRows={getParentVersionRows({
               rows: shownRows,
-              parentLatestVersion: latestParentVersion,
+              parentLatestVersion,
             })}
             isLinkType={isLinkType}
             onOpenType={onOpenType}

@@ -2,7 +2,7 @@ import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, ButtonBase, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon, FontAwesomeIcon } from "@hashintel/design-system";
 
 import {
@@ -29,14 +29,11 @@ const gridTemplateColumns = "240px minmax(0, 1fr) 128px";
 
 const innerCellSx = { ...cellSx, pl: 1.5 } as const;
 
-const versionNumber = (entityTypeId: VersionedUrl) =>
-  Number.parseInt(extractVersion(entityTypeId).toString(), 10);
-
 const countLabel = (count: number) =>
   count === 0 ? "No types" : count === 1 ? "1 type" : `${count} types`;
 
 const DependentTypeSubRow = ({
-  type: { row, ranges, highestVersionId },
+  type: { row, ranges, highestVersion, highestVersionId },
   parentLabel,
   last,
   isLink,
@@ -52,7 +49,7 @@ const DependentTypeSubRow = ({
   const [focused, setFocused] = useState(false);
 
   const { entityType, former } = row;
-  const { $id, title, description } = entityType.schema;
+  const { title, description } = entityType.schema;
 
   return (
     <Box
@@ -88,7 +85,7 @@ const DependentTypeSubRow = ({
                 entityType={entityType}
                 former={former}
                 isLink={isLink}
-                version={versionNumber($id)}
+                version={row.version}
               />
             </Box>
           </Tooltip>
@@ -102,7 +99,7 @@ const DependentTypeSubRow = ({
         </Box>
       </Box>
       <OpenTypeButton
-        label={`Open ${title} v${versionNumber(highestVersionId)}, the highest version that extends ${parentLabel}`}
+        label={`Open ${title} v${highestVersion}, the highest version that extends ${parentLabel}`}
         description={description}
         onClick={() => onOpenType(highestVersionId)}
         onFocusVisible={() => setFocused(true)}

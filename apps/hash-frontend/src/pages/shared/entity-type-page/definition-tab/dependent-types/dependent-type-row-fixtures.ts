@@ -38,6 +38,7 @@ export const makeRow = (
         properties: {},
       },
     } as EntityTypeWithMetadata,
+    version,
     former,
     firstVersion: Math.min(...ranges.map(([first]) => first)),
     lastVersion: Math.max(...ranges.map(([, last]) => last)),

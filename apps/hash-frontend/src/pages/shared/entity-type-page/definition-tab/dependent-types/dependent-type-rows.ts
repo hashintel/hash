@@ -24,6 +24,8 @@ export type DependentTypeRow = {
    * that extends the parent.
    */
   entityType: EntityTypeWithMetadata;
+  /** The version number of `entityType`. */
+  version: number;
   /** Whether the type's latest version no longer extends the parent, or is archived. */
   former: boolean;
   firstVersion: number;
@@ -94,6 +96,7 @@ const toRow = (
 
   return {
     entityType,
+    version: versionNumber(entityType.schema.$id),
     former,
     firstVersion: Math.min(...ranges.map((range) => range.firstVersion)),
     lastVersion: Math.max(...ranges.map((range) => range.lastVersion)),
@@ -209,6 +212,7 @@ export type ParentVersionRow = {
     /** The type's ranges that extend this parent version. */
     ranges: DependentTypeVersionRange[];
     /** The type's highest version that extends this parent version. */
+    highestVersion: number;
     highestVersionId: VersionedUrl;
   }[];
 };
@@ -233,7 +237,14 @@ export const getParentVersionRows = ({
         const highestRange = ranges.at(-1);
 
         return highestRange
-          ? [{ row, ranges, highestVersionId: highestRange.lastVersionId }]
+          ? [
+              {
+                row,
+                ranges,
+                highestVersion: highestRange.lastVersion,
+                highestVersionId: highestRange.lastVersionId,
+              },
+            ]
           : [];
       }),
     };

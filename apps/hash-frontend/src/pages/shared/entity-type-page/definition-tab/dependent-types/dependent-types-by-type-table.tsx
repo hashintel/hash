@@ -2,7 +2,6 @@ import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, ButtonBase } from "@mui/material";
 import { useState } from "react";
 
-import { extractVersion } from "@blockprotocol/type-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import {
@@ -104,7 +103,7 @@ const DependentTypeTableRow = ({
 
   const { entityType, former } = row;
   const { $id, title } = entityType.schema;
-  const version = Number.parseInt(extractVersion($id).toString(), 10);
+  const { version } = row;
   const versions = formatVersions(row.firstVersion, row.lastVersion);
   const parentVersions = formatVersionList(row.parentVersions);
 
