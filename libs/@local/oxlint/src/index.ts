@@ -221,7 +221,7 @@ const createDefaults = (
 
         overrides.push(
           defineOverride({
-            files: ["src/**/*.test-d.ts"],
+            files: ["**/*.test-d.{ts,tsx}"],
             rules: {
               "vitest/prefer-expect-assertions": "allow", // type tests run through the compiler, not the runtime assertion counter.
               "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
@@ -243,7 +243,7 @@ const createDefaults = (
             },
           }),
           defineOverride({
-            files: ["src/**/*.test.ts"],
+            files: ["**/*.test.{ts,tsx,mts,cts}"],
             rules: {
               "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
               "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
