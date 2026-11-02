@@ -9691,7 +9691,7 @@ __metadata:
     oxlint: "catalog:"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
-    typescript: "catalog:"
+    typescript: "catalog:beta"
   languageName: unknown
   linkType: soft
 
