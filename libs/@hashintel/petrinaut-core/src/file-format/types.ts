@@ -5,8 +5,10 @@ import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
+  componentSourceSchema as currentComponentSourceSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
+  fusionSchema as currentFusionSchema,
   inputArcSchema as currentInputArcSchema,
   metadataSchema,
   outputArcSchema as currentOutputArcSchema,
@@ -155,17 +157,20 @@ const subnetSchema = z.object({
   name: z.string(),
   description: descriptionSchema,
   metadata: metadataSchema,
+  source: currentComponentSourceSchema.optional(),
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(colorSchema).default([]),
   differentialEquations: z.array(differentialEquationSchema).default([]),
   parameters: z.array(parameterSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
+  fusions: z.array(currentFusionSchema).default([]),
 });
 
 export const sdcpnSchema = z.object({
   description: descriptionSchema,
   metadata: metadataSchema,
+  componentsOnly: z.boolean().optional(),
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(colorSchema).default([]),
@@ -175,6 +180,7 @@ export const sdcpnSchema = z.object({
   metrics: z.array(metricSchema).default([]),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
+  fusions: z.array(currentFusionSchema).default([]),
 });
 
 const fileMetaSchema = z.object({

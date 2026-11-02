@@ -54,7 +54,7 @@ const nodes: CanvasNode[] = [
     kind: "componentInstance",
     position: { x: 600, y: 0 },
     subnetName: "Subnet",
-    ports: [{ id: "port", name: "Port" }],
+    ports: [{ id: "port", name: "Port", direction: "inout" }],
   },
 ];
 const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
@@ -69,6 +69,7 @@ const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
 };
 const scene: CanvasScene = {
   nodes,
+  fusions: [],
   dimensions: compactNodeDimensions,
   focusActive: false,
   arcs: [

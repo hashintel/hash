@@ -15,6 +15,7 @@ import {
 } from "./extensions";
 import { calculateGraphLayout } from "./layout/calculate-graph-layout";
 import { layoutNodeDimensions } from "./layout/dimensions";
+import { replaceDefinition } from "./lib/replace-definition";
 import { toPetrinautId } from "./petrinaut-id";
 
 import type { ClipboardPayload } from "./clipboard/types";
@@ -56,6 +57,13 @@ export type CommandHelperFunctions = {
    * when applicable (e.g. the AI dispatcher prompts via an interactive chat
    * widget when `askUserFirst: true`).
    */
+  /**
+   * Replace the whole definition in one change, validated as a file is, with
+   * ids canonicalised. The Code view writes a merged net this way; the ids
+   * the merge kept are what make it an edit of the same net.
+   */
+  replaceDefinition: (input: { definition: SDCPN }) => void;
+
   applyAutoLayout: (input?: {
     targetSubnetId?: string | null;
   }) => Promise<ApplyAutoLayoutResult>;
@@ -158,6 +166,15 @@ export function createPetrinautCommands(
         validateNewlyPastedItems(targetNet, newItemIds);
       });
       return { newItemIds };
+    },
+
+    replaceDefinition(input) {
+      const { definition } =
+        commandActionInputSchemas.replaceDefinition.parse(input);
+      mutate((sdcpn) => {
+        replaceDefinition(sdcpn, definition);
+        stripDisabledExtensionData(sdcpn, extensions);
+      });
     },
 
     async applyAutoLayout(input) {

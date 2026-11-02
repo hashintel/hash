@@ -7,6 +7,9 @@
  */
 
 import {
+  checkFusion,
+  effectivePortDirection,
+  fusionDisplayName,
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
@@ -14,8 +17,10 @@ import {
   getComponentInstanceHeight,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
+  resolveFusionMember,
 } from "@hashintel/petrinaut-core";
 
+import { fusionHub, fusionLinkId } from "./fusion-links";
 import { arcStrokeColor } from "./styles/type-colors";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
@@ -27,8 +32,11 @@ import type {
 } from "./canvas-focus";
 import type {
   ArcEndpoint,
+  FusionMember,
   InputArcType,
   PetrinautExtensionSettings,
+  PortDirection,
+  ProblemSeverity,
   RenderNodeDimensions,
   SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -69,7 +77,12 @@ export type CanvasTransitionNode = CanvasNodeBase & {
   lambdaType: "none" | "predicate" | "stochastic";
 };
 
-export type CanvasPort = { id: string; name: string };
+export type CanvasPort = {
+  id: string;
+  name: string;
+  /** Which way tokens cross the port, as the component declares or uses it. */
+  direction: PortDirection;
+};
 
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
@@ -102,9 +115,32 @@ export type CanvasArc = {
   focus: CanvasArcFocus;
 };
 
+/**
+ * One line of a fusion: from the fusion's hub, its anchor place or first
+ * member, to one of its other members. A fusion with three members draws two
+ * links; every link selects and hovers the fusion as a whole.
+ */
+export type CanvasFusionLink = {
+  /** Unique per link: the fusion id and the member the link leads to. */
+  id: string;
+  fusionId: string;
+  /** The fused place's name, shown on the link when selected or hovered. */
+  name: string;
+  sourceId: string;
+  targetId: string;
+  /** The port place at either end when that end is a component instance. */
+  sourcePortId: string | null;
+  targetPortId: string | null;
+  selected: boolean;
+  /** The worst of the fusion's problems, or `null` when it has none. */
+  severity: ProblemSeverity | null;
+  focus: CanvasArcFocus;
+};
+
 export type CanvasScene = {
   nodes: CanvasNode[];
   arcs: CanvasArc[];
+  fusions: CanvasFusionLink[];
   dimensions: RenderNodeDimensions;
   /**
    * Whether anything is focused. Drives the muting of everything outside the
@@ -115,6 +151,8 @@ export type CanvasScene = {
 
 export type CanvasSceneInput = {
   net: ActiveNetDefinition;
+  /** The subnet `net` is, or `null` for the root net. */
+  activeSubnetId: string | null;
   /** The whole document, for subnet lookups. */
   sdcpn: SDCPN;
   extensions: PetrinautExtensionSettings;
@@ -138,8 +176,108 @@ const positionOf = (
     : { position: { x: item.x, y: item.y }, dragging: false };
 };
 
+const severityRank: Record<ProblemSeverity, number> = {
+  info: 0,
+  warning: 1,
+  error: 2,
+};
+
+type FusionEnd = {
+  member: FusionMember;
+  nodeId: string;
+  portId: string | null;
+  /** Whether tokens can leave through this end, so it can draw as the source. */
+  gives: boolean;
+  /** Whether tokens can enter through this end, so it can draw as the target. */
+  takes: boolean;
+};
+
+const buildFusionLinks = ({
+  fusion,
+  net,
+  sdcpn,
+  activeSubnetId,
+  selected,
+  focus,
+}: {
+  fusion: ActiveNetDefinition["fusions"][number];
+  net: ActiveNetDefinition;
+  sdcpn: SDCPN;
+  activeSubnetId: string | null;
+  selected: boolean;
+  focus: CanvasFocus;
+}): CanvasFusionLink[] => {
+  const problems = checkFusion(sdcpn, net, fusion, activeSubnetId);
+  const severity = problems.reduce<ProblemSeverity | null>(
+    (worst, problem) =>
+      worst === null || severityRank[problem.severity] > severityRank[worst]
+        ? problem.severity
+        : worst,
+    null,
+  );
+  const name = fusionDisplayName(sdcpn, net, fusion);
+
+  const endOf = (member: FusionMember): FusionEnd => {
+    if (member.kind === "place") {
+      return {
+        member,
+        nodeId: member.placeId,
+        portId: null,
+        gives: true,
+        takes: true,
+      };
+    }
+    const resolved = resolveFusionMember(sdcpn, net, member);
+    const direction =
+      resolved?.kind === "port"
+        ? effectivePortDirection(resolved.subnet, resolved.place)
+        : "inout";
+    return {
+      member,
+      nodeId: member.componentInstanceId,
+      portId: member.portPlaceId,
+      gives: direction !== "in",
+      takes: direction !== "out",
+    };
+  };
+
+  const hubMember = fusionHub(fusion);
+  if (hubMember === undefined) {
+    return [];
+  }
+  const hub = endOf(hubMember);
+
+  return fusion.members
+    .filter((member) => member !== hubMember)
+    .map((member) => {
+      const other = endOf(member);
+      // Drawn in the direction tokens flow where the ends say which way that
+      // is: an output port gives, an input port takes, a place does both.
+      const [source, target] =
+        hub.gives && other.takes
+          ? [hub, other]
+          : other.gives && hub.takes
+            ? [other, hub]
+            : [hub, other];
+      const id = fusionLinkId(fusion.id, member);
+      return {
+        id,
+        fusionId: fusion.id,
+        name,
+        sourceId: source.nodeId,
+        targetId: target.nodeId,
+        sourcePortId: source.portId,
+        targetPortId: target.portId,
+        selected,
+        severity,
+        focus: focus.arcFocus(id),
+      };
+    });
+};
+
 export const buildCanvasScene = ({
   net,
+  activeSubnetId,
   sdcpn,
   extensions,
   dimensions,
@@ -206,7 +344,13 @@ export const buildCanvasScene = ({
     );
     const ports = (subnet?.places ?? [])
       .filter((place) => place.isPort)
-      .map((place) => ({ id: place.id, name: place.name }));
+      .map((place) => ({
+        id: place.id,
+        name: place.name,
+        direction: subnet
+          ? effectivePortDirection(subnet, place)
+          : ("inout" as const),
+      }));
     nodes.push({
       kind: "componentInstance",
       id: instance.id,
@@ -286,5 +430,18 @@ export const buildCanvasScene = ({
     }
   }
 
-  return { nodes, arcs, dimensions, focusActive: focus.active };
+  const fusions: CanvasFusionLink[] = extensions.subnets
+    ? net.fusions.flatMap((fusion) =>
+        buildFusionLinks({
+          fusion,
+          net,
+          sdcpn,
+          activeSubnetId,
+          selected: isSelected(fusion.id),
+          focus,
+        }),
+      )
+    : [];
+
+  return { nodes, arcs, fusions, dimensions, focusActive: focus.active };
 };

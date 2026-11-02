@@ -185,3 +185,18 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
 <img width="1106" height="320" alt="probabilistic-satellites" src="https://github.com/user-attachments/assets/e696a4f7-f61a-4b8b-9b34-1598a7190376" />
+
+## Assembly Line
+
+A line built from the [standard components](composition.md#component-libraries) and joined by [place fusion](composition.md#fusing-places): a Source of parts feeds a Cutter stage, whose output is the net's **Buffer** place with a capacity of 5, which a Drill stage empties into **Finished**.
+
+**Demonstrates:**
+
+- **Component instances** of library components, each with its own rate parameter (`Parts` 1.5, `Cutter` 2, `Drill` 1).
+- **Port-to-port fusion** -- `Parts.Out` and `Cutter.In` are one place that exists only inside the composition.
+- **A place of the net fused with ports** -- `Buffer` is fused with `Cutter.Out` and `Drill.In`, so its capacity blocks the cutter when the drill falls behind; `Finished` is fused with `Drill.Out`, so the **Finished parts** metric can count it.
+- The **Code view**, where the whole line reads on one screen.
+
+**Suggested initial state:** press Play and select the **Buffer fill** metric in the timeline, then raise the drill's rate from the Drill instance's properties and watch the buffer drain.
+
+**Key concepts:** [composition](composition.md), [token capacity](drawing-a-net.md#token-capacity), [metrics](simulation.md).

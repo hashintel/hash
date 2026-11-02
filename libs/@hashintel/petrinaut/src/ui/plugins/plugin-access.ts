@@ -111,6 +111,12 @@ export type PluginEdits = {
 } & {
   /** Lays out the viewed subnet in one undo entry, then frames it once drawn. */
   readonly applyAutoLayout: () => Promise<EditResult<ApplyAutoLayoutResult>>;
+  /**
+   * Replaces the whole net in one undo entry, validated as a file is; ids
+   * kept from the current net make it an edit, not a new net. Rejects, like
+   * a file import, when the definition does not validate.
+   */
+  readonly replaceDefinition: (definition: SDCPN) => EditResult;
 };
 
 /** The document, read and changed: `access: { document: "write" }`. */
@@ -204,7 +210,7 @@ const readDocument = ({
   },
 });
 
-type MutationEdits = Omit<PluginEdits, "applyAutoLayout">;
+type MutationEdits = Omit<PluginEdits, "applyAutoLayout" | "replaceDefinition">;
 
 const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
   Object.fromEntries(
@@ -248,6 +254,15 @@ const writeDocument = (
         await frameSceneAfterRender();
 
         return { applied: true, value };
+      },
+      replaceDefinition: (definition) => {
+        const { readOnlyReason } = latest.get();
+        if (readOnlyReason !== null) {
+          return { applied: false, reason: readOnlyReason };
+        }
+        instance.commands.replaceDefinition({ definition });
+
+        return { applied: true, value: undefined };
       },
     },
     setTitle: (title) => {

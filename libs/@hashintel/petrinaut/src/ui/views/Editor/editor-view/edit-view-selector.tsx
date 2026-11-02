@@ -5,6 +5,8 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { usePluginViews } from "../../../plugins/plugins-provider";
+import { editViewItems, resolveEditView } from "./edit-views";
 
 const selectorStyle = css({
   display: "flex",
@@ -77,7 +79,9 @@ export const EditViewSelector = () => {
     isPanelAnimating,
   } = use(EditorContext);
   const { showAnimations } = use(UserSettingsContext);
-  const isCanvas = editViewMode === "canvas";
+  const pluginViews = usePluginViews();
+  const activeView = resolveEditView(editViewMode, pluginViews);
+  const isCanvas = activeView === "canvas";
   const left =
     isCanvas && (isLeftSidebarOpen || isSearchOpen)
       ? leftSidebarWidth + 12
@@ -104,12 +108,9 @@ export const EditViewSelector = () => {
         })}
         aria-label="Edit view"
         size="xs"
-        value={editViewMode}
+        value={activeView}
         onChange={setEditViewMode}
-        items={[
-          { label: "Canvas", value: "canvas" },
-          { label: "Definitions", value: "definitions" },
-        ]}
+        items={editViewItems(pluginViews)}
       />
     </div>
   );

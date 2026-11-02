@@ -12,6 +12,8 @@ describe("describePluginContributions", () => {
         access: { document: "write", experiments: "read" },
         buttons: { mute: { label: "Mute", place: "viewport-controls" } },
         topBarItems: { status: { place: "top-bar-end" } },
+        views: { code: { label: "Code", description: "The net as text" } },
+        componentLibrary: { name: "Queueing" },
         readOnlyAction: { label: "Make a copy" },
         commands: {
           mute: { label: "Mute the assistant", shortcut: "f2" },
@@ -33,6 +35,8 @@ describe("describePluginContributions", () => {
       { kind: "access", subject: "experiments", detail: "Read" },
       { kind: "button", subject: "Mute", detail: "Viewport controls" },
       { kind: "top-bar-item", subject: "status", detail: "End of the top bar" },
+      { kind: "view", subject: "Code", detail: "The net as text" },
+      { kind: "component-library", subject: "Queueing" },
       { kind: "read-only-action", subject: "Make a copy" },
       { kind: "command", subject: "Mute the assistant", detail: "F2" },
       { kind: "command", subject: "Unmute the assistant" },

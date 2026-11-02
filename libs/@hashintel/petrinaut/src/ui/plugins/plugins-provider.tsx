@@ -19,6 +19,7 @@ import {
 } from "react";
 
 import {
+  type ComponentLibrary,
   createReadableStore,
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
@@ -26,7 +27,7 @@ import {
 import { NetManagementContext } from "../../react/net-management-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { useStoreSelector } from "../../react/use-store";
-import { pluginRuntime } from "./define-petrinaut-plugin";
+import { pluginRuntime, pluginViewId } from "./define-petrinaut-plugin";
 import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
 import { PluginCommandRegistrations } from "./plugin-commands";
@@ -113,6 +114,49 @@ export const useRunningPluginsSelector = <T,>(
 /** The running plugins with their latest contributions, in the host's order. */
 export const useRunningPlugins = (): readonly RunningPlugin[] =>
   useRunningPluginsSelector((running) => running);
+
+/** An edit view a running plugin provides, as the editor lists and renders it. */
+export interface PluginEditView {
+  /** `<plugin id>:<key>`, the value the editor's location holds. */
+  readonly id: `${string}:${string}`;
+  readonly label: string;
+  readonly pluginId: string;
+  readonly instanceKey: string;
+  readonly node: ReactNode;
+}
+
+/** The views of the running plugins, in the host's order, each plugin's in its manifest's order. */
+export const usePluginViews = (): readonly PluginEditView[] =>
+  useRunningPluginsSelector((running) =>
+    running.flatMap(({ manifest, instanceKey, contributions }) =>
+      Object.entries(manifest.views ?? {}).map(([key, spec]) => ({
+        id: pluginViewId(manifest.id, key),
+        label: spec.label,
+        pluginId: manifest.id,
+        instanceKey,
+        node: contributions.views?.[key] ?? null,
+      })),
+    ),
+  );
+
+/** The component libraries of the running plugins, in the host's order. */
+export const usePluginComponentLibraries = (): readonly ComponentLibrary[] =>
+  useRunningPluginsSelector((running) =>
+    running.flatMap(({ manifest, contributions }) =>
+      manifest.componentLibrary === undefined
+        ? []
+        : [
+            {
+              id: manifest.id,
+              name: manifest.componentLibrary.name,
+              ...(manifest.componentLibrary.description !== undefined && {
+                description: manifest.componentLibrary.description,
+              }),
+              components: contributions.componentLibrary ?? [],
+            },
+          ],
+    ),
+  );
 
 /** Whether a running plugin's root covers the editor, as a modal or a tour does. */
 export const usePluginOverlay = (): boolean =>

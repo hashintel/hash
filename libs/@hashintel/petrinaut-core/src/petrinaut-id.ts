@@ -19,6 +19,7 @@ import type {
   Color,
   ComponentInstance,
   DifferentialEquation,
+  Fusion,
   InputArc,
   OutputArc,
   Place,
@@ -153,6 +154,12 @@ const canonicalizeComponentInstance = (
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
   });
 
+const canonicalizeFusion = (fusion: Fusion): Fusion =>
+  assignChanged(fusion, {
+    id: toPetrinautId(fusion.id),
+    members: mapUnlessUnchanged(fusion.members, canonicalizeEndpoint),
+  });
+
 const canonicalizeAdHocState = (
   state: AdHocScenarioState,
 ): AdHocScenarioState =>
@@ -195,7 +202,10 @@ type PetrinautIdNet = Pick<
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
 > &
   Partial<
-    Pick<SDCPN, "componentInstances" | "scenarios" | "metrics" | "subnets">
+    Pick<
+      SDCPN,
+      "componentInstances" | "scenarios" | "metrics" | "subnets" | "fusions"
+    >
   >;
 
 /**
@@ -224,6 +234,7 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
       net.componentInstances,
       canonicalizeComponentInstance,
     ),
+    fusions: mapOptional(net.fusions, canonicalizeFusion),
     scenarios: mapOptional(net.scenarios, canonicalizeScenario),
     metrics: mapOptional(net.metrics, (metric) =>
       assignChanged(metric, { id: toPetrinautId(metric.id) }),

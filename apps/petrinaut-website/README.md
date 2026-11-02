@@ -36,6 +36,19 @@ drawing order and manual progress. Math, code, and AI studies offer paired
 alternatives. The page uses the same Petricon
 renderer as the editor.
 
+## Custom DSL page
+
+`/custom-dsl` edits one Petrinaut DSL file kept in this browser's local
+storage, with a read-only editor beside it that follows the text. Each change
+is parsed and written onto the net the editor last showed, so a declaration
+keeps its node across edits and a new one is laid out with its scope; a text
+that fails to parse or to resolve leaves the net as it was while the editor
+marks the lines. **Load example** replaces the file with one of the DSL's
+own examples, written by hand in `petrinaut-core/src/dsl/examples/` and
+checked like the package's example nets; a first visit opens on the first of
+them. The page hosts the `DslEditor` the package exports outside the editor.
+Inside the editor, the Code view plugin offers the same editor as a tab.
+
 ## Local document URLs
 
 `/local/<net id>` opens a net saved in this browser's local storage. The net id

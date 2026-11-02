@@ -98,6 +98,7 @@ export const petrinautDiagnosticsContextMessageId =
 export const petrinautDocNames = [
   "drawing-a-net",
   "petri-net-extensions",
+  "composition",
   "useful-patterns",
   "simulation",
   "scenarios",
@@ -120,6 +121,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Top bar (mode selector, menu, version history, active experiments), canvas, sidebars, adding nodes, arcs, selection, keyboard shortcuts, import/export, auto-layout.",
   "petri-net-extensions":
     "Token types, parameters, differential equations, visualizers, transition kernels, distributions, firing rate vs predicate, inhibitor arcs, diagnostics.",
+  composition:
+    "Components (subnets) and instances, component libraries from plugins, ports and their direction (input, output, both), fusing places by dragging, fusion checks in Diagnostics, components-only nets, the Code view (Petrinaut DSL), the Assembly Line example.",
   "useful-patterns":
     "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
   simulation:

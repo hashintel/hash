@@ -5,7 +5,7 @@
 The editor is organized around a central canvas where you build your net:
 
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
-- **Canvas / Definitions** -- a compact selector floating over Canvas, or beside search in the Definitions toolbar.
+- **Canvas / Definitions** -- a compact selector floating over Canvas, or beside search in the Definitions toolbar. Plugins may add views of their own after them, such as the **Code** view described in [Composition](composition.md#code-view).
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
 - **Viewport controls** (bottom right of the canvas) -- zoom, fit and viewport settings buttons. Plugins may add buttons below them; see [Plugins](visual-settings.md#plugins).
 - **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
@@ -157,6 +157,8 @@ When you instantiate that subnet as a component, each port appears as a handle o
 - Drag from a component port to a transition to create an input arc from that port.
 
 Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
+
+Ports can also be **fused** with a place of the net, or with each other, so the fused places are one place: see [Composition](composition.md#fusing-places).
 
 ## Arc weight
 

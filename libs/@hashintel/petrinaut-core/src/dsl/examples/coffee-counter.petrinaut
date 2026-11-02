@@ -1,0 +1,49 @@
+/// Customers queue at a counter served by two baristas: the simplest net the
+/// DSL writes. Places hold tokens, transitions move them, and a rate is a
+/// TypeScript function body that reads the parameters.
+net "Coffee counter"
+
+/// Customers per minute walking in.
+param arrival_rate "Arrival rate": real = 1.2
+/// Drinks per minute one barista makes.
+param service_rate "Service rate": real = 0.5
+
+/// Customers waiting to order. Ten at most: past that, newcomers walk away.
+place Waiting capacity 10 start
+/// Baristas free to take an order.
+place Baristas start
+/// Orders being made, one per busy barista.
+place Serving
+/// Customers who left with a drink.
+place Served
+
+transition Arrive {
+  -> Waiting
+  rate { return parameters.arrival_rate; }
+}
+
+/// Taking an order is quick: a free barista picks up the next customer.
+transition Begin {
+  Waiting, Baristas -> Serving
+  rate { return 20; }
+}
+
+/// An order completes at the service rate and frees its barista.
+transition Finish {
+  Serving -> Served, Baristas
+  rate { return parameters.service_rate; }
+}
+
+metric "Queue length" { return state.places.Waiting.count; }
+metric "Customers served" { return state.places.Served.count; }
+
+/// A backlog meets two baristas. Raise the arrivals to find where the queue
+/// stops draining.
+scenario "Morning rush" {
+  param arrivals: real = 1.2
+  override arrival_rate = scenario.arrivals
+  marking {
+    Waiting: 6
+    Baristas: 2
+  }
+}
