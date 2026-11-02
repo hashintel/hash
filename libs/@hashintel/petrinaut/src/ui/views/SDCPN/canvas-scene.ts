@@ -118,6 +118,10 @@ export type CanvasFusionLink = {
   fusionId: string;
   /** The fused place's name, shown on the link when selected or hovered. */
   name: string;
+  /**
+   * The two ends ordered left to right on the canvas, so the link runs
+   * between the sides that face each other. A fusion link has no direction.
+   */
   sourceId: string;
   targetId: string;
   /** The port place at either end when that end is a component instance. */
@@ -183,6 +187,7 @@ const buildFusionLinks = ({
   fusion,
   net,
   sdcpn,
+  nodes,
   activeSubnetId,
   selected,
   focus,
@@ -190,6 +195,7 @@ const buildFusionLinks = ({
   fusion: ActiveNetDefinition["fusions"][number];
   net: ActiveNetDefinition;
   sdcpn: SDCPN;
+  nodes: readonly CanvasNode[];
   activeSubnetId: string | null;
   selected: boolean;
   focus: CanvasFocus;
@@ -214,20 +220,29 @@ const buildFusionLinks = ({
     return [];
   }
   const hub = endOf(hubMember);
+  const centreX = (nodeId: string): number =>
+    nodes.find((node) => node.id === nodeId)?.position.x ?? 0;
 
   return fusion.members
     .filter((member) => member !== hubMember)
     .map((member) => {
       const other = endOf(member);
+      // The left end's right-hand handle to the right end's left-hand
+      // handle, so the curve runs between the nodes rather than back
+      // through one of them.
+      const [source, target] =
+        centreX(other.nodeId) < centreX(hub.nodeId)
+          ? [other, hub]
+          : [hub, other];
       const id = fusionLinkId(fusion.id, member);
       return {
         id,
         fusionId: fusion.id,
         name,
-        sourceId: hub.nodeId,
-        targetId: other.nodeId,
-        sourcePortId: hub.portId,
-        targetPortId: other.portId,
+        sourceId: source.nodeId,
+        targetId: target.nodeId,
+        sourcePortId: source.portId,
+        targetPortId: target.portId,
         selected,
         severity,
         focus: focus.arcFocus(id),
@@ -390,6 +405,7 @@ export const buildCanvasScene = ({
           fusion,
           net,
           sdcpn,
+          nodes,
           activeSubnetId,
           selected: isSelected(fusion.id),
           focus,
