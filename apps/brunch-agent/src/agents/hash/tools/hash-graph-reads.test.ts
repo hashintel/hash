@@ -342,6 +342,16 @@ test("a long text is summarised with its size and how it begins", () => {
   expect(text).toMatch(/ {2}summary: <text, 1\.0 KB: "word word .*…">/);
 });
 
+test("a long label is cut short in the heading", () => {
+  const label = "Acme ".repeat(60_000);
+  const text = hashEntityReadForModel(
+    read([{ ...person, label, properties: {} }]),
+  );
+  const heading = text.split("\n").find((line) => line.startsWith("- User"));
+  expect(heading).toBe(`- User ${JSON.stringify(`${label.slice(0, 200)}…`)}`);
+  expect(text.length).toBeLessThan(1_000);
+});
+
 test("an empty read says nothing matched", () => {
   expect(hashEntityReadForModel(read([]))).toBe(hashEntityReadEmptyNote);
 });
