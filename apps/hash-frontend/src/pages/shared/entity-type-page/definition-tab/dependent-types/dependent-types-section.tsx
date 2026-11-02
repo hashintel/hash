@@ -1,30 +1,23 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  ButtonBase,
-  Collapse,
+  FormControlLabel,
   Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  tableCellClasses,
-  TableHead,
-  TableRow,
+  Stack,
+  Switch,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { useId, useState } from "react";
 
-import { extractVersion } from "@blockprotocol/type-system";
-import {
-  EntityOrTypeIcon,
-  FontAwesomeIcon,
-  IconButton,
-  WhiteCard,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
-import { ArrowUpRightRegularIcon } from "../../../../../shared/icons/arrow-up-right-regular-icon";
+import { getParentVersionRows } from "./dependent-type-rows";
+import { DependentTypesByTypeTable } from "./dependent-types-by-type-table";
+import { DependentTypesByVersionTable } from "./dependent-types-by-version-table";
 
 import type { DependentTypeRow } from "./dependent-type-rows";
 import type {
@@ -34,182 +27,29 @@ import type {
 import type { SxProps, Theme } from "@mui/material";
 import type { ReactNode } from "react";
 
-const formatVersions = (firstVersion: number, lastVersion: number) =>
-  firstVersion === lastVersion
-    ? `v${firstVersion}`
-    : `v${firstVersion}–v${lastVersion}`;
+type Layout = "byType" | "byVersion";
 
-/** The same column widths for the table and for each row's nested range table, so their columns line up. */
-const ColumnWidths = () => (
-  <colgroup>
-    <col />
-    <col style={{ width: "20%" }} />
-    <col style={{ width: "20%" }} />
-    <col style={{ width: 56 }} />
-  </colgroup>
-);
-
-const tableSx: SxProps<Theme> = ({ palette, typography }) => ({
-  tableLayout: "fixed",
-  [`.${tableCellClasses.root}`]: {
-    ...typography.smallTextLabels,
-    color: palette.gray[80],
-    border: "none",
-    px: 1.5,
-    py: 0.5,
-    height: 40,
-  },
-  [`.${tableCellClasses.head}`]: {
-    fontWeight: 600,
-    height: 42,
-    borderBottom: `1px solid ${palette.gray[20]}`,
-  },
+const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
+  color: palette.gray[70],
+  fontSize: 14,
+  lineHeight: "20px",
 });
 
-const rangeRowSx: SxProps<Theme> = ({ palette }) => ({
-  [`.${tableCellClasses.root}`]: { color: palette.gray[60] },
-});
-
-const OpenTypeButton = ({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) => (
-  <IconButton
-    aria-label={label}
-    onClick={(event) => {
-      event.stopPropagation();
-      onClick();
-    }}
-    size="small"
-    unpadded
-    sx={({ palette }) => ({ color: palette.gray[50] })}
-  >
-    <ArrowUpRightRegularIcon sx={{ fontSize: 14 }} />
-  </IconButton>
+const InfoButton = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip title={text} describeChild placement="bottom-start">
+    <IconButton
+      aria-label={label}
+      size="small"
+      sx={({ palette }) => ({ color: palette.gray[50] })}
+    >
+      <FontAwesomeIcon icon={faCircleInfo} sx={{ fontSize: 14 }} />
+    </IconButton>
+  </Tooltip>
 );
-
-const DependentTypeTableRow = ({
-  row,
-  isLink,
-  onOpenType,
-}: {
-  row: DependentTypeRow;
-  isLink: boolean;
-  onOpenType: (entityTypeId: VersionedUrl) => void;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-
-  const { $id, title, icon, description } = row.entityType.schema;
-  const latestVersion = extractVersion($id).toString();
-
-  return (
-    <>
-      <TableRow
-        onClick={() => setExpanded(!expanded)}
-        sx={({ palette }) => ({
-          cursor: "pointer",
-          [`&:hover .${tableCellClasses.root}`]: {
-            background: palette.gray[10],
-          },
-        })}
-      >
-        <TableCell>
-          <ButtonBase
-            aria-expanded={expanded}
-            disableRipple
-            sx={{ maxWidth: 1, justifyContent: "flex-start" }}
-          >
-            <FontAwesomeIcon
-              icon={faChevronRight}
-              sx={({ palette, transitions }) => ({
-                color: palette.gray[50],
-                fontSize: 12,
-                mr: 1.5,
-                transform: expanded ? "rotate(90deg)" : "none",
-                transition: transitions.create("transform", { duration: 300 }),
-              })}
-            />
-            <EntityOrTypeIcon
-              entity={null}
-              fontSize={14}
-              fill={({ palette }) => palette.blue[70]}
-              isLink={isLink}
-              icon={icon}
-            />
-            <Tooltip title={description} describeChild>
-              <Typography
-                variant="smallTextLabels"
-                fontWeight={600}
-                ml={1}
-                noWrap
-              >
-                {title}
-                <Typography
-                  component="span"
-                  variant="microText"
-                  color="gray.50"
-                  ml={0.5}
-                >
-                  {` v${latestVersion}`}
-                </Typography>
-              </Typography>
-            </Tooltip>
-          </ButtonBase>
-        </TableCell>
-        <TableCell>
-          {formatVersions(row.firstVersion, row.lastVersion)}
-        </TableCell>
-        <TableCell>
-          {row.parentVersions.map((version) => `v${version}`).join(", ")}
-        </TableCell>
-        <TableCell>
-          <OpenTypeButton
-            label={`Open ${title} v${latestVersion}`}
-            onClick={() => onOpenType($id)}
-          />
-        </TableCell>
-      </TableRow>
-      <TableRow>
-        <TableCell
-          colSpan={4}
-          sx={{ p: "0 !important", height: "auto !important" }}
-        >
-          <Collapse in={expanded} unmountOnExit>
-            <Table sx={tableSx}>
-              <ColumnWidths />
-              <TableBody>
-                {row.ranges.map((range) => (
-                  <TableRow
-                    key={`${range.firstVersion}-${range.parentVersion}`}
-                    sx={rangeRowSx}
-                  >
-                    <TableCell />
-                    <TableCell>
-                      {formatVersions(range.firstVersion, range.lastVersion)}
-                    </TableCell>
-                    <TableCell>{`v${range.parentVersion}`}</TableCell>
-                    <TableCell>
-                      <OpenTypeButton
-                        label={`Open ${title} v${range.lastVersion}`}
-                        onClick={() => onOpenType(range.lastVersionId)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </>
-  );
-};
 
 export const DependentTypesSection = ({
   entityTypeTitle,
+  parentLatestVersion,
   rows,
   incomplete,
   error,
@@ -217,6 +57,9 @@ export const DependentTypesSection = ({
   onOpenType,
 }: {
   entityTypeTitle: string;
+  /** The latest version of the type on the page, if known. */
+  parentLatestVersion: number | null;
+  /** Current and former dependent types; `undefined` until they have loaded. */
   rows: DependentTypeRow[] | undefined;
   /** Whether a query stopped at the Graph's row limit, so rows or versions can be missing. */
   incomplete: boolean;
@@ -224,21 +67,23 @@ export const DependentTypesSection = ({
   isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
-  const failed = rows === undefined && !!error;
-  const loading = rows === undefined && !error;
+  const [layout, setLayout] = useState<Layout>("byType");
+  const [currentOnly, setCurrentOnly] = useState(true);
 
   const headingId = useId();
 
+  const failed = rows === undefined && !!error;
+  const loading = rows === undefined && !error;
+  const shownRows = currentOnly ? rows?.filter((row) => !row.former) : rows;
+  const latestParentVersion =
+    parentLatestVersion ??
+    Math.max(1, ...(rows ?? []).flatMap((row) => row.parentVersions));
+
   const boldTitle: ReactNode = (
-    <Box component="span" sx={{ fontWeight: "bold" }}>
+    <Box component="span" sx={{ fontWeight: 700 }}>
       {entityTypeTitle}
     </Box>
   );
-
-  const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
-    color: palette.gray[70],
-    fontSize: "var(--step--1)",
-  });
 
   return (
     <Box
@@ -253,8 +98,53 @@ export const DependentTypesSection = ({
       <Typography sx={[secondaryTextSx, { mt: 0.5, mb: 2 }]}>
         Across all versions of {boldTitle}
       </Typography>
+      {rows && rows.length > 0 ? (
+        <Stack
+          direction="row"
+          sx={{ flexWrap: "wrap", alignItems: "center", gap: 2, mb: 1.5 }}
+        >
+          <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
+            <ToggleButtonGroup
+              aria-label="Table layout"
+              exclusive
+              size="small"
+              value={layout}
+              onChange={(_event, value: Layout | null) => {
+                if (value) {
+                  setLayout(value);
+                }
+              }}
+            >
+              <ToggleButton value="byType">By child type</ToggleButton>
+              <ToggleButton value="byVersion">By parent version</ToggleButton>
+            </ToggleButtonGroup>
+            <InfoButton
+              label="About the layouts"
+              text={`By child type: one row per type that extends ${entityTypeTitle}, expandable into its version ranges. By parent version: one row per version of ${entityTypeTitle}, expandable into the types that extend it.`}
+            />
+          </Stack>
+          <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={currentOnly}
+                  onChange={(event) => setCurrentOnly(event.target.checked)}
+                  size="small"
+                  inputProps={{ role: "switch" }}
+                />
+              }
+              label="Current children only"
+              sx={{ m: 0, gap: 1 }}
+            />
+            <InfoButton
+              label="About current children"
+              text={`On: lists only types whose latest version still extends ${entityTypeTitle}. Off: also lists former children, whose latest version no longer extends ${entityTypeTitle} or is archived.`}
+            />
+          </Stack>
+        </Stack>
+      ) : null}
       {failed ? (
-        <Typography sx={{ color: "error.main", fontSize: "var(--step--1)" }}>
+        <Typography sx={{ color: "error.main", fontSize: 14 }}>
           Couldn't load these types. Reload the page to try again.
         </Typography>
       ) : null}
@@ -264,48 +154,31 @@ export const DependentTypesSection = ({
           Some types or versions may be missing from this table.
         </Typography>
       ) : null}
-      {rows?.length === 0 ? (
-        <Box
-          sx={({ palette }) => ({
-            display: "inline-block",
-            background: palette.gray[20],
-            border: `1px solid ${palette.gray[30]}`,
-            borderRadius: 1.5,
-            color: palette.gray[80],
-            fontSize: "var(--step--1)",
-            px: 2,
-            py: 1,
-          })}
-        >
+      {shownRows?.length === 0 ? (
+        <Typography sx={secondaryTextSx}>
           No types extend {boldTitle} yet.
-        </Box>
+        </Typography>
       ) : null}
-      {rows && rows.length > 0 ? (
-        <WhiteCard sx={{ overflow: "visible" }}>
-          <Box sx={{ p: 0.5 }}>
-            <Table sx={tableSx}>
-              <ColumnWidths />
-              <TableHead>
-                <TableRow>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Versions</TableCell>
-                  <TableCell>Extends {boldTitle}</TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((row) => (
-                  <DependentTypeTableRow
-                    key={row.entityType.schema.$id}
-                    row={row}
-                    isLink={isLinkType(row.entityType)}
-                    onOpenType={onOpenType}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </Box>
-        </WhiteCard>
+      {shownRows && shownRows.length > 0 ? (
+        layout === "byType" ? (
+          <DependentTypesByTypeTable
+            entityTypeTitle={entityTypeTitle}
+            parentLatestVersion={latestParentVersion}
+            rows={shownRows}
+            isLinkType={isLinkType}
+            onOpenType={onOpenType}
+          />
+        ) : (
+          <DependentTypesByVersionTable
+            entityTypeTitle={entityTypeTitle}
+            parentVersionRows={getParentVersionRows({
+              rows: shownRows,
+              parentLatestVersion: latestParentVersion,
+            })}
+            isLinkType={isLinkType}
+            onOpenType={onOpenType}
+          />
+        )
       ) : null}
     </Box>
   );
