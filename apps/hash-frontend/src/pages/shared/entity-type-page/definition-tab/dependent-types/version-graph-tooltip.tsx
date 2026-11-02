@@ -31,10 +31,10 @@ export type VersionGraphTooltipTriggerProps = {
     onMouseEnter: () => void;
     onMouseLeave: () => void;
   };
-  /** Spread on the row's toggle button: focusing it shows the tooltip at once. */
+  /** Spread on the row's toggle button: focusing it with the keyboard shows the tooltip at once. */
   toggleProps: {
     "aria-describedby"?: string;
-    onFocus: () => void;
+    onFocusVisible: () => void;
     onBlur: () => void;
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   };
@@ -402,7 +402,7 @@ export const VersionGraphTooltip = ({
         },
         toggleProps: {
           "aria-describedby": open ? id : undefined,
-          onFocus: show,
+          onFocusVisible: show,
           onBlur: hide,
           onKeyDown: scrollWithArrowKeys,
         },

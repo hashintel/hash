@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { ThemeProvider } from "@mui/material";
+import { ButtonBase, ThemeProvider } from "@mui/material";
 import {
   act,
   cleanup,
@@ -95,9 +95,9 @@ const renderRows = (rows: DependentTypeRow[]) => {
                 onMouseEnter={rowProps.onMouseEnter}
                 onMouseLeave={rowProps.onMouseLeave}
               >
-                <button type="button" {...toggleProps} onClick={hide}>
+                <ButtonBase {...toggleProps} onClick={hide}>
                   {title}
-                </button>
+                </ButtonBase>
               </div>
             )}
           </VersionGraphTooltip>
@@ -112,10 +112,21 @@ const wait = (milliseconds: number) =>
     vi.advanceTimersByTime(milliseconds);
   });
 
-const focus = (element: HTMLElement) =>
+// jsdom never matches `:focus-visible`, which MUI checks to tell keyboard focus from a mouse press.
+const focusWithKeyboard = (element: HTMLElement) => {
+  const matches = element.matches.bind(element);
+  const focusVisible = vi
+    .spyOn(element, "matches")
+    .mockImplementation(
+      (selector) => selector === ":focus-visible" || matches(selector),
+    );
+
   act(() => {
     element.focus();
   });
+
+  focusVisible.mockRestore();
+};
 
 describe("VersionGraphTooltip", () => {
   beforeEach(() => {
@@ -199,7 +210,7 @@ describe("VersionGraphTooltip", () => {
   it("shows the graph at once when the toggle gets focus, and describes the toggle with a summary of the versions", () => {
     renderRows([shellCompany]);
 
-    focus(screen.getByRole("button", { name: "Shell Company" }));
+    focusWithKeyboard(screen.getByRole("button", { name: "Shell Company" }));
 
     screen.getByRole("button", {
       name: "Shell Company",
@@ -207,11 +218,23 @@ describe("VersionGraphTooltip", () => {
     });
   });
 
+  it("does not show the graph when a mouse press focuses the toggle", () => {
+    renderRows([shellCompany]);
+
+    const toggle = screen.getByRole("button", { name: "Shell Company" });
+    act(() => {
+      fireEvent.mouseDown(toggle);
+      toggle.focus();
+    });
+
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
   it("hides the graph when the toggle loses focus", () => {
     renderRows([shellCompany]);
 
     const toggle = screen.getByRole("button", { name: "Shell Company" });
-    focus(toggle);
+    focusWithKeyboard(toggle);
     act(() => {
       toggle.blur();
     });
@@ -224,7 +247,7 @@ describe("VersionGraphTooltip", () => {
     renderRows([shellCompany]);
 
     const toggle = screen.getByRole("button", { name: "Shell Company" });
-    focus(toggle);
+    focusWithKeyboard(toggle);
     fireEvent.keyDown(toggle, { key: "Escape" });
 
     expect(screen.queryByRole("tooltip")).toBeNull();
@@ -244,7 +267,7 @@ describe("VersionGraphTooltip", () => {
     renderRows([shellCompany]);
 
     const toggle = screen.getByRole("button", { name: "Shell Company" });
-    focus(toggle);
+    focusWithKeyboard(toggle);
     fireEvent.click(toggle);
 
     expect(screen.queryByRole("tooltip")).toBeNull();
@@ -253,7 +276,7 @@ describe("VersionGraphTooltip", () => {
   it("draws the parent's versions, the type's versions with a dotted pill for the gap, a line for each extension, and a key", () => {
     renderRows([shellCompany]);
 
-    focus(screen.getByRole("button", { name: "Shell Company" }));
+    focusWithKeyboard(screen.getByRole("button", { name: "Shell Company" }));
     const tooltip = screen.getByRole("tooltip");
 
     expect(
@@ -273,7 +296,7 @@ describe("VersionGraphTooltip", () => {
   it("shows no key when every version extends the parent", () => {
     renderRows([machine]);
 
-    focus(screen.getByRole("button", { name: "Machine" }));
+    focusWithKeyboard(screen.getByRole("button", { name: "Machine" }));
 
     expect(
       within(screen.getByRole("tooltip")).queryByText(
@@ -286,7 +309,7 @@ describe("VersionGraphTooltip", () => {
     vi.spyOn(Element.prototype, "scrollWidth", "get").mockReturnValue(900);
     renderRows([shellCompany]);
 
-    focus(screen.getByRole("button", { name: "Shell Company" }));
+    focusWithKeyboard(screen.getByRole("button", { name: "Shell Company" }));
 
     expect(
       [...screen.getByRole("tooltip").querySelectorAll("div")].filter(
@@ -314,7 +337,7 @@ describe("VersionGraphTooltip", () => {
       renderRows([shellCompany]);
 
       const toggle = screen.getByRole("button", { name: "Shell Company" });
-      focus(toggle);
+      focusWithKeyboard(toggle);
 
       expect(fireEvent.keyDown(toggle, { key: "ArrowRight" })).toBe(false);
       expect(scrollBy).toHaveBeenLastCalledWith({
@@ -336,7 +359,7 @@ describe("VersionGraphTooltip", () => {
       renderRows([shellCompany]);
 
       const toggle = screen.getByRole("button", { name: "Shell Company" });
-      focus(toggle);
+      focusWithKeyboard(toggle);
       fireEvent.keyDown(toggle, { key: "Escape" });
 
       expect(fireEvent.keyDown(toggle, { key: "ArrowRight" })).toBe(true);
