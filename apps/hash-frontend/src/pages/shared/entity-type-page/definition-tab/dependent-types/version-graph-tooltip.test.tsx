@@ -10,71 +10,30 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { theme } from "@hashintel/design-system/theme";
 
+import { makeRow } from "./dependent-type-row-fixtures";
 import { VersionGraphTooltip } from "./version-graph-tooltip";
 
 import type { DependentTypeRow } from "./dependent-type-rows";
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 
-const makeRow = ({
-  title,
-  former = false,
-  versions,
-}: {
-  title: string;
-  former?: boolean;
-  versions: DependentTypeRow["versions"];
-}): DependentTypeRow => {
-  const versionNumbers = versions.map(({ version }) => version);
-  const lastVersion = Math.max(...versionNumbers);
-
-  return {
-    entityType: {
-      schema: {
-        $schema: ENTITY_TYPE_META_SCHEMA,
-        kind: "entityType",
-        $id: `https://example.com/@alice/types/entity-type/${title.toLowerCase().replaceAll(" ", "-")}/v/${lastVersion}` as VersionedUrl,
-        title,
-        description: `A ${title}`,
-        type: "object",
-        properties: {},
-      },
-    } as EntityTypeWithMetadata,
-    former,
-    firstVersion: Math.min(...versionNumbers),
-    lastVersion,
-    parentVersions: [
-      ...new Set(versions.flatMap(({ parentVersions }) => parentVersions)),
-    ].sort(),
-    ranges: [],
-    versions,
-  };
-};
-
-const shellCompany = makeRow({
-  title: "Shell Company",
-  former: true,
-  versions: [
-    { version: 1, parentVersions: [1] },
-    { version: 2, parentVersions: [1, 2] },
-    { version: 4, parentVersions: [2] },
+const shellCompany = makeRow(
+  "Shell Company",
+  4,
+  [
+    [1, 2, 1],
+    [2, 2, 2],
+    [4, 4, 2],
   ],
-});
+  true,
+);
 const shellCompanySummary =
   "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v3 doesn't extend Company now; v4 extends Company v2. Company has versions newer than v2. Shell Company has newer versions that don't extend Company now.";
 
-const machine = makeRow({
-  title: "Machine",
-  versions: [
-    { version: 1, parentVersions: [1] },
-    { version: 2, parentVersions: [2] },
-  ],
-});
+const machine = makeRow("Machine", 2, [
+  [1, 1, 1],
+  [2, 2, 2],
+]);
 
 const renderRows = (rows: DependentTypeRow[]) => {
   render(
