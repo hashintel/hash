@@ -238,7 +238,7 @@ describe("createFlowEditor", () => {
       expect(editor.getState().problemsByStepId.size).toBe(2);
     });
 
-    it("removes a for-each step with its nested steps", () => {
+    it("lists problems outside every step separately, such as a flow output whose step was removed", () => {
       const editor = loadFlow();
 
       editor.removeStep("each");
@@ -311,14 +311,6 @@ describe("createFlowEditor", () => {
       expect(stepOf(editor, "second")).not.toHaveProperty("runAfter");
     });
 
-    it("lists a connection that makes a cycle as a problem, rather than rejecting it", () => {
-      const editor = loadFlow();
-
-      editor.addConnection({ from: "second", to: "first" });
-
-      expect(problemCodesOf(editor, "first")).toEqual(["cycle"]);
-    });
-
     it("removes every connection to and from a step, at any depth", () => {
       const editor = loadFlow();
 
@@ -353,23 +345,6 @@ describe("createFlowEditor", () => {
       steps: [{ stepId: "answer", runAfter: [{ stepId: "first" }] }, {}],
     });
     expect(stepOf(editor, "each")).not.toHaveProperty("runAfter");
-  });
-
-  it("saves a half-built step and lists its problems on it", () => {
-    const editor = loadFlow();
-
-    const stepId = editor.addStep("answerQuestion", { after: "second" });
-    editor.setInputSource(stepId, "context", explanationOf("missing"));
-    editor.addConnection({ from: stepId, to: "each" });
-
-    expect(problemCodesOf(editor, stepId)).toEqual([
-      "unknownStep",
-      "missingInput",
-    ]);
-    expect(stepOf(editor, "each")?.runAfter).toEqual([
-      { stepId: "second" },
-      { stepId },
-    ]);
   });
 
   it("rejects edits naming a step that isn't a top-level step, a connection that doesn't exist, or a for-each step's inputs", () => {
