@@ -175,6 +175,9 @@ export const setupBrunchAgentProxy = (
       });
 
       try {
+        // Semgrep reports the admission `send` below from here; see the note
+        // there for why it reflects nothing from the browser's request.
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
         const upstream = await fetch(upstreamUrl, {
           method: request.method,
           headers,
