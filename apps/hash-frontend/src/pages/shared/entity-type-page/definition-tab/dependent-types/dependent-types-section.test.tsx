@@ -82,6 +82,18 @@ const machine = makeRow("Machine", 2, [
 ]);
 const shellCompany = makeRow("Shell Company", 2, [[1, 2, 1]], true);
 
+const actor = {
+  schema: {
+    $schema: ENTITY_TYPE_META_SCHEMA,
+    kind: "entityType",
+    $id: typeId("Actor", 2),
+    title: "Actor",
+    description: "An actor",
+    type: "object",
+    properties: {},
+  },
+} as EntityTypeWithMetadata;
+
 const renderSection = (
   props: Partial<ComponentProps<typeof DependentTypesSection>> = {},
 ) => {
@@ -90,7 +102,7 @@ const renderSection = (
   render(
     <ThemeProvider theme={theme}>
       <DependentTypesSection
-        entityTypeTitle="Actor"
+        entityType={actor}
         parentLatestVersion={2}
         rows={undefined}
         incomplete={false}

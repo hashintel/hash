@@ -46,7 +46,7 @@ export const DependentTypes = ({
 
   return (
     <DependentTypesSection
-      entityTypeTitle={entityType.schema.title}
+      entityType={entityType}
       parentLatestVersion={
         latestVersion ? Number.parseInt(latestVersion.toString(), 10) : null
       }
