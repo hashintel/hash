@@ -31,7 +31,11 @@ import type {
 } from "../../../../../../graphql/api-types.gen";
 import type { User } from "../../../../../../lib/user-and-org";
 import type { PetrinautAiAutomaticTool } from "@hashintel/brunch-agent/ui";
-import type { Filter } from "@local/hash-graph-client";
+import type {
+  EntityTraversalEdge,
+  EntityTraversalPath,
+  Filter,
+} from "@local/hash-graph-client";
 
 /**
  * The input Brunch's HASH agent issues for its entity read. The agent's
@@ -41,7 +45,7 @@ const hashEntityReadInputSchema = z.object({
   entityTypes: z.array(z.string()).optional(),
   webIds: z.array(z.string()).optional(),
   entityIds: z.array(z.string()).optional(),
-  traversalDepth: z.number().int().min(0).optional(),
+  traversalDepth: z.number().int().min(0).max(3).optional(),
   includeDrafts: z.boolean().optional(),
 });
 
@@ -56,24 +60,41 @@ const isTypeUrl = (type: string) =>
 const anyOf = (filters: Filter[]): Filter[] =>
   filters.length === 0 ? [] : [{ any: filters }];
 
-/** Link traversals out to `depth` links from the matched entities, in either direction. */
-const traversalPathsTo = (depth: number) =>
-  depth === 0
-    ? []
-    : [
-        {
-          edges: Array.from({ length: depth }, () => [
-            { kind: "has-left-entity", direction: "incoming" } as const,
-            { kind: "has-right-entity", direction: "outgoing" } as const,
-          ]).flat(),
-        },
-        {
-          edges: Array.from({ length: depth }, () => [
-            { kind: "has-right-entity", direction: "incoming" } as const,
-            { kind: "has-left-entity", direction: "outgoing" } as const,
-          ]).flat(),
-        },
-      ];
+/** One link from an entity, followed to the entity on its other end. */
+const linkHops: readonly (readonly EntityTraversalEdge[])[] = [
+  [
+    { kind: "has-left-entity", direction: "incoming" },
+    { kind: "has-right-entity", direction: "outgoing" },
+  ],
+  [
+    { kind: "has-right-entity", direction: "incoming" },
+    { kind: "has-left-entity", direction: "outgoing" },
+  ],
+];
+
+/**
+ * Every chain of `depth` links from the matched entities, each link followed
+ * in either direction, and a matched link entity's own endpoints. A path
+ * returns each entity along it, so the chains of `depth` links also reach
+ * every shallower one. The graph takes at most 10 paths of at most 10 edges,
+ * which bounds `depth` at 3: 8 chains of 6 edges, and the 2 endpoint paths.
+ */
+const traversalPathsTo = (depth: number): EntityTraversalPath[] => {
+  if (depth === 0) {
+    return [];
+  }
+  let chains: EntityTraversalEdge[][] = [[]];
+  for (let hop = 0; hop < depth; hop++) {
+    chains = chains.flatMap((chain) =>
+      linkHops.map((linkHop) => [...chain, ...linkHop]),
+    );
+  }
+  return [
+    ...chains.map((edges) => ({ edges })),
+    { edges: [{ kind: "has-left-entity", direction: "outgoing" }] },
+    { edges: [{ kind: "has-right-entity", direction: "outgoing" }] },
+  ];
+};
 
 /**
  * The `queryEntitySubgraph` request for one read: every given filter must

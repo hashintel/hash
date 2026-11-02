@@ -451,7 +451,7 @@ test.each([
   },
 );
 
-test.each([-1, 1.5])(
+test.each([-1, 1.5, 4])(
   "a traversal depth of %s never reaches the browser",
   async (traversalDepth) => {
     const chat = conversation();

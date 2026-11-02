@@ -21,25 +21,29 @@ import type {
 } from "@hashintel/brunch-agent/ui";
 
 const notArchived = { equal: [{ path: ["archived"] }, { parameter: false }] };
-const edgesTo = (depth: number) => [
-  {
-    edges: Array.from({ length: depth }, () => [
-      { kind: "has-left-entity", direction: "incoming" },
-      { kind: "has-right-entity", direction: "outgoing" },
-    ]).flat(),
-  },
-  {
-    edges: Array.from({ length: depth }, () => [
-      { kind: "has-right-entity", direction: "incoming" },
-      { kind: "has-left-entity", direction: "outgoing" },
-    ]).flat(),
-  },
+
+/** Along a link from the entity it points from, to the entity it points to. */
+const forward = [
+  { kind: "has-left-entity", direction: "incoming" },
+  { kind: "has-right-entity", direction: "outgoing" },
 ];
+/** Along a link from the entity it points to, back to the entity it points from. */
+const backward = [
+  { kind: "has-right-entity", direction: "incoming" },
+  { kind: "has-left-entity", direction: "outgoing" },
+];
+/** From a matched link entity to each of its endpoints. */
+const linkEndpoints = [
+  { edges: [{ kind: "has-left-entity", direction: "outgoing" }] },
+  { edges: [{ kind: "has-right-entity", direction: "outgoing" }] },
+];
+
+const oneLinkDeep = [{ edges: forward }, { edges: backward }, ...linkEndpoints];
 
 test("a read with no filters asks for every visible, unarchived entity one link deep, without drafts", () => {
   expect(hashEntityReadRequest({})).toMatchObject({
     filter: { all: [notArchived] },
-    traversalPaths: edgesTo(1),
+    traversalPaths: oneLinkDeep,
     includeDrafts: false,
     includePermissions: false,
   });
@@ -110,16 +114,54 @@ test("an entity id that names a draft reads that draft, even when drafts weren't
   expect(request.includeDrafts).toBe(true);
 });
 
-test("traversal depth follows the input, from none to as deep as asked", () => {
-  expect(hashEntityReadRequest({ traversalDepth: 0 }).traversalPaths).toEqual(
-    [],
+test("traversal follows every chain of links as deep as asked, each link in either direction, and a matched link's endpoints", () => {
+  const pathsAt = (traversalDepth: number) =>
+    hashEntityReadRequest({ traversalDepth }).traversalPaths;
+
+  expect(pathsAt(0)).toEqual([]);
+  expect(pathsAt(1)).toEqual(oneLinkDeep);
+  expect(pathsAt(2)).toEqual([
+    { edges: [...forward, ...forward] },
+    { edges: [...forward, ...backward] },
+    { edges: [...backward, ...forward] },
+    { edges: [...backward, ...backward] },
+    ...linkEndpoints,
+  ]);
+
+  const depthThree = pathsAt(3);
+  expect(depthThree).toHaveLength(10);
+  expect(depthThree).toEqual(
+    expect.arrayContaining([
+      { edges: [...forward, ...backward, ...forward] },
+      { edges: [...backward, ...backward, ...backward] },
+      ...linkEndpoints,
+    ]),
   );
-  expect(hashEntityReadRequest({ traversalDepth: 3 }).traversalPaths).toEqual(
-    edgesTo(3),
+  const chains = depthThree.filter(({ edges }) => edges.length === 6);
+  expect(new Set(chains.map(({ edges }) => JSON.stringify(edges))).size).toBe(
+    8,
   );
-  expect(hashEntityReadRequest({ traversalDepth: 9 }).traversalPaths).toEqual(
-    edgesTo(9),
-  );
+});
+
+test("traversal at its deepest stays within the graph's limits of 10 paths of 10 edges", () => {
+  const paths = hashEntityReadRequest({ traversalDepth: 3 }).traversalPaths;
+  expect(paths.length).toBeLessThanOrEqual(10);
+  for (const { edges } of paths) {
+    expect(edges.length).toBeLessThanOrEqual(10);
+  }
+});
+
+test("from A, a chain A → B ← C reaches C at depth 2, and a link read reaches both its endpoints", () => {
+  // The graph follows a path's edges one per step, so C is reached only by a
+  // path whose edges are A's link forward then C's link backward.
+  expect(
+    hashEntityReadRequest({ traversalDepth: 2 }).traversalPaths,
+  ).toContainEqual({ edges: [...forward, ...backward] });
+  for (const traversalDepth of [1, 2, 3]) {
+    expect(hashEntityReadRequest({ traversalDepth }).traversalPaths).toEqual(
+      expect.arrayContaining(linkEndpoints),
+    );
+  }
 });
 
 const entity = ({
@@ -260,6 +302,7 @@ test("an input the agent's contract doesn't allow is refused before any query", 
   await expect(run(query, { entityTypes: "Supplier" })).rejects.toThrow();
   await expect(run(query, { traversalDepth: -1 })).rejects.toThrow();
   await expect(run(query, { traversalDepth: 1.5 })).rejects.toThrow();
+  await expect(run(query, { traversalDepth: 4 })).rejects.toThrow();
   expect(query).not.toHaveBeenCalled();
 });
 

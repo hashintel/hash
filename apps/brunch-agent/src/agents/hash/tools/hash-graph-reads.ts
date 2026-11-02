@@ -82,8 +82,9 @@ export const hashEntityReadInputSchema = v.strictObject({
       v.number(),
       v.integer(),
       v.minValue(0),
+      v.maxValue(3),
       v.description(
-        "How many links to follow from the matched entities, in either direction. 0 returns only the matches. Defaults to 1.",
+        "How many links to follow from the matched entities, at most 3. Each link is followed in either direction, so mixed chains such as A → B ← C are included; a matched link entity's own endpoints are included too. 0 returns only the matches. Defaults to 1.",
       ),
     ),
   ),

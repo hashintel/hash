@@ -25,7 +25,7 @@ const sampleInputs: Readonly<Record<string, unknown>> = {
     entityTypes: ["Supplier", "Organization"],
     webIds: [webId],
     entityIds: [`${webId}~${entityUuid}`, `${webId}~${entityUuid}~${draftId}`],
-    traversalDepth: 7,
+    traversalDepth: 3,
     includeDrafts: true,
   },
   [brunchTools.queryHashEntityTypes]: {
