@@ -4,12 +4,14 @@
     "manifest": {
       "dependsOn": ["^manifest", "railroad-plugin#manifest"]
     },
-    "build": {
+    "build:reference": {
       "dependsOn": ["railroad-plugin#build:wasm", "^manifest"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "inputs": ["reference/**"]
     },
-    "dev": {
-      "dependsOn": ["railroad-plugin#build:wasm"]
+    "dev:reference": {
+      "dependsOn": ["railroad-plugin#build:wasm"],
+      "inputs": ["reference/**"]
     }
   }
 }
