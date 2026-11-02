@@ -179,9 +179,11 @@ export const getDependentTypeRows = ({
     rows.push(toRow(entityType, false, edges));
   }
 
-  for (const [baseUrl, edges] of edgesByBaseUrl) {
-    if (!currentBaseUrls.has(baseUrl)) {
-      rows.push(toRow(edges.highestVersion, true, edges));
+  if (!latestVersions.cursor) {
+    for (const [baseUrl, edges] of edgesByBaseUrl) {
+      if (!currentBaseUrls.has(baseUrl)) {
+        rows.push(toRow(edges.highestVersion, true, edges));
+      }
     }
   }
 
