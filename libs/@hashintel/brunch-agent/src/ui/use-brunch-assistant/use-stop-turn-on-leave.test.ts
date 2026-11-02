@@ -4,6 +4,8 @@
 import { renderHook } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
+
 import { BrunchPanelConversationTracker } from "../../client/brunch-panel-transport";
 import { useStopTurnOnLeave } from "./use-stop-turn-on-leave";
 
@@ -13,6 +15,7 @@ import type {
   FlueConversationSettlement,
   FlueConversationState,
 } from "@flue/sdk";
+import type { FlueChatAdmissionFailure } from "@local/flue-aisdk-transport";
 
 const session = () => {
   const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
@@ -180,6 +183,43 @@ test("a submission still awaiting admission is stopped once it is admitted", asy
   await new Promise((resolve) => setTimeout(resolve, 10));
   expect(sent.abort).not.toHaveBeenCalled();
   admitted();
+  await vi.waitFor(() => expect(sent.abort).toHaveBeenCalledOnce());
+});
+
+const leaveWhileSendFails = async (failure: FlueChatAdmissionFailure) => {
+  const sent = session();
+  let fail = () => {};
+  sent.tracker
+    .trackSubmission(
+      new Promise<void>((_resolve, reject) => {
+        fail = () => reject(new FlueChatAdmissionError(failure));
+      }),
+    )
+    .catch(() => {});
+  const props = {
+    editorHandle: "handle-1",
+    binding,
+    sent,
+    snapshot: snapshotSettling(),
+  };
+  const { rerender, onError } = renderLeaving(props);
+
+  rerender({ ...props, editorHandle: "handle-2" });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  expect(sent.abort).not.toHaveBeenCalled();
+  fail();
+  return { ...sent, onError };
+};
+
+test("a submission awaiting admission that is then refused stops nothing", async () => {
+  const sent = await leaveWhileSendFails({ kind: "rejected", status: 403 });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  expect(sent.abort).not.toHaveBeenCalled();
+  expect(sent.onError).not.toHaveBeenCalled();
+});
+
+test("a submission awaiting admission whose admission is then ambiguous is stopped", async () => {
+  const sent = await leaveWhileSendFails({ kind: "ambiguous" });
   await vi.waitFor(() => expect(sent.abort).toHaveBeenCalledOnce());
 });
 

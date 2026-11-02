@@ -245,6 +245,29 @@ export class BrunchPanelConversationTracker {
     return Promise.allSettled(this.#inFlightSubmissions).then(() => undefined);
   }
 
+  /**
+   * {@link hasUnsettledTurn} asked again once the submissions in flight now
+   * have settled. A send the agent definitively refused (`rejected`) or that
+   * was cancelled locally (`aborted`) no longer counts; any other failure,
+   * `ambiguous` included, may have been admitted without this tracker
+   * recording it, so it still does.
+   */
+  public async hasUnsettledTurnAfterSettling(
+    snapshot: FlueConversationState | undefined,
+  ): Promise<boolean> {
+    const outcomes = await Promise.allSettled(this.#inFlightSubmissions);
+    const mayBeAdmitted = outcomes.some(
+      (outcome) =>
+        outcome.status === "fulfilled" ||
+        !(
+          outcome.reason instanceof FlueChatAdmissionError &&
+          (outcome.reason.failure.kind === "rejected" ||
+            outcome.reason.failure.kind === "aborted")
+        ),
+    );
+    return mayBeAdmitted || this.hasUnsettledTurn(snapshot);
+  }
+
   public trackSubmission<T>(submission: Promise<T>): Promise<T> {
     this.#inFlightSubmissions.add(submission);
     const release = (): void => {

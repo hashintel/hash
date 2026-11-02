@@ -50,9 +50,14 @@ export const useStopTurnOnLeave = ({
     () => () => {
       const { client, tracker, snapshot } = committed.current;
       if (client === null || !tracker.hasUnsettledTurn(snapshot)) return;
-      requestFlueStop(client, tracker).catch((error: unknown) =>
-        reportError.current(error),
-      );
+      // Flue's abort is conversation-wide, so a send pending at leave that
+      // the agent then refuses must not stop another tab's turn.
+      tracker
+        .hasUnsettledTurnAfterSettling(snapshot)
+        .then((unsettled) =>
+          unsettled ? requestFlueStop(client, tracker) : undefined,
+        )
+        .catch((error: unknown) => reportError.current(error));
     },
     [editorHandle, binding],
   );
