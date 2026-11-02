@@ -178,11 +178,43 @@ test("a document binding mounts the guidance, the canonical catalogue with HASH'
       brunchTools.queryHashEntityTypes,
       brunchTools.queryHashWebs,
       brunchTools.saveHashNet,
-      "petrinaut_create_place",
-      ...Object.keys(petrinautAiTools).filter((name) => name !== "addPlace"),
     ]),
   );
-  expect(mounted.tools).not.toContain("addPlace");
+  // Petrinaut's net is changed only through HASH's own tools; the reads, the
+  // title, the layout, the user guide and the experiment stay canonical for now.
+  expect(
+    mounted.tools
+      .filter(
+        (name) => name in petrinautAiTools || name.startsWith("petrinaut_"),
+      )
+      .toSorted(),
+  ).toEqual(
+    [
+      "getLatestNetDefinition",
+      "getNetCompilationErrors",
+      "setNetTitle",
+      "applyAutoLayout",
+      "readPetrinautDoc",
+      "createExperiment",
+      ...[
+        "place",
+        "transition",
+        "arc",
+        "type",
+        "type_element",
+        "equation",
+        "parameter",
+        "scenario",
+        "metric",
+        "subnet",
+        "component",
+      ].flatMap((kind) =>
+        ["create", "update", "remove"].map(
+          (verb) => `petrinaut_${verb}_${kind}`,
+        ),
+      ),
+    ].toSorted(),
+  );
   // Every HASH Petrinaut tool names the editor it acts on, which the system
   // prompt gives.
   const createPlace = mounted.inputs.get("petrinaut_create_place") as

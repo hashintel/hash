@@ -41,12 +41,26 @@ interface BrowserToolFacts {
   readonly textResult: boolean;
   /** Element kinds whose meaning a change it makes can change, and so whose IDs it can name. */
   readonly targets: readonly NetElementKind[];
+  /** It removes what the user built, so the user approves each call first. */
+  readonly destructive: boolean;
+}
+
+/** One canonical Petrinaut call a tool's call makes. */
+export interface CanonicalPetrinautCall {
+  readonly toolName: string;
+  readonly input: unknown;
 }
 
 interface BrowserToolDescriptor extends BrowserToolFacts {
   /** Parses the issued input; the browser compares the model's and the issued input parsed. */
   readonly inputSchema: { readonly parse: (input: unknown) => unknown };
+  /** The canonical Petrinaut calls a call with this input makes, in order; none for other tools. */
+  readonly canonicalCalls: (
+    input: unknown,
+  ) => readonly CanonicalPetrinautCall[];
 }
+
+const noCanonicalCalls = (): readonly CanonicalPetrinautCall[] => [];
 
 /** A tool that reads, or prepares in editor memory, and leaves the document as it was. */
 const reads: BrowserToolFacts = {
@@ -58,6 +72,7 @@ const reads: BrowserToolFacts = {
   observesNet: false,
   textResult: false,
   targets: [],
+  destructive: false,
 };
 
 /** A tool that may change the bound document. */
@@ -79,7 +94,7 @@ const unknownTool: BrowserToolFacts = {
 };
 
 const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
-  const { capability, targets } = petrinautToolEffects[name];
+  const { capability, targets, destructive } = petrinautToolEffects[name];
   return {
     ...(capability === "petrinaut-mutation" ||
     capability === "petrinaut-command"
@@ -87,7 +102,30 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
       : reads),
     observesNet: name === getLatestNetDefinitionToolName,
     targets,
+    destructive,
     inputSchema: petrinautAiTools[name].inputSchema,
+    canonicalCalls: (input) => [{ toolName: name, input }],
+  };
+};
+
+/**
+ * One of HASH's Petrinaut tools: a change, which can change what its
+ * operations can and is destructive when any of them is.
+ */
+const hashPetrinaut = ({
+  operations,
+  inputSchema,
+  parseCall,
+}: (typeof hashPetrinautTools)[keyof typeof hashPetrinautTools]): BrowserToolDescriptor => {
+  const effects = operations.map(
+    (operation) => petrinautToolEffects[operation],
+  );
+  return {
+    ...changes,
+    targets: [...new Set(effects.flatMap(({ targets }) => targets))],
+    destructive: effects.some(({ destructive }) => destructive),
+    inputSchema,
+    canonicalCalls: (input) => parseCall(input).calls,
   };
 };
 
@@ -99,6 +137,7 @@ const hashGraphRead = (
   runsOnNet: false,
   textResult: true,
   inputSchema: { parse },
+  canonicalCalls: noCanonicalCalls,
 });
 
 /**
@@ -112,11 +151,11 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
     ...(Object.keys(petrinautAiTools) as PetrinautAiToolName[]).map(
       (name): [string, BrowserToolDescriptor] => [name, canonical(name)],
     ),
-    // Each does what its canonical operation does, under its own input.
+    // Each does what its canonical operations do, under its own input.
     ...Object.entries(hashPetrinautTools).map(
-      ([name, { operation, inputSchema }]): [string, BrowserToolDescriptor] => [
+      ([name, tool]): [string, BrowserToolDescriptor] => [
         name,
-        { ...canonical(operation), inputSchema },
+        hashPetrinaut(tool),
       ],
     ),
     ...Object.values(netReaderToolNames).map(
@@ -126,6 +165,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
           ...reads,
           observesNet: true,
           inputSchema: { parse: parseNetReaderInput },
+          canonicalCalls: noCanonicalCalls,
         },
       ],
     ),
@@ -137,6 +177,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         automatic: false,
         runsOnNet: false,
         inputSchema: zDraftPetrinautExperimentInput,
+        canonicalCalls: noCanonicalCalls,
       },
     ],
     [brunchTools.queryHashEntities, hashGraphRead(parseHashEntityReadInput)],
@@ -156,6 +197,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         runsOnNet: false,
         documentRevision: "none",
         inputSchema: { parse: parseHashSaveInput },
+        canonicalCalls: noCanonicalCalls,
       },
     ],
   ]);
@@ -167,3 +209,15 @@ export const browserExecutedToolNames: ReadonlySet<string> = new Set(
 /** What each decision needs to know of a tool; an unknown tool counts as a possible change. */
 export const browserToolFacts = (toolName: string): BrowserToolFacts =>
   browserExecutedTools.get(toolName) ?? unknownTool;
+
+/**
+ * The canonical Petrinaut calls a call of `toolName` with `input` makes, in
+ * order: itself for a canonical tool, its operations for one of HASH's
+ * Petrinaut tools, and none otherwise. Throws on an input the tool doesn't
+ * accept.
+ */
+export const canonicalCallsOf = (
+  toolName: string,
+  input: unknown,
+): readonly CanonicalPetrinautCall[] =>
+  browserExecutedTools.get(toolName)?.canonicalCalls(input) ?? [];

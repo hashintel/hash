@@ -176,6 +176,8 @@ describe("what the server decides about each tool it issues to the browser", () 
     ["applyAutoLayout", change],
     // HASH's Petrinaut tools are their canonical operation's change.
     ["petrinaut_create_place", change],
+    ["petrinaut_update_arc", change],
+    ["petrinaut_remove_place", change],
     [
       "getLatestNetDefinition",
       {

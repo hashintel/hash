@@ -8,12 +8,21 @@ import {
   parseArcEndpointKey,
   parseArcId,
   type ArcEndpoint,
-  type PetrinautAiMutationToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
 import { parseHashSaveInput } from "../../hash/save";
+import {
+  browserExecutedToolNames,
+  browserExecutedTools,
+  browserToolFacts,
+  canonicalCallsOf,
+} from "../../petrinaut/browser-executed-tools";
+import {
+  type DestructivePetrinautOperation,
+  petrinautToolEffects,
+} from "../../petrinaut/petrinaut-tool-effects";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
@@ -205,27 +214,21 @@ export const createBrunchMutationApprovalCoordinator =
     };
   };
 
-const destructiveToolNames = [
-  "removePlace",
-  "removeTransition",
-  "removeArc",
-  "removeType",
-  "removeTypeElement",
-  "removeDifferentialEquation",
-  "removeParameter",
-  "removeScenario",
-  "removeMetric",
-  "removeSubnet",
-  "removeComponentInstance",
-  "deleteItemsByIds",
-] as const satisfies readonly PetrinautAiMutationToolName[];
+/** Every tool the server issues whose calls remove what the user built. */
+const destructiveToolNames: readonly string[] = [
+  ...browserExecutedToolNames,
+].filter((toolName) => browserToolFacts(toolName).destructive);
 
-type DestructiveToolName = (typeof destructiveToolNames)[number];
+/** A destructive call's input, parsed by its tool's own schema; throws on one it doesn't accept. */
+const parseIssuedInput = (toolName: string, input: unknown): unknown => {
+  const tool = browserExecutedTools.get(toolName);
+  if (tool === undefined)
+    throw new Error(`${toolName} is not issued to the browser.`);
+  return tool.inputSchema.parse(input);
+};
 
-const requiresBrunchMutationApproval = (
-  toolName: string,
-): toolName is DestructiveToolName =>
-  (destructiveToolNames as readonly string[]).includes(toolName);
+const requiresBrunchMutationApproval = (toolName: string): boolean =>
+  browserToolFacts(toolName).destructive;
 
 const spacedWords = (camelCase: string) =>
   camelCase.replace(/[A-Z]/gu, (letter) => ` ${letter.toLowerCase()}`);
@@ -298,11 +301,21 @@ const describeItem = (
     : nameOf(id);
 };
 
-const removalDescriptions = (
-  toolName: DestructiveToolName,
+/** Whether a canonical call's operation removes what the user built. */
+const isDestructiveOperation = (
+  toolName: string,
+): toolName is DestructivePetrinautOperation =>
+  Object.hasOwn(petrinautToolEffects, toolName) &&
+  petrinautToolEffects[toolName as keyof typeof petrinautToolEffects]
+    .destructive;
+
+/** What one canonical removal removes, in the card's words; nothing for any other call. */
+const canonicalRemovalDescriptions = (
+  toolName: string,
   input: unknown,
   nameOf: (id: string) => string,
 ): readonly string[] => {
+  if (!isDestructiveOperation(toolName)) return [];
   switch (toolName) {
     case "removePlace":
       return [
@@ -363,8 +376,23 @@ const removalDescriptions = (
           ({ id, type }) =>
             `Remove ${spacedWords(type)} — ${describeItem(type, id, nameOf)}`,
         );
+    default: {
+      // Every destructive operation has the card's wording.
+      const unworded: never = toolName;
+      throw new Error(`No card wording for ${String(unworded)}.`);
+    }
   }
 };
+
+/** What a call of a destructive tool removes, through the canonical removals it makes. */
+const removalDescriptions = (
+  toolName: string,
+  input: unknown,
+  nameOf: (id: string) => string,
+): readonly string[] =>
+  canonicalCallsOf(toolName, input).flatMap((call) =>
+    canonicalRemovalDescriptions(call.toolName, call.input, nameOf),
+  );
 
 /** The document a save names. */
 const saveInputParser = { parse: parseHashSaveInput };
@@ -394,7 +422,7 @@ export const createBrunchMutationAdmission =
     } else {
       if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
       // An approval row renders only for inputs its schema accepts.
-      mutationActionInputSchemas[toolName].parse(input);
+      parseIssuedInput(toolName, input);
     }
     const decision = await approval.request({ toolCallId, toolName, signal });
     return decision.decision === "allow"
@@ -462,7 +490,7 @@ const ApprovalActions = ({
 
 export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
-  toolName: DestructiveToolName,
+  toolName: string,
 ) => {
   const Widget = ({
     input,
@@ -553,7 +581,7 @@ type ApprovalComponent = ComponentType<
 >;
 
 export type BrunchMutationApprovalComponents = Readonly<
-  Record<DestructiveToolName, ApprovalComponent> &
+  Record<string, ApprovalComponent> &
     Partial<Record<typeof saveToolName, ApprovalComponent>>
 >;
 
@@ -576,7 +604,7 @@ export const createBrunchMutationApprovalComponents = (
       );
       return [toolName, component];
     }),
-  ) as Record<DestructiveToolName, ApprovalComponent>),
+  ) as Record<string, ApprovalComponent>),
   ...(readSaveState === undefined
     ? {}
     : {
@@ -597,18 +625,23 @@ export const createBrunchMutationApprovalInteractiveTools = (
 ): readonly PetrinautAiInteractiveTool[] => {
   const saveComponent = components[saveToolName];
   return [
-    ...destructiveToolNames.map((toolName) =>
-      definePetrinautAiInteractiveTool<unknown, unknown>({
-        toolName,
-        inputParser: {
-          parse: (value) => mutationActionInputSchemas[toolName].parse(value),
-        },
-        outputParser: passthrough,
-        // Earlier rows of the same tool keep their normal presentation.
-        shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
-        component: components[toolName],
-      }),
-    ),
+    ...destructiveToolNames.flatMap((toolName) => {
+      const component = components[toolName];
+      return component === undefined
+        ? []
+        : [
+            definePetrinautAiInteractiveTool<unknown, unknown>({
+              toolName,
+              inputParser: {
+                parse: (value) => parseIssuedInput(toolName, value),
+              },
+              outputParser: passthrough,
+              // Earlier rows of the same tool keep their normal presentation.
+              shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
+              component,
+            }),
+          ];
+    }),
     ...(saveComponent === undefined
       ? []
       : [

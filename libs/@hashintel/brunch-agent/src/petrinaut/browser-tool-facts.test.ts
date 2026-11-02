@@ -175,6 +175,8 @@ describe("what the browser decides about each tool the server issues to it", () 
     ["readNetStructure", netRead("parsed-by-schema")],
     // HASH's Petrinaut tools are their canonical operation's change.
     ["petrinaut_create_place", change],
+    ["petrinaut_update_arc", change],
+    ["petrinaut_remove_place", change],
     // The reviewed experiment draft runs through its own card.
     [
       brunchTools.draftPetrinautExperiment,

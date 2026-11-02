@@ -4,7 +4,11 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { Children, isValidElement, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchTools, ledgerCommentsMessage } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  hashPetrinautTools,
+  ledgerCommentsMessage,
+} from "@hashintel/brunch-agent";
 import {
   createExperimentToolName,
   createJsonDocHandle,
@@ -743,7 +747,7 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       brunchTools.queryHashEntityTypes,
       brunchTools.queryHashWebs,
       brunchTools.saveHashNet,
-      "petrinaut_create_place",
+      ...Object.keys(hashPetrinautTools),
     ].toSorted(),
   );
   expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
