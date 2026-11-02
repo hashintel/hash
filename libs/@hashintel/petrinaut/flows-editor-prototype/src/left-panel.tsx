@@ -1,6 +1,11 @@
 import { useState } from "react";
 
-import { Icon, type IconName, TextInput } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  type IconName,
+  TextInput,
+} from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
@@ -201,14 +206,6 @@ const listHeadStyle = css({
   color: "neutral.fg.muted",
 });
 
-const collapseAllStyle = css({
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "blue.fg.link",
-  cursor: "pointer",
-  _hover: { textDecoration: "underline" },
-});
-
 /** "In this flow": Start, then the steps in order, children of a For each indented under it. */
 const FlowList = () => {
   const { document, ui, setUi } = useEditor();
@@ -371,13 +368,17 @@ const FlowList = () => {
     <div className={css({ display: "flex", flexDirection: "column" })}>
       <div className={listHeadStyle}>
         <span>{total === 1 ? "1 step" : `${total} steps`}</span>
-        <button
-          type="button"
-          className={collapseAllStyle}
+        {/* 2 Nov: a DS IconButton (ghost, xs, neutral), not a blue link. Figma draws lucide fold-vertical; ds-components
+            has no fold icon, so its collapse / expand glyphs stand in. */}
+        <Button
+          size="xs"
+          variant="ghost"
+          tone="neutral"
+          iconName={allClosed ? "expand" : "collapse"}
+          aria-label={allClosed ? "Expand all" : "Collapse all"}
+          tooltip={allClosed ? "Expand all" : "Collapse all"}
           onClick={() => setClosed(allClosed ? [] : groups)}
-        >
-          {allClosed ? "Expand all" : "Collapse all"}
-        </button>
+        />
       </div>
       <div
         className={css({

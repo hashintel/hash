@@ -31,6 +31,18 @@ export type ScreenBuild = (
   act?: () => void | Promise<void>;
 };
 
+/** Where Figma's editor frames draw Start: 40 px into the canvas, its middle level with the canvas's. */
+const startViewport: EditorUi["viewport"] = { left: 40, top: 349, zoom: 1 };
+
+const editor = (
+  document: EditorDocument,
+  ui: Partial<EditorUi> = {},
+): ScreenBuild => ({
+  page: "editor",
+  document,
+  ui: { ...initialUi, viewport: startViewport, plainQuery: true, ...ui },
+});
+
 const pause = (ms: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
@@ -142,18 +154,6 @@ const press = (selector: string) => {
   }
   return element;
 };
-
-/** Where Figma's editor frames draw Start: 40 px into the canvas, its middle level with the canvas's. */
-const startViewport: EditorUi["viewport"] = { left: 40, top: 349, zoom: 1 };
-
-const editor = (
-  document: EditorDocument,
-  ui: Partial<EditorUi> = {},
-): ScreenBuild => ({
-  page: "editor",
-  document,
-  ui: { ...initialUi, viewport: startViewport, plainQuery: true, ...ui },
-});
 
 /** A new flow opens as J0.3 draws it. */
 export const newFlowUi = (): EditorUi => ({
@@ -287,7 +287,7 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
       selectedId: EACH_SUPPLIER,
     }),
     act: () => {
-      (byText("button", "Collapse all") as HTMLElement | undefined)?.click();
+      click('[aria-label="Collapse all"]');
     },
   }),
   "J1.16": () => {

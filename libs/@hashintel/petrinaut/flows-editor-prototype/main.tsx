@@ -163,4 +163,9 @@ const Root = () => {
   return <ScreenPage />;
 };
 
-createRoot(document.getElementById("root")!).render(<Root />);
+// Hot reloads re-run this module: keep one root, so an edit re-renders instead of mounting a second React tree.
+const holder = globalThis as typeof globalThis & {
+  flowsPrototypeRoot?: ReturnType<typeof createRoot>;
+};
+holder.flowsPrototypeRoot ??= createRoot(document.getElementById("root")!);
+holder.flowsPrototypeRoot.render(<Root />);
