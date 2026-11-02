@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { hasCommandModifier } from "../../util/keyboard";
 import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
 import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
 import { Button, type ButtonElementProps } from "../Button/button";
@@ -158,6 +159,7 @@ export const SortMenu = <SortKey extends string = string>({
   ) => {
     if (
       (event.key !== "ArrowLeft" && event.key !== "ArrowRight") ||
+      hasCommandModifier(event) ||
       highlightedValue === null
     ) {
       return;

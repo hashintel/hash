@@ -14,6 +14,7 @@ import { useMergeRefs } from "use-callback-ref";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { OverflowRow } from "../../util/OverflowRow/overflow-row";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
@@ -1094,6 +1095,12 @@ export const Combobox = <TValue extends string>({
       // variant's BaseInput.
       rowKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void,
     ) => {
+      if (event.key === "Enter" && hasCommandModifier(event)) {
+        if (multiple) {
+          onKeyDown?.(event);
+        }
+        return;
+      }
       if (
         multiple &&
         renderSelectedAll !== undefined &&
@@ -1116,9 +1123,11 @@ export const Combobox = <TValue extends string>({
       // highlight). Acceptable text commits here in a single combobox — the
       // close that follows only reverts, never commits — while Enter that
       // abandons unacceptable text must not submit a form (applied after,
-      // so the machine still sees the key).
+      // so the machine still sees the key). An IME's Enter confirms the
+      // composition, never the draft.
       const entersTypedText =
         event.key === "Enter" &&
+        !event.nativeEvent.isComposing &&
         openRef.current &&
         highlightedValueRef.current === null &&
         inputTextRef.current !== committedTextRef.current;
@@ -1132,6 +1141,11 @@ export const Combobox = <TValue extends string>({
         // Snaps loosely-cased text to the named option's text — the
         // item-select close this Enter triggers leaves the text alone.
         revertInput();
+        // The machine ignores Shift+Enter outright, so the close that
+        // follows a bare Enter is ours to make.
+        if (event.shiftKey) {
+          combobox.setOpen(false);
+        }
       }
       if (event.key === "Escape" && !openRef.current) {
         revertInput();
@@ -1173,7 +1187,8 @@ export const Combobox = <TValue extends string>({
       // the dropdown is open.
       if (
         openRef.current &&
-        (event.key === "ArrowLeft" || event.key === "ArrowRight")
+        (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+        !hasCaretModifier(event)
       ) {
         rowKeyDown(maskComboboxRoleFromTagsMachine(event));
         return;
