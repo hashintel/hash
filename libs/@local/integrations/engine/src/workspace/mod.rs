@@ -183,6 +183,8 @@ impl Workspace {
     /// [`CaptureError::WorkspaceFile`] if `target` names a workspace file,
     /// [`CaptureError::Exists`] if `target` already exists, [`CaptureError::Write`] for a failed
     /// write, or [`CaptureError::Stopped`] if the workspace thread stops.
+    /// [`CaptureError::SyncDirectory`] means the capture was published but syncing its directory
+    /// failed; [`SourceCapture::open`] can recover the published capture.
     pub async fn capture(
         &self,
         sql: Box<str>,

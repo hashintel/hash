@@ -17,6 +17,8 @@ pub enum CaptureError {
     Read,
     #[display("the source capture could not be written")]
     Write,
+    #[display("the capture at `{}` was published but its directory could not be synced", path.display())]
+    SyncDirectory { path: PathBuf },
     #[display("the workspace disk-limit check failed")]
     DiskUsage,
     #[display("a capture already exists at `{}`", path.display())]
@@ -64,8 +66,9 @@ impl SourceCapture {
     /// # Errors
     ///
     /// Returns [`CaptureError::Read`] for an unreadable source or invalid footer,
-    /// [`CaptureError::Write`] for a failed copy or sync, or [`CaptureError::Exists`] if `target`
-    /// already exists.
+    /// [`CaptureError::Write`] for a failed copy or file sync, or [`CaptureError::Exists`] if
+    /// `target` already exists. [`CaptureError::SyncDirectory`] means the capture was published
+    /// but syncing its directory failed; [`Self::open`] can recover the published capture.
     pub fn copy_from(source: &Path, target: &Path) -> Result<Self, Report<CaptureError>> {
         let mut partial = Self::stage(target)?;
         let mut input = File::open(source).change_context(CaptureError::Read)?;
@@ -113,6 +116,17 @@ impl SourceCapture {
         target: &Path,
         rows: u64,
     ) -> Result<Self, Report<CaptureError>> {
+        Self::publish_with_sync(partial, target, rows, |directory| {
+            File::open(directory)?.sync_all()
+        })
+    }
+
+    fn publish_with_sync(
+        partial: NamedTempFile,
+        target: &Path,
+        rows: u64,
+        sync_directory: impl FnOnce(&Path) -> io::Result<()>,
+    ) -> Result<Self, Report<CaptureError>> {
         let file = partial.as_file();
         file.sync_all().change_context(CaptureError::Write)?;
         let bytes = file.metadata().change_context(CaptureError::Write)?.len();
@@ -127,9 +141,9 @@ impl SourceCapture {
             Report::new(error.error).change_context(context)
         })?;
         drop(file);
-        File::open(Self::directory(target))
-            .and_then(|directory| directory.sync_all())
-            .change_context(CaptureError::Write)?;
+        sync_directory(Self::directory(target)).change_context(CaptureError::SyncDirectory {
+            path: target.to_owned(),
+        })?;
         Ok(Self {
             path: target.to_owned(),
             rows,
@@ -140,11 +154,62 @@ impl SourceCapture {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, io::Write as _};
+    use alloc::sync::Arc;
+    use std::{fs, io, io::Write as _};
 
+    use arrow_array::{ArrayRef, Int64Array, RecordBatch};
+    use parquet::arrow::ArrowWriter;
     use tempfile::TempDir;
 
     use super::{CaptureError, SourceCapture};
+
+    #[test]
+    fn publish_directory_sync_failure_preserves_capture() {
+        let directory = TempDir::new().expect("should create a directory");
+        let target = directory.path().join("capture.parquet");
+        let mut partial = SourceCapture::stage(&target).expect("should stage the capture");
+        let ids: ArrayRef = Arc::new(Int64Array::from(vec![1, 2, 3]));
+        let batch = RecordBatch::try_from_iter([("id", ids)]).expect("should create a batch");
+        let mut writer = ArrowWriter::try_new(partial.as_file_mut(), batch.schema(), None)
+            .expect("should create a Parquet writer");
+        writer.write(&batch).expect("should write the batch");
+        writer.close().expect("should finish the Parquet file");
+
+        let error = SourceCapture::publish_with_sync(partial, &target, 3, |parent| {
+            assert_eq!(parent, directory.path());
+            assert!(target.exists(), "the capture should already be published");
+            Err(io::Error::other("injected directory sync failure"))
+        })
+        .expect_err("should report the directory sync failure");
+        assert!(matches!(
+            error.current_context(),
+            CaptureError::SyncDirectory { path } if path == &target
+        ));
+        assert!(error.downcast_ref::<io::Error>().is_some());
+
+        let capture = SourceCapture::open(target.clone()).expect("should recover the capture");
+        assert_eq!(capture.path(), target);
+        assert_eq!(capture.rows(), 3);
+        assert_eq!(
+            capture.bytes(),
+            fs::metadata(&target)
+                .expect("should read file metadata")
+                .len()
+        );
+        let retry =
+            SourceCapture::stage(&target).expect_err("should preserve the published capture");
+        assert!(matches!(
+            retry.current_context(),
+            CaptureError::Exists { path } if path == &target
+        ));
+        assert_eq!(
+            fs::read_dir(directory.path())
+                .expect("should read the directory")
+                .count(),
+            1,
+            "only the published capture should remain"
+        );
+    }
 
     #[test]
     fn publish_competing_writers() {
