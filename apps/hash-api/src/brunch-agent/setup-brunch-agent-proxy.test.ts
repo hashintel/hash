@@ -145,6 +145,25 @@ test.each([
   expect(upstreamRequests).toEqual([]);
 });
 
+test("refuses a protocol-relative path rather than forwarding it to another host", async () => {
+  const { send, upstreamRequests } = await startProxy();
+
+  const response = await send("/api/brunch//attacker.example/agents/x");
+
+  expect(response.status).toBe(404);
+  expect(JSON.parse(response.body)).toEqual({ error: "Not found" });
+  expect(upstreamRequests).toEqual([]);
+});
+
+test("forwards an encoded slash verbatim under Brunch's agents", async () => {
+  const { send, upstreamRequests } = await startProxy();
+
+  const response = await send("/api/brunch/agents/..%2fhealth");
+
+  expect(response.status).toBe(202);
+  expect(upstreamRequests).toMatchObject([{ path: "/agents/..%2fhealth" }]);
+});
+
 test("forwards an agents request with the account's owner key and points its URLs at the public origin", async () => {
   const { send, upstreamRequests } = await startProxy();
 
@@ -159,6 +178,9 @@ test("forwards an agents request with the account's owner key and points its URL
     },
   ]);
   expect(response.status).toBe(202);
+  expect(
+    response.headers["access-control-expose-headers"]?.split(", "),
+  ).toContain("stream-sse-data-encoding");
   expect(response.headers.location).toBe(
     "https://app-api.example/api/brunch/agents/petrinaut/instance",
   );
