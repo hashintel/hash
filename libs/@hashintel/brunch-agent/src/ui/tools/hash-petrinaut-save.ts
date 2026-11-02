@@ -1,7 +1,7 @@
 import {
   brunchTools,
   type SaveHashNetForAgent,
-  zHashNetSaveInput,
+  hashNetSaveInputParser,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -15,7 +15,7 @@ export const createHashPetrinautSaveTool = (
 ): PetrinautAiAutomaticTool =>
   definePetrinautAiAutomaticTool({
     toolName: brunchTools.saveHashNet,
-    inputParser: zHashNetSaveInput,
+    inputParser: hashNetSaveInputParser,
     outputParser: { parse: (value) => value },
     execute: ({ input, signal }) => save(input.documentId, signal),
   });

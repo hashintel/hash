@@ -1,5 +1,4 @@
 import { useMemo, useSyncExternalStore, type ComponentType } from "react";
-import { z } from "zod";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
@@ -14,6 +13,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
+import { parseHashSaveInput } from "../../hash/save";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
@@ -366,8 +366,8 @@ const removalDescriptions = (
   }
 };
 
-/** The document a save names, as the agent's schema has already checked it. */
-const zSaveInput = z.object({ documentId: z.string() });
+/** The document a save names. */
+const saveInputParser = { parse: parseHashSaveInput };
 
 /**
  * Later calls stay queued behind a waiting approval; a denial settles as not
@@ -383,7 +383,9 @@ export const createBrunchMutationAdmission =
     if (toolName === saveToolName) {
       if (readSaveState === undefined)
         throw new Error("This editor has no save for the agent to run.");
-      const { refusal } = readSaveState(zSaveInput.parse(input).documentId);
+      const { refusal } = readSaveState(
+        saveInputParser.parse(input).documentId,
+      );
       if (refusal !== null)
         return {
           admitted: false,
@@ -514,7 +516,7 @@ export const createBrunchSaveApprovalWidget = (
 ) => {
   const Widget = ({ input, toolCallId }: WidgetProps) => {
     const { title, lastSavedTime } = readSaveState(
-      zSaveInput.parse(input).documentId,
+      saveInputParser.parse(input).documentId,
     );
     return (
       <section className={containerStyle} aria-label="Approve saving the net">
@@ -612,7 +614,7 @@ export const createBrunchMutationApprovalInteractiveTools = (
       : [
           definePetrinautAiInteractiveTool<unknown, unknown>({
             toolName: saveToolName,
-            inputParser: zSaveInput,
+            inputParser: saveInputParser,
             outputParser: passthrough,
             shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
             component: saveComponent,

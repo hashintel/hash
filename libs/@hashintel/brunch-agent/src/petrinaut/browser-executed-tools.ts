@@ -5,6 +5,12 @@ import {
 } from "@hashintel/petrinaut-core/ai";
 
 import { brunchTools } from "../constants";
+import {
+  parseHashEntityReadInput,
+  parseHashEntityTypeReadInput,
+  parseHashWebReadInput,
+} from "../hash/graph-reads";
+import { parseHashSaveInput } from "../hash/save";
 import { zDraftPetrinautExperimentInput } from "./draft-experiment";
 import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
 import { petrinautToolEffects } from "./petrinaut-tool-effects";
@@ -65,13 +71,6 @@ const unknownTool: BrowserToolFacts = {
   runsOnNet: false,
 };
 
-/**
- * The HASH agent owns its tools' schemas. They have no defaults or transforms,
- * so the input the server issues is the model's, and both sides compare it as
- * it is.
- */
-const asIssued = { parse: (input: unknown) => input };
-
 const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
   const { capability } = petrinautToolEffects[name];
   return {
@@ -84,14 +83,15 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
   };
 };
 
-const hashGraphRead: BrowserToolDescriptor = {
+/** HASH's process page reads the graph as the signed-in user, not the net, and the result is rendered as compact text. */
+const hashGraphRead = (
+  parse: (input: unknown) => unknown,
+): BrowserToolDescriptor => ({
   ...reads,
-  // HASH's process page reads the graph as the signed-in user, not the net,
-  // and renders the result as compact text.
   runsOnNet: false,
   textResult: true,
-  inputSchema: asIssued,
-};
+  inputSchema: { parse },
+});
 
 /**
  * Every tool the server issues to the bound browser and awaits in band:
@@ -123,9 +123,12 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         inputSchema: zDraftPetrinautExperimentInput,
       },
     ],
-    [brunchTools.queryHashEntities, hashGraphRead],
-    [brunchTools.queryHashEntityTypes, hashGraphRead],
-    [brunchTools.queryHashWebs, hashGraphRead],
+    [brunchTools.queryHashEntities, hashGraphRead(parseHashEntityReadInput)],
+    [
+      brunchTools.queryHashEntityTypes,
+      hashGraphRead(parseHashEntityTypeReadInput),
+    ],
+    [brunchTools.queryHashWebs, hashGraphRead(parseHashWebReadInput)],
     [
       brunchTools.saveHashNet,
       {
@@ -136,7 +139,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         // unknown, but any change while it was pending is someone else's.
         runsOnNet: false,
         documentRevision: "none",
-        inputSchema: asIssued,
+        inputSchema: { parse: parseHashSaveInput },
       },
     ],
   ]);

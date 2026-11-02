@@ -1,10 +1,7 @@
-import * as z from "zod";
+import { parseHashSaveInput } from "../hash/save";
 
-/**
- * The input Brunch's HASH agent issues for its save. The agent's schema is
- * the authority and has already validated it; this only narrows it.
- */
-export const zHashNetSaveInput = z.object({ documentId: z.string() });
+/** The canonical HASH save input, adapted to the browser tool parser contract. */
+export const hashNetSaveInputParser = { parse: parseHashSaveInput };
 
 /**
  * What an agent's save settles with: the result of the editor's save it

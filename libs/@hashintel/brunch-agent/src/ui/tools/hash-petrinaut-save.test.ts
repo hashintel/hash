@@ -4,7 +4,7 @@ import {
   brunchTools,
   type HashNetSaveOutcome,
   type SaveHashNetForAgent,
-  zHashNetSaveInput,
+  hashNetSaveInputParser,
 } from "@hashintel/brunch-agent";
 
 import { createHashPetrinautSaveTool } from "./hash-petrinaut-save";
@@ -45,7 +45,7 @@ test.each(outcomes)(
     const signal = new AbortController().signal;
 
     expect(tool.toolName).toBe(brunchTools.saveHashNet);
-    const parse = vi.spyOn(zHashNetSaveInput, "parse");
+    const parse = vi.spyOn(hashNetSaveInputParser, "parse");
     const execution = params(signal);
     execution.input = tool.inputParser.parse(execution.input);
     const result = await tool.execute(execution);
