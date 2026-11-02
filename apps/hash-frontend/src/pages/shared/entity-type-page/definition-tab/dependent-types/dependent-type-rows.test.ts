@@ -18,12 +18,13 @@ const typeBaseUrl = (slug: string) =>
 
 const actorBaseUrl = typeBaseUrl("actor");
 
-/** Version `version` of `slug`, whose `allOf` names the given versions of Actor. */
+/** Version `version` of `slug`, whose `allOf` names the given versions of the parent, Actor by default. */
 const makeVersion = (
   slug: string,
   title: string,
   version: number,
-  actorVersions: number[],
+  parentVersions: number[],
+  parentBaseUrl: BaseUrl = actorBaseUrl,
 ): EntityTypeWithMetadata =>
   ({
     schema: {
@@ -34,8 +35,8 @@ const makeVersion = (
       description: `A ${title}`,
       type: "object",
       properties: {},
-      allOf: actorVersions.map((actorVersion) => ({
-        $ref: `${actorBaseUrl}v/${actorVersion}` as VersionedUrl,
+      allOf: parentVersions.map((parentVersion) => ({
+        $ref: `${parentBaseUrl}v/${parentVersion}` as VersionedUrl,
       })),
     },
     metadata: {
@@ -252,6 +253,184 @@ describe("getParentVersionRows", () => {
         types: [
           `Machine v1–v1 opens ${typeBaseUrl("machine")}v/1`,
           `User v2–v3 opens ${typeBaseUrl("user")}v/3`,
+        ],
+      },
+    ]);
+  });
+});
+
+describe("on an example ontology of companies", () => {
+  const companyBaseUrl = typeBaseUrl("company");
+
+  /** Versions `first` to `last` of a type, each extending the given versions of Company. */
+  const companyVersions = (
+    slug: string,
+    title: string,
+    [first, last]: [number, number],
+    extended: number[],
+  ) =>
+    Array.from({ length: last - first + 1 }, (_, index) =>
+      makeVersion(slug, title, first + index, extended, companyBaseUrl),
+    );
+
+  /*
+   * What the first query returns: every version that exists and extends
+   * Company. Versions that extend nothing or are archived are missing.
+   */
+  const allVersions = [
+    ...companyVersions("charity", "Charity", [1, 1], [1]),
+    ...companyVersions("charity", "Charity", [2, 2], [2]),
+    ...companyVersions("charity", "Charity", [3, 3], [3]),
+    // v1 extends nothing.
+    ...companyVersions("form-8k", "Form 8-K Issuer", [2, 3], [3]),
+    ...companyVersions("form-10k", "Form 10-K Issuer", [1, 4], [1]),
+    // v2, which extends Company v2, is archived.
+    ...companyVersions("holding-company", "Holding Company", [1, 1], [1]),
+    // v2 is archived.
+    ...companyVersions("partnership", "Partnership", [1, 1], [2]),
+    ...companyVersions("partnership", "Partnership", [3, 3], [2]),
+    ...companyVersions("public-company", "Public Company", [1, 2], [1]),
+    ...companyVersions("public-company", "Public Company", [3, 3], [1, 2]),
+    ...companyVersions("public-company", "Public Company", [4, 5], [2]),
+    ...companyVersions("public-company", "Public Company", [6, 6], [1]),
+    // v3 extends nothing.
+    ...companyVersions("shell-company", "Shell Company", [1, 2], [1]),
+    // v3 extends nothing.
+    ...companyVersions("sole-trader", "Sole Trader", [1, 2], [2]),
+    ...companyVersions("sole-trader", "Sole Trader", [4, 4], [3]),
+    ...companyVersions("subsidiary", "Subsidiary", [1, 8], [1]),
+    ...companyVersions("subsidiary", "Subsidiary", [9, 17], [2]),
+    ...companyVersions("subsidiary", "Subsidiary", [18, 26], [3]),
+  ];
+
+  /*
+   * What the second query returns: each type's latest version, when it
+   * extends Company. Shell Company's latest version extends nothing, and
+   * Holding Company's is archived.
+   */
+  const latestVersions = [
+    "charity/v/3",
+    "form-8k/v/3",
+    "form-10k/v/4",
+    "partnership/v/3",
+    "public-company/v/6",
+    "sole-trader/v/4",
+    "subsidiary/v/26",
+  ].map((id) =>
+    allVersions.find(({ schema }) => schema.$id.endsWith(`/${id}`))!,
+  );
+
+  const { rows } = getDependentTypeRows({
+    parentBaseUrl: companyBaseUrl,
+    allVersions: { entityTypes: allVersions },
+    latestVersions: { entityTypes: latestVersions },
+  });
+
+  /** A type ID without the common prefix, such as `charity/v/3`. */
+  const shortId = (entityTypeId: VersionedUrl) =>
+    entityTypeId.split("/entity-type/")[1];
+
+  it("gives each type its ranges, and opens a current type at its latest version and a former one at its highest version that extends Company", () => {
+    expect(
+      rows.map((row) => ({
+        title: `${row.entityType.schema.title}${row.former ? " (former)" : ""}`,
+        opens: shortId(row.entityType.schema.$id),
+        ranges: row.ranges.map(
+          ({ firstVersion, lastVersion, parentVersion }) =>
+            `v${firstVersion}–v${lastVersion} → v${parentVersion}`,
+        ),
+      })),
+    ).toEqual([
+      {
+        title: "Charity",
+        opens: "charity/v/3",
+        ranges: ["v1–v1 → v1", "v2–v2 → v2", "v3–v3 → v3"],
+      },
+      {
+        title: "Form 8-K Issuer",
+        opens: "form-8k/v/3",
+        ranges: ["v2–v3 → v3"],
+      },
+      {
+        title: "Form 10-K Issuer",
+        opens: "form-10k/v/4",
+        ranges: ["v1–v4 → v1"],
+      },
+      {
+        title: "Holding Company (former)",
+        opens: "holding-company/v/1",
+        ranges: ["v1–v1 → v1"],
+      },
+      {
+        title: "Partnership",
+        opens: "partnership/v/3",
+        ranges: ["v1–v1 → v2", "v3–v3 → v2"],
+      },
+      {
+        title: "Public Company",
+        opens: "public-company/v/6",
+        ranges: ["v1–v3 → v1", "v3–v5 → v2", "v6–v6 → v1"],
+      },
+      {
+        title: "Shell Company (former)",
+        opens: "shell-company/v/2",
+        ranges: ["v1–v2 → v1"],
+      },
+      {
+        title: "Sole Trader",
+        opens: "sole-trader/v/4",
+        ranges: ["v1–v2 → v2", "v4–v4 → v3"],
+      },
+      {
+        title: "Subsidiary",
+        opens: "subsidiary/v/26",
+        ranges: ["v1–v8 → v1", "v9–v17 → v2", "v18–v26 → v3"],
+      },
+    ]);
+  });
+
+  it("lists each Company version, newest first, with the types that extend it and their ranges", () => {
+    expect(
+      getParentVersionRows({ rows, parentLatestVersion: 3 }).map(
+        ({ parentVersion, types }) => ({
+          parentVersion,
+          types: types.map(
+            ({ row, ranges, highestVersionId }) =>
+              `${row.entityType.schema.title} ${ranges
+                .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
+                .join(", ")} opens ${shortId(highestVersionId)}`,
+          ),
+        }),
+      ),
+    ).toEqual([
+      {
+        parentVersion: 3,
+        types: [
+          "Charity v3–v3 opens charity/v/3",
+          "Form 8-K Issuer v2–v3 opens form-8k/v/3",
+          "Sole Trader v4–v4 opens sole-trader/v/4",
+          "Subsidiary v18–v26 opens subsidiary/v/26",
+        ],
+      },
+      {
+        parentVersion: 2,
+        types: [
+          "Charity v2–v2 opens charity/v/2",
+          "Partnership v1–v1, v3–v3 opens partnership/v/3",
+          "Public Company v3–v5 opens public-company/v/5",
+          "Sole Trader v1–v2 opens sole-trader/v/2",
+          "Subsidiary v9–v17 opens subsidiary/v/17",
+        ],
+      },
+      {
+        parentVersion: 1,
+        types: [
+          "Charity v1–v1 opens charity/v/1",
+          "Form 10-K Issuer v1–v4 opens form-10k/v/4",
+          "Holding Company v1–v1 opens holding-company/v/1",
+          "Public Company v1–v3, v6–v6 opens public-company/v/6",
+          "Shell Company v1–v2 opens shell-company/v/2",
+          "Subsidiary v1–v8 opens subsidiary/v/8",
         ],
       },
     ]);
