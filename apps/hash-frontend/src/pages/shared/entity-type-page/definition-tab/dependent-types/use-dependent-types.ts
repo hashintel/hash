@@ -19,7 +19,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-export const useEntityTypeChildren = (entityTypeId: VersionedUrl | null) => {
+export const useDependentTypes = (entityTypeId: VersionedUrl | null) => {
   const { data, error } = useQuery<
     QueryEntityTypesQuery,
     QueryEntityTypesQueryVariables

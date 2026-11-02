@@ -10,7 +10,7 @@ import {
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
-import { useEntityTypeChildren } from "./use-entity-type-children";
+import { useDependentTypes } from "./use-dependent-types";
 
 import type { MockedResponse } from "@apollo/client/testing";
 import type {
@@ -67,11 +67,11 @@ const queryReturns = (
   result: { data: { queryEntityTypes: { entityTypes } } },
 });
 
-const renderEntityTypeChildren = (
+const renderDependentTypes = (
   mocks: MockedResponse[],
   entityTypeId: VersionedUrl | null = animalTypeId,
 ) =>
-  renderHook(() => useEntityTypeChildren(entityTypeId), {
+  renderHook(() => useDependentTypes(entityTypeId), {
     wrapper: ({ children }: { children: ReactNode }) => (
       <MockedProvider mocks={mocks} addTypename={false}>
         {children}
@@ -79,9 +79,9 @@ const renderEntityTypeChildren = (
     ),
   });
 
-describe("useEntityTypeChildren", () => {
+describe("useDependentTypes", () => {
   it("returns the types the query finds", async () => {
-    const { result } = renderEntityTypeChildren([queryReturns([cat, dog])]);
+    const { result } = renderDependentTypes([queryReturns([cat, dog])]);
 
     await waitFor(() => {
       expect(
@@ -93,7 +93,7 @@ describe("useEntityTypeChildren", () => {
   it("asks for every version of the types that directly extend Animal v1", async () => {
     const variableMatcher = vi.fn().mockReturnValue(true);
 
-    renderEntityTypeChildren([{ ...queryReturns([]), variableMatcher }]);
+    renderDependentTypes([{ ...queryReturns([]), variableMatcher }]);
 
     await waitFor(() => {
       expect(variableMatcher).toHaveBeenCalledWith({
@@ -113,9 +113,7 @@ describe("useEntityTypeChildren", () => {
   });
 
   it("leaves Animal out of its own children", async () => {
-    const { result } = renderEntityTypeChildren([
-      queryReturns([animalV2, dog]),
-    ]);
+    const { result } = renderDependentTypes([queryReturns([animalV2, dog])]);
 
     await waitFor(() => {
       expect(
@@ -125,7 +123,7 @@ describe("useEntityTypeChildren", () => {
   });
 
   it("shows each type once, at its newest version that extends Animal v1", async () => {
-    const { result } = renderEntityTypeChildren([queryReturns([dogV2, dog])]);
+    const { result } = renderDependentTypes([queryReturns([dogV2, dog])]);
 
     await waitFor(() => {
       expect(result.current.children?.map((child) => child.schema.$id)).toEqual(
@@ -135,7 +133,7 @@ describe("useEntityTypeChildren", () => {
   });
 
   it("sorts children by title", async () => {
-    const { result } = renderEntityTypeChildren([queryReturns([dog, cat])]);
+    const { result } = renderDependentTypes([queryReturns([dog, cat])]);
 
     await waitFor(() => {
       expect(
@@ -147,10 +145,7 @@ describe("useEntityTypeChildren", () => {
   it("sends no query without a type", async () => {
     const variableMatcher = vi.fn().mockReturnValue(true);
 
-    renderEntityTypeChildren(
-      [{ ...queryReturns([dog]), variableMatcher }],
-      null,
-    );
+    renderDependentTypes([{ ...queryReturns([dog]), variableMatcher }], null);
 
     await act(async () => {});
 
@@ -158,7 +153,7 @@ describe("useEntityTypeChildren", () => {
   });
 
   it("reports a failed query", async () => {
-    const { result } = renderEntityTypeChildren([
+    const { result } = renderDependentTypes([
       {
         request: { query: queryEntityTypesQuery },
         variableMatcher: () => true,
