@@ -48,7 +48,7 @@ const InfoButton = ({ label, text }: { label: string; text: string }) => (
 );
 
 export const DependentTypesSection = ({
-  entityTypeTitle,
+  entityType,
   parentLatestVersion,
   rows,
   incomplete,
@@ -56,7 +56,8 @@ export const DependentTypesSection = ({
   isLinkType,
   onOpenType,
 }: {
-  entityTypeTitle: string;
+  /** The type on the page. */
+  entityType: EntityTypeWithMetadata;
   /** The latest version of the type on the page, if known. */
   parentLatestVersion: number | null;
   /** Current and former dependent types; `undefined` until they have loaded. */
@@ -68,6 +69,8 @@ export const DependentTypesSection = ({
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
   const [layout, setLayout] = useState<Layout>("byType");
+
+  const entityTypeTitle = entityType.schema.title;
   const [currentOnly, setCurrentOnly] = useState(true);
 
   const headingId = useId();
@@ -170,7 +173,7 @@ export const DependentTypesSection = ({
           />
         ) : (
           <DependentTypesByVersionTable
-            entityTypeTitle={entityTypeTitle}
+            entityType={entityType}
             parentVersionRows={getParentVersionRows({
               rows: shownRows,
               parentLatestVersion: latestParentVersion,
