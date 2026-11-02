@@ -18,9 +18,8 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
-  hashGraphReadToolNames,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
@@ -86,8 +85,6 @@ export const HashAgent = ({ id }: AgentProps): string => {
     withPetrinautVersionLoadNotes(
       createBrunchContextProjection({
         observe: (entries) => netViewTracker.observe(id, entries),
-        // The HASH graph reads are rendered as compact text for the model.
-        textResultToolNames: hashGraphReadToolNames,
       }),
     ),
   );
@@ -116,7 +113,7 @@ export const HashAgent = ({ id }: AgentProps): string => {
       toolCallId,
       signal,
     }) => {
-      const expected = browserToolMutatesDocument(toolName)
+      const expected = browserToolFacts(toolName).requiresFreshView
         ? expectedNetRevision(
             await history(),
             toolCallId,

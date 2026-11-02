@@ -1,7 +1,6 @@
 import {
   browserToolEnvelopeOf,
-  browserToolMutatesDocument,
-  brunchTools,
+  browserToolFacts,
   type ClientToolHistoryResult,
   type ClientToolResultMetadata,
   type NetReaderLevel,
@@ -305,17 +304,19 @@ export const createCanonicalPetrinautHostTools = (
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
       const toolName = toolNames.get(toolCallId);
-      // A save writes the editor's net to HASH and leaves it as it was, so
-      // any change while it was pending is someone else's: it records no
-      // revisions and no read-back.
-      if (toolName === brunchTools.saveHashNet) return undefined;
+      // A call whose tool was never recorded counts as a possible change.
+      const recorded =
+        toolName === undefined
+          ? "change"
+          : browserToolFacts(toolName).documentRevision;
+      if (recorded === "none") return undefined;
       const revisionBefore = before.get(toolCallId);
       const revisionAfter = currentRevision(input.handle);
       const changed =
         revisionBefore !== undefined &&
         revisionAfter !== undefined &&
         revisionBefore !== revisionAfter &&
-        (toolName === undefined || browserToolMutatesDocument(toolName));
+        recorded === "change";
       if (changed) producedFrom.set(revisionAfter, revisionBefore);
       const definition = changed ? input.handle.doc() : undefined;
       const result: ClientToolResultMetadata = {

@@ -1,7 +1,7 @@
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   brunchTools,
   canonicalContent,
   type DraftPetrinautExperimentInput,
@@ -187,7 +187,7 @@ export const resolveDraftAuthorityFromHistory = async (
     (call) =>
       canonicalPetrinautClientToolNames.has(call.toolName) &&
       (call.toolName === getLatestNetDefinitionToolName ||
-        browserToolMutatesDocument(call.toolName)),
+        browserToolFacts(call.toolName).documentRevision === "change"),
   );
   const latest = relevant.at(-1);
   if (

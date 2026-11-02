@@ -6,11 +6,7 @@
 import * as v from "valibot";
 import { expect, test } from "vitest";
 
-import {
-  browserExecutedToolInputParsers,
-  brunchTools,
-  hashGraphReadToolNames,
-} from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 import {
   createHashGraphReadTools,
@@ -664,7 +660,13 @@ const toolsByName = new Map(
   ).map((tool) => [tool.name, tool] as const),
 );
 
-test.each([...hashGraphReadToolNames])(
+const hashGraphReadNames = [
+  brunchTools.queryHashEntities,
+  brunchTools.queryHashEntityTypes,
+  brunchTools.queryHashWebs,
+];
+
+test.each(hashGraphReadNames)(
   "%s parses valid input to the input itself, as the library's identity parse assumes",
   (name) => {
     const tool = toolsByName.get(name);
@@ -674,12 +676,9 @@ test.each([...hashGraphReadToolNames])(
     if (!tool) return;
 
     expect(v.parse(tool.input, sample)).toStrictEqual(sample);
-    expect(browserExecutedToolInputParsers[name]?.parse(sample)).toBe(sample);
   },
 );
 
-test("the HASH agent defines no read the library doesn't register", () => {
-  expect([...toolsByName.keys()].sort()).toEqual(
-    [...hashGraphReadToolNames].sort(),
-  );
+test("the HASH agent defines its three graph reads", () => {
+  expect([...toolsByName.keys()].sort()).toEqual(hashGraphReadNames.toSorted());
 });

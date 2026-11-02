@@ -2,15 +2,15 @@ import * as v from "valibot";
 
 import {
   agentOwnershipHeaders,
-  browserExecutedToolInputParsers,
-  browserNetToolNames,
   brunchRoutes,
-  brunchTools,
   canonicalContent,
-  hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
 
 import { vBrowserToolResult } from "../../client-tools/browser-tool-result";
+import {
+  browserExecutedTools,
+  browserToolFacts,
+} from "../../petrinaut/browser-executed-tools";
 
 import type { BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
@@ -104,7 +104,7 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputParser = browserExecutedToolInputParsers[call.toolName];
+    const inputParser = browserExecutedTools.get(call.toolName)?.inputSchema;
     if (
       !issued ||
       issued.toolName !== call.toolName ||
@@ -205,12 +205,8 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    // The draft runs through its own card; HASH's graph reads and Save run
-    // here as host tools beside the net tools.
-    has: (toolName: string) =>
-      browserNetToolNames.has(toolName) ||
-      hashGraphReadToolNames.has(toolName) ||
-      toolName === brunchTools.saveHashNet,
+    // A tool an interactive card runs, such as the draft, is claimed there.
+    has: (toolName: string) => browserToolFacts(toolName).automatic,
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
