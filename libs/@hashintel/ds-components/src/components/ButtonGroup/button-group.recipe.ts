@@ -38,6 +38,16 @@ export const styles = cva({
           {
             marginLeft: "[3px]",
           },
+        // Subtle borders are translucent, so hide the left border, but update the left color 
+        // while hover/focus raises its control above the neighbour and it needs a full ring.
+        "& > :is([data-variant='subtle'], :has([data-variant='subtle'])) + [data-variant='subtle']:not([data-row-start]), & > :is([data-variant='subtle'], :has([data-variant='subtle'])) + :has([data-variant='subtle']) [data-variant='subtle']:not([data-row-start])":
+          {
+            borderLeftColor: "[transparent]",
+          },
+        "& > :is([data-variant='subtle'], :has([data-variant='subtle'])) + [data-variant='subtle']:not([data-row-start]):is(:hover, :focus-visible), & > :is([data-variant='subtle'], :has([data-variant='subtle'])) + :has([data-variant='subtle']) [data-variant='subtle']:not([data-row-start]):is(:hover, :focus-visible)":
+          {
+            borderLeftColor: "[var(--button-border-color)]",
+          },
         "& > *:hover, & > *:focus-visible, & > *:has(:focus-visible)": {
           zIndex: "[1]",
         },
