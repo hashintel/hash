@@ -19,3 +19,16 @@ export const cellSx = {
   whiteSpace: "nowrap",
   fontVariantNumeric: "tabular-nums",
 } as const;
+
+/** Hides text on screen while screen readers still read it. */
+export const visuallyHidden = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  m: "-1px",
+  p: 0,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+} as const;

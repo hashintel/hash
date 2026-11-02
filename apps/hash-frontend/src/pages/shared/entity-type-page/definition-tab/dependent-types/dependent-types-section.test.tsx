@@ -179,10 +179,10 @@ describe("DependentTypesSection", () => {
     const ranges = within(section).getByRole("group", {
       name: "Version ranges of User",
     });
-    expect(ranges.textContent).toContain("v2–v3");
-    expect(ranges.textContent).toContain("v4–v7");
+    expect(ranges.textContent).toContain("v2–v3extends Actor v1");
+    expect(ranges.textContent).toContain("v4–v7extends Actor v2");
     within(ranges).getByRole("button", {
-      name: "Open User v3, the highest version in v2–v3",
+      name: "Open User v3, the highest version in v2–v3, which extends Actor v1",
     });
 
     fireEvent.click(
@@ -219,7 +219,7 @@ describe("DependentTypesSection", () => {
     );
     fireEvent.click(
       within(section).getByRole("button", {
-        name: "Open User v3, the highest version in v2–v3",
+        name: "Open User v3, the highest version in v2–v3, which extends Actor v1",
       }),
     );
 

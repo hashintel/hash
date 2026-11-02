@@ -8,7 +8,10 @@ import {
   useState,
 } from "react";
 
-import { openColumnWidth } from "./dependent-types-table-layout";
+import {
+  openColumnWidth,
+  visuallyHidden,
+} from "./dependent-types-table-layout";
 import {
   ellipsisWidth,
   getVersionGraphLayout,
@@ -53,18 +56,6 @@ const popperModifiers: PopperProps["modifiers"] = [
 
 /** Hides the open tooltip, so that hovering another row can replace it at once. */
 let hideOpenTooltip: (() => void) | null = null;
-
-const visuallyHidden = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  m: "-1px",
-  p: 0,
-  overflow: "hidden",
-  clip: "rect(0 0 0 0)",
-  whiteSpace: "nowrap",
-  border: 0,
-} as const;
 
 type PillLook = "parent" | "version" | "gap";
 
