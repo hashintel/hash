@@ -8,6 +8,8 @@
 import { MDXProvider } from "@mdx-js/react";
 import { useEffect, useRef } from "react";
 
+import { HashIconProvider } from "@hashintel/ds-icons";
+
 import { currentStepCount } from "../deck-state";
 import { usePresenterBroadcast } from "../presenter/use-presenter-broadcast";
 import { Reveal } from "../reveal";
@@ -87,28 +89,30 @@ export const Deck = ({
           </MDXProvider>
         </div>
       </div>
-      <OverflowAlert overflow={overflow} />
-      <Progress
-        index={state.index}
-        total={slides.length}
-        step={state.step}
-        steps={steps}
-      />
-      <SlideCounter current={state.index + 1} total={slides.length} />
-      <HomeLink title={deck.title} />
-      <Settings onOpenPresenter={openPresenter}>
-        <SettingsSelect
-          label="Slide shape"
-          value={slideShape}
-          options={slideShapeOptions}
-          onChange={setSlideShape}
+      <HashIconProvider size={16} weight={450}>
+        <OverflowAlert overflow={overflow} />
+        <Progress
+          index={state.index}
+          total={slides.length}
+          step={state.step}
+          steps={steps}
         />
-        <SettingsSwitch
-          label="Flag overflowing slides"
-          checked={flagOverflow}
-          onChange={setFlagOverflow}
-        />
-      </Settings>
+        <SlideCounter current={state.index + 1} total={slides.length} />
+        <HomeLink title={deck.title} />
+        <Settings onOpenPresenter={openPresenter}>
+          <SettingsSelect
+            label="Slide shape"
+            value={slideShape}
+            options={slideShapeOptions}
+            onChange={setSlideShape}
+          />
+          <SettingsSwitch
+            label="Flag overflowing slides"
+            checked={flagOverflow}
+            onChange={setFlagOverflow}
+          />
+        </Settings>
+      </HashIconProvider>
     </div>
   );
 };

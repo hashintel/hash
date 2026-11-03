@@ -1,10 +1,12 @@
 /**
- * The bottom-left settings: the fields the deck puts in it, then the
- * presenter window. A native popover, so focus, Escape and light dismiss
- * come from the browser.
+ * The bottom-left settings: a gear button opening a panel with the fields
+ * the deck puts in it, then the presenter window. A native popover, so
+ * focus, Escape and light dismiss come from the browser.
  */
 
-import { useId, useRef } from "react";
+import { useId, useRef, useState } from "react";
+
+import { ExternalLinkIcon, SettingsIcon } from "@hashintel/ds-icons";
 
 import { usePointerProximity } from "./use-pointer-proximity";
 
@@ -20,6 +22,7 @@ export const Settings = ({
   const shellRef = useRef<HTMLDivElement>(null);
   const near = usePointerProximity(shellRef);
   const popoverId = useId();
+  const [open, setOpen] = useState(false);
   return (
     <div ref={shellRef} className="deck-settings" data-near={near}>
       <button
@@ -27,13 +30,19 @@ export const Settings = ({
         className="deck-settings__trigger"
         popoverTarget={popoverId}
         aria-label="Settings"
+        title="Settings"
       >
-        <span aria-hidden="true">⚙</span>
-        <span className="deck-settings__label">Settings</span>
+        <SettingsIcon open={open} />
       </button>
-      <div id={popoverId} popover="auto" className="deck-settings__content">
+      <div
+        id={popoverId}
+        popover="auto"
+        className="deck-settings__content"
+        onToggle={(event) => setOpen(event.newState === "open")}
+      >
         {children}
         <button type="button" onClick={onOpenPresenter}>
+          <ExternalLinkIcon size={14} />
           Open presenter notes
         </button>
         <p>Arrow keys step. F for fullscreen.</p>

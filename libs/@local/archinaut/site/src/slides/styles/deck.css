@@ -94,8 +94,12 @@
 .deck .deck-overflow-alert {
   position: fixed;
   top: 1.15rem;
-  right: 1.25rem;
+  left: 50%;
   z-index: 140;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  translate: -50% 0;
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   background: var(--deck-error);
@@ -365,17 +369,22 @@
 }
 
 .deck-settings__trigger {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.6rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
   border: 1px solid var(--chip-border);
   border-radius: 999px;
   background: var(--chip-bg);
   color: var(--text-secondary);
-  font: inherit;
-  font-size: 0.75rem;
   cursor: pointer;
+}
+
+.deck-settings__trigger:hover,
+.deck-settings__trigger:focus-visible,
+.deck-settings:has(:popover-open) .deck-settings__trigger {
+  color: var(--text-primary);
 }
 
 .deck-settings__content {
@@ -411,6 +420,9 @@
 }
 
 .deck-settings__content button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   cursor: pointer;
 }
 

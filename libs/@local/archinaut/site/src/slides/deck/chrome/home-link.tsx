@@ -3,6 +3,8 @@
 import { Link } from "@tanstack/react-router";
 import { useRef } from "react";
 
+import { GridIcon } from "@hashintel/ds-icons";
+
 import { usePointerProximity } from "./use-pointer-proximity";
 
 export const HomeLink = ({ title }: { title: string }) => {
@@ -17,7 +19,7 @@ export const HomeLink = ({ title }: { title: string }) => {
       aria-label="Choose another deck"
     >
       <span>{title}</span>
-      <span aria-hidden="true">⌂</span>
+      <GridIcon size={14} />
     </Link>
   );
 };
