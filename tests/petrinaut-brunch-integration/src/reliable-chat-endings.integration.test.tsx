@@ -444,12 +444,26 @@ test("a no-reply notice does not return under another tab's turn after an unadmi
         ).toBe("Lost message."),
       { timeout: 20_000 },
     );
-    const lostMessage = screen.getByText("Lost message.", {
-      selector: '[data-role="user"] *',
-    });
+    // A definite refusal drops the optimistic message from the transcript.
+    expect(
+      screen.queryByText("Lost message.", { selector: '[data-role="user"] *' }),
+    ).toBeNull();
     expect(faux.state.callCount).toBe(0);
 
     await send("Read the net and finish.");
+    // Canonical history names the user's message differently from the
+    // panel's local copy, so following it remounts that message. History can
+    // replace the transcript only once the turn settles, so the message shown
+    // while the turn is still running is the local copy.
+    const localUserMessage = await waitFor(
+      () => {
+        screen.getByRole("button", { name: "Stop AI response" });
+        return screen.getByText("Read the net and finish.", {
+          selector: '[data-role="user"] *',
+        });
+      },
+      { timeout: 20_000 },
+    );
     await waitFor(
       () => {
         expect(rowContaining("Checked latest net definition")?.status).toBe(
@@ -463,9 +477,10 @@ test("a no-reply notice does not return under another tab's turn after an unadmi
     );
 
     // Followed history carries only the admitted turn, and keeps its notice.
-    await waitFor(() => expect(lostMessage.isConnected).toBe(false), {
+    await waitFor(() => expect(localUserMessage.isConnected).toBe(false), {
       timeout: 20_000,
     });
+    expect(screen.getByText("Read the net and finish.")).not.toBeNull();
     expect(
       screen.queryByText("Lost message.", { selector: '[data-role="user"] *' }),
     ).toBeNull();
