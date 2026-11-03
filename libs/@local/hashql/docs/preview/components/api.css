@@ -529,13 +529,34 @@
   color: var(--api-link-dark);
 }
 
-/* A link in prose that names an export as code, in the colour of the export's kind. */
+/* A link in prose that names an export as code, in the colour of the export's kind. The colour marks it as a link, so it has no underline, and hovering tints its box. A link without a colour keeps the underline. */
+.api-link > a {
+  text-decoration-line: none;
+}
+
+.api-link > a:hover {
+  opacity: 1;
+}
+
 .api-link > a > code {
   color: var(--api-link-light);
+  transition: background-color 120ms;
 }
 
 .dark .api-link > a > code {
   color: var(--api-link-dark);
+}
+
+.api-link > a:hover > code {
+  background: color-mix(in srgb, var(--api-link-light) 14%, transparent);
+  border-color: color-mix(in srgb, var(--api-link-light) 35%, transparent);
+}
+
+/* On a dark page a stronger tint would sink the name into its box, so the name brightens with it. */
+.dark .api-link > a:hover > code {
+  color: color-mix(in srgb, var(--api-link-dark) 55%, white);
+  background: color-mix(in srgb, var(--api-link-dark) 28%, transparent);
+  border-color: color-mix(in srgb, var(--api-link-dark) 60%, transparent);
 }
 
 .api-index-summary {
