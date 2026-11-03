@@ -1,8 +1,15 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
+import { Suspense, use } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { PinnedVisualizer } from "./pinned-visualizer";
+import { VisualizerWindow } from "./visualizer-window";
 
 const canvas = vi.hoisted(() => ({
   node: {
@@ -33,14 +40,17 @@ vi.mock("@hashintel/ds-components", () => ({
 }));
 
 const panel = (onUnpin = () => {}) => (
-  <PinnedVisualizer
+  <VisualizerWindow
     nodeId="place"
     name="Space"
-    initialSize={{ width: 320, height: 240 }}
-    onUnpin={onUnpin}
+    pinned
+    editing={false}
+    dimmed={false}
+    animated
+    onTogglePin={onUnpin}
   >
     <svg viewBox="0 0 320 240" />
-  </PinnedVisualizer>
+  </VisualizerWindow>
 );
 
 const pointerEvent = (
@@ -135,7 +145,8 @@ it("keeps the window visible when the container shrinks or panels open, restorin
   expect(top).toBeGreaterThanOrEqual(72);
   expect(left + width).toBeLessThanOrEqual(412);
   expect(top + height).toBeLessThanOrEqual(236);
-  expect(width / height).toBeCloseTo(4 / 3);
+  expect(width).toBe(212);
+  expect(height).toBe(164);
 
   canvas.width = 1200;
   canvas.height = 800;
@@ -180,10 +191,8 @@ it.each([0.5, 1, 2])(
 
     expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 20);
     expect(parseFloat(visualizer.style.width)).toBe(initialWidth + 5);
-    expect(
-      parseFloat(visualizer.style.width) / parseFloat(visualizer.style.height),
-    ).toBeCloseTo(4 / 3);
-    expect(initialWidth).toBe(320);
+    expect(parseFloat(visualizer.style.height)).toBe(240);
+    expect(initialWidth).toBe(360);
     expect(visualizer.style.transform).toBe("");
     expect(canvas.node.internals.positionAbsolute).toEqual({
       x: 500 / zoom,
@@ -192,7 +201,7 @@ it.each([0.5, 1, 2])(
   },
 );
 
-it("preserves the aspect ratio when dragging the shared corner resizer at reduced zoom", () => {
+it("resizes freely with the shared corner resizer at reduced zoom", () => {
   canvas.viewport.zoom = 0.5;
   render(panel());
   const handle = screen.getByRole("button", {
@@ -205,8 +214,8 @@ it("preserves the aspect ratio when dragging the shared corner resizer at reduce
   const visualizer = screen.getByRole("group", {
     name: "Space state visualizer",
   });
-  expect(parseFloat(visualizer.style.width)).toBe(400);
-  expect(parseFloat(visualizer.style.height)).toBe(300);
+  expect(parseFloat(visualizer.style.width)).toBe(440);
+  expect(parseFloat(visualizer.style.height)).toBe(250);
 });
 
 it("drags from the picture without turning the pin into a drag handle", () => {
@@ -220,8 +229,10 @@ it("drags from the picture without turning the pin into a drag handle", () => {
   const initialLeft = parseFloat(visualizer.style.left);
 
   pointerEvent(picture, "pointerdown");
+  expect(visualizer.dataset.dragging).toBe("true");
   pointerEvent(visualizer, "pointermove", { clientX: 40 });
   pointerEvent(visualizer, "pointerup");
+  expect(visualizer.dataset.dragging).toBe("false");
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
 
   const pin = screen.getByRole("button", { name: "Unpin" });
@@ -264,22 +275,22 @@ it("switches to resizing from the center while Alt is held", () => {
 
   pointerEvent(handle, "pointerdown");
   pointerEvent(handle, "pointermove", { clientX: 40 });
-  expect(parseFloat(visualizer.style.width)).toBe(360);
+  expect(parseFloat(visualizer.style.width)).toBe(400);
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft);
 
   pointerEvent(handle, "pointermove", { clientX: 40, altKey: true });
-  expect(parseFloat(visualizer.style.width)).toBe(400);
-  expect(parseFloat(visualizer.style.height)).toBe(300);
+  expect(parseFloat(visualizer.style.width)).toBe(440);
+  expect(parseFloat(visualizer.style.height)).toBe(240);
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft - 40);
-  expect(parseFloat(visualizer.style.top)).toBe(initialTop - 30);
+  expect(parseFloat(visualizer.style.top)).toBe(initialTop);
 
   pointerEvent(handle, "pointermove", { clientX: 40 });
   pointerEvent(handle, "pointerup");
-  expect(parseFloat(visualizer.style.width)).toBe(360);
+  expect(parseFloat(visualizer.style.width)).toBe(400);
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft);
 
   fireEvent.keyDown(handle, { key: "ArrowRight", altKey: true });
-  expect(parseFloat(visualizer.style.width)).toBeCloseTo(370);
+  expect(parseFloat(visualizer.style.width)).toBeCloseTo(410);
   expect(parseFloat(visualizer.style.left)).toBeCloseTo(initialLeft - 5);
 });
 
@@ -312,3 +323,41 @@ it.each(["pointerup", "pointercancel", "lostpointercapture"])(
     expect(release).toHaveBeenCalledWith(1);
   },
 );
+
+it("keeps its dragged layout when pinning and while content loads", async () => {
+  const pending = new Promise<never>(() => {});
+  const PendingPicture = () => use(pending);
+  const content = (pinned: boolean, loading: boolean) => (
+    <VisualizerWindow
+      nodeId="place"
+      name="Space"
+      pinned={pinned}
+      editing={!pinned}
+      dimmed={false}
+      animated
+      onTogglePin={() => {}}
+    >
+      <Suspense fallback={<div role="status">Loading visualizer</div>}>
+        {loading ? <PendingPicture /> : <svg />}
+      </Suspense>
+    </VisualizerWindow>
+  );
+  const { rerender } = render(content(false, false));
+  const visualizer = screen.getByRole("group", {
+    name: "Space state visualizer",
+  });
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: "Move Space visualizer" }),
+    { key: "ArrowRight" },
+  );
+  const bounds = visualizer.getAttribute("style");
+  expect(visualizer.dataset.editing).toBe("true");
+  await act(async () => rerender(content(true, true)));
+  expect(screen.getByRole("status").textContent).toBe("Loading visualizer");
+  expect(screen.getByRole("group")).toBe(visualizer);
+  expect(visualizer.getAttribute("style")).toBe(bounds);
+  expect(visualizer.dataset.editing).toBe("false");
+  await act(async () => rerender(content(true, false)));
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(visualizer.getAttribute("style")).toBe(bounds);
+});

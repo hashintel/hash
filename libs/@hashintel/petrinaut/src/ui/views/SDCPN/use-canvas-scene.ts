@@ -29,6 +29,8 @@ export const useCanvasScene = (
     selection,
     hoveredItem,
     pinnedVisualizerPlaceIds,
+    openVisualizerPlaceId,
+    focusedVisualizerPlaceId,
   } = use(EditorContext);
   const { compactNodes, highlightOnHover } = use(UserSettingsContext);
 
@@ -75,5 +77,10 @@ export const useCanvasScene = (
       selectedIds: new Set(selection.keys()),
     }),
     pinnedVisualizerIds: pinnedVisualizerPlaceIds,
+    activeVisualizerIds: new Set(
+      [hoveredId, openVisualizerPlaceId, focusedVisualizerPlaceId].filter(
+        (id) => id !== null,
+      ),
+    ),
   });
 };

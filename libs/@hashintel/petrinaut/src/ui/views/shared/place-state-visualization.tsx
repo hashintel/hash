@@ -19,6 +19,7 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { renderVisualizerHir } from "../../lib/render-visualizer-hir";
 import { useVisualizerHir } from "../../lib/use-visualizer-hir";
 import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
+import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
@@ -125,8 +126,8 @@ export const PlaceStateVisualization: React.FC<
   }
 
   return (
-    <VisualizerErrorBoundary>
-      <Suspense fallback={null}>
+    <VisualizerErrorBoundary key={place.visualizerCode}>
+      <Suspense fallback={<VisualizerLoading />}>
         <VisualizerPicture
           place={place}
           placeType={placeType}

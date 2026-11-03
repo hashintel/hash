@@ -7,18 +7,15 @@ import {
 } from "./visualizer-layout";
 
 import type { VisualizerAction, VisualizerLayout } from "./visualizer-layout";
-import type { Rect, Size } from "@hashintel/petrinaut-core";
+import type { Rect } from "@hashintel/petrinaut-core";
 import type { HTMLAttributes, PointerEvent } from "react";
 
-export const useVisualizerLayout = (
-  node: Rect,
-  initialSize: Size | null,
-  viewport: Rect,
-) => {
+export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
   const [preferredLayout, setLayout] = useState(() =>
-    createVisualizerLayout(node, initialSize, viewport),
+    createVisualizerLayout(node, viewport),
   );
   const layout = constrainVisualizerLayout(preferredLayout, viewport);
+  const [dragging, setDragging] = useState(false);
   const gesture = useRef<{
     pointerId: number;
     x: number;
@@ -30,6 +27,7 @@ export const useVisualizerLayout = (
     event.stopPropagation();
     if (gesture.current?.pointerId !== event.pointerId) return;
     gesture.current = null;
+    setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -47,6 +45,7 @@ export const useVisualizerLayout = (
       event.preventDefault();
       event.currentTarget.focus();
       event.currentTarget.setPointerCapture(event.pointerId);
+      setDragging(action === "move");
       gesture.current = {
         pointerId: event.pointerId,
         x: event.clientX,
@@ -98,5 +97,5 @@ export const useVisualizerLayout = (
     },
   });
 
-  return { layout, getHandleProps };
+  return { layout, dragging, getHandleProps };
 };

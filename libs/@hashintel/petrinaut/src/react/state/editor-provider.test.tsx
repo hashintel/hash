@@ -197,6 +197,21 @@ describe("EditorProvider selection gestures", () => {
     );
   });
 
+  it("keeps temporary editor focus independent from pins and ignores an older editor's blur", () => {
+    act(() => editor.toggleVisualizerPin("place-a"));
+    act(() => editor.setVisualizerEditorFocus("place-b", true));
+    expect(editor.focusedVisualizerPlaceId).toBe("place-b");
+    expect([...editor.pinnedVisualizerPlaceIds]).toEqual(["place-a"]);
+    act(() => editor.setVisualizerEditorFocus("place-c", true));
+    act(() => editor.setVisualizerEditorFocus("place-b", false));
+    expect(editor.focusedVisualizerPlaceId).toBe("place-c");
+    act(() => editor.clearHoveredItem());
+    expect(editor.focusedVisualizerPlaceId).toBe("place-c");
+    act(() => editor.setVisualizerEditorFocus("place-c", false));
+    expect(editor.focusedVisualizerPlaceId).toBeNull();
+    expect([...editor.pinnedVisualizerPlaceIds]).toEqual(["place-a"]);
+  });
+
   it("records Edit view switches without changing the mode or selection", () => {
     act(() => editor.setSelection(selectionOf("place-a")));
     recorded.length = 0;

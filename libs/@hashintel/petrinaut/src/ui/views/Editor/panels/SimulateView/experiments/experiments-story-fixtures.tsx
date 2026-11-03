@@ -882,6 +882,7 @@ export function FakeEditorProvider({
     clearHoveredItem: () => {},
     toggleVisualizerPin: () => {},
     openPlaceVisualizer: () => {},
+    setVisualizerEditorFocus: () => {},
     setDraggingStateByNodeId: () => {},
     updateDraggingStateByNodeId: () => {},
     simulateDrawer,

@@ -8,20 +8,28 @@ import type { XYPosition } from "@xyflow/react";
 export type VisualizerLayout = { position: XYPosition; size: Size };
 export type VisualizerAction = "move" | FloatingResizeDirection;
 
+const defaultSize = { width: 360, height: 240 };
 const minimumSize = { width: 180, height: 120 };
+const maximumSize = { width: 800, height: 600 };
+
+const clamp = (value: number, minimum: number, maximum: number) =>
+  Math.min(maximum, Math.max(minimum, value));
 
 export const constrainVisualizerLayout = (
   layout: VisualizerLayout,
   viewport: Rect,
 ): VisualizerLayout => {
-  const scale = Math.min(
-    1,
-    viewport.width / layout.size.width,
-    viewport.height / layout.size.height,
-  );
   const size = {
-    width: layout.size.width * scale,
-    height: layout.size.height * scale,
+    width: clamp(
+      layout.size.width,
+      minimumSize.width,
+      Math.min(maximumSize.width, viewport.width),
+    ),
+    height: clamp(
+      layout.size.height,
+      minimumSize.height,
+      Math.min(maximumSize.height, viewport.height),
+    ),
   };
   return {
     size,
@@ -52,17 +60,12 @@ const intersectionArea = (first: Rect, second: Rect) =>
 
 export const createVisualizerLayout = (
   node: Rect,
-  initialSize: Size | null,
   viewport: Rect,
 ): VisualizerLayout => {
-  const width = Math.max(1, initialSize?.width ?? 320);
-  const height = Math.max(1, initialSize?.height ?? 240);
-  const scale = Math.max(
-    minimumSize.width / width,
-    minimumSize.height / height,
-    Math.min(1, 480 / width, 400 / height),
+  const { size } = constrainVisualizerLayout(
+    { position: node, size: defaultSize },
+    viewport,
   );
-  const size = { width: width * scale, height: height * scale };
   const gap = 16;
   const centeredX = node.x + (node.width - size.width) / 2;
   const centeredY = node.y + (node.height - size.height) / 2;
@@ -109,44 +112,34 @@ export const updateVisualizerLayout = (
     : action.includes("bottom")
       ? 1
       : 0;
-  const { width, height } = layout.size;
-  const widthChange = horizontal * delta.x;
-  const heightChange = vertical * delta.y;
-  const change =
-    Math.abs(widthChange / width) >= Math.abs(heightChange / height)
-      ? widthChange / width
-      : heightChange / height;
-  const anchorX = fromCenter || horizontal === 0 ? 0.5 : horizontal < 0 ? 1 : 0;
-  const anchorY = fromCenter || vertical === 0 ? 0.5 : vertical < 0 ? 1 : 0;
-  const origin = {
-    x: layout.position.x + width * anchorX,
-    y: layout.position.y + height * anchorY,
+  const resizeAxis = (axis: "x" | "y", direction: number) => {
+    const dimension = axis === "x" ? "width" : "height";
+    const position = layout.position[axis];
+    const size = layout.size[dimension];
+    const viewportStart = viewport[axis];
+    const viewportSize = viewport[dimension];
+    if (direction === 0) return { position, size };
+    const anchor = fromCenter ? 0.5 : direction < 0 ? 1 : 0;
+    const origin = position + size * anchor;
+    const available = Math.min(
+      maximumSize[dimension],
+      anchor > 0 ? (origin - viewportStart) / anchor : Infinity,
+      anchor < 1
+        ? (viewportStart + viewportSize - origin) / (1 - anchor)
+        : Infinity,
+    );
+    const nextSize = clamp(
+      size + direction * delta[axis] * (fromCenter ? 2 : 1),
+      minimumSize[dimension],
+      available,
+    );
+    return { position: origin - nextSize * anchor, size: nextSize };
   };
-  const maximumScale = Math.min(
-    anchorX > 0 ? (origin.x - viewport.x) / (width * anchorX) : Infinity,
-    anchorX < 1
-      ? (viewport.x + viewport.width - origin.x) / (width * (1 - anchorX))
-      : Infinity,
-    anchorY > 0 ? (origin.y - viewport.y) / (height * anchorY) : Infinity,
-    anchorY < 1
-      ? (viewport.y + viewport.height - origin.y) / (height * (1 - anchorY))
-      : Infinity,
-  );
-  const scale = Math.min(
-    maximumScale,
-    Math.max(
-      minimumSize.width / width,
-      minimumSize.height / height,
-      1 + change * (fromCenter ? 2 : 1),
-    ),
-  );
-  const size = { width: width * scale, height: height * scale };
+  const horizontalAxis = resizeAxis("x", horizontal);
+  const verticalAxis = resizeAxis("y", vertical);
   return {
-    size,
-    position: {
-      x: origin.x - size.width * anchorX,
-      y: origin.y - size.height * anchorY,
-    },
+    position: { x: horizontalAxis.position, y: verticalAxis.position },
+    size: { width: horizontalAxis.size, height: verticalAxis.size },
   };
 };
 

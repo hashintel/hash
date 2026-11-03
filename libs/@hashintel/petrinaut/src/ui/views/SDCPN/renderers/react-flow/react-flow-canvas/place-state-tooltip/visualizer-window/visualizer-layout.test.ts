@@ -13,21 +13,16 @@ const layout = {
 };
 const viewport = { x: 0, y: 0, width: 1200, height: 800 };
 
-it.each([
-  { width: 800, height: 400, expected: { width: 480, height: 240 } },
-  { width: 800, height: 1600, expected: { width: 200, height: 400 } },
-  { width: 80, height: 40, expected: { width: 240, height: 120 } },
-])(
-  "preserves the initial aspect ratio for $width × $height artwork",
-  ({ width, height, expected }) => {
-    const initial = createVisualizerLayout(
-      { x: 500, y: 400, width: 100, height: 80 },
-      { width, height },
-      viewport,
-    );
-    expect(initial.size).toEqual(expected);
-  },
-);
+it("opens at the default size in the best available position", () => {
+  const initial = createVisualizerLayout(
+    { x: 500, y: 400, width: 100, height: 80 },
+    viewport,
+  );
+  expect(initial).toEqual({
+    position: { x: 370, y: 144 },
+    size: { width: 360, height: 240 },
+  });
+});
 
 it("moves by screen pixels and retains size", () => {
   expect(
@@ -57,7 +52,7 @@ it.each([
   },
 );
 
-it("fits into a smaller viewport without changing the aspect ratio or the preferred layout", () => {
+it("fits into a smaller viewport without changing the preferred layout", () => {
   expect(
     constrainVisualizerLayout(layout, {
       x: 40,
@@ -66,8 +61,8 @@ it("fits into a smaller viewport without changing the aspect ratio or the prefer
       height: 100,
     }),
   ).toEqual({
-    position: { x: 40 + 160 - 320 * (100 / 240), y: 60 },
-    size: { width: 320 * (100 / 240), height: 100 },
+    position: { x: 40, y: 60 },
+    size: { width: 160, height: 100 },
   });
   expect(constrainVisualizerLayout(layout, viewport)).toEqual(layout);
 });
@@ -86,70 +81,94 @@ it("connects the place and panel outlines and hides the line when they overlap",
 });
 
 it.each([
-  { direction: "top", delta: { x: 90, y: -60 }, position: { x: 60, y: 140 } },
-  { direction: "right", delta: { x: 80, y: 90 }, position: { x: 100, y: 170 } },
+  {
+    direction: "top",
+    delta: { x: 90, y: -60 },
+    position: { x: 100, y: 140 },
+    size: { width: 320, height: 300 },
+    centered: { x: 100, y: 140, width: 320, height: 360 },
+  },
+  {
+    direction: "right",
+    delta: { x: 80, y: 90 },
+    position: { x: 100, y: 200 },
+    size: { width: 400, height: 240 },
+    centered: { x: 20, y: 200, width: 480, height: 240 },
+  },
   {
     direction: "bottom",
     delta: { x: -90, y: 60 },
-    position: { x: 60, y: 200 },
+    position: { x: 100, y: 200 },
+    size: { width: 320, height: 300 },
+    centered: { x: 100, y: 140, width: 320, height: 360 },
   },
-  { direction: "left", delta: { x: -80, y: 70 }, position: { x: 20, y: 170 } },
+  {
+    direction: "left",
+    delta: { x: -80, y: 70 },
+    position: { x: 20, y: 200 },
+    size: { width: 400, height: 240 },
+    centered: { x: 20, y: 200, width: 480, height: 240 },
+  },
   {
     direction: "top-left",
     delta: { x: -80, y: -60 },
     position: { x: 20, y: 140 },
+    size: { width: 400, height: 300 },
+    centered: { x: 20, y: 140, width: 480, height: 360 },
   },
   {
     direction: "top-right",
     delta: { x: 80, y: -60 },
     position: { x: 100, y: 140 },
+    size: { width: 400, height: 300 },
+    centered: { x: 20, y: 140, width: 480, height: 360 },
   },
   {
     direction: "bottom-left",
     delta: { x: -80, y: 60 },
     position: { x: 20, y: 200 },
+    size: { width: 400, height: 300 },
+    centered: { x: 20, y: 140, width: 480, height: 360 },
   },
   {
     direction: "bottom-right",
     delta: { x: 80, y: 60 },
     position: { x: 100, y: 200 },
+    size: { width: 400, height: 300 },
+    centered: { x: 20, y: 140, width: 480, height: 360 },
   },
 ] as const)(
-  "keeps the ratio and opposite anchor when resizing from $direction",
-  ({ direction, delta, position }) => {
+  "resizes independent axes from $direction, keeping the opposite anchor or Alt center",
+  ({ direction, delta, position, size, centered }) => {
     expect(updateVisualizerLayout(layout, direction, delta, viewport)).toEqual({
       position,
-      size: { width: 400, height: 300 },
+      size,
     });
-    expect(
-      updateVisualizerLayout(layout, direction, delta, viewport, true),
-    ).toEqual({
-      position: { x: 20, y: 140 },
-      size: { width: 480, height: 360 },
-    });
+    const resized = updateVisualizerLayout(
+      layout,
+      direction,
+      delta,
+      viewport,
+      true,
+    );
+    expect({ ...resized.position, ...resized.size }).toEqual(centered);
   },
 );
 
-it.each([
-  { x: 80, y: 0 },
-  { x: 0, y: 60 },
-])("resizes both dimensions with a one-axis corner drag: %o", (delta) => {
+it("changes only width on a horizontal corner drag", () => {
   expect(
-    updateVisualizerLayout(layout, "bottom-right", delta, viewport),
-  ).toEqual({
-    position: layout.position,
-    size: { width: 400, height: 300 },
-  });
+    updateVisualizerLayout(layout, "bottom-right", { x: 80, y: 0 }, viewport),
+  ).toEqual({ position: layout.position, size: { width: 400, height: 240 } });
 });
 
-it("keeps the ratio at the minimum size and allows growing again", () => {
+it("enforces minimum dimensions and allows growing again", () => {
   const minimum = updateVisualizerLayout(
     layout,
     "bottom-right",
     { x: -1000, y: -1000 },
     viewport,
   );
-  expect(minimum.size).toEqual({ width: 180, height: 135 });
+  expect(minimum.size).toEqual({ width: 180, height: 120 });
   const grown = updateVisualizerLayout(
     minimum,
     "bottom-right",
@@ -157,7 +176,7 @@ it("keeps the ratio at the minimum size and allows growing again", () => {
     viewport,
   );
   expect(grown.size.width).toBeCloseTo(220);
-  expect(grown.size.height).toBeCloseTo(165);
+  expect(grown.size.height).toBeCloseTo(120);
 });
 
 it.each([false, true])(
@@ -182,6 +201,18 @@ it.each([false, true])(
       expect(resized.position).toEqual(layout.position);
       expect(resized.position.y + resized.size.height).toBe(viewport.height);
     }
-    expect(resized.size.width / resized.size.height).toBeCloseTo(4 / 3);
+    expect(resized.size.width).toBeLessThanOrEqual(800);
+    expect(resized.size.height).toBeLessThanOrEqual(600);
   },
 );
+
+it("limits both dimensions even when the viewport has more room", () => {
+  expect(
+    updateVisualizerLayout(
+      layout,
+      "bottom-right",
+      { x: 3000, y: 3000 },
+      { x: 0, y: 0, width: 4000, height: 4000 },
+    ).size,
+  ).toEqual({ width: 800, height: 600 });
+});

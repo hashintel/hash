@@ -109,6 +109,7 @@ export type EditorState = {
    * outlasts a hover.
    */
   openVisualizerPlaceId: string | null;
+  focusedVisualizerPlaceId: string | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
@@ -172,7 +173,8 @@ export type EditorActions = {
   /** Pin a place's state visualizer open, or release it. */
   toggleVisualizerPin: (placeId: string) => void;
   /** Open a place's state visualizer for the hover it is part of. */
-  openPlaceVisualizer: (placeId: string) => void;
+  openPlaceVisualizer: (placeId: string | null) => void;
+  setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -217,6 +219,7 @@ export const initialEditorState: EditorState = {
   hoveredItem: null,
   pinnedVisualizerPlaceIds: new Set<string>(),
   openVisualizerPlaceId: null,
+  focusedVisualizerPlaceId: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
@@ -258,6 +261,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearHoveredItem: () => {},
   toggleVisualizerPin: () => {},
   openPlaceVisualizer: () => {},
+  setVisualizerEditorFocus: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

@@ -79,7 +79,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const showStateTooltip =
     data.hasColorType &&
     data.hasVisualizer &&
-    (data.visualizerPinned || (!data.dragging && data.hovered));
+    (data.visualizerPinned || data.visualizerActive);
 
   // Wrap points let a long name break inside the box instead of clipping.
   const label = withLabelWrapPoints(data.label);

@@ -7,11 +7,10 @@ import { css } from "@hashintel/ds-helpers/css";
 import { PinIcon } from "../../../../../../components/pin-icon";
 import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
-import { useVisualizerLayout } from "./pinned-visualizer/use-visualizer-layout";
-import { getVisualizerConnector } from "./pinned-visualizer/visualizer-layout";
+import { useVisualizerLayout } from "./visualizer-window/use-visualizer-layout";
+import { getVisualizerConnector } from "./visualizer-window/visualizer-layout";
 
-import type { Size } from "@hashintel/petrinaut-core";
-import type { ReactNode } from "react";
+import type { PointerEventHandler, ReactNode } from "react";
 
 const panelStyle = css({
   position: "absolute",
@@ -26,7 +25,27 @@ const panelStyle = css({
   cursor: "grab",
   touchAction: "none",
   userSelect: "none",
-  _active: { cursor: "grabbing" },
+  transition: "[box-shadow 140ms ease, opacity 140ms ease]",
+  _hover: { boxShadow: "[0 12px 32px rgba(0, 0, 0, 0.22)]" },
+  "&[data-editing='true']": {
+    outline: "[2px solid {colors.blue.s80}]",
+    outlineOffset: "[3px]",
+  },
+  "&[data-dimmed='true']:not(:hover)": { opacity: "[0.55]" },
+  "&[data-dragging='true']": {
+    cursor: "grabbing",
+    boxShadow: "[0 18px 40px rgba(0, 0, 0, 0.28)]",
+  },
+  "&[data-animated='true']": {
+    transition:
+      "[transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease]",
+    _hover: { transform: "[scale(1.01)]" },
+    "&[data-dragging='true']": { transform: "[translateY(-2px) scale(1.02)]" },
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
+      transform: "none",
+    },
+  },
   "&:hover [data-visualizer-control], &:focus-within [data-visualizer-control]":
     {
       opacity: "[1]",
@@ -45,7 +64,6 @@ const pinStyle = css({
   color: "neutral.s100",
   backgroundColor: "[rgba(255, 255, 255, 0.72)]",
   backdropFilter: "[blur(8px) saturate(140%)]",
-  border: "[1px solid rgba(255, 255, 255, 0.5)]",
   borderRadius: "[6px]",
   boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.14)]",
   opacity: "[0.55]",
@@ -81,7 +99,11 @@ const contentStyle = css({
   minHeight: "[0]",
   overflow: "auto",
   borderRadius: "[inherit]",
-  "& > svg": { width: "[100%]", height: "[100%]", display: "block" },
+  "& > svg": {
+    width: "[100% !important]",
+    height: "[100% !important]",
+    display: "block",
+  },
 });
 
 const connectorStyle = css({
@@ -94,17 +116,29 @@ const connectorStyle = css({
   color: "neutral.s110",
 });
 
-export const PinnedVisualizer = ({
+export const VisualizerWindow = ({
   nodeId,
   name,
-  initialSize,
-  onUnpin,
+  pinned,
+  editing,
+  dimmed,
+  animated,
+  onTogglePin,
+  onEdit,
+  onPointerEnter,
+  onPointerLeave,
   children,
 }: {
   nodeId: string;
   name: string;
-  initialSize: Size | null;
-  onUnpin: () => void;
+  pinned: boolean;
+  editing: boolean;
+  dimmed: boolean;
+  animated: boolean;
+  onTogglePin: () => void;
+  onEdit?: () => void;
+  onPointerEnter?: PointerEventHandler<HTMLDivElement>;
+  onPointerLeave?: PointerEventHandler<HTMLDivElement>;
   children: ReactNode;
 }) => {
   const node = useInternalNode(nodeId);
@@ -123,16 +157,12 @@ export const PinnedVisualizer = ({
   };
   const left = Math.min(insets.left, Math.max(0, canvasWidth - 1));
   const top = Math.min(72, Math.max(0, canvasHeight - 1));
-  const { layout, getHandleProps } = useVisualizerLayout(
-    nodeBounds,
-    initialSize,
-    {
-      x: left,
-      y: top,
-      width: Math.max(1, canvasWidth - left - insets.right - 48),
-      height: Math.max(1, canvasHeight - top - insets.bottom - 64),
-    },
-  );
+  const { layout, dragging, getHandleProps } = useVisualizerLayout(nodeBounds, {
+    x: left,
+    y: top,
+    width: Math.max(1, canvasWidth - left - insets.right - 48),
+    height: Math.max(1, canvasHeight - top - insets.bottom - 64),
+  });
   const connector = getVisualizerConnector(nodeBounds, {
     ...layout.position,
     ...layout.size,
@@ -169,9 +199,15 @@ export const PinnedVisualizer = ({
           width: layout.size.width,
           height: layout.size.height,
         }}
+        data-editing={editing}
+        data-dimmed={dimmed}
+        data-dragging={dragging}
+        data-animated={animated}
         role="group"
         aria-label={`${name} state visualizer`}
         {...getHandleProps("move")}
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
@@ -189,14 +225,26 @@ export const PinnedVisualizer = ({
           </svg>
         </button>
         <div className={pinStyle} data-visualizer-control>
+          {onEdit && (
+            <Button
+              size="xxs"
+              variant="ghost"
+              iconName="bracketsCurly"
+              aria-label="Edit visualizer code"
+              tooltip="Edit visualizer code"
+              onClick={onEdit}
+            />
+          )}
           <Button
             size="xxs"
             variant="ghost"
             prefix={<PinIcon />}
-            aria-label="Unpin state visualizer"
-            aria-pressed
-            tooltip="Unpin"
-            onClick={onUnpin}
+            aria-label={
+              pinned ? "Unpin state visualizer" : "Pin state visualizer"
+            }
+            aria-pressed={pinned}
+            tooltip={pinned ? "Unpin" : "Keep open while you work"}
+            onClick={onTogglePin}
           />
         </div>
         <div className={contentStyle}>{children}</div>

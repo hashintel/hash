@@ -451,8 +451,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         return selection;
       }),
     clearSelection: () => setSelection(new Map()),
-    // An opened visualizer belongs to the hover that opened it, so both of
-    // these drop it as soon as the pointer is somewhere else.
     setHoveredItem: (item: SelectionItem) =>
       setState((prev) => ({
         ...prev,
@@ -466,10 +464,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({
         ...prev,
         hoveredItem: null,
-        openVisualizerPlaceId: null,
       })),
-    openPlaceVisualizer: (placeId: string) =>
+    openPlaceVisualizer: (placeId: string | null) =>
       setState((prev) => ({ ...prev, openVisualizerPlaceId: placeId })),
+    setVisualizerEditorFocus: (placeId: string, focused: boolean) =>
+      setState((previous) => ({
+        ...previous,
+        focusedVisualizerPlaceId: focused
+          ? placeId
+          : previous.focusedVisualizerPlaceId === placeId
+            ? null
+            : previous.focusedVisualizerPlaceId,
+      })),
     toggleVisualizerPin: (placeId: string) =>
       setState((prev) => {
         const pinnedVisualizerPlaceIds = new Set(prev.pinnedVisualizerPlaceIds);

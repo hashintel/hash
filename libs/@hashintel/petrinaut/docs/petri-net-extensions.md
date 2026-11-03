@@ -119,19 +119,23 @@ Visualizer code is JavaScript: the types are inferred, and a type annotation or 
 
 Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
 
-It is reachable from the canvas too, in two steps. Point at the place and a small round button appears above it; click that and the visualizer opens where the button was, whether or not anything has run. Before a run it draws the initial marking, so a net still being built can be checked by pointing at it.
+Point at a place and click **Show state visualizer** to open its Canvas preview. It chooses an initial position near the place and stays there when pinned. Before a run it draws the initial marking; during a run it draws the displayed simulation frame.
 
-Opening it belongs to that hover: move the pointer away and it closes, and pointing at the place again offers the button rather than the visualizer. Click the **pin** in the visualizer's top-right corner to keep it open. The pin becomes clearer when you point at the box. A pinned box stays up with the pointer somewhere else entirely, which is what makes it possible to watch one place while scrubbing the [timeline](simulation.md#timeline) or editing the initial state. Click the pin again to release it. Pin as many places as you want to watch at once; pins last until the page is reloaded.
+Move the pointer away to close an unpinned preview. Click the **pin** in its top-right corner to keep it open, or release it with the same button. Pinning preserves its position and size. You can pin several places to watch them together while scrubbing the [timeline](simulation.md#timeline). Pins last until the page is reloaded.
 
-A pinned visualizer chooses an initial position near its place, then stays where you put it. Drag anywhere on the picture to move it. The cursor changes from an open hand to a closed hand while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings; the visualizer keeps its original aspect ratio. Hold Alt while resizing to keep the center fixed.
+Drag anywhere on the picture to move it. The cursor changes from an open hand to a closed hand, and the window lifts slightly while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings. Width and height change independently; hold Alt to keep the center fixed. Focus the drag strip or bottom-right resize handle to use the arrow keys, with Shift for larger steps.
 
-A thin line connects the visualizer to its place. Moving the place, panning, or zooming the canvas updates the line while the visualizer stays in the same position and at the same size on screen. Dragging and resizing stop at the edges of the visible area, keeping clear of Canvas controls and open side and bottom panels. If the available area shrinks, the visualizer moves or scales down to fit, keeping its aspect ratio. Focus the drag strip or bottom-right resize handle to use the arrow keys, with Shift for larger steps. Position and size last while the visualizer remains pinned in the current Canvas view.
+A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary. The SVG fills the window regardless of its authored width and height; its `viewBox` determines how the drawing fits. A loading spinner appears during compilation without changing the window's size.
+
+A thin line connects the preview to its place. Moving the place, panning, or zooming updates the line while the window stays in the same position and at the same size on screen. Dragging and resizing stop at the edges of the visible area, keeping clear of Canvas controls and open panels. If the available area shrinks, the window moves or shrinks to fit. Position and size last while the preview remains open in the current Canvas view.
+
+Click **Edit visualizer code** on the preview to select its place and expand the Visualizer section to fill the Properties Panel. This section shows only code. Focusing its editor opens a temporary Canvas preview with a blue ring and dims other previews. Leaving the editor closes this temporary preview unless you pinned it or are pointing at it. Editing keeps an existing pin intact.
+
+Visualizer code can be edited while a simulation runs, pauses, or displays a completed run. These edits update the picture without changing or resetting the simulation. Documents opened as read-only remain read-only.
 
 <img width="474" height="385" alt="visauliser-preview" src="https://github.com/user-attachments/assets/303f51f3-0a53-480b-9639-52c4b77aa6e0" />
 
 Use the menu in the code editor header to **Load default template** for a starting point.
-
-You can also toggle between the code, a preview, and both at once.
 
 **Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example includes a visualizer that renders the planet and orbiting satellites with velocity vectors. The [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) and [Deployment Pipeline](examples.md#deployment-pipeline) examples add visualizers on several places at once.
 

@@ -6,6 +6,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { productionMachines } from "@hashintel/petrinaut-core/examples";
 
+import {
+  PetrinautNavigationProvider,
+  usePetrinautNavigation,
+} from "../../react/navigation";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
@@ -95,4 +99,29 @@ it("does not navigate to unavailable functions or reveal code in a preview", () 
   act(() => result.current.open("missing"));
   expect(selectItem).not.toHaveBeenCalled();
   expect(updateSubViewSection).not.toHaveBeenCalled();
+});
+
+it("opens a maximized editor without leaving simulate mode and consumes its focus request", () => {
+  const { result } = renderHook(
+    () => ({ code: useCodeNavigation(), navigation: usePetrinautNavigation() }),
+    {
+      wrapper: ({ children }) => (
+        <PetrinautNavigationProvider initialState={{ mode: "simulate" }}>
+          <Harness>{children}</Harness>
+        </PetrinautNavigationProvider>
+      ),
+    },
+  );
+  const entry = result.current.code.entries[0]!;
+  act(() => result.current.code.open(entry.path, { maximize: true }));
+  expect(result.current.navigation.state).toMatchObject({
+    mode: "simulate",
+    selection: [entry.selection],
+    expandedSubView: { container: entry.panel, id: entry.section },
+  });
+  expect(result.current.code.focusRequest?.path).toBe(entry.path);
+  act(() => result.current.code.acknowledgeFocus("different"));
+  expect(result.current.code.focusRequest?.path).toBe(entry.path);
+  act(() => result.current.code.acknowledgeFocus(entry.path));
+  expect(result.current.code.focusRequest).toBeNull();
 });

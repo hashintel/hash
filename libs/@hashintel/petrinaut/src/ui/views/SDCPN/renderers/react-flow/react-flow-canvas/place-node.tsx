@@ -60,7 +60,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const showStateTooltip =
     data.hasColorType &&
     data.hasVisualizer &&
-    (data.visualizerPinned || (!data.dragging && data.hovered));
+    (data.visualizerPinned || data.visualizerActive);
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
