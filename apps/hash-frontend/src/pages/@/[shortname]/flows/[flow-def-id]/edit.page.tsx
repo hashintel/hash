@@ -292,6 +292,6 @@ const FlowEditorPage: NextPageWithLayout = () => {
 };
 
 FlowEditorPage.getLayout = (page) =>
-  getLayoutWithSidebar(page, { fullWidth: true });
+  getLayoutWithSidebar(page, { fullWidth: true, grayBackground: false });
 
 export default FlowEditorPage;
