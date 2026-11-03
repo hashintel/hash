@@ -30,6 +30,20 @@ const turnIdsOf = (
 ): ReadonlySet<string> =>
   new Set(chronology?.turns.map((turn) => turn.turnId) ?? []);
 
+/** The idle timeouts logged under a submission or during one of its turns. */
+export const idleTimeoutsOf = (
+  submissionId: string,
+  chronology: LoggedSubmissionChronology | null,
+  idleTimeouts: readonly LoggedIdleTimeout[],
+): LoggedIdleTimeout[] => {
+  const turnIds = turnIdsOf(chronology);
+  return idleTimeouts.filter(
+    (timeout) =>
+      timeout.submissionId === submissionId ||
+      (timeout.turnId !== null && turnIds.has(timeout.turnId)),
+  );
+};
+
 const timeoutOutcome = (timeout: LoggedIdleTimeout): string =>
   timeout.acknowledged === false
     ? "cancellation not acknowledged"
@@ -70,7 +84,6 @@ export const summarizeSubmission = (
   const firstEvents = chronology.turns.flatMap((turn) =>
     turn.timeToFirstEventMs === null ? [] : [turn.timeToFirstEventMs],
   );
-  const turnIds = turnIdsOf(chronology);
   return {
     submissionId: chronology.submissionId,
     outcome: chronology.outcome,
@@ -81,8 +94,10 @@ export const summarizeSubmission = (
       firstEvents.length === 0 ? null : Math.max(...firstEvents),
     retries: chronology.turns.filter((turn) => turn.retryOf).length,
     failed: chronology.turns.filter((turn) => turn.isError).length,
-    idleTimeouts: idleTimeouts.filter(
-      (timeout) => timeout.turnId !== null && turnIds.has(timeout.turnId),
+    idleTimeouts: idleTimeoutsOf(
+      chronology.submissionId,
+      chronology,
+      idleTimeouts,
     ).length,
   };
 };

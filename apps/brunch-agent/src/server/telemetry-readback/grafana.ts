@@ -255,14 +255,14 @@ export const createGrafanaReader = (
       };
     },
 
+    /** Every idle timeout in the window: one may name only its turn, so filtering by submission is left to the caller. */
     idleTimeouts: async (
       window: TimeWindow,
-      submissionId?: string,
     ): Promise<ReadResult<LoggedIdleTimeout>> => {
       const { lines, truncated } = await lokiLines(
         idleTimeoutMarker,
         window,
-        submissionId,
+        undefined,
       );
       return {
         records: lines.map(({ fields, at }) => toIdleTimeout(fields, at)),

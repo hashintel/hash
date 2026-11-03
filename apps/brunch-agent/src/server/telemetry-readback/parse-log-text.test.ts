@@ -22,7 +22,7 @@ test("chronology entries are read from coloured server-log lines and keyed by su
   expect(skipped.chronologyLines).toBe(2);
 });
 
-test("a turn logged before turns named their provider, start time, retry or error still reads as a logged turn", () => {
+test("a turn logged before turns named their provider, start time, retry or error reads with those fields null", () => {
   const entry = {
     submissionId: "sub-old",
     outcome: "completed",
@@ -42,13 +42,95 @@ test("a turn logged before turns named their provider, start time, retry or erro
         toolCalls: [],
       },
     ],
-  } satisfies LoggedSubmissionChronology;
+  };
 
   const { chronologies } = parseBrunchLog(
     `[brunch] flue.submission chronology ${JSON.stringify(entry)}`,
   );
 
-  expect(chronologies.get("sub-old")).toEqual(entry);
+  expect(chronologies.get("sub-old")).toEqual({
+    submissionId: "sub-old",
+    outcome: "completed",
+    turns: [
+      {
+        turnId: "t1",
+        purpose: "agent",
+        provider: null,
+        requestedModel: null,
+        responseModel: null,
+        startedAt: null,
+        retryOf: null,
+        timeToFirstEventMs: 100,
+        durationMs: 200,
+        terminal: "turn",
+        isError: false,
+        error: null,
+        inputTokens: 1,
+        outputTokens: 1,
+        toolCalls: [],
+      },
+    ],
+  } satisfies LoggedSubmissionChronology);
+});
+
+test("only the turn fields readback reads survive, so error messages and unknown fields in a log are dropped", () => {
+  const turn = {
+    turnId: "t1",
+    purpose: "agent",
+    durationMs: 200,
+    terminal: "turn",
+    error: {
+      type: "provider_error",
+      code: "overloaded",
+      message: "upstream said: <prompt text>",
+      stack: "Error: at …",
+    },
+    prompt: "user text",
+    toolCalls: [
+      {
+        toolCallId: "call-1",
+        toolName: "addPlace",
+        firstDeltaMs: 10,
+        lastDeltaMs: 20,
+        argumentChars: 30,
+        arguments: "{…}",
+      },
+    ],
+  };
+
+  const { chronologies } = parseBrunchLog(
+    `[brunch] flue.submission chronology ${JSON.stringify({ submissionId: "sub-1", outcome: "failed", turns: [turn] })}`,
+  );
+  const [read] = chronologies.get("sub-1")?.turns ?? [];
+
+  expect(read?.error).toEqual({ type: "provider_error", code: "overloaded" });
+  expect(read?.toolCalls).toEqual([
+    {
+      toolCallId: "call-1",
+      firstDeltaMs: 10,
+      lastDeltaMs: 20,
+      argumentChars: 30,
+    },
+  ]);
+  expect(JSON.stringify(read)).not.toMatch(
+    /prompt text|user text|stack|arguments/,
+  );
+});
+
+test("a chronology line with a turn missing a field readback relies on is skipped, not half-read", () => {
+  const turn = {
+    turnId: "t1",
+    purpose: "agent",
+    terminal: "turn",
+    toolCalls: [],
+  };
+
+  const { chronologies, skipped } = parseBrunchLog(
+    `[brunch] flue.submission chronology ${JSON.stringify({ submissionId: "sub-1", outcome: "completed", turns: [turn] })}`,
+  );
+
+  expect(chronologies.size).toBe(0);
+  expect(skipped.chronologyLines).toBe(1);
 });
 
 test("idle timeouts are read from production lines with the logger's timestamp", () => {

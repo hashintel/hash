@@ -4,7 +4,10 @@ import type {
   SubmissionChronology,
 } from "../../observe-turn-chronology.ts";
 import type { ModelStreamIdleTimeout } from "../../provider-admission.ts";
-import type { DiagnosticStage } from "../../runtime-diagnostics.ts";
+import type {
+  ClassifiedError,
+  DiagnosticStage,
+} from "../../runtime-diagnostics.ts";
 
 /** Typed against the writers' messages, so renaming either fails to compile here. */
 export const chronologyMarker: typeof chronologyLogMessage =
@@ -12,18 +15,41 @@ export const chronologyMarker: typeof chronologyLogMessage =
 export const idleTimeoutMarker = `[brunch] ${"provider.timeout" satisfies DiagnosticStage}`;
 
 type TurnChronology = SubmissionChronology["turns"][number];
+type ToolCallChronology = TurnChronology["toolCalls"][number];
 
-/** Fields absent from logs written before turns carried them. */
-type LaterTurnFields =
-  | "startedAt"
-  | "provider"
-  | "requestedModel"
-  | "responseModel"
-  | "retryOf"
-  | "error";
+/** A logged tool call, reduced to the fields readback reads. */
+export type LoggedToolCall = {
+  readonly toolCallId: string;
+  readonly firstDeltaMs: number;
+  readonly lastDeltaMs: number;
+  readonly argumentChars: number;
+};
 
-export type LoggedTurnChronology = Omit<TurnChronology, LaterTurnFields> &
-  Partial<Pick<TurnChronology, LaterTurnFields>>;
+/**
+ * A logged turn, reduced to the fields readback reads so nothing else in a
+ * log reaches its output. Null where the log predates the field.
+ */
+export type LoggedTurnChronology = {
+  readonly turnId: string;
+  /** A log may carry purposes newer than this reader. */
+  readonly purpose: string;
+  readonly provider: string | null;
+  readonly requestedModel: string | null;
+  readonly responseModel: string | null;
+  readonly startedAt: string | null;
+  readonly retryOf: string | null;
+  readonly timeToFirstEventMs: number | null;
+  readonly durationMs: number;
+  readonly terminal: string;
+  readonly isError: boolean | null;
+  readonly error: {
+    readonly type: string;
+    readonly code: string | null;
+  } | null;
+  readonly inputTokens: number | null;
+  readonly outputTokens: number | null;
+  readonly toolCalls: readonly LoggedToolCall[];
+};
 
 /** `provider/model` as requested; null when the turn predates both. */
 export const requestedModelOf = (turn: LoggedTurnChronology): string | null =>
@@ -37,7 +63,7 @@ export const turnErrorOf = ({
   isError,
 }: LoggedTurnChronology): string | null => {
   if (!error) return isError ? "failed" : null;
-  return error.code !== undefined && error.code !== error.type
+  return error.code !== null && error.code !== error.type
     ? `${error.type} ${error.code}`
     : error.type;
 };
@@ -122,11 +148,78 @@ const parsedJson = (value: string): unknown => {
   }
 };
 
-/** Checks the fields readback keys on; the rest are read as logged. */
-const isLoggedTurn = (value: unknown): value is LoggedTurnChronology =>
-  isRecord(value) &&
-  typeof value.turnId === "string" &&
-  typeof value.purpose === "string";
+/** Every value converted, or undefined when any one does not convert. */
+const allOf = <Item>(
+  values: readonly unknown[],
+  convert: (value: unknown) => Item | undefined,
+): Item[] | undefined => {
+  const items: Item[] = [];
+  for (const value of values) {
+    const item = convert(value);
+    if (item === undefined) return undefined;
+    items.push(item);
+  }
+  return items;
+};
+
+const toToolCall = (value: unknown): LoggedToolCall | undefined => {
+  if (!isRecord(value) || typeof value.toolCallId !== "string")
+    return undefined;
+  const firstDeltaMs = numberOrNull(value.firstDeltaMs);
+  const lastDeltaMs = numberOrNull(value.lastDeltaMs);
+  const argumentChars = numberOrNull(value.argumentChars);
+  if (firstDeltaMs === null || lastDeltaMs === null || argumentChars === null)
+    return undefined;
+  return {
+    toolCallId: value.toolCallId,
+    firstDeltaMs,
+    lastDeltaMs,
+    argumentChars,
+  } satisfies Partial<Record<keyof ToolCallChronology, unknown>>;
+};
+
+const toTurnError = (value: unknown): LoggedTurnChronology["error"] =>
+  isRecord(value) && typeof value.type === "string"
+    ? ({
+        type: value.type,
+        code: stringOrNull(value.code),
+      } satisfies Partial<Record<keyof ClassifiedError, unknown>>)
+    : null;
+
+/** A logged turn's fields that readback reads, or undefined when one it relies on is missing. */
+const toTurn = (value: unknown): LoggedTurnChronology | undefined => {
+  if (!isRecord(value)) return undefined;
+  const { turnId, purpose, terminal } = value;
+  const durationMs = numberOrNull(value.durationMs);
+  const toolCalls = Array.isArray(value.toolCalls)
+    ? allOf(value.toolCalls, toToolCall)
+    : undefined;
+  if (
+    typeof turnId !== "string" ||
+    typeof purpose !== "string" ||
+    typeof terminal !== "string" ||
+    durationMs === null ||
+    toolCalls === undefined
+  )
+    return undefined;
+  return {
+    turnId,
+    purpose,
+    provider: stringOrNull(value.provider),
+    requestedModel: stringOrNull(value.requestedModel),
+    responseModel: stringOrNull(value.responseModel),
+    startedAt: stringOrNull(value.startedAt),
+    retryOf: stringOrNull(value.retryOf),
+    timeToFirstEventMs: numberOrNull(value.timeToFirstEventMs),
+    durationMs,
+    terminal,
+    isError: booleanOrNull(value.isError),
+    error: toTurnError(value.error),
+    inputTokens: numberOrNull(value.inputTokens),
+    outputTokens: numberOrNull(value.outputTokens),
+    toolCalls,
+  } satisfies Partial<Record<keyof TurnChronology, unknown>>;
+};
 
 /** A chronology line's fields, or undefined when they are not a chronology. */
 export const toChronology = (
@@ -134,13 +227,13 @@ export const toChronology = (
   timestamp: string | null,
 ): LoggedSubmissionChronology | undefined => {
   const { submissionId, outcome } = fields;
-  const turns =
+  const logged =
     typeof fields.turns === "string" ? parsedJson(fields.turns) : fields.turns;
+  const turns = Array.isArray(logged) ? allOf(logged, toTurn) : undefined;
   if (
     typeof submissionId !== "string" ||
     typeof outcome !== "string" ||
-    !Array.isArray(turns) ||
-    !turns.every(isLoggedTurn)
+    turns === undefined
   )
     return undefined;
   const loggedAt = stringOrNull(fields.timestamp) ?? timestamp;

@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import {
+  idleTimeoutsOf,
   renderSubmissionDetail,
   renderSubmissionList,
   summarizeSubmission,
@@ -29,10 +30,7 @@ const turn = (
   terminal: "turn",
   isError: false,
   inputTokens: 100,
-  cacheReadTokens: 0,
   outputTokens: 20,
-  requestShape: null,
-  responseShape: null,
   toolCalls: [],
   ...overrides,
 });
@@ -45,11 +43,7 @@ const chronology: LoggedSubmissionChronology = {
     turn("turn-1", {
       timeToFirstEventMs: null,
       isError: true,
-      error: {
-        type: "model_stream_idle",
-        code: "model_stream_idle",
-        name: "Error",
-      },
+      error: { type: "model_stream_idle", code: "model_stream_idle" },
     }),
     turn("turn-2", { retryOf: "turn-1", timeToFirstEventMs: 12_000 }),
   ],
@@ -69,10 +63,28 @@ const idleTimeout: LoggedIdleTimeout = {
   retryClaimed: true,
 };
 
-test("a submission summary counts its calls, retries, failures and the idle timeouts of its turns", () => {
+test("a submission's idle timeouts are those logged under it or during one of its turns", () => {
+  const underSubmission = {
+    ...idleTimeout,
+    submissionId: "sub-1",
+    turnId: null,
+  };
+  const elsewhere = { ...idleTimeout, submissionId: "sub-2", turnId: "turn-9" };
+  const logged = [idleTimeout, underSubmission, elsewhere];
+
+  expect(idleTimeoutsOf("sub-1", chronology, logged)).toEqual([
+    idleTimeout,
+    underSubmission,
+  ]);
+  // Without a chronology there are no turns to match by.
+  expect(idleTimeoutsOf("sub-1", null, logged)).toEqual([underSubmission]);
+});
+
+test("a submission summary counts its calls, retries, failures and the idle timeouts logged under it or during its turns", () => {
   expect(
     summarizeSubmission(chronology, [
       idleTimeout,
+      { ...idleTimeout, submissionId: "sub-1", turnId: null },
       { ...idleTimeout, submissionId: "sub-2", turnId: "turn-9" },
     ]),
   ).toEqual({
@@ -84,7 +96,7 @@ test("a submission summary counts its calls, retries, failures and the idle time
     maxTimeToFirstEventMs: 12_000,
     retries: 1,
     failed: 1,
-    idleTimeouts: 1,
+    idleTimeouts: 2,
   });
   expect(renderSubmissionList([])).toBe(
     "No settled submissions in this window.",

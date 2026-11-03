@@ -24,6 +24,7 @@ import { parseArgs } from "node:util";
 
 import {
   createGrafanaReader,
+  idleTimeoutsOf,
   parseBrunchLog,
   renderSubmissionDetail,
   renderSubmissionList,
@@ -130,16 +131,15 @@ if (values.log !== undefined) {
   } else {
     const submissionId = values.submission;
     const chronology = parsed.chronologies.get(submissionId) ?? null;
-    const turnIds = new Set(chronology?.turns.map((turn) => turn.turnId));
     printDetail(
       {
         submissionId,
         searched: `in ${values.log === "-" ? "stdin" : values.log}`,
         chronology,
-        idleTimeouts: parsed.idleTimeouts.filter(
-          (timeout) =>
-            timeout.submissionId === submissionId ||
-            (timeout.turnId !== null && turnIds.has(timeout.turnId)),
+        idleTimeouts: idleTimeoutsOf(
+          submissionId,
+          chronology,
+          parsed.idleTimeouts,
         ),
         spans: null,
       },
@@ -169,15 +169,20 @@ if (values.log !== undefined) {
       const submissionId = values.submission;
       const [chronologies, idleTimeouts, spans] = await Promise.all([
         reader.chronologies(window, submissionId),
-        reader.idleTimeouts(window, submissionId),
+        reader.idleTimeouts(window),
         reader.modelCallSpans(window, submissionId),
       ]);
+      const chronology = chronologies.records[0] ?? null;
       printDetail(
         {
           submissionId,
           searched: `in the last ${since}`,
-          chronology: chronologies.records[0] ?? null,
-          idleTimeouts: idleTimeouts.records,
+          chronology,
+          idleTimeouts: idleTimeoutsOf(
+            submissionId,
+            chronology,
+            idleTimeouts.records,
+          ),
           spans: spans.records,
         },
         [

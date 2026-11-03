@@ -13,6 +13,7 @@ export {
 } from "./telemetry-readback/grafana.ts";
 export { parseBrunchLog } from "./telemetry-readback/parse-log-text.ts";
 export {
+  idleTimeoutsOf,
   renderSubmissionDetail,
   renderSubmissionList,
   seconds,

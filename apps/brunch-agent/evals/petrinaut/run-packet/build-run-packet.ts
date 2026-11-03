@@ -585,10 +585,11 @@ const buildExchange = (
       (turn?.toolCalls ?? []).map((call) => [call.toolCallId, call]),
     );
     // Chronology offsets count from the turn's start; packet offsets from the step's request.
+    const turnStartedAt = turn?.startedAt ?? null;
     const turnStartOffsetMs =
-      turn?.startedAt === undefined
+      turnStartedAt === null
         ? null
-        : Date.parse(turn.startedAt) - step.requestStartAt;
+        : Date.parse(turnStartedAt) - step.requestStartAt;
     const streamedCalls = step.toolCalls.flatMap((call) => {
       const streamed = deltas.get(call.toolCallId);
       return streamed === undefined ? [] : [streamed];
@@ -751,7 +752,7 @@ const buildExchange = (
           purpose: turn.purpose,
           model: requestedModelOf(turn),
           timeToFirstEventMs: turn.timeToFirstEventMs,
-          retryOf: turn.retryOf ?? null,
+          retryOf: turn.retryOf,
           error: turnErrorOf(turn),
         }))
       : null,

@@ -7,6 +7,7 @@ const window = {
   end: new Date("2026-11-03T11:00:00.000Z"),
 };
 
+/** A turn as readback returns it. */
 const turn = {
   turnId: "turn-1",
   purpose: "agent",
@@ -21,11 +22,16 @@ const turn = {
   terminal: "turn",
   isError: false,
   inputTokens: 9_416,
-  cacheReadTokens: 0,
   outputTokens: 49,
+  toolCalls: [],
+};
+
+/** The same turn as the server logs it, with fields readback does not read. */
+const loggedTurn = {
+  ...turn,
+  cacheReadTokens: 0,
   requestShape: null,
   responseShape: null,
-  toolCalls: [],
 };
 
 const string = (value: string) => ({ stringValue: value });
@@ -104,7 +110,7 @@ const chronologyStream = {
     service_name: "Brunch Agent",
     submissionId: "sub-1",
     outcome: "completed",
-    turns: JSON.stringify([turn]),
+    turns: JSON.stringify([loggedTurn]),
   },
   values: [["1793701815336000000", "[brunch] flue.submission chronology"]],
 };
@@ -279,12 +285,14 @@ test("a token is sent over HTTPS or to a local Grafana, never over plain HTTP el
     ),
   ).toThrow("GRAFANA_TOKEN is only sent over HTTPS");
 
-  for (const url of ["https://grafana.example", "http://localhost:3001"]) {
-    await createGrafanaReader(
-      { ...config, url, token: "TEST-token" },
-      fetchImpl,
-    ).idleTimeouts(window);
-  }
+  await Promise.all(
+    ["https://grafana.example", "http://localhost:3001"].map((url) =>
+      createGrafanaReader(
+        { ...config, url, token: "TEST-token" },
+        fetchImpl,
+      ).idleTimeouts(window),
+    ),
+  );
   expect(
     requests.map((request) => request.headers.get("authorization")),
   ).toEqual(Array.from({ length: 4 }, () => "Bearer TEST-token"));
