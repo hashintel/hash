@@ -54,6 +54,13 @@ const router = vi.hoisted(() => ({
 
 vi.mock("next/router", () => ({ useRouter: () => router }));
 
+/** Whether the CSP gate lets Petrinaut render; `false` while it reloads. */
+const gate = vi.hoisted(() => ({ canRenderPetrinaut: true }));
+
+vi.mock("./process-editor/use-string-evaluation-gate", () => ({
+  useStringEvaluationGate: () => gate.canRenderPetrinaut,
+}));
+
 /** Stands in for the editor's module, recording what the host gives it. */
 vi.mock("next/dynamic", () => ({
   default: () => (props: EditorProps) => {
@@ -191,6 +198,7 @@ beforeEach(() => {
   observed.alert = null;
   router.push.mockClear();
   router.replace.mockClear();
+  gate.canRenderPetrinaut = true;
 });
 
 afterEach(() => {
@@ -235,6 +243,15 @@ const updatedEntityIds = () =>
   graph.updateEntity.mock.calls.map(
     ([options]) => options.variables.entityUpdate.entityId,
   );
+
+test("while the CSP gate holds Petrinaut back, the loading skeleton shows even once a view has loaded", () => {
+  gate.canRenderPetrinaut = false;
+
+  const { container } = render(<ProcessEditor view={draftView} />);
+
+  expect(observed.editorProps).toEqual([]);
+  expect(container.querySelector(".MuiSkeleton-root")).not.toBeNull();
+});
 
 test("a revision pick is a new load even with identical content, and rerenders are not", async () => {
   const { navigate } = await renderHost(savedView(uuidA));
