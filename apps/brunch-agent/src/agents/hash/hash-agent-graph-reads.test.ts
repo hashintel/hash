@@ -76,7 +76,7 @@ const resultText = (context: TranscriptContext, toolCallId: string) =>
     ?.content.flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("");
 
-let hashAgent: Parameters<typeof createAgentRouter>[0];
+let hashAgent: typeof import("./agent.ts").HashAgent;
 let stopRuntime: () => Promise<void> = async () => {};
 beforeAll(async () => {
   vi.stubEnv("BRUNCH_CHAT_MODEL", "faux/faux-1");
@@ -121,6 +121,7 @@ const claimed = async (
 ): Promise<BrowserCallClaim> => {
   for (let attempt = 0; attempt < 200; attempt += 1) {
     const claim = claimBrowserCall(
+      hashAgent.agentName,
       instanceId,
       toolCallId,
       canonicalContent(binding),
@@ -207,6 +208,7 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
   });
   expect(
     settleBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId: chat.instanceId,
       toolCallId: "r1",
       capability: claim.capability,
@@ -265,6 +267,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
   };
   expect(
     settleBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId: chat.instanceId,
       toolCallId: "m2",
       capability: netClaim.capability,
@@ -277,6 +280,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
   ).toBe("settled");
   expect(
     settleBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId: chat.instanceId,
       toolCallId: "m1",
       capability: entityClaim.capability,
@@ -316,6 +320,7 @@ test("a read that finds nothing the user may see shows the model the empty resul
   const receipt = await chat.send("What's in Alice's web?");
   const claim = await claimed(chat.instanceId, "r2", chat.binding);
   settleBrowserCall({
+    agentName: hashAgent.agentName,
     instanceId: chat.instanceId,
     toolCallId: "r2",
     capability: claim.capability,
@@ -347,6 +352,7 @@ test("a read the page fails reaches the model as a tool error that left the docu
   const claim = await claimed(chat.instanceId, "r3", chat.binding);
   expect(
     failBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId: chat.instanceId,
       toolCallId: "r3",
       capability: claim.capability,
@@ -398,6 +404,7 @@ const readOnce = async (
   const claim = await claimed(chat.instanceId, "once", chat.binding);
   expect(
     settleBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId: chat.instanceId,
       toolCallId: "once",
       capability: claim.capability,
@@ -584,7 +591,12 @@ test.each([-1, 1.5, 4])(
 
     expect(rejected?.isError).toBe(true);
     expect(
-      claimBrowserCall(chat.instanceId, "r4", canonicalContent(chat.binding)),
+      claimBrowserCall(
+        hashAgent.agentName,
+        chat.instanceId,
+        "r4",
+        canonicalContent(chat.binding),
+      ),
     ).toBeUndefined();
   },
 );

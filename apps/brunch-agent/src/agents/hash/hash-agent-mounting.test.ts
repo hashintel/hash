@@ -477,3 +477,167 @@ test("a production app doesn't mount the HASH agent and still serves the Petrina
       body: PetrinautAgent.agentName,
     });
 });
+
+/** A browser request on one agent route segment for an owned instance's call. */
+const browserCall = async (
+  segment: string,
+  toolCallId: string,
+  request: { readonly suffix?: string; readonly body?: object } = {},
+) => {
+  const { default: app } = await import("../../app.ts");
+  const binding = encodeURIComponent(browserCallBinding);
+  const url = `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}/${brunchRoutes.browserCalls}/${toolCallId}${request.suffix ?? ""}`;
+  const response = await app.fetch(
+    new Request(
+      request.body === undefined ? `${url}?binding=${binding}` : url,
+      request.body === undefined
+        ? { headers: agentOwnershipHeaders(identity) }
+        : {
+            method: "POST",
+            headers: {
+              ...agentOwnershipHeaders(identity),
+              "content-type": "application/json",
+            },
+            body: JSON.stringify(request.body),
+          },
+    ),
+  );
+  return { status: response.status, body: (await response.json()) as unknown };
+};
+const browserCallBinding = JSON.stringify({
+  conversationId: identity.conversationId,
+  documentId: "document",
+});
+/** Every browser operation on `segment`, as the browser holding `capability` makes it, for the issued addPlace call. */
+const everyOperation = async (
+  segment: string,
+  toolCallId: string,
+  capability: string,
+) => {
+  const lease = { capability, binding: browserCallBinding };
+  const result = {
+    ...lease,
+    toolName: "addPlace",
+    canonicalInput: {},
+  };
+  return {
+    claim: await browserCall(segment, toolCallId),
+    renew: await browserCall(segment, toolCallId, {
+      suffix: "/lease",
+      body: lease,
+    }),
+    fail: await browserCall(segment, toolCallId, {
+      suffix: "/fail",
+      body: { ...result, disposition: "failed" },
+    }),
+    settle: await browserCall(segment, toolCallId, {
+      body: { ...result, output: {} },
+    }),
+  };
+};
+/** Issues an addPlace call as `agentName` would, for the owned instance. */
+const issue = async (agentName: string) => {
+  const { issueBrowserCall } =
+    await import("../../shared/conversation/browser-call-rendezvous.ts");
+  const toolCallId = crypto.randomUUID();
+  const result = issueBrowserCall({
+    agentName,
+    instanceId: flueConversationId(identity),
+    toolCallId,
+    toolName: "addPlace",
+    canonicalInput: {},
+    binding: browserCallBinding,
+  });
+  return { toolCallId, result };
+};
+
+test("a browser call issued by one agent is unknown on another agent's routes and served on every route of its own", async () => {
+  const [{ HashAgent }, { PetrinautAgent }] = await Promise.all([
+    import("./agent.ts"),
+    import("../petrinaut/agent.ts"),
+  ]);
+  const unknown = await everyOperation(
+    "hash",
+    crypto.randomUUID(),
+    "no-capability",
+  );
+  expect(unknown.claim).toEqual({ status: 404, body: { error: "not-issued" } });
+  for (const operation of [unknown.renew, unknown.fail, unknown.settle])
+    expect(operation).toEqual({ status: 409, body: { error: "not-issued" } });
+
+  const hashCall = await issue(HashAgent.agentName);
+  const otherAgentRoutes = [brunchRoutes.petrinautAgent, "chat"];
+  expect(
+    await Promise.all(
+      otherAgentRoutes.map((segment) =>
+        browserCall(segment, hashCall.toolCallId),
+      ),
+    ),
+  ).toEqual([unknown.claim, unknown.claim]);
+  const hashClaim = await browserCall("hash", hashCall.toolCallId);
+  expect(hashClaim).toMatchObject({
+    status: 200,
+    body: { toolName: "addPlace", binding: browserCallBinding },
+  });
+  const { capability } = hashClaim.body as { capability: string };
+  expect(
+    await Promise.all(
+      otherAgentRoutes.map((segment) =>
+        everyOperation(segment, hashCall.toolCallId, capability),
+      ),
+    ),
+  ).toEqual([unknown, unknown]);
+  expect(
+    await browserCall("hash", hashCall.toolCallId, {
+      suffix: "/lease",
+      body: { capability, binding: browserCallBinding },
+    }),
+  ).toEqual({ status: 200, body: { renewed: true } });
+  expect(
+    await browserCall("hash", hashCall.toolCallId, {
+      body: {
+        capability,
+        binding: browserCallBinding,
+        toolName: "addPlace",
+        canonicalInput: {},
+        output: { applied: true },
+      },
+    }),
+  ).toEqual({ status: 200, body: { settled: true } });
+  await expect(hashCall.result).resolves.toMatchObject({
+    output: { applied: true },
+  });
+
+  // The Petrinaut agent's alias shares its name, so either of its routes serves its call.
+  const petrinautCall = await issue(PetrinautAgent.agentName);
+  expect(await browserCall("hash", petrinautCall.toolCallId)).toEqual(
+    unknown.claim,
+  );
+  const petrinautClaim = await browserCall("chat", petrinautCall.toolCallId);
+  expect(petrinautClaim.status).toBe(200);
+  const petrinautCapability = (petrinautClaim.body as { capability: string })
+    .capability;
+  expect(
+    await everyOperation("hash", petrinautCall.toolCallId, petrinautCapability),
+  ).toEqual(unknown);
+  expect(
+    await browserCall(brunchRoutes.petrinautAgent, petrinautCall.toolCallId, {
+      suffix: "/lease",
+      body: { capability: petrinautCapability, binding: browserCallBinding },
+    }),
+  ).toEqual({ status: 200, body: { renewed: true } });
+  expect(
+    await browserCall(brunchRoutes.petrinautAgent, petrinautCall.toolCallId, {
+      body: {
+        capability: petrinautCapability,
+        binding: browserCallBinding,
+        toolName: "addPlace",
+        canonicalInput: {},
+        output: { applied: true },
+      },
+    }),
+  ).toEqual({ status: 200, body: { settled: true } });
+  await expect(petrinautCall.result).resolves.toMatchObject({
+    output: { applied: true },
+  });
+});

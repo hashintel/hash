@@ -122,6 +122,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             if (expected && "refusal" in expected)
               throw new Error(expected.refusal);
             return issueBrowserCall({
+              agentName: PetrinautAgent.agentName,
               instanceId: id,
               toolCallId,
               toolName,
