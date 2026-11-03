@@ -7560,6 +7560,56 @@ describe("AI experiment requests", () => {
     await waitFor(() => expect(outputs.get("experiment-call")).toEqual(result));
   });
 
+  test("marks the composer while a HASH experiment's host tool runs", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      () => completion.promise,
+    );
+    const outputs = new Map<string, unknown>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(async ({ toolCallId, input }, execute) => {
+      outputs.set(toolCallId, await execute(input));
+    });
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "experiment-call",
+              toolName: "petrinaut_create_experiment",
+              input: { editor_id: hashProcessEditorId, ...request },
+            });
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        presentation: "brunch",
+        transport: { reconnectToStream: async () => null, sendMessages },
+        automaticTools: hashPetrinautHostTools,
+        inBandBrowserTools: {
+          has: (toolName) => toolName === "petrinaut_create_experiment",
+          run,
+        },
+      },
+      initialMessage: "Run an experiment",
+      experimentHost: { runExperiment },
+    });
+
+    await waitFor(() => expect(runExperiment).toHaveBeenCalledOnce());
+    await screen.findByText("Experiment running");
+
+    await act(async () => completion.resolve(result));
+    await waitFor(() => expect(outputs.get("experiment-call")).toEqual(result));
+    await waitFor(() =>
+      expect(screen.queryByText("Experiment running")).toBeNull(),
+    );
+  });
+
   test("cancels browser computation through the experiment card", async () => {
     const createExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
       (input, options) =>

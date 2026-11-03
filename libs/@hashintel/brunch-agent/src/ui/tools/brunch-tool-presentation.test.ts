@@ -52,6 +52,49 @@ describe("Brunch tool presentation", () => {
     });
   });
 
+  test("titles a HASH save by what it did", () => {
+    const save = (output: unknown) =>
+      resolveBrunchToolPresentation({
+        toolName: "app_save_net",
+        state: "success",
+        input: {},
+        output,
+        error: undefined,
+      });
+
+    expect(save({ status: "saved", savedAt: "now" })?.title).toBe(
+      "Saved the net",
+    );
+    expect(save({ status: "not-started", reason: "Declined" })).toEqual({
+      title: "Did not save the net",
+      detail: "Declined",
+      tone: "neutral",
+    });
+    expect(save({ status: "unconfirmed", error: "Timed out" })).toEqual({
+      title: "Could not confirm the save",
+      detail: "Timed out",
+      tone: "danger",
+    });
+  });
+
+  test("names the requested HASH read or save while it has no result", () => {
+    const pending = (toolName: string) =>
+      resolveBrunchToolPresentation({
+        toolName,
+        state: "pending",
+        input: {},
+        output: undefined,
+        error: undefined,
+      })?.title;
+
+    expect(pending("hash_query_entities")).toBe("Look up entities in HASH");
+    expect(pending("hash_query_entity_types")).toBe(
+      "Look up entity types in HASH",
+    );
+    expect(pending("hash_query_webs")).toBe("List your HASH webs");
+    expect(pending("app_save_net")).toBe("Save the net");
+  });
+
   test("titles a Ledger compile by its lifecycle", () => {
     expect(
       resolveBrunchToolPresentation({

@@ -43,8 +43,10 @@ export {
   type HashSaveOutcome,
 } from "./hash/save";
 export {
+  hashPetrinautPrimaryOperation,
   hashPetrinautTools,
   hashProcessEditorId,
+  isHashPetrinautToolName,
   type HashPetrinautToolName,
 } from "./hash/petrinaut-tools";
 export * from "./ledger";
