@@ -1,4 +1,4 @@
-import { Suspense, use } from "react";
+import { Suspense, use, useDeferredValue } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -107,6 +107,7 @@ const VisualizerPicture: React.FC<{
     hir.view,
     tokens,
     mergeParameterValues(parameterValues, defaultParameterValues),
+    { fillViewport: true },
   );
 };
 
@@ -117,7 +118,8 @@ const VisualizerPicture: React.FC<{
 export const PlaceStateVisualization: React.FC<
   PlaceStateVisualizationProps
 > = ({ place, placeType }) => {
-  if (!place.visualizerCode) {
+  const code = useDeferredValue(place.visualizerCode);
+  if (!code) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
 
@@ -126,14 +128,13 @@ export const PlaceStateVisualization: React.FC<
   }
 
   return (
-    <VisualizerErrorBoundary key={place.visualizerCode}>
+    <>
       <Suspense fallback={<VisualizerLoading />}>
-        <VisualizerPicture
-          place={place}
-          placeType={placeType}
-          code={place.visualizerCode}
-        />
+        <VisualizerErrorBoundary key={code}>
+          <VisualizerPicture place={place} placeType={placeType} code={code} />
+        </VisualizerErrorBoundary>
       </Suspense>
-    </VisualizerErrorBoundary>
+      {code !== place.visualizerCode && <VisualizerLoading />}
+    </>
   );
 };

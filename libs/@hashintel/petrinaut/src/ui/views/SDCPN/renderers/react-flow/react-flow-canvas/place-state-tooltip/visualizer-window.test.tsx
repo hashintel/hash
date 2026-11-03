@@ -34,20 +34,19 @@ vi.mock("../../../../../../hooks/use-canvas-insets", () => ({
 vi.mock("@hashintel/ds-components", () => ({
   Button: ({ onClick }: { onClick: () => void }) => (
     <button type="button" onClick={onClick}>
-      Unpin
+      Close state visualizer
     </button>
   ),
 }));
 
-const panel = (onUnpin = () => {}) => (
+const panel = (onClose = () => {}) => (
   <VisualizerWindow
     nodeId="place"
     name="Space"
-    pinned
     editing={false}
     dimmed={false}
     animated
-    onTogglePin={onUnpin}
+    onClose={onClose}
   >
     <svg viewBox="0 0 320 240" />
   </VisualizerWindow>
@@ -218,9 +217,9 @@ it("resizes freely with the shared corner resizer at reduced zoom", () => {
   expect(parseFloat(visualizer.style.height)).toBe(250);
 });
 
-it("drags from the picture without turning the pin into a drag handle", () => {
-  const unpin = vi.fn();
-  render(panel(unpin));
+it("drags from the picture without turning the close button into a drag handle", () => {
+  const close = vi.fn();
+  render(panel(close));
   const visualizer = screen.getByRole("group", {
     name: "Space state visualizer",
   });
@@ -235,13 +234,15 @@ it("drags from the picture without turning the pin into a drag handle", () => {
   expect(visualizer.dataset.dragging).toBe("false");
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
 
-  const pin = screen.getByRole("button", { name: "Unpin" });
-  pointerEvent(pin, "pointerdown");
+  const closeButton = screen.getByRole("button", {
+    name: "Close state visualizer",
+  });
+  pointerEvent(closeButton, "pointerdown");
   pointerEvent(visualizer, "pointermove", { clientX: 80 });
-  pointerEvent(pin, "pointerup");
-  fireEvent.click(pin);
+  pointerEvent(closeButton, "pointerup");
+  fireEvent.click(closeButton);
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
-  expect(unpin).toHaveBeenCalledOnce();
+  expect(close).toHaveBeenCalledOnce();
 });
 
 it("stops dragging before the Canvas controls at the right and bottom edges", () => {
@@ -331,11 +332,10 @@ it("keeps its dragged layout when pinning and while content loads", async () => 
     <VisualizerWindow
       nodeId="place"
       name="Space"
-      pinned={pinned}
       editing={!pinned}
       dimmed={false}
       animated
-      onTogglePin={() => {}}
+      onClose={() => {}}
     >
       <Suspense fallback={<div role="status">Loading visualizer</div>}>
         {loading ? <PendingPicture /> : <svg />}

@@ -80,7 +80,10 @@ const toAttributeValue = (
   }
 };
 
-const elementToReactNode = (element: ViewElementValue): ReactNode => {
+const elementToReactNode = (
+  element: ViewElementValue,
+  fillViewport: boolean,
+): ReactNode => {
   const { tag } = element;
   if (tag !== VIEW_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(tag)) {
     throw new Error(`\`<${tag}>\` cannot be drawn by a visualizer.`);
@@ -101,15 +104,18 @@ const elementToReactNode = (element: ViewElementValue): ReactNode => {
   } else if (typeof key === "bigint") {
     props.key = String(key);
   }
+  if (fillViewport && tag === "svg") props.preserveAspectRatio = "none";
   return createElement(
     tag === VIEW_FRAGMENT_TAG ? Fragment : tag,
     props,
-    // eslint-disable-next-line no-use-before-define -- mutual recursion
-    ...element.children.map(toReactNode),
+    ...element.children.map((child) =>
+      // eslint-disable-next-line no-use-before-define -- mutual recursion
+      toReactNode(child, fillViewport && tag === VIEW_FRAGMENT_TAG),
+    ),
   );
 };
 
-const toReactNode = (value: ViewValue): ReactNode => {
+const toReactNode = (value: ViewValue, fillViewport: boolean): ReactNode => {
   if (value === null || typeof value === "boolean") {
     return null;
   }
@@ -120,10 +126,12 @@ const toReactNode = (value: ViewValue): ReactNode => {
     return String(value);
   }
   if (Array.isArray(value)) {
-    return (value as readonly ViewValue[]).map(toReactNode);
+    return (value as readonly ViewValue[]).map((child) =>
+      toReactNode(child, fillViewport),
+    );
   }
   if (value instanceof ViewElementValue) {
-    return elementToReactNode(value);
+    return elementToReactNode(value, fillViewport);
   }
   return null;
 };
@@ -143,4 +151,6 @@ export const renderVisualizerHir = (
   view: ViewHir,
   tokens: VisualizerTokens,
   parameters: VisualizerParameters,
-): ReactNode => toReactNode(interpretViewHir(view, { tokens, parameters }));
+  { fillViewport = false }: { fillViewport?: boolean } = {},
+): ReactNode =>
+  toReactNode(interpretViewHir(view, { tokens, parameters }), fillViewport);

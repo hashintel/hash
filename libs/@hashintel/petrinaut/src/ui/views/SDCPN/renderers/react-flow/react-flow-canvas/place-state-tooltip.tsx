@@ -4,7 +4,7 @@ import {
   useInternalNode,
   useViewport,
 } from "@xyflow/react";
-import { lazy, Suspense, use, useEffect } from "react";
+import { lazy, Suspense, use, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -63,6 +63,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     focusedVisualizerPlaceId,
     toggleVisualizerPin,
     openPlaceVisualizer,
+    setVisualizerEditorFocus,
     hoveredItem,
     setHoveredItem,
     clearHoveredItem,
@@ -73,9 +74,16 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   const pinned = pinnedVisualizerPlaceIds.has(nodeId);
   const editing = focusedVisualizerPlaceId === nodeId;
   const opened = openVisualizerPlaceId === nodeId;
+  const [eyeHovered, setEyeHovered] = useState(false);
   const openingEditor =
     codeNavigation.focusRequest?.path ===
     getDocumentUri("place-visualizer", nodeId);
+
+  useEffect(() => {
+    if (!eyeHovered || pinned) return;
+    const timeout = setTimeout(() => openPlaceVisualizer(nodeId), 15);
+    return () => clearTimeout(timeout);
+  }, [eyeHovered, pinned, nodeId, openPlaceVisualizer]);
 
   useEffect(() => {
     if (
@@ -121,82 +129,97 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     },
   };
 
-  if (pinned || opened || editing) {
-    return (
-      <VisualizerWindow
-        nodeId={nodeId}
-        name={place.name}
-        pinned={pinned}
-        editing={editing}
-        dimmed={focusedVisualizerPlaceId !== null && !editing}
-        animated={showAnimations}
-        onTogglePin={() => toggleVisualizerPin(nodeId)}
-        onEdit={
-          codeNavigation.enabled
-            ? () =>
-                codeNavigation.open(
-                  getDocumentUri("place-visualizer", nodeId),
-                  { maximize: true },
-                )
-            : undefined
-        }
-        {...keepHovered}
-        onPointerEnter={() => {
-          keepHovered.onPointerEnter();
-          openPlaceVisualizer(nodeId);
-        }}
-      >
-        <Suspense fallback={<VisualizerLoading />}>
-          <PlaceStateVisualization
-            place={place}
-            placeType={placeType ?? null}
-          />
-        </Suspense>
-      </VisualizerWindow>
-    );
-  }
-  if (
-    !placeType?.elements.length ||
-    !place.visualizerCode ||
-    hoveredItem?.id !== nodeId ||
-    node.dragging
-  )
-    return null;
-
+  const showTrigger =
+    !pinned &&
+    !!placeType?.elements.length &&
+    !!place.visualizerCode &&
+    hoveredItem?.id === nodeId &&
+    !node.dragging;
   const below =
     node.internals.positionAbsolute.y * viewport.zoom + viewport.y < 94;
+
   return (
-    <NodeToolbar
-      nodeId={nodeId}
-      isVisible
-      position={below ? Position.Bottom : Position.Top}
-      offset={-11}
-    >
-      <div
-        className={triggerStyle}
-        data-animated={showAnimations}
-        {...keepHovered}
-      >
-        <Button
-          className={css({
-            width: "[20px]",
-            minWidth: "[20px]",
-            height: "[20px]",
-            padding: "[0]",
-          })}
-          size="xs"
-          variant="ghost"
-          shape="round"
-          iconName="eye"
-          aria-label="Show state visualizer"
-          tooltip="Show state visualizer"
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
+    <>
+      {(pinned || opened || editing) && (
+        <VisualizerWindow
+          nodeId={nodeId}
+          name={place.name}
+          editing={editing}
+          dimmed={focusedVisualizerPlaceId !== null && !editing}
+          animated={showAnimations}
+          onClose={() => {
+            setEyeHovered(false);
+            if (pinned) toggleVisualizerPin(nodeId);
+            openPlaceVisualizer(null);
+            setVisualizerEditorFocus(nodeId, false);
+          }}
+          onEdit={
+            codeNavigation.enabled
+              ? () =>
+                  codeNavigation.open(
+                    getDocumentUri("place-visualizer", nodeId),
+                    { maximize: true },
+                  )
+              : undefined
+          }
+          {...keepHovered}
+          onPointerEnter={() => {
+            keepHovered.onPointerEnter();
             openPlaceVisualizer(nodeId);
           }}
-        />
-      </div>
-    </NodeToolbar>
+        >
+          <Suspense fallback={<VisualizerLoading />}>
+            <PlaceStateVisualization
+              place={place}
+              placeType={placeType ?? null}
+            />
+          </Suspense>
+        </VisualizerWindow>
+      )}
+      {showTrigger && (
+        <NodeToolbar
+          nodeId={nodeId}
+          isVisible
+          position={below ? Position.Bottom : Position.Top}
+          offset={-11}
+        >
+          <div
+            className={triggerStyle}
+            data-animated={showAnimations}
+            {...keepHovered}
+            onPointerEnter={() => {
+              keepHovered.onPointerEnter();
+              setEyeHovered(true);
+            }}
+            onPointerLeave={(event) => {
+              setEyeHovered(false);
+              keepHovered.onPointerLeave(event);
+            }}
+          >
+            <Button
+              className={css({
+                width: "[20px]",
+                minWidth: "[20px]",
+                height: "[20px]",
+                padding: "[0]",
+              })}
+              size="xs"
+              variant="ghost"
+              shape="round"
+              iconName="eye"
+              aria-label="Show state visualizer"
+              tooltip="Click to keep open"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setEyeHovered(false);
+                toggleVisualizerPin(nodeId);
+                openPlaceVisualizer(nodeId);
+              }}
+            />
+          </div>
+        </NodeToolbar>
+      )}
+    </>
   );
 };

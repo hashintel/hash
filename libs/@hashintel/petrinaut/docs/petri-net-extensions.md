@@ -107,7 +107,7 @@ export default Visualization(({ tokens, parameters }) => {
 });
 ```
 
-The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in the properties panel. During simulation, it updates live as token state changes.
+The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in a floating Canvas window. During simulation, it updates live as token state changes.
 
 The code editor checks a visualizer as you type. `tokens` is typed from the place's type and `parameters` from the net's parameters, so completion and hover show the attributes and values available, and a misspelt SVG attribute, an attribute the type does not have, or a name such as `window` or `fetch` that visualizers cannot use is underlined in the editor and listed in the [Diagnostics](#diagnostics) tab under the place. Visualizer errors never block a simulation: a visualizer with errors draws nothing while the rest of the net runs.
 
@@ -119,13 +119,13 @@ Visualizer code is JavaScript: the types are inferred, and a type annotation or 
 
 Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
 
-Point at a place and click **Show state visualizer** to open its Canvas preview. It chooses an initial position near the place and stays there when pinned. Before a run it draws the initial marking; during a run it draws the displayed simulation frame.
+Point at a place, then hover **Show state visualizer** to open its Canvas preview after 15 milliseconds. It chooses an initial position near the place and stays there when pinned. Before a run it draws the initial marking; during a run it draws the displayed simulation frame.
 
-Move the pointer away to close an unpinned preview. Click the **pin** in its top-right corner to keep it open, or release it with the same button. Pinning preserves its position and size. You can pin several places to watch them together while scrubbing the [timeline](simulation.md#timeline). Pins last until the page is reloaded.
+Move the pointer away to close an unpinned preview. Click the eye button to pin it without changing its position or size. Hover the window to reveal its **Close state visualizer** and **Edit visualizer code** buttons in the top-right corner. Close dismisses the window and removes its pin. You can pin several places to watch them together while scrubbing the [timeline](simulation.md#timeline). Pins last until the page is reloaded.
 
-Drag anywhere on the picture to move it. The cursor changes from an open hand to a closed hand, and the window lifts slightly while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings. Width and height change independently; hold Alt to keep the center fixed. Focus the drag strip or bottom-right resize handle to use the arrow keys, with Shift for larger steps.
+Drag anywhere on the picture to move it. The cursor changes from an open hand to a closed hand, and the window lifts slightly while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings. Width and height change independently; hold Alt to keep the center fixed. Focus the invisible drag area along the top or the bottom-right resize handle to use the arrow keys, with Shift for larger steps.
 
-A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary. The SVG fills the window regardless of its authored width and height; its `viewBox` determines how the drawing fits. A loading spinner appears during compilation without changing the window's size.
+A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary. The SVG fills the window regardless of its authored width and height. Its `viewBox` stretches to fit both dimensions, including the drawing's background. While new code compiles, the previous drawing stays visible with a small loading indicator in the bottom-right corner. The window keeps its size throughout loading and compilation.
 
 A thin line connects the preview to its place. Moving the place, panning, or zooming updates the line while the window stays in the same position and at the same size on screen. Dragging and resizing stop at the edges of the visible area, keeping clear of Canvas controls and open panels. If the available area shrinks, the window moves or shrinks to fit. Position and size last while the preview remains open in the current Canvas view.
 

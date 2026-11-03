@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { PinIcon } from "../../../../../../components/pin-icon";
 import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
 import { useVisualizerLayout } from "./visualizer-window/use-visualizer-layout";
@@ -26,7 +25,7 @@ const panelStyle = css({
   touchAction: "none",
   userSelect: "none",
   transition: "[box-shadow 140ms ease, opacity 140ms ease]",
-  _hover: { boxShadow: "[0 12px 32px rgba(0, 0, 0, 0.22)]" },
+  _hover: { boxShadow: "[0 9px 26px rgba(0, 0, 0, 0.18)]" },
   "&[data-editing='true']": {
     outline: "[2px solid {colors.blue.s80}]",
     outlineOffset: "[3px]",
@@ -34,13 +33,13 @@ const panelStyle = css({
   "&[data-dimmed='true']:not(:hover)": { opacity: "[0.55]" },
   "&[data-dragging='true']": {
     cursor: "grabbing",
-    boxShadow: "[0 18px 40px rgba(0, 0, 0, 0.28)]",
+    boxShadow: "[0 11px 28px rgba(0, 0, 0, 0.2)]",
   },
   "&[data-animated='true']": {
     transition:
       "[transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease]",
-    _hover: { transform: "[scale(1.01)]" },
-    "&[data-dragging='true']": { transform: "[translateY(-2px) scale(1.02)]" },
+    _hover: { transform: "[scale(1.003)]" },
+    "&[data-dragging='true']": { transform: "[translateY(-1px) scale(1.006)]" },
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
       transform: "none",
@@ -49,11 +48,11 @@ const panelStyle = css({
   "&:hover [data-visualizer-control], &:focus-within [data-visualizer-control]":
     {
       opacity: "[1]",
+      pointerEvents: "auto",
     },
-  "&:hover [data-visualizer-drag]": { opacity: "[1]" },
 });
 
-const pinStyle = css({
+const controlsStyle = css({
   position: "absolute",
   zIndex: "[2]",
   top: "[8px]",
@@ -66,7 +65,8 @@ const pinStyle = css({
   backdropFilter: "[blur(8px) saturate(140%)]",
   borderRadius: "[6px]",
   boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.14)]",
-  opacity: "[0.55]",
+  opacity: "[0]",
+  pointerEvents: "none",
   "&:has(:focus-visible)": { outline: "[2px solid {colors.blue.s80}]" },
 });
 
@@ -77,24 +77,19 @@ const dragHandleStyle = css({
   left: "[0]",
   width: "[100%]",
   height: "[32px]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   border: "none",
   padding: "[0]",
   borderRadius: "[13px 13px 0 0]",
-  backgroundColor: "[rgba(255, 255, 255, 0.6)]",
-  backdropFilter: "[blur(8px) saturate(140%)]",
-  color: "neutral.s100",
-  opacity: "[0]",
+  backgroundColor: "[transparent]",
   cursor: "grab",
   touchAction: "none",
   userSelect: "none",
-  _active: { cursor: "grabbing", opacity: "[1]" },
-  _focusVisible: { opacity: "[1]", outline: "[2px solid {colors.blue.s80}]" },
+  _active: { cursor: "grabbing" },
+  _focusVisible: { outline: "[2px solid {colors.blue.s80}]" },
 });
 
 const contentStyle = css({
+  position: "relative",
   flex: "1",
   minHeight: "[0]",
   overflow: "auto",
@@ -119,11 +114,10 @@ const connectorStyle = css({
 export const VisualizerWindow = ({
   nodeId,
   name,
-  pinned,
   editing,
   dimmed,
   animated,
-  onTogglePin,
+  onClose,
   onEdit,
   onPointerEnter,
   onPointerLeave,
@@ -131,11 +125,10 @@ export const VisualizerWindow = ({
 }: {
   nodeId: string;
   name: string;
-  pinned: boolean;
   editing: boolean;
   dimmed: boolean;
   animated: boolean;
-  onTogglePin: () => void;
+  onClose: () => void;
   onEdit?: () => void;
   onPointerEnter?: PointerEventHandler<HTMLDivElement>;
   onPointerLeave?: PointerEventHandler<HTMLDivElement>;
@@ -219,12 +212,8 @@ export const VisualizerWindow = ({
           aria-label={`Move ${name} visualizer`}
           title="Drag to move · Arrow keys to nudge"
           {...getHandleProps("move")}
-        >
-          <svg width="24" height="4" viewBox="0 0 24 4" aria-hidden="true">
-            <rect width="24" height="4" rx="2" fill="currentColor" />
-          </svg>
-        </button>
-        <div className={pinStyle} data-visualizer-control>
+        />
+        <div className={controlsStyle} data-visualizer-control>
           {onEdit && (
             <Button
               size="xxs"
@@ -238,13 +227,10 @@ export const VisualizerWindow = ({
           <Button
             size="xxs"
             variant="ghost"
-            prefix={<PinIcon />}
-            aria-label={
-              pinned ? "Unpin state visualizer" : "Pin state visualizer"
-            }
-            aria-pressed={pinned}
-            tooltip={pinned ? "Unpin" : "Keep open while you work"}
-            onClick={onTogglePin}
+            iconName="close"
+            aria-label="Close state visualizer"
+            tooltip="Close state visualizer"
+            onClick={onClose}
           />
         </div>
         <div className={contentStyle}>{children}</div>
