@@ -1,0 +1,538 @@
+/*
+ * A deck: a fixed stage over the page, base slide styles, the slide types
+ * on the site's own tokens, and the chrome.
+ */
+
+/* A reset at zero specificity, so every slide rule wins. */
+:where(.deck) :where(*),
+:where(.deck) :where(*)::before,
+:where(.deck) :where(*)::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.deck {
+  --chip-bg: var(--sl-color-gray-6);
+  --chip-border: var(--sl-color-gray-5);
+  --slide-bg: var(--sl-color-bg);
+  --text-primary: var(--sl-color-white);
+  --text-secondary: var(--sl-color-gray-3);
+  --accent: var(--sl-color-accent);
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--slide-bg);
+  color: var(--text-primary);
+  font-family: var(--pnd-font-sans);
+  /* The docs set the body larger and tighter; a slide starts from the browser's. */
+  font-size: 16px;
+  letter-spacing: normal;
+  line-height: 1.5;
+}
+
+/*
+ * The stage is the window; the canvas is the slide's box. Slide styles size
+ * with `cqw` and `cqh`, which resolve against the canvas. With a fixed shape
+ * the canvas keeps one size in CSS pixels and is scaled to fit the stage, so
+ * nothing reflows. `tan(atan2(a, b))` is `a / b` as a plain number, which
+ * `calc` cannot yet produce from two lengths.
+ */
+.deck-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+}
+
+.deck-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  container-type: size;
+  background: var(--slide-bg);
+}
+
+.deck[data-shape="16:9"] {
+  --canvas-width: 1600px;
+  --canvas-height: 900px;
+}
+
+.deck[data-shape="4:3"] {
+  --canvas-width: 1200px;
+  --canvas-height: 900px;
+}
+
+.deck:is([data-shape="16:9"], [data-shape="4:3"]) .deck-stage {
+  background: color-mix(in oklab, var(--slide-bg), var(--text-primary) 10%);
+}
+
+.deck:is([data-shape="16:9"], [data-shape="4:3"]) .deck-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--canvas-width);
+  height: var(--canvas-height);
+  overflow: hidden;
+  translate: -50% -50%;
+  scale: min(
+    tan(atan2(100cqw, var(--canvas-width))),
+    tan(atan2(100cqh, var(--canvas-height)))
+  );
+}
+
+/* Overflow, while the viewer flags it: the slide's edge and an error pill. */
+.deck {
+  --deck-error: #e5484d;
+}
+
+.deck-canvas[data-overflowing="true"] {
+  outline: 3px solid var(--deck-error);
+  outline-offset: -3px;
+}
+
+.deck .deck-overflow-alert {
+  position: fixed;
+  top: 1.15rem;
+  right: 1.25rem;
+  z-index: 140;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--deck-error);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/*
+ * The slide element, and defaults for a TSX slide that draws its own text.
+ * MDX slides and `SlideFrame` override them with their own classes.
+ */
+.slide {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+}
+
+:where(.deck) .slide h1 {
+  font-size: 3.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+:where(.deck) .slide h2 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+
+:where(.deck) .slide p {
+  font-size: 1.5rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 800px;
+  text-align: center;
+}
+
+:where(.deck) .slide code {
+  font-family: var(--pnd-font-mono);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* An MDX slide: prose, left-aligned, the docs' diagrams and formulas at slide size. */
+.deck-mdx {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1.25rem;
+  padding: 3rem 4rem 4rem;
+  font-size: clamp(1rem, 1.6cqw, 1.5rem);
+  line-height: 1.4;
+}
+
+.deck .deck-mdx h1 {
+  font-size: clamp(2.25rem, 4.5cqw, 4rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-align: left;
+  text-wrap: balance;
+  max-width: 22ch;
+}
+
+.deck .deck-mdx h2 {
+  font-size: clamp(1.5rem, 3cqw, 2.5rem);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.deck .deck-mdx p,
+.deck .deck-mdx li {
+  font-size: 1em;
+  color: var(--text-secondary);
+  text-align: left;
+  max-width: 60ch;
+}
+
+.deck .deck-mdx ul,
+.deck .deck-mdx ol {
+  padding-left: 1.25em;
+}
+
+.deck .deck-mdx a {
+  color: var(--accent);
+}
+
+/* An inlined diagram has a viewBox and no size; the slide gives it the width. */
+.deck .deck-mdx p:has(> .pnd-diagram) {
+  align-self: stretch;
+  max-width: none;
+}
+
+.deck-mdx .pnd-diagram {
+  width: 100%;
+  height: auto;
+  max-height: 55cqh;
+}
+
+/* A table copied from a docs page: rules between rows, nothing else. */
+.deck-mdx table {
+  align-self: stretch;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.deck-mdx th,
+.deck-mdx td {
+  padding: 0.45em 1.25em 0.45em 0;
+  border-bottom: 1px solid var(--chip-border);
+  vertical-align: top;
+}
+
+.deck-mdx th {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.deck-mdx .katex-display {
+  margin: 0.25em 0;
+  font-size: 1.4em;
+}
+
+.deck-reveal {
+  transition: opacity 250ms ease;
+}
+
+.deck-reveal[data-visible="false"] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* `SlideFrame`, the frame for a TSX slide. */
+.deck-frame {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 1.25rem;
+  padding: 3rem 4rem 4rem;
+}
+
+.deck .deck-frame__kicker {
+  text-align: left;
+  font-family: var(--pnd-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.deck .deck-frame__title {
+  margin: 0;
+  font-size: clamp(2rem, 4cqw, 3.5rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-align: left;
+  text-wrap: balance;
+  max-width: 24ch;
+}
+
+.deck-frame__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: safe center;
+  overflow: auto;
+}
+
+.deck .deck-frame__takeaway {
+  max-width: none;
+  border-top: 1px solid var(--chip-border);
+  padding-top: 0.75rem;
+  font-size: 1.1rem;
+  text-align: left;
+  transition: opacity 250ms ease;
+}
+
+.deck .deck-frame__takeaway[data-visible="false"] {
+  opacity: 0;
+}
+
+/* Chrome. */
+.deck-progress {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  width: 100%;
+  height: 3px;
+  border: 0;
+  appearance: none;
+  background: transparent;
+}
+
+.deck-progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.deck-progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.deck-progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
+.deck-counter {
+  position: fixed;
+  right: 2rem;
+  bottom: 1.5rem;
+  z-index: 100;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  opacity: 0.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-home-link {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.5rem;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.deck-home-link[data-near="true"] {
+  opacity: 0.4;
+}
+
+.deck-home-link:hover,
+.deck-home-link:focus-visible {
+  opacity: 1;
+}
+
+.deck-settings {
+  position: fixed;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 130;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.deck-settings[data-near="true"],
+.deck-settings:focus-within,
+.deck-settings:has(:popover-open) {
+  opacity: 1;
+}
+
+.deck-settings__trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--chip-border);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.deck-settings__content {
+  position: fixed;
+  inset: auto auto 3.5rem 1.25rem;
+  margin: 0;
+  gap: 0.6rem;
+  width: 15rem;
+  padding: 0.9rem;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--pnd-radius);
+  background: var(--chip-bg);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+/*
+ * The browser hides a closed popover with its own `display: none`, which
+ * any `display` here would override; so the panel lays out only while open.
+ */
+.deck-settings__content:popover-open {
+  display: grid;
+}
+
+.deck-settings__content select,
+.deck-settings__content button {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--pnd-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.deck-settings__content button {
+  cursor: pointer;
+}
+
+.deck-settings__switch {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
+.deck .deck-settings__content p {
+  font-size: 0.75rem;
+  text-align: left;
+  color: var(--text-secondary);
+}
+
+/* The deck list. */
+.deck-list {
+  max-width: 48rem;
+  margin: 4rem auto;
+  padding: 0 1.5rem;
+  font-family: var(--pnd-font-sans);
+  color: var(--sl-color-white);
+}
+
+.deck-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.deck-list li {
+  margin: 1.25rem 0;
+}
+
+.deck-list a {
+  font-size: 1.25rem;
+  color: var(--sl-color-text-accent);
+}
+
+.deck-list p {
+  margin-top: 0.25rem;
+  color: var(--sl-color-gray-3);
+}
+
+/* `LayerCard`. */
+.deck-layer {
+  display: grid;
+  gap: 0.9rem;
+  width: 100%;
+  max-width: 56rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--pnd-radius);
+  text-align: left;
+}
+
+.deck-layer header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.deck-layer__name {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.deck .deck-layer__role {
+  max-width: none;
+  font-size: 1.05rem;
+  text-align: left;
+}
+
+.deck-layer__facts {
+  display: flex;
+  gap: 2rem;
+}
+
+.deck-layer__facts dt,
+.deck-layer__label {
+  font-family: var(--pnd-font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.deck-layer__facts dd {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-layer__relations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.deck-layer__direction ul {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  list-style: none;
+}
+
+.deck-layer__direction li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.95rem;
+}
+
+.deck-layer__direction a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.deck-layer__weight,
+.deck-layer__none {
+  font-family: var(--pnd-font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}

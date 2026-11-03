@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { listFiles, syncDirectory } from "./shared/sync-directory";
 import { checkBuiltCss } from "./site/check-built-css";
+import { listDecks, slidesRoot } from "./slides";
 
 import type { BundleManifest } from "./bundle/outputs";
 import type { ArchinautConfig } from "./config";
@@ -84,7 +85,7 @@ export const syncSite = async (
     ["search.json", await readFile(join(bundleRoot, "search.json"), "utf8")],
     [
       "site.json",
-      `${JSON.stringify({ title: config.site.title, description: config.site.description, url: config.site.url })}\n`,
+      `${JSON.stringify({ title: config.site.title, description: config.site.description, url: config.site.url, slides: slidesRoot(config) })}\n`,
     ],
     ["logo.png", await readFile(join(config.root, config.site.logo))],
   ]);
@@ -149,6 +150,16 @@ export const buildSite = async (options: {
     manifest: JSON.parse(
       await readFile(join(options.bundleRoot, "manifest.json"), "utf8"),
     ) as BundleManifest,
+    // Every deck at its first slide, so a link to one lands on a complete
+    // page, its print layout for `--pdf`, and its presenter window.
+    extraPaths: [
+      "/slides",
+      ...listDecks(slidesRoot(options.config)).flatMap((deck) => [
+        `/slides/${deck.id}`,
+        `/slides/${deck.id}/print`,
+        `/slides/${deck.id}/presenter`,
+      ]),
+    ],
   });
   const failures = await checkBuiltCss(clientDirectory);
   if (failures.length > 0) {

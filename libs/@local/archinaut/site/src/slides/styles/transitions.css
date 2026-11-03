@@ -1,0 +1,71 @@
+/*
+ * The deck's slide transition. Every rule is scoped to a transition the
+ * deck started, which marks the root with its direction, so nothing here
+ * touches the docs pages.
+ */
+
+/* Only the slide animates; the rest of the page swaps in place. */
+:root[data-transition-direction]::view-transition-old(root),
+:root[data-transition-direction]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* The progress bar stays put. */
+.deck-progress {
+  view-transition-name: deck-progress;
+}
+
+:root[data-transition-direction]::view-transition-group(deck-progress),
+:root[data-transition-direction]::view-transition-new(deck-progress) {
+  animation: none !important;
+}
+
+:root[data-transition-direction]::view-transition-old(deck-progress) {
+  display: none;
+}
+
+/* A slide change: cross-fade with a short horizontal slide. */
+:root[data-transition-direction]::view-transition-old(slide) {
+  animation: 0.3s ease-out both deck-slide-out;
+}
+
+:root[data-transition-direction]::view-transition-new(slide) {
+  animation: 0.3s ease-out both deck-slide-in;
+}
+
+:root[data-transition-direction="backward"]::view-transition-old(slide) {
+  animation-name: deck-slide-out-reverse;
+}
+
+:root[data-transition-direction="backward"]::view-transition-new(slide) {
+  animation-name: deck-slide-in-reverse;
+}
+
+@keyframes deck-slide-out {
+  to {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+}
+
+@keyframes deck-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+}
+
+@keyframes deck-slide-out-reverse {
+  to {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+}
+
+@keyframes deck-slide-in-reverse {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+}

@@ -118,6 +118,7 @@ export default defineConfig({
    */
   contentDirectory: "apps/petrinaut-docs/content",
   outputDirectory: "apps/petrinaut-docs/bundle",
+  slidesDirectory: "apps/petrinaut-docs/slides",
   cacheDirectory: "node_modules/.cache/archinaut",
   sourceUrlPrefix: resolveSourceUrlPrefix(process.env),
   site: {

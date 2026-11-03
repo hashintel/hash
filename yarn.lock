@@ -9130,6 +9130,7 @@ __metadata:
     minisearch: "npm:7.2.0"
     oxc-transform-react: "npm:0.152.0"
     oxlint: "npm:1.86.0"
+    playwright: "npm:1.58.2"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
     rehype-slug: "npm:6.0.0"

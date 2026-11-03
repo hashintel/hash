@@ -28,6 +28,13 @@ export interface ArchinautConfig {
   cacheDirectory: string;
   /** Base URL for source links in generated pages, including the git ref. */
   sourceUrlPrefix: string;
+  /**
+   * Decks the site serves beside the docs, one folder per deck: relative to
+   * `root`, or absolute for a folder outside the repository. Absent when the
+   * instance has no slides; `--slides <dir>` sets or overrides it. Decks are
+   * not part of the bundle.
+   */
+  slidesDirectory?: string;
   site: SiteConfig;
 }
 

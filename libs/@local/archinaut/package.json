@@ -16,7 +16,7 @@
     "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit && tsc --noEmit -p site/tsconfig.json",
-    "test:unit": "vitest --run src"
+    "test:unit": "vitest --run src site/src"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.2.8",
@@ -33,6 +33,7 @@
     "katex": "0.19.1",
     "minisearch": "7.2.0",
     "oxc-transform-react": "0.152.0",
+    "playwright": "1.58.2",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "rehype-slug": "6.0.0",

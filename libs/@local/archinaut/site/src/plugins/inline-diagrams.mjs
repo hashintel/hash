@@ -29,61 +29,79 @@ const isDiagram = (src) =>
   typeof src === "string" && src.endsWith(".svg") && src.includes("diagrams/");
 
 /**
+ * `diagramsDirectory` answers `@diagrams/<name>.svg`, the form a slide uses
+ * since it sits outside the bundle and cannot reach a diagram relatively.
+ *
+ * @param {{ diagramsDirectory?: string }} [options]
  * @returns {(tree: import("hast").Root, file: import("vfile").VFile) => void}
  */
-export const rehypeInlineDiagrams = () => (tree, file) => {
-  if (typeof file.path !== "string") {
-    return;
-  }
-
-  const pageDirectory = dirname(file.path);
-
-  visit(tree, "element", (node, index, parent) => {
-    const src = node.properties?.["src"];
-
-    if (
-      node.tagName !== "img" ||
-      parent === undefined ||
-      index === undefined ||
-      !isDiagram(src)
-    ) {
+export const rehypeInlineDiagrams =
+  (options = {}) =>
+  (tree, file) => {
+    if (typeof file.path !== "string") {
       return;
     }
 
-    const path = resolve(pageDirectory, src);
+    const pageDirectory = dirname(file.path);
+    /** @param {string} src */
+    const pathOf = (src) =>
+      src.startsWith("@diagrams/") && options.diagramsDirectory !== undefined
+        ? resolve(options.diagramsDirectory, src.slice("@diagrams/".length))
+        : resolve(pageDirectory, src);
 
-    let markup;
+    visit(tree, "element", (node, index, parent) => {
+      const src = node.properties?.["src"];
 
-    try {
-      markup = readFileSync(path, "utf8");
-    } catch {
-      // A page referencing a diagram the bundle did not render is the
-      // generator's problem to report; leaving the `<img>` alone keeps the
-      // broken reference visible rather than swallowing it.
-      return;
-    }
+      if (
+        node.tagName !== "img" ||
+        parent === undefined ||
+        index === undefined ||
+        !isDiagram(src)
+      ) {
+        return;
+      }
 
-    const parsed = fromHtml(markup, { space: "svg", fragment: true });
-    const svg = parsed.children.find(
-      /** @returns {child is import("hast").Element} */
-      (child) => child.type === "element" && child.tagName === "svg",
-    );
+      const path = pathOf(src);
 
-    if (svg === undefined) {
-      return;
-    }
+      let markup;
 
-    const alt = node.properties?.["alt"];
+      try {
+        markup = readFileSync(path, "utf8");
+      } catch {
+        // A slide naming a diagram the bundle does not have is the slide's
+        // error, and nothing else reports it.
+        if (src.startsWith("@diagrams/")) {
+          throw new Error(
+            `${file.path}:${node.position?.start.line ?? "?"}: no rendered diagram ${src}`,
+          );
+        }
+        // A page referencing a diagram the bundle did not render is the
+        // generator's problem to report; leaving the `<img>` alone keeps the
+        // broken reference visible rather than swallowing it.
+        return;
+      }
 
-    // The alt text was the image's accessible name, so it has to become the
-    // inline element's; without a role an <svg> is not exposed as an image.
-    svg.properties = {
-      ...svg.properties,
-      class: "pnd-diagram",
-      role: "img",
-      ...(typeof alt === "string" && alt !== "" ? { "aria-label": alt } : {}),
-    };
+      const parsed = fromHtml(markup, { space: "svg", fragment: true });
+      const svg = parsed.children.find(
+        /** @returns {child is import("hast").Element} */
+        (child) => child.type === "element" && child.tagName === "svg",
+      );
 
-    parent.children[index] = svg;
-  });
-};
+      if (svg === undefined) {
+        return;
+      }
+
+      const alt = node.properties?.["alt"];
+
+      // The alt text was the image's accessible name, so it has to become the
+      // inline element's; without a role an <svg> is not exposed as an image.
+      svg.properties = {
+        ...svg.properties,
+        class: "pnd-diagram",
+        role: "img",
+        ...(typeof alt === "string" && alt !== "" ? { "aria-label": alt } : {}),
+      };
+
+      parent.children[index] = svg;
+    });
+  };
