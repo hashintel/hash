@@ -2,7 +2,13 @@ mod secrets;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod postgres;
+
+use core::num::NonZero;
+
 pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue};
+use crate::ByteSize;
 
 /// Identifies the service involved in resolving a User Secret.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
@@ -56,4 +62,12 @@ pub enum SourceError {
     Response,
     #[display("REST pagination is invalid or repeats a page")]
     Pagination,
+}
+
+/// Resource limits for the isolated database used by network connectors.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct CaptureLimits {
+    pub memory_limit: Option<ByteSize>,
+    pub temp_directory_limit: Option<ByteSize>,
+    pub threads: Option<NonZero<usize>>,
 }
