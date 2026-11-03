@@ -15,7 +15,7 @@ export const Schema: typeof Defs.Identifier = Defs.Identifier;
 /**
  * Source text interpreted as a path, type or argument shorthand.
  *
- * The schema accepts any string, including the empty string. HashQL parses it according to its position in the expression. In an expression position, `"user"` is a path, `"user.name"` and `"items[0]"` access a field and an element, and `"_"` is a placeholder. In a call argument, `":user"` is shorthand for the labeled argument `{":user": "user"}`. A type position reads the text as type syntax. For a single identifier object, see `JExpr.Ident`.
+ * The schema accepts any string, including the empty string. HashQL parses it according to its position in the expression. In an expression position, `"user"` is a path, `"user.name"` and `"items[0]"` access a field and an element, and `"_"` is a placeholder. In a call argument, `":user"` is shorthand for the labeled argument `{":user": "user"}`. A type position reads the text as type syntax. For a single identifier object, see {@link JExpr.Ident}.
  *
  * @category Models
  * @since 0.1.0

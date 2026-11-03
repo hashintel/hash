@@ -71,7 +71,7 @@ export interface Segment extends Equal.Equal, Pipeable.Pipeable {
 }
 
 /**
- * A nonempty sequence of segments. `rooted` records a leading `::`.
+ * A nonempty sequence of segments. {@link Path.rooted | `rooted`} records a leading `::`.
  *
  * Equality and hashing use rootedness and ordered segments, including names, argument kinds and nested type syntax. Equality compares structure rather than compiled text, and it does not resolve names. A single-member union compiles like its member but compares unequal to it, so `Equal.equals(path, parse(compile(path)))` can be false.
  *

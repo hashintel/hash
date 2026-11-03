@@ -62,7 +62,7 @@ export const Reason = Schema.TaggedUnion({
 /**
  * Failure to construct a program from declarations or expressions.
  *
- * Inspect `reason._tag` for handling and `message` for display. A builder returns this error in a Result, either directly or through later syntax extraction. Error constructors create values without throwing them.
+ * Inspect `reason._tag` for handling and {@link message} for display. A builder returns this error in a Result, either directly or through later syntax extraction. Error constructors create values without throwing them.
  *
  * @example <caption>Handle an invalid generic arity.</caption>
  * ```ts

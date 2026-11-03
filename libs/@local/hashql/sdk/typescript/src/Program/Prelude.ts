@@ -3,7 +3,7 @@
  *
  * Export types derive from the bound declarations, without a second list of semantic annotations. Generated declarations can supply the same module, type and value tables. This default includes primitive types, List, Dict, UUID identities, equality and addition. It is not a complete standard-library binding.
  *
- * This module also re-exports the semantic types of the declarations, such as {@link Semantic.Uuid | Prelude.Uuid} and the {@link Semantic.Arithmetic | Prelude.Arithmetic} signature.
+ * This module also re-exports the semantic types of the declarations, such as {@link Semantic.Uuid | `Prelude.Uuid`} and the {@link Semantic.Arithmetic | `Prelude.Arithmetic`} signature.
  *
  * @since 0.1.0
  * @module
@@ -138,9 +138,9 @@ export interface Builtin extends Scope.Scope<{
  * - `values` holds the constructors `Uuid` and `EntityUuid` at the same paths as their types, `eq` at `::core::cmp::eq` and `add` at `::core::math::add`.
  * - `modules` holds `uuid` at `::core::uuid`, `entity` at `::graph::types::knowledge::entity`, `cmp` at `::core::cmp` and `math` at `::core::math`. The `::kernel::type` module that declares the primitive types is not among them.
  *
- * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as {@link Semantic.Arithmetic | Prelude.Arithmetic} describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
+ * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as {@link Semantic.Arithmetic | `Prelude.Arithmetic`} describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
  *
- * {@link @local/hashql#Program.Namespace.flatten | Namespace.flatten} joins the three tables of `builtin` into one object. In it, `Uuid` is both the type and its constructor. The module `cmp` exposes `eq` directly.
+ * {@link @local/hashql#Program.Namespace.flatten | `Namespace.flatten`} joins the three tables of `builtin` into one object. In it, `Uuid` is both the type and its constructor. The module `cmp` exposes `eq` directly.
  *
  * @example <caption>Use built-in types and functions outside a program callback.</caption>
  * ```ts

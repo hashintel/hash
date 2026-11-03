@@ -263,7 +263,7 @@ export const toNode = (
 /**
  * Extracts J-Expr syntax without evaluating the represented value.
  *
- * A failed handle returns its stored construction error. Host literals undergo the same syntax validation as {@link literal}. Serialize the resulting structured syntax with `JExpr.compile`.
+ * A failed handle returns its stored construction error. Host literals undergo the same syntax validation as {@link literal}. Serialize the resulting structured syntax with {@link JExpr.compile}.
  *
  * @category Conversions
  * @since 0.1.0

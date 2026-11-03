@@ -37,7 +37,7 @@ export type NominalCall<N extends string, T extends Type.Any> = <
 /**
  * A Draft nominal constructor: an expression of function type that also accepts structural shorthand.
  *
- * Rebinding it, as an import or module export does, keeps both the call signature and the nominal identity. `Expression.adaptCallable` constructs it. It is an interface rather than that function's `Expression.Expression.Adapted` result, because TypeScript defers an interface's recursive rebinding until a comparison reaches it. That keeps comparisons of `newtype` signatures within TypeScript's instantiation depth.
+ * Rebinding it, as an import or module export does, keeps both the call signature and the nominal identity. {@link Expression.adaptCallable} constructs it. It is an interface rather than that function's {@link Expression.Expression.Adapted} result, because TypeScript defers an interface's recursive rebinding until a comparison reaches it. That keeps comparisons of `newtype` signatures within TypeScript's instantiation depth.
  *
  * @category Nominal Types
  * @since 0.1.0
@@ -113,9 +113,9 @@ export type Optional<
 >;
 
 /**
- * A graph query under construction: the graph expression with `filter` and `collect`.
+ * A graph query under construction: the graph expression with {@link filter} and {@link collect}.
  *
- * It is an expression of the graph type. Binding it with `let` gives a reference without these methods, and {@link @local/hashql#Program.Query.filter | Query.filter} and {@link @local/hashql#Program.Query.collect | Query.collect} still take that reference.
+ * It is an expression of the graph type. Binding it with `let` gives a reference without these methods, and {@link @local/hashql#Program.Query.filter | `Query.filter`} and {@link @local/hashql#Program.Query.collect | `Query.collect`} still take that reference.
  *
  * @category Queries
  * @since 0.1.0
@@ -128,7 +128,7 @@ export interface Query<
   /**
    * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter. Declarations made through a captured outer `$` belong to the outer callback instead.
    *
-   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql#Program.Query.filter | Query.filter}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
+   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql#Program.Query.filter | `Query.filter`}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
    */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
@@ -138,12 +138,12 @@ export interface Query<
     ) => P,
   ) => Query<S, V, Inputs.Merge<I, Expression.Value.Inputs<P>>>;
 
-  /** Ends the query as a list of its vertices. This is {@link @local/hashql#Program.Query.collect | Query.collect}. */
+  /** Ends the query as a list of its vertices. This is {@link @local/hashql#Program.Query.collect | `Query.collect`}. */
   readonly collect: () => Expression.Expression<Type.List<V>, I>;
 }
 
 /**
- * `$.query`: starts a graph query from a graph expression, or from every entity with `entities`.
+ * {@link Context.query | `$.query`}: starts a graph query from a graph expression, or from every entity with {@link entities}.
  *
  * @category Queries
  * @since 0.1.0
@@ -153,7 +153,7 @@ export interface Queries<S extends Scope.Scope.Any> {
     graph: G & Graph.Check<G>,
   ): Query<S, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
 
-  /** Starts a query from every entity at the temporal axes `axis`. This is {@link @local/hashql#Program.Query.entities | Query.entities}. */
+  /** Starts a query from every entity at the temporal axes `axis`. This is {@link @local/hashql#Program.Query.entities | `Query.entities`}. */
   readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
     axis: A,
   ) => Query<S, Entity, Expression.Value.Inputs<A>>;
@@ -162,7 +162,7 @@ export interface Queries<S extends Scope.Scope.Any> {
 /**
  * The unrestricted Draft construction context for the scope `S`.
  *
- * Its operations construct syntax and collect declarations, accepting values regardless of their input requirements. A program callback receives `Body.Context` instead, which restricts them to the program's input schema. The predicate constructors `eq`, `ne`, `and`, `or`, `not`, `isTrue`, `isFalse` and `isNone` are the standalone `Operators` functions.
+ * Its operations construct syntax and collect declarations, accepting values regardless of their input requirements. A program callback receives {@link @local/hashql/Draft#Body.Context | `Body.Context`} instead, which restricts them to the program's input schema. The predicate constructors `eq`, `ne`, `and`, `or`, `not`, `isTrue`, `isFalse` and `isNone` are the standalone {@link Operators} functions.
  *
  * @category Models
  * @since 0.1.0
@@ -182,7 +182,7 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Imports a module's exports into the declaring callback and returns them as handles.
    *
-   * Omitting `selection` imports every export. Given a name array, `import` selects those exports. Given an alias record, it imports each listed export under a new name, where `"_"` keeps the export's own name. The returned record joins same-named exports as `prelude()` does and refers to them by their local names. It leaves `prelude()` and `modules()` unchanged.
+   * Omitting `selection` imports every export. Given a name array, `import` selects those exports. Given an alias record, it imports each listed export under a new name, where `"_"` keeps the export's own name. The returned record joins same-named exports as {@link prelude | `prelude()`} does and refers to them by their local names. It leaves `prelude()` and {@link modules | `modules()`} unchanged.
    *
    * Unlike the other declarations, a failed import interrupts the callback, because it cannot supply the handles it promises. An invalid alias stops the callback with an `InvalidImportName` failure. The failure stays with the callback's result even if the callback catches the interruption: the program for a program callback, and otherwise the conditional or query that contains the callback.
    */
@@ -199,25 +199,25 @@ export interface Context<S extends Scope.Scope.Any>
     ): Namespace.Flatten<Import.Bindings.Bindings<M, I>>;
   };
 
-  /** Lifts a host primitive to an expression whose type follows the host type. This is `Expression.literal`. */
+  /** Lifts a host primitive to an expression whose type follows the host type. This is {@link Expression.literal}. */
   readonly literal: typeof Expression.literal;
 
-  /** Constructs an Integer literal, failing construction for a fractional or non-finite number. This is `Expression.integer`. */
+  /** Constructs an Integer literal, failing construction for a fractional or non-finite number. This is {@link Expression.integer}. */
   readonly integer: typeof Expression.integer;
 
-  /** Constructs a Number literal. This is `Expression.number`. */
+  /** Constructs a Number literal. This is {@link Expression.number}. */
   readonly number: typeof Expression.number;
 
-  /** Changes an expression's semantic type assumption without validating that semantic type. This is `Expression.assume`. */
+  /** Changes an expression's semantic type assumption without validating that semantic type. This is {@link Expression.assume}. */
   readonly assume: typeof Expression.assume;
 
-  /** References a program input, optionally with a default. This is `Expression.input`. */
+  /** References a program input, optionally with a default. This is {@link Expression.input}. */
   readonly input: typeof Expression.input;
 
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
-   * Pass `type`, a type expression or structural shorthand as `$.type` takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with `assume`, and the HashQL compiler does.
+   * Pass `type`, a type expression or structural shorthand as {@link "type" | `$.type`} takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with {@link assume}, and the HashQL compiler does.
    */
   readonly let: {
     <const E extends Expression.Value.Any>(

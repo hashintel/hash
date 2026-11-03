@@ -1,7 +1,7 @@
 /**
  * Builds HashQL type syntax for J-Expr queries.
  *
- * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. The syntax has two J-Expr spellings. {@link compile} writes annotation text for a `#type` field, and {@link toExpression} writes the constructor syntax that `as`, `input`, `fn`, `type` and `newtype` emit.
+ * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. The syntax has two J-Expr spellings. {@link compile} writes annotation text for a `#type` field, and {@link toExpression} writes the constructor syntax that {@link as}, {@link input}, {@link fn}, {@link "type"} and {@link newtype} emit.
  *
  * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`, and so does an invalid generic argument passed to {@link reference}. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
  *
@@ -42,9 +42,9 @@ export * as Union from "./Union.js";
 export const Schema: typeof Defs.Type = Defs.Type;
 
 /**
- * Tagged HashQL type syntax, as accepted by `JExpr.input`, `JExpr.as`, `JExpr.typed` and the other builders that take a type.
+ * Tagged HashQL type syntax, as accepted by {@link JExpr.input}, {@link JExpr.as}, {@link JExpr.typed} and the other builders that take a type.
  *
- * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics. `Struct` lists named members and `Tuple` positional ones. `Union` and `Intersection` combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
+ * The `_tag` discriminant selects the form. {@link Reference} names a type by path with optional generics. {@link Struct} lists named members and {@link @local/hashql#JExpr.Type.Tuple | `Tuple`} positional ones. {@link Union} and {@link Intersection} combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
  *
  * @category Models
  * @since 0.1.0
@@ -181,7 +181,7 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
 /**
  * Creates a type with named fields.
  *
- * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (<code>\`+\`</code>) spelling. Spelling one {@link Ident.name | name} two ways, such as `+` and <code>\`+\`</code>, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
+ * Returns `None` if any field name is not a valid identifier according to {@link Ident.decodeResult}. Symbol names accept bare (`+`) or backticked (<code>\`+\`</code>) spelling. Spelling one {@link Ident.name | name} two ways, such as `+` and <code>\`+\`</code>, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
  *
  * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
@@ -295,7 +295,7 @@ const segmentArgument = (
  *
  * `path` accepts the SDK syntax documented by {@link Path.parse}, including per-segment generic lists. Returns `None` if parsing fails or a generic argument has an invalid name or type. Additional generic arguments append to the last segment's existing arguments. This checks supported path syntax, not full language validity. The HashQL compiler normalizes and resolves names and checks types.
  *
- * A plain {@link Type} supplies a positional argument. A `GenericBound` with a bound supplies a named constraint. Without a bound it supplies a reference to its name. Generic order follows the argument list.
+ * A plain {@link Type} supplies a positional argument. A {@link GenericBound} with a bound supplies a named constraint. Without a bound it supplies a reference to its name. Generic order follows the argument list.
  *
  * @example <caption>Refer to generic, bounded and rooted types.</caption>
  * ```ts

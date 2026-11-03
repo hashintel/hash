@@ -4,7 +4,7 @@ import * as Defs from "./schema.js";
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
 /**
- * Schema for `Struct` values.
+ * Schema for {@link Struct} values.
  *
  * @category Schemas
  * @since 0.1.0
@@ -22,7 +22,7 @@ export const Schema: typeof Defs.Struct = Defs.Struct;
 export interface Struct extends Defs.StructType {}
 
 export declare namespace Struct {
-  /** The schema-encoded representation of `Struct`. */
+  /** The schema-encoded representation of {@link Struct}. */
   export interface Encoded extends Defs.StructEncoded {}
 }
 

@@ -119,7 +119,7 @@ export const ExpectedCharacterClass: Data.TaggedEnum.Constructor<SyntaxReason>["
 /**
  * Failure reasons at a UTF-16 offset from the beginning of the supplied input.
  *
- * The expected set follows {@link HashSet.HashSet | HashSet} equality. Equal data reasons deduplicate, while different payloads remain distinct. {@link ParserError.merge | merge} selects the furthest offset before combining sets.
+ * The expected set follows {@link HashSet.HashSet | `HashSet`} equality. Equal data reasons deduplicate, while different payloads remain distinct. {@link ParserError.merge | `merge`} selects the furthest offset before combining sets.
  *
  * @example <caption>Inspect a typed syntax failure.</caption>
  * ```ts

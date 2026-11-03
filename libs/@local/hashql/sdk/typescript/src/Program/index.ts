@@ -55,11 +55,11 @@ export const program = <T extends Type.Any, Inputs>(
 /**
  * Serializes a program to J-Expr JSON text, or returns the {@link ProgramError.Construction} its root stored or a stale handle causes.
  *
- * This is syntax serialization, not HashQL compiler execution. It does not check types, check the program against a graph schema or execute a query. The text is what `JExpr.compile` writes, keeping each numeric literal's source spelling.
+ * This is syntax serialization, not HashQL compiler execution. It does not check types, check the program against a graph schema or execute a query. The text is what {@link JExpr.compile} writes, keeping each numeric literal's source spelling.
  *
  * HashQL resolves a bare name to the innermost binding of that name, so a handle used outside the binding it came from would read another binding of the same name, or none. `compile` checks every handle a builder bound against the root's scopes and returns the `StaleReference` reason for one that does not resolve to its own binding. It checks no other name.
  *
- * The builders validate syntax as they store it, so `compile` does not decode the tree again. It checks each numeric literal's spelling as it writes, because {@link Expression.fromNode} and {@link Expression.fromResult} take a tree on trust. Literal text that `JExpr.make` would reject, such as `NaN`, and an object with no constructor key return the `InvalidExpression` reason.
+ * The builders validate syntax as they store it, so `compile` does not decode the tree again. It checks each numeric literal's spelling as it writes, because {@link Expression.fromNode} and {@link Expression.fromResult} take a tree on trust. Literal text that {@link JExpr.make} would reject, such as `NaN`, and an object with no constructor key return the `InvalidExpression` reason.
  *
  * @example <caption>Serialize an expression for a HashQL consumer.</caption>
  * ```ts

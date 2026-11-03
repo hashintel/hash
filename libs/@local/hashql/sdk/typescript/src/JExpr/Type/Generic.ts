@@ -1,7 +1,7 @@
 /**
  * Generic entries that a reference attaches to its last path segment: a positional argument or a named bound.
  *
- * {@link argument} and {@link bound} build an entry. {@link make} checks a decoded `GenericArgument` or `GenericBound` object rather than source text. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ * {@link argument} and {@link bound} build an entry. {@link make} checks a decoded {@link GenericArgument} or {@link GenericBound} object rather than source text. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
  *
  * @since 0.1.0
  * @module
@@ -78,7 +78,7 @@ export const argument = (type: Defs.Type): Defs.GenericArgumentType => ({
 /**
  * Creates a named generic constraint: the `T: Integer` in `Foo<T: Integer>`.
  *
- * Returns `None` if `name` is not a valid identifier according to `Ident.decodeResult`. Without a bound, it compiles to the bare name, which HashQL parses as a generic argument. A declaration name such as `Pair<T>` reads that bare name as an unbounded parameter.
+ * Returns `None` if `name` is not a valid identifier according to {@link Ident.decodeResult}. Without a bound, it compiles to the bare name, which HashQL parses as a generic argument. A declaration name such as `Pair<T>` reads that bare name as an unbounded parameter.
  *
  * @category Constructors
  * @since 0.1.0

@@ -56,7 +56,7 @@ import type { Reason } from "./parser-error.js";
 
 /** A reusable parser and its candidate-source schema. */
 interface Definition<T, R extends Reason> {
-  /** Runs immediately. Expected failures return as a failed {@link Result.Result | Result}. */
+  /** Runs immediately. Expected failures return as a failed {@link Result.Result | `Result`}. */
   readonly parse: (input: string) => Parser.Return<T, R>;
   /** Retains recursive structure for Effect's size-controlled source generation. */
   readonly schema: () => Schema.Codec<string>;
@@ -65,7 +65,7 @@ interface Definition<T, R extends Reason> {
 /**
  * A parser builder that preserves output and failure types through composition.
  *
- * {@link Parser.source | source} proposes candidates without checking complete consumption. {@link Parser.arbitrary | arbitrary} validates candidates and derives their outputs. A successful prefix parse can leave input even when its source candidate cannot produce a complete sample.
+ * {@link Parser.source | `source`} proposes candidates without checking complete consumption. {@link Parser.arbitrary | `arbitrary`} validates candidates and derives their outputs. A successful prefix parse can leave input even when its source candidate cannot produce a complete sample.
  */
 export interface Parser<T, R extends Reason> extends Definition<T, R> {
   /** Proposes source text for the complete-consumption check in {@link Parser.arbitrary}. */

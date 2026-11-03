@@ -5,7 +5,7 @@
  *
  * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties into tables without a prototype and freezes the copies, leaving the caller's records unchanged. A name a scope lacks therefore reads as `undefined`, even a name such as `toString`.
  *
- * A scope holds the names available during construction. {@link @local/hashql#Program.Namespace.flatten | Namespace.flatten} joins the tables into one object. A name in it can hold a module, a type and a value at once.
+ * A scope holds the names available during construction. {@link @local/hashql#Program.Namespace.flatten | `Namespace.flatten`} joins the tables into one object. A name in it can hold a module, a type and a value at once.
  *
  * @since 0.1.0
  * @module
@@ -56,7 +56,7 @@ export const universeKeys = <U extends Universe<Entry>>(
 /**
  * Tables that supply a scope, such as a prelude.
  *
- * Each table is optional. A module record, the record {@link Module.root} returns and {@link @local/hashql#Program.Prelude.builtin | Prelude.builtin} all fit.
+ * Each table is optional. A module record, the record {@link Module.root} returns and {@link @local/hashql#Program.Prelude.builtin | `Prelude.builtin`} all fit.
  *
  * @category Models
  * @since 0.1.0
