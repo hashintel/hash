@@ -1,6 +1,6 @@
-use core::{pin::Pin, time::Duration};
+use core::{error::Error as _, pin::Pin, time::Duration};
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
 use hash_graph_store::{
     entity::{EntityQueryPath, EntityQuerySorting, QueryEntitiesParams},
@@ -12,7 +12,7 @@ use hash_middleware::authentication::{
     request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
 };
 use reqwest::{Client, Url, header::AUTHORIZATION};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Map, Value};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use type_system::{
@@ -166,6 +166,35 @@ fn secret_query(
     }
 }
 
+async fn secret_response<T: DeserializeOwned>(
+    response: reqwest::Response,
+    service: &str,
+) -> Result<T, Report<SourceError>> {
+    let status = response.status();
+    if status != reqwest::StatusCode::OK {
+        return Err(Report::new(SourceError::Secret).attach(format!(
+            "{service} secret request returned HTTP {status}; expected 200 OK"
+        )));
+    }
+    response.json().await.map_err(|error| {
+        if let Some(json_error) = error
+            .source()
+            .and_then(|source| source.downcast_ref::<serde_json::Error>())
+            && json_error.is_data()
+        {
+            Report::new(SourceError::Secret).attach(format!(
+                "{service} secret response does not match the expected schema at line {} column {}",
+                json_error.line(),
+                json_error.column(),
+            ))
+        } else {
+            Report::new(error.without_url())
+                .change_context(SourceError::Secret)
+                .attach(format!("could not decode {service} secret response"))
+        }
+    })
+}
+
 impl SecretStore for GraphVaultSecretStore {
     async fn read(
         &self,
@@ -197,14 +226,10 @@ impl SecretStore for GraphVaultSecretStore {
             .json(&query)
             .send()
             .await
-            .map_err(|_error| Report::new(SourceError::Secret))?;
-        if response.status() != reqwest::StatusCode::OK {
-            return Err(Report::new(SourceError::Secret));
-        }
-        let body: SecretQueryResponse = response
-            .json()
-            .await
-            .map_err(|_error| Report::new(SourceError::Secret))?;
+            .map_err(reqwest::Error::without_url)
+            .change_context(SourceError::Secret)
+            .attach("Graph secret request failed")?;
+        let body: SecretQueryResponse = secret_response(response, "Graph").await?;
         let [entity] = body.entities.as_slice() else {
             return Err(Report::new(SourceError::Secret));
         };
@@ -222,14 +247,10 @@ impl SecretStore for GraphVaultSecretStore {
             .header("x-vault-token", self.config.vault_token.expose())
             .send()
             .await
-            .map_err(|_error| Report::new(SourceError::Secret))?;
-        if response.status() != reqwest::StatusCode::OK {
-            return Err(Report::new(SourceError::Secret));
-        }
-        let body: VaultResponse<Map<String, Value>> = response
-            .json()
-            .await
-            .map_err(|_error| Report::new(SourceError::Secret))?;
+            .map_err(reqwest::Error::without_url)
+            .change_context(SourceError::Secret)
+            .attach("Vault secret request failed")?;
+        let body: VaultResponse<Map<String, Value>> = secret_response(response, "Vault").await?;
         let data = body.data.data;
         let bytes = match data.get("value") {
             Some(Value::String(value)) if data.len() == 1 => value.as_bytes().to_vec(),
@@ -317,7 +338,9 @@ mod tests {
         request::ACTOR_ID_HEADER, service_secret::service_credential,
     };
     use reqwest::{Client, Url};
+    use rstest::rstest;
     use serde::{Deserialize, Serialize};
+    use serde_json::{Map, Value};
     use type_system::{
         knowledge::{
             Entity, Property, PropertyValue,
@@ -340,7 +363,7 @@ mod tests {
 
     use super::{
         EXPIRED_AT, GraphVaultConfig, GraphVaultSecretStore, SecretQueryResponse, SecretStore as _,
-        USER_SECRET_TYPE, VAULT_PATH, VaultResponse, VaultSecret, validate_entity,
+        USER_SECRET_TYPE, VAULT_PATH, VaultResponse, VaultSecret, secret_response, validate_entity,
     };
     use crate::sources::{SourceError, tests::server};
 
@@ -562,6 +585,112 @@ mod tests {
         assert!(
             !format!("{result:?}").contains("stored-token"),
             "should redact secret diagnostics"
+        );
+    }
+
+    #[rstest]
+    #[case("Graph", StatusCode::FORBIDDEN)]
+    #[case("Vault", StatusCode::SERVICE_UNAVAILABLE)]
+    #[case("Graph", StatusCode::CREATED)]
+    #[tokio::test]
+    async fn response_http_status(#[case] service: &str, #[case] status: StatusCode) {
+        let server = server(
+            Router::new().fallback(move || async move { (status, "sensitive-response-body") }),
+        )
+        .await;
+        let response = Client::builder()
+            .no_proxy()
+            .build()
+            .expect("should build the client")
+            .get(server.url())
+            .send()
+            .await
+            .expect("should receive the response");
+        let error = secret_response::<SecretQueryResponse>(response, service)
+            .await
+            .err()
+            .expect("should reject an unexpected HTTP status");
+        let diagnostic = format!("{error:?}");
+        assert!(diagnostic.contains(service), "should identify the service");
+        assert!(
+            diagnostic.contains(&status.to_string()),
+            "should include the HTTP status"
+        );
+        assert!(
+            !diagnostic.contains("sensitive-response-body"),
+            "should omit the response body"
+        );
+        assert!(
+            matches!(error.current_context(), SourceError::Secret),
+            "should preserve the secret error context"
+        );
+    }
+
+    #[rstest]
+    #[case("Graph")]
+    #[case("Vault")]
+    #[tokio::test]
+    async fn response_schema_error(#[case] service: &str) {
+        let server = server(Router::new().fallback(|| async {
+            Json(VaultResponse {
+                data: VaultSecret {
+                    data: "sensitive-secret-value",
+                },
+            })
+        }))
+        .await;
+        let response = Client::builder()
+            .no_proxy()
+            .build()
+            .expect("should build the client")
+            .get(server.url())
+            .send()
+            .await
+            .expect("should receive the response");
+        let error = secret_response::<VaultResponse<Map<String, Value>>>(response, service)
+            .await
+            .err()
+            .expect("should reject a response with the wrong schema");
+        let diagnostic = format!("{error:?}");
+        assert!(diagnostic.contains(service), "should identify the service");
+        assert!(
+            diagnostic.contains("expected schema at line 1 column"),
+            "should identify a schema mismatch and its location"
+        );
+        assert!(
+            !diagnostic.contains("sensitive-secret-value"),
+            "should redact values echoed by serde errors"
+        );
+    }
+
+    #[tokio::test]
+    async fn response_incomplete_json() {
+        let server = server(Router::new().fallback(|| async { "{" })).await;
+        let response = Client::builder()
+            .no_proxy()
+            .build()
+            .expect("should build the client")
+            .get(server.url())
+            .send()
+            .await
+            .expect("should receive the response");
+        let error = secret_response::<SecretQueryResponse>(response, "Graph")
+            .await
+            .err()
+            .expect("should reject incomplete JSON");
+        assert!(
+            error.contains::<reqwest::Error>(),
+            "should retain the underlying response error"
+        );
+        let diagnostic = format!("{error:?}");
+        assert!(
+            diagnostic.contains("EOF"),
+            "should retain the JSON parser error"
+        );
+        assert!(diagnostic.contains("Graph"), "should identify the service");
+        assert!(
+            !diagnostic.contains(server.url()),
+            "should omit the request URL"
         );
     }
 
