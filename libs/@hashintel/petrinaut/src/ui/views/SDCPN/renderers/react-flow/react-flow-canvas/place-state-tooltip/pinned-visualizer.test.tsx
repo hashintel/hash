@@ -32,27 +32,28 @@ vi.mock("@hashintel/ds-components", () => ({
   ),
 }));
 
-const panel = () => (
+const panel = (onUnpin = () => {}) => (
   <PinnedVisualizer
     nodeId="place"
     name="Space"
     initialSize={{ width: 320, height: 240 }}
-    onUnpin={() => {}}
+    onUnpin={onUnpin}
   >
     <svg viewBox="0 0 320 240" />
   </PinnedVisualizer>
 );
 
 const pointerEvent = (
-  handle: HTMLElement,
+  handle: Element,
   type: string,
-  { clientX = 0, clientY = 0, pointerId = 1, button = 0 } = {},
+  { clientX = 0, clientY = 0, pointerId = 1, button = 0, altKey = false } = {},
 ) => {
   const event = new MouseEvent(type, {
     bubbles: true,
     button,
     clientX,
     clientY,
+    altKey,
   });
   Object.defineProperty(event, "pointerId", { value: pointerId });
   fireEvent(handle, event);
@@ -160,6 +161,63 @@ it("preserves the aspect ratio when dragging the shared corner resizer at reduce
   });
   expect(parseFloat(visualizer.style.width)).toBe(400);
   expect(parseFloat(visualizer.style.height)).toBe(300);
+});
+
+it("drags from the picture without turning the pin into a drag handle", () => {
+  const unpin = vi.fn();
+  render(panel(unpin));
+  const visualizer = screen.getByRole("group", {
+    name: "Space state visualizer",
+  });
+  const picture = visualizer.querySelector("svg[viewBox='0 0 320 240']")!;
+  mockPointerCapture(visualizer);
+  const initialLeft = parseFloat(visualizer.style.left);
+
+  pointerEvent(picture, "pointerdown");
+  pointerEvent(visualizer, "pointermove", { clientX: 40 });
+  pointerEvent(visualizer, "pointerup");
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
+
+  const pin = screen.getByRole("button", { name: "Unpin" });
+  pointerEvent(pin, "pointerdown");
+  pointerEvent(visualizer, "pointermove", { clientX: 80 });
+  pointerEvent(pin, "pointerup");
+  fireEvent.click(pin);
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
+  expect(unpin).toHaveBeenCalledOnce();
+});
+
+it("switches to resizing from the center while Alt is held", () => {
+  render(panel());
+  const visualizer = screen.getByRole("group", {
+    name: "Space state visualizer",
+  });
+  const handle = screen.getByRole("button", {
+    name: "Resize Space visualizer from bottom-right",
+  });
+  mockPointerCapture(handle);
+  const initialLeft = parseFloat(visualizer.style.left);
+  const initialTop = parseFloat(visualizer.style.top);
+
+  pointerEvent(handle, "pointerdown");
+  pointerEvent(handle, "pointermove", { clientX: 40 });
+  expect(parseFloat(visualizer.style.width)).toBe(360);
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft);
+
+  pointerEvent(handle, "pointermove", { clientX: 40, altKey: true });
+  expect(parseFloat(visualizer.style.width)).toBe(400);
+  expect(parseFloat(visualizer.style.height)).toBe(300);
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft - 40);
+  expect(parseFloat(visualizer.style.top)).toBe(initialTop - 30);
+
+  pointerEvent(handle, "pointermove", { clientX: 40 });
+  pointerEvent(handle, "pointerup");
+  expect(parseFloat(visualizer.style.width)).toBe(360);
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft);
+
+  fireEvent.keyDown(handle, { key: "ArrowRight", altKey: true });
+  expect(parseFloat(visualizer.style.width)).toBeCloseTo(370);
+  expect(parseFloat(visualizer.style.left)).toBeCloseTo(initialLeft - 5);
 });
 
 it.each(["pointerup", "pointercancel", "lostpointercapture"])(

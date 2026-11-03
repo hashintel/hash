@@ -8,7 +8,7 @@ import {
 import type { VisibleSceneRect } from "../../../../../canvas-viewport";
 import type { VisualizerAction, VisualizerLayout } from "./visualizer-layout";
 import type { Rect, Size } from "@hashintel/petrinaut-core";
-import type { ComponentProps, PointerEvent } from "react";
+import type { HTMLAttributes, PointerEvent } from "react";
 
 export const useVisualizerLayout = (
   node: Rect,
@@ -25,7 +25,8 @@ export const useVisualizerLayout = (
     layout: VisualizerLayout;
   } | null>(null);
 
-  const endGesture = (event: PointerEvent<HTMLButtonElement>) => {
+  const endGesture = (event: PointerEvent<HTMLElement>) => {
+    event.stopPropagation();
     if (gesture.current?.pointerId !== event.pointerId) return;
     gesture.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -35,9 +36,13 @@ export const useVisualizerLayout = (
 
   const getHandleProps = (
     action: VisualizerAction,
-  ): ComponentProps<"button"> => ({
+  ): HTMLAttributes<HTMLElement> => ({
     onPointerDown: (event) => {
+      event.stopPropagation();
       if (event.button !== 0 || gesture.current) return;
+      const button =
+        event.target instanceof Element ? event.target.closest("button") : null;
+      if (button && button !== event.currentTarget) return;
       event.preventDefault();
       event.currentTarget.focus();
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -49,6 +54,7 @@ export const useVisualizerLayout = (
       };
     },
     onPointerMove: (event) => {
+      event.stopPropagation();
       const current = gesture.current;
       if (!current || current.pointerId !== event.pointerId) return;
       setLayout(
@@ -60,6 +66,7 @@ export const useVisualizerLayout = (
             y: event.clientY - current.y,
           },
           viewport.zoom,
+          event.altKey,
         ),
       );
     },
@@ -67,6 +74,7 @@ export const useVisualizerLayout = (
     onPointerCancel: endGesture,
     onLostPointerCapture: endGesture,
     onKeyDown: (event) => {
+      event.stopPropagation();
       const step = event.shiftKey ? 20 : 5;
       const deltas: Record<string, { x: number; y: number }> = {
         ArrowLeft: { x: -step, y: 0 },
@@ -78,7 +86,13 @@ export const useVisualizerLayout = (
       if (!delta) return;
       event.preventDefault();
       setLayout((previous) =>
-        updateVisualizerLayout(previous, action, delta, viewport.zoom),
+        updateVisualizerLayout(
+          previous,
+          action,
+          delta,
+          viewport.zoom,
+          event.altKey,
+        ),
       );
     },
   });

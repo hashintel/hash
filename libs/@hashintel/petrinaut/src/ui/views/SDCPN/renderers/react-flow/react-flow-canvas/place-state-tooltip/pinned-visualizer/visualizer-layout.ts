@@ -80,6 +80,7 @@ export const updateVisualizerLayout = (
   action: VisualizerAction,
   delta: XYPosition,
   zoom: number,
+  fromCenter = false,
 ): VisualizerLayout => {
   if (action === "move") {
     return {
@@ -110,7 +111,7 @@ export const updateVisualizerLayout = (
   const scale = Math.max(
     minimumSize.width / width,
     minimumSize.height / height,
-    1 + change,
+    1 + change * (fromCenter ? 2 : 1),
   );
   const size = { width: width * scale, height: height * scale };
   return {
@@ -119,11 +120,12 @@ export const updateVisualizerLayout = (
       x:
         layout.position.x +
         ((width - size.width) *
-          (horizontal < 0 ? 1 : horizontal > 0 ? 0 : 0.5)) /
+          (fromCenter ? 0.5 : horizontal < 0 ? 1 : horizontal > 0 ? 0 : 0.5)) /
           zoom,
       y:
         layout.position.y +
-        ((height - size.height) * (vertical < 0 ? 1 : vertical > 0 ? 0 : 0.5)) /
+        ((height - size.height) *
+          (fromCenter ? 0.5 : vertical < 0 ? 1 : vertical > 0 ? 0 : 0.5)) /
           zoom,
     },
   };

@@ -32,6 +32,10 @@ const panelStyle = css({
   boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.16)]",
   pointerEvents: "auto",
   transformOrigin: "top left",
+  cursor: "grab",
+  touchAction: "none",
+  userSelect: "none",
+  _active: { cursor: "grabbing" },
   "&:hover [data-visualizer-control], &:focus-within [data-visualizer-control]":
     {
       opacity: "[1]",
@@ -159,7 +163,7 @@ export const PinnedVisualizer = ({
           />
         </svg>
       )}
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Keep control events from selecting or dragging the source node. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Drag the picture while keeping control events from reaching the source node. */}
       <div
         className={`${panelStyle} nodrag nopan nowheel`}
         style={{
@@ -171,7 +175,7 @@ export const PinnedVisualizer = ({
         }}
         role="group"
         aria-label={`${name} state visualizer`}
-        onPointerDown={(event) => event.stopPropagation()}
+        {...getHandleProps("move")}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
@@ -204,7 +208,8 @@ export const PinnedVisualizer = ({
           label={`${name} visualizer`}
           getHandleProps={(direction) => ({
             tabIndex: direction === "bottom-right" ? 0 : -1,
-            title: "Drag to resize · Arrow keys to resize",
+            title:
+              "Drag to resize · Alt to resize from center · Arrow keys to resize",
             ...getHandleProps(direction),
           })}
         />

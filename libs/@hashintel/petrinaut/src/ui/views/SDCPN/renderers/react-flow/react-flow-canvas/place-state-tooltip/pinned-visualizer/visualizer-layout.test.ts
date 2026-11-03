@@ -96,6 +96,10 @@ it.each([
       position,
       size: { width: 400, height: 300 },
     });
+    expect(updateVisualizerLayout(layout, direction, delta, 2, true)).toEqual({
+      position: { x: 60, y: 170 },
+      size: { width: 480, height: 360 },
+    });
   },
 );
 
