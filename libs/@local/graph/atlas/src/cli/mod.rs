@@ -25,7 +25,9 @@
 //!
 //! The hosts dial: a command runs over the store connection its host supplies -
 //! [`PostgresArgs::connect`] dials the shell's own flags field by field, [`connect`] dials a
-//! [`tokio_postgres::Config`] over the TLS connector its host builds.
+//! [`DatabaseConnectionInfo`] its host builds.
+//!
+//! [`DatabaseConnectionInfo`]: hash_graph_postgres_store::store::DatabaseConnectionInfo
 //!
 //! The fit command drives the run entry points live with the runner. This module re-exports their
 //! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`RunError`]) as the crate's

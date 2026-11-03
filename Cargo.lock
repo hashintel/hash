@@ -6649,7 +6649,6 @@ dependencies = [
  "time",
  "tokio",
  "tokio-postgres",
- "tokio-postgres-rustls",
  "tokio-util",
  "tower",
  "tracing",

@@ -248,8 +248,7 @@ pub async fn atlas_fit(args: AtlasFitArgs) -> Result<(), Report<GraphError>> {
         storage.set_s3(s3);
     }
 
-    let tls = args.db_info.tls().change_context(GraphError)?;
-    let mut client = cli::connect(args.db_info.config(), tls)
+    let mut client = cli::connect(&args.db_info)
         .await
         .change_context(GraphError)?;
 

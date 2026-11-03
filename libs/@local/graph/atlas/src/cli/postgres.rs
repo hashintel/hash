@@ -11,8 +11,7 @@ use hash_graph_postgres_store::store::{
     postgres::connection::RootCertificateError,
 };
 use tokio::net::TcpStream;
-use tokio_postgres::{Client, Config, config::Host, tls::MakeTlsConnect};
-use tokio_postgres_rustls::MakeRustlsConnect;
+use tokio_postgres::{Client, config::Host, tls::MakeTlsConnect};
 
 /// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.
 ///
@@ -98,9 +97,8 @@ impl PostgresArgs {
             self.database,
         )
         .with_ssl(self.ssl_mode, self.ssl_root_cert);
-        let tls = info.tls().map_err(ConnectError::RootCertificate)?;
 
-        connect(info.config(), tls).await
+        connect(&info).await
     }
 }
 
@@ -139,14 +137,16 @@ impl Error for ConnectError {
     }
 }
 
-/// Dials the store the configuration names over `tls` and drives the connection on a background
-/// task.
+/// Dials the store `info` names, over TLS if `info` enables it, and drives the connection on a
+/// background task.
 ///
 /// # Errors
 ///
-/// Returns a [`ConnectError`] when the configuration names no TCP host, when the socket refuses
-/// the connection, or when the store rejects the handshake.
-pub async fn connect(config: Config, mut tls: MakeRustlsConnect) -> Result<Client, ConnectError> {
+/// Returns a [`ConnectError`] when the root certificate cannot be loaded, when `info` names no TCP
+/// host, when the socket refuses the connection, or when the store rejects the handshake.
+pub async fn connect(info: &DatabaseConnectionInfo) -> Result<Client, ConnectError> {
+    let mut tls = info.tls().map_err(ConnectError::RootCertificate)?;
+    let config = info.config();
     let host = config
         .get_hosts()
         .iter()
