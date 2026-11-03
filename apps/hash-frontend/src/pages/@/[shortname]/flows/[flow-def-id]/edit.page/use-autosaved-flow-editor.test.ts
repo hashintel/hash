@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   autosaveDelayMs,
   FlowChangedElsewhereError,
+  FlowSaveRefusedError,
   useAutosavedFlowEditor,
 } from "./use-autosaved-flow-editor";
 
@@ -180,5 +181,29 @@ describe("useAutosavedFlowEditor", () => {
     ]);
     expect(saveFlowDefinition.mock.calls[2]![1]).toBe("edition-1");
     expect(result.current.status).toBe("saved");
+  });
+
+  it("says why the API refused a save until a save succeeds", async () => {
+    const reason =
+      "This change would stop the flow's active schedules from running it. Pause them first to make it.";
+    const saveFlowDefinition = vi
+      .fn()
+      .mockRejectedValueOnce(new FlowSaveRefusedError(reason))
+      .mockResolvedValueOnce(editionId("edition-2"));
+    const { result, addStep } = renderEditor({ saveFlowDefinition });
+
+    addStep("first");
+    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
+    expect(result.current.status).toBe("failed");
+    expect(result.current.saveRefusedReason).toBe(reason);
+
+    addStep("second");
+    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
+    expect(stepIdsOf(saveFlowDefinition.mock.calls[1]![0])).toEqual([
+      "first",
+      "second",
+    ]);
+    expect(result.current.status).toBe("saved");
+    expect(result.current.saveRefusedReason).toBeNull();
   });
 });

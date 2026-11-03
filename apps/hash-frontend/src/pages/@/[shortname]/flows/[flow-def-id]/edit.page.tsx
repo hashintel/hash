@@ -25,6 +25,7 @@ import { LeftPanel } from "./edit.page/left-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
   FlowChangedElsewhereError,
+  FlowSaveRefusedError,
   useAutosavedFlowEditor,
 } from "./edit.page/use-autosaved-flow-editor";
 
@@ -42,6 +43,14 @@ import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 const isConflictError = (error: unknown) =>
   error instanceof ApolloError &&
   error.graphQLErrors.some(({ extensions }) => extensions.code === "CONFLICT");
+
+/** The API's reason for refusing a definition, e.g. because it would stop the flow's active schedules from running. */
+const getRefusalReason = (error: unknown) =>
+  error instanceof ApolloError
+    ? error.graphQLErrors.find(
+        ({ extensions }) => extensions.code === "BAD_REQUEST",
+      )?.message
+    : undefined;
 
 const FlowEditor = ({
   flowDefinitionEntityId,
@@ -64,33 +73,45 @@ const FlowEditor = ({
     ArchiveFlowDefinitionMutationVariables
   >(archiveFlowDefinitionMutation);
 
-  const { editor, status, changedElsewhere, dismissChangedElsewhere, flush } =
-    useAutosavedFlowEditor({
-      flow,
-      saveFlowDefinition: async (flowDefinition, expectedEditionId) => {
-        try {
-          const { data } = await updateFlowDefinition({
-            variables: {
-              flowDefinitionEntityId,
-              expectedEditionId,
-              /* A definition is plain JSON, but its types have no index signature to say so. */
-              definition: flowDefinition as unknown as JsonObject,
-            },
-          });
+  const {
+    editor,
+    status,
+    saveRefusedReason,
+    changedElsewhere,
+    dismissChangedElsewhere,
+    flush,
+  } = useAutosavedFlowEditor({
+    flow,
+    saveFlowDefinition: async (flowDefinition, expectedEditionId) => {
+      try {
+        const { data } = await updateFlowDefinition({
+          variables: {
+            flowDefinitionEntityId,
+            expectedEditionId,
+            /* A definition is plain JSON, but its types have no index signature to say so. */
+            definition: flowDefinition as unknown as JsonObject,
+          },
+        });
 
-          if (!data) {
-            throw new Error("The flow wasn't saved");
-          }
-
-          return data.updateFlowDefinition.editionId;
-        } catch (error) {
-          throw isConflictError(error)
-            ? new FlowChangedElsewhereError()
-            : error;
+        if (!data) {
+          throw new Error("The flow wasn't saved");
         }
-      },
-      reloadFlow,
-    });
+
+        return data.updateFlowDefinition.editionId;
+      } catch (error) {
+        if (isConflictError(error)) {
+          throw new FlowChangedElsewhereError();
+        }
+
+        const refusalReason = getRefusalReason(error);
+
+        throw refusalReason === undefined
+          ? error
+          : new FlowSaveRefusedError(refusalReason);
+      }
+    },
+    reloadFlow,
+  });
 
   const { flowDefinition } = useSyncExternalStore(
     editor.subscribe,
@@ -122,8 +143,9 @@ const FlowEditor = ({
       <Stack direction="row" sx={{ flex: 1, minHeight: 0 }}>
         <LeftPanel steps={flowDefinition.steps} />
         <Box sx={{ position: "relative", flex: 1 }}>
-          {changedElsewhere && (
-            <Box
+          {(saveRefusedReason !== null || changedElsewhere) && (
+            <Stack
+              gap={1}
               sx={{
                 position: "absolute",
                 zIndex: 10,
@@ -134,17 +156,29 @@ const FlowEditor = ({
                 mx: "auto",
               }}
             >
-              <Banner
-                tone="warning"
-                dismissible={{ onDismiss: dismissChangedElsewhere }}
-              >
-                <Banner.Title>This flow changed elsewhere</Banner.Title>
-                <Banner.Description>
-                  It was saved from somewhere else, so it now shows the latest
-                  version. Your latest edits weren't saved.
-                </Banner.Description>
-              </Banner>
-            </Box>
+              {saveRefusedReason !== null && (
+                <Banner tone="error">
+                  <Banner.Title>Your latest edits can't be saved</Banner.Title>
+                  <Banner.Description as="div">
+                    {saveRefusedReason.split("\n").map((line) => (
+                      <div key={line}>{line}</div>
+                    ))}
+                  </Banner.Description>
+                </Banner>
+              )}
+              {changedElsewhere && (
+                <Banner
+                  tone="warning"
+                  dismissible={{ onDismiss: dismissChangedElsewhere }}
+                >
+                  <Banner.Title>This flow changed elsewhere</Banner.Title>
+                  <Banner.Description>
+                    It was saved from somewhere else, so it now shows the latest
+                    version. Your latest edits weren't saved.
+                  </Banner.Description>
+                </Banner>
+              )}
+            </Stack>
           )}
           <Canvas />
         </Box>

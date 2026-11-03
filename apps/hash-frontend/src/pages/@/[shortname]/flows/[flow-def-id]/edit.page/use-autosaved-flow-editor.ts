@@ -12,6 +12,11 @@ export class FlowChangedElsewhereError extends Error {
   override readonly name = "FlowChangedElsewhereError";
 }
 
+/** Thrown by a save the API refused, with why as its message. The same definition is refused again until it changes. */
+export class FlowSaveRefusedError extends Error {
+  override readonly name = "FlowSaveRefusedError";
+}
+
 export type FlowSaveStatus = "saving" | "saved" | "failed";
 
 /** How long after an edit the flow is saved, so that a burst of edits is saved once. */
@@ -22,7 +27,8 @@ export const autosaveDelayMs = 800;
  * edition the previous one created. If the flow was saved elsewhere meanwhile, the editor is replaced by one holding
  * the flow as it is now, and `changedElsewhere` is set.
  *
- * A failed save is tried again with the next edit, or by calling `flush`.
+ * A failed save is tried again with the next edit, or by calling `flush`. If the API refused it, `saveRefusedReason`
+ * says why until a save succeeds.
  */
 export const useAutosavedFlowEditor = ({
   flow,
@@ -33,7 +39,8 @@ export const useAutosavedFlowEditor = ({
   flow: FlowDefinitionToEdit;
   /**
    * Saves a definition made from `expectedEditionId`, returning the edition it created. Throws a
-   * `FlowChangedElsewhereError` if the flow has been saved since that edition.
+   * `FlowChangedElsewhereError` if the flow has been saved since that edition, and a `FlowSaveRefusedError` if the API
+   * refused the definition.
    */
   saveFlowDefinition: (
     flowDefinition: FlowDefinition<string>,
@@ -44,6 +51,8 @@ export const useAutosavedFlowEditor = ({
 }): {
   editor: FlowEditor;
   status: FlowSaveStatus;
+  /** Why the API refused the last save, if it did. */
+  saveRefusedReason: string | null;
   changedElsewhere: boolean;
   dismissChangedElsewhere: () => void;
   /** Saves any edits not saved yet, after the save in flight, if any. Resolves to whether every edit is saved. */
@@ -53,6 +62,9 @@ export const useAutosavedFlowEditor = ({
     createFlowEditor(flow.flowDefinition),
   );
   const [status, setStatus] = useState<FlowSaveStatus>("saved");
+  const [saveRefusedReason, setSaveRefusedReason] = useState<string | null>(
+    null,
+  );
   const [changedElsewhere, setChangedElsewhere] = useState(false);
 
   const editorRef = useRef(editor);
@@ -79,10 +91,14 @@ export const useAutosavedFlowEditor = ({
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- edits made while the save was in flight set it
       setStatus(unsavedRef.current ? "saving" : "saved");
+      setSaveRefusedReason(null);
     } catch (error) {
       if (!(error instanceof FlowChangedElsewhereError)) {
         unsavedRef.current = true;
         setStatus("failed");
+        setSaveRefusedReason(
+          error instanceof FlowSaveRefusedError ? error.message : null,
+        );
         return;
       }
 
@@ -104,6 +120,7 @@ export const useAutosavedFlowEditor = ({
       setEditor(reloadedEditor);
       setChangedElsewhere(true);
       setStatus("saved");
+      setSaveRefusedReason(null);
     }
   }, []);
 
@@ -171,5 +188,12 @@ export const useAutosavedFlowEditor = ({
     [],
   );
 
-  return { editor, status, changedElsewhere, dismissChangedElsewhere, flush };
+  return {
+    editor,
+    status,
+    saveRefusedReason,
+    changedElsewhere,
+    dismissChangedElsewhere,
+    flush,
+  };
 };
