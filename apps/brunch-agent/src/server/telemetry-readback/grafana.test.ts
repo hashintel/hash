@@ -99,15 +99,31 @@ const trace = {
   },
 };
 
-const fakeGrafana = () => {
-  const requests: URL[] = [];
+const chronologyStream = {
+  stream: {
+    service_name: "Brunch Agent",
+    submissionId: "sub-1",
+    outcome: "completed",
+    turns: JSON.stringify([turn]),
+  },
+  values: [["1793701815336000000", "[brunch] flue.submission chronology"]],
+};
+
+const fakeGrafana = (
+  chronologyStreams: readonly unknown[] = [chronologyStream],
+) => {
+  const requests: Request[] = [];
   const respond = (body: unknown) =>
     new Response(JSON.stringify(body), {
       headers: { "content-type": "application/json" },
     });
-  const fetchImpl = (async (input: string | URL | Request) => {
-    const url = new URL(input instanceof Request ? input.url : input);
-    requests.push(url);
+  const fetchImpl = (async (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
+    const request = new Request(input, init);
+    const url = new URL(request.url);
+    requests.push(request);
     if (url.pathname === "/api/datasources")
       return respond([
         { uid: "loki", name: "Logs", type: "loki" },
@@ -118,22 +134,7 @@ const fakeGrafana = () => {
       return respond({
         data: {
           result: query.includes("flue.submission chronology")
-            ? [
-                {
-                  stream: {
-                    service_name: "Brunch Agent",
-                    submissionId: "sub-1",
-                    outcome: "completed",
-                    turns: JSON.stringify([turn]),
-                  },
-                  values: [
-                    [
-                      "1793701815336000000",
-                      "[brunch] flue.submission chronology",
-                    ],
-                  ],
-                },
-              ]
+            ? chronologyStreams
             : [
                 {
                   stream: {
@@ -174,29 +175,53 @@ test("chronologies come from Loki's structured metadata, timestamped by Loki, fi
 
   const chronologies = await reader.chronologies(window, "sub-1");
 
-  expect(chronologies).toEqual([
-    {
-      submissionId: "sub-1",
-      outcome: "completed",
-      turns: [turn],
-      timestamp: "2026-11-03T10:30:15.336Z",
-    },
-  ]);
-  const query = requests.at(-1);
-  expect(query?.pathname).toBe(
+  expect(chronologies).toEqual({
+    records: [
+      {
+        submissionId: "sub-1",
+        outcome: "completed",
+        turns: [turn],
+        timestamp: "2026-11-03T10:30:15.336Z",
+      },
+    ],
+    skipped: 0,
+    truncated: false,
+  });
+  const query = new URL(requests.at(-1)?.url ?? "");
+  expect(query.pathname).toBe(
     "/api/datasources/proxy/uid/loki/loki/api/v1/query_range",
   );
-  expect(query?.searchParams.get("query")).toBe(
+  expect(query.searchParams.get("query")).toBe(
     '{service_name="Brunch Agent"} |= "[brunch] flue.submission chronology" | submissionId="sub-1"',
   );
+});
+
+test("unreadable chronology lines are counted, and a read that reaches Loki's limit says so", async () => {
+  const line = chronologyStream.values[0];
+  const { fetchImpl } = fakeGrafana([
+    { ...chronologyStream, values: Array.from({ length: 999 }, () => line) },
+    {
+      stream: { ...chronologyStream.stream, turns: "[null]" },
+      values: [line],
+    },
+  ]);
+
+  const { records, skipped, truncated } = await createGrafanaReader(
+    config,
+    fetchImpl,
+  ).chronologies(window);
+
+  expect(records).toHaveLength(999);
+  expect(skipped).toBe(1);
+  expect(truncated).toBe(true);
 });
 
 test("idle timeouts read their string-typed metadata back as numbers and booleans", async () => {
   const { fetchImpl } = fakeGrafana();
 
-  const [timeout] = await createGrafanaReader(config, fetchImpl).idleTimeouts(
-    window,
-  );
+  const {
+    records: [timeout],
+  } = await createGrafanaReader(config, fetchImpl).idleTimeouts(window);
 
   expect(timeout).toMatchObject({
     timestamp: "2026-11-03T10:30:10.000Z",
@@ -215,24 +240,27 @@ test("model-call spans are the submission's chat spans, with the HTTP requests b
     "sub-1",
   );
 
-  expect(spans).toEqual([
-    {
-      traceId: "trace-1",
-      turnId: "turn-1",
-      provider: "openai",
-      requestedModel: "gpt-5.4-mini",
-      responseModel: null,
-      startedAt: "2026-11-03T10:30:00.000Z",
-      durationMs: 2_538,
-      failed: false,
-      errorType: null,
-      finishReasons: ["tool_call"],
-      inputTokens: 9_416,
-      outputTokens: null,
-      httpRequests: [{ statusCode: 200, durationMs: 2_520 }],
-    },
-  ]);
-  const search = requests.find((url) => url.pathname.endsWith("/api/search"));
+  expect(spans).toEqual({
+    records: [
+      {
+        traceId: "trace-1",
+        turnId: "turn-1",
+        provider: "openai",
+        requestedModel: "gpt-5.4-mini",
+        startedAt: "2026-11-03T10:30:00.000Z",
+        durationMs: 2_538,
+        failed: false,
+        errorType: null,
+        finishReasons: ["tool_call"],
+        httpRequests: [{ statusCode: 200, durationMs: 2_520 }],
+      },
+    ],
+    skipped: 0,
+    truncated: false,
+  });
+  const search = requests
+    .map((request) => new URL(request.url))
+    .find((url) => url.pathname.endsWith("/api/search"));
   expect(search?.pathname).toBe(
     "/api/datasources/proxy/uid/tempo-uid/api/search",
   );
@@ -241,15 +269,23 @@ test("model-call spans are the submission's chat spans, with the HTTP requests b
   );
 });
 
-test("a named datasource Grafana lacks is reported by name", async () => {
-  const { fetchImpl } = fakeGrafana();
+test("a token is sent over HTTPS or to a local Grafana, never over plain HTTP elsewhere", async () => {
+  const { requests, fetchImpl } = fakeGrafana();
 
-  await expect(
+  expect(() =>
     createGrafanaReader(
-      { ...config, tempo: "Production traces" },
+      { ...config, url: "http://grafana.example", token: "TEST-token" },
       fetchImpl,
-    ).modelCallSpans(window, "sub-1"),
-  ).rejects.toThrow(
-    "Grafana has no datasource named or identified as Production traces.",
-  );
+    ),
+  ).toThrow("GRAFANA_TOKEN is only sent over HTTPS");
+
+  for (const url of ["https://grafana.example", "http://localhost:3001"]) {
+    await createGrafanaReader(
+      { ...config, url, token: "TEST-token" },
+      fetchImpl,
+    ).idleTimeouts(window);
+  }
+  expect(
+    requests.map((request) => request.headers.get("authorization")),
+  ).toEqual(Array.from({ length: 4 }, () => "Bearer TEST-token"));
 });

@@ -55,9 +55,10 @@ const chronology: LoggedSubmissionChronology = {
   ],
 };
 
+/** Written before timeout lines carried their submission, so only its turn joins it. */
 const idleTimeout: LoggedIdleTimeout = {
   timestamp: "2026-11-03T10:00:20.000Z",
-  submissionId: "sub-1",
+  submissionId: null,
   turnId: "turn-1",
   provider: "anthropic",
   model: "claude-sonnet-4-6",
@@ -68,8 +69,13 @@ const idleTimeout: LoggedIdleTimeout = {
   retryClaimed: true,
 };
 
-test("a submission summary counts its calls, retries, failures and idle timeouts", () => {
-  expect(summarizeSubmission(chronology, [idleTimeout])).toEqual({
+test("a submission summary counts its calls, retries, failures and the idle timeouts of its turns", () => {
+  expect(
+    summarizeSubmission(chronology, [
+      idleTimeout,
+      { ...idleTimeout, submissionId: "sub-2", turnId: "turn-9" },
+    ]),
+  ).toEqual({
     submissionId: "sub-1",
     outcome: "completed",
     loggedAt: "2026-11-03T10:00:30.000Z",
@@ -85,32 +91,48 @@ test("a submission summary counts its calls, retries, failures and idle timeouts
   );
 });
 
-test("a submission's detail lists each call with who served it, its retry and its error, then the idle timeouts", () => {
+test("a submission's detail lists each call with who served it, its retry, its error and the idle timeout that interrupted it", () => {
   const markdown = renderSubmissionDetail({
     submissionId: "sub-1",
+    searched: "in the last 24h",
     chronology,
     idleTimeouts: [idleTimeout],
     spans: null,
   });
 
   expect(markdown).toContain(
-    "| turn-1 | agent | anthropic/claude-sonnet-4-6 | claude-sonnet-4-6-20260101 | 2026-11-03T10:00:00.000Z | – | 3.0 s | – | model_stream_idle | 100/20 |",
+    "| turn-1 | agent | anthropic/claude-sonnet-4-6 | claude-sonnet-4-6-20260101 | 2026-11-03T10:00:00.000Z | – | 3.0 s | – | model_stream_idle | request_dispatch idle 60 s, retry claimed | 100/20 |",
   );
-  expect(markdown).toContain("| 12 s | 3.0 s | turn-1 | – |");
-  expect(markdown).toContain(
-    "- 2026-11-03T10:00:20.000Z turn-1 anthropic/claude-sonnet-4-6: request_dispatch idle for 60 s, last event none; retry claimed",
-  );
+  expect(markdown).toContain("| 12 s | 3.0 s | turn-1 | – | – | 100/20 |");
+  // Every timeout sits beside its call, so there is no separate list.
+  expect(markdown).not.toContain("## Idle timeouts");
   // No trace source was read, so there is no spans section.
   expect(markdown).not.toContain("## Spans");
 });
 
-test("an unsettled submission says why it has no chronology", () => {
-  expect(
-    renderSubmissionDetail({
-      submissionId: "sub-2",
-      chronology: null,
-      idleTimeouts: [],
-      spans: [],
-    }),
-  ).toContain("No chronology line");
+test("an idle timeout whose turn is not among the calls is listed on its own", () => {
+  const markdown = renderSubmissionDetail({
+    submissionId: "sub-1",
+    searched: "in the last 24h",
+    chronology,
+    idleTimeouts: [{ ...idleTimeout, turnId: "turn-9" }],
+    spans: null,
+  });
+
+  expect(markdown).toContain(
+    "## Idle timeouts outside these calls\n\n- 2026-11-03T10:00:20.000Z turn-9 anthropic/claude-sonnet-4-6: request_dispatch idle for 60 s, last event none; retry claimed",
+  );
+});
+
+test("an unsettled submission says where its chronology was looked for", () => {
+  const markdown = renderSubmissionDetail({
+    submissionId: "sub-2",
+    searched: "in the last 24h",
+    chronology: null,
+    idleTimeouts: [],
+    spans: [],
+  });
+
+  expect(markdown).toContain("No chronology line in the last 24h");
+  expect(markdown).toContain("## Idle timeouts\n\nNone.");
 });

@@ -172,8 +172,8 @@ export interface PacketExchange {
   readonly toolPhaseMs: number;
   readonly otherMs: number | null;
   readonly steps: readonly PacketStep[];
-  /** Empty without a server-log chronology. */
-  readonly modelRequests: readonly PacketModelRequest[];
+  /** Null without this exchange's server-log chronology. */
+  readonly modelRequests: readonly PacketModelRequest[] | null;
   readonly categories: Readonly<Record<ToolCategory, CategoryTotals>>;
   readonly skillActivations: readonly string[];
   /** Activations of a skill already activated earlier in the run, and whether a compaction came between. */
@@ -225,6 +225,8 @@ export interface RunPacket {
    */
   readonly summary: {
     readonly exchanges: number;
+    /** Exchanges whose chronology line was kept; argument-streaming and model-request totals cover only these. */
+    readonly exchangesWithChronology: number;
     readonly incomplete: {
       /** Exchanges with no settlement, left out of the time sums. */
       readonly unsettledExchanges: number;
@@ -743,14 +745,16 @@ const buildExchange = (
     toolPhaseMs,
     otherMs: wallMs === null ? null : wallMs - modelMs - toolPhaseMs,
     steps: packetSteps,
-    modelRequests: (chronology?.turns ?? []).map((turn) => ({
-      turnId: turn.turnId,
-      purpose: turn.purpose,
-      model: requestedModelOf(turn),
-      timeToFirstEventMs: turn.timeToFirstEventMs,
-      retryOf: turn.retryOf ?? null,
-      error: turnErrorOf(turn),
-    })),
+    modelRequests: chronology
+      ? chronology.turns.map((turn) => ({
+          turnId: turn.turnId,
+          purpose: turn.purpose,
+          model: requestedModelOf(turn),
+          timeToFirstEventMs: turn.timeToFirstEventMs,
+          retryOf: turn.retryOf ?? null,
+          error: turnErrorOf(turn),
+        }))
+      : null,
     categories,
     skillActivations,
     skillResourceReads,
@@ -840,7 +844,9 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
   const totalSettled = (pick: (exchange: (typeof settled)[number]) => number) =>
     settled.reduce((sum, exchange) => sum + pick(exchange), 0);
   const hasChronology = input.chronology.size > 0;
-  const modelRequests = exchanges.flatMap((exchange) => exchange.modelRequests);
+  const modelRequests = exchanges.flatMap(
+    (exchange) => exchange.modelRequests ?? [],
+  );
   const countBy = (keys: readonly string[]) => {
     const counts: Record<string, number> = {};
     for (const key of keys) counts[key] = (counts[key] ?? 0) + 1;
@@ -854,6 +860,9 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
     sources: { chronology: hasChronology, skipped: input.skipped },
     summary: {
       exchanges: exchanges.length,
+      exchangesWithChronology: exchanges.filter(
+        (exchange) => exchange.modelRequests !== null,
+      ).length,
       incomplete: {
         unsettledExchanges: exchanges.length - settled.length,
         cutOffMessages: steps.filter((step) => step.cutOffIn === "message")

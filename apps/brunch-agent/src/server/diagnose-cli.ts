@@ -14,10 +14,12 @@
  *
  *   yarn workspace @apps/brunch-agent diagnose --log dev-brunch-server.log
  *
- * `--json` prints the records instead of tables.
+ * `--json` prints the records instead of tables. Lines that could not be read
+ * and reads cut off at a source's limit are reported on stderr.
  */
 
 import { readFile } from "node:fs/promises";
+import { text } from "node:stream/consumers";
 import { parseArgs } from "node:util";
 
 import {
@@ -28,13 +30,13 @@ import {
   summarizeSubmission,
   type LoggedIdleTimeout,
   type LoggedSubmissionChronology,
+  type ReadResult,
   type SubmissionDetail,
   type TimeWindow,
 } from "./telemetry-readback.ts";
 
 const usage = `usage: diagnose [--submission <id>] [--since <30m|6h|2d>] [--json]
-                [--grafana <url>] [--service <name>] [--loki <datasource>] [--tempo <datasource>]
-                [--log <file|->]`;
+                [--grafana <url>] [--service <name>] [--log <file|->]`;
 
 const { values } = parseArgs({
   options: {
@@ -43,8 +45,6 @@ const { values } = parseArgs({
     json: { type: "boolean", default: false },
     grafana: { type: "string", default: "http://localhost:3001" },
     service: { type: "string", default: "Brunch Agent" },
-    loki: { type: "string" },
-    tempo: { type: "string" },
     log: { type: "string" },
     help: { type: "boolean", default: false },
   },
@@ -68,96 +68,131 @@ const windowEndingNow = (since: string): TimeWindow => {
   return { start: new Date(end.getTime() - Number(match[1]) * unit), end };
 };
 
-const readStdin = async (): Promise<string> => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks).toString("utf8");
-};
+/** What a read could not cover, so a short count is not taken for a complete one. */
+const coverageWarnings = (
+  what: string,
+  { skipped, truncated }: Pick<ReadResult<unknown>, "skipped" | "truncated">,
+): string[] => [
+  ...(skipped > 0 ? [`Skipped ${skipped} unreadable ${what}.`] : []),
+  ...(truncated
+    ? [
+        `Reached the limit on ${what}, so older ones in the window are missing; narrow --since.`,
+      ]
+    : []),
+];
 
-const print = (json: unknown, text: string) => {
+const print = (json: object, markdown: string, warnings: readonly string[]) => {
+  for (const warning of warnings) process.stderr.write(`${warning}\n`);
   process.stdout.write(
-    values.json ? `${JSON.stringify(json, null, 2)}\n` : `${text}\n`,
+    values.json
+      ? `${JSON.stringify({ ...json, warnings }, null, 2)}\n`
+      : `${markdown}\n`,
   );
 };
 
 const printList = (
   chronologies: readonly LoggedSubmissionChronology[],
   idleTimeouts: readonly LoggedIdleTimeout[],
+  warnings: readonly string[],
 ) => {
   const summaries = chronologies.map((chronology) =>
     summarizeSubmission(chronology, idleTimeouts),
   );
   print(
-    { submissions: summaries, idleTimeouts },
+    { submissions: summaries, chronologies, idleTimeouts },
     renderSubmissionList(summaries),
+    warnings,
   );
 };
 
-const printDetail = (detail: SubmissionDetail) => {
-  print(detail, renderSubmissionDetail(detail));
+const printDetail = (detail: SubmissionDetail, warnings: readonly string[]) => {
+  print(detail, renderSubmissionDetail(detail), warnings);
 };
 
 if (values.log !== undefined) {
   const parsed = parseBrunchLog(
-    values.log === "-" ? await readStdin() : await readFile(values.log, "utf8"),
+    values.log === "-"
+      ? await text(process.stdin)
+      : await readFile(values.log, "utf8"),
   );
+  const warnings = [
+    ...coverageWarnings("chronology lines", {
+      skipped: parsed.skipped.chronologyLines,
+      truncated: false,
+    }),
+    ...coverageWarnings("idle-timeout lines", {
+      skipped: parsed.skipped.idleTimeoutLines,
+      truncated: false,
+    }),
+  ];
   if (values.submission === undefined) {
-    printList([...parsed.chronologies.values()], parsed.idleTimeouts);
+    printList([...parsed.chronologies.values()], parsed.idleTimeouts, warnings);
   } else {
-    printDetail({
-      submissionId: values.submission,
-      chronology: parsed.chronologies.get(values.submission) ?? null,
-      idleTimeouts: parsed.idleTimeouts.filter(
-        (timeout) => timeout.submissionId === values.submission,
-      ),
-      spans: null,
-    });
-  }
-  const { chronologyLines, idleTimeoutLines } = parsed.skipped;
-  if (chronologyLines + idleTimeoutLines > 0) {
-    process.stderr.write(
-      `Skipped ${chronologyLines} unreadable chronology and ${idleTimeoutLines} idle-timeout lines.\n`,
+    const submissionId = values.submission;
+    const chronology = parsed.chronologies.get(submissionId) ?? null;
+    const turnIds = new Set(chronology?.turns.map((turn) => turn.turnId));
+    printDetail(
+      {
+        submissionId,
+        searched: `in ${values.log === "-" ? "stdin" : values.log}`,
+        chronology,
+        idleTimeouts: parsed.idleTimeouts.filter(
+          (timeout) =>
+            timeout.submissionId === submissionId ||
+            (timeout.turnId !== null && turnIds.has(timeout.turnId)),
+        ),
+        spans: null,
+      },
+      warnings,
     );
   }
-  process.exit(0);
-}
-
-const reader = createGrafanaReader({
-  url: values.grafana,
-  token: process.env.GRAFANA_TOKEN,
-  service: values.service,
-  loki: values.loki,
-  tempo: values.tempo,
-});
-
-try {
-  if (values.submission === undefined) {
-    const window = windowEndingNow(values.since ?? "1h");
-    const [chronologies, idleTimeouts] = await Promise.all([
-      reader.chronologies(window),
-      reader.idleTimeouts(window),
-    ]);
-    printList(chronologies, idleTimeouts);
-  } else {
-    const window = windowEndingNow(values.since ?? "24h");
-    const submissionId = values.submission;
-    const [chronologies, idleTimeouts, spans] = await Promise.all([
-      reader.chronologies(window, submissionId),
-      reader.idleTimeouts(window, submissionId),
-      reader.modelCallSpans(window, submissionId),
-    ]);
-    printDetail({
-      submissionId,
-      chronology: chronologies[0] ?? null,
-      idleTimeouts,
-      spans,
+} else {
+  const since =
+    values.since ?? (values.submission === undefined ? "1h" : "24h");
+  const window = windowEndingNow(since);
+  try {
+    const reader = createGrafanaReader({
+      url: values.grafana,
+      token: process.env.GRAFANA_TOKEN,
+      service: values.service,
     });
+    if (values.submission === undefined) {
+      const [chronologies, idleTimeouts] = await Promise.all([
+        reader.chronologies(window),
+        reader.idleTimeouts(window),
+      ]);
+      printList(chronologies.records, idleTimeouts.records, [
+        ...coverageWarnings("chronology lines", chronologies),
+        ...coverageWarnings("idle-timeout lines", idleTimeouts),
+      ]);
+    } else {
+      const submissionId = values.submission;
+      const [chronologies, idleTimeouts, spans] = await Promise.all([
+        reader.chronologies(window, submissionId),
+        reader.idleTimeouts(window, submissionId),
+        reader.modelCallSpans(window, submissionId),
+      ]);
+      printDetail(
+        {
+          submissionId,
+          searched: `in the last ${since}`,
+          chronology: chronologies.records[0] ?? null,
+          idleTimeouts: idleTimeouts.records,
+          spans: spans.records,
+        },
+        [
+          ...coverageWarnings("chronology lines", chronologies),
+          ...coverageWarnings("idle-timeout lines", idleTimeouts),
+          ...coverageWarnings("traces", spans),
+        ],
+      );
+    }
+  } catch (error) {
+    const cause = error instanceof Error ? error.message : String(error);
+    process.stderr.write(
+      `Could not read telemetry from Grafana at ${values.grafana}: ${cause}\n` +
+        "Start the local stack (yarn compose up), pass --grafana with GRAFANA_TOKEN, or read a log with --log.\n",
+    );
+    process.exit(1);
   }
-} catch (error) {
-  const cause = error instanceof Error ? error.message : String(error);
-  process.stderr.write(
-    `Could not read telemetry from Grafana at ${values.grafana}: ${cause}\n` +
-      "Start the local stack (yarn compose up), pass --grafana with GRAFANA_TOKEN, or read a log with --log.\n",
-  );
-  process.exit(1);
 }

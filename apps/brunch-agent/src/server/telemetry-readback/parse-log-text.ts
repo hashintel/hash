@@ -1,11 +1,11 @@
 import {
+  chronologyMarker,
+  idleTimeoutMarker,
+  toChronology,
   toIdleTimeout,
   type LoggedIdleTimeout,
   type LoggedSubmissionChronology,
 } from "./shared/records.ts";
-
-export const chronologyMarker = "[brunch] flue.submission chronology";
-export const idleTimeoutMarker = "[brunch] provider.timeout";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -50,15 +50,9 @@ export const parseBrunchLog = (log: string): ParsedBrunchLog => {
   for (const line of log.split("\n")) {
     if (line.includes(chronologyMarker)) {
       const fields = fieldsAfter(line, chronologyMarker);
-      if (
-        typeof fields?.submissionId === "string" &&
-        Array.isArray(fields.turns)
-      ) {
-        chronologies.set(
-          fields.submissionId,
-          fields as unknown as LoggedSubmissionChronology,
-        );
-      } else chronologyLines += 1;
+      const chronology = fields && toChronology(fields, null);
+      if (chronology) chronologies.set(chronology.submissionId, chronology);
+      else chronologyLines += 1;
     } else if (line.includes(idleTimeoutMarker)) {
       const fields = fieldsAfter(line, idleTimeoutMarker);
       if (fields) idleTimeouts.push(toIdleTimeout(fields, null));

@@ -1,26 +1,25 @@
-import { chronologyMarker, idleTimeoutMarker } from "./parse-log-text.ts";
 import {
+  chronologyMarker,
+  idleTimeoutMarker,
+  toChronology,
   toIdleTimeout,
   type LoggedIdleTimeout,
   type LoggedSubmissionChronology,
-  type LoggedTurnChronology,
   type ModelCallSpan,
+  type ReadResult,
 } from "./shared/records.ts";
 
-export type GrafanaConfig = {
+type GrafanaConfig = {
   readonly url: string;
   /** Bearer token; a local Grafana with anonymous access needs none. */
   readonly token: string | undefined;
   /** The `service.name` Brunch exports under. */
   readonly service: string;
-  /** Datasource name or uid; the first of its type when absent. */
-  readonly loki?: string;
-  readonly tempo?: string;
 };
 
 export type TimeWindow = { readonly start: Date; readonly end: Date };
 
-type Datasource = { uid: string; name: string; type: string };
+type Datasource = { uid: string; type: string };
 
 type LokiStream = {
   readonly stream: Readonly<Record<string, string>>;
@@ -31,7 +30,6 @@ type OtlpValue = {
   readonly stringValue?: string;
   readonly intValue?: string | number;
   readonly doubleValue?: number;
-  readonly boolValue?: boolean;
   readonly arrayValue?: { readonly values?: readonly OtlpValue[] };
 };
 
@@ -56,6 +54,11 @@ type OtlpTrace = {
   };
 };
 
+const lokiLineLimit = 1000;
+const tempoTraceLimit = 20;
+
+const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
 /** LogQL and TraceQL both read a JSON string literal as a quoted string. */
 const quoted = (value: string): string => JSON.stringify(value);
 
@@ -71,7 +74,6 @@ const attributeValue = (value: OtlpValue): unknown => {
   if (value.stringValue !== undefined) return value.stringValue;
   if (value.intValue !== undefined) return Number(value.intValue);
   if (value.doubleValue !== undefined) return value.doubleValue;
-  if (value.boolValue !== undefined) return value.boolValue;
   return value.arrayValue?.values?.map(attributeValue);
 };
 
@@ -100,7 +102,7 @@ const numberAttribute = (
 };
 
 /** The chat spans of one submission, each with the HTTP requests beneath it. */
-export const modelCallSpansOf = (
+const modelCallSpansOf = (
   traceId: string,
   trace: OtlpTrace,
   submissionId: string,
@@ -122,7 +124,6 @@ export const modelCallSpansOf = (
         turnId: stringAttribute(attributes, "flue.turn.id"),
         provider: stringAttribute(attributes, "gen_ai.provider.name"),
         requestedModel: stringAttribute(attributes, "gen_ai.request.model"),
-        responseModel: stringAttribute(attributes, "gen_ai.response.model"),
         startedAt: isoFromNanoseconds(span.startTimeUnixNano),
         durationMs: millisecondsBetween(
           span.startTimeUnixNano,
@@ -135,8 +136,6 @@ export const modelCallSpansOf = (
               (reason): reason is string => typeof reason === "string",
             )
           : [],
-        inputTokens: numberAttribute(attributes, "gen_ai.usage.input_tokens"),
-        outputTokens: numberAttribute(attributes, "gen_ai.usage.output_tokens"),
         httpRequests: spans
           .filter((child) => child.parentSpanId === span.spanId)
           .toSorted((left, right) =>
@@ -159,27 +158,6 @@ export const modelCallSpansOf = (
     .toSorted((left, right) => left.startedAt.localeCompare(right.startedAt));
 };
 
-const chronologyOf = (
-  stream: LokiStream["stream"],
-  timestamp: string,
-): LoggedSubmissionChronology | undefined => {
-  const { submissionId, outcome, turns } = stream;
-  if (submissionId === undefined || turns === undefined) return undefined;
-  let parsedTurns: unknown;
-  try {
-    parsedTurns = JSON.parse(turns);
-  } catch {
-    return undefined;
-  }
-  if (!Array.isArray(parsedTurns)) return undefined;
-  return {
-    submissionId,
-    outcome: outcome as LoggedSubmissionChronology["outcome"],
-    turns: parsedTurns as LoggedTurnChronology[],
-    timestamp,
-  };
-};
-
 /**
  * Reads Brunch's chronology and idle-timeout lines from Loki and its
  * model-call spans from Tempo, through Grafana's datasource proxy, so one
@@ -189,6 +167,15 @@ export const createGrafanaReader = (
   config: GrafanaConfig,
   fetchImpl: typeof fetch = fetch,
 ) => {
+  const origin = new URL(config.url);
+  if (
+    config.token &&
+    origin.protocol !== "https:" &&
+    !loopbackHosts.has(origin.hostname)
+  )
+    throw new Error(
+      `GRAFANA_TOKEN is only sent over HTTPS; ${origin.host} needs an https:// URL.`,
+    );
   const base = config.url.replace(/\/$/, "");
   const get = async (path: string, query?: Record<string, string>) => {
     const url = new URL(`${base}${path}`);
@@ -208,19 +195,12 @@ export const createGrafanaReader = (
   };
 
   let datasources: Promise<Datasource[]> | undefined;
-  const datasource = async (type: string, wanted: string | undefined) => {
+  const datasource = async (type: string) => {
     datasources ??= get("/api/datasources") as Promise<Datasource[]>;
-    const found = (await datasources).find((candidate) =>
-      wanted === undefined
-        ? candidate.type === type
-        : candidate.uid === wanted || candidate.name === wanted,
+    const found = (await datasources).find(
+      (candidate) => candidate.type === type,
     );
-    if (!found)
-      throw new Error(
-        wanted === undefined
-          ? `Grafana has no ${type} datasource.`
-          : `Grafana has no datasource named or identified as ${wanted}.`,
-      );
+    if (!found) throw new Error(`Grafana has no ${type} datasource.`);
     return found.uid;
   };
 
@@ -228,8 +208,8 @@ export const createGrafanaReader = (
     marker: string,
     window: TimeWindow,
     submissionId: string | undefined,
-  ): Promise<LokiStream[]> => {
-    const uid = await datasource("loki", config.loki);
+  ) => {
+    const uid = await datasource("loki");
     const query = `{service_name=${quoted(config.service)}} |= ${quoted(marker)}${
       submissionId === undefined
         ? ""
@@ -241,11 +221,14 @@ export const createGrafanaReader = (
         query,
         start: nanoseconds(window.start),
         end: nanoseconds(window.end),
-        limit: "1000",
+        limit: String(lokiLineLimit),
         direction: "backward",
       },
     )) as { data?: { result?: LokiStream[] } };
-    return body.data?.result ?? [];
+    const lines = (body.data?.result ?? []).flatMap(({ stream, values }) =>
+      values.map(([at]) => ({ fields: stream, at: isoFromNanoseconds(at) })),
+    );
+    return { lines, truncated: lines.length >= lokiLineLimit };
   };
 
   return {
@@ -253,58 +236,75 @@ export const createGrafanaReader = (
     chronologies: async (
       window: TimeWindow,
       submissionId?: string,
-    ): Promise<LoggedSubmissionChronology[]> =>
-      (await lokiLines(chronologyMarker, window, submissionId))
-        .flatMap(({ stream, values }) =>
-          values.flatMap(([at]) => {
-            const chronology = chronologyOf(stream, isoFromNanoseconds(at));
-            return chronology === undefined ? [] : [chronology];
-          }),
-        )
-        .toSorted((left, right) =>
+    ): Promise<ReadResult<LoggedSubmissionChronology>> => {
+      const { lines, truncated } = await lokiLines(
+        chronologyMarker,
+        window,
+        submissionId,
+      );
+      const records = lines.flatMap(({ fields, at }) => {
+        const chronology = toChronology(fields, at);
+        return chronology === undefined ? [] : [chronology];
+      });
+      return {
+        records: records.toSorted((left, right) =>
           (right.timestamp ?? "").localeCompare(left.timestamp ?? ""),
         ),
+        skipped: lines.length - records.length,
+        truncated,
+      };
+    },
 
     idleTimeouts: async (
       window: TimeWindow,
       submissionId?: string,
-    ): Promise<LoggedIdleTimeout[]> =>
-      (await lokiLines(idleTimeoutMarker, window, submissionId)).flatMap(
-        ({ stream, values }) =>
-          values.map(([at]) => toIdleTimeout(stream, isoFromNanoseconds(at))),
-      ),
+    ): Promise<ReadResult<LoggedIdleTimeout>> => {
+      const { lines, truncated } = await lokiLines(
+        idleTimeoutMarker,
+        window,
+        submissionId,
+      );
+      return {
+        records: lines.map(({ fields, at }) => toIdleTimeout(fields, at)),
+        skipped: 0,
+        truncated,
+      };
+    },
 
     modelCallSpans: async (
       window: TimeWindow,
       submissionId: string,
-    ): Promise<ModelCallSpan[]> => {
-      const uid = await datasource("tempo", config.tempo);
+    ): Promise<ReadResult<ModelCallSpan>> => {
+      const uid = await datasource("tempo");
       const search = (await get(
         `/api/datasources/proxy/uid/${uid}/api/search`,
         {
           q: `{resource.service.name=${quoted(config.service)} && span.flue.submission.id=${quoted(submissionId)}}`,
           start: String(Math.floor(window.start.getTime() / 1000)),
           end: String(Math.ceil(window.end.getTime() / 1000)),
-          limit: "20",
+          limit: String(tempoTraceLimit),
         },
       )) as { traces?: readonly { traceID: string }[] };
+      const found = search.traces ?? [];
       const traces = await Promise.all(
-        (search.traces ?? []).map(async ({ traceID }) => ({
+        found.map(async ({ traceID }) => ({
           traceID,
           trace: (await get(
             `/api/datasources/proxy/uid/${uid}/api/v2/traces/${traceID}`,
           )) as OtlpTrace,
         })),
       );
-      return traces
-        .flatMap(({ traceID, trace }) =>
-          modelCallSpansOf(traceID, trace, submissionId),
-        )
-        .toSorted((left, right) =>
-          left.startedAt.localeCompare(right.startedAt),
-        );
+      return {
+        records: traces
+          .flatMap(({ traceID, trace }) =>
+            modelCallSpansOf(traceID, trace, submissionId),
+          )
+          .toSorted((left, right) =>
+            left.startedAt.localeCompare(right.startedAt),
+          ),
+        skipped: 0,
+        truncated: found.length >= tempoTraceLimit,
+      };
     },
   };
 };
-
-export type GrafanaReader = ReturnType<typeof createGrafanaReader>;

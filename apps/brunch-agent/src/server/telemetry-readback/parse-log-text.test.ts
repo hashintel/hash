@@ -2,6 +2,8 @@ import { expect, test } from "vitest";
 
 import { parseBrunchLog } from "./parse-log-text.ts";
 
+import type { ModelCallScope } from "../model-call-scope.ts";
+import type { ModelStreamIdleTimeout } from "../provider-admission.ts";
 import type { LoggedSubmissionChronology } from "./shared/records.ts";
 
 test("chronology entries are read from coloured server-log lines and keyed by submission, counting the lines that don't parse", () => {
@@ -10,13 +12,14 @@ test("chronology entries are read from coloured server-log lines and keyed by su
     "\u001B[32minfo\u001B[39m: [brunch] listening",
     `\u001B[32minfo\u001B[39m: [brunch] flue.submission chronology ${JSON.stringify(entry)}`,
     "\u001B[32minfo\u001B[39m: [brunch] flue.submission chronology {truncated",
+    `\u001B[32minfo\u001B[39m: [brunch] flue.submission chronology ${JSON.stringify({ ...entry, submissionId: "sub-2", turns: [null] })}`,
   ].join("\n");
 
   const { chronologies, skipped } = parseBrunchLog(log);
 
   expect([...chronologies.keys()]).toEqual(["sub-1"]);
   expect(chronologies.get("sub-1")).toEqual(entry);
-  expect(skipped.chronologyLines).toBe(1);
+  expect(skipped.chronologyLines).toBe(2);
 });
 
 test("a turn logged before turns named their provider, start time, retry or error still reads as a logged turn", () => {
@@ -57,11 +60,12 @@ test("idle timeouts are read from production lines with the logger's timestamp",
     model: "claude-sonnet-4-6",
     phase: "request_dispatch",
     idleMs: 60_000,
-    lastEventType: null,
+    lastEventType: undefined,
     acknowledged: true,
     retryClaimed: true,
     timestamp: "2026-11-03T10:00:00.000Z",
-  };
+  } satisfies ModelStreamIdleTimeout &
+    ModelCallScope & { stage: string; timestamp: string };
 
   const { idleTimeouts, skipped } = parseBrunchLog(
     [

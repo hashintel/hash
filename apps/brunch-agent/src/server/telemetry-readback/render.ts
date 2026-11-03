@@ -7,12 +7,12 @@ import {
   type ModelCallSpan,
 } from "./shared/records.ts";
 
-const seconds = (ms: number | null | undefined): string =>
+export const seconds = (ms: number | null | undefined): string =>
   ms === null || ms === undefined
     ? "–"
     : `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
 
-const table = (
+export const table = (
   header: readonly string[],
   rows: readonly (readonly string[])[],
 ): string =>
@@ -25,17 +25,30 @@ const table = (
 const modelOf = (turn: LoggedTurnChronology): string =>
   requestedModelOf(turn) ?? "–";
 
+const turnIdsOf = (
+  chronology: LoggedSubmissionChronology | null,
+): ReadonlySet<string> =>
+  new Set(chronology?.turns.map((turn) => turn.turnId) ?? []);
+
+const timeoutOutcome = (timeout: LoggedIdleTimeout): string =>
+  timeout.acknowledged === false
+    ? "cancellation not acknowledged"
+    : timeout.retryClaimed
+      ? "retry claimed"
+      : "no retry";
+
+/** A timeout beside the call it interrupted. */
+const timeoutCell = (timeout: LoggedIdleTimeout): string =>
+  `${timeout.phase ?? "?"} idle ${seconds(timeout.idleMs)}, ${timeoutOutcome(timeout)}`;
+
+/** A timeout on its own line, naming its call. */
 const timeoutText = (timeout: LoggedIdleTimeout): string =>
   [
     timeout.timestamp ?? "–",
     timeout.turnId ?? "(no turn id)",
     `${timeout.provider ?? "?"}/${timeout.model ?? "?"}:`,
     `${timeout.phase ?? "?"} idle for ${seconds(timeout.idleMs)}, last event ${timeout.lastEventType ?? "none"};`,
-    timeout.acknowledged === false
-      ? "cancellation not acknowledged"
-      : timeout.retryClaimed
-        ? "retry claimed"
-        : "no retry",
+    timeoutOutcome(timeout),
   ].join(" ");
 
 export type SubmissionSummary = {
@@ -57,6 +70,7 @@ export const summarizeSubmission = (
   const firstEvents = chronology.turns.flatMap((turn) =>
     turn.timeToFirstEventMs === null ? [] : [turn.timeToFirstEventMs],
   );
+  const turnIds = turnIdsOf(chronology);
   return {
     submissionId: chronology.submissionId,
     outcome: chronology.outcome,
@@ -68,7 +82,7 @@ export const summarizeSubmission = (
     retries: chronology.turns.filter((turn) => turn.retryOf).length,
     failed: chronology.turns.filter((turn) => turn.isError).length,
     idleTimeouts: idleTimeouts.filter(
-      (timeout) => timeout.submissionId === chronology.submissionId,
+      (timeout) => timeout.turnId !== null && turnIds.has(timeout.turnId),
     ).length,
   };
 };
@@ -105,6 +119,8 @@ export const renderSubmissionList = (
 
 export type SubmissionDetail = {
   readonly submissionId: string;
+  /** Where the chronology was looked for, as a phrase: `in the last 24h`, `in server.log`. */
+  readonly searched: string;
   /** Absent when the submission has not settled, or its line was not kept. */
   readonly chronology: LoggedSubmissionChronology | null;
   readonly idleTimeouts: readonly LoggedIdleTimeout[];
@@ -114,12 +130,16 @@ export type SubmissionDetail = {
 
 export const renderSubmissionDetail = (detail: SubmissionDetail): string => {
   const { chronology, idleTimeouts, spans } = detail;
+  const turnIds = turnIdsOf(chronology);
+  const unmatched = idleTimeouts.filter(
+    (timeout) => timeout.turnId === null || !turnIds.has(timeout.turnId),
+  );
   const lines = [
     `# Submission ${detail.submissionId}`,
     "",
     chronology
       ? `${chronology.outcome}, logged ${chronology.timestamp ?? "at an unknown time"}.`
-      : "No chronology line: the submission has not settled, or its log was not kept.",
+      : `No chronology line ${detail.searched}: the submission has not settled, or its log was not kept.`,
   ];
   if (chronology && chronology.turns.length > 0) {
     lines.push(
@@ -137,6 +157,7 @@ export const renderSubmissionDetail = (detail: SubmissionDetail): string => {
           "Duration",
           "Retry of",
           "Error",
+          "Idle timeout",
           "Tokens in/out",
         ],
         chronology.turns.map((turn) => [
@@ -149,19 +170,27 @@ export const renderSubmissionDetail = (detail: SubmissionDetail): string => {
           `${seconds(turn.durationMs)}${turn.terminal === "settlement" ? " (unfinished)" : ""}`,
           turn.retryOf ?? "–",
           turnErrorOf(turn) ?? "–",
+          idleTimeouts
+            .filter((timeout) => timeout.turnId === turn.turnId)
+            .map(timeoutCell)
+            .join("; ") || "–",
           `${turn.inputTokens ?? "–"}/${turn.outputTokens ?? "–"}`,
         ]),
       ),
     );
   }
-  lines.push(
-    "",
-    "## Idle timeouts",
-    "",
-    ...(idleTimeouts.length === 0
-      ? ["None."]
-      : idleTimeouts.map((timeout) => `- ${timeoutText(timeout)}`)),
-  );
+  if (turnIds.size === 0 || unmatched.length > 0) {
+    lines.push(
+      "",
+      turnIds.size === 0
+        ? "## Idle timeouts"
+        : "## Idle timeouts outside these calls",
+      "",
+      ...(unmatched.length === 0
+        ? ["None."]
+        : unmatched.map((timeout) => `- ${timeoutText(timeout)}`)),
+    );
+  }
   if (spans !== null) {
     const traceIds = [...new Set(spans.map((span) => span.traceId))];
     lines.push(

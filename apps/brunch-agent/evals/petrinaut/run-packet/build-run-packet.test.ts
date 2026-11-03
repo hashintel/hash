@@ -401,7 +401,7 @@ test("an unsettled exchange is counted but left out of the time sums, and the pa
 
   const markdown = renderRunPacket(packet);
   expect(markdown).toContain(
-    "- Incomplete run: 1 exchange never settled, left out of the time sums; 1 stream batch unreadable, skipped.",
+    "- Incomplete run: 1 exchange never settled, left out of the time sums; 2 exchanges without a chronology line, left out of the argument-streaming and model-request totals; 1 stream batch unreadable, skipped.",
   );
   expect(markdown).toContain("| 3 (unsettled) |");
 });
@@ -490,6 +490,20 @@ test("model requests name their provider and model, and count the failed ones an
     "- Model requests: 2 (anthropic/claude-sonnet-4-6 ×2); 1 retries, 1 failed (model_stream_idle ×1)",
   );
   expect(markdown).toMatch(/\| 1 \| [^|]+ \| [^|]+ \| 2 \| 1 \|/);
+});
+
+test("an exchange whose chronology line was not kept has unknown model requests, and the totals say they cover fewer exchanges", () => {
+  const packet = buildRunPacket(input);
+
+  expect(packet.exchanges[1]?.modelRequests).toBeNull();
+  expect(packet.summary.exchangesWithChronology).toBe(1);
+  const markdown = renderRunPacket(packet);
+  expect(markdown).toContain(
+    "1 exchange without a chronology line, left out of the argument-streaming and model-request totals",
+  );
+  expect(markdown).toMatch(
+    /\| 2 \(no outcome\) \| [^|]+ \| [^|]+ \| 1 \| – \|/,
+  );
 });
 
 test("a skill activated again is a reload, marked when a compaction came between", () => {
