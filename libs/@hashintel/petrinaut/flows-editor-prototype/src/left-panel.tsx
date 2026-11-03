@@ -30,7 +30,6 @@ import {
   stepTitle,
 } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
-import { mockRuns, runStatus } from "./mock-runs";
 
 type Tone = "green" | "orange" | "neutral" | "blue";
 
@@ -218,9 +217,7 @@ const FlowList = () => {
               <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
             </span>
             <Tile icon={look.icon} tone={look.tone} />
-            <span className={labelStyle}>
-              {stepLabel(step)}
-            </span>
+            <span className={labelStyle}>{stepLabel(step)}</span>
             <span className={countStyle}>
               {inside === 1 ? "1 step" : `${inside} steps`}
             </span>
@@ -302,9 +299,7 @@ const FlowList = () => {
             <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
           </span>
           <Tile icon="diagramNested" tone="neutral" />
-          <span className={labelStyle}>
-            In parallel
-          </span>
+          <span className={labelStyle}>In parallel</span>
           <span className={countStyle}>{together.length} steps</span>
         </button>,
         ...(open ? stepRows(together, depth + 1, withParallel) : []),
@@ -479,197 +474,81 @@ const Library = () => {
 };
 
 /**
- * The R3 rail (Aakarsh's pick, 2 Nov; Explorations 933:120562, 933:121144): 64 px, grey, a hairline on its right,
- * items centred 10 px apart from 10 px down.
+ * The panel header (3 Nov layout, J1.4 `806:62678`): 40 px, 8 px in, with a hairline along its whole bottom edge.
+ * The tabs sit on that edge.
  */
-const railStyle = css({
+const headerStyle = css({
   display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "[10px]",
-  flexShrink: 0,
-  width: "[64px]",
-  height: "[100%]",
-  paddingTop: "[10px]",
-  backgroundColor: "neutral.bgSolid.surface.active",
-  borderRightWidth: "thin",
-  borderRightStyle: "solid",
-  borderRightColor: "neutral.bd.subtle",
-});
-
-/** A closed item: a 32 px ghost icon button over its 11 px grey label, 2 px apart. */
-const railItemStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "[2px]",
-});
-
-const railLabelStyle = css({
-  fontSize: "[11px]", // token-guard: allow R3 rail labels are 11 px, below the DS xs step
-  lineHeight: "[13px]",
-  color: "neutral.fg.muted",
-});
-
-const railItems = [
-  { value: "steps", icon: "list", label: "Steps" },
-  { value: "add", icon: "plus", label: "Add" },
-  { value: "runs", icon: "clockRotateLeft", label: "Runs" },
-] as const;
-
-/** The panel's title: "Steps", "Add a step", "Runs", 14 px semibold, 8 px in, in a 40 px header. */
-const panelTitleStyle = css({
-  display: "flex",
-  alignItems: "center",
+  alignItems: "flex-end",
   flexShrink: 0,
   height: "[40px]",
-  paddingX: "2",
-  textStyle: "sm",
-  fontWeight: "semibold",
-  color: "neutral.fg.heading",
+  paddingLeft: "2",
+  paddingRight: "3",
   borderBottomWidth: "thin",
   borderBottomStyle: "solid",
   borderBottomColor: "neutral.bd.subtle",
 });
 
-const panelTitles = {
-  steps: "Steps",
-  add: "Add a step",
-  runs: "Runs",
-} as const;
+/**
+ * Figma DS `Tabs` variant=underlined, size=md, with the Tabs' own border removed (the header's hairline stands in for
+ * it): 32 px items 10 px in, 20 px apart, 14 px medium, the selected one dark and the other grey. Figma draws no
+ * indicator under the selected tab, so none is drawn here.
+ *
+ * DS gap: ds-components has no Tabs, so this is a local tablist.
+ */
+const tabListStyle = css({
+  display: "flex",
+  gap: "5",
+});
 
-/** Runs (Explorations 903:39224): the flow's runs, newest first; one picked shows on the canvas. */
-const RunsList = () => {
-  const { document, ui, setUi } = useEditor();
-  const runs = mockRuns(document);
-  if (runs.length === 0) {
-    return (
-      <div
-        className={css({
-          paddingX: "4",
-          paddingY: "3",
-          textStyle: "sm",
-          color: "neutral.fg.subtle",
-        })}
-      >
-        No runs yet. Runs show here once the flow is published and starts.
-      </div>
-    );
-  }
-  return (
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "[1px]",
-        padding: "2",
-        paddingTop: "4",
-      })}
-    >
-      {runs.map((run) => (
-        <button
-          key={run.id}
-          type="button"
-          aria-current={ui.viewRunId === run.id || undefined}
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: "[2px]",
-            paddingX: "2",
-            paddingY: "1.5",
-            borderRadius: "md",
-            textAlign: "left",
-            cursor: "pointer",
-            _hover: { backgroundColor: "neutral.bg.surface.active" },
-            "&[aria-current=true]": {
-              backgroundColor: "neutral.bg.subtle",
-            },
-          })}
-          onClick={() =>
-            setUi((current) => ({
-              ...current,
-              viewRunId: run.id,
-              // The run shows on the canvas alone, as Explorations 903:39224 draws it.
-              selectedId: null,
-              selectedIds: [],
-              picker: null,
-              openField: null,
-            }))
-          }
-        >
-          <span
-            className={css({ textStyle: "sm", color: "neutral.fg.heading" })}
-          >
-            {run.when}
-          </span>
-          <span
-            className={css({
-              textStyle: "xs",
-              color: run.failedAt ? "red.fg.body" : "green.fg.body",
-            })}
-          >
-            {runStatus(run)}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-};
+const tabStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[32px]",
+  paddingX: "[10px]",
+  textStyle: "sm",
+  lineHeight: "none",
+  fontWeight: "medium",
+  color: "neutral.fg.subtle",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  _hover: { color: "neutral.fg.heading" },
+  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
+  "&[aria-selected=true]": { color: "neutral.fg.heading" },
+});
+
+const panelTabs = [
+  { value: "steps", label: "Steps", region: "Steps" },
+  { value: "add", label: "Add", region: "Add a step" },
+] as const;
 
 export const LeftPanel = () => {
   const { ui, setUi } = useEditor();
   const panel = ui.leftPanel ?? "steps";
+  const current = panelTabs.find((tab) => tab.value === panel)!;
   return (
-    <>
-      <nav className={railStyle} aria-label="Panels">
-        {railItems.map((item) =>
-          item.value === panel ? (
-            // The open panel: a 40 px ghost icon button, pressed, with no label.
-            <Button
-              key={item.value}
-              size="lg"
-              variant="ghost"
-              tone="neutral"
-              iconName={item.icon}
-              pressed
-              aria-label={item.label}
-              aria-current="page"
-            />
-          ) : (
-            <div key={item.value} className={railItemStyle}>
-              <Button
-                size="md"
-                variant="ghost"
-                tone="neutral"
-                iconName={item.icon}
-                aria-label={item.label}
-                onClick={() =>
-                  setUi((current) => ({
-                    ...current,
-                    leftPanel: item.value,
-                    // Leaving Runs goes back to editing.
-                    viewRunId: item.value === "runs" ? current.viewRunId : null,
-                  }))
-                }
-              />
-              <span className={railLabelStyle}>{item.label}</span>
-            </div>
-          ),
-        )}
-      </nav>
-      <aside className={panelStyle} aria-label={panelTitles[panel]}>
-        <div className={panelTitleStyle}>{panelTitles[panel]}</div>
-        <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
-          {panel === "steps" ? (
-            <FlowList />
-          ) : panel === "add" ? (
-            <Library />
-          ) : (
-            <RunsList />
-          )}
-        </OverlayScrollArea>
-      </aside>
-    </>
+    <aside className={panelStyle} aria-label={current.region}>
+      <div className={headerStyle}>
+        <div role="tablist" aria-label="Left panel" className={tabListStyle}>
+          {panelTabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={tab.value === panel}
+              className={tabStyle}
+              onClick={() =>
+                setUi((state) => ({ ...state, leftPanel: tab.value }))
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
+        {panel === "add" ? <Library /> : <FlowList />}
+      </OverlayScrollArea>
+    </aside>
   );
 };

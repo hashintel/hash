@@ -386,7 +386,7 @@ const errorDotStyle = css({
   borderColor: "neutral.bgSolid.min",
 });
 
-/** A run picked in Runs (option F): a green dot on each step it got through, red on the one it failed at. */
+/** A run opened from History in the top bar: a green dot on each step it got through, red on the one it failed at. */
 const runDotStyle = css({
   position: "absolute",
   top: "[-4px]",

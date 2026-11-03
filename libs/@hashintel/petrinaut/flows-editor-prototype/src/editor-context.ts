@@ -1,6 +1,7 @@
 import { createContext, use } from "react";
 
 import { type EditorDocument, findStep, START_ID } from "./document";
+
 import type { StepInputSource } from "./engine";
 import type { validateDocument } from "./shapes";
 
@@ -58,9 +59,9 @@ export type EditorUi = {
   quietPortAdd?: boolean;
   /** For each boxes (and "In parallel" rows) folded, in the Steps tree and on the canvas alike (J1.13). */
   collapsed?: string[];
-  /** Option F (2 Nov): the left rail's pick, which the panel beside it shows. */
-  leftPanel?: "steps" | "add" | "runs";
-  /** A past run shown on the canvas (Runs panel): its id in `mockRuns`. */
+  /** The left panel's tab (3 Nov): the steps tree or the Add library. */
+  leftPanel?: "steps" | "add";
+  /** A past run shown on the canvas (History in the top bar): its id in `mockRuns`. */
   viewRunId?: string | null;
   /** Steps box-selected together (drag on empty canvas); `selectedId` is the one the panel shows. */
   selectedIds?: string[];

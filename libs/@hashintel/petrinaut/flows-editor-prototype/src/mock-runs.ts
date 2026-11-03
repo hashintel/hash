@@ -1,5 +1,5 @@
 /**
- * MOCK: a flow's past runs, for option F's Runs panel (Explorations 903:39224). The prototype runs nothing, so each
+ * MOCK: a flow's past runs, for History in the top bar (Explorations 903:39224). The prototype runs nothing, so each
  * flow with steps gets the same four daily 09:00 runs; yesterday's failed at its Ask a person step (or its last step).
  */
 import {
