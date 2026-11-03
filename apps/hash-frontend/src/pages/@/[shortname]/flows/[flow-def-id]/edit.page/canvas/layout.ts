@@ -19,7 +19,7 @@ import type { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk.bundled.js";
 
 const elk = new ELK();
 
-/** Ids for elk, which needs every node's id to be unique, unlike Start's and the steps' ids together. */
+/** elk needs ids unique across Start and steps. */
 const startElkId = `start:${startNodeId}`;
 const getStepElkId = (stepId: string) => `step:${stepId}`;
 
@@ -69,7 +69,6 @@ const getElkNodes = (steps: StepDefinition<string>[]): ElkNode[] =>
         },
   );
 
-/** Reads where elk put each of `steps`, and the layout of each for-each step's box, at any depth. */
 const readLayout = (
   steps: StepDefinition<string>[],
   elkNodes: ElkNode[],
@@ -101,9 +100,7 @@ const readLayout = (
   return positions;
 };
 
-/**
- * Where to put a new step's card so that it covers none of `taken`: at `position`, or as far below it as needed.
- */
+/** `position`, or as far below it as needed for a new card to cover none of `taken`. */
 export const getFreePosition = (
   position: StepPosition,
   taken: { position: StepPosition; width: number; height: number }[],
@@ -130,18 +127,8 @@ export const getFreePosition = (
 };
 
 /**
- * The top-level steps that automatic layout places when a flow is opened: those with no saved position. In practice
- * either every step has one, as each step added in the editor does, or none has, as in flows made before it.
- */
-export const getStepsToLayOut = (flowDefinition: FlowDefinition<string>) =>
-  flowDefinition.steps
-    .filter(({ position }) => !position)
-    .map(({ stepId }) => stepId);
-
-/**
- * Lays a flow out from left to right, each step a gap after the steps it runs after, counting data links as well as
- * connections. Returns a position for every top-level step, placed so that Start stays where it is, and where to draw
- * each for-each step's steps in its box, which are never saved.
+ * Lays a flow out left to right, counting data links as well as connections, keeping Start where it is. Inner steps'
+ * places are returned in `forEachLayouts` and never saved.
  */
 export const layOutFlow = async (
   flowDefinition: FlowDefinition<string>,

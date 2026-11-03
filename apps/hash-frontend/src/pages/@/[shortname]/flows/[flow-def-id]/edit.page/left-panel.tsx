@@ -19,13 +19,9 @@ import type { ReactNode } from "react";
 
 type LeftPanelTab = "steps" | "add";
 
-/** How far each level of a group is indented, in pixels. */
 const indentPerDepth = 16;
 
-/**
- * A row of the Steps tab. The design system has no tree or sidebar item (a gap logged in "Flows editor: design system
- * gaps"), so rows are drawn here.
- */
+/** The DS has no tree item (logged as a gap), so rows are drawn here. */
 const TreeRow = ({
   depth,
   icon,
@@ -41,7 +37,6 @@ const TreeRow = ({
   tone: StepTone;
   label: string;
   selected?: boolean;
-  /** The button that expands or collapses a group. */
   expander?: ReactNode;
   suffix?: ReactNode;
   onClick?: () => void;
@@ -180,7 +175,6 @@ export const LeftPanel = ({
 }: {
   steps: StepDefinition<string>[];
   selectedStepIds: string[];
-  /** Selects a step, at any depth, and brings it into view. */
   onStepClick: (stepId: string) => void;
 }) => {
   const [tab, setTab] = useState<LeftPanelTab>("steps");

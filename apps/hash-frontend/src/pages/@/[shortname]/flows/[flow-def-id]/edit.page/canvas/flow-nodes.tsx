@@ -22,7 +22,6 @@ import type { ReactNode } from "react";
 const getBorderColor = (selected: boolean) =>
   selected ? "var(--colors-blue-bd-strong)" : "var(--colors-neutral-bd-subtle)";
 
-/** Ports, and the "+" a port turns into on hover where a step can be added after it. */
 const portStyles = {
   "& .react-flow__handle": {
     width: 7,
@@ -35,7 +34,7 @@ const portStyles = {
   "& .react-flow__handle:hover .port-add": { opacity: 1 },
 };
 
-/** A port's "+": hidden until the port is hovered. Dragging from it draws a connection, as from the port. */
+/** Shown on port hover. It sits inside the handle, so dragging from it still draws a connection. */
 const PortAdd = ({ stepId }: { stepId: string | null }) => {
   const { openAddMenuAfter } = useCanvasActions();
 
@@ -137,13 +136,11 @@ const Card = ({
   children,
 }: {
   title: string;
-  /** Shown under the title, or a placeholder if empty. */
   description: string;
   icon: IconName;
   tone: StepTone;
   selected: boolean;
   problems: FlowDefinitionDiagnosticWithStepId[];
-  /** The card's ports. */
   children: ReactNode;
 }) => (
   <Box
@@ -206,7 +203,6 @@ const Card = ({
   </Box>
 );
 
-/** Start, which holds the flow's inputs. Steps with nothing before them run first, after it. */
 export const StartNode = (_props: NodeProps<StartNodeType>) => (
   <Card {...startDisplay} selected={false} problems={[]}>
     <Handle type="source" position={Position.Right}>
@@ -227,7 +223,6 @@ export const StepNode = ({
   </Card>
 );
 
-/** A for-each step: a box with its steps inside, which can't be edited here. */
 export const ForEachNode = ({
   data: { step, problems, inner },
   selected,

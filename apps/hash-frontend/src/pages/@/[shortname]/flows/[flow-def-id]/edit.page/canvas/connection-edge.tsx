@@ -9,12 +9,9 @@ import { useCanvasActions } from "./canvas-actions";
 import type { ConnectionEdge as ConnectionEdgeType } from "./flow-graph";
 import type { EdgeProps } from "@xyflow/react";
 
-/** How long × stays after the pointer leaves the connection, so that it can be reached. */
+/** Keeps × up long enough for the pointer to reach it. */
 const hideDelayMs = 150;
 
-/**
- * A line between two steps, or from Start. Hovering a connection between two top-level steps shows × to disconnect it.
- */
 export const ConnectionEdge = ({
   id,
   data,

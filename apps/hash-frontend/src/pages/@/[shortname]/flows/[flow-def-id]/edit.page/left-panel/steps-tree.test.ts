@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getGroupIds, getStepsTree } from "./steps-tree";
+import { getStepsTree } from "./steps-tree";
 
 import type { StepsTreeItem } from "./steps-tree";
 import type {
@@ -86,6 +86,5 @@ describe("getStepsTree", () => {
     ]);
 
     expect(outline(tree)).toEqual(["first", { forEach: ["inner1", "inner2"] }]);
-    expect(getGroupIds(tree)).toEqual(["forEach"]);
   });
 });

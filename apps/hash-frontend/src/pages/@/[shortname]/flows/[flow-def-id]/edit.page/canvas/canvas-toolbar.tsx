@@ -3,9 +3,8 @@ import { useReactFlow, useViewport } from "@xyflow/react";
 
 import { Button, ButtonGroup, Icon, Menu } from "@hashintel/ds-components";
 
-import { getAddStepMenuItems } from "./add-step-menu-items";
+import { getAddStepMenuItems } from "../shared/step-display";
 
-/** What dragging on the canvas does: pan it, or select what's in the dragged box. */
 export type CanvasTool = "hand" | "select";
 
 export const CanvasToolbar = ({
@@ -17,7 +16,6 @@ export const CanvasToolbar = ({
 }: {
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
-  /** Adds a step running the given action, in the middle of the view. */
   onAddStep: (actionDefinitionId: string) => void;
   onOrganize: () => void;
   canOrganize: boolean;

@@ -2,9 +2,8 @@ import { createContext, use } from "react";
 
 import type { FlowConnection } from "@local/hash-isomorphic-utils/flows/flow-editor";
 
-/** What the canvas's nodes and edges can ask it to do. */
 export type CanvasActions = {
-  /** Opens the "+" list beside `anchor`, to add a step after the given one, or after Start if `null`. */
+  /** `null` adds after Start. */
   openAddMenuAfter: (anchor: Element, stepId: string | null) => void;
   removeConnection: (connection: FlowConnection) => void;
 };

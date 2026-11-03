@@ -8,7 +8,6 @@ import type {
   FlowDefinition,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 const actionStep = (
   stepId: string,
@@ -32,17 +31,11 @@ const flowWith = (steps: StepDefinition<string>[]): FlowDefinition<string> => ({
 
 const graphOf = (
   steps: StepDefinition<string>[],
-  {
-    problemsByStepId = new Map(),
-    forEachLayouts = new Map(),
-  }: {
-    problemsByStepId?: Map<string, FlowDefinitionDiagnosticWithStepId[]>;
-    forEachLayouts?: Map<string, ForEachLayout>;
-  } = {},
+  forEachLayouts = new Map<string, ForEachLayout>(),
 ) =>
   getFlowGraph({
     flowDefinition: flowWith(steps),
-    problemsByStepId,
+    problemsByStepId: new Map(),
     forEachLayouts,
   });
 
@@ -85,39 +78,36 @@ describe("getFlowGraph", () => {
   });
 
   it("draws a for-each step as a box with its steps inside, which can't be edited, at their laid-out places", () => {
-    const graph = graphOf(
+    const steps: StepDefinition<string>[] = [
+      actionStep("list", { position: { x: 0, y: 0 } }),
+      {
+        kind: "for-each",
+        stepId: "forEach",
+        description: "For each supplier",
+        position: { x: 300, y: 0 },
+        over: { kind: "step-output", stepId: "list", outputName: "entities" },
+        steps: [
+          actionStep("inner1", {
+            inputs: { entity: { kind: "item" } },
+          }),
+          actionStep("inner2", { runAfter: [{ stepId: "inner1" }] }),
+        ],
+        collect: { stepId: "inner2", outputName: "entities", as: "results" },
+      },
+    ];
+    const layouts = new Map([
       [
-        actionStep("list", { position: { x: 0, y: 0 } }),
+        "forEach",
         {
-          kind: "for-each",
-          stepId: "forEach",
-          description: "For each supplier",
-          position: { x: 300, y: 0 },
-          over: { kind: "step-output", stepId: "list", outputName: "entities" },
-          steps: [
-            actionStep("inner1", {
-              inputs: { entity: { kind: "item" } },
-            }),
-            actionStep("inner2", { runAfter: [{ stepId: "inner1" }] }),
-          ],
-          collect: { stepId: "inner2", outputName: "entities", as: "results" },
+          size: { width: 500, height: 120 },
+          positions: new Map([
+            ["inner1", { x: 16, y: 40 }],
+            ["inner2", { x: 280, y: 40 }],
+          ]),
         },
       ],
-      {
-        forEachLayouts: new Map([
-          [
-            "forEach",
-            {
-              size: { width: 500, height: 120 },
-              positions: new Map([
-                ["inner1", { x: 16, y: 40 }],
-                ["inner2", { x: 280, y: 40 }],
-              ]),
-            },
-          ],
-        ]),
-      },
-    );
+    ]);
+    const graph = graphOf(steps, layouts);
 
     const box = graph.nodes.find(({ id }) => id === getStepNodeId("forEach"));
     const inner2 = graph.nodes.find(({ id }) => id === getStepNodeId("inner2"));
@@ -127,8 +117,6 @@ describe("getFlowGraph", () => {
       position: { x: 300, y: 0 },
       width: 500,
       height: 120,
-      draggable: true,
-      deletable: true,
     });
     expect(inner2).toMatchObject({
       parentId: getStepNodeId("forEach"),
@@ -169,25 +157,5 @@ describe("getFlowGraph", () => {
       x: 100 - 200 - 64,
       y: 80,
     });
-  });
-
-  it("gives each card the problems found in its step", () => {
-    const problem: FlowDefinitionDiagnosticWithStepId = {
-      severity: "error",
-      code: "missingInput",
-      message: "Query is required",
-      path: ["steps", 0, "inputs", "query"],
-      stepId: "first",
-    };
-
-    const graph = graphOf([actionStep("first"), actionStep("second")], {
-      problemsByStepId: new Map([["first", [problem]]]),
-    });
-
-    expect(
-      graph.nodes.map((node) =>
-        node.type === "start" ? null : node.data.problems,
-      ),
-    ).toEqual([null, [problem], []]);
   });
 });

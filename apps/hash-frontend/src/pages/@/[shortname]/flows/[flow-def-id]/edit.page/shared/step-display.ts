@@ -1,26 +1,20 @@
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
-import type { IconName } from "@hashintel/ds-components";
+import type { IconName, MenuItem } from "@hashintel/ds-components";
 import type {
   FlowActionDefinitionId,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-/**
- * What the editor calls a step, in labels. Whether canvas cards are "steps" or "nodes" is still open, so labels
- * build on this.
- */
+/** "Steps" vs "nodes" is still open, so labels build on this. */
 export const stepNoun = { singular: "step", plural: "steps" } as const;
 
 export const countSteps = (count: number) =>
   `${count} ${count === 1 ? stepNoun.singular : stepNoun.plural}`;
 
-/** The colour of a step's icon tile. */
 export type StepTone = "blue" | "green" | "orange" | "neutral";
 
-/**
- * The actions the "+" list offers, until the Add picker replaces it. `if` waits on the design for branching.
- */
+/** What the "+" list offers until the Add picker replaces it. `if` waits on the branching design. */
 export const addableActions: {
   actionDefinitionId: FlowActionDefinitionId;
   label: string;
@@ -59,7 +53,16 @@ export const addableActions: {
   },
 ];
 
-/** How Start, which holds the flow's inputs, is shown. */
+export const getAddStepMenuItems = (
+  onPick: (actionDefinitionId: string) => void,
+): MenuItem[] =>
+  addableActions.map(({ actionDefinitionId, label, icon }) => ({
+    id: actionDefinitionId,
+    text: label,
+    icon,
+    onClick: () => onPick(actionDefinitionId),
+  }));
+
 export const startDisplay = {
   title: "Start",
   description: "Flow inputs",
@@ -72,10 +75,6 @@ export const startDisplay = {
   tone: StepTone;
 };
 
-/**
- * How a step is shown: its kind (the action's name, or "For each") with an icon, and the description its author gave
- * it, if any.
- */
 export const getStepDisplay = (
   step: StepDefinition<string>,
 ): { title: string; description: string; icon: IconName; tone: StepTone } => {

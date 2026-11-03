@@ -6,7 +6,6 @@ import type {
 const getSourceStepIds = (source: StepInputSource) =>
   source.kind === "step-output" ? [source.stepId] : [];
 
-/** The ids of the steps a step takes values from, including through the steps inside it. */
 const getDataSourceStepIds = (step: StepDefinition<string>): string[] =>
   step.kind === "action"
     ? Object.values(step.inputs).flatMap(getSourceStepIds)
@@ -15,10 +14,7 @@ const getDataSourceStepIds = (step: StepDefinition<string>): string[] =>
         ...step.steps.flatMap(getDataSourceStepIds),
       ];
 
-/**
- * For each of `steps`, the ids of the others it runs after: those it has a connection from, and those it takes a value
- * from (a data link). Steps outside `steps` are left out.
- */
+/** For each of `steps`, the others in `steps` it runs after, by connection or data link. */
 export const getStepsBefore = (
   steps: StepDefinition<string>[],
 ): Map<string, string[]> => {
@@ -47,8 +43,8 @@ const comparePositions = (
     : 0;
 
 /**
- * `steps` in the order they run: each after every step it runs after (see `getStepsBefore`). Steps that could run in
- * either order go left to right, then top to bottom, then as listed. Steps in a cycle follow the rest, as listed.
+ * `steps` in run order; ties go left to right, then top to bottom, then as listed. A cycle is broken at its first step
+ * in that order.
  */
 export const orderSteps = <Step extends StepDefinition<string>>(
   steps: Step[],

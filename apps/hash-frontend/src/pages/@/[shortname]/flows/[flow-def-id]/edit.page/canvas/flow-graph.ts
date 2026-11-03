@@ -13,16 +13,10 @@ import type {
 import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import type { Edge, Node } from "@xyflow/react";
 
-/** The size of a step's card, and of Start's. */
 export const stepCardSize = { width: 200, height: 59 };
-
-/** The space between steps that run one after the other, as Organize leaves it. */
 export const stepGap = 64;
-
-/** The space around the steps inside a for-each step's box, and the height of its header. */
 export const forEachBoxPadding = { header: 40, side: 16 };
 
-/** Where a for-each step's steps are drawn in its box, and the box's size. */
 export type ForEachLayout = {
   size: { width: number; height: number };
   /** By step id, relative to the box. */
@@ -35,7 +29,7 @@ export const getStepNodeId = (stepId: string) => `step:${stepId}`;
 
 type StepNodeDataBase = {
   problems: FlowDefinitionDiagnosticWithStepId[];
-  /** Whether the step is inside a for-each step, so can't be edited here. */
+  /** Inside a for-each step, so read-only. */
   inner: boolean;
 };
 
@@ -54,11 +48,10 @@ export type ForEachStepNode = Node<
 export type FlowNode = StartNode | ActionStepNode | ForEachStepNode;
 
 export type ConnectionEdgeData =
-  /** A connection between two top-level steps. */
   | { kind: "connection"; connection: FlowConnection }
-  /** A line from Start to a top-level step with nothing before it, which isn't stored. */
+  /** From Start to a top-level step with nothing before it; not stored. */
   | { kind: "start"; stepId: string }
-  /** A connection between two steps inside a for-each step, which can't be edited here. */
+  /** Between steps inside a for-each step; read-only. */
   | { kind: "inner" };
 
 export type ConnectionEdge = Edge<ConnectionEdgeData, "connection">;
@@ -66,10 +59,7 @@ export type ConnectionEdge = Edge<ConnectionEdgeData, "connection">;
 const getConnectionEdgeId = ({ from, to }: FlowConnection) =>
   `connection:${JSON.stringify([from, to])}`;
 
-/**
- * Where Start is drawn: it isn't stored, so it sits a gap to the left of the leftmost top-level step with nothing
- * before it, level with it.
- */
+/** Start isn't stored: it sits a gap to the left of the leftmost top-level step with nothing before it. */
 export const getStartPosition = (
   steps: StepDefinition<string>[],
 ): StepPosition => {
@@ -84,11 +74,7 @@ export const getStartPosition = (
     : { x: 0, y: 0 };
 };
 
-/**
- * The nodes and edges that draw a flow: Start, a card for each step at its position, and the connections between
- * them, with a line from Start to each top-level step with nothing before it. A for-each step is a box with its steps
- * inside, at the places `forEachLayouts` gives them. Positions not saved yet are drawn at the origin.
- */
+/** A for-each step's inner steps go where `forEachLayouts` puts them; unsaved positions are drawn at the origin. */
 export const getFlowGraph = ({
   flowDefinition,
   problemsByStepId,

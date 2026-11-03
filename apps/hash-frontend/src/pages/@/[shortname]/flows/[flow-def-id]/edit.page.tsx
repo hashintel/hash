@@ -165,15 +165,11 @@ const FlowEditor = ({
     editor.getState,
   );
 
-  /*
-   * What's selected belongs to the editor it was selected in. When the editor is replaced after a conflict, the canvas
-   * is drawn anew, and starts with nothing selected.
-   */
+  /* Replacing the editor after a conflict remounts the canvas and clears the selection. */
   const [session, setSession] = useState<{
     editor: typeof editor;
     key: number;
     selectedStepIds: string[];
-    /** A step to bring into view on the canvas. */
     focusRequest: { stepId: string } | null;
   }>({ editor, key: 0, selectedStepIds: [], focusRequest: null });
 

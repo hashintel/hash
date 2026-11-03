@@ -32,7 +32,7 @@ import {
   stepGap,
 } from "./canvas/flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
-import { getFreePosition, getStepsToLayOut, layOutFlow } from "./canvas/layout";
+import { getFreePosition, layOutFlow } from "./canvas/layout";
 import { stepNoun } from "./shared/step-display";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
@@ -66,11 +66,9 @@ const nodeTypes = {
 
 const edgeTypes = { connection: ConnectionEdge };
 
-/** The id of the step a node draws, or `null` for Start. */
 const getNodeStepId = (node: FlowNode) =>
   node.type === "start" ? null : node.data.step.stepId;
 
-/** What was right-clicked, which the right-click menu offers edits for. */
 type ContextTarget =
   | { kind: "step"; stepId: string }
   | { kind: "port"; stepId: string; side: "input" | "output" }
@@ -78,19 +76,16 @@ type ContextTarget =
   | { kind: "start-line"; stepId: string }
   | { kind: "selection"; stepIds: string[] };
 
-/** The "+" list while it's open: where it opens, and how a step picked from it is added. */
 type AddMenuState = {
   anchor: DOMRect;
   addStep: (actionDefinitionId: string) => void;
 };
 
-/** Stops a right-click from opening the canvas's menu, or the browser's. */
 const refuseContextMenu = (event: ReactMouseEvent | MouseEvent) => {
   event.preventDefault();
   event.stopPropagation();
 };
 
-/** The top-left corner of a card centred vertically on `point`, to its left or right. */
 const cardBeside = (point: XYPosition, side: "left" | "right") => ({
   x: Math.round(side === "right" ? point.x : point.x - stepCardSize.width),
   y: Math.round(point.y - stepCardSize.height / 2),
@@ -98,10 +93,9 @@ const cardBeside = (point: XYPosition, side: "left" | "right") => ({
 
 type CanvasProps = {
   editor: FlowEditor;
-  /** The steps selected on the canvas or in the Steps tab, at any depth. */
   selectedStepIds: string[];
   onSelectedStepIdsChange: (stepIds: string[]) => void;
-  /** A step to bring into view: a new object each time, even for the same step. */
+  /** A new object each time, so the same step can be focused twice. */
   focusRequest: { stepId: string } | null;
 };
 
@@ -121,16 +115,15 @@ const FlowCanvas = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<CanvasTool>("select");
-  /** Where each for-each step's steps are drawn, once the flow has been laid out. */
   const [forEachLayouts, setForEachLayouts] = useState<Map<
     string,
     ForEachLayout
   > | null>(null);
-  /** The size React Flow measured for each node, which it needs back with the nodes. */
+  /** React Flow needs its measurements passed back with controlled nodes. */
   const [measurements, setMeasurements] = useState(
     () => new Map<string, { width: number; height: number }>(),
   );
-  /** Where the nodes being dragged are, until the drag ends and their positions are saved. */
+  /** Held locally until the drag ends, then saved. */
   const [dragPositions, setDragPositions] = useState(
     () => new Map<string, XYPosition>(),
   );
@@ -138,11 +131,9 @@ const FlowCanvas = ({
   const [contextTarget, setContextTarget] = useState<ContextTarget | null>(
     null,
   );
-  /** Where the last right-click was, in the window's coordinates. */
   const contextPointRef = useRef<XYPosition>({ x: 0, y: 0 });
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
 
-  /* Lays the flow out when it's opened: steps with no saved position are placed, and those positions saved. */
   useEffect(() => {
     let cancelled = false;
 
@@ -152,20 +143,18 @@ const FlowCanvas = ({
           return;
         }
 
-        for (const stepId of getStepsToLayOut(
-          editor.getState().flowDefinition,
-        )) {
-          const position = positions.get(stepId);
+        /* On open, only steps with no saved position are placed. */
+        for (const step of editor.getState().flowDefinition.steps) {
+          const position = positions.get(step.stepId);
 
-          if (position) {
-            editor.moveStep(stepId, position);
+          if (!step.position && position) {
+            editor.moveStep(step.stepId, position);
           }
         }
 
         setForEachLayouts(layouts);
       })
       .catch(() => {
-        /* Without a layout, steps are still drawn: those not placed at the origin, and for-each steps empty. */
         if (!cancelled) {
           setForEachLayouts(new Map());
         }
@@ -176,7 +165,6 @@ const FlowCanvas = ({
     };
   }, [editor]);
 
-  /* Brings the flow into view once it's drawn. */
   const fittedRef = useRef(false);
   useEffect(() => {
     if (nodesInitialized && !fittedRef.current) {
@@ -230,7 +218,7 @@ const FlowCanvas = ({
   const topLevelStepIds = new Set(
     flowDefinition.steps.map(({ stepId }) => stepId),
   );
-  /** The id of the top-level step a node draws, or `null` for Start and the steps in for-each steps. */
+  /** `null` for Start and inner steps. */
   const getTopLevelStepId = (nodeId: string) => {
     const node = graph.nodes.find(({ id }) => id === nodeId);
     const stepId = node ? getNodeStepId(node) : null;
@@ -243,7 +231,6 @@ const FlowCanvas = ({
     setSelectedEdgeIds([]);
   };
 
-  /** Where the cards and boxes at the top level are, for a new card to avoid. */
   const getTakenPlaces = () =>
     nodes
       .filter((node) => node.parentId === undefined)
@@ -253,7 +240,6 @@ const FlowCanvas = ({
         height: node.measured?.height ?? stepCardSize.height,
       }));
 
-  /** Adds a step at the middle of the view, or below it if that's taken. */
   const addStepInView = (actionDefinitionId: string) => {
     const bounds = containerRef.current?.getBoundingClientRect();
 
@@ -314,7 +300,6 @@ const FlowCanvas = ({
     removeConnection: editor.removeConnection,
   };
 
-  /** Opens the "+" list where the canvas was last right-clicked, to add a step there, or below if that's taken. */
   const openAddMenuAtContextPoint = (
     addStep: (actionDefinitionId: string, position: StepPosition) => void,
   ) => {
@@ -359,7 +344,6 @@ const FlowCanvas = ({
       }
     };
 
-    /** The connections into and out of a top-level step. */
     const getConnections = (stepId: string) => ({
       incoming: (
         flowDefinition.steps.find((step) => step.stepId === stepId)?.runAfter ??
@@ -429,7 +413,7 @@ const FlowCanvas = ({
       case "start-line": {
         const { stepId: to } = contextTarget;
 
-        /* A line from Start isn't stored, so the new step comes first, before the step the line went to. */
+        /* A Start line isn't stored, so the new step just goes before its target. */
         return [
           insertStepHere((actionDefinitionId, position) => {
             const stepId = editor.addStep(actionDefinitionId, { position });
@@ -442,10 +426,7 @@ const FlowCanvas = ({
       case "selection":
         return [disconnectAll(contextTarget.stepIds)];
       case undefined:
-        /*
-         * `RightClickMenu` draws only its children when it has no items, which would draw the canvas anew. It never
-         * opens without something right-clicked, so this is never shown.
-         */
+        /* Never shown, but an empty `items` makes `RightClickMenu` remount the canvas. */
         return [disconnectAll([])];
     }
   };
@@ -505,7 +486,6 @@ const FlowCanvas = ({
     setSelectedEdgeIds([...nextSelected]);
   };
 
-  /** Saves where dragged steps were dropped. */
   const savePositions = (draggedNodes: FlowNode[]) => {
     for (const node of draggedNodes) {
       const stepId = getTopLevelStepId(node.id);
@@ -538,7 +518,6 @@ const FlowCanvas = ({
     );
   };
 
-  /* A connection dropped on empty canvas opens the "+" list there, to add a step connected to where it was drawn from. */
   const onConnectEnd: OnConnectEnd = (
     event,
     { isValid, toNode, fromNode, fromHandle },
@@ -587,7 +566,7 @@ const FlowCanvas = ({
     });
   };
 
-  /* React Flow never removes anything itself: the Delete key removes the selected steps and connections through the editor. */
+  /* Deletes go through the editor; React Flow never removes anything itself. */
   const onBeforeDelete: OnBeforeDelete<FlowNode, ConnectionEdgeType> = ({
     nodes: deletedNodes,
     edges: deletedEdges,
@@ -759,10 +738,6 @@ const FlowCanvas = ({
   );
 };
 
-/**
- * The canvas a flow is drawn on, with its toolbar: Start and the flow's steps, and the connections between them. It
- * draws the editor's state, and sends every edit to the editor.
- */
 export const Canvas = (props: CanvasProps) => (
   <ReactFlowProvider>
     <FlowCanvas {...props} />

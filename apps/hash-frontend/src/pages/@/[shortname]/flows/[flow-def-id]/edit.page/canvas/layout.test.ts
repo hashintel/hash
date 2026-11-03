@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getStartPosition, stepCardSize } from "./flow-graph";
-import { getFreePosition, getStepsToLayOut, layOutFlow } from "./layout";
+import { getFreePosition, layOutFlow } from "./layout";
 
 import type {
   ActionStepDefinition,
@@ -27,28 +27,6 @@ const flowWith = (steps: StepDefinition<string>[]): FlowDefinition<string> => ({
   inputs: [],
   steps,
   outputs: [],
-});
-
-describe("getStepsToLayOut", () => {
-  it("chooses the top-level steps with no saved position", () => {
-    expect(
-      getStepsToLayOut(
-        flowWith([
-          actionStep("placed", { position: { x: 0, y: 0 } }),
-          actionStep("unplaced"),
-          {
-            kind: "for-each",
-            stepId: "forEach",
-            description: "",
-            over: { kind: "flow-input", inputName: "list" },
-            /* Steps inside a for-each step are laid out each time, never saved. */
-            steps: [actionStep("inner")],
-            collect: { stepId: "inner", outputName: "entities", as: "all" },
-          },
-        ]),
-      ),
-    ).toEqual(["unplaced", "forEach"]);
-  });
 });
 
 describe("layOutFlow", () => {
