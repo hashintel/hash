@@ -108,6 +108,9 @@ describe("analyzeCompilation", () => {
       productionMachines: false,
       deploymentPipelineSDCPN: true,
       probabilisticSatellitesSDCPN: true,
+      // Composes a two-token attraction: the shader integrates one
+      // whole-place equation per place, so this one stays on the CPU.
+      satellitesWithAttraction: false,
       sirModel: true,
       sirMassActionModel: true,
       cafeQueue: true,
@@ -122,6 +125,12 @@ describe("analyzeCompilation", () => {
     expect(production.shaderFailure).toMatch(
       /consumes typed tokens from 2 places/,
     );
+    const attraction = analyze(
+      allExamples.satellitesWithAttraction.petriNetDefinition,
+    );
+    expect(attraction.eligibilityReasons.map((reason) => reason.code)).toEqual([
+      "composed-dynamics",
+    ]);
   });
 
   it("reports the satellites example GPU-ready with derived capacities", () => {
@@ -321,6 +330,14 @@ describe("analyzeCompilation", () => {
         metric__debris: "gpu-ready",
         metric__average_orbital_radius: "gpu-ready",
         metric__average_orbital_speed: "gpu-ready",
+      },
+      // Refused before emission for its composed dynamics, so no metric
+      // was tried.
+      satellitesWithAttraction: {
+        metric__satellites_in_orbit: "not-attempted",
+        metric__debris: "not-attempted",
+        metric__average_orbital_radius: "not-attempted",
+        metric__average_orbital_speed: "not-attempted",
       },
       sirModel: { metric__infected_fraction: "gpu-ready" },
       sirMassActionModel: {

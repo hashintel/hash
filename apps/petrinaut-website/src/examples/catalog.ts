@@ -67,6 +67,8 @@ const runtimeLoaders: Record<ExampleSlug, () => Promise<{ default: unknown }>> =
       import("./generated/probabilistic-satellite-launcher.json"),
     "production-with-machine-failure": () =>
       import("./generated/production-with-machine-failure.json"),
+    "satellites-with-attraction": () =>
+      import("./generated/satellites-with-attraction.json"),
     "semiconductor-fab-drift": () =>
       import("./generated/semiconductor-fab-drift.json"),
     "sir-epidemic-model": () => import("./generated/sir-epidemic-model.json"),

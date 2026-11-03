@@ -6,6 +6,7 @@
 export { productionMachines } from "./production-with-machine-failure";
 export { deploymentPipelineSDCPN } from "./deployment-pipeline";
 export { probabilisticSatellitesSDCPN } from "./satellites-launcher";
+export { satellitesWithAttraction } from "./satellites-attraction";
 export { sirModel } from "./sir-model";
 export { sirMassActionModel } from "./sir-mass-action";
 export { cafeQueue } from "./cafe-queue";

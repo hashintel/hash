@@ -200,3 +200,18 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
 <img width="1106" height="320" alt="probabilistic-satellites" src="https://github.com/user-attachments/assets/e696a4f7-f61a-4b8b-9b34-1598a7190376" />
+
+## Satellites with Attraction
+
+The [Probabilistic Satellite Launcher](#probabilistic-satellite-launcher) with one change: the satellites pull on each other. The Space place composes two equations, and the constellation drifts as every pair attracts.
+
+**Demonstrates:**
+
+- **An equation over one token** -- _Satellite Orbit Dynamics_ is written for a single satellite (`const [satellite] = tokens;`) and returns one derivative object; the simulator runs it once per token.
+- **An equation over two tokens** -- _Mutual Attraction_ couples every pair of satellites: `const [a, b] = tokens;` and an array of two derivative objects, one per satellite, so the pull is symmetric. The `attraction_constant` parameter sets its strength.
+- **Composed dynamics** -- the Space place selects the orbit equation and composes the attraction below it; their derivatives are summed every step. See [composing equations](petri-net-extensions.md#composing-equations).
+- Everything else -- launches, collisions, crashes, the visualizer, the metrics and the five scenarios -- is the launcher's.
+
+**Suggested initial state:** pick **Pre-deployed Constellation** and press Play: the ring starts in circular orbits and the attraction draws neighbours together until pairs collide. Raise `attraction_constant` to see it sooner, or lower it toward 0 to recover the launcher's orbits. This net runs on the CPU: the GPU backend does not integrate composed dynamics.
+
+**Key concepts:** [equations over one or several tokens](petri-net-extensions.md#equations-over-one-or-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [visualizers](petri-net-extensions.md#visualizer), [scenarios](scenarios.md).

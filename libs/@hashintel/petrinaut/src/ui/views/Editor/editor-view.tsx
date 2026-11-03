@@ -19,6 +19,7 @@ import {
   dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
   sirMassActionModel,
   sirModel,
   supplyChainWithDisruption,
@@ -456,6 +457,14 @@ const EditorViewContent = ({
                 text: "Probabilistic Satellite Launcher",
                 onClick: () => {
                   createNewNet(probabilisticSatellitesSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-satellites-attraction",
+                text: "Satellites with Attraction",
+                onClick: () => {
+                  createNewNet(satellitesWithAttraction);
                   clearSelection();
                 },
               },

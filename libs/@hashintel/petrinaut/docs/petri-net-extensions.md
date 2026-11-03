@@ -53,14 +53,14 @@ Override parameter values before running a simulation in the **Simulation Settin
 
 Kernel, firing rate/predicate, differential equation, visualizer, metric, and scenario code is a plain function body ending in `return`. The variables each surface needs are in scope without declaring them:
 
-| Code surface                                              | Variables in scope                        | Must return                                             |
-| --------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
-| [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name |
-| [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)       |
-| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per token                         |
-| [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
-| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                         |
-| Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                   |
+| Code surface                                              | Variables in scope                        | Must return                                               |
+| --------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------- |
+| [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name   |
+| [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)         |
+| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per token, or one per coupled token |
+| [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                            |
+| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                           |
+| Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                     |
 
 `input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.
 
@@ -109,6 +109,32 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
 **Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
+
+### Equations over one or several tokens
+
+By default an equation runs over the whole place: `tokens` is every token and the body returns one derivative object per token. The **Tokens** select in the equation's properties changes how it sees tokens:
+
+- **Whole place** -- the form above.
+- **1 token** -- the body runs once per token. `tokens` is a tuple holding that one token (`const [satellite] = tokens;`) and the body returns one derivative object.
+- **2 tokens** and above -- the body runs once per combination of that many distinct tokens, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it.
+
+Switching the form replaces the starting template; code you have edited is kept for you to adapt. In the older module style the equation declares one parameter per token: `export default Dynamics((a, b, parameters) => [ ... ])`.
+
+```ts
+// A mutual attraction over every pair of tokens
+const k = parameters.attraction_constant;
+const [a, b] = tokens;
+const dx = b.x - a.x;
+return [{ vx: k * dx }, { vx: -k * dx }];
+```
+
+### Composing equations
+
+A place can run several equations at once. The dropdown under its **Dynamics** section selects the first; the **Composed dynamics** section below lists further equations of the place's type, added with its **+** button, reordered with the arrows and removed with the trash icon. Each step, every equation's derivatives are summed before the integration step, so an orbit equation over one token and an attraction over every pair combine into one motion. Removing an equation from the net removes it from every place that composed it.
+
+Composed and multi-token dynamics run on the CPU. The [GPU backend](experiments.md#compute-backend) refuses such a net and names the place.
+
+**Example:** [Satellites with Attraction](examples.md#satellites-with-attraction) composes a one-token orbit equation with a two-token mutual attraction.
 
 ## Visualizer
 
