@@ -30,7 +30,11 @@ const makeFrame = (
 const createEvaluator = (source: string) =>
   createHirMetricEvaluator({
     metricName: "Label length",
-    artifact: { source, placeNames: [] } satisfies HirMetricArtifact,
+    artifact: {
+      source,
+      placeNames: [],
+      shape: "continuous",
+    } satisfies HirMetricArtifact,
     places: [],
   });
 
@@ -63,6 +67,7 @@ describe("createHirMetricEvaluator", () => {
       artifact: {
         source: "() => __params.weight * 2",
         placeNames: [],
+        shape: "continuous",
       } satisfies HirMetricArtifact,
       places: [],
       parameterValues: { weight: 21 },
@@ -79,6 +84,7 @@ describe("createHirMetricEvaluator", () => {
       artifact: {
         source: "() => __params.weight * 2",
         placeNames: [],
+        shape: "continuous",
       } satisfies HirMetricArtifact,
       places: [],
       parameterValues: { weight: 1 },

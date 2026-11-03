@@ -707,3 +707,4 @@ export {
   parseVisualizerSvgOptions,
   type VisualizerSvgOptions,
 } from "./view-hir/visualizer-svg";
+export type { MetricShape } from "./hir/metric-shape";

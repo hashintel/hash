@@ -61,6 +61,19 @@ describe("analyzeHir", () => {
       expect(analysis.dependencies.parameters).toEqual(["g"]);
     });
 
+    it("attributes metric reads to places through state.places", () => {
+      const analysis = analyzeHir(
+        lower(
+          `return state.places.Pool.tokens[0].x * state.places["Other Place"].count;`,
+          "metric",
+        ),
+      );
+      expect(analysis.dependencies.tokenReads).toEqual([
+        { place: "Pool", field: "x" },
+      ]);
+      expect(analysis.dependencies.readsTokenCounts).toBe(true);
+    });
+
     it("tracks token count reads and Math.random", () => {
       const analysis = analyzeHir(
         lower(

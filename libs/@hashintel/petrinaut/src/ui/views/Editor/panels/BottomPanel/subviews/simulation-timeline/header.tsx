@@ -10,6 +10,9 @@ import {
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
+import { useMetricShapes } from "./use-metric-shapes";
+
+import type { MetricShape } from "@hashintel/petrinaut-core";
 
 const CHART_TYPE_OPTIONS = [
   { value: "run", label: "Run" },
@@ -89,6 +92,7 @@ export const TimelineViewPicker: React.FC = () => {
     petriNetDefinition: { metrics = [] },
   } = use(SDCPNContext);
   const colorsEnabled = extensions.colors;
+  const metricShapes = useMetricShapes();
 
   const [isViewOpen, setIsViewOpen] = useState(false);
 
@@ -103,13 +107,42 @@ export const TimelineViewPicker: React.FC = () => {
       ? metrics.find((m) => m.id === timelineView.metricId)
       : undefined;
 
+  // One group per kind of series: the native views, then the metrics by the
+  // shape their code gives them, with the not yet compiled ones on their own.
+  const metricsOfShape = (shape: MetricShape | null) =>
+    metrics
+      .filter((m) => (metricShapes.get(m.id) ?? null) === shape)
+      .map((m) => ({ value: m.id, text: m.name }));
+  const metricGroups = [
+    {
+      id: "discrete",
+      label: "Discrete metrics",
+      items: metricsOfShape("discrete"),
+    },
+    {
+      id: "continuous",
+      label: "Continuous metrics",
+      items: metricsOfShape("continuous"),
+    },
+    { id: "metrics", label: "Metrics", items: metricsOfShape(null) },
+  ].filter((group) => group.items.length > 0);
   const options = [
-    { value: PER_PLACE_VALUE, text: "Tokens per place" },
-    ...(colorsEnabled
-      ? [{ value: PER_TYPE_VALUE, text: "Tokens per type" }]
-      : []),
-    { value: PER_TRANSITION_VALUE, text: "Transition firings" },
-    ...metrics.map((m) => ({ value: m.id, text: m.name })),
+    {
+      id: "tokens",
+      label: "Tokens",
+      items: [
+        { value: PER_PLACE_VALUE, text: "Tokens per place" },
+        ...(colorsEnabled
+          ? [{ value: PER_TYPE_VALUE, text: "Tokens per type" }]
+          : []),
+      ],
+    },
+    {
+      id: "transitions",
+      label: "Transitions",
+      items: [{ value: PER_TRANSITION_VALUE, text: "Transition firings" }],
+    },
+    ...metricGroups,
   ];
   const selectedValue =
     colorsEnabled || timelineView.kind !== "per-type"
