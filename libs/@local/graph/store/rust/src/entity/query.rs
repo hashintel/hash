@@ -1049,8 +1049,9 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EntityQuerySortingRecord<'s> {
+    #[serde(serialize_with = "crate::query::serialization::sorting_path")]
     pub path: EntityQueryPath<'s>,
     pub ordering: Ordering,
     pub nulls: Option<NullOrdering>,
@@ -1113,9 +1114,9 @@ impl EntityQuerySortingRecord<'_> {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct EntityQuerySorting<'s> {
-    #[serde(borrow)]
+    #[serde(borrow, rename(serialize = "sortingPaths"))]
     pub paths: Vec<EntityQuerySortingRecord<'s>>,
     #[serde(borrow)]
     pub cursor: Option<EntityQueryCursor<'s>>,

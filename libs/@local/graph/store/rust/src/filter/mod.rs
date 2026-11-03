@@ -19,7 +19,7 @@ use hash_graph_authorization::policies::{
     },
 };
 use hash_graph_types::ontology::DataTypeLookup;
-use serde::{Deserialize, de, de::IntoDeserializer as _};
+use serde::{Deserialize, Serialize, de, de::IntoDeserializer as _};
 use type_system::{
     knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
@@ -115,11 +115,14 @@ pub trait OntologyQueryPath {
 }
 
 /// A set of conditions used for queries.
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
 #[serde(
     rename_all = "camelCase",
-    bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
+    bound(
+        deserialize = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>",
+        serialize = "R::QueryPath<'p>: Serialize"
+    )
 )]
 pub enum Filter<'p, R: QueryRecord> {
     All(Vec<Self>),
@@ -1452,7 +1455,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ParameterConversion {
     from: VersionedUrl,
@@ -1460,15 +1463,22 @@ pub struct ParameterConversion {
 }
 
 /// A leaf value in a [`Filter`].
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
-#[serde(untagged, bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
+#[serde(
+    untagged,
+    bound(
+        deserialize = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>",
+        serialize = "R::QueryPath<'p>: Serialize"
+    )
+)]
 pub enum FilterExpression<'p, R: QueryRecord> {
     Path {
         path: R::QueryPath<'p>,
     },
     Parameter {
         parameter: Parameter<'p>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         convert: Option<ParameterConversion>,
     },
 }

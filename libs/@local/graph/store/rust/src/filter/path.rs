@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize, Serializer};
 /// A single component in a JSON path.
 ///
 /// Represents either a field access by name or an array index access.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum PathToken<'p> {
     Field(Cow<'p, str>),

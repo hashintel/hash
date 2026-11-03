@@ -3,6 +3,8 @@
   "dependencies": [
     "error-stack",
     "hash-crypto",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
     "hash-integrations-definition",
     "type-system"
   ],

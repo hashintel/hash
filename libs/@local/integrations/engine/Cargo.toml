@@ -19,6 +19,7 @@ duckdb = { workspace = true, public = true, features = ["appender-arrow", "bundl
 uuid   = { workspace = true, public = true, features = ["v4", "v5"] }
 
 # Private workspace dependencies
+hash-graph-store = { workspace = true }
 
 # Private third-party dependencies
 arrow-array    = { workspace = true }
@@ -35,6 +36,8 @@ tokio          = { workspace = true, features = ["net", "rt", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
 
 [dev-dependencies]
+hash-graph-temporal-versioning = { workspace = true }
+
 axum              = { workspace = true, features = ["http1", "tokio"] }
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
 pretty_assertions = { workspace = true }

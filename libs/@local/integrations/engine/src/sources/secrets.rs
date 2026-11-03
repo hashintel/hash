@@ -2,16 +2,22 @@ use core::{pin::Pin, time::Duration};
 
 use error_stack::Report;
 use hash_crypto::Secret;
+use hash_graph_store::{
+    entity::{EntityQueryPath, EntityQuerySorting, QueryEntitiesParams},
+    filter::{Filter, FilterExpression, Parameter},
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+};
 use hash_integrations_definition::SecretReference;
 use reqwest::{Client, Url};
-use serde::Deserialize;
-use serde_json::{Value, json};
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use type_system::{
     knowledge::{
         Entity, Property, PropertyValue,
         entity::{EntityId, id::EntityUuid},
     },
+    ontology::VersionedUrl,
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
@@ -53,9 +59,19 @@ const USER_SECRET_TYPE: &str = "https://hash.ai/@h/types/entity-type/user-secret
 const EXPIRED_AT: &str = "https://hash.ai/@h/types/property-type/expired-at/";
 const VAULT_PATH: &str = "https://hash.ai/@h/types/property-type/vault-path/";
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct SecretQueryResponse {
     entities: Vec<Entity>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct VaultResponse<T> {
+    data: VaultSecret<T>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct VaultSecret<T> {
+    data: T,
 }
 
 impl GraphVaultSecretStore {
@@ -111,6 +127,42 @@ fn segment(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
 }
 
+fn secret_query(
+    web_id: Uuid,
+    entity_id: Uuid,
+    secret_type: &VersionedUrl,
+) -> QueryEntitiesParams<'_> {
+    QueryEntitiesParams {
+        filter: Filter::All(vec![
+            Filter::for_entity_by_entity_id(EntityId {
+                web_id: WebId::new(web_id),
+                entity_uuid: EntityUuid::new(entity_id),
+                draft_id: None,
+            }),
+            Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Archived,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(false),
+                    convert: None,
+                },
+            ),
+            Filter::for_entity_by_type_id(secret_type),
+        ]),
+        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+        sorting: EntityQuerySorting {
+            paths: Vec::new(),
+            cursor: None,
+        },
+        conversions: Vec::new(),
+        limit: 2,
+        include_drafts: false,
+        include_entity_types: None,
+        include_permissions: false,
+    }
+}
+
 impl SecretStore for GraphVaultSecretStore {
     async fn read(
         &self,
@@ -124,19 +176,22 @@ impl SecretStore for GraphVaultSecretStore {
             .map_err(|()| Report::new(SourceError::Configuration))?
             .pop_if_empty()
             .extend(["entities", "query"]);
-        let response = self.client.post(graph)
+        let secret_type = USER_SECRET_TYPE
+            .parse::<VersionedUrl>()
+            .map_err(|_error| Report::new(SourceError::Configuration))?;
+        let query = secret_query(web_id, reference.secret_entity_uuid, &secret_type);
+        let response = self
+            .client
+            .post(graph)
             .header("x-authenticated-user-actor-id", actor_id.to_string())
-            .header("authorization", format!("HASH-Service {}", self.config.graph_service_secret.expose()))
-            .json(&json!({
-                "filter": {"all": [
-                    {"equal": [{"path": ["webId"]}, {"parameter": web_id}]},
-                    {"equal": [{"path": ["uuid"]}, {"parameter": reference.secret_entity_uuid}]},
-                    {"equal": [{"path": ["archived"]}, {"parameter": false}]},
-                    {"equal": [{"path": ["type", "versionedUrl"]}, {"parameter": USER_SECRET_TYPE}]}
-                ]},
-                "temporalAxes": {"pinned": {"axis": "transactionTime", "timestamp": null}, "variable": {"axis": "decisionTime", "interval": {"start": null, "end": null}}},
-                "includeDrafts": false, "includePermissions": false, "limit": 2
-            })).send().await.map_err(|_error| Report::new(SourceError::Secret))?;
+            .header(
+                "authorization",
+                format!("HASH-Service {}", self.config.graph_service_secret.expose()),
+            )
+            .json(&query)
+            .send()
+            .await
+            .map_err(|_error| Report::new(SourceError::Secret))?;
         if response.status() != reqwest::StatusCode::OK {
             return Err(Report::new(SourceError::Secret));
         }
@@ -165,26 +220,14 @@ impl SecretStore for GraphVaultSecretStore {
         if response.status() != reqwest::StatusCode::OK {
             return Err(Report::new(SourceError::Secret));
         }
-        let body: Value = response
+        let body: VaultResponse<Map<String, Value>> = response
             .json()
             .await
             .map_err(|_error| Report::new(SourceError::Secret))?;
-        let data = body
-            .pointer("/data/data")
-            .filter(|data| data.is_object())
-            .ok_or_else(|| Report::new(SourceError::Secret))?;
-        let bytes = match data.as_object() {
-            Some(values)
-                if values.len() == 1 && values.get("value").is_some_and(Value::is_string) =>
-            {
-                values
-                    .get("value")
-                    .and_then(Value::as_str)
-                    .ok_or_else(|| Report::new(SourceError::Secret))?
-                    .as_bytes()
-                    .to_vec()
-            }
-            _ => serde_json::to_vec(data).map_err(|_error| Report::new(SourceError::Secret))?,
+        let data = body.data.data;
+        let bytes = match data.get("value") {
+            Some(Value::String(value)) if data.len() == 1 => value.as_bytes().to_vec(),
+            _ => serde_json::to_vec(&data).map_err(|_error| Report::new(SourceError::Secret))?,
         };
         if bytes.is_empty() {
             return Err(Report::new(SourceError::Secret));
@@ -246,7 +289,7 @@ fn string_property<'entity>(entity: &'entity Entity, url: &str) -> Option<&'enti
 
 #[cfg(test)]
 mod tests {
-    use alloc::sync::Arc;
+    use alloc::{borrow::Cow, sync::Arc};
     use core::sync::atomic::{AtomicUsize, Ordering};
 
     use axum::{
@@ -255,40 +298,181 @@ mod tests {
         routing::{get, post},
     };
     use hash_crypto::Secret;
+    use hash_graph_store::{
+        entity::EntityQueryPath,
+        filter::{Filter, FilterExpression, Parameter},
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    };
+    use hash_graph_temporal_versioning::{
+        ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
+    };
     use hash_integrations_definition::SecretReference;
     use reqwest::{Client, Url};
-    use serde_json::{Value, json};
+    use serde::{Deserialize, Serialize};
     use type_system::{
-        knowledge::{Entity, Property, PropertyValue, property::PropertyObject},
+        knowledge::{
+            Entity, Property, PropertyValue,
+            entity::{
+                EntityId, EntityMetadata, EntityProvenance,
+                id::{EntityEditionId, EntityRecordId, EntityUuid},
+                metadata::EntityTemporalMetadata,
+                provenance::{EntityEditionProvenance, ProvidedEntityEditionProvenance},
+            },
+            property::{PropertyObject, metadata::PropertyObjectMetadata},
+        },
         ontology::BaseUrl,
-        principal::actor_group::WebId,
+        principal::{
+            actor::{ActorEntityUuid, ActorType},
+            actor_group::WebId,
+        },
+        provenance::{OriginProvenance, OriginType},
     };
     use uuid::Uuid;
 
     use super::{
-        EXPIRED_AT, GraphVaultConfig, GraphVaultSecretStore, SecretStore as _, USER_SECRET_TYPE,
-        VAULT_PATH, validate_entity,
+        EXPIRED_AT, GraphVaultConfig, GraphVaultSecretStore, SecretQueryResponse, SecretStore as _,
+        USER_SECRET_TYPE, VAULT_PATH, VaultResponse, VaultSecret, validate_entity,
     };
     use crate::sources::{SourceError, tests::server};
 
     fn entity(web: Uuid, id: Uuid) -> Entity {
-        let timestamp = "2026-01-01T00:00:00Z";
-        let interval = json!({"start": {"kind": "inclusive", "limit": timestamp}, "end": {"kind": "unbounded"}});
-        serde_json::from_value(json!({
-            "metadata": {
-                "recordId": {"entityId": format!("{web}~{id}"), "editionId": id},
-                "archived": false,
-                "entityTypeIds": [USER_SECRET_TYPE],
-                "temporalVersioning": {"decisionTime": interval, "transactionTime": interval},
-                "provenance": {
-                    "createdById": web,
-                    "createdAtTransactionTime": timestamp,
-                    "createdAtDecisionTime": timestamp,
-                    "edition": {"createdById": web, "actorType": "user", "origin": {"type": "api"}}
-                }
+        let transaction_time = Timestamp::from_unix_timestamp(1_767_225_600);
+        let decision_time = Timestamp::from_unix_timestamp(1_767_225_600);
+        Entity {
+            properties: PropertyObject::new(
+                [
+                    (EXPIRED_AT, "2999-01-01T00:00:00Z".to_owned()),
+                    (VAULT_PATH, format!("users/{web}/connector/token")),
+                ]
+                .into_iter()
+                .map(|(url, value)| {
+                    (
+                        BaseUrl::new(url.to_owned()).expect("should parse the property URL"),
+                        Property::Value(PropertyValue::String(value)),
+                    )
+                })
+                .collect(),
+            ),
+            link_data: None,
+            metadata: EntityMetadata {
+                record_id: EntityRecordId {
+                    entity_id: EntityId {
+                        web_id: WebId::new(web),
+                        entity_uuid: EntityUuid::new(id),
+                        draft_id: None,
+                    },
+                    edition_id: EntityEditionId::new(id),
+                },
+                temporal_versioning: EntityTemporalMetadata {
+                    decision_time: LeftClosedTemporalInterval::new(
+                        ClosedTemporalBound::Inclusive(decision_time),
+                        OpenTemporalBound::Unbounded,
+                    ),
+                    transaction_time: LeftClosedTemporalInterval::new(
+                        ClosedTemporalBound::Inclusive(transaction_time),
+                        OpenTemporalBound::Unbounded,
+                    ),
+                },
+                entity_type_ids: [USER_SECRET_TYPE
+                    .parse()
+                    .expect("should parse the secret type")]
+                .into(),
+                archived: false,
+                read_only: false,
+                provenance: EntityProvenance {
+                    created_by_id: ActorEntityUuid::new(web),
+                    created_at_transaction_time: transaction_time,
+                    created_at_decision_time: decision_time,
+                    first_non_draft_created_at_transaction_time: None,
+                    first_non_draft_created_at_decision_time: None,
+                    deletion: None,
+                    edition: EntityEditionProvenance {
+                        created_by_id: ActorEntityUuid::new(web),
+                        archived_by_id: None,
+                        provided: ProvidedEntityEditionProvenance {
+                            sources: Vec::new(),
+                            actor_type: ActorType::User,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                        },
+                    },
+                },
+                confidence: None,
+                properties: PropertyObjectMetadata::default(),
             },
-            "properties": {EXPIRED_AT: "2999-01-01T00:00:00Z", VAULT_PATH: format!("users/{web}/connector/token")}
-        })).expect("should build a complete Graph entity")
+        }
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct SecretQueryRequest<'a> {
+        #[serde(borrow)]
+        filter: Filter<'a, Entity>,
+        temporal_axes: QueryTemporalAxesUnresolved,
+        limit: usize,
+        include_drafts: bool,
+        include_permissions: bool,
+    }
+
+    fn assert_query(headers: &HeaderMap, body: &str, web: Uuid, actor: Uuid, id: Uuid) {
+        let body: SecretQueryRequest<'_> =
+            serde_json::from_str(body).expect("should decode the Graph query using shared types");
+        assert_eq!(
+            headers
+                .get("x-authenticated-user-actor-id")
+                .and_then(|header| header.to_str().ok()),
+            Some(actor.to_string().as_str()),
+            "should query as the run owner"
+        );
+        assert_eq!(
+            headers
+                .get("authorization")
+                .and_then(|header| header.to_str().ok()),
+            Some("HASH-Service graph-token"),
+            "should authenticate the service"
+        );
+        let secret_type = USER_SECRET_TYPE
+            .parse()
+            .expect("should parse the secret type");
+        let equal = |path, parameter| {
+            Filter::Equal(
+                FilterExpression::Path { path },
+                FilterExpression::Parameter {
+                    parameter,
+                    convert: None,
+                },
+            )
+        };
+        assert_eq!(
+            body.filter,
+            Filter::All(vec![
+                Filter::All(vec![
+                    equal(
+                        EntityQueryPath::WebId,
+                        Parameter::Text(Cow::Owned(web.to_string()))
+                    ),
+                    equal(
+                        EntityQueryPath::Uuid,
+                        Parameter::Text(Cow::Owned(id.to_string()))
+                    ),
+                ]),
+                equal(EntityQueryPath::Archived, Parameter::Boolean(false)),
+                Filter::for_entity_by_type_id(&secret_type),
+            ]),
+            "should constrain the web, identity, archive state, and type"
+        );
+        assert_eq!(
+            body.temporal_axes,
+            QueryTemporalAxesUnresolved::live_only(),
+            "should query the current entity edition"
+        );
+        assert_eq!(body.limit, 2, "should detect ambiguous secret references");
+        assert!(!body.include_drafts, "should exclude drafts");
+        assert!(!body.include_permissions, "should omit permissions");
+    }
+
+    #[derive(Serialize)]
+    struct StoredValue {
+        value: String,
     }
 
     #[tokio::test]
@@ -300,34 +484,13 @@ mod tests {
         let router = Router::new()
             .route(
                 "/entities/query",
-                post(move |headers: HeaderMap, Json(body): Json<Value>| {
+                post(move |headers: HeaderMap, body: String| {
                     let entity = entity.clone();
                     async move {
-                        assert_eq!(
-                            headers
-                                .get("x-authenticated-user-actor-id")
-                                .and_then(|header| header.to_str().ok()),
-                            Some(actor.to_string().as_str()),
-                            "should query as the run owner"
-                        );
-                        assert_eq!(
-                            headers
-                                .get("authorization")
-                                .and_then(|header| header.to_str().ok()),
-                            Some("HASH-Service graph-token"),
-                            "should authenticate the service"
-                        );
-                        assert_eq!(
-                            body.pointer("/filter/all/0/equal/1/parameter"),
-                            Some(&json!(web)),
-                            "should constrain the web"
-                        );
-                        assert_eq!(
-                            body.pointer("/filter/all/1/equal/1/parameter"),
-                            Some(&json!(id)),
-                            "should constrain the secret entity"
-                        );
-                        Json(json!({"entities": [entity]}))
+                        assert_query(&headers, &body, web, actor, id);
+                        Json(SecretQueryResponse {
+                            entities: vec![entity],
+                        })
                     }
                 }),
             )
@@ -341,7 +504,16 @@ mod tests {
                         Some("vault-token"),
                         "should authenticate to Vault"
                     );
-                    Json(json!({"data": {"data": {"value": "{\"value\":\"stored-token\"}"}}}))
+                    Json(VaultResponse {
+                        data: VaultSecret {
+                            data: StoredValue {
+                                value: serde_json::to_string(&StoredValue {
+                                    value: "stored-token".to_owned(),
+                                })
+                                .expect("should encode the stored secret"),
+                            },
+                        },
+                    })
                 }),
             );
         let server = server(router).await;
@@ -374,7 +546,10 @@ mod tests {
             .expect("should resolve an authorized secret");
         assert_eq!(
             result.expose(),
-            br#"{"value":"stored-token"}"#,
+            serde_json::to_vec(&StoredValue {
+                value: "stored-token".to_owned()
+            })
+            .expect("should encode the expected secret"),
             "should unwrap the Vault value envelope"
         );
         assert!(

@@ -8,7 +8,7 @@ pub enum Ordering {
     Descending,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum NullOrdering {

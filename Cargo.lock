@@ -7064,6 +7064,8 @@ dependencies = [
  "duckdb",
  "error-stack",
  "hash-crypto",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
  "hash-integrations-definition",
  "opentelemetry",
  "opentelemetry_sdk",
