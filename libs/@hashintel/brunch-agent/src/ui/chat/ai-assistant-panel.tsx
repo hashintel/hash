@@ -1213,6 +1213,8 @@ const ConversationAiAssistantPanel = ({
   };
 
   const inBandDocumentLaneRef = useRef<Promise<void>>(Promise.resolve());
+  /** In-band calls whose execution has not begun, by tool call id. */
+  const unstartedBrowserCallsRef = useRef(new Map<string, AbortController>());
   const executeIssuedBrowserCall = (
     toolCall: Parameters<
       ChatOnToolCallCallback<PetrinautAiMessage>
@@ -1227,7 +1229,15 @@ const ConversationAiAssistantPanel = ({
       yieldLane = resolve;
     });
     let experimentExecuting = false;
+    const forgetUnstarted = () => {
+      if (
+        unstartedBrowserCallsRef.current.get(toolCall.toolCallId) === controller
+      )
+        unstartedBrowserCallsRef.current.delete(toolCall.toolCallId);
+    };
+    unstartedBrowserCallsRef.current.set(toolCall.toolCallId, controller);
     const execute = async (issuedInput: unknown) => {
+      forgetUnstarted();
       const outputs: unknown[] = [];
       const execution = executeToolCall(
         { toolCall: { ...toolCall, input: issuedInput } as typeof toolCall },
@@ -1264,7 +1274,10 @@ const ConversationAiAssistantPanel = ({
     // Rejections have a terminal server failure; they do not strand later issued calls.
     inBandDocumentLaneRef.current = laneYielded;
     void scheduled
-      .finally(() => automaticToolAbortsRef.current.delete(controller))
+      .finally(() => {
+        forgetUnstarted();
+        automaticToolAbortsRef.current.delete(controller);
+      })
       .catch((error: unknown) => {
         // A started experiment reports even after Stop, as its simulation does.
         if (!controller.signal.aborted || experimentExecuting)
@@ -1476,6 +1489,28 @@ const ConversationAiAssistantPanel = ({
       toolHostIdentityRef.current = null;
     };
   }, [addToolOutput, conversationId, sendMessage]);
+  // The server can settle an issued call itself, as when it refuses one
+  // before issuing it. A call whose output has arrived before its execution
+  // began stops claiming: there is nothing left for this page to run.
+  useEffect(() => {
+    const unstarted = unstartedBrowserCallsRef.current;
+    if (unstarted.size === 0) return;
+    for (const message of messages) {
+      for (const part of message.parts) {
+        if (
+          !isToolUIPart(part) ||
+          (part.state !== "output-available" &&
+            part.state !== "output-error" &&
+            part.state !== "output-denied")
+        )
+          continue;
+        const controller = unstarted.get(part.toolCallId);
+        if (controller === undefined) continue;
+        unstarted.delete(part.toolCallId);
+        controller.abort();
+      }
+    }
+  }, [messages]);
   useEffect(() => {
     if (
       chatStatus !== "ready" ||

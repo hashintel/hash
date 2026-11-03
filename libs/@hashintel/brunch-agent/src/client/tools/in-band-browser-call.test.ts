@@ -229,6 +229,46 @@ test("a call stopped during its claim neither executes nor reports", async () =>
   expect(posted).toEqual([]);
 });
 
+test("a call the server issues after a few refused claims is still claimed and run", async () => {
+  let claims = 0;
+  const posted: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url, init) => {
+      if (init?.method === "POST") {
+        posted.push(typeof url === "string" ? url : "");
+        return new Response(null, { status: 200 });
+      }
+      claims += 1;
+      return claims < 3
+        ? new Response(null, { status: 404 })
+        : Response.json({
+            capability: "capability",
+            binding: canonicalContent(binding),
+            toolName: "addPlace",
+            input,
+          });
+    }),
+  );
+  const execute = vi.fn(async () => ({ applied: true }));
+
+  await createCalls().run(
+    {
+      toolCallId: "call",
+      toolName: "addPlace",
+      input,
+      signal: new AbortController().signal,
+    },
+    execute,
+  );
+
+  expect(claims).toBe(3);
+  expect(execute).toHaveBeenCalledOnce();
+  expect(posted).toEqual([
+    "http://brunch.local/agents/petrinaut/instance/browser-calls/call",
+  ]);
+});
+
 test("a change whose expected revision the document has left is reported stale and never prepared", async () => {
   const posted: unknown[] = [];
   vi.stubGlobal(

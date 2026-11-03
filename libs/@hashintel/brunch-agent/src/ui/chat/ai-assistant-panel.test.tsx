@@ -13,7 +13,7 @@ import {
 import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
-import { hashProcessEditorId } from "@hashintel/brunch-agent";
+import { canonicalContent, hashProcessEditorId } from "@hashintel/brunch-agent";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   canonicalizePetrinautIds,
@@ -32,6 +32,7 @@ import {
   NotificationsProvider,
 } from "@hashintel/petrinaut/react";
 
+import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
 import { hashPetrinautHostTools } from "../tools/hash-petrinaut-host-tools";
 import {
   addMappedToolOutput,
@@ -56,6 +57,7 @@ import type {
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 import type { PetrinautAiAssistant } from "./petrinaut";
+import type { FlueClient } from "@flue/sdk";
 import type { AddNotificationInput } from "@hashintel/petrinaut/ui/plugin";
 import type { UIMessageChunk } from "ai";
 
@@ -4003,6 +4005,130 @@ describe("AiAssistantPanel composer submissions", () => {
     await waitFor(() => expect(run).toHaveBeenCalledTimes(2));
     expect(abortedAtRun.get("queued-read")).toBe(true);
   });
+
+  test.each([
+    {
+      type: "tool-output-error",
+      dynamic: true,
+      toolCallId: "refused",
+      errorText: "Read the net first.",
+    },
+    {
+      type: "tool-output-available",
+      dynamic: true,
+      toolCallId: "refused",
+      output: "Read the net first.",
+    },
+  ] satisfies UIMessageChunk[])(
+    "stops claiming a call the server settled before issuing it ($type), and still claims a later call issued late",
+    async (settlement) => {
+      const binding = { conversationId: "conversation", documentId: "net" };
+      const claims: string[] = [];
+      const posts: string[] = [];
+      // The Brunch server: it never issues the refused call, and issues the
+      // pending read on its third claim.
+      const brunchFetch = vi.fn<typeof fetch>(async (url, init) => {
+        const path = new URL(url instanceof Request ? url.url : url.toString())
+          .pathname;
+        if (init?.method === "POST") {
+          posts.push(path);
+          return new Response(null, { status: 200 });
+        }
+        claims.push(path);
+        if (
+          path.endsWith("/pending") &&
+          claims.filter((claim) => claim === path).length >= 3
+        )
+          return Response.json({
+            capability: "capability",
+            binding: canonicalContent(binding),
+            toolName: getLatestNetDefinitionToolName,
+            input: {},
+          });
+        return new Response(null, { status: 404 });
+      });
+      const calls = createInBandBrowserCalls({
+        client: Promise.resolve({
+          url: "http://brunch.local/agents/hash/instance",
+        } as FlueClient),
+        ownerKey: "owner",
+        fetch: brunchFetch,
+        binding,
+        metadataFor: () => undefined,
+        prepareInput: () => {},
+        acceptsRevision: () => true,
+      });
+      const signals = new Map<string, AbortSignal>();
+      const runs: Promise<void>[] = [];
+      const claimsOf = (toolCallId: string) =>
+        claims.filter((path) => path.endsWith(`/browser-calls/${toolCallId}`))
+          .length;
+      // Only the first request streams the calls; their continuation is empty.
+      let requests = 0;
+      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+        async () =>
+          ++requests > 1
+            ? streamChunks([])
+            : new ReadableStream<UIMessageChunk>({
+                async start(controller) {
+                  controller.enqueue({ type: "start-step" });
+                  controller.enqueue({
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "refused",
+                    toolName: "addPlace",
+                    input: { name: "Queue" },
+                  });
+                  controller.enqueue({
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "pending",
+                    toolName: getLatestNetDefinitionToolName,
+                    input: {},
+                  });
+                  // The refusal arrives while the page is still claiming.
+                  while (claimsOf("refused") < 2)
+                    await new Promise((resolve) => setTimeout(resolve, 10));
+                  controller.enqueue(settlement);
+                  controller.enqueue({ type: "finish-step" });
+                  controller.enqueue({ type: "finish" });
+                  controller.close();
+                },
+              }),
+      );
+      const captureException = vi.fn();
+      renderTestPanel({
+        aiAssistant: {
+          transport: { reconnectToStream: async () => null, sendMessages },
+          inBandBrowserTools: {
+            has: calls.has,
+            run: (call, execute) => {
+              signals.set(call.toolCallId, call.signal);
+              const run = calls.run(call, execute);
+              runs.push(run.catch(() => {}));
+              return run;
+            },
+          },
+        },
+        errorTracker: { captureException },
+        initialMessage: "Add a queue, then read the net",
+        petriNetDefinition: nonEmptySDCPN,
+      });
+
+      await waitFor(() => expect(signals.get("refused")?.aborted).toBe(true));
+      const claimsAtRefusal = claimsOf("refused");
+      // Well inside the claim window, and many claim intervals later.
+      await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+      expect(claimsOf("refused")).toBe(claimsAtRefusal);
+      await waitFor(() =>
+        expect(posts).toEqual(["/agents/hash/instance/browser-calls/pending"]),
+      );
+      await Promise.all(runs);
+      expect(claimsOf("pending")).toBe(3);
+      expect(signals.get("pending")?.aborted).toBe(false);
+      expect(captureException).not.toHaveBeenCalled();
+    },
+  );
 
   test("does not execute tools from a durably stopped reopened response", async () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
