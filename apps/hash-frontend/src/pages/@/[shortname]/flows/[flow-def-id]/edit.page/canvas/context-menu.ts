@@ -15,9 +15,11 @@ export type ContextTarget =
   | { kind: "start-line"; stepId: string }
   | { kind: "selection"; stepIds: string[] };
 
-type AddStepAt = (actionDefinitionId: string, position: StepPosition) => void;
+export type AddStepAt = (
+  actionDefinitionId: string,
+  position: StepPosition,
+) => void;
 
-/** The right-click menu for what was right-clicked on the canvas. */
 export const getContextMenuItems = ({
   target,
   editor,

@@ -47,7 +47,7 @@ export type ForEachStepNode = Node<
 
 export type FlowNode = StartNode | ActionStepNode | ForEachStepNode;
 
-export type ConnectionEdgeData =
+type ConnectionEdgeData =
   | { kind: "connection"; connection: FlowConnection }
   /** From Start to a top-level step with nothing before it; not stored. */
   | { kind: "start"; stepId: string }

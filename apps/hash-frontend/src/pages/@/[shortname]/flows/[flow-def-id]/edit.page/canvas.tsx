@@ -32,16 +32,13 @@ import { stepCardSize, stepGap } from "./canvas/sizes";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
-import type { ContextTarget } from "./canvas/context-menu";
+import type { AddStepAt, ContextTarget } from "./canvas/context-menu";
 import type {
   ConnectionEdge as ConnectionEdgeType,
   FlowNode,
   ForEachLayout,
 } from "./canvas/flow-graph";
-import type {
-  FlowEditor,
-  StepPosition,
-} from "@local/hash-isomorphic-utils/flows/flow-editor";
+import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   Connection,
   EdgeChange,
@@ -311,9 +308,7 @@ const FlowCanvas = ({
     toggleCollapsed: onToggleCollapsed,
   };
 
-  const openAddMenuAtContextPoint = (
-    addStep: (actionDefinitionId: string, position: StepPosition) => void,
-  ) => {
+  const openAddMenuAtContextPoint = (addStep: AddStepAt) => {
     const point = contextPointRef.current;
     const position = getFreePosition(
       cardBeside(screenToFlowPosition(point), "right"),

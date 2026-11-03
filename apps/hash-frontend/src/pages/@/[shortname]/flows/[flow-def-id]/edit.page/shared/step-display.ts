@@ -14,7 +14,7 @@ export const countSteps = (count: number) =>
 export type StepTone = "green" | "orange" | "neutral";
 
 // TODO(FE-2125): offer every action, from their action definitions
-export const addableActions: {
+const addableActions: {
   actionDefinitionId: FlowActionDefinitionId;
   label: string;
   icon: IconName;
