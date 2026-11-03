@@ -209,6 +209,22 @@
   max-height: 55cqh;
 }
 
+/* A code block copied from a docs page: one panel, not a chip per line. */
+.deck-mdx pre {
+  align-self: stretch;
+  padding: 1em 1.25em;
+  border-radius: var(--pnd-radius);
+  background: var(--chip-bg);
+  font-size: 0.75em;
+  line-height: 1.5;
+}
+
+.deck .deck-mdx pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
 /* A table copied from a docs page: rules between rows, nothing else. */
 .deck-mdx table {
   align-self: stretch;
