@@ -1,7 +1,6 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
 import "./server/telemetry-bootstrap.ts";
-import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
@@ -34,6 +33,7 @@ import {
 } from "./server/http/cors.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
+import { createModelCallScope } from "./server/model-call-scope.ts";
 import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
 import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
@@ -135,19 +135,17 @@ const modelStreamCancellationTimeoutMs = modelStreamTimeout(
 );
 // The model call a provider stream belongs to, so its timeout line can be
 // joined to the submission's chronology line.
-const modelCallScope = new AsyncLocalStorage<{
-  readonly turnId: string;
-  readonly submissionId: string | undefined;
-}>();
+const modelCallScope = createModelCallScope();
+instrument({
+  key: Symbol.for("brunch.model-call-scope"),
+  observe() {},
+  interceptor: modelCallScope.interceptor,
+  dispose() {},
+});
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
   interceptor(operation, context, next) {
-    if (operation.type === "model")
-      return modelCallScope.run(
-        { turnId: operation.turnId, submissionId: context.submissionId },
-        next,
-      );
     if (operation.type === "agent" && context.agentName !== undefined)
       return admissionScope.run(
         mountedAgentNames.has(context.agentName)
@@ -211,7 +209,7 @@ const registerAdmittedProvider = (provider: Provider) => {
         reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,
         onIdleTimeout: (timeout) =>
           diagnostics.note("provider.timeout", {
-            ...modelCallScope.getStore(),
+            ...modelCallScope.current(),
             ...timeout,
           }),
       },
