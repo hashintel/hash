@@ -5,23 +5,21 @@
  * changes is in CSS.
  */
 
-import { MDXProvider } from "@mdx-js/react";
 import { useEffect, useRef } from "react";
 
 import { HashIconProvider } from "@hashintel/ds-icons";
 
 import { currentStepCount } from "../deck-state";
-import { slideMdxComponents } from "../mdx-components";
 import { usePresenterBroadcast } from "../presenter/use-presenter-broadcast";
 import { noteFor } from "../slide-module";
-import { SlideStepContext } from "../step-context";
+import { ExportButton } from "./chrome/export-button";
 import { HomeLink } from "./chrome/home-link";
 import { OverflowAlert } from "./chrome/overflow-alert";
 import { Progress, SlideCounter } from "./chrome/progress";
 import { Settings, SettingsSelect, SettingsSwitch } from "./chrome/settings";
-import { slideShapeOptions, useDisplayOptions } from "./display-options";
-import { SlideContent } from "./slide-content";
-import { SlideHead } from "./slide-head";
+import { DeckStage } from "./deck-stage";
+import { useDisplayOptions } from "./display-options";
+import { slideShapeOptions } from "./slide-shape";
 import { useDeck } from "./use-deck";
 import { useSlideOverflow } from "./use-slide-overflow";
 
@@ -35,7 +33,8 @@ export const Deck = ({
   deck: DeckSummary;
   slides: readonly LoadedSlide[];
 }) => {
-  const { state, slide, registerSteps, completeStep } = useDeck(slides);
+  const controls = useDeck(slides);
+  const { state, slide } = controls;
   const steps = currentStepCount(state, slides);
   const { slideShape, setSlideShape, flagOverflow, setFlagOverflow } =
     useDisplayOptions();
@@ -66,28 +65,12 @@ export const Deck = ({
 
   return (
     <div className="deck" data-shape={slideShape}>
-      <div className="deck-stage">
-        <div
-          ref={canvasRef}
-          className="deck-canvas"
-          data-overflowing={overflow > 0}
-        >
-          <MDXProvider components={slideMdxComponents}>
-            <SlideStepContext
-              value={{
-                slideId: slide.id,
-                step: state.step,
-                mode: "live",
-                registerSteps,
-                completeStep,
-              }}
-            >
-              <SlideHead logo={deck.logo} label={slide.label} />
-              <SlideContent key={slide.id} slide={slide} />
-            </SlideStepContext>
-          </MDXProvider>
-        </div>
-      </div>
+      <DeckStage
+        logo={deck.logo}
+        controls={controls}
+        canvasRef={canvasRef}
+        overflowing={overflow > 0}
+      />
       <HashIconProvider size={16} weight={450}>
         <OverflowAlert overflow={overflow} />
         <Progress
@@ -110,6 +93,9 @@ export const Deck = ({
             checked={flagOverflow}
             onChange={setFlagOverflow}
           />
+          {import.meta.env.DEV ? (
+            <ExportButton deckId={deck.id} shape={slideShape} />
+          ) : null}
         </Settings>
       </HashIconProvider>
     </div>

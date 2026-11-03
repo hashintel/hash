@@ -27,6 +27,9 @@ import type { SlideStepContextValue } from "../step-context";
 export interface DeckControls {
   state: DeckState;
   slide: LoadedSlide;
+  /** The next step, or the next slide after the last one; what a click does. */
+  forward: () => void;
+  back: () => void;
   registerSteps: SlideStepContextValue["registerSteps"];
   completeStep: SlideStepContextValue["completeStep"];
 }
@@ -92,6 +95,9 @@ export const useDeck = (slides: readonly LoadedSlide[]): DeckControls => {
     });
   };
 
+  const forward = (): void => move((from) => nextState(from, slides));
+  const back = (): void => move((from) => previousState(from, slides));
+
   const onKeyDown = useEffectEvent((event: KeyboardEvent): void => {
     if (
       event.defaultPrevented ||
@@ -102,8 +108,6 @@ export const useDeck = (slides: readonly LoadedSlide[]): DeckControls => {
     ) {
       return;
     }
-    const forward = () => move((from) => nextState(from, slides));
-    const back = () => move((from) => previousState(from, slides));
     const actions: Record<string, () => void> = {
       ArrowRight: forward,
       ArrowDown: forward,
@@ -147,6 +151,8 @@ export const useDeck = (slides: readonly LoadedSlide[]): DeckControls => {
   return {
     state,
     slide,
+    forward,
+    back,
     registerSteps: (slideId, total) =>
       setState((current) => registerSteps(current, slides, slideId, total)),
     completeStep: (slideId, step) =>

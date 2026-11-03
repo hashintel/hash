@@ -20,6 +20,7 @@ import remarkMath from "remark-math";
 import { defineConfig, searchForWorkspaceRoot } from "vite";
 
 import { resolveDiffCompareContext } from "./src/diff-context.ts";
+import { deckExportPlugin } from "./src/plugins/deck-export/index.ts";
 import { decksPlugin } from "./src/plugins/decks.ts";
 import { rehypeFormulas } from "./src/plugins/formulas.mjs";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
@@ -141,6 +142,7 @@ export default defineConfig(async () => ({
       docsDirectory: contentPath("docs/"),
     }),
     decksPlugin(slidesRoot),
+    deckExportPlugin(slidesRoot),
   ],
   resolve: {
     // What a deck may import (`src/slides/index.ts` is the list), and the
