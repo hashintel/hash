@@ -4,6 +4,7 @@
  */
 
 import { createWorkerThreadRuntime } from "../../../environment";
+import { FLUSH_EVENTS, FLUSH_STEPS, shouldFlush } from "./flush-policy";
 import {
   createTraceStepper,
   DEFAULT_EVENT_STEP_DT,
@@ -20,14 +21,6 @@ const runtime = createWorkerThreadRuntime<
   ToEventMainMessage
 >();
 
-/**
- * Steps between two yields to the message queue: 0.2 s of simulated time at
- * the default step, so a pause or a stop lands within that.
- */
-const STEPS_PER_BATCH = 2_000;
-/** Events posted in one message at most, so a burst of firings streams. */
-const MAX_EVENTS_PER_BATCH = 256;
-
 let stepper: TraceStepper | null = null;
 let status: "ready" | "running" | "complete" | "error" | null = null;
 let isRunning = false;
@@ -35,6 +28,44 @@ let isRunning = false;
 let demandedTime = 0;
 /** Pool entries already shipped; id 0 (`""`) is pre-seeded on both sides. */
 let sentStringCount = 1;
+
+/** Steps computed and events produced since the last message to the host. */
+let pending: TraceEvent[] = [];
+let pendingSteps = 0;
+let lastFlushAt = 0;
+
+const flush = (): void => {
+  if (!stepper) {
+    return;
+  }
+  runtime.postMessage({
+    type: "events",
+    events: pending,
+    coveredTime: stepper.time,
+  });
+  pending = [];
+  pendingSteps = 0;
+  lastFlushAt = Date.now();
+};
+
+const flushIfDue = (stopping: boolean): void => {
+  if (
+    shouldFlush({
+      stepsPending: pendingSteps,
+      eventsPending: pending.length,
+      msSinceFlush: Date.now() - lastFlushAt,
+      stopping,
+    })
+  ) {
+    flush();
+  }
+};
+
+const resetPending = (): void => {
+  pending = [];
+  pendingSteps = 0;
+  lastFlushAt = 0;
+};
 
 const takeNewStringsDelta = (): SimulationFrameNewStrings | undefined => {
   if (!stepper || stepper.stringPool.size <= sentStringCount) {
@@ -56,20 +87,21 @@ const withStringsDelta = (event: TraceEvent): TraceEvent => {
 const computeLoop = async (): Promise<void> => {
   while (isRunning && stepper) {
     if (stepper.time >= demandedTime) {
+      flushIfDue(false);
       await runtime.delay(10);
       continue;
     }
 
-    const events: TraceEvent[] = [];
     let stop: ToEventMainMessage | null = null;
-    for (
-      let step = 0;
-      step < STEPS_PER_BATCH && events.length < MAX_EVENTS_PER_BATCH;
-      step++
+    while (
+      pendingSteps < FLUSH_STEPS &&
+      pending.length < FLUSH_EVENTS &&
+      stepper.time < demandedTime
     ) {
       const result = stepper.step();
+      pendingSteps += 1;
       if (result.event) {
-        events.push(withStringsDelta(result.event));
+        pending.push(withStringsDelta(result.event));
       }
       if (result.error !== null) {
         stop = { type: "error", message: result.error, itemId: null };
@@ -83,12 +115,9 @@ const computeLoop = async (): Promise<void> => {
         };
         break;
       }
-      if (stepper.time >= demandedTime) {
-        break;
-      }
     }
 
-    runtime.postMessage({ type: "events", events, coveredTime: stepper.time });
+    flushIfDue(stop !== null);
     if (stop) {
       isRunning = false;
       status = stop.type;
@@ -123,6 +152,7 @@ runtime.onMessage((message) => {
         isRunning = false;
         demandedTime = 0;
         sentStringCount = 1;
+        resetPending();
         runtime.postMessage({
           type: "events",
           events: [withStringsDelta(stepper.initialEvent)],
@@ -168,6 +198,7 @@ runtime.onMessage((message) => {
         status = "ready";
       }
       if (stepper) {
+        flush();
         runtime.postMessage({ type: "paused", time: stepper.time });
       }
       break;
@@ -178,6 +209,7 @@ runtime.onMessage((message) => {
       status = null;
       demandedTime = 0;
       sentStringCount = 1;
+      resetPending();
       break;
     }
     case "demand": {
