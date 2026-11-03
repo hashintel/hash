@@ -27,6 +27,7 @@ import { remarkLayerCards } from "./src/plugins/layer-cards.mjs";
 import { reloadDiagrams } from "./src/plugins/reload-diagrams.mjs";
 import { remarkAsides } from "./src/plugins/remark-asides.mjs";
 import { remarkSchemeLinks } from "./src/plugins/scheme-links.mjs";
+import { remarkSlideSteps } from "./src/plugins/slide-steps.mjs";
 
 import type { BundleManifest } from "../src/bundle/outputs.ts";
 
@@ -83,6 +84,7 @@ export default defineConfig(async () => ({
               docsDirectory: contentPath("docs/"),
             },
           ],
+          [remarkSlideSteps, { docsDirectory: contentPath("docs/") }],
         ],
         rehypePlugins: [
           rehypeSlug,

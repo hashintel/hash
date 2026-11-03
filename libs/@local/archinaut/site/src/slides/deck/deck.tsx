@@ -11,8 +11,8 @@ import { useEffect, useRef } from "react";
 import { HashIconProvider } from "@hashintel/ds-icons";
 
 import { currentStepCount } from "../deck-state";
+import { slideMdxComponents } from "../mdx-components";
 import { usePresenterBroadcast } from "../presenter/use-presenter-broadcast";
-import { Reveal } from "../reveal";
 import { noteFor } from "../slide-module";
 import { SlideStepContext } from "../step-context";
 import { HomeLink } from "./chrome/home-link";
@@ -26,9 +26,6 @@ import { useSlideOverflow } from "./use-slide-overflow";
 
 import type { DeckSummary } from "../decks";
 import type { LoadedSlide } from "../slide-module";
-
-/** What MDX slides may use without importing it. */
-const mdxComponents = { Reveal };
 
 export const Deck = ({
   deck,
@@ -74,7 +71,7 @@ export const Deck = ({
           className="deck-canvas"
           data-overflowing={overflow > 0}
         >
-          <MDXProvider components={mdxComponents}>
+          <MDXProvider components={slideMdxComponents}>
             <SlideStepContext
               value={{
                 slideId: slide.id,

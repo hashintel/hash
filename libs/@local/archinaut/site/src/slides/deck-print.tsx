@@ -9,13 +9,11 @@ import { useEffect } from "react";
 
 import "./styles/print.css";
 import { SlideContent } from "./deck/slide-content";
-import { Reveal } from "./reveal";
+import { slideMdxComponents } from "./mdx-components";
 import { noteFor, type LoadedSlide } from "./slide-module";
 import { SlideStepContext } from "./step-context";
 
 import type { DeckSummary } from "./decks";
-
-const mdxComponents = { Reveal };
 
 const ignore = (): void => {};
 
@@ -46,7 +44,7 @@ export const DeckPrint = ({
   }, [deck.title]);
   return (
     <div className="deck-print">
-      <MDXProvider components={mdxComponents}>
+      <MDXProvider components={slideMdxComponents}>
         {slides.map((slide) => (
           <section className="deck-print__page" key={slide.id}>
             <div className="deck deck-print__stage">

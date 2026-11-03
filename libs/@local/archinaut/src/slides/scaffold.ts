@@ -17,7 +17,6 @@ export const notes = {
   default: "Say what the talk is about.",
   byStep: { 1: "Say what the audience leaves with." },
 };
-export const steps = 2;
 
 # ${title}
 

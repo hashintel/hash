@@ -7,6 +7,6 @@
 export type { SlideDefinition, SlideNotes, StepNotes } from "./types";
 export { Slide } from "./slide";
 export { SlideFrame } from "./frame";
-export { Reveal } from "./reveal";
+export { Reveal, RevealInline } from "./reveal";
 export { useSlideStepper, useStep, useCompleteStep } from "./stepper";
 export { LayerCard } from "./docs/layer-card";
