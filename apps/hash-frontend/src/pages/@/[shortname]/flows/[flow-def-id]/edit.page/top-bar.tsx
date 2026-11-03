@@ -170,6 +170,7 @@ export const TopBar = ({
   onRetrySave,
   onArchive,
   onLeave,
+  onLeaveWithoutSaving,
 }: {
   name: string;
   saveStatus: FlowSaveStatus;
@@ -178,11 +179,31 @@ export const TopBar = ({
   onRetrySave: () => void;
   /** Archives the flow and leaves the editor. */
   onArchive: () => Promise<void>;
+  /**
+   * Saves any edits not saved yet, then leaves the editor for the flows page. Resolves to whether it left, which it
+   * doesn't if the edits couldn't be saved.
+   */
+  onLeave: () => Promise<boolean>;
   /** Leaves the editor for the flows page, dropping any edits not saved yet. */
-  onLeave: () => void;
+  onLeaveWithoutSaving: () => void;
 }) => {
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  const leave = async () => {
+    if (saveStatus === "failed") {
+      setLeaveDialogOpen(true);
+      return;
+    }
+
+    setLeaving(true);
+
+    if (!(await onLeave())) {
+      setLeaving(false);
+      setLeaveDialogOpen(true);
+    }
+  };
 
   return (
     <div className={topBar}>
@@ -193,12 +214,9 @@ export const TopBar = ({
           size="xs"
           iconName="arrowLeft"
           tooltip="Back to flows"
+          loading={leaving}
           onClick={() => {
-            if (saveStatus === "failed") {
-              setLeaveDialogOpen(true);
-            } else {
-              onLeave();
-            }
+            void leave();
           }}
         />
         <BreadCrumbs>
@@ -230,7 +248,7 @@ export const TopBar = ({
       )}
       {leaveDialogOpen && (
         <LeaveFlowDialog
-          onLeave={onLeave}
+          onLeave={onLeaveWithoutSaving}
           onClose={() => setLeaveDialogOpen(false)}
         />
       )}

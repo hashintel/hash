@@ -183,7 +183,16 @@ const FlowEditor = ({
     await router.push("/flows");
   };
 
-  const leave = () => {
+  const leave = async () => {
+    if (!(await flush())) {
+      return false;
+    }
+
+    void router.push("/flows");
+    return true;
+  };
+
+  const leaveWithoutSaving = () => {
     discardUnsavedEdits();
     void router.push("/flows");
   };
@@ -201,6 +210,7 @@ const FlowEditor = ({
         }}
         onArchive={archiveFlow}
         onLeave={leave}
+        onLeaveWithoutSaving={leaveWithoutSaving}
       />
       <div className={editorBody}>
         <LeftPanel steps={flowDefinition.steps} />
