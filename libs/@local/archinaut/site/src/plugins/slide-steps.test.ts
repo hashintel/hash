@@ -93,13 +93,14 @@ describe("remarkSlideSteps", () => {
     expect(exportedSteps(root)).toBe("export const steps = 4;");
   });
 
-  it("counts formula steps and note steps too", () => {
+  it("counts formula steps, swaps and note steps too", () => {
     const root = tree(
       { type: "math", value: String.raw`a \step{2}{+ b} \step { 5 }{+ c}` },
+      { type: "inlineMath", value: String.raw`\swap{8}{x}{y}` },
       esm("notes", notesWithSteps(1, 6)),
     );
     plugin(root, slide);
-    expect(exportedSteps(root)).toBe("export const steps = 7;");
+    expect(exportedSteps(root)).toBe("export const steps = 9;");
   });
 
   it("gives a slide with nothing to step one step", () => {

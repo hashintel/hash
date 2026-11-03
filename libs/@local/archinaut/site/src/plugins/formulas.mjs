@@ -9,11 +9,13 @@
  * the dependency review rejects; calling KaTeX here keeps the site on the
  * patched release.
  *
- * On a slide, `\step{n}{…}` shows part of a formula from step `n`. It
- * expands to KaTeX's `\htmlData{at=n}{…}`, the one HTML extension trusted,
- * and each tagged span becomes a `RevealInline`, so it keeps its space while
- * hidden and the formula never shifts. On a docs page `\step` is not
- * defined, and using it fails the compile.
+ * On a slide, `\step{n}{…}` shows part of a formula from step `n`, and
+ * `\swap{n}{before}{after}` shows `before` until step `n` and `after` from
+ * it, in the same place. Both expand to KaTeX's `\htmlData`, the one HTML
+ * extension trusted, and each tagged span becomes an inline reveal. A
+ * `\step` part keeps its space while hidden, so the formula never shifts; a
+ * swap reflows once, at its step. On a docs page neither is defined, and
+ * using one fails the compile.
  */
 
 import { fromHtml } from "hast-util-from-html";
@@ -42,12 +44,15 @@ const formulaOf = (element) => {
 };
 
 /**
- * KaTeX settings for a slide: `\step` and the one HTML extension it needs.
- * A function, because KaTeX writes a formula's own definitions into
- * `macros`, and one formula's must not reach the next.
+ * KaTeX settings for a slide: `\step`, `\swap` and the one HTML extension
+ * they need. A function, because KaTeX writes a formula's own definitions
+ * into `macros`, and one formula's must not reach the next.
  */
 const slideOptions = () => ({
-  macros: { "\\step": "\\htmlData{at=#1}{#2}" },
+  macros: {
+    "\\step": "\\htmlData{at=#1}{#2}",
+    "\\swap": "\\htmlData{until=#1, swap=1}{#2}\\htmlData{at=#1, swap=1}{#3}",
+  },
   trust: (/** @type {{ command: string }} */ context) =>
     context.command === "\\htmlData",
   strict: (/** @type {string} */ errorCode) =>
@@ -55,57 +60,72 @@ const slideOptions = () => ({
 });
 
 /**
- * An inline reveal around a span `\step` tagged, as MDX compiles JSX.
+ * A JSX attribute holding a number literal, as MDX compiles one.
  *
- * @param {import("hast").Element} element
- * @param {number} at
+ * @param {string} name
+ * @param {number} value
  */
-const revealFrom = (element, at) => ({
-  type: "mdxJsxTextElement",
-  name: "RevealInline",
-  attributes: [
-    {
-      type: "mdxJsxAttribute",
-      name: "at",
-      value: {
-        type: "mdxJsxAttributeValueExpression",
-        value: String(at),
-        data: {
-          estree: {
-            type: "Program",
-            sourceType: "module",
-            body: [
-              {
-                type: "ExpressionStatement",
-                expression: { type: "Literal", value: at, raw: String(at) },
-              },
-            ],
+const numberAttribute = (name, value) => ({
+  type: "mdxJsxAttribute",
+  name,
+  value: {
+    type: "mdxJsxAttributeValueExpression",
+    value: String(value),
+    data: {
+      estree: {
+        type: "Program",
+        sourceType: "module",
+        body: [
+          {
+            type: "ExpressionStatement",
+            expression: { type: "Literal", value, raw: String(value) },
           },
-        },
+        ],
       },
     },
-  ],
-  children: [element],
+  },
 });
 
 /**
- * Wraps every span `\step` tagged in an inline reveal, innermost last so a
- * step nested in another is wrapped too.
+ * The step a span's data attribute names, if it is a whole number.
+ *
+ * @param {unknown} value
+ * @returns {number | undefined}
+ */
+const stepOf = (value) => {
+  const step = Number(value);
+  return value !== undefined && Number.isInteger(step) ? step : undefined;
+};
+
+/**
+ * Wraps every span `\step` or `\swap` tagged, innermost last so a step
+ * nested in another is wrapped too. A `\step` part becomes a
+ * `RevealInline`, which keeps its space while hidden; each side of a
+ * `\swap` becomes an `OnlyInline`, which does not, so the two share a place.
  *
  * @param {import("hast").Root} fragment
  */
 const revealSteps = (fragment) => {
   visit(fragment, "element", (element, index, parent) => {
-    const at = Number(element.properties.dataAt);
+    const at = stepOf(element.properties.dataAt);
+    const until = stepOf(element.properties.dataUntil);
     if (
-      element.properties.dataAt === undefined ||
-      !Number.isInteger(at) ||
+      (at === undefined && until === undefined) ||
       parent === undefined ||
       index === undefined
     ) {
       return;
     }
-    parent.children[index] = /** @type {never} */ (revealFrom(element, at));
+    const swapped = element.properties.dataSwap !== undefined;
+    parent.children[index] = /** @type {never} */ ({
+      type: "mdxJsxTextElement",
+      name: swapped ? "OnlyInline" : "RevealInline",
+      attributes: [
+        ...(at === undefined ? [] : [numberAttribute("at", at)]),
+        ...(until === undefined ? [] : [numberAttribute("until", until)]),
+      ],
+      children: [element],
+    });
   });
 };
 

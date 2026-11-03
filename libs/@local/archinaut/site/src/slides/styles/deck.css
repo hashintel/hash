@@ -259,6 +259,27 @@
   opacity: 0;
 }
 
+/* One side of a swap: no space while hidden, a short fade when it arrives. */
+.deck-only[data-visible="false"] {
+  display: none;
+}
+
+.deck-only[data-visible="true"] {
+  animation: deck-only-in 250ms ease;
+}
+
+@keyframes deck-only-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media print, (prefers-reduced-motion: reduce) {
+  .deck-only[data-visible="true"] {
+    animation: none;
+  }
+}
+
 /* `SlideFrame`, the frame for a TSX slide. */
 .deck-frame {
   align-items: stretch;

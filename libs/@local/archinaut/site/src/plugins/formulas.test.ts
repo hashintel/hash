@@ -27,31 +27,26 @@ const inlineMath = (tex: string): Root => ({
   ],
 });
 
-/** Every inline reveal in the tree, as `at` and the text it holds. */
+interface JsxNode {
+  type: string;
+  name?: string;
+  attributes?: { name: string; value: { value: string } }[];
+  children?: JsxNode[];
+}
+
+/** Every inline reveal in the tree, as its component and step range. */
 const revealsIn = (root: Root): string[] => {
   const found: string[] = [];
-  const walk = (
-    node: { type: string; children?: unknown[] } & Record<string, unknown>,
-  ): void => {
-    if (node.type === "mdxJsxTextElement" && node.name === "RevealInline") {
-      const [attribute] = node.attributes as { value: { value: string } }[];
-      let text = "";
-      const collect = (child: {
-        type: string;
-        value?: string;
-        children?: unknown[];
-      }) => {
-        if (child.type === "text") text += child.value ?? "";
-        (child.children ?? []).forEach((grandchild) =>
-          collect(grandchild as never),
-        );
-      };
-      (node.children ?? []).forEach((child) => collect(child as never));
-      found.push(`${attribute?.value.value}:${text}`);
+  const walk = (node: JsxNode): void => {
+    if (node.type === "mdxJsxTextElement") {
+      const range = (node.attributes ?? [])
+        .map((attribute) => `${attribute.name}=${attribute.value.value}`)
+        .join(" ");
+      found.push(`${node.name} ${range}`);
     }
-    (node.children ?? []).forEach((child) => walk(child as never));
+    (node.children ?? []).forEach(walk);
   };
-  walk(root as never);
+  walk(root as unknown as JsxNode);
   return found;
 };
 
@@ -70,28 +65,41 @@ describe("rehypeFormulas", () => {
   it("turns each \\step on a slide into an inline reveal from that step", () => {
     const root = inlineMath(String.raw`a \step{1}{+ b} \step{2}{+ c}`);
     plugin(root, slide);
-    expect(revealsIn(root).map((reveal) => reveal.split(":")[0])).toEqual([
-      "1",
-      "2",
-    ]);
+    expect(revealsIn(root)).toEqual(["RevealInline at=1", "RevealInline at=2"]);
   });
 
   it("wraps a step nested inside another", () => {
     const root = inlineMath(String.raw`\step{1}{a \step{3}{+ b}}`);
     plugin(root, slide);
-    expect(revealsIn(root).map((reveal) => reveal.split(":")[0])).toEqual([
-      "1",
-      "3",
+    expect(revealsIn(root)).toEqual(["RevealInline at=1", "RevealInline at=3"]);
+  });
+
+  it("turns a \\swap into a part until the step and a part from it", () => {
+    const root = inlineMath(String.raw`\ge \swap{4}{1 - \alpha}{0.95}`);
+    plugin(root, slide);
+    expect(revealsIn(root)).toEqual(["OnlyInline until=4", "OnlyInline at=4"]);
+  });
+
+  it("swaps again inside the part a swap brings in", () => {
+    const root = inlineMath(String.raw`\swap{2}{a}{\swap{5}{b}{c}}`);
+    plugin(root, slide);
+    expect(revealsIn(root)).toEqual([
+      "OnlyInline until=2",
+      "OnlyInline at=2",
+      "OnlyInline until=5",
+      "OnlyInline at=5",
     ]);
   });
 
-  it("does not define \\step on a docs page", () => {
+  it("does not define \\step or \\swap on a docs page", () => {
+    const docsPage = { path: "/site/content/docs/a.mdx" } as never;
     expect(() =>
-      plugin(inlineMath(String.raw`a \step{1}{b}`), {
-        path: "/site/content/docs/a.mdx",
-      } as never),
+      plugin(inlineMath(String.raw`a \step{1}{b}`), docsPage),
     ).toThrow(
       /a\.mdx:7: KaTeX parse error: Undefined control sequence: \\step/u,
     );
+    expect(() =>
+      plugin(inlineMath(String.raw`\swap{1}{a}{b}`), docsPage),
+    ).toThrow(/Undefined control sequence: \\swap/u);
   });
 });

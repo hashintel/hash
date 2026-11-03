@@ -4,7 +4,7 @@
  * plus one:
  *
  * - `<Reveal at={n} until={m}>`, whose `at` and `until` are number literals;
- * - `\step{n}{…}` inside a formula;
+ * - `\step{n}{…}` and `\swap{n}{…}{…}` inside a formula;
  * - a key of `notes.byStep`.
  *
  * Without an `export const steps` the plugin writes one. With one, it checks
@@ -17,7 +17,7 @@
 
 import { visit } from "unist-util-visit";
 
-const formulaStep = /\\step\s*\{\s*(\d+)\s*\}/gu;
+const formulaStep = /\\(?:step|swap)\s*\{\s*(\d+)\s*\}/gu;
 
 /**
  * The number an attribute's literal expression holds, `undefined` when the
