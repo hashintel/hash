@@ -1,14 +1,13 @@
 import ELK from "elkjs/lib/elk.bundled.js";
 
 import { getStepsBefore } from "../shared/step-order";
+import { getStartPosition, startNodeId } from "./flow-graph";
 import {
   collapsedForEachSize,
   forEachBoxPadding,
-  getStartPosition,
-  startNodeId,
   stepCardSize,
   stepGap,
-} from "./flow-graph";
+} from "./sizes";
 
 import type { ForEachLayout } from "./flow-graph";
 import type { StepPosition } from "@local/hash-isomorphic-utils/flows/flow-editor";

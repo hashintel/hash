@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { actionStep, flowWith } from "../shared/step-fixtures";
-import {
-  collapsedForEachSize,
-  getFlowGraph,
-  getStepNodeId,
-  startNodeId,
-} from "./flow-graph";
+import { getFlowGraph, getStepNodeId, startNodeId } from "./flow-graph";
+import { collapsedForEachSize } from "./sizes";
 
 import type { ForEachLayout } from "./flow-graph";
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";

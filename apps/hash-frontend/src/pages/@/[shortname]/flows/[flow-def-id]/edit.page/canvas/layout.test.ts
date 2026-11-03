@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { actionStep, flowWith } from "../shared/step-fixtures";
-import { getStartPosition, stepCardSize } from "./flow-graph";
+import { getStartPosition } from "./flow-graph";
 import { getFreePosition, layOutFlow } from "./layout";
+import { stepCardSize } from "./sizes";
 
 describe("layOutFlow", () => {
   it("puts each step after the steps it runs after, counting data links, and keeps Start where it is", async () => {

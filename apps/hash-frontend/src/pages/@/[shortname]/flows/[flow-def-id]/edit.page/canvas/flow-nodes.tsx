@@ -7,7 +7,7 @@ import { CollapseButton } from "../shared/collapse-button";
 import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
 import { useCanvasActions } from "./canvas-actions";
-import { forEachBoxPadding, stepCardSize } from "./flow-graph";
+import { forEachBoxPadding, stepCardSize } from "./sizes";
 
 import type { StepTone } from "../shared/step-display";
 import type {

@@ -1,4 +1,5 @@
 import { getStepsBefore } from "../shared/step-order";
+import { collapsedForEachSize, stepCardSize, stepGap } from "./sizes";
 
 import type {
   FlowConnection,
@@ -12,11 +13,6 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import type { Edge, Node } from "@xyflow/react";
-
-export const stepCardSize = { width: 200, height: 59 };
-export const stepGap = 64;
-export const forEachBoxPadding = { header: 40, side: 16 };
-export const collapsedForEachSize = { width: 240, height: stepCardSize.height };
 
 export type ForEachLayout = {
   size: { width: number; height: number };

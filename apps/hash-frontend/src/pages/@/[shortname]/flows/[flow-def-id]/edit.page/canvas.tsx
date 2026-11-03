@@ -24,27 +24,21 @@ import { AddStepMenu } from "./canvas/add-step-menu";
 import { CanvasActionsContext } from "./canvas/canvas-actions";
 import { CanvasToolbar } from "./canvas/canvas-toolbar";
 import { ConnectionEdge } from "./canvas/connection-edge";
-import {
-  getFlowGraph,
-  getStepNodeId,
-  startNodeId,
-  stepCardSize,
-  stepGap,
-} from "./canvas/flow-graph";
+import { getContextMenuItems } from "./canvas/context-menu";
+import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
-import { stepNoun } from "./shared/step-display";
+import { stepCardSize, stepGap } from "./canvas/sizes";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
+import type { ContextTarget } from "./canvas/context-menu";
 import type {
   ConnectionEdge as ConnectionEdgeType,
   FlowNode,
   ForEachLayout,
 } from "./canvas/flow-graph";
-import type { MenuItem } from "@hashintel/ds-components";
 import type {
-  FlowConnection,
   FlowEditor,
   StepPosition,
 } from "@local/hash-isomorphic-utils/flows/flow-editor";
@@ -70,13 +64,6 @@ const canvas = css({ width: "full", height: "full" });
 
 const getNodeStepId = (node: FlowNode) =>
   node.type === "start" ? null : node.data.step.stepId;
-
-type ContextTarget =
-  | { kind: "step"; stepId: string }
-  | { kind: "port"; stepId: string; side: "input" | "output" }
-  | { kind: "connection"; connection: FlowConnection }
-  | { kind: "start-line"; stepId: string }
-  | { kind: "selection"; stepIds: string[] };
 
 type AddMenuState = {
   anchor: DOMRect;
@@ -339,121 +326,6 @@ const FlowCanvas = ({
     });
   };
 
-  const getContextMenuItems = (): MenuItem[] => {
-    const disconnectAll = (
-      stepIds: string[],
-      { disabled = false } = {},
-    ): MenuItem => ({
-      id: "disconnect-all",
-      text: "Disconnect all",
-      icon: "close",
-      disabled,
-      onClick: () => {
-        for (const stepId of stepIds) {
-          editor.disconnectStep(stepId);
-        }
-      },
-    });
-    const insertStepHere = (
-      addStep: (actionDefinitionId: string, position: StepPosition) => void,
-    ): MenuItem => ({
-      id: "insert-step",
-      text: `Insert ${stepNoun.singular} here`,
-      icon: "plus",
-      onClick: () => openAddMenuAtContextPoint(addStep),
-    });
-    const removeConnections = (connections: FlowConnection[]) => {
-      for (const connection of connections) {
-        editor.removeConnection(connection);
-      }
-    };
-
-    const getConnections = (stepId: string) => ({
-      incoming: (topLevelSteps.get(stepId)?.runAfter ?? []).map(
-        ({ stepId: from }) => ({ from, to: stepId }),
-      ),
-      outgoing: flowDefinition.steps
-        .filter(({ runAfter }) =>
-          runAfter?.some(({ stepId: from }) => from === stepId),
-        )
-        .map(({ stepId: to }) => ({ from: stepId, to })),
-    });
-
-    switch (contextTarget?.kind) {
-      case "step": {
-        const { incoming, outgoing } = getConnections(contextTarget.stepId);
-
-        return [
-          {
-            id: "disconnect-previous",
-            text: "Disconnect from previous",
-            icon: "plug",
-            disabled: incoming.length === 0,
-            onClick: () => removeConnections(incoming),
-          },
-          disconnectAll([contextTarget.stepId], {
-            disabled: incoming.length + outgoing.length === 0,
-          }),
-        ];
-      }
-      case "port": {
-        const { incoming, outgoing } = getConnections(contextTarget.stepId);
-        const atPort = contextTarget.side === "input" ? incoming : outgoing;
-
-        return [
-          {
-            id: "disconnect",
-            text: "Disconnect",
-            icon: "plug",
-            disabled: atPort.length === 0,
-            onClick: () => removeConnections(atPort),
-          },
-          disconnectAll([contextTarget.stepId], {
-            disabled: incoming.length + outgoing.length === 0,
-          }),
-        ];
-      }
-      case "connection": {
-        const { connection } = contextTarget;
-
-        return [
-          {
-            id: "disconnect",
-            text: "Disconnect",
-            icon: "plug",
-            onClick: () => editor.removeConnection(connection),
-          },
-          insertStepHere((actionDefinitionId, position) =>
-            selectStep(
-              editor.addStep(actionDefinitionId, {
-                into: connection,
-                position,
-              }),
-            ),
-          ),
-        ];
-      }
-      case "start-line": {
-        const { stepId: to } = contextTarget;
-
-        /* A Start line isn't stored, so the new step just goes before its target. */
-        return [
-          insertStepHere((actionDefinitionId, position) => {
-            const stepId = editor.addStep(actionDefinitionId, { position });
-
-            editor.addConnection({ from: stepId, to });
-            selectStep(stepId);
-          }),
-        ];
-      }
-      case "selection":
-        return [disconnectAll(contextTarget.stepIds)];
-      case undefined:
-        /* Never shown, but an empty `items` makes `RightClickMenu` remount the canvas. */
-        return [disconnectAll([])];
-    }
-  };
-
   const onNodesChange = (changes: NodeChange<FlowNode>[]) => {
     const nextMeasurements = new Map(measurements);
     const nextDragPositions = new Map(dragPositions);
@@ -639,7 +511,15 @@ const FlowCanvas = ({
   return (
     <CanvasActionsContext value={canvasActions}>
       <div ref={containerRef} className={canvas}>
-        <RightClickMenu items={getContextMenuItems()}>
+        <RightClickMenu
+          items={getContextMenuItems({
+            target: contextTarget,
+            editor,
+            topLevelSteps,
+            openAddMenu: openAddMenuAtContextPoint,
+            selectStep,
+          })}
+        >
           <ReactFlow<FlowNode, ConnectionEdgeType>
             nodes={nodes}
             edges={edges}
