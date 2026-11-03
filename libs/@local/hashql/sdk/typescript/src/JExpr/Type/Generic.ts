@@ -13,8 +13,10 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
 
+/** @category Schemas */
 export const Schema: typeof Defs.Generic = Defs.Generic;
 
+/** @category Models */
 export type Generic = Defs.GenericType;
 
 export declare namespace Generic {
@@ -27,17 +29,21 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * Checks a decoded generic entry object and returns it.
  *
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Generic =
   Overflow.make(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Generic, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
@@ -46,6 +52,8 @@ export const makeOption: (
 
 /**
  * Creates a generic argument: the `Integer` in `List<Integer>`.
+ *
+ * @category Constructors
  */
 export const argument = (type: Defs.Type): Defs.GenericArgumentType => ({
   _tag: "GenericArgument",
@@ -56,6 +64,8 @@ export const argument = (type: Defs.Type): Defs.GenericArgumentType => ({
  * Creates a named generic constraint: the `T: Integer` in `Foo<T: Integer>`.
  *
  * Returns `None` if `name` is not a valid identifier according to `Ident.decodeResult`. Without a bound, it compiles to the bare name, which HashQL parses as a generic argument. A declaration name such as `Pair<T>` reads that bare name as an unbounded parameter.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const bound = (

@@ -7,15 +7,27 @@
  */
 import type * as Type from "../Type.js";
 
-/** The UUID type, an opaque string named by its HashQL path. */
+/**
+ * The UUID type, an opaque string named by its HashQL path.
+ *
+ * @category Identifiers
+ */
 export type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
-/** The entity identifier type, an opaque wrapper around {@link Uuid}. */
+/**
+ * The entity identifier type, an opaque wrapper around {@link Uuid}.
+ *
+ * @category Identifiers
+ */
 export type EntityUuid = Type.Opaque<
   "::graph::types::knowledge::entity::EntityUuid",
   Uuid
 >;
 
-/** The operation of the built-in `List`, which maps one element type to a list type. */
+/**
+ * The operation of the built-in `List`, which maps one element type to a list type.
+ *
+ * @category Signatures
+ */
 export interface List extends Type.TypeConstructor {
   readonly arity: 1;
   readonly type: this["Target"] extends readonly [infer T extends Type.Any]
@@ -23,7 +35,11 @@ export interface List extends Type.TypeConstructor {
     : never;
 }
 
-/** The operation of the built-in `Dict`, which maps a key type and a value type to a dictionary type. */
+/**
+ * The operation of the built-in `Dict`, which maps a key type and a value type to a dictionary type.
+ *
+ * @category Signatures
+ */
 export interface Dict extends Type.TypeConstructor {
   readonly arity: 2;
   readonly type: this["Target"] extends readonly [
@@ -38,6 +54,8 @@ export interface Dict extends Type.TypeConstructor {
  * The signature of the built-in `eq`, which compares two operands and returns Boolean.
  *
  * The operand types need not match. A call with any other number of arguments selects parameters that no argument satisfies.
+ *
+ * @category Signatures
  */
 export interface Comparison extends Type.FunctionSignature {
   readonly type: this["Target"] extends readonly [
@@ -52,6 +70,8 @@ export interface Comparison extends Type.FunctionSignature {
  * The signature of the built-in `add`.
  *
  * Each operand must be an Integer or a Number. The result is Integer when both operands are Integer and Number otherwise, because Integer is a subtype of Number. Other operands select parameters that no argument satisfies, with a Never result.
+ *
+ * @category Signatures
  */
 export interface Arithmetic extends Type.FunctionSignature {
   readonly type: this["Target"] extends readonly [

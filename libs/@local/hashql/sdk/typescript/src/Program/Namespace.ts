@@ -36,6 +36,8 @@ type RebindableEntry<E> = E extends Capability ? Relocation.Relocatable<E> : E;
  * Scope exports need string names and producers that preserve their properties during rebinding.
  *
  * Flattening requires this of a scope. An export extended through `Object.assign` fails it, because rebinding would drop the added properties.
+ *
+ * @category Utility Types
  */
 export type Rebindable<S> = {
   readonly [N in keyof S]: N extends keyof Tables
@@ -107,6 +109,8 @@ type Combined<L, R> = WithMetadata<
  * One name carrying the capabilities of two exports, such as a value constructor and the type it constructs.
  *
  * Property reads follow the precedence the module introduction states. When only the type constructor or only the value is callable, every call goes to it with its arguments unchanged. An adapted signature can therefore take host values. When both can, a call with type arguments reaches the type constructor and value arguments reach the value instead. Arguments that fit both, such as none at all, reach the value. They also reach the type constructor when their count equals its {@link TypeExpression.arity | arity}, and the call then returns the join of both results. An adapted constructor keeps the arity of the constructor it adapts, so such arguments reach it only at that count. The last relocation signature returns the whole joined capability set.
+ *
+ * @category Utility Types
  */
 export type Joined<L, R> = Combined<L, R> & {
   readonly [Components]: readonly [L, R];
@@ -146,6 +150,8 @@ type RequiredNames<S extends Tables> =
  * The single-object view of a scope, in which each name joins its module, type and value exports.
  *
  * A guaranteed export in any namespace makes the flattened name required. A name that only optional entries supply is optional. A module also exposes its child exports directly, beside its own `modules`, `types` and `values` tables.
+ *
+ * @category Utility Types
  */
 export type Flatten<S extends Tables> = {
   readonly [K in RequiredNames<S>]: FlattenMember<S, K>;
@@ -159,7 +165,11 @@ export type Flatten<S extends Tables> = {
 type ModuleScope<S extends Tables> = Required<
   Program.Scope.Definition.Base<S["modules"], Empty, Empty>
 >;
-/** The flattened view of a scope's modules alone, each exposing its child exports directly. */
+/**
+ * The flattened view of a scope's modules alone, each exposing its child exports directly.
+ *
+ * @category Utility Types
+ */
 export type Modules<S extends Tables> = Flatten<ModuleScope<S>>;
 
 const combinedHandles = new WeakMap<
@@ -229,6 +239,8 @@ const forward = (
  * Joins two capability producers under one name and rebinds both with their original result types.
  *
  * For each kind of capability, the right side's wins when both sides carry one. The left one is then unreachable, but relocation still moves it. A left side that cannot move fails the joined relocation. A call reaches the type constructor, the value or both, as {@link Joined} describes.
+ *
+ * @category Combinators
  */
 export const combine: {
   <R extends Capability & Relocation.Relocatable<R>>(
@@ -513,12 +525,18 @@ const flattenScope = <S extends Tables>(scope: S): Flatten<S> => {
  * A name the scope lacks therefore reads as `undefined`, even a name such as `toString`. Each enumerable own string key of the three tables becomes one property, joining the exports that share it as {@link Flatten} describes. It skips inherited and non-enumerable keys. Each module becomes a view that also exposes its child exports. `flatten` builds the views of the whole module tree before it returns. It cannot fail.
  *
  * {@link Module.define} checks the same producer requirement for the tables of a nested module.
+ *
+ * @category Combinators
  */
 export const flatten = <S extends Tables>(
   scope: S & Rebindable<S>,
 ): Flatten<S> => flattenScope<S>(scope);
 
-/** Keeps only module names, with their child exports available directly. */
+/**
+ * Keeps only module names, with their child exports available directly.
+ *
+ * @category Combinators
+ */
 export const modules = <S extends Tables>(
   scope: S & Pick<Rebindable<S>, "modules">,
 ): Modules<S> =>

@@ -23,6 +23,8 @@ import type * as Type from "../Type.js";
  * The call signature of a Draft nominal constructor: it wraps an exactly typed value of the underlying type `T` as the nominal type `N`.
  *
  * The argument can be an expression or structural shorthand, such as a record of host values and expressions for a struct. TypeScript rejects missing, extra and wrongly typed fields. The call emits the representation first and applies the constructor to it. The result requires the inputs the argument requires.
+ *
+ * @category Nominal Types
  */
 export type NominalCall<N extends string, T extends Type.Any> = <
   const V extends Structural.Value<T> & Structural.Value.Any,
@@ -34,6 +36,8 @@ export type NominalCall<N extends string, T extends Type.Any> = <
  * A Draft nominal constructor: an expression of function type that also accepts structural shorthand.
  *
  * Rebinding it, as an import or module export does, keeps both the call signature and the nominal identity. `Expression.adaptCallable` constructs it. It is an interface rather than that function's `Expression.Expression.Adapted` result, because TypeScript defers an interface's recursive rebinding until a comparison reaches it. That keeps comparisons of `newtype` signatures within TypeScript's instantiation depth.
+ *
+ * @category Nominal Types
  */
 export interface NominalValue<N extends string, T extends Type.Any>
   extends
@@ -49,13 +53,21 @@ export interface NominalValue<N extends string, T extends Type.Any>
   readonly [Relocate]: Relocatable<NominalValue<N, T>>[typeof Relocate];
 }
 
-/** The result of `newtype`: one handle that is both the nominal type expression and its constructor. */
+/**
+ * The result of `newtype`: one handle that is both the nominal type expression and its constructor.
+ *
+ * @category Nominal Types
+ */
 export type Nominal<N extends string, T extends Type.Any> = Namespace.Joined<
   NominalValue<N, T>,
   TypeExpression.TypeExpression<Type.Opaque<N, T>>
 >;
 
-/** HashQL's `Option<T>`: the `Some` newtype around `T`, or `None`. */
+/**
+ * HashQL's `Option<T>`: the `Some` newtype around `T`, or `None`.
+ *
+ * @category Conditionals
+ */
 export type Option<T extends Type.Any> = Type.Union<
   readonly [
     Type.Opaque<"::core::option::Some", T>,
@@ -63,7 +75,11 @@ export type Option<T extends Type.Any> = Type.Union<
   ]
 >;
 
-/** The expression `if` returns with both branches: its type combines the branch types, and its input requirements combine the condition's with both branches'. */
+/**
+ * The expression `if` returns with both branches: its type combines the branch types, and its input requirements combine the condition's with both branches'.
+ *
+ * @category Conditionals
+ */
 export type Conditional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
   T extends Expression.Value.Any,
@@ -76,7 +92,11 @@ export type Conditional<
   >
 >;
 
-/** The expression `if` returns without `else`: its type is an {@link Option} of the `then` branch's type, and it requires the condition's inputs and the branch's. */
+/**
+ * The expression `if` returns without `else`: its type is an {@link Option} of the `then` branch's type, and it requires the condition's inputs and the branch's.
+ *
+ * @category Conditionals
+ */
 export type Optional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
   T extends Expression.Value.Any,
@@ -89,6 +109,8 @@ export type Optional<
  * A graph query under construction: the graph expression with `filter` and `collect`.
  *
  * It is an expression of the graph type. Binding it with `let` gives a reference without these methods, and {@link @local/hashql#Program.Query.filter | Query.filter} and {@link @local/hashql#Program.Query.collect | Query.collect} still take that reference.
+ *
+ * @category Queries
  */
 export interface Query<
   S extends Scope.Scope.Any,
@@ -112,7 +134,11 @@ export interface Query<
   readonly collect: () => Expression.Expression<Type.List<V>, I>;
 }
 
-/** `$.query`: starts a graph query from a graph expression, or from every entity with `entities`. */
+/**
+ * `$.query`: starts a graph query from a graph expression, or from every entity with `entities`.
+ *
+ * @category Queries
+ */
 export interface Queries<S extends Scope.Scope.Any> {
   <const G extends Expression.Expression.Any>(
     graph: G & Graph.Check<G>,
@@ -128,6 +154,8 @@ export interface Queries<S extends Scope.Scope.Any> {
  * The unrestricted Draft construction context for the scope `S`.
  *
  * Its operations construct syntax and collect declarations, accepting values regardless of their input requirements. A program callback receives `Body.Context` instead, which restricts them to the program's input schema. The predicate constructors `eq`, `ne`, `and`, `or`, `not`, `isTrue`, `isFalse` and `isNone` are the standalone `Operators` functions.
+ *
+ * @category Models
  */
 export interface Context<S extends Scope.Scope.Any>
   extends Operators.Operations {

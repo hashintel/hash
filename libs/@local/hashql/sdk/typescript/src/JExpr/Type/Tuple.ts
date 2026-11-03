@@ -11,8 +11,10 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
+/** @category Schemas */
 export const Schema: typeof Defs.Tuple = Defs.Tuple;
 
+/** @category Models */
 export interface Tuple extends Defs.TupleType {}
 
 export declare namespace Tuple {
@@ -25,17 +27,21 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * Checks a decoded tuple object and returns it.
  *
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Tuple =
   Overflow.make(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Tuple, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

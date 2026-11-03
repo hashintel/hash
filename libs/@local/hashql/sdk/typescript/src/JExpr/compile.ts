@@ -211,6 +211,8 @@ export const compileResult = (
  * assert.equal(JExpr.compile(values), '{"#tuple":[{"#literal":18446744073709551616},{"#literal":1.0},{"#literal":2.5}]}');
  * assert.equal(JSON.stringify(JExpr.integer(1)), '{"#literal":{"_tag":"Integer","value":"1"}}');
  * ```
+ *
+ * @category Compiling
  */
 export const compile = (expression: Expression): string =>
   Result.getOrThrowWith(

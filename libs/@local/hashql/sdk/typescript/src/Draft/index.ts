@@ -49,6 +49,8 @@ export type * as Context from "./Context.js";
  * A Draft program constructor whose callbacks see the scope `S`.
  *
  * It takes an input schema and a callback, and returns the root expression or a construction failure. The result requires every schema entry. {@link program} documents the callback's timing and failure contract, which every constructor from {@link withPrelude} shares.
+ *
+ * @category Models
  */
 export type Draft<S extends Scope.Scope.Any> = <
   const I extends Body.Inputs,
@@ -141,6 +143,8 @@ const fromScope =
  *   '["::core::math::add",{"#literal":1},{"#literal":2}]',
  * );
  * ```
+ *
+ * @category Constructors
  */
 export const withPrelude = <const D extends Scope.Definition.Any>(
   prelude: D & Namespace.Rebindable<D>,
@@ -199,6 +203,8 @@ export const withPrelude = <const D extends Scope.Definition.Any>(
  * assert.ok(Result.isFailure(result));
  * assert.equal(result.failure.reason._tag, "CallbackException");
  * ```
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the schema and callback construct a new program
 export const program: Draft<Prelude.Builtin> = fromScope(Prelude.builtin);

@@ -3,7 +3,11 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
-/** Schema for {@link Dict} values. */
+/**
+ * Schema for {@link Dict} values.
+ *
+ * @category Schemas
+ */
 export const Schema: typeof Defs.Dict = Defs.Dict;
 
 /**
@@ -22,6 +26,8 @@ export const Schema: typeof Defs.Dict = Defs.Dict;
  * const computedKey = JExpr.dict([["user.name", JExpr.literal("Alice")]]);
  * assert.equal(JExpr.compile(computedKey), '{"#dict":[["user.name",{"#literal":"Alice"}]]}');
  * ```
+ *
+ * @category Models
  */
 export interface Dict extends Defs.DictType {}
 
@@ -39,19 +45,29 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * Record keys can be any string, and `#type` can be any text. Each value, and each key in the pair form, must be an expression. The result is a new dictionary. `options.disableChecks` skips the identifier, label and numeric-spelling checks inside nested values but keeps the structural requirements. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Dict =
   Overflow.make(Schema);
 
-/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
+/**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
+ * @category Constructors
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Dict, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
-/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
+/**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
+ * @category Constructors
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

@@ -108,6 +108,8 @@ const math: Module.Module<typeof arithmeticDeclarations> = Result.getOrThrow(
  * The scope type of {@link builtin}.
  *
  * It derives the export types from the declaration tables without repeating their semantic annotations.
+ *
+ * @category Prelude
  */
 export interface Builtin extends Scope.Scope<{
   readonly modules: {
@@ -174,6 +176,8 @@ export interface Builtin extends Scope.Scope<{
  *   `["::core::cmp::eq",["::kernel::special_form::input","id","::core::uuid::Uuid"],["::core::uuid::Uuid",{"#literal":"${nil}"}]]`,
  * );
  * ```
+ *
+ * @category Prelude
  */
 export const builtin: Builtin = Scope.merge(Scope.empty, {
   modules: { entity, uuid, cmp, math },

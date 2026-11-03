@@ -7,6 +7,7 @@
  *
  * @module
  */
+// oxlint-disable max-lines -- the type builders are one vocabulary under `JExpr.Type`, each documented with its examples and category
 import { Array, Option, Record, Result, Tuple } from "effect";
 import { compose, dual, pipe } from "effect/Function";
 
@@ -34,6 +35,8 @@ export * as Union from "./Union.js";
  * Schema for validating and encoding {@link Type} values.
  *
  * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Type.Encoded}.
+ *
+ * @category Schemas
  */
 export const Schema: typeof Defs.Type = Defs.Type;
 
@@ -41,6 +44,8 @@ export const Schema: typeof Defs.Type = Defs.Type;
  * Tagged HashQL type syntax, as accepted by `JExpr.input`, `JExpr.as`, `JExpr.typed` and the other builders that take a type.
  *
  * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics. `Struct` lists named members and `Tuple` positional ones. `Union` and `Intersection` combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
+ *
+ * @category Models
  */
 export type Type = Defs.Type;
 
@@ -83,6 +88,8 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * const empty = Effect.runSync(JExpr.Type.makeEffect({ _tag: "Tuple", members: [] }));
  * JExpr.Type.compile(empty); // => "()"
  * ```
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Type =
@@ -94,6 +101,8 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Type =
  * Uses the construction options described by {@link make}. Fails with a {@link SchemaIssue.Issue} if the input fails schema validation.
  *
  * @see {@link make} for construction examples.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
@@ -107,6 +116,8 @@ export const makeEffect: (
  * Uses the construction options described by {@link make}. Use {@link makeEffect} when you need the validation issue.
  *
  * @see {@link make} for construction examples.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
@@ -129,6 +140,8 @@ export const makeOption: (
  * JExpr.Type.compile(JExpr.Type.union(integer, string)); // => "Integer | String"
  * JExpr.Type.compile(JExpr.Type.union(integer)); // => "Integer"
  * ```
+ *
+ * @category Constructors
  */
 export const union = (
   ...members: NonEmptyReadonlyArray<Type>
@@ -148,6 +161,8 @@ export const union = (
  * const aged = Option.getOrThrow(JExpr.Type.reference("Aged"));
  * JExpr.Type.compile(JExpr.Type.intersection(named, aged)); // => "Named & Aged"
  * ```
+ *
+ * @category Constructors
  */
 export const intersection = (
   ...members: NonEmptyReadonlyArray<Type>
@@ -173,6 +188,8 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
  * Option.isNone(JExpr.Type.struct({ "": string })); // => true
  * JExpr.Type.compile(Option.getOrThrow(JExpr.Type.struct({}))); // => "(:)"
  * ```
+ *
+ * @category Constructors
  */
 export const struct = (
   fields: Record.ReadonlyRecord<string, Type>,
@@ -216,13 +233,19 @@ export const struct = (
  * JExpr.Type.compile(JExpr.Type.tuple(integer)); // => "(Integer,)"
  * JExpr.Type.compile(JExpr.Type.tuple(integer, integer)); // => "(Integer, Integer)"
  * ```
+ *
+ * @category Constructors
  */
 export const tuple = (...members: readonly Type[]): Defs.TupleType => ({
   _tag: "Tuple",
   members,
 });
 
-/** Creates the `_` placeholder for compiler-inferred type syntax. */
+/**
+ * Creates the `_` placeholder for compiler-inferred type syntax.
+ *
+ * @category Constructors
+ */
 export const infer = (): Defs.InferType => ({ _tag: "Infer" });
 
 /** Converts builder generics into the argument fields of a path segment, which the enclosing path validates. */
@@ -282,6 +305,8 @@ const segmentArgument = (
  * JExpr.Type.compile(rooted); // => "::core::math::`+`<Integer>"
  * Option.isNone(JExpr.Type.reference("")); // => true
  * ```
+ *
+ * @category Constructors
  */
 export const reference = (
   path: string,
@@ -336,6 +361,8 @@ const intersectionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
  * JExpr.Type.compile(value); // => "Integer | String | Boolean"
  * JExpr.Type.compile(JExpr.Type.or(integer, string)); // => "Integer | String"
  * ```
+ *
+ * @category Combinators
  */
 export const or: {
   (that: Type): (self: Type) => Defs.UnionType;
@@ -363,6 +390,8 @@ export const or: {
  * JExpr.Type.compile(person); // => "Named & Aged & Located"
  * JExpr.Type.compile(JExpr.Type.and(named, aged)); // => "Named & Aged"
  * ```
+ *
+ * @category Combinators
  */
 export const and: {
   (that: Type): (self: Type) => Defs.IntersectionType;
@@ -389,6 +418,8 @@ export const and: {
  * );
  * JExpr.Type.compile(list); // => "List<Integer | String>"
  * ```
+ *
+ * @category Compiling
  */
 export const compile: (type: Type) => Identifier = compileType;
 
@@ -454,6 +485,8 @@ const construct = ({ type, expressions }: Frame): ExpressionType => {
  * Encodes a type in an expression position, such as a type definition or closure parameter.
  *
  * Compound types use constructors here. Only annotation positions accept their type-syntax strings.
+ *
+ * @category Conversions
  */
 export const toExpression = (type: Type): ExpressionType => {
   // Types wait here for their members instead of on the call stack, which bounds the nesting depth by memory alone.

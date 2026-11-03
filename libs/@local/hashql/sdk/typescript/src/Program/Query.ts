@@ -18,7 +18,11 @@ import type * as Type from "../Type.js";
 import type * as Input from "./Inputs.js";
 
 // TODO(BE-1013): take `Graph`, `QueryTemporalAxes` and `Entity` from the generated standard-library declarations and delete these, so the standard library declares each type once.
-/** HashQL's graph of vertices of type `V`, which graph functions return and query steps take. */
+/**
+ * HashQL's graph of vertices of type `V`, which graph functions return and query steps take.
+ *
+ * @category Models
+ */
 export type Graph<V extends Type.Any> = Type.Opaque<
   "::graph::Graph",
   Type.Struct<{ readonly "'marker": V }>
@@ -42,6 +46,8 @@ export declare namespace Graph {
  * HashQL's `QueryTemporalAxes`, the time axes a query reads the graph at, known by its name alone.
  *
  * The SDK does not describe its alternatives, so an expression has this type when it comes from an input declared with it, or from `Expression.assume`.
+ *
+ * @category Models
  */
 export type QueryTemporalAxes = Type.Opaque<
   "::graph::temporal::QueryTemporalAxes",
@@ -52,13 +58,19 @@ export type QueryTemporalAxes = Type.Opaque<
  * HashQL's `Entity` with unknown properties, the vertex type of {@link entities}, known by its name alone.
  *
  * The SDK does not describe its fields, so a predicate can project from an entity only with `$projectUnsafe`.
+ *
+ * @category Models
  */
 export type Entity = Type.Opaque<
   "::graph::types::knowledge::entity::Entity",
   Type.Unknown
 >;
 
-/** The query {@link filter} returns: the graph it received, requiring the graph's inputs and the predicate's. */
+/**
+ * The query {@link filter} returns: the graph it received, requiring the graph's inputs and the predicate's.
+ *
+ * @category Utility Types
+ */
 export type Filtered<
   G extends Expression.Expression.Any,
   P extends Expression.Value<Type.PrimitiveBoolean>,
@@ -67,7 +79,11 @@ export type Filtered<
   Input.Merge<Expression.Value.Inputs<G>, Expression.Value.Inputs<P>>
 >;
 
-/** The list {@link collect} returns: the graph's vertices, requiring the graph's inputs. */
+/**
+ * The list {@link collect} returns: the graph's vertices, requiring the graph's inputs.
+ *
+ * @category Utility Types
+ */
 export type Collected<G extends Expression.Expression.Any> =
   Expression.Expression<Type.List<Graph.Vertex<G>>, Expression.Value.Inputs<G>>;
 
@@ -95,6 +111,8 @@ const inferred = new TAST.Syntax(JExpr.Type.infer());
  *   '["::graph::tail::collect",["::graph::head::entities",["::kernel::special_form::input","axis","::graph::temporal::QueryTemporalAxes"]]]',
  * );
  * ```
+ *
+ * @category Queries
  */
 export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
   axis: A,
@@ -137,6 +155,8 @@ export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
  *   '["::graph::tail::collect",["::graph::body::filter",["entities"],["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}]]]]',
  * );
  * ```
+ *
+ * @category Queries
  */
 export const filter: {
   <
@@ -210,7 +230,11 @@ export const filter: {
     ),
 );
 
-/** Ends a query, emitting `::graph::tail::collect`, as a list of the graph's vertices. See {@link filter} for an example. */
+/**
+ * Ends a query, emitting `::graph::tail::collect`, as a list of the graph's vertices. See {@link filter} for an example.
+ *
+ * @category Queries
+ */
 export const collect = <const G extends Expression.Expression.Any>(
   graph: G & Graph.Check<G>,
 ): Collected<G> =>
