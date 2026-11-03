@@ -25,6 +25,7 @@ const containerStyle = css({
 const placeVisualizerSubView = createDeferredSubView({
   id: "place-visualizer",
   canMaximize: true,
+  headerActionMutates: true,
   title: "Visualizer",
   tooltip:
     "Custom visualization of tokens in this place, defined by visualizer code.",
