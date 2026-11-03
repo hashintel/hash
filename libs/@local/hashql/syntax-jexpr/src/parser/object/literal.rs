@@ -146,6 +146,18 @@ mod tests {
     }
 
     #[test]
+    fn parse_control_characters() {
+        let result = parse_object_expr(r##"{"#literal": "\u001b[2J\nnext"}"##)
+            .expect("should parse a string literal with control characters");
+
+        with_settings!({
+            description => "Escapes control characters in a string literal"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
     fn parse_incomplete() {
         let result = parse_object_expr(r##"{"#literal": "##)
             .expect_err("should not parse incomplete literal");
