@@ -1,6 +1,9 @@
 import { cors } from "hono/cors";
 
-import { brunchHeaders } from "@hashintel/brunch-agent";
+import {
+  brunchExposedResponseHeaders,
+  brunchHeaders,
+} from "@hashintel/brunch-agent";
 
 import { brunchEnv } from "../../env.ts";
 
@@ -11,16 +14,6 @@ const AGENT_CORS_REQUEST_HEADERS = [
   "Content-Type",
   brunchHeaders.ownerKey,
   brunchHeaders.conversation,
-];
-// No upstream package exports this complete set, so keep the browser-response list local.
-// hash-api's Brunch proxy (`apps/hash-api/src/brunch-agent/setup-brunch-agent-proxy.ts`) mirrors it by hand.
-const AGENT_CORS_RESPONSE_HEADERS = [
-  "flue-error-ref",
-  "Stream-Next-Offset",
-  "Stream-Cursor",
-  "Stream-Up-To-Date",
-  "Stream-Closed",
-  "stream-sse-data-encoding",
 ];
 // Enforce exact lexical origins before WHATWG URL parsing normalizes forgiving separator forms.
 const exactHttpOriginPattern =
@@ -124,7 +117,7 @@ export const createAgentCors = (
       isAllowedOrigin(allowedOrigins, origin) ? origin : null,
     allowMethods: AGENT_CORS_METHODS,
     allowHeaders: AGENT_CORS_REQUEST_HEADERS,
-    exposeHeaders: AGENT_CORS_RESPONSE_HEADERS,
+    exposeHeaders: [...brunchExposedResponseHeaders],
     maxAge: 600,
   });
 

@@ -171,12 +171,13 @@ test.each(["GET", "POST"])(
     );
     expect(response.headers.get("access-control-expose-headers")).toBe(
       [
-        "flue-error-ref",
-        "Stream-Next-Offset",
-        "Stream-Cursor",
-        "Stream-Up-To-Date",
-        "Stream-Closed",
+        "location",
+        "stream-next-offset",
+        "stream-cursor",
+        "stream-up-to-date",
+        "stream-closed",
         "stream-sse-data-encoding",
+        "flue-error-ref",
       ].join(","),
     );
   },
