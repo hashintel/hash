@@ -1,53 +1,206 @@
+import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { Button, SegmentedControl } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 
+import { getGroupIds, getStepsTree } from "./left-panel/steps-tree";
+import {
+  countSteps,
+  getStepDisplay,
+  startDisplay,
+} from "./shared/step-display";
+import { StepIconTile } from "./shared/step-icon-tile";
+
+import type { StepsTreeItem } from "./left-panel/steps-tree";
+import type { StepTone } from "./shared/step-display";
+import type { IconName } from "@hashintel/ds-components";
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type { ReactNode } from "react";
 
 type LeftPanelTab = "steps" | "add";
 
-const panel = css({
-  display: "flex",
-  flexDirection: "column",
-  flexShrink: "0",
-  width: "[248px]",
-  borderRightWidth: "1px",
-  borderRightStyle: "solid",
-  borderRightColor: "bd.subtle",
-});
-const tabs = css({ p: "2" });
-const stepsSection = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  px: "3",
-  py: "2",
-});
-const stepsHeader = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-});
-const stepCount = css({ textStyle: "xs", color: "fg.subtle" });
-const placeholder = css({ textStyle: "sm", color: "fg.muted" });
-const addPlaceholder = css({
-  textStyle: "sm",
-  color: "fg.muted",
-  px: "3",
-  py: "2",
-});
+/** How far each level of a group is indented, in pixels. */
+const indentPerDepth = 16;
 
 /**
- * The flow editor's left panel: the flow's steps, and the steps that can be added to it. Both lists come in later
- * issues; until then, each tab says what it will hold.
+ * A row of the Steps tab. The design system has no tree or sidebar item (a gap logged in "Flows editor: design system
+ * gaps"), so rows are drawn here.
  */
-export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
+const TreeRow = ({
+  depth,
+  icon,
+  tone,
+  label,
+  selected = false,
+  expander,
+  suffix,
+  onClick,
+}: {
+  depth: number;
+  icon: IconName;
+  tone: StepTone;
+  label: string;
+  selected?: boolean;
+  /** The button that expands or collapses a group. */
+  expander?: ReactNode;
+  suffix?: ReactNode;
+  onClick?: () => void;
+}) => (
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      gap: 0.5,
+      height: 32,
+      pl: `${4 + depth * indentPerDepth}px`,
+      pr: 1,
+      borderRadius: "6px",
+      background: selected ? "var(--colors-neutral-bg-subtle)" : undefined,
+    }}
+  >
+    <Box sx={{ display: "flex", flexShrink: 0, width: 16 }}>{expander}</Box>
+    <Box
+      component={onClick ? "button" : "span"}
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.75,
+        flex: 1,
+        minWidth: 0,
+        height: "100%",
+        p: 0,
+        border: "none",
+        background: "none",
+        textAlign: "left",
+        cursor: onClick ? "pointer" : undefined,
+      }}
+    >
+      <StepIconTile icon={icon} tone={tone} size="small" />
+      <Box
+        component="span"
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          fontSize: 14,
+          fontWeight: expander ? 600 : 500,
+          color: selected
+            ? "var(--colors-neutral-fg-heading)"
+            : "var(--colors-neutral-fg-body)",
+        }}
+      >
+        {label}
+      </Box>
+    </Box>
+    {suffix}
+  </Box>
+);
+
+const StepsTree = ({
+  tree,
+  depth,
+  selectedStepIds,
+  collapsedGroupIds,
+  onToggleGroup,
+  onStepClick,
+}: {
+  tree: StepsTreeItem[];
+  depth: number;
+  selectedStepIds: string[];
+  collapsedGroupIds: Set<string>;
+  onToggleGroup: (stepId: string) => void;
+  onStepClick: (stepId: string) => void;
+}) =>
+  tree.map(({ step, children }) => {
+    const { title, description, icon, tone } = getStepDisplay(step);
+    const collapsed = collapsedGroupIds.has(step.stepId);
+
+    return (
+      <Box key={step.stepId}>
+        <TreeRow
+          depth={depth}
+          icon={icon}
+          tone={tone}
+          label={description || title}
+          selected={selectedStepIds.includes(step.stepId)}
+          onClick={() => onStepClick(step.stepId)}
+          expander={
+            children && (
+              <Button
+                variant="ghost"
+                size="xxs"
+                iconName={collapsed ? "chevronRight" : "chevronDown"}
+                aria-label={collapsed ? "Expand" : "Collapse"}
+                aria-expanded={!collapsed}
+                onClick={() => onToggleGroup(step.stepId)}
+              />
+            )
+          }
+          suffix={
+            children && (
+              <Typography
+                component="span"
+                sx={{
+                  flexShrink: 0,
+                  fontSize: 12,
+                  color: "var(--colors-neutral-fg-subtle)",
+                }}
+              >
+                {countSteps(children.length)}
+              </Typography>
+            )
+          }
+        />
+        {children && !collapsed && (
+          <StepsTree
+            tree={children}
+            depth={depth + 1}
+            selectedStepIds={selectedStepIds}
+            collapsedGroupIds={collapsedGroupIds}
+            onToggleGroup={onToggleGroup}
+            onStepClick={onStepClick}
+          />
+        )}
+      </Box>
+    );
+  });
+
+/**
+ * The flow editor's left panel: the flow's steps, and the steps that can be added to it. The Add tab's list comes in a
+ * later issue; until then, it says what it will hold.
+ */
+export const LeftPanel = ({
+  steps,
+  selectedStepIds,
+  onStepClick,
+}: {
+  steps: StepDefinition<string>[];
+  selectedStepIds: string[];
+  /** Selects a step, at any depth, and brings it into view. */
+  onStepClick: (stepId: string) => void;
+}) => {
   const [tab, setTab] = useState<LeftPanelTab>("steps");
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState(
+    () => new Set<string>(),
+  );
+
+  const tree = getStepsTree(steps);
+  const groupIds = getGroupIds(tree);
 
   return (
-    <div className={panel}>
-      <div className={tabs}>
+    <Stack
+      sx={{
+        flexShrink: 0,
+        width: 248,
+        borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+      }}
+    >
+      <Box sx={{ p: 1 }}>
+        {/* The design system has no tabs yet (a gap logged in Notion), so a segmented control stands in for them. */}
         <SegmentedControl
           size="md"
           aria-label="Left panel"
@@ -58,30 +211,69 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
             { value: "add", label: "Add" },
           ]}
         />
-      </div>
+      </Box>
       {tab === "steps" ? (
-        <div className={stepsSection}>
-          <div className={stepsHeader}>
-            <p className={stepCount}>
-              {steps.length} {steps.length === 1 ? "step" : "steps"}
-            </p>
+        <Stack sx={{ px: 1, py: 1, overflowY: "auto" }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ pl: 0.5, pb: 0.5 }}
+          >
+            <Typography
+              sx={{ fontSize: 12, color: ({ palette }) => palette.gray[50] }}
+            >
+              {/* Start counts as a step, as the design shows. */}
+              {countSteps(steps.length + 1)}
+            </Typography>
             <Button
               variant="ghost"
               size="xs"
               iconName="collapse"
               tooltip="Collapse all"
-              disabled
+              disabled={groupIds.every((stepId) =>
+                collapsedGroupIds.has(stepId),
+              )}
+              onClick={() => setCollapsedGroupIds(new Set(groupIds))}
             />
-          </div>
-          {steps.length === 0 && (
-            <p className={placeholder}>Steps you add appear here.</p>
-          )}
-        </div>
+          </Stack>
+          <TreeRow
+            depth={0}
+            icon={startDisplay.icon}
+            tone={startDisplay.tone}
+            label={startDisplay.description}
+          />
+          <StepsTree
+            tree={tree}
+            depth={0}
+            selectedStepIds={selectedStepIds}
+            collapsedGroupIds={collapsedGroupIds}
+            onToggleGroup={(stepId) =>
+              setCollapsedGroupIds((collapsed) => {
+                const next = new Set(collapsed);
+
+                if (!next.delete(stepId)) {
+                  next.add(stepId);
+                }
+
+                return next;
+              })
+            }
+            onStepClick={onStepClick}
+          />
+        </Stack>
       ) : (
-        <p className={addPlaceholder}>
+        <Typography
+          sx={{
+            px: 1.5,
+            py: 1,
+            fontSize: 14,
+            color: ({ palette }) => palette.gray[60],
+          }}
+        >
           Actions you can add will be listed here.
-        </p>
+        </Typography>
       )}
-    </div>
+    </Stack>
   );
 };

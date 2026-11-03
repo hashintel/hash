@@ -1,6 +1,6 @@
 import { ApolloError, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
@@ -165,6 +165,31 @@ const FlowEditor = ({
     editor.getState,
   );
 
+  /*
+   * What's selected belongs to the editor it was selected in. When the editor is replaced after a conflict, the canvas
+   * is drawn anew, and starts with nothing selected.
+   */
+  const [session, setSession] = useState<{
+    editor: typeof editor;
+    key: number;
+    selectedStepIds: string[];
+    /** A step to bring into view on the canvas. */
+    focusRequest: { stepId: string } | null;
+  }>({ editor, key: 0, selectedStepIds: [], focusRequest: null });
+
+  if (session.editor !== editor) {
+    setSession({
+      editor,
+      key: session.key + 1,
+      selectedStepIds: [],
+      focusRequest: null,
+    });
+  }
+
+  const { selectedStepIds, focusRequest } = session;
+  const setSelectedStepIds = (stepIds: string[]) =>
+    setSession((current) => ({ ...current, selectedStepIds: stepIds }));
+
   const archiveFlow = async () => {
     /*
      * Saving first, so that no save is made after the flow is archived, which would be refused. Edits the API refused
@@ -213,7 +238,17 @@ const FlowEditor = ({
         onLeaveWithoutSaving={leaveWithoutSaving}
       />
       <div className={editorBody}>
-        <LeftPanel steps={flowDefinition.steps} />
+        <LeftPanel
+          steps={flowDefinition.steps}
+          selectedStepIds={selectedStepIds}
+          onStepClick={(stepId) =>
+            setSession((current) => ({
+              ...current,
+              selectedStepIds: [stepId],
+              focusRequest: { stepId },
+            }))
+          }
+        />
         <div className={canvasArea}>
           {(saveRefusedReason !== null || changedElsewhere) && (
             <div className={notices}>
@@ -241,7 +276,13 @@ const FlowEditor = ({
               )}
             </div>
           )}
-          <Canvas />
+          <Canvas
+            key={session.key}
+            editor={editor}
+            selectedStepIds={selectedStepIds}
+            onSelectedStepIdsChange={setSelectedStepIds}
+            focusRequest={focusRequest}
+          />
         </div>
       </div>
     </DsComponentsScope>
