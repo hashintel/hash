@@ -12,6 +12,8 @@ use core::{
 };
 use std::io;
 
+use error_stack::Report;
+
 use self::{
     classifier::{ClassifierArgs, ClassifierVerdict},
     clumps::ClumpArgs,
@@ -81,7 +83,7 @@ pub(crate) enum ReportError {
     /// Serializing the report failed.
     Serialize(serde_json::Error),
     /// Dialing the store connection failed.
-    Connect(super::ConnectError),
+    Connect,
     /// The live assessment failed.
     Assess(AssessError),
     /// The clump calibration could not read its table.
@@ -99,7 +101,7 @@ impl Display for ReportError {
         match self {
             Self::Io(_) => fmt.write_str("the report bundle could not be written"),
             Self::Serialize(_) => fmt.write_str("report serialization failed"),
-            Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
+            Self::Connect => fmt.write_str("the store connection could not be dialed"),
             // Each analysis's own chain names the step that failed. This level adds no step of its
             // own.
             Self::Assess(error) => Display::fmt(error, fmt),
@@ -116,19 +118,13 @@ impl Error for ReportError {
         match self {
             Self::Io(error) => Some(error),
             Self::Serialize(error) => Some(error),
-            Self::Connect(error) => Some(error),
+            Self::Connect => None,
             Self::Assess(error) => error.source(),
             Self::Clumps(error) => error.source(),
             Self::KnnBackend(error) => error.source(),
             Self::KnnDescent(error) => error.source(),
             Self::Realization(error) => error.source(),
         }
-    }
-}
-
-impl From<serde_json::Error> for ReportError {
-    fn from(error: serde_json::Error) -> Self {
-        Self::Serialize(error)
     }
 }
 
@@ -180,31 +176,25 @@ impl ReportCommand {
     /// # Errors
     ///
     /// Returns a [`ReportError`] when the analysis fails or the process cannot write its record.
-    pub(crate) async fn run(self) -> Result<Option<ReportVerdict>, ReportError> {
-        match self {
-            Self::Classifier(args) => args.run().await.map(ReportVerdict::Classifier).map(Some),
-            Self::Clumps(args) => args
-                .run()
-                .map(ReportVerdict::Clumps)
-                .map(Some)
-                .map_err(ReportError::Clumps),
-            Self::KnnBackend(args) => args
-                .run()
-                .map(ReportVerdict::KnnBackend)
-                .map(Some)
-                .map_err(ReportError::KnnBackend),
-            Self::KnnDescent(args) => args
-                .run()
-                .map(ReportVerdict::KnnDescent)
-                .map(Some)
-                .map_err(ReportError::KnnDescent),
-            Self::Ladder(args) => args.run().map(ReportVerdict::Ladder).map(Some),
+    pub(crate) async fn run(self) -> Result<Option<ReportVerdict>, Report<ReportError>> {
+        let verdict = match self {
+            Self::Classifier(args) => ReportVerdict::Classifier(args.run().await?),
+            Self::Clumps(args) => ReportVerdict::Clumps(args.run().map_err(ReportError::Clumps)?),
+            Self::KnnBackend(args) => {
+                ReportVerdict::KnnBackend(args.run().map_err(ReportError::KnnBackend)?)
+            }
+            Self::KnnDescent(args) => {
+                ReportVerdict::KnnDescent(args.run().map_err(ReportError::KnnDescent)?)
+            }
+            Self::Ladder(args) => ReportVerdict::Ladder(args.run()?),
             Self::Probe(args) => {
                 args.run().await;
-                Ok(None)
+                return Ok(None);
             }
-            Self::Quality(args) => args.run().await.map(ReportVerdict::Quality).map(Some),
-            Self::Realization(args) => Err(args.run()),
-        }
+            Self::Quality(args) => ReportVerdict::Quality(args.run().await?),
+            Self::Realization(args) => return Err(Report::new(args.run())),
+        };
+
+        Ok(Some(verdict))
     }
 }

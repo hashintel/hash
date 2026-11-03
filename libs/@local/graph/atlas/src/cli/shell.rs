@@ -6,6 +6,8 @@ use core::pin::Pin;
 
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueHint};
+#[cfg(feature = "cli")]
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
 
 #[cfg(feature = "cli")]
@@ -131,7 +133,7 @@ enum DashboardError {
     /// Preparing, drawing, or restoring the terminal failed.
     Terminal(std::io::Error),
     /// Dialing the store connection failed.
-    Connect(super::ConnectError),
+    Connect,
     /// The fit failed.
     Fit(super::FitError),
     /// The storage failed.
@@ -143,7 +145,7 @@ impl core::fmt::Display for DashboardError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Terminal(_) => fmt.write_str("the live dashboard could not use the terminal"),
-            Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
+            Self::Connect => fmt.write_str("the store connection could not be dialed"),
             // The fit's own chain is the diagnosis. This variant adds no
             // step of its own.
             Self::Fit(error) => core::fmt::Display::fmt(error, fmt),
@@ -157,17 +159,10 @@ impl core::error::Error for DashboardError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::Terminal(error) => Some(error),
-            Self::Connect(error) => Some(error),
+            Self::Connect => None,
             Self::Fit(error) => error.source(),
             Self::Storage(error) => Some(error),
         }
-    }
-}
-
-#[cfg(feature = "cli")]
-impl From<StorageError> for DashboardError {
-    fn from(value: StorageError) -> Self {
-        Self::Storage(value)
     }
 }
 
@@ -184,6 +179,19 @@ fn render_failure(error: impl core::error::Error) -> std::process::ExitCode {
         eprintln!("  caused by: {cause}");
         source = cause.source();
     }
+
+    std::process::ExitCode::FAILURE
+}
+
+/// Renders a command's failure report to stderr and returns the failure exit code.
+#[cfg(feature = "cli")]
+#[expect(
+    clippy::print_stderr,
+    clippy::use_debug,
+    reason = "the report's `Debug` rendering is the binary shell's product"
+)]
+fn render_report<C>(report: &Report<C>) -> std::process::ExitCode {
+    eprintln!("error: {report:?}");
 
     std::process::ExitCode::FAILURE
 }
@@ -229,18 +237,23 @@ async fn fit_storage(s3: S3Args) -> Result<Storage, super::S3ArgsError> {
 async fn run_fit(
     command: super::FitCommand<impl Progress<Detached: UnwindSafe> + Sync>,
     source: FitSource,
-) -> Result<super::FitVerdict, DashboardError> {
-    match source {
+) -> Result<super::FitVerdict, Report<DashboardError>> {
+    let verdict = match source {
         FitSource::Live { store, credential } => {
-            let mut client = store.connect().await.map_err(DashboardError::Connect)?;
+            let mut client = store
+                .connect()
+                .await
+                .change_context(DashboardError::Connect)?;
             Box::pin(command.run(&mut client, credential))
                 .await
-                .map_err(DashboardError::Fit)
+                .map_err(DashboardError::Fit)?
         }
         FitSource::Offline(dump) => Box::pin(command.run_offline(&dump))
             .await
-            .map_err(DashboardError::Fit),
-    }
+            .map_err(DashboardError::Fit)?,
+    };
+
+    Ok(verdict)
 }
 
 /// Runs one fit on the live dashboard, restoring the terminal before rendering anything.
@@ -262,7 +275,7 @@ async fn fit_on_dashboard(
     source: FitSource,
     args: FitArgs,
     storage: Storage,
-) -> Result<super::FitVerdict, DashboardError> {
+) -> Result<super::FitVerdict, Report<DashboardError>> {
     let dashboard = super::tui::Dashboard::start().map_err(DashboardError::Terminal)?;
 
     // The dashboard owns the terminal from here. The records the run emits belong in its pane, not
@@ -277,7 +290,8 @@ async fn fit_on_dashboard(
     let observer = dashboard.observer();
     let outcome = async {
         let command = super::FitCommand::new(root, args, storage)
-            .await?
+            .await
+            .map_err(DashboardError::Storage)?
             .with_progress(observer);
 
         run_fit(command, source).await
@@ -310,7 +324,7 @@ async fn fit_logged(
         FitSource::Live { store, credential } => {
             let mut client = match store.connect().await {
                 Ok(client) => client,
-                Err(error) => return render_failure(error),
+                Err(report) => return render_report(&report),
             };
 
             Box::pin(command.run(&mut client, credential)).await
@@ -381,7 +395,7 @@ pub async fn main() -> std::process::ExitCode {
                     render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
                 }
-                Err(error) => render_failure(error),
+                Err(report) => render_report(&report),
             }
         }
 
@@ -416,13 +430,13 @@ pub async fn main() -> std::process::ExitCode {
                 render_verdict(verdict);
                 std::process::ExitCode::SUCCESS
             }
-            Err(error) => render_failure(error),
+            Err(report) => render_report(&report),
         },
 
         Command::Dump { store, args } => {
             let mut client = match store.connect().await {
                 Ok(client) => client,
-                Err(error) => return render_failure(error),
+                Err(report) => return render_report(&report),
             };
 
             match super::DumpCommand::new(args).run(&mut client).await {
