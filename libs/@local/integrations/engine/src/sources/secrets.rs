@@ -25,7 +25,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::SourceError;
+use super::{SecretService, SourceError};
 
 /// Pinned secret bytes whose storage is zeroed when dropped.
 pub type SecretValue = Pin<Box<Secret<[u8]>>>;
@@ -167,13 +167,14 @@ fn secret_query(
 
 async fn secret_response<T: DeserializeOwned>(
     response: reqwest::Response,
-    service: &str,
+    service: SecretService,
 ) -> Result<T, Report<SourceError>> {
     let status = response.status();
     if status != reqwest::StatusCode::OK {
-        return Err(Report::new(SourceError::Secret).attach(format!(
-            "{service} secret request returned HTTP {status}; expected 200 OK"
-        )));
+        return Err(Report::new(SourceError::SecretStatus {
+            service,
+            status: status.as_u16(),
+        }));
     }
     response.json().await.map_err(|error| {
         if let Some(json_error) = error
@@ -181,15 +182,13 @@ async fn secret_response<T: DeserializeOwned>(
             .and_then(|source| source.downcast_ref::<serde_json::Error>())
             && json_error.is_data()
         {
-            Report::new(SourceError::Secret).attach(format!(
-                "{service} secret response does not match the expected schema at line {} column {}",
+            Report::new(SourceError::SecretResponse { service }).attach(format!(
+                "secret response does not match the expected schema at line {} column {}",
                 json_error.line(),
                 json_error.column(),
             ))
         } else {
-            Report::new(error.without_url())
-                .change_context(SourceError::Secret)
-                .attach(format!("could not decode {service} secret response"))
+            Report::new(error.without_url()).change_context(SourceError::SecretResponse { service })
         }
     })
 }
@@ -226,11 +225,14 @@ impl SecretStore for GraphVaultSecretStore {
             .send()
             .await
             .map_err(reqwest::Error::without_url)
-            .change_context(SourceError::Secret)
-            .attach("Graph secret request failed")?;
-        let body: SecretQueryResponse = secret_response(response, "Graph").await?;
+            .change_context(SourceError::SecretRequest {
+                service: SecretService::Graph,
+            })?;
+        let body: SecretQueryResponse = secret_response(response, SecretService::Graph).await?;
         let [entity] = body.entities.as_slice() else {
-            return Err(Report::new(SourceError::Secret));
+            return Err(Report::new(SourceError::SecretEntityCount {
+                count: body.entities.len(),
+            }));
         };
         let path = validate_entity(entity, web_id, reference.secret_entity_uuid)?;
         let mut vault = self.vault.clone();
@@ -247,16 +249,18 @@ impl SecretStore for GraphVaultSecretStore {
             .send()
             .await
             .map_err(reqwest::Error::without_url)
-            .change_context(SourceError::Secret)
-            .attach("Vault secret request failed")?;
-        let body: VaultResponse<Map<String, Value>> = secret_response(response, "Vault").await?;
+            .change_context(SourceError::SecretRequest {
+                service: SecretService::Vault,
+            })?;
+        let body: VaultResponse<Map<String, Value>> =
+            secret_response(response, SecretService::Vault).await?;
         let data = body.data.data;
         let bytes = match data.get("value") {
             Some(Value::String(value)) if data.len() == 1 => value.as_bytes().to_vec(),
-            _ => serde_json::to_vec(&data).map_err(|_error| Report::new(SourceError::Secret))?,
+            _ => serde_json::to_vec(&data).change_context(SourceError::SecretValue)?,
         };
         if bytes.is_empty() {
-            return Err(Report::new(SourceError::Secret));
+            return Err(Report::new(SourceError::SecretValue));
         }
         Ok(Secret::from_vec(bytes))
     }
@@ -280,23 +284,23 @@ fn validate_entity(
             .iter()
             .any(|id| id.to_string() == USER_SECRET_TYPE)
     {
-        return Err(Report::new(SourceError::Secret));
+        return Err(Report::new(SourceError::SecretEntity));
     }
     let expiry = string_property(entity, EXPIRED_AT)
         .and_then(|value| OffsetDateTime::parse(value, &Rfc3339).ok())
-        .ok_or_else(|| Report::new(SourceError::Secret))?;
+        .ok_or_else(|| Report::new(SourceError::SecretExpiry))?;
     if expiry <= OffsetDateTime::now_utc() {
-        return Err(Report::new(SourceError::Secret));
+        return Err(Report::new(SourceError::SecretExpired));
     }
     let path =
-        string_property(entity, VAULT_PATH).ok_or_else(|| Report::new(SourceError::Secret))?;
+        string_property(entity, VAULT_PATH).ok_or_else(|| Report::new(SourceError::SecretPath))?;
     let parts: Vec<_> = path.split('/').collect();
     if parts.len() < 4
         || parts.first().copied() != Some("users")
         || parts.get(1).copied() != Some(web_id.to_string().as_str())
         || !parts.iter().all(|part| segment(part))
     {
-        return Err(Report::new(SourceError::Secret));
+        return Err(Report::new(SourceError::SecretPath));
     }
     Ok(path)
 }
@@ -365,7 +369,7 @@ mod tests {
         EXPIRED_AT, GraphVaultConfig, GraphVaultSecretStore, SecretQueryResponse, SecretStore as _,
         USER_SECRET_TYPE, VAULT_PATH, VaultResponse, VaultSecret, secret_response, validate_entity,
     };
-    use crate::sources::{SourceError, tests::server};
+    use crate::sources::{SecretService, SourceError, tests::server};
 
     fn entity(web: Uuid, id: Uuid) -> Entity {
         let transaction_time = Timestamp::from_unix_timestamp(1_767_225_600);
@@ -505,6 +509,17 @@ mod tests {
         value: String,
     }
 
+    fn store(graph_url: &str, vault_url: &str) -> GraphVaultSecretStore {
+        GraphVaultSecretStore::new(GraphVaultConfig {
+            graph_url: graph_url.to_owned(),
+            graph_service_secret: Secret::from_string("graph-token".to_owned()),
+            vault_url: vault_url.to_owned(),
+            vault_mount: "secret".to_owned(),
+            vault_token: Secret::from_string("vault-token".to_owned()),
+        })
+        .expect("should configure the service endpoints")
+    }
+
     #[tokio::test]
     async fn read_graph_authorization_and_vault_value() {
         let web = Uuid::new_v4();
@@ -547,14 +562,7 @@ mod tests {
                 }),
             );
         let server = server(router).await;
-        let store = GraphVaultSecretStore::new(GraphVaultConfig {
-            graph_url: server.url().to_owned(),
-            graph_service_secret: Secret::from_string("graph-token".to_owned()),
-            vault_url: server.url().to_owned(),
-            vault_mount: "secret".to_owned(),
-            vault_token: Secret::from_string("vault-token".to_owned()),
-        })
-        .expect("should configure the HTTP service endpoints");
+        let store = store(server.url(), server.url());
         let result = store
             .read(
                 web,
@@ -580,11 +588,130 @@ mod tests {
     }
 
     #[rstest]
-    #[case("Graph", StatusCode::FORBIDDEN)]
-    #[case("Vault", StatusCode::SERVICE_UNAVAILABLE)]
-    #[case("Graph", StatusCode::CREATED)]
+    #[case(SecretService::Graph)]
+    #[case(SecretService::Vault)]
     #[tokio::test]
-    async fn response_http_status(#[case] service: &str, #[case] status: StatusCode) {
+    async fn read_request_failure(#[case] service: SecretService) {
+        let unavailable = server(Router::new()).await;
+        let unavailable_url = unavailable.url().to_owned();
+        drop(unavailable);
+        let web = Uuid::new_v4();
+        let id = Uuid::new_v4();
+        let entity = entity(web, id);
+        let graph = server(Router::new().route(
+            "/entities/query",
+            post(move || {
+                let entity = entity.clone();
+                async move {
+                    Json(SecretQueryResponse {
+                        entities: vec![entity],
+                    })
+                }
+            }),
+        ))
+        .await;
+        let graph_url = match service {
+            SecretService::Graph => unavailable_url.as_str(),
+            SecretService::Vault => graph.url(),
+        };
+        let error = store(graph_url, &unavailable_url)
+            .read(
+                web,
+                Uuid::new_v4(),
+                SecretReference {
+                    secret_entity_uuid: id,
+                },
+            )
+            .await
+            .expect_err("should report an unavailable service");
+        assert!(
+            matches!(error.current_context(), SourceError::SecretRequest { service: actual } if *actual == service),
+            "should identify the service whose request failed"
+        );
+        assert!(
+            error.contains::<reqwest::Error>(),
+            "should preserve the underlying request error"
+        );
+        let diagnostic = format!("{error:?}");
+        for sensitive in [&unavailable_url, "graph-token", "vault-token"] {
+            assert!(
+                !diagnostic.contains(sensitive),
+                "should omit request URLs and credentials"
+            );
+        }
+    }
+
+    #[rstest]
+    #[case::missing(0)]
+    #[case::ambiguous(2)]
+    #[case::empty_value(1)]
+    #[tokio::test]
+    async fn read_entity_count_and_value(#[case] count: usize) {
+        let web = Uuid::new_v4();
+        let id = Uuid::new_v4();
+        let entity = entity(web, id);
+        let vault_reads = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&vault_reads);
+        let services = server(
+            Router::new()
+                .route(
+                    "/entities/query",
+                    post(move || {
+                        let entities = vec![entity.clone(); count];
+                        async move { Json(SecretQueryResponse { entities }) }
+                    }),
+                )
+                .route(
+                    &format!("/v1/secret/data/users/{web}/connector/token"),
+                    get(move || {
+                        let observed = Arc::clone(&observed);
+                        async move {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                            Json(VaultResponse {
+                                data: VaultSecret {
+                                    data: StoredValue {
+                                        value: String::new(),
+                                    },
+                                },
+                            })
+                        }
+                    }),
+                ),
+        )
+        .await;
+        let error = store(services.url(), services.url())
+            .read(
+                web,
+                Uuid::new_v4(),
+                SecretReference {
+                    secret_entity_uuid: id,
+                },
+            )
+            .await
+            .expect_err("should reject a missing or ambiguous entity or an empty credential");
+        match count {
+            1 => assert!(
+                matches!(error.current_context(), SourceError::SecretValue),
+                "should identify an invalid credential value"
+            ),
+            _ => assert!(
+                matches!(error.current_context(), SourceError::SecretEntityCount { count: actual } if *actual == count),
+                "should report how many secret entities were returned"
+            ),
+        }
+        assert_eq!(
+            vault_reads.load(Ordering::SeqCst),
+            usize::from(count == 1),
+            "should read Vault only after identifying exactly one secret entity"
+        );
+    }
+
+    #[rstest]
+    #[case(SecretService::Graph, StatusCode::FORBIDDEN)]
+    #[case(SecretService::Vault, StatusCode::SERVICE_UNAVAILABLE)]
+    #[case(SecretService::Graph, StatusCode::CREATED)]
+    #[tokio::test]
+    async fn response_http_status(#[case] service: SecretService, #[case] status: StatusCode) {
         let server = server(
             Router::new().fallback(move || async move { (status, "sensitive-response-body") }),
         )
@@ -602,9 +729,12 @@ mod tests {
             .err()
             .expect("should reject an unexpected HTTP status");
         let diagnostic = format!("{error:?}");
-        assert!(diagnostic.contains(service), "should identify the service");
         assert!(
-            diagnostic.contains(&status.to_string()),
+            diagnostic.contains(&service.to_string()),
+            "should identify the service"
+        );
+        assert!(
+            diagnostic.contains(&status.as_u16().to_string()),
             "should include the HTTP status"
         );
         assert!(
@@ -612,16 +742,20 @@ mod tests {
             "should omit the response body"
         );
         assert!(
-            matches!(error.current_context(), SourceError::Secret),
-            "should preserve the secret error context"
+            matches!(
+                error.current_context(),
+                SourceError::SecretStatus { service: actual, status: code }
+                    if *actual == service && *code == status.as_u16()
+            ),
+            "should expose the service and status as structured context"
         );
     }
 
     #[rstest]
-    #[case("Graph")]
-    #[case("Vault")]
+    #[case(SecretService::Graph)]
+    #[case(SecretService::Vault)]
     #[tokio::test]
-    async fn response_schema_error(#[case] service: &str) {
+    async fn response_schema_error(#[case] service: SecretService) {
         let server = server(Router::new().fallback(|| async {
             Json(VaultResponse {
                 data: VaultSecret {
@@ -643,7 +777,10 @@ mod tests {
             .err()
             .expect("should reject a response with the wrong schema");
         let diagnostic = format!("{error:?}");
-        assert!(diagnostic.contains(service), "should identify the service");
+        assert!(
+            matches!(error.current_context(), SourceError::SecretResponse { service: actual } if *actual == service),
+            "should identify the service with an invalid response"
+        );
         assert!(
             diagnostic.contains("expected schema at line 1 column"),
             "should identify a schema mismatch and its location"
@@ -665,13 +802,22 @@ mod tests {
             .send()
             .await
             .expect("should receive the response");
-        let error = secret_response::<SecretQueryResponse>(response, "Graph")
+        let error = secret_response::<SecretQueryResponse>(response, SecretService::Graph)
             .await
             .err()
             .expect("should reject incomplete JSON");
         assert!(
             error.contains::<reqwest::Error>(),
             "should retain the underlying response error"
+        );
+        assert!(
+            matches!(
+                error.current_context(),
+                SourceError::SecretResponse {
+                    service: SecretService::Graph
+                }
+            ),
+            "should distinguish response decoding from request failures"
         );
         let diagnostic = format!("{error:?}");
         assert!(
@@ -731,14 +877,7 @@ mod tests {
                 }),
             );
         let services = server(router).await;
-        let store = GraphVaultSecretStore::new(GraphVaultConfig {
-            graph_url: services.url().to_owned(),
-            graph_service_secret: Secret::from_string("graph-token".to_owned()),
-            vault_url: services.url().to_owned(),
-            vault_mount: "secret".to_owned(),
-            vault_token: Secret::from_string("vault-token".to_owned()),
-        })
-        .expect("should configure the HTTP service endpoints");
+        let store = store(services.url(), services.url());
         let error = store
             .read(
                 web,
@@ -753,6 +892,15 @@ mod tests {
         assert!(
             diagnostic.contains("307"),
             "should report the redirect status"
+        );
+        let expected_service = if redirect_graph {
+            SecretService::Graph
+        } else {
+            SecretService::Vault
+        };
+        assert!(
+            matches!(error.current_context(), SourceError::SecretStatus { service, status: 307 } if *service == expected_service),
+            "should classify a redirect as an unexpected service status"
         );
         assert!(
             diagnostic.contains(if redirect_graph { "Graph" } else { "Vault" }),
@@ -787,8 +935,8 @@ mod tests {
             let error = validate_entity(&invalid, web, id)
                 .expect_err("should reject an invalid secret identity");
             assert!(
-                matches!(error.current_context(), SourceError::Secret),
-                "should report an unavailable secret"
+                matches!(error.current_context(), SourceError::SecretEntity),
+                "should identify invalid secret entity metadata"
             );
         }
         for path in [
@@ -805,9 +953,35 @@ mod tests {
                 Property::Value(PropertyValue::String(path)),
             );
             invalid.properties = PropertyObject::new(properties);
+            let error = validate_entity(&invalid, web, id)
+                .expect_err("should reject an invalid Vault path");
             assert!(
-                validate_entity(&invalid, web, id).is_err(),
-                "should constrain Vault paths to the owner's web"
+                matches!(error.current_context(), SourceError::SecretPath),
+                "should identify an invalid Vault path"
+            );
+        }
+        for expiry in [None, Some("sensitive-invalid-expiry")] {
+            let mut invalid = original.clone();
+            let mut properties = invalid.properties.properties().clone();
+            let key =
+                BaseUrl::new(EXPIRED_AT.to_owned()).expect("should parse the expiry property URL");
+            properties.remove(&key);
+            if let Some(expiry) = expiry {
+                properties.insert(
+                    key,
+                    Property::Value(PropertyValue::String(expiry.to_owned())),
+                );
+            }
+            invalid.properties = PropertyObject::new(properties);
+            let error = validate_entity(&invalid, web, id)
+                .expect_err("should reject missing or malformed expiry metadata");
+            assert!(
+                matches!(error.current_context(), SourceError::SecretExpiry),
+                "should identify invalid expiry metadata"
+            );
+            assert!(
+                !format!("{error:?}").contains("sensitive-invalid-expiry"),
+                "should omit invalid property values"
             );
         }
         let mut expired = original;
@@ -817,9 +991,11 @@ mod tests {
             Property::Value(PropertyValue::String("2000-01-01T00:00:00Z".to_owned())),
         );
         expired.properties = PropertyObject::new(properties);
+        let error =
+            validate_entity(&expired, web, id).expect_err("should reject an expired secret");
         assert!(
-            validate_entity(&expired, web, id).is_err(),
-            "should reject expired secrets before reading Vault"
+            matches!(error.current_context(), SourceError::SecretExpired),
+            "should distinguish expiration from invalid expiry metadata"
         );
     }
 }

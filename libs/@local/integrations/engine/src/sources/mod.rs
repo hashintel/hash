@@ -4,6 +4,13 @@ mod tests;
 
 pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue};
 
+/// Identifies the service involved in resolving a User Secret.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
+pub enum SecretService {
+    Graph,
+    Vault,
+}
+
 /// Reports why a live source could not be captured or restored.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum SourceError {
@@ -19,6 +26,24 @@ pub enum SourceError {
     Query,
     #[display("User Secret is unavailable or invalid")]
     Secret,
+    #[display("{service} secret request failed")]
+    SecretRequest { service: SecretService },
+    #[display("{service} secret request returned HTTP {status}; expected 200 OK")]
+    SecretStatus { service: SecretService, status: u16 },
+    #[display("{service} secret response could not be decoded")]
+    SecretResponse { service: SecretService },
+    #[display("Graph secret query returned {count} entities; expected exactly one")]
+    SecretEntityCount { count: usize },
+    #[display("User Secret entity has an unexpected identity, type, or archive state")]
+    SecretEntity,
+    #[display("User Secret expiry is missing or invalid")]
+    SecretExpiry,
+    #[display("User Secret has expired")]
+    SecretExpired,
+    #[display("User Secret Vault path is missing or invalid")]
+    SecretPath,
+    #[display("User Secret value is empty or invalid")]
+    SecretValue,
     #[display("PostgreSQL source capture failed")]
     Postgres,
     #[display("REST destination must use HTTP or HTTPS and public addresses")]
