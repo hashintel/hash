@@ -53,9 +53,10 @@ Every persona run and probe ends by writing `evidence/packet.json` and `evidence
 - model steps, each split into time before first output (hidden reasoning), tool-argument streaming and reply text, and tool phases;
 - each step's shape (its tool categories, in order);
 - the tool mix, skill activations, Ledger commit sizes, net growth, tokens and cost;
+- each model request's provider and model, and which requests failed and which were retries, including failed requests that left no step;
 - what it could not account for: exchanges that never settled (left out of the time sums), steps cut off mid-message or mid-tools, and stored records it could not read.
 
-[`run-packet.ts`](./run-packet.ts) reads `conversation.db` and, when present, the server log's `flue.submission chronology` lines, `run.json` and the evidence files. Without the server log, which the probe does not keep, argument-streaming times are unknown. To write or refresh packets for retained runs, which spends no model turns:
+[`run-packet.ts`](./run-packet.ts) reads `conversation.db` and, when present, the server log's `flue.submission chronology` lines, `run.json` and the evidence files. Without the server log, which the probe does not keep, argument-streaming times and model requests are unknown. To write or refresh packets for retained runs, which spends no model turns:
 
 ```sh
 yarn workspace @apps/brunch-agent packet:run .data-wipe-me/persona-runs/run-XXXXXX [...]

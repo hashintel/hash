@@ -33,6 +33,14 @@ Print a human-readable transcript of one conversation from that same Flue histor
 yarn workspace @apps/brunch-agent transcript -- --owner-key <key> --id <conversationId>
 ```
 
+Read the provider telemetry back with `diagnose`. For each model request it shows the provider and model, the time until the response started, retries, failures and idle timeouts, and the request's span with the HTTP requests under it. It shows metadata only, never prompts or output. It reads Loki and Tempo through Grafana, by default the local stack's at `http://localhost:3001`. Locally, the server exports only when started with `HASH_OTLP_ENDPOINT=http://localhost:4317 yarn dev:brunch`. Another Grafana takes `--grafana <url>` with a token in `GRAFANA_TOKEN`. To read a saved server log or piped output instead, pass `--log <file>` or `--log -`; that has no spans.
+
+```sh
+yarn workspace @apps/brunch-agent diagnose                      # settled submissions in the last hour
+yarn workspace @apps/brunch-agent diagnose --submission <id>    # one submission in detail
+yarn workspace @apps/brunch-agent diagnose --log dev-brunch-server.log --json
+```
+
 ## Agents
 
 Each agent lives in its own directory under `src/agents/` and is registered in `src/agents/index.ts`, which `src/app.ts` mounts under `/agents/<route>`. The Petrinaut agent, `src/agents/petrinaut/`, holds everything its model reads and every Ledger tool: `prompts/`, `skills/`, `tools/`, `guidance.ts` and `agent.ts`. Mechanics every agent calls (the Petrinaut browser tools, net freshness, the browser-call rendezvous, the context projection) live in `src/shared/`, and server plumbing in `src/server/`; Flue finds `src/app.ts` and `src/db.ts` at the source root.

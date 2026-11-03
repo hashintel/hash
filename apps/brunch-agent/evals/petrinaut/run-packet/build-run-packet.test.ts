@@ -5,7 +5,7 @@ import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
 import { buildRunPacket, type StreamEvent } from "./build-run-packet.ts";
 import { renderRunPacket } from "./render-run-packet.ts";
 
-import type { LoggedSubmissionChronology } from "./parse-chronology-log.ts";
+import type { LoggedSubmissionChronology } from "../../../src/server/telemetry-readback.ts";
 
 const t0 = Date.parse("2026-10-15T10:00:00.000Z");
 
@@ -383,7 +383,7 @@ test("an unsettled exchange is counted but left out of the time sums, and the pa
     skipped: { batches: 1, events: 0, chronologyLines: 0 },
   });
 
-  expect(packet.version).toBe(2);
+  expect(packet.version).toBe(3);
   expect(packet.sources.skipped).toEqual({
     batches: 1,
     events: 0,
@@ -415,6 +415,81 @@ test("without a chronology, argument streaming is unknown rather than zero", () 
   // The db's tool calls arrive with the completed message, so the step's
   // output is only known to start at its end.
   expect(packet.exchanges[0]?.steps[0]?.beforeOutputMs).toBe(9_000);
+  expect(packet.summary.modelRequests).toBeNull();
+  expect(renderRunPacket(packet)).toContain(
+    "- Model requests: unknown without a server-log chronology",
+  );
+});
+
+test("model requests name their provider and model, and count the failed ones and their retries", () => {
+  const [requested] = chronology.turns;
+  if (!requested) throw new Error("fixture has no turn");
+  const packet = buildRunPacket({
+    ...input,
+    chronology: new Map([
+      [
+        "sub-1",
+        {
+          ...chronology,
+          turns: [
+            {
+              ...requested,
+              turnId: "turn-0",
+              provider: "anthropic",
+              requestedModel: "claude-sonnet-4-6",
+              timeToFirstEventMs: null,
+              isError: true,
+              retryOf: null,
+              error: {
+                type: "model_stream_idle",
+                code: "model_stream_idle",
+                name: "Error",
+              },
+              toolCalls: [],
+            },
+            {
+              ...requested,
+              provider: "anthropic",
+              requestedModel: "claude-sonnet-4-6",
+              retryOf: "turn-0",
+              error: null,
+            },
+          ],
+        },
+      ],
+    ]),
+  });
+
+  expect(packet.exchanges[0]?.modelRequests).toEqual([
+    {
+      turnId: "turn-0",
+      purpose: "agent",
+      model: "anthropic/claude-sonnet-4-6",
+      timeToFirstEventMs: null,
+      retryOf: null,
+      error: "model_stream_idle",
+    },
+    {
+      turnId: "turn-1",
+      purpose: "agent",
+      model: "anthropic/claude-sonnet-4-6",
+      timeToFirstEventMs: 1_000,
+      retryOf: "turn-0",
+      error: null,
+    },
+  ]);
+  expect(packet.summary.modelRequests).toEqual({
+    total: 2,
+    byModel: { "anthropic/claude-sonnet-4-6": 2 },
+    retries: 1,
+    failed: 1,
+    errors: { model_stream_idle: 1 },
+  });
+  const markdown = renderRunPacket(packet);
+  expect(markdown).toContain(
+    "- Model requests: 2 (anthropic/claude-sonnet-4-6 ×2); 1 retries, 1 failed (model_stream_idle ×1)",
+  );
+  expect(markdown).toMatch(/\| 1 \| [^|]+ \| [^|]+ \| 2 \| 1 \|/);
 });
 
 test("a skill activated again is a reload, marked when a compaction came between", () => {

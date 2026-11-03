@@ -34,6 +34,18 @@ const toolMix = (exchange: PacketExchange): string =>
     )
     .join(", ");
 
+const counted = (counts: Readonly<Record<string, number>>): string =>
+  Object.entries(counts)
+    .map(([name, count]) => `${name} ×${count}`)
+    .join(", ");
+
+const modelRequestsLine = ({ modelRequests }: RunPacket["summary"]): string =>
+  modelRequests === null
+    ? "- Model requests: unknown without a server-log chronology"
+    : `- Model requests: ${modelRequests.total} (${counted(modelRequests.byModel) || "none"}); ${modelRequests.retries} retries, ${modelRequests.failed} failed${
+        modelRequests.failed === 0 ? "" : ` (${counted(modelRequests.errors)})`
+      }`;
+
 const netCell = (exchange: PacketExchange): string =>
   exchange.netAfter === null
     ? "–"
@@ -138,11 +150,8 @@ export const renderRunPacket = (packet: RunPacket): string => {
         ]),
     ),
     "",
-    `- Skill activations: ${
-      Object.entries(summary.skillActivations)
-        .map(([name, count]) => `${name} ×${count}`)
-        .join(", ") || "none"
-    }; resource reads: ${summary.skillResourceReads}`,
+    modelRequestsLine(summary),
+    `- Skill activations: ${counted(summary.skillActivations) || "none"}; resource reads: ${summary.skillResourceReads}`,
     `- Skill reloads: ${summary.skillReloads} (${summary.skillReloadsAfterCompaction} after a compaction); compactions: ${summary.compactions}`,
     `- Ledger: ${summary.ledgerCommits} commits (${summary.ledgerRefused} refused), ${summary.ledgerArgumentChars} argument chars`,
     `- Tool calls of ${seconds(30_000)} or more (likely approval waits): ${summary.longToolCalls}`,
@@ -170,6 +179,7 @@ export const renderRunPacket = (packet: RunPacket): string => {
         "Active",
         "First text",
         "Steps",
+        "Retries",
         "Before output",
         "Args",
         "Tools",
@@ -185,6 +195,13 @@ export const renderRunPacket = (packet: RunPacket): string => {
         seconds(exchange.activeMs),
         seconds(exchange.untilFirstTextMs),
         String(exchange.steps.length),
+        packet.sources.chronology
+          ? String(
+              exchange.modelRequests.filter(
+                (request) => request.retryOf !== null,
+              ).length,
+            )
+          : "–",
         seconds(exchange.beforeOutputMs),
         seconds(exchange.argumentStreamingMs),
         seconds(exchange.toolPhaseMs),
