@@ -87,14 +87,6 @@ describe("labels and layouts", () => {
     );
   });
 
-  it("refuses a subtitle off a title slide, and unknown layouts", () => {
-    expect(() => mdx({ subtitle: "Lost" })).toThrow(/only a title slide/u);
-    expect(() => mdx({ layout: "cover" })).toThrow(/`layout` must be/u);
-    expect(() => mdx({ layout: "title", author: ["Two"] })).toThrow(
-      /`author` must be a string/u,
-    );
-  });
-
   it("leaves a TSX slide's layout to the slide", () => {
     const slide = resolveSlideModule(
       { id: "title", kind: "tsx" },

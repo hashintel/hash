@@ -10,11 +10,13 @@ import { writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative, sep } from "node:path";
 
-const titleSlide = (title: string): string => `export const layout = "title";
-export const title = ${JSON.stringify(title)};
-export const subtitle = "One sentence on what this deck shows.";
-export const author = "Your name";
-export const notes = "Say what the talk is about, and what the audience leaves with.";
+const titleSlide = (title: string): string => `---
+layout: title
+title: ${JSON.stringify(title)}
+subtitle: One sentence on what this deck shows.
+author: Your name
+notes: Say what the talk is about, and what the audience leaves with.
+---
 `;
 
 const posixRelative = (from: string, to: string): string =>

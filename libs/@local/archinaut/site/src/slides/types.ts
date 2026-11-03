@@ -2,7 +2,7 @@
  * What a deck author writes against. A slide is a component; its title,
  * notes and step count travel with it, either as static properties on the
  * component (how internal-labs slides are written) or as named exports
- * beside it (how an MDX slide is written).
+ * beside it (what an MDX slide's frontmatter compiles to).
  */
 
 import type { ComponentType } from "react";
