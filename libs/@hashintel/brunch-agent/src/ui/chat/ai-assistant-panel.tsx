@@ -46,6 +46,7 @@ import {
   useAssistantPanel,
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { hashPetrinautPrimaryOperation } from "../../hash/petrinaut-tools";
 import { browserToolFacts } from "../../petrinaut/browser-executed-tools";
@@ -682,6 +683,9 @@ const ConversationAiAssistantPanel = ({
   // receipt of the response chunks.
   const hostTransportRef = useLatest(aiAssistant.transport);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
+  // The user message added before the host admitted it. The AI SDK keeps that
+  // message when the send fails, so a definite refusal must remove it here.
+  const unadmittedUserMessageIdRef = useRef<string | null>(null);
   const liveHostTransport = useMemo<PetrinautAiTransport>(
     () => ({
       sendMessages: async (options) => {
@@ -689,6 +693,7 @@ const ConversationAiAssistantPanel = ({
         // The host accepted the message, so a failure of its stream must not
         // offer the message for sending again.
         pendingSubmissionRecoveryRef.current = null;
+        unadmittedUserMessageIdRef.current = null;
         return stream;
       },
       reconnectToStream: (options) =>
@@ -1365,12 +1370,32 @@ const ConversationAiAssistantPanel = ({
         chatError instanceof Error ? chatError : new Error(String(chatError));
       reportOperationalFailure(submissionError, "stream");
       setStreamError(submissionError);
+      const unadmittedUserMessageId = unadmittedUserMessageIdRef.current;
+      unadmittedUserMessageIdRef.current = null;
+      // Only a definite refusal proves the message was never admitted. Any
+      // other failure keeps it, since a retry reuses its delivery identity.
+      if (
+        unadmittedUserMessageId !== null &&
+        chatError instanceof FlueChatAdmissionError &&
+        chatError.failure.kind === "rejected"
+      ) {
+        setMessages((currentMessages) =>
+          currentMessages.filter(
+            (message) =>
+              !(
+                message.id === unadmittedUserMessageId &&
+                message.role === "user"
+              ),
+          ),
+        );
+      }
       const recoverPendingSubmission = pendingSubmissionRecoveryRef.current;
       pendingSubmissionRecoveryRef.current = null;
       recoverPendingSubmission?.();
     },
     onFinish: ({ messages: finishedMessages, isAbort, isError }) => {
       pendingSubmissionRecoveryRef.current = null;
+      unadmittedUserMessageIdRef.current = null;
       const termination = automaticToolTerminationRef.current;
       const failed =
         termination?.generation === submissionGenerationRef.current &&
@@ -2124,6 +2149,7 @@ const ConversationAiAssistantPanel = ({
       abortAndClear(automaticToolAbortsRef.current);
       explicitContinuationToolCallIdsRef.current.clear();
       submissionGenerationRef.current += 1;
+      unadmittedUserMessageIdRef.current = messageId;
       await submitMessage({
         id: messageId,
         ...(source === "voice" ? { metadata: { source } } : {}),
