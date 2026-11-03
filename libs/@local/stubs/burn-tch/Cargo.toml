@@ -1,0 +1,15 @@
+# Patched in from the root `Cargo.toml` to keep Burn's unused LibTorch backend out of `Cargo.lock`.
+# It declares the published crate's version and features but no code, so enabling Burn's `tch`
+# feature fails to build. Delete it together with its `[patch.crates-io]` entry.
+[package]
+name        = "burn-tch"
+version     = "0.21.0"
+edition     = "2024"
+publish     = false
+description = "Empty stand-in for Burn's LibTorch backend, which the workspace does not use"
+
+[features]
+default = ["std"]
+doc     = []
+std     = []
+tracing = []

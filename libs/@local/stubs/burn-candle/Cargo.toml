@@ -1,0 +1,18 @@
+# Patched in from the root `Cargo.toml` to keep Burn's unused Candle backend out of `Cargo.lock`.
+# It declares the published crate's version and features but no code, so enabling Burn's `candle`
+# feature fails to build. Delete it together with its `[patch.crates-io]` entry.
+[package]
+name        = "burn-candle"
+version     = "0.21.0"
+edition     = "2024"
+publish     = false
+description = "Empty stand-in for Burn's Candle backend, which the workspace does not use"
+
+[features]
+accelerate = []
+cuda       = []
+default    = ["std"]
+doc        = []
+metal      = []
+std        = []
+tracing    = []

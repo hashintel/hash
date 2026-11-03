@@ -477,6 +477,17 @@ shadow_same                      = "allow"
 unneeded_field_pattern           = "allow" # Actually, the opposite would be a great lint
 
 [patch.crates-io]
+# Empty stand-ins for Burn's Candle (`burn-candle`) and LibTorch (`burn-tch`) backends, which no
+# workspace crate uses. Burn forwards its default and `std` features to them as weak
+# `dep?/feature` entries, and Cargo locks every crate reachable that way even while the feature
+# that would enable it is off (https://github.com/rust-lang/cargo/issues/10801). The stand-ins
+# keep both backends and their dependency trees out of `Cargo.lock`.
+#
+# Enabling Burn's `candle` or `tch` feature fails to build while these patches are in place.
+# Remove them once Burn stops forwarding features to these crates or Cargo fixes that issue.
+burn-candle = { path = "libs/@local/stubs/burn-candle" }
+burn-tch    = { path = "libs/@local/stubs/burn-tch" }
+
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 
