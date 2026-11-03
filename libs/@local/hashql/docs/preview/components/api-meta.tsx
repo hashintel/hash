@@ -11,6 +11,7 @@ export function ApiMeta({
   since,
   stability,
   source,
+  internal,
 }: Components.MetaProps): ReactNode {
   return (
     <div className="api-meta not-prose">
@@ -19,7 +20,13 @@ export function ApiMeta({
         {kind}
       </span>
       {exports > 0 ? <span>{`${exports} exports`}</span> : null}
-      <Facts since={since} stability={stability} source={source} labelled />
+      <Facts
+        since={since}
+        stability={stability}
+        source={source}
+        internal={internal}
+        labelled
+      />
     </div>
   );
 }
