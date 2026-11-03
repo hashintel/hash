@@ -94,7 +94,7 @@ export default defineConfig(async () => ({
           ],
           // Formulas render here, so a page ships no math runtime; one
           // KaTeX cannot parse stops the build instead of shipping in red.
-          rehypeFormulas,
+          [rehypeFormulas, { docsDirectory: contentPath("docs/") }],
           [
             rehypeShiki,
             {
