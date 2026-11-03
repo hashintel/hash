@@ -1,3 +1,4 @@
+pub(crate) use self::query::MetaTag;
 pub use self::{
     query::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,

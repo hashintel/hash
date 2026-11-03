@@ -20,6 +20,7 @@ uuid   = { workspace = true, public = true, features = ["v4", "v5"] }
 
 # Private workspace dependencies
 hash-graph-store = { workspace = true }
+hash-middleware  = { workspace = true }
 
 # Private third-party dependencies
 arrow-array    = { workspace = true }

@@ -8,7 +8,10 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_integrations_definition::SecretReference;
-use reqwest::{Client, Url};
+use hash_middleware::authentication::{
+    request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
+};
+use reqwest::{Client, Url, header::AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -183,10 +186,13 @@ impl SecretStore for GraphVaultSecretStore {
         let response = self
             .client
             .post(graph)
-            .header("x-authenticated-user-actor-id", actor_id.to_string())
+            .header(ACTOR_ID_HEADER, actor_id.to_string())
             .header(
-                "authorization",
-                format!("HASH-Service {}", self.config.graph_service_secret.expose()),
+                AUTHORIZATION,
+                format!(
+                    "{SERVICE_AUTH_SCHEME} {}",
+                    self.config.graph_service_secret.expose()
+                ),
             )
             .json(&query)
             .send()
@@ -307,6 +313,9 @@ mod tests {
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
     };
     use hash_integrations_definition::SecretReference;
+    use hash_middleware::authentication::{
+        request::ACTOR_ID_HEADER, service_secret::service_credential,
+    };
     use reqwest::{Client, Url};
     use serde::{Deserialize, Serialize};
     use type_system::{
@@ -418,16 +427,14 @@ mod tests {
             serde_json::from_str(body).expect("should decode the Graph query using shared types");
         assert_eq!(
             headers
-                .get("x-authenticated-user-actor-id")
+                .get(ACTOR_ID_HEADER)
                 .and_then(|header| header.to_str().ok()),
             Some(actor.to_string().as_str()),
             "should query as the run owner"
         );
         assert_eq!(
-            headers
-                .get("authorization")
-                .and_then(|header| header.to_str().ok()),
-            Some("HASH-Service graph-token"),
+            service_credential(headers),
+            Some("graph-token"),
             "should authenticate the service"
         );
         let secret_type = USER_SECRET_TYPE

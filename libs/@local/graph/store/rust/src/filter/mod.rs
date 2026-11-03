@@ -86,7 +86,7 @@ pub(crate) fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
     T::deserialize(token.into_deserializer()).map(|token| (token, parameters))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Selector {
     #[serde(rename = "*")]

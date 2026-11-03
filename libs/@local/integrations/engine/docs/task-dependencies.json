@@ -6,6 +6,7 @@
     "hash-graph-store",
     "hash-graph-temporal-versioning",
     "hash-integrations-definition",
+    "hash-middleware",
     "type-system"
   ],
   "tasks": {

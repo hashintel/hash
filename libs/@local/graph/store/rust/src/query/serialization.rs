@@ -7,9 +7,9 @@ use serde::{
 
 use crate::{
     data_type::{DataTypeQueryPath, DataTypeQueryToken},
-    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
+    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken, MetaTag},
     entity_type::{EntityTypeQueryPath, EntityTypeQueryToken},
-    filter::{JsonPath, Parameter, PathToken},
+    filter::{JsonPath, Parameter, PathToken, Selector},
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryToken},
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
@@ -133,12 +133,12 @@ impl SerializePath for EntityQueryPath<'_> {
                     [PathToken::Field(metadata), PathToken::Field(field)]
                         if metadata == "metadata" && field == "dataTypeId" =>
                     {
-                        sequence.serialize_element("dataTypeId")
+                        sequence.serialize_element(&MetaTag::DataTypeId)
                     }
                     [PathToken::Field(metadata), PathToken::Field(field), target]
                         if metadata == "metadata" && field == "canonical" =>
                     {
-                        sequence.serialize_element("convert")?;
+                        sequence.serialize_element(&MetaTag::Convert)?;
                         sequence.serialize_element(target)
                     }
                     _ => Err(unsupported(self)),
@@ -190,7 +190,7 @@ impl SerializePath for EntityTypeQueryPath<'_> {
                 inheritance_depth,
             } => {
                 sequence.serialize_element(&with_depth("properties", *inheritance_depth))?;
-                sequence.serialize_element("*")?;
+                sequence.serialize_element(&Selector::Asterisk)?;
                 return path.write_path(sequence);
             }
             Self::EntityTypeEdge {
@@ -209,7 +209,7 @@ impl SerializePath for EntityTypeQueryPath<'_> {
                     _ => return Err(unsupported(self)),
                 };
                 sequence.serialize_element(&with_depth(token, *inheritance_depth))?;
-                sequence.serialize_element("*")?;
+                sequence.serialize_element(&Selector::Asterisk)?;
                 return path.write_path(sequence);
             }
             Self::TransactionTime
@@ -246,7 +246,7 @@ impl SerializePath for PropertyTypeQueryPath<'_> {
                 path,
             } => {
                 sequence.serialize_element(&PropertyTypeQueryToken::DataTypes)?;
-                sequence.serialize_element("*")?;
+                sequence.serialize_element(&Selector::Asterisk)?;
                 return path.write_path(sequence);
             }
             Self::PropertyTypeEdge {
@@ -255,7 +255,7 @@ impl SerializePath for PropertyTypeQueryPath<'_> {
                 direction: EdgeDirection::Outgoing,
             } => {
                 sequence.serialize_element(&PropertyTypeQueryToken::PropertyTypes)?;
-                sequence.serialize_element("*")?;
+                sequence.serialize_element(&Selector::Asterisk)?;
                 return path.write_path(sequence);
             }
             Self::TransactionTime
@@ -299,7 +299,7 @@ impl SerializePath for DataTypeQueryPath<'_> {
                     EdgeDirection::Incoming => "children",
                 };
                 sequence.serialize_element(&with_depth(token, *inheritance_depth))?;
-                sequence.serialize_element("*")?;
+                sequence.serialize_element(&Selector::Asterisk)?;
                 return path.write_path(sequence);
             }
             Self::TransactionTime

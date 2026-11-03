@@ -716,9 +716,9 @@ struct EntityPropertiesPathVisitor {
     position: usize,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-enum MetaTag {
+pub(crate) enum MetaTag {
     Convert,
     DataTypeId,
 }
