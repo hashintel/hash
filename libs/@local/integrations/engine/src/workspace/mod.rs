@@ -9,7 +9,7 @@ mod select;
 
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::{error::Error, num::NonZeroUsize};
-use std::{path::PathBuf, thread};
+use std::path::PathBuf;
 
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{
@@ -135,7 +135,8 @@ enum Command {
 /// Dropping the workspace returns at once. The futures of its requests are dropped before it, so
 /// the thread skips or interrupts them, closes the database and releases the lock. The thread
 /// logs a failed checkpoint. [`close`](Self::close) waits for the requests already sent to run,
-/// and returns a failed checkpoint as an error.
+/// and returns a failed checkpoint as an error. The thread runs on the Tokio blocking pool, so
+/// the runtime waits for it when it shuts down.
 #[derive(Debug)]
 pub struct Workspace {
     commands: mpsc::Sender<(RequestId, Command)>,
@@ -207,7 +208,7 @@ impl Workspace {
     /// - [`Open`] if DuckDB cannot open the database
     /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`]
     /// - [`DiskUsage`] if the workspace files cannot be checked against the disk limit
-    /// - [`Spawn`] if the workspace thread cannot be started
+    /// - [`Spawn`] if no Tokio runtime is running
     /// - [`Stopped`] if the workspace thread stopped before it opened the database
     ///
     /// [`Lock`]: OpenError::Lock
@@ -223,13 +224,12 @@ impl Workspace {
         let (ready, opened) = Reply::channel();
         let span = tracing::info_span!("workspace", path = %path.display());
 
-        thread::Builder::new()
-            .name("integrations-workspace".to_owned())
-            .spawn(move || {
+        tokio::runtime::Handle::try_current()
+            .change_context(OpenError::Spawn)?
+            .spawn_blocking(move || {
                 let _entered = span.entered();
                 Connection::serve(path, config, ready, &mut receiver);
-            })
-            .change_context(OpenError::Spawn)?;
+            });
 
         let interrupt = opened.await.change_context(OpenError::Stopped)??;
         Ok(Self {
