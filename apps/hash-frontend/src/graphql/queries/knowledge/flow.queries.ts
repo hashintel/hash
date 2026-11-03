@@ -80,3 +80,33 @@ export const archiveFlowScheduleMutation = gql`
     archiveFlowSchedule(scheduleEntityId: $scheduleEntityId)
   }
 `;
+
+export const createFlowDefinitionMutation = gql`
+  mutation createFlowDefinition($webId: WebId!, $definition: JSONObject!) {
+    createFlowDefinition(webId: $webId, definition: $definition) {
+      flowDefinitionEntityId
+    }
+  }
+`;
+
+export const updateFlowDefinitionMutation = gql`
+  mutation updateFlowDefinition(
+    $flowDefinitionEntityId: EntityId!
+    $expectedEditionId: EntityEditionId!
+    $definition: JSONObject!
+  ) {
+    updateFlowDefinition(
+      flowDefinitionEntityId: $flowDefinitionEntityId
+      expectedEditionId: $expectedEditionId
+      definition: $definition
+    ) {
+      editionId
+    }
+  }
+`;
+
+export const archiveFlowDefinitionMutation = gql`
+  mutation archiveFlowDefinition($flowDefinitionEntityId: EntityId!) {
+    archiveFlowDefinition(flowDefinitionEntityId: $flowDefinitionEntityId)
+  }
+`;
