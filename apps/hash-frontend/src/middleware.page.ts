@@ -32,7 +32,10 @@ const applyCspHeaders = (
 
 export const middleware = async (request: NextRequest) => {
   const nonce = generateNonce();
-  const cspHeader = buildCspHeader(nonce);
+  const cspHeader = buildCspHeader({
+    nonce,
+    pathname: request.nextUrl.pathname,
+  });
 
   // Forward the nonce to server-side rendering via a request header so that
   // _document.page.tsx can read it and apply it to <Head> / <NextScript>.

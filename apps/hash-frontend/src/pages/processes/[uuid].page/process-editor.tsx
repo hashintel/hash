@@ -14,6 +14,7 @@ import { AlertModal } from "@hashintel/design-system";
 
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
+import { useStringEvaluationGate } from "./process-editor/use-string-evaluation-gate";
 
 import type {
   NetMode,
@@ -188,6 +189,13 @@ export const ProcessEditor = ({
   view: ProcessEditorView | null;
 }) => {
   const router = useRouter();
+
+  /**
+   * Petrinaut needs this route's string-evaluation allowance, which a
+   * document reached by client-side navigation lacks; the gate reloads such
+   * a document before Petrinaut mounts. The skeleton shows meanwhile.
+   */
+  const canRenderPetrinaut = useStringEvaluationGate();
 
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
 
@@ -516,17 +524,21 @@ export const ProcessEditor = ({
       )}
 
       <Box sx={{ height: "100%", position: "relative" }}>
-        <PetrinautEditor
-          load={loaded?.load ?? null}
-          readonly={!userEditable}
-          revisions={buildRevisionSummaries(revisions)}
-          onDirtyChange={setIsDirty}
-          onNavigateBack={navigateBack}
-          onSelectRevision={selectRevision}
-          onSave={save}
-        />
+        {canRenderPetrinaut && (
+          <PetrinautEditor
+            load={loaded?.load ?? null}
+            readonly={!userEditable}
+            revisions={buildRevisionSummaries(revisions)}
+            onDirtyChange={setIsDirty}
+            onNavigateBack={navigateBack}
+            onSelectRevision={selectRevision}
+            onSave={save}
+          />
+        )}
 
-        {loaded === null && <ProcessEditorLoadingSkeleton />}
+        {(loaded === null || !canRenderPetrinaut) && (
+          <ProcessEditorLoadingSkeleton />
+        )}
       </Box>
     </Stack>
   );

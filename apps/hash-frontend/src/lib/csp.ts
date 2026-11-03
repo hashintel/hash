@@ -11,7 +11,24 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
     .map(([key, values]) => `${key} ${values.join(" ")}`)
     .join("; ");
 
-export const buildCspHeader = (nonce: string): string => {
+/**
+ * Whether `pathname` is the process editor (`/processes/<uuid>` or
+ * `/processes/draft`, with an optional trailing slash), the one route whose
+ * policy lets Petrinaut evaluate strings and load its `data:` fonts.
+ */
+export const isProcessEditorPath = (pathname: string): boolean =>
+  /^\/processes\/[^/]+\/?$/.test(pathname);
+
+export const buildCspHeader = ({
+  nonce,
+  pathname,
+}: {
+  nonce: string;
+  /** The request's pathname, which decides the route-specific allowances. */
+  pathname: string;
+}): string => {
+  const isProcessEditor = isProcessEditorPath(pathname);
+
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
 
@@ -22,7 +39,13 @@ export const buildCspHeader = (nonce: string): string => {
       // WebAssembly instantiation (webpack asyncWebAssembly is enabled)
       "'wasm-unsafe-eval'",
       // Next.js dev mode uses eval() for Fast Refresh / HMR.
-      ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
+      // Petrinaut, rendered in the process editor, compiles its programs and
+      // evaluates the ad-hoc form's constant values with `new Function`.
+      // @todo Run Petrinaut without 'unsafe-eval' and drop this allowance:
+      //   https://linear.app/hash/issue/FE-2142
+      ...(process.env.NODE_ENV === "development" || isProcessEditor
+        ? ["'unsafe-eval'"]
+        : []),
       // Google Identity Services (OAuth sign-in)
       "https://accounts.google.com",
       // Google Picker API (Google Sheets integration)
@@ -50,7 +73,11 @@ export const buildCspHeader = (nonce: string): string => {
       ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
 
-    "font-src": ["'self'"],
+    "font-src": [
+      "'self'",
+      // Petrinaut, rendered in the process editor, ships its fonts as data: URLs.
+      ...(isProcessEditor ? ["data:"] : []),
+    ],
 
     "connect-src": [
       "'self'",
