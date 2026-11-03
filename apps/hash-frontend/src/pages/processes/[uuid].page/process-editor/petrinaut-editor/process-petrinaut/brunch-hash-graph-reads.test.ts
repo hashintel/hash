@@ -124,6 +124,36 @@ test("an entity id that names a draft reads that draft, even when drafts weren't
   expect(request.includeDrafts).toBe(true);
 });
 
+test("an id without a draft part, read beside a draft id, still reads only the live entity", () => {
+  const request = hashEntityReadRequest({
+    entityIds: ["alice-web~supplier~draft-1", "alice-web~product"],
+  });
+  expect(request.filter).toEqual({
+    all: [
+      {
+        any: [
+          {
+            all: [
+              { equal: [{ path: ["uuid"] }, { parameter: "supplier" }] },
+              { equal: [{ path: ["webId"] }, { parameter: "alice-web" }] },
+              { equal: [{ path: ["draftId"] }, { parameter: "draft-1" }] },
+            ],
+          },
+          {
+            all: [
+              { equal: [{ path: ["uuid"] }, { parameter: "product" }] },
+              { equal: [{ path: ["webId"] }, { parameter: "alice-web" }] },
+              { not: { exists: { path: ["draftId"] } } },
+            ],
+          },
+        ],
+      },
+      ...notArchived,
+    ],
+  });
+  expect(request.includeDrafts).toBe(true);
+});
+
 test("traversal follows every chain of links as deep as asked, each link in either direction, and a matched link's endpoints", () => {
   const pathsAt = (traversalDepth: number) =>
     hashEntityReadRequest({ traversalDepth }).traversalPaths;

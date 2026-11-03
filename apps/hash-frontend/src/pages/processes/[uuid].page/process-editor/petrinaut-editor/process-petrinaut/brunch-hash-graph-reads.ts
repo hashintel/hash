@@ -16,6 +16,7 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
+  generateEntityEditionFilter,
   generateEntityIdFilter,
   pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -101,7 +102,8 @@ const traversalPathsTo = (depth: number): EntityTraversalPath[] => {
 /**
  * The `queryEntitySubgraph` request for one read: every given filter must
  * match. An entity id that names a draft reads that draft, whether or not
- * drafts were asked for.
+ * drafts were asked for; unless they were, an id without a draft part reads
+ * only the live entity.
  */
 export const hashEntityReadRequest = (
   input: IssuedHashEntityRead,
@@ -112,6 +114,10 @@ export const hashEntityReadRequest = (
   const namesDraft = entityIds.some(
     (entityId) => extractDraftIdFromEntityId(entityId) !== undefined,
   );
+  const entityIdFilter = (entityId: EntityId): Filter =>
+    input.includeDrafts === true
+      ? generateEntityIdFilter({ entityId, includeArchived: true })
+      : generateEntityEditionFilter(entityId);
   return {
     filter: {
       all: [
@@ -123,11 +129,7 @@ export const hashEntityReadRequest = (
             ],
           })),
         ),
-        ...anyOf(
-          entityIds.map((entityId) =>
-            generateEntityIdFilter({ entityId, includeArchived: true }),
-          ),
-        ),
+        ...anyOf(entityIds.map(entityIdFilter)),
         ...anyOf(
           (input.webIds ?? []).map((webId) => ({
             equal: [{ path: ["webId"] }, { parameter: webId }],
