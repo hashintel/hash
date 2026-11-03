@@ -7,6 +7,7 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
  * Schema for {@link LabeledArgument} values.
  *
  * @category Schemas
+ * @since 0.1.0
  */
 export const Schema: typeof Defs.LabeledArgument = Defs.LabeledArgument;
 
@@ -16,6 +17,7 @@ export const Schema: typeof Defs.LabeledArgument = Defs.LabeledArgument;
  * The object has exactly one key: `:` followed by an identifier. The value is an expression. It can appear anywhere after the function in a call array, and HashQL's parser gathers it into the call's labeled arguments rather than its positional ones.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface LabeledArgument extends Defs.LabeledArgumentType {}
 
@@ -35,6 +37,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
@@ -46,6 +49,7 @@ export const make: (
  * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
@@ -58,6 +62,7 @@ export const makeEffect: (
  * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (

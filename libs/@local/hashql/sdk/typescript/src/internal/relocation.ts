@@ -45,6 +45,7 @@ export const head = (
  * Rebinding returns a handle of type `E` that emits the new path, or a construction failure. An import also passes the ids of its local name's bindings. The handle keeps the one its path resolves through, so `AST.resolveReferences` can check that the name still means that binding wherever the program uses the handle.
  *
  * @category Traits
+ * @since 0.1.0
  * @trait
  * @internal
  */
