@@ -10,7 +10,7 @@ import {
 } from "./selectable-list-item.recipe";
 import { isCollapsibleItem } from "./selectable-list-util";
 
-import type { FormInputSize } from "../form-shared";
+import type { FormInputSize } from "../../util/form-shared";
 import type { ItemClasses } from "./selectable-list-item.recipe";
 import type { Item } from "./selectable-list-util";
 

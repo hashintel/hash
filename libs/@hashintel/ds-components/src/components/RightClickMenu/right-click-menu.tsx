@@ -7,8 +7,8 @@ import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   SelectableList,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { loopSelectionKeyDown } from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list";
+import { loopSelectionKeyDown } from "../../primitives/SelectableList/selectable-list-util";
 import { type MenuItem } from "../Menu/menu";
 import { collectSelectedIds } from "../Menu/menu-util";
 import { type Position } from "../Tooltip/tooltip";

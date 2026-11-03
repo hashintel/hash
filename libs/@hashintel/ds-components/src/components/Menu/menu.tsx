@@ -8,11 +8,11 @@ import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
+} from "../../primitives/SelectableList/selectable-list";
 import {
   getEventHighlightedId,
   loopSelectionKeyDown,
-} from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list-util";
 import { TriggerPressedContext } from "../../util/trigger-pressed-context";
 import { type Position } from "../Tooltip/tooltip";
 import { collectSelectedIds } from "./menu-util";

@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../form-shared";
+import { formInputSizes } from "../../util/form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
 import { SelectableListSearch } from "./selectable-list-search";
 import { SelectableListSelectionSummary } from "./selectable-list-selection-summary";

@@ -15,19 +15,19 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
-import { OverflowRow } from "../../util/OverflowRow/overflow-row";
+import { OverflowRow } from "../../primitives/OverflowRow/overflow-row";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
+import { hasMultiItemSuffix } from "../../primitives/SelectableList/has-multi-item-suffix";
 import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
-import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
-import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
-import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
+} from "../../primitives/SelectableList/selectable-list";
+import { MultiItemSuffix } from "../../primitives/SelectableList/selectable-list-multi-suffix";
+import { SelectableListSearch } from "../../primitives/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../primitives/SelectableList/selectable-list-search.recipe";
+import { SelectableListSelectionSummary } from "../../primitives/SelectableList/selectable-list-selection-summary";
 import {
   type CollapsibleExpansion,
   type CollapsibleFolder,
@@ -37,7 +37,7 @@ import {
   getItemId,
   getVisibleTabbables,
   useCollapsibleExpansion,
-} from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list-util";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";

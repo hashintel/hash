@@ -4,7 +4,7 @@ import { formInputSizes } from "../../util/form-shared";
 import { Filter, type FilterOperator } from "./filter";
 import { FilterGroup } from "./filter-group";
 
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "../Select/select";
 import type { FilterChange, FilterValue } from "./filter-util";
 import type { Meta, StoryObj } from "@storybook/react-vite";
