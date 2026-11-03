@@ -44,4 +44,4 @@ harpc-codec  = { workspace = true, features = ["json"] }
 thiserror    = { workspace = true }
 tokio        = { workspace = true, features = ["macros", "rt-multi-thread"] }
 type-system  = { workspace = true }
-uuid         = { workspace = true, features = ["v4"] }
+uuid         = { workspace = true, features = ["std", "v7"] }

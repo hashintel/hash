@@ -1,0 +1,489 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { useState } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Form } from "../Form/form";
+import { PrefixOrSuffixDoc } from "./base-input";
+import { TextInput } from "./text-input";
+
+<Meta title="Docs/TextInput" />
+
+export const meta = {
+  title: "TextInput",
+  description: "A single-line field for entering and editing free-form text.",
+  alternativeNames: ["Input", "TextField", "SearchField"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/TextInput/text-input.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-textinput--default",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/text",
+  },
+  related: ["TextArea", "NumberInput", "Form", "Combobox", "CharacterCount"],
+};
+
+# TextInput
+
+A single-line field for entering and editing free-form text.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      placeholder="Search entities…"
+      value=""
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      value="Research paper"
+      onChange={noop}
+      clearable
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      type="email"
+      value="elena@hash"
+      invalid
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { TextInput } from "@hashintel/ds-components";
+
+export const EntityTypeNameInput = () => {
+  const [name, setName] = useState("");
+
+  return (
+    <TextInput
+      name="entityTypeName"
+      placeholder="e.g. Research paper"
+      value={name}
+      onChange={setName}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use TextInput for a single line of free-form text: names, titles, emails, URLs, search queries.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use TextInput for multi-line text — use TextArea.",
+    "Don't use it for numeric values — NumberInput adds min/max, stepping, and rejects non-numeric keys.",
+    "Don't collect values from a known set as free text — use Select, or Combobox when the list is long or searchable.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+TextInput is always controlled — `value` and `onChange` are required, and the handler receives the new string first with the raw change event second. `null` and `undefined` values render as empty.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput
+      width="md"
+      placeholder="e.g. Research paper"
+      value=""
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Input types
+
+Set `type` to match the content so devices show the right keyboard and browsers validate natively; for numbers use NumberInput. Autofill and password managers are blocked by default — set `autocomplete` on fields they should fill, such as sign-in emails and passwords.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      type="email"
+      placeholder="name@hash.ai"
+      value=""
+      onChange={noop}
+      autocomplete
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      type="password"
+      value="correct-horse-battery"
+      onChange={noop}
+      autocomplete
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      type="url"
+      placeholder="https://hash.ai"
+      value=""
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+Use `inputMode` when the content is digits but not a number — IDs, one-time codes — to get the numeric keyboard without number-input semantics.
+
+### Disabled
+
+`disabled` greys the field and ignores input. Prefer `readonly` when the user only needs to see the value — disabled styling has poor contrast and suggests the value might become editable.
+
+<Stage>
+  <TextInput width="sm" disabled value="Research paper" onChange={noop} />
+  <TextInput
+    width="sm"
+    disabled
+    placeholder="e.g. Research paper"
+    value=""
+    onChange={noop}
+  />
+</Stage>
+
+### Invalid
+
+`invalid` turns the border red and sets `aria-invalid`. Pair it with a visible message — Form.Field's `errors` renders and announces one.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      invalid
+      type="email"
+      value="elena@hash"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Loading
+
+Set `loading` while a lookup or save runs — a spinner appears at the end of the field. The input stays editable.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput width="sm" loading value="hash.ai/@acme" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Read-only
+
+`readonly` strips the field chrome entirely and renders the value as plain text — use it to display stored values alongside editable ones. Unlike `disabled`, the value reads as content, not as a greyed-out control.
+
+<Stage>
+  <TextInput width="sm" value="e7f2a49c-3b1d-4e08" onChange={noop} />
+  <TextInput
+    width="sm"
+    readonly
+    value="e7f2a49c-3b1d-4e08"
+    onChange={noop}
+  />
+</Stage>
+
+### Clearable
+
+`clearable` adds a clear button that appears when the field is hovered or focused and a value is present. The default clear empties the input through the normal change pipeline — `onChange` fires with `""` — and keeps focus in the field.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput width="sm" clearable value="Person" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Edit icon
+
+`showEditIcon` adds a pencil at the end of the field to signal that a displayed value is editable. The icon hides while the input is focused.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      variant="subtle"
+      showEditIcon
+      value="Untitled flow"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      showEditIcon
+      value="Research paper"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Variants
+
+`default` draws a bordered field; `subtle` is borderless and reads as inline text until hovered or focused. Use `subtle` for click-to-edit values such as titles and table cells.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      variant="default"
+      value="Default"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput width="sm" variant="subtle" value="Subtle" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`md` is the default. Use `sm` and below in dense chrome such as toolbars and table cells, and `lg` for prominent page-level fields; give Form.Field the same `size` so the label scales with the input.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput size="xxs" width="xs" value="xxs" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput size="xs" width="xs" value="xs" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput size="sm" width="xs" value="sm" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput size="md" width="xs" value="md" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput size="lg" width="xs" value="lg" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Widths
+
+The presets align stacked inputs without custom CSS; `fullWidth` — the default — fills the container. `fitContent` tracks the value's length as the user types.
+
+<Stage>
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      width: "100%",
+    }}
+  >
+    <DemoState data-harness>
+      <TextInput width="xs" value="xs" onChange={noop} />
+    </DemoState>
+    <DemoState data-harness>
+      <TextInput width="sm" value="sm" onChange={noop} />
+    </DemoState>
+    <DemoState data-harness>
+      <TextInput width="md" value="md" onChange={noop} />
+    </DemoState>
+    <DemoState data-harness>
+      <TextInput width="lg" value="lg" onChange={noop} />
+    </DemoState>
+    <DemoState data-harness>
+      <TextInput width="fullWidth" value="fullWidth" onChange={noop} />
+    </DemoState>
+    <DemoState data-harness>
+      <TextInput width="fitContent" value="fitContent" onChange={noop} />
+    </DemoState>
+  </div>
+</Stage>
+
+### Prefix and suffix
+
+An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node (`{ content }`); adding `onClick` to the first two renders it as a button. Set the adornment's `variant: "subtle"` to drop its background and divider.
+
+<Stage>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      prefix={{ iconName: "search" }}
+      placeholder="Search entities…"
+      value=""
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      prefix={{ text: "https://" }}
+      value="hash.ai/@acme"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TextInput
+      width="sm"
+      suffix={{ text: "kg" }}
+      value="120"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Styled value
+
+`styledValue` renders a formatted view of the value while the input is unfocused; focusing reveals the raw value for editing. Use it to show units, thousands separators or highlighting without corrupting what the user typed.
+
+export const styledValueCode = `import { useState } from "react";
+
+import { TextInput } from "@hashintel/ds-components";
+
+export const PopulationInput = () => {
+  const [population, setPopulation] = useState("8336817");
+  const formatted = /^\\d+$/.test(population)
+    ? Number(population).toLocaleString("en-US")
+    : population;
+
+  return (
+    <TextInput
+      width="sm"
+      value={population}
+      onChange={setPopulation}
+      styledValue={<strong>{formatted}</strong>}
+    />
+  );
+};`;
+
+export const StyledValueDemo = () => {
+  const [population, setPopulation] = useState("8336817");
+  const formatted = /^\d+$/.test(population)
+    ? Number(population).toLocaleString("en-US")
+    : population;
+  return (
+    <TextInput
+      width="sm"
+      value={population}
+      onChange={setPopulation}
+      styledValue={<strong>{formatted}</strong>}
+    />
+  );
+};
+
+<Stage code={styledValueCode}>
+  <StyledValueDemo />
+</Stage>
+
+### Connected inputs
+
+Set `connectToRightInput` on the left input and `connectToLeftInput` on the right to join a pair into one visual control. Only the `default` variant connects — `subtle` and `readonly` inputs render separately.
+
+<Stage>
+  <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+    <DemoState data-harness>
+      <TextInput connectToRightInput value="Ada" onChange={noop} />
+    </DemoState>
+    <DemoState data-harness>
+      <TextInput connectToLeftInput value="Lovelace" onChange={noop} />
+    </DemoState>
+  </div>
+</Stage>
+
+### In a form field
+
+Form.Field supplies the label, description and errors, and links the label to the input automatically — see the Form docs for layouts, rows and sections.
+
+<Stage>
+  <Form.Field
+    label="Entity type name"
+    description="Shown in search results and the type editor."
+  >
+    <DemoState data-harness>
+      <TextInput
+        name="entityTypeName"
+        width="md"
+        value="Research paper"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+## Behavior
+
+- Browser autofill and password managers are suppressed by default — set `autocomplete` to allow them. Clearable inputs always suppress autofill.
+
+## Content
+
+- Never put requirements in the placeholder — it disappears as the user types. Put format rules in Form.Field's `description`.
+- Keep prefix/suffix text to short units and symbols: "https://", "kg", "MB".
+- Write error messages as instructions that reuse the label's words: "Enter an entity type name".
+
+## Accessibility
+
+TextInput renders a native [`<input>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/text) with standard text-editing behavior.
+
+### What TextInput provides
+
+- Inside a Form.Field the input adopts the field's generated id, so the label is associated automatically; `aria-*` props pass through to the `<input>`.
+
+### What you must do
+
+- Always name the input: wrap it in a Form.Field, or pass `aria-label` where a visible label genuinely can't fit — a placeholder is not a label.
+- Icon adornment buttons (`{ iconName, onClick }`) carry no accessible name — when the action needs one, pass `{ content }` with your own labelled button.
+- Don't signal errors with `invalid` color alone — pair it with a message, e.g. Form.Field's `errors`.
+
+## API reference
+
+### TextInput
+
+<PropsTable
+  of={TextInput}
+  defaults={{
+    type: '"text"',
+    variant: '"default"',
+    align: '"left"',
+    width: '"fullWidth"',
+    size: '"md"',
+    autocomplete: "false",
+  }}
+/>
+
+### PrefixOrSuffix
+
+The object shape `prefix` and `suffix` take.
+
+<PropsTable of={PrefixOrSuffixDoc} defaults={{ variant: '"default"' }} />

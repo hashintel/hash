@@ -265,7 +265,7 @@ pub enum EntityQueryPath<'p> {
     ///
     /// # Left entity
     ///
-    /// Corresponds to the [`Entity`] specified by [`LinkData::left_entity_id`].
+    /// Corresponds to the source [`Entity`] of a [`Link`].
     ///
     /// Deserializes from `["leftEntity", ...]` where `...` is the path of the left [`Entity`].
     ///
@@ -286,12 +286,12 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_entity_id`]: type_system::knowledge::entity::LinkData::left_entity_id
+    /// [`Link`]: type_system::knowledge::entity::Link
     ///
     ///
     /// # Right entity
     ///
-    /// Corresponds to the [`Entity`] specified by [`LinkData::right_entity_id`].
+    /// Corresponds to the target [`Entity`] of a [`Link`].
     ///
     /// Deserializes from `["rightEntity", ...]` where `...` is the path of the left [`Entity`].
     ///
@@ -311,8 +311,6 @@ pub enum EntityQueryPath<'p> {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
-    ///
-    /// [`LinkData::right_entity_id`]: type_system::knowledge::entity::LinkData::right_entity_id
     ///
     ///
     /// # Incoming links

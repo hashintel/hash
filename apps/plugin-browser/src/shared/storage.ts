@@ -6,7 +6,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
 
-import type { FlowRun } from "../graphql/api-types.gen";
+import type { FlowRunSummary } from "../graphql/api-types.gen";
 import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   Entity,
@@ -93,25 +93,15 @@ export type ExternalInputRequestById = {
 };
 
 export type MinimalFlowRun = Pick<
-  FlowRun,
+  FlowRunSummary,
   | "flowDefinitionEntityId"
   | "flowRunEntityId"
   | "webId"
   | "closedAt"
-  | "executedAt"
+  | "startedAt"
   | "status"
   | "flowInputs"
-  | "inputRequests"
 > & { persistedEntities: PersistedEntityMetadata[]; webPage: WebPage };
-
-/**
- * One of the flow runs we expose in the History tab, which are one of:
- * 1. Flows triggered by the browser, whether automatic or maunal, or
- * 2. Flows which have requested the content of a web page from the browser
- */
-export type FlowFromBrowserOrWithPageRequest = MinimalFlowRun & {
-  requestedPageUrl?: string;
-};
 
 /**
  * LocalStorage area cleared persisted when the browser is closed.
@@ -119,7 +109,8 @@ export type FlowFromBrowserOrWithPageRequest = MinimalFlowRun & {
  */
 export type LocalStorage = PersistedUserSettings & {
   apiOrigin?: string;
-  flowRuns: FlowFromBrowserOrWithPageRequest[];
+  /** Flows triggered by the browser, whether automatically or manually, which the History tab shows. */
+  flowRuns: MinimalFlowRun[];
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
   externalInputRequests?: ExternalInputRequestById;

@@ -1,6 +1,8 @@
 {
   "package": "hash-graph-migrations-macros",
-  "dependencies": [],
+  "dependencies": [
+    "hash-crypto"
+  ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
@@ -8,7 +10,6 @@
       ],
       "cache": false,
       "affectedBy": [
-        "error-stack",
         "error-stack-macros",
         "hash-repo-chores",
         "hash-telemetry"
@@ -21,6 +22,9 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

@@ -7,7 +7,7 @@ _.file                        = [".env", ".env.local"]
 # Yarn's node-modules linker loses bin registrations for workspaces whose peer-virtualized
 # instance of a tool (e.g. vite) isn't the copy hoisted to the root — triggered by petrinaut-docs' hoistingLimits.
 # Yarn's script shell falls back to PATH, so exposing the root bins fixes this.
-_.path = ["{{config_root}}/node_modules/.bin"]
+_.path                        = ["{{config_root}}/node_modules/.bin"]
 
 [settings]
 idiomatic_version_file_enable_tools = ["rust"]
@@ -41,20 +41,20 @@ protoc                          = "35.1"
 # installing it on stable keeps `--locked` fully intact. TODO(SRE-878): remove the `install_env`
 # override once upstream refreshes its lockfile or ships arm64 binaries.
 # See https://linear.app/hash/issue/SRE-878
-"cargo:cargo-insta" = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
-just                = "1.51.0"
-markdownlint-cli2   = "0.22.1"
-"npm:@napi-rs/cli"  = "3.7.0"
-"npm:@redocly/cli"  = "2.31.5"
+"cargo:cargo-insta"                     = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
+just                                    = "1.51.0"
+markdownlint-cli2                       = "0.24.0"
+"npm:@napi-rs/cli"                      = "3.7.0"
+"npm:@redocly/cli"                      = "2.31.5"
 # TODO(SRE-871): Remove the `@yarnpkg/libzip@3.2.2` exclusion once an attested libzip release > 3.2.2
 # ships (https://github.com/yarnpkg/berry/issues/7182). That exact version was published without
 # provenance by a legitimate maintainer (manual backfill of a failed CI release batch); content was
 # verified against the source tag. See https://linear.app/hash/issue/SRE-871
-"npm:renovate"       = { version = "43.212.4", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"] }
-oxfmt                = "0.71.0"
-"pipx:sqlfluff"      = "3.4.2"
-sentry-cli           = "2.52.0"
-taplo                = "0.10.0"
-typst                = "0.15.1"
-"ubi:terrastruct/d2" = "0.7.1"
-yq                   = "4.53.2"
+"npm:renovate"                          = { version = "43.212.4", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"] }
+oxfmt                                   = "0.71.0"
+"pipx:sqlfluff"                         = "3.4.2"
+sentry-cli                              = "2.52.0"
+tombi                                   = "1.8.9"
+typst                                   = "0.15.1"
+"ubi:terrastruct/d2"                    = "0.9.0"
+yq                                      = "4.53.2"

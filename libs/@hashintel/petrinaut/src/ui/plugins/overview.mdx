@@ -1,0 +1,81 @@
+---
+title: Plugins
+description: What a Petrinaut plugin is made of, where the editor shows what it adds, and which page to read next.
+sidebar_order: 10
+---
+
+A plugin adds buttons, top-bar items, commands, settings and UI to the
+Petrinaut editor.
+
+![From a manifest to the editor's outlets](./plugin-definition.d2)
+
+## The parts
+
+| Part          | What it is                                                                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manifest      | Plain data: what the plugin adds and which editor state it reads or changes.                                                                                    |
+| Definition    | What `definePetrinautPlugin(manifest)` returns, named `XPlugin`. It is callable and carries `.manifest`, which User settings reads without running plugin code. |
+| Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                   |
+| `api`         | `errors` and `notifications`, plus `settings` and the `access` families the manifest declares.                                                                  |
+| Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                            |
+| Plugin        | What calling the definition returns, or `definePetrinautPlugin(manifest, implementation)` in one call. `<Petrinaut plugins>` takes an array of them.            |
+
+## Example
+
+```tsx
+import { useState } from "react";
+
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "@hashintel/petrinaut/ui/plugin";
+
+const CounterPlugin = definePetrinautPlugin({
+  id: "example.counter",
+  name: "Counter",
+  topBarItems: { counter: { place: "top-bar-end" } },
+});
+
+const useCounterPlugin: PluginHook<typeof CounterPlugin> = () => {
+  const [count, setCount] = useState(0);
+
+  return {
+    topBarItems: {
+      counter: <button onClick={() => setCount(count + 1)}>{count}</button>,
+    },
+  };
+};
+
+export const counterPlugin = CounterPlugin(useCounterPlugin);
+
+// <Petrinaut handle={handle} plugins={[counterPlugin]} />
+```
+
+The manifest declares one top-bar item, `counter`. The hook returns its node
+under the same key.
+
+## Where contributions show
+
+- **The top bar**: buttons and top-bar items, at its start or its end.
+- **The viewport controls**: buttons, below the canvas's built-in buttons.
+- **The command registry**: commands, listed by any palette the host or a
+  plugin renders.
+- **Inside the editor**: `root`, for dialogs, overlays and tours.
+- **The read-only notice**: `readOnlyAction`, a button on the notice that
+  explains a blocked edit on a document the host made read-only.
+- **User settings**: the plugin's setting rows, and its row under Plugins,
+  where the user switches it off.
+
+## Read next
+
+- [Writing a plugin](doc:ui.plugins/writing-a-plugin): the forms, the rules,
+  and how to add each contribution, read and edit the document, and share a
+  service.
+- [Plugin API reference](doc:ui.plugins/reference): manifest keys, `access`
+  levels, `api` members, contributions, exports, error messages and refusals.
+- [How the editor runs plugins](doc:ui.plugins/runtime): hosts, remounts,
+  failures and settings storage.
+- [Embedding in a host application](doc:core.handle/host-integration#mount-the-editor):
+  passing `plugins` to `<Petrinaut>` and receiving plugin failures.
+- [The demo site's plugins](doc:website.plugins/plugins): the plugins the demo website
+  ships, to read as working examples.

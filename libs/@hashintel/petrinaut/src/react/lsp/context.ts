@@ -12,6 +12,7 @@ import type {
   DocumentUri,
   LanguageClient,
   HirCompileResult,
+  HirVisualizerContext,
   Hover,
   PetrinautExtensionSettings,
   Position,
@@ -19,6 +20,7 @@ import type {
   ScenarioLoweringInput,
   SDCPN,
   SignatureHelp,
+  VisualizerHir,
 } from "@hashintel/petrinaut-core";
 import type {
   AdHocSessionParams,
@@ -93,6 +95,15 @@ export interface LanguageClientContextValue {
     source: ConstraintSource,
     context: LowerConstraintContext,
   ) => Promise<LowerConstraintResult>;
+  /**
+   * Lower one place visualizer's module to HIR (in the language worker) and
+   * check it against the place's colour and the net's parameters. The
+   * result is interpreted and rendered here; no code from the net runs.
+   */
+  requestVisualizerHir: (
+    code: string,
+    context: HirVisualizerContext,
+  ) => Promise<VisualizerHir>;
   /** Initialize a temporary metric editing session. */
   initializeMetricSession: (params: MetricSessionParams) => void;
   /** Starts an ad-hoc scenario editing session for expression type-checking */
@@ -160,6 +171,18 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
         {
           code: "hir:no-language-client",
           message: "No language client is wired; constraints cannot compile.",
+          severity: "error" as const,
+          span: { start: 0, length: 0 },
+        },
+      ],
+    }),
+  requestVisualizerHir: () =>
+    Promise.resolve({
+      ok: false as const,
+      diagnostics: [
+        {
+          code: "hir:no-language-client",
+          message: "No language client is wired; visualizers cannot be drawn.",
           severity: "error" as const,
           span: { start: 0, length: 0 },
         },

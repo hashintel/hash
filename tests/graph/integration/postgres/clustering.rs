@@ -184,7 +184,7 @@ async fn clusters_entities_by_embedding_direction() {
     // ... and one entity ID that does not exist at all.
     let nonexistent_entity = EntityId {
         web_id: WebId::new(api.account_id),
-        entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        entity_uuid: EntityUuid::new(Uuid::now_v7()),
         draft_id: None,
     };
 

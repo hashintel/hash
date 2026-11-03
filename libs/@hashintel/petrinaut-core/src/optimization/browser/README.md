@@ -6,9 +6,9 @@ role: Runs the Optuna study in a Pyodide worker and evaluates trials through the
 # Browser optimization runtime
 
 `createBrowserOptimization` is a `PetrinautConnectedOptimization`: a host
-connects it to a `PetrinautOptimizationChannel` and receives the same
-capability a remote optimization service offers, plus `extendOptimizationRun`
-and `releaseOptimizationRun` for the study the worker keeps between segments.
+connects it to a `PetrinautOptimizationChannel` and receives a capability that
+creates, streams and cancels runs, plus `extendOptimizationRun` and
+`releaseOptimizationRun` for the study the worker keeps between segments.
 
 ## Three tiers
 

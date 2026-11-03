@@ -10,8 +10,11 @@ import type { ExclusifyUnion } from "type-fest";
 /** A breadcrumb in a crumb's `subItems` dropdown, where nothing truncates. */
 export type BreadcrumbSubItem = {
   children: React.ReactNode;
+  /** Optional icon to display */
   iconName?: IconName;
+  /** Additional tooltip content for the crumb while it is visible in the trail. */
   tooltip?: string;
+  /** Options forwarded to the tooltip shown when `tooltip` is set */
   tooltipOptions?: Omit<
     React.ComponentProps<typeof Tooltip>,
     "children" | "content"
@@ -25,16 +28,14 @@ export type BreadcrumbSubItem = {
 } & ExclusifyUnion<
   | { href?: string }
   | { onClick?: () => void }
-  | { subItems?: Array<ItemOrGroup<BreadcrumbSubItem>> }
+  | {
+      /** Turns the crumb into a dropdown-menu trigger listing these entries */
+      subItems?: Array<ItemOrGroup<BreadcrumbSubItem>>;
+    }
 >;
 
 export type BreadcrumbItem = BreadcrumbSubItem & {
-  /**
-   * Caps the crumb's width — hover pill included — while it is visible in the
-   * trail (it does not apply inside the ellipsis menu); a longer label
-   * truncates with an ellipsis and gains a tooltip showing the full label
-   * (unless `tooltip` is already set).
-   */
+  /** Caps the crumb's width while it is visible in the trail */
   maxWidth?: React.CSSProperties["maxWidth"];
   /**
    * Rendered instead of `children` when the crumb is collapsed into the

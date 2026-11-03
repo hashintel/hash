@@ -1,9 +1,5 @@
 import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
-import {
-  isEntityId,
-  splitEntityId,
-  validateVersionedUrl,
-} from "@blockprotocol/type-system";
+import { isEntityId, validateVersionedUrl } from "@blockprotocol/type-system";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
@@ -11,7 +7,10 @@ import {
   validateCondition,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  generateEntityEditionFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
 
 import { graphApiClient } from "../../shared/graph-api-client.js";
 
@@ -75,21 +74,7 @@ const getEntities = async (
     );
   }
 
-  const filter: Filter = {
-    any: entityIds.map((entityId) => {
-      const [webId, entityUuid, draftId] = splitEntityId(entityId);
-
-      return {
-        all: [
-          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
-          { equal: [{ path: ["webId"] }, { parameter: webId }] },
-          draftId
-            ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
-            : { not: { exists: { path: ["draftId"] } } },
-        ],
-      };
-    }),
-  };
+  const filter: Filter = { any: entityIds.map(generateEntityEditionFilter) };
 
   const entities = new Map<EntityId, ConditionEntity>();
   let cursor: EntityQueryCursor | null | undefined;

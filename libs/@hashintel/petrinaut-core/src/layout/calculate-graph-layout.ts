@@ -10,7 +10,16 @@ import type { ElkNode } from "elkjs";
  * @see https://eclipse.dev/elk/documentation/tooldevelopers
  * @see https://rtsys.informatik.uni-kiel.de/elklive/json.html for JSON playground
  */
-const elk = new ELK();
+let elk: InstanceType<typeof ELK> | undefined;
+
+/**
+ * ELK starts on first use rather than when this module loads, so that importing the package doesn't start it.
+ * Starting it sets `Error.stackTraceLimit`, which some sandboxes (such as Temporal's workflow sandbox) forbid.
+ */
+const getElk = () => {
+  elk ??= new ELK();
+  return elk;
+};
 
 const graphPadding = 30;
 
@@ -120,7 +129,7 @@ export const calculateGraphLayout = async (
     layoutOptions: elkLayoutOptions,
   };
 
-  const updatedElements = await elk.layout(graph);
+  const updatedElements = await getElk().layout(graph);
 
   const placeIds = new Set(sdcpn.places.map((place) => place.id));
   const componentInstanceIds = new Set(

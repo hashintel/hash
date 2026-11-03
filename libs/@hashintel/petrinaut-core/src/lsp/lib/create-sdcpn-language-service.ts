@@ -1,11 +1,4 @@
-import ts from "@typescript/typescript6";
-
-import {
-  createLanguageServiceHost,
-  virtualFileEquals,
-  type LanguageServiceHostController,
-  type VirtualFile,
-} from "./create-language-service-host";
+import { SDCPN_LANGUAGE_SERVICE_HOST } from "./create-language-service-host";
 import {
   generateAdHocSessionFiles,
   generateConstraintSessionFiles,
@@ -17,56 +10,21 @@ import {
   type MetricSessionData,
   type ScenarioSessionData,
 } from "./generate-virtual-files";
+import { VirtualFileLanguageServer } from "./virtual-file-language-server";
 
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
+import type { VirtualFile } from "./create-language-service-host";
 
 /**
- * Adjusts diagnostic positions to account for injected prefix and suffix.
- * Diagnostics in the suffix area are clamped to the end of user content.
- * Diagnostics in the prefix keep their (negative) adjusted offset: some are
- * load-bearing with no user-side twin — the scenario/metric wrappers rely on
- * TS2355 ("must return a value"), reported on the wrapper signature, to flag
- * a body that never returns — and editors clamp negative offsets to the
- * start of the document.
+ * Persistent TypeScript language server for SDCPN code validation: the net's
+ * dynamics, lambda and kernel code, plus the scenario, metric, ad-hoc and
+ * constraint editing sessions. Place visualizers are JSX and live in the
+ * `VisualizerLanguageServer`, a program of their own.
  */
-function adjustDiagnostics<T extends ts.Diagnostic>(
-  diagnostics: readonly T[],
-  prefixLength: number,
-  contentLength?: number,
-): T[] {
-  return diagnostics.map((diag) => {
-    let start =
-      diag.start !== undefined ? diag.start - prefixLength : undefined;
-    let { length } = diag;
-
-    if (start !== undefined && contentLength !== undefined) {
-      if (start >= contentLength) {
-        // Diagnostic is in suffix area — clamp to end of content
-        start = Math.max(0, contentLength > 0 ? contentLength - 1 : 0);
-        length = contentLength > 0 ? 1 : 0;
-      }
-    }
-
-    return { ...diag, start, length };
-  });
-}
-
-/**
- * Persistent TypeScript language server for SDCPN code validation.
- *
- * Creates the `ts.LanguageService` once and reuses it across SDCPN changes
- * by diffing virtual files (add/remove/update) rather than recreating everything.
- */
-export class SDCPNLanguageServer {
-  private files: Map<string, VirtualFile>;
-  private controller: LanguageServiceHostController;
-  private service: ts.LanguageService;
-
+export class SDCPNLanguageServer extends VirtualFileLanguageServer {
   constructor() {
-    this.files = new Map();
-    this.controller = createLanguageServiceHost(this.files);
-    this.service = ts.createLanguageService(this.controller.host);
+    super(SDCPN_LANGUAGE_SERVICE_HOST);
   }
 
   /**
@@ -78,26 +36,10 @@ export class SDCPNLanguageServer {
    * and are not removed by this method.
    */
   syncFiles(sdcpn: SDCPN, extensions?: PetrinautExtensionSettings): void {
-    const newFiles = generateVirtualFiles(sdcpn, extensions);
-
-    // Remove files that no longer exist (skip temp files managed separately)
-    for (const existingName of this.controller.getFileNames()) {
-      if (!newFiles.has(existingName) && !existingName.startsWith("/_temp/")) {
-        this.controller.removeFile(existingName);
-      }
-    }
-
-    // Add or update files
-    for (const [name, newFile] of newFiles) {
-      if (!this.controller.hasFile(name)) {
-        this.controller.addFile(name, newFile);
-      } else {
-        const existing = this.controller.getFile(name)!;
-        if (!virtualFileEquals(existing, newFile)) {
-          this.controller.updateFile(name, newFile);
-        }
-      }
-    }
+    this.reconcileFiles(
+      generateVirtualFiles(sdcpn, extensions),
+      (fileName) => !fileName.startsWith("/_temp/"),
+    );
   }
 
   /**
@@ -108,39 +50,9 @@ export class SDCPNLanguageServer {
     sessionPrefix: string,
     newFiles: Map<string, VirtualFile>,
   ): void {
-    for (const existingName of this.controller.getFileNames()) {
-      if (
-        existingName.startsWith(sessionPrefix) &&
-        !newFiles.has(existingName)
-      ) {
-        this.controller.removeFile(existingName);
-      }
-    }
-
-    for (const [name, newFile] of newFiles) {
-      if (!this.controller.hasFile(name)) {
-        this.controller.addFile(name, newFile);
-      } else {
-        const existing = this.controller.getFile(name)!;
-        if (!virtualFileEquals(existing, newFile)) {
-          this.controller.updateFile(name, newFile);
-        }
-      }
-    }
-  }
-
-  private removeFilesUnder(sessionPrefix: string): void {
-    for (const name of this.controller.getFileNames()) {
-      if (name.startsWith(sessionPrefix)) {
-        this.controller.removeFile(name);
-      }
-    }
-  }
-
-  private getFileNamesUnder(sessionPrefix: string): string[] {
-    return this.controller
-      .getFileNames()
-      .filter((name) => name.startsWith(sessionPrefix));
+    this.reconcileFiles(newFiles, (fileName) =>
+      fileName.startsWith(sessionPrefix),
+    );
   }
 
   /**
@@ -225,95 +137,5 @@ export class SDCPNLanguageServer {
   /** Get all file paths that belong to a constraint session. */
   getConstraintFileNames(sessionId: string): string[] {
     return this.getFileNamesUnder(`/_temp/constraints/${sessionId}/`);
-  }
-
-  /** Update only the user content of a single file (e.g., when the user types in an editor). */
-  updateDocumentContent(fileName: string, content: string): void {
-    this.controller.updateContent(fileName, content);
-  }
-
-  /** Get the full text content (prefix + user content + suffix) of a virtual
-   * file — the text the TypeScript service checks. */
-  getFileContent(fileName: string): string | undefined {
-    const file = this.controller.getFile(fileName);
-    if (!file) {
-      return undefined;
-    }
-    return (file.prefix ?? "") + file.content + (file.suffix ?? "");
-  }
-
-  /** Get only the user-visible content of a virtual file (without the injected prefix). */
-  getUserContent(fileName: string): string | undefined {
-    return this.controller.getFile(fileName)?.content;
-  }
-
-  getSemanticDiagnostics(fileName: string): ts.Diagnostic[] {
-    const entry = this.controller.getFile(fileName);
-    const prefixLength = entry?.prefix?.length ?? 0;
-    const contentLength = entry?.suffix ? entry.content.length : undefined;
-    const diagnostics = this.service.getSemanticDiagnostics(fileName);
-    return adjustDiagnostics(diagnostics, prefixLength, contentLength);
-  }
-
-  getSyntacticDiagnostics(fileName: string): ts.Diagnostic[] {
-    const entry = this.controller.getFile(fileName);
-    const prefixLength = entry?.prefix?.length ?? 0;
-    const contentLength = entry?.suffix ? entry.content.length : undefined;
-    const diagnostics = this.service.getSyntacticDiagnostics(fileName);
-    return adjustDiagnostics(diagnostics, prefixLength, contentLength);
-  }
-
-  getCompletionsAtPosition(
-    fileName: string,
-    position: number,
-    options: ts.GetCompletionsAtPositionOptions | undefined,
-  ): ts.CompletionInfo | undefined {
-    const entry = this.controller.getFile(fileName);
-    const prefixLength = entry?.prefix?.length ?? 0;
-    return this.service.getCompletionsAtPosition(
-      fileName,
-      position + prefixLength,
-      options,
-    );
-  }
-
-  getQuickInfoAtPosition(
-    fileName: string,
-    position: number,
-  ): ts.QuickInfo | undefined {
-    const entry = this.controller.getFile(fileName);
-    const prefixLength = entry?.prefix?.length ?? 0;
-    const info = this.service.getQuickInfoAtPosition(
-      fileName,
-      position + prefixLength,
-    );
-    if (!info) {
-      return undefined;
-    }
-    return {
-      ...info,
-      textSpan: {
-        start: info.textSpan.start - prefixLength,
-        length: info.textSpan.length,
-      },
-    };
-  }
-
-  getSignatureHelpItems(
-    fileName: string,
-    position: number,
-    options: ts.SignatureHelpItemsOptions | undefined,
-  ): ts.SignatureHelpItems | undefined {
-    const entry = this.controller.getFile(fileName);
-    const prefixLength = entry?.prefix?.length ?? 0;
-    return this.service.getSignatureHelpItems(
-      fileName,
-      position + prefixLength,
-      options,
-    );
-  }
-
-  dispose(): void {
-    this.service.dispose();
   }
 }

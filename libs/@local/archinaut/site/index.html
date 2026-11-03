@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" data-has-sidebar data-has-toc data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><!--page-title--></title>
+    <meta name="description" content="<!--page-description-->" />
+    <link rel="icon" href="/favicon.ico" />
+    <script>
+      // The stored theme and sidebar state, applied before the first paint so
+      // the page never flashes the defaults.
+      try {
+        const theme = localStorage.getItem("starlight-theme");
+        document.documentElement.dataset.theme =
+          theme === "dark" || theme === "light"
+            ? theme
+            : matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        const stored = localStorage.getItem("pnd:sidebar");
+        const width = localStorage.getItem("pnd:sidebar-width");
+        if (stored === "collapsed")
+          document.documentElement.dataset.pndSidebar = stored;
+        if (width)
+          document.documentElement.style.setProperty(
+            "--pnd-sidebar-open-width",
+            width,
+          );
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="app"><!--app-html--></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

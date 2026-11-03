@@ -117,8 +117,8 @@ export const buildCspHeader = (nonce: string): string => {
  *   nonce-gating its inline framework scripts buys nothing here
  *   (and a nonce would disable it: @see https://www.w3.org/TR/CSP3/#allow-all-inline).
  * - `connect-src` is `'self'` only — from the opaque-origin sandbox this is
- *   effectively no network reach. Persistence and optimizer requests
- *   round-trip through the host via postMessage instead.
+ *   effectively no network reach. Persistence requests round-trip through
+ *   the host via postMessage instead.
  * - `frame-ancestors` — only the HASH frontend may embed this route. Spelled
  *   out via {@link frontendUrl} for the same opaque-origin reason as the asset
  *   directives (`'self'` alone matches no ancestor here).

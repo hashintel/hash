@@ -16,6 +16,27 @@ export const startFlowMutation = gql`
   }
 `;
 
+export const getFlowRunProgressQuery = gql`
+  query getFlowRunProgress($flowRunEntityId: EntityId!, $after: String) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
+      status
+      outputs {
+        outputName
+        payload
+      }
+      failure {
+        message
+      }
+      events(after: $after, first: 2000) {
+        events
+        endCursor
+        hasNextPage
+        restarted
+      }
+    }
+  }
+`;
+
 export const resetFlowMutation = gql`
   mutation resetFlow(
     $flowRunEntityId: EntityId!

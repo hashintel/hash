@@ -1,0 +1,42 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-24T11:10:53.466Z",
+      "scheduledAt": "2026-10-24T11:10:53.462Z",
+      "closedAt": "2026-10-24T11:10:56.507Z",
+      "inputs": [
+        {
+          "inputName": "prompt",
+          "payload": {
+            "kind": "Text",
+            "value": "Who makes HASH?"
+          }
+        }
+      ],
+      "logs": [
+        {
+          "type": "ResearchActionCheckpoint",
+          "checkpointId": "23022ee1-7f04-4a6d-9588-771bf4157d7a",
+          "eventId": 42,
+          "recordedAt": "2026-10-24T11:10:54.468Z",
+          "stepId": "research"
+        },
+        {
+          "type": "CreatedPlan",
+          "plan": "Search the web",
+          "stepId": "research",
+          "recordedAt": "2026-10-24T11:10:55.480Z",
+          "workerType": "Coordinator",
+          "workerInstanceId": "coordinator",
+          "parentInstanceId": null,
+          "toolCallId": null
+        }
+      ],
+      "status": "CANCELLED",
+      "attempt": 1
+    }
+  ],
+  "inputRequests": []
+}

@@ -64,7 +64,7 @@ use governor::{
     middleware::StateInformationMiddleware,
     state::keyed::DefaultKeyedStateStore,
 };
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header::RETRY_AFTER};
 use opentelemetry::{
     KeyValue,

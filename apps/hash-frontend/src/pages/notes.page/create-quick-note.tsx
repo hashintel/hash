@@ -15,7 +15,6 @@ import { useCreateBlockCollection } from "../shared/use-create-block-collection"
 import { EditableQuickNote } from "./editable-quick-note";
 
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { WebId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent } from "react";
 
@@ -67,7 +66,7 @@ export const CreateQuickNote: FunctionComponent<{
   }
 
   const { createBlockCollectionEntity } = useCreateBlockCollection({
-    webId: authenticatedUser.accountId as WebId,
+    webId: authenticatedUser.accountId,
   });
   const { getEntity } = useBlockProtocolGetEntity();
 

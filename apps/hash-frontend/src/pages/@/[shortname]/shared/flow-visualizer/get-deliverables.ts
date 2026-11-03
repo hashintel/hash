@@ -8,11 +8,9 @@ export const getDeliverables = (
   outputs: FlowRun["outputs"] | undefined,
   persistedEntities: HashEntity[],
 ): DeliverableData[] => {
-  const flowOutputs = outputs?.[0]?.contents[0]?.outputs;
-
   const deliverables: DeliverableData[] = [];
 
-  for (const output of flowOutputs ?? []) {
+  for (const output of outputs ?? []) {
     const { payload } = output;
 
     if (payload.kind === "FormattedText" && !Array.isArray(payload.value)) {

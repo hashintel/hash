@@ -104,8 +104,8 @@ pub(super) struct TranslateRequest {
 /// before parsing or dropping any id, `unauthorized` where the request's authority offset cannot
 /// bind its delivery schedule, and `internal` where the response fails to serialize or the
 /// assembly worker panics.
-pub(super) async fn handler<R>(
-    State(state): State<AppState<R>>,
+pub(super) async fn handler(
+    State(state): State<AppState>,
     visibility: Visibility,
     Body(request): Body<TranslateRequest>,
 ) -> Result<Response, ProblemResponse<'static>> {

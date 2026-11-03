@@ -41,7 +41,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
       } else if (authenticatedUser) {
         const defaultWorkspaceWebId =
           authenticatedUser.memberOf[0]?.org.webId ??
-          (authenticatedUser.accountId as WebId);
+          authenticatedUser.accountId;
 
         /**
          * Initialize the `activeWorkspaceWebId` to the first organization the
@@ -70,8 +70,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
      */
     if (activeWorkspaceWebId && authenticatedUser && !activeWorkspace) {
       updateActiveWorkspaceWebId(
-        authenticatedUser.memberOf[0]?.org.webId ??
-          (authenticatedUser.accountId as WebId),
+        authenticatedUser.memberOf[0]?.org.webId ?? authenticatedUser.accountId,
       );
     }
   }, [

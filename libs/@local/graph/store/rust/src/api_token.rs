@@ -146,25 +146,6 @@ impl FromSql<'_> for ApiTokenVersion {
     }
 }
 
-/// The SHA-256 hash of an API token's secret.
-///
-/// `Debug` leaves out the hash.
-#[derive(Copy, Clone, PartialEq, Eq, derive_more::Debug)]
-#[debug("ApiTokenSecretHash(..)")]
-pub struct ApiTokenSecretHash([u8; 32]);
-
-impl ApiTokenSecretHash {
-    #[must_use]
-    pub const fn new(hash: [u8; 32]) -> Self {
-        Self(hash)
-    }
-
-    #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; 32] {
-        &self.0
-    }
-}
-
 /// The SHA-256 hash of an API token's secret, encrypted with AES-256-GCM.
 ///
 /// The first 12 bytes are the nonce, followed by the 32 bytes of ciphertext and the 16-byte tag.
@@ -471,15 +452,7 @@ pub trait ApiTokenStore {
 mod tests {
     use rstest::rstest;
 
-    use super::{ApiTokenEncryptedSecretHash, ApiTokenName, ApiTokenSecretHash};
-
-    #[test]
-    fn secret_hash_debug() {
-        assert!(
-            !format!("{:?}", ApiTokenSecretHash::new([0xAB; 32])).contains("171"),
-            "the debug output should leave out the hash"
-        );
-    }
+    use super::{ApiTokenEncryptedSecretHash, ApiTokenName};
 
     #[test]
     fn encrypted_secret_hash_debug() {

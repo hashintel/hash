@@ -99,7 +99,7 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
         ? []
         : [
             {
-              path: `inmemory://sdcpn/places/${place.id}/visualizer.tsx`,
+              path: getDocumentUri("place-visualizer", place.id),
               label: "Visualizer",
               selection: { type: "place", id: place.id },
               panel: "place-properties",

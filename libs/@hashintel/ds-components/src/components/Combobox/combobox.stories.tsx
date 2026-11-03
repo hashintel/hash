@@ -117,9 +117,9 @@ const renderNoMatchMessage = (input: string): React.ReactNode => (
   </span>
 );
 
-// The TextInput kitchen sink: clearable + prefix + suffix + loading
+// The TextInput kitchen sink: prefix + suffix + loading. Single comboboxes
+// are clearable whenever they are not required; multiple ones opt in.
 const kitchenSinkProps = {
-  clearable: true,
   loading: true,
   prefix: { iconName: "search" },
   suffix: { text: "kg" },
@@ -387,6 +387,7 @@ const SizedMultiKitchenSink = ({
       {...spreadArgs}
       size={size}
       {...kitchenSinkProps}
+      clearable
       value={values}
       onChange={setValues}
     />
@@ -417,6 +418,36 @@ export const Sizes: Story = {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  ),
+};
+
+// A required combobox opts into clearing with `clearable`. It stays
+// required: once cleared it is empty, so this example passes `invalid` to
+// show that.
+const RequiredClearableCombobox = () => {
+  const [value, setValue] = useState<string | null | undefined>("apple");
+  return (
+    <Combobox
+      items={sampleItems}
+      renderItem={renderSampleItem}
+      required
+      clearable
+      invalid={value == null}
+      placeholder="Pick a fruit…"
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
+export const RequiredClearable: Story = {
+  render: () => (
+    <div className={sectionStyle}>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Required + clearable</h3>
+        <RequiredClearableCombobox />
       </div>
     </div>
   ),

@@ -3,16 +3,14 @@ import { describe, expect, it } from "vitest";
 import { compileHirArtifacts } from "../hir";
 import { lowerScenarioToHir } from "../hir/scenario";
 import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
-import {
-  createMonteCarloExperiment,
-  runExperimentToCompletion,
-} from "../simulation/monte-carlo";
+import { createMonteCarloExperiment } from "../simulation/monte-carlo";
 import { analyzeCompilation } from "../webgpu/compilation-report";
 import { assessGpuEligibility } from "../webgpu/eligibility";
 import { tryTranslateMetric } from "../webgpu/try-translate-metric";
 import { vaccinationCampaign } from "./vaccination-campaign";
 
 import type { CompiledScenarioResult } from "../simulation/authoring/scenario/compile-scenario";
+import type { MonteCarloExperimentEvent } from "../simulation/monte-carlo";
 
 const { petriNetDefinition } = vaccinationCampaign;
 
@@ -72,9 +70,6 @@ const meanTotalCost = async (levers: Levers): Promise<number> => {
     dt: 0.1,
     maxTime: 60,
     runCount,
-    runs: Array.from({ length: runCount }, (_, index) => ({
-      seed: 1000 + index,
-    })),
     metricSpecs: [
       {
         kind: "expression",
@@ -86,15 +81,27 @@ const meanTotalCost = async (levers: Levers): Promise<number> => {
       },
     ],
   });
-  const completion = await runExperimentToCompletion(handle);
-  if (completion.event.type !== "complete") {
-    throw new Error(`experiment ended with ${completion.event.type}`);
+  const terminal = new Promise<MonteCarloExperimentEvent>((resolve) => {
+    const off = handle.events.subscribe((event) => {
+      off();
+      resolve(event);
+    });
+  });
+  try {
+    handle.start();
+    const event = await terminal;
+    if (event.type !== "complete") {
+      throw new Error(`experiment ended with ${event.type}`);
+    }
+    // The last frame's value is the mean over runs of each run's final state.
+    const frame = handle.metrics.get().latestByMetricId[totalCost.id];
+    if (frame?.outputType !== "scalar" || frame.frameValue === null) {
+      throw new Error("Total cost reported no final value");
+    }
+    return frame.frameValue;
+  } finally {
+    handle.dispose();
   }
-  let sum = 0;
-  for (const result of completion.runResults.values()) {
-    sum += result[totalCost.id]!;
-  }
-  return sum / completion.runResults.size;
 };
 
 describe("Vaccination Campaign", () => {

@@ -5,6 +5,7 @@
     "@blockprotocol/type-system",
     "@local/advanced-types",
     "@local/eslint",
+    "@local/flow-petri-net",
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
     "@local/hash-isomorphic-utils",
@@ -19,6 +20,7 @@
         "@blockprotocol/type-system#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
@@ -38,6 +40,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -47,6 +50,7 @@
         "@blockprotocol/type-system#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
@@ -66,6 +70,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -75,6 +80,7 @@
         "@blockprotocol/type-system#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
@@ -97,6 +103,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -106,6 +113,7 @@
         "@blockprotocol/type-system#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
@@ -125,6 +133,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -134,6 +143,7 @@
         "@blockprotocol/type-system#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
+        "@local/flow-petri-net#build",
         "@local/hash-graph-client#build",
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
@@ -156,6 +166,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     }

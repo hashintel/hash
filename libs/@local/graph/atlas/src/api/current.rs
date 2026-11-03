@@ -19,9 +19,7 @@ use crate::serve::document::{CurrentDocument, Document as _};
 ///
 /// Answers `visibility-unavailable` (503) before initial publication and after admission closes,
 /// and `internal` where the one-field document fails to serialize.
-pub(super) async fn handler<R>(
-    State(state): State<AppState<R>>,
-) -> Result<Response, Problem<'static>> {
+pub(super) async fn handler(State(state): State<AppState>) -> Result<Response, Problem<'static>> {
     let observation = state.registry.observe(None)?;
 
     let document = CurrentDocument::new(observation.present().epoch().generation());

@@ -223,7 +223,7 @@ async fn no_match_is_noop() {
 
     let nonexistent_id = EntityId {
         web_id: WebId::new(api.account_id),
-        entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        entity_uuid: EntityUuid::new(Uuid::now_v7()),
         draft_id: None,
     };
 

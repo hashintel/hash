@@ -12,12 +12,12 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                             |
-| ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, and the code editor theme.                |
-| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
-| **Plugins**  | The host's plugins: switch each on or off and see what it adds.      |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
+| Section      | Settings                                                                |
+| ------------ | ----------------------------------------------------------------------- |
+| **General**  | Animations, panel loading, the code editor theme, and the AI assistant. |
+| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection.    |
+| **Plugins**  | The host's plugins: switch each on or off and see what it adds.         |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.         |
 
 Plugins can add their own settings to **General**, **Viewport** and **Labs**,
 in a group under the plugin's name after the built-in groups.
@@ -39,6 +39,10 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 ### Code editor theme
 
 Choose the colours of every [code editor](code-editor.md) in Petrinaut. **Petrinaut Light** is the default. **Kay Day** and **Kay Night** are the light and dark faces of the Kay palette: slate text, indigo keywords, cyan strings and sky-blue types. The change applies to open editors immediately and is saved with your other preferences.
+
+### AI assistant
+
+Shown when several of the host's plugins provide an AI assistant. **Assistant** chooses which one answers in the assistant panel. Whether a switch keeps the other assistant's conversation depends on that assistant. The choice is saved. The arrow beside the assistant icon in the panel's title bar and **Use … as the AI assistant** in the Command Palette change it too. While the chosen assistant's plugin is switched off or stopped, the panel shows the first running assistant in the **Plugins** list.
 
 ## Viewport
 
@@ -190,7 +194,8 @@ and how many of them run.
   something inside the editor.
 - **Assistant** marks a plugin that provides the AI assistant. The assistant
   panel shows that plugin's content, such as its chat. When several plugins
-  carry the tag, the first running one in this list fills the panel.
+  carry the tag, **General › AI assistant** chooses one, and the first running
+  one in this list fills the panel until you do.
 
 Without plugins the section says so.
 

@@ -23,6 +23,6 @@ It owns:
 ```sh
 yarn build        # Library, types, preset and Panda build info
 yarn lint:eslint  # Lint with oxlint
-yarn lint:tsc     # Type check with tsgo
+yarn lint:tsc     # Type check with tsc
 yarn test:unit    # Unit tests (vitest)
 ```

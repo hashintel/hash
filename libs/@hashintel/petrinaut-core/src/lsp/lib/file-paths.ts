@@ -7,6 +7,8 @@ export type SDCPNFileType =
   | "sdcpn-lib-defs"
   | "parameters-defs"
   | "color-defs"
+  | "place-visualizer-defs"
+  | "place-visualizer-code"
   | "differential-equation-defs"
   | "differential-equation-code"
   | "transition-lambda-defs"
@@ -28,6 +30,8 @@ type FilePathParams = {
   "sdcpn-lib-defs": Record<string, never>;
   "parameters-defs": Record<string, never>;
   "color-defs": { colorId: string };
+  "place-visualizer-defs": { placeId: string };
+  "place-visualizer-code": { placeId: string };
   "differential-equation-defs": { id: string };
   "differential-equation-code": { id: string };
   "transition-lambda-defs": { transitionId: string };
@@ -71,6 +75,16 @@ export const getItemFilePath = <T extends SDCPNFileType>(
     case "color-defs": {
       const { colorId } = params as FilePathParams["color-defs"];
       return `/colors/${colorId}/defs.d.ts`;
+    }
+
+    case "place-visualizer-defs": {
+      const { placeId } = params as FilePathParams["place-visualizer-defs"];
+      return `/places/${placeId}/visualizer/defs.d.ts`;
+    }
+
+    case "place-visualizer-code": {
+      const { placeId } = params as FilePathParams["place-visualizer-code"];
+      return `/places/${placeId}/visualizer/code.jsx`;
     }
 
     case "differential-equation-defs": {
@@ -164,6 +178,28 @@ export const getItemFilePath = <T extends SDCPNFileType>(
     default:
       throw new Error(`Unknown file type: ${fileType}`);
   }
+};
+
+/**
+ * The virtual package the visualizer language service serves React's types
+ * under, and the `jsxImportSource` its JSX compiles against. Deliberately not
+ * `react`: visualizer code importing from `react` must fail to resolve, so a
+ * visualizer cannot name a hook.
+ */
+export const VISUALIZER_JSX_PACKAGE = "petrinaut-jsx";
+
+const PLACE_VISUALIZER_CODE_PATH_RE =
+  /^\/places\/([^/]+)\/visualizer\/code\.jsx$/;
+
+/**
+ * Inverse of `getItemFilePath("place-visualizer-code", ...)`: the place a
+ * visualizer code file belongs to, or null for every other path.
+ */
+export const parsePlaceVisualizerCodeFilePath = (
+  filePath: string,
+): { placeId: string } | null => {
+  const match = PLACE_VISUALIZER_CODE_PATH_RE.exec(filePath);
+  return match ? { placeId: match[1]! } : null;
 };
 
 /** A scenario session code file, identified back from its path. */

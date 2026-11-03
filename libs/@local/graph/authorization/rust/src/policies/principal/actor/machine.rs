@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn exact() -> Result<(), Box<dyn Error>> {
-        let machine_id = MachineId::new(Uuid::new_v4());
+        let machine_id = MachineId::new(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::Actor {
                 actor: ActorId::Machine(machine_id),
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: Some(ActorType::Machine),
@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn team() -> Result<(), Box<dyn Error>> {
-        let team_id = TeamId::new(Uuid::new_v4());
+        let team_id = TeamId::new(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: Some(ActorType::Machine),
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn web_role() -> Result<(), Box<dyn Error>> {
-        let web_role_id = WebRoleId::new(Uuid::new_v4());
+        let web_role_id = WebRoleId::new(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::Role {
                 actor_type: Some(ActorType::Machine),
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn team_role() -> Result<(), Box<dyn Error>> {
-        let team_role_id = TeamRoleId::new(Uuid::new_v4());
+        let team_role_id = TeamRoleId::new(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::Role {
                 actor_type: Some(ActorType::Machine),

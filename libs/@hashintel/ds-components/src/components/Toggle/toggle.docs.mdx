@@ -1,0 +1,292 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Toggle } from "./toggle";
+
+<Meta title="Docs/Toggle" />
+
+export const meta = {
+  title: "Toggle",
+  description: "Switches a setting on or off, applying the change immediately.",
+  alternativeNames: ["Switch", "ToggleSwitch"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Toggle/toggle.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-toggle--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/switch/",
+    ark: "https://ark-ui.com/docs/components/switch",
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox",
+  },
+  related: ["Checkbox", "SegmentedControl", "Button"],
+};
+
+# Toggle
+
+Switches a setting on or off, applying the change immediately.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <Toggle value labelOnText="Autosave" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle
+      value
+      tone="brand"
+      labelOnText="Sync entity changes"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value={false} labelOnText="Public access" onChange={noop} />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Toggle } from "@hashintel/ds-components";
+
+export const PublicAccessSetting = () => {
+  const [publicAccess, setPublicAccess] = useState(false);
+
+  return (
+    <Toggle
+      labelOnText="Public access"
+      value={publicAccess}
+      onChange={setPublicAccess}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Toggle for a binary setting that takes effect the moment it's flipped — enabling notifications, pausing a sync, making a workspace public.",
+    "Use it in settings panels and option lists where each row is an independent on/off.",
+    "Use it only where flipping back fully undoes the change — a toggle never asks for confirmation.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use Toggle for a choice that only applies when the form is saved — use Checkbox, which reads as deferred.",
+    "Don't use it to pick between two named alternatives, such as table and graph views — use SegmentedControl.",
+    "Don't use it to run an action or anything needing confirmation — use Button, with a confirming Dialog for irreversible changes.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Toggle is always controlled: `value` holds the on/off boolean and `onChange` receives the next one (see Installation for the state wiring). Apply the change as soon as `onChange` fires — a toggle promises immediate effect.
+
+<Stage>
+  <DemoState data-harness>
+    <Toggle value labelOnText="Autosave" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value={false} labelOnText="Public access" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Disabled
+
+A disabled toggle keeps its state visible but can't be flipped. Explain the constraint nearby — the dimmed control alone doesn't say why it's locked.
+
+<Stage>
+  <Toggle
+    disabled
+    value
+    labelOnText="Managed by workspace policy"
+    onChange={noop}
+  />
+  <Toggle
+    disabled
+    value={false}
+    labelOnText="Requires admin role"
+    onChange={noop}
+  />
+</Stage>
+
+### Invalid
+
+Set `invalid` when validation rejects the current state — it draws a red ring and sets `aria-invalid`. Pair it with visible error text that says what's wrong.
+
+<Stage>
+  <DemoState data-harness>
+    <Toggle
+      invalid
+      value={false}
+      labelOnText="Enable two-factor authentication"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Tones
+
+`tone` colors the track when the toggle is on: `neutral` (default) for everyday settings, `brand` for primary features, `success` when on means healthy or complete.
+
+<Stage>
+  <DemoState data-harness>
+    <Toggle value tone="neutral" labelOnText="Neutral" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value tone="brand" labelOnText="Brand" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value tone="success" labelOnText="Success" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Off tone
+
+`offTone` colors the track when the toggle is off. The default `neutral` reads as a plain "off"; `error` flags an off state that needs attention, such as a protection left disabled. Don't signal it with color alone — say why nearby.
+
+<Stage>
+  <DemoState data-harness>
+    <Toggle
+      value={false}
+      offTone="neutral"
+      labelOnText="Neutral"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle
+      value={false}
+      offTone="error"
+      labelOnText="Error"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`md` is the default; the label text scales with the control. Use `xxs`–`sm` in dense chrome such as table rows and panel headers, `lg` for prominent settings.
+
+<Stage>
+  <DemoState data-harness>
+    <Toggle value size="xxs" labelOnText="xxs" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value size="xs" labelOnText="xs" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value size="sm" labelOnText="sm" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value size="md" labelOnText="md" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value size="lg" labelOnText="lg" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Labels
+
+`labelOnText` renders after the control, on the on side; `labelOffText` renders before it, on the off side. Use either one as the setting's label, or both to caption the two poles — both stay visible whichever way the switch sits.
+
+<Stage>
+  <DemoState data-harness>
+    <Toggle value labelOnText="Require review" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value labelOffText="Autosave" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Toggle value labelOffText="Off" labelOnText="On" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### In forms
+
+Inside `Form.Field`, leave the label props off — the field's label is wired to the hidden input automatically. When on, the hidden native checkbox submits `"on"` under `name`; `required` blocks native submission while off.
+
+```tsx
+import { useState } from "react";
+
+import { Form, Toggle } from "@hashintel/ds-components";
+
+export const InferenceSettingRow = () => {
+  const [aiInference, setAiInference] = useState(true);
+
+  return (
+    <Form.Field layout="inline" label="Enable AI inference">
+      <Toggle
+        name="aiInference"
+        value={aiInference}
+        onChange={setAiInference}
+      />
+    </Form.Field>
+  );
+};
+```
+
+## Behavior
+
+- The whole component renders as one `<label>` wrapping a hidden native checkbox, so clicking the track or either label toggles. Don't nest it inside another label or interactive element.
+
+## Content
+
+- Label the setting, not the state: "Public access", not "On" or "Enabled". Keep the wording identical whichever way the switch sits.
+- Use a short verb or noun phrase — 1–4 words, sentence case, no punctuation: "Autosave", "Sync entity changes".
+- In general phrase for the on state: "Show archived entities", rather than "Hide archived entities". Switching off a negative is a double negative.
+- Reserve the two-label form for true poles ("Off"/"On"); two named alternatives belong in SegmentedControl.
+
+## Accessibility
+
+Toggle implements the [WAI-ARIA switch pattern](https://www.w3.org/WAI/ARIA/apg/patterns/switch/).
+
+### What Toggle provides
+
+- A visually hidden native `<input type="checkbox">` inside a `<label>`.
+- `labelOnText`/`labelOffText` render as label parts that name the input.
+
+### What you must do
+
+- Give every toggle a name: `labelOnText`/`labelOffText`, a wrapping `Form.Field` label, or `aria-label` when the visible label lives elsewhere.
+- Don't rely on `offTone="error"` color alone — pair it with text that explains the problem.
+- Prefer explaining a constraint over `disabled` — a disabled toggle has reduced contrast and doesn't say why it's locked.
+
+## API reference
+
+<PropsTable
+  of={Toggle}
+  defaults={{
+    size: '"md"',
+    tone: '"neutral"',
+    offTone: '"neutral"',
+  }}
+/>

@@ -8,7 +8,6 @@ import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
 import type { DecodingError } from "../../src/codec/Decoder.js";
 import type { ParseError } from "effect/ParseResult";
-import type { ReadonlyRecord } from "effect/Record";
 import type * as vitest from "vitest";
 
 const decode = Effect.fn("decode")(function* (
@@ -30,7 +29,7 @@ const decode = Effect.fn("decode")(function* (
   );
 
   // explicit type annotation needed for eslint
-  return (yield* effect) as readonly ReadonlyRecord<string, string>[];
+  return yield* effect;
 });
 
 describe.concurrent("JsonDecoder", () => {

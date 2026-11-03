@@ -251,7 +251,7 @@ services:
       - dev
       - hgres
       - hash
-    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
+    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.32.1}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -264,7 +264,7 @@ services:
       # Intentionally the POSTGRES superuser — needs DDL on the new schemas.
       SQL_USER: "${POSTGRES_USER:-postgres}"
       SQL_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -eux
@@ -279,7 +279,7 @@ services:
       - hgres
       - hash
     container_name: temporal
-    image: "temporalio/server:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
+    image: "temporalio/server:${HASH_TEMPORAL_VERSION:-1.32.1}"
     deploy:
       restart_policy:
         condition: on-failure
@@ -289,23 +289,13 @@ services:
       temporal-migrate:
         condition: service_completed_successfully
     healthcheck:
-      test:
-        [
-          "CMD",
-          "temporal",
-          "workflow",
-          "list",
-          "--namespace",
-          "HASH",
-          "--address",
-          "temporal:7233",
-        ]
+      # The server image has no Temporal CLI. Services that need the HASH namespace also wait for temporal-setup.
+      test: ["CMD-SHELL", 'nc -z "$$(hostname)" 7233']
       interval: 10s
       timeout: 2s
       retries: 10
     environment:
-      # This sets configuration values in
-      # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
+      # These set values in the server's embedded configuration template.
       # posgres12 for v12+ of postgres.
       DB: "postgres12"
       DBNAME: "${HASH_TEMPORAL_PG_DATABASE:-temporal}"
@@ -317,6 +307,8 @@ services:
       # Expose Prometheus-format metrics on port 8000 so the otel-collector
       # can scrape them and forward to Mimir.
       PROMETHEUS_ENDPOINT: "0.0.0.0:8000"
+    volumes:
+      - ./temporal/dynamicconfig.yaml:/etc/temporal/config/dynamicconfig/docker.yaml:ro
     security_opt:
       - no-new-privileges:true
     ports:
@@ -327,7 +319,7 @@ services:
       - dev
       - hgres
       - hash
-    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
+    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.32.1}"
     depends_on:
       temporal:
         condition: service_started
@@ -335,7 +327,7 @@ services:
       - no-new-privileges:true
     environment:
       TEMPORAL_ADDRESS: temporal:7233
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -eux
@@ -352,7 +344,7 @@ services:
       - dev
       - hgres
       - hash
-    image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION:-2.27.2}
+    image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION:-2.57.0}
     deploy:
       restart_policy:
         condition: on-failure
@@ -719,19 +711,6 @@ services:
       timeout: 2s
       retries: 10
 
-  petrinaut-opt:
-    profiles:
-      - hash
-    image: ghcr.io/hashintel/hash/petrinaut-opt
-    init: true
-    deploy:
-      restart_policy:
-        condition: on-failure
-    security_opt:
-      - no-new-privileges:true
-    ports:
-      - "${PETRINAUT_OPT_PORT:-4004}:4004"
-
   api-migrate:
     profiles:
       - hash
@@ -777,8 +756,6 @@ services:
       HASH_GRAPH_SERVICE_SECRET: "${HASH_GRAPH_SERVICE_SECRET:-hash-svc-local-dev-secret}"
       HASH_GRAPH_ATLAS_HOST: "atlas"
       HASH_GRAPH_ATLAS_PORT: "4003"
-      HASH_PETRINAUT_OPT_HOST: "petrinaut-opt"
-      HASH_PETRINAUT_OPT_PORT: "4004"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
 
       HASH_REDIS_HOST: "redis"

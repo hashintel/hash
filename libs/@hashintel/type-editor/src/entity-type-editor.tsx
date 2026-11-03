@@ -5,7 +5,7 @@ import { useId } from "react";
 import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 
 import { InheritanceRow } from "./entity-type-editor/inheritance-row";
-import { LinkListCard } from "./entity-type-editor/link-list-card";
+import { LinksSection } from "./entity-type-editor/links-section";
 import { PropertyListCard } from "./entity-type-editor/property-list-card";
 import { CustomizationContext } from "./shared/customization-context";
 import { DataTypesOptionsContextProvider } from "./shared/data-types-options-context-provider";
@@ -102,15 +102,7 @@ export const EntityTypeEditor = ({
                       <PropertyListCard />
                     </Box>
 
-                    <Box>
-                      <Typography variant="h5" mb={2}>
-                        Links defined on{" "}
-                        <Box component="span" sx={{ fontWeight: "bold" }}>
-                          {entityType.schema.title}
-                        </Box>
-                      </Typography>
-                      <LinkListCard />
-                    </Box>
+                    <LinksSection typeTitle={entityType.schema.title} />
                   </Stack>
                 </DataTypesOptionsContextProvider>
               </PropertyTypesOptionsContextProvider>

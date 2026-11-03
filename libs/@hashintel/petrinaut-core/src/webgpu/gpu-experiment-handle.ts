@@ -50,7 +50,6 @@ import type {
   MonteCarloExperimentEvent,
   MonteCarloExperimentState,
 } from "../simulation/monte-carlo/runtime/experiment";
-import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type { MonteCarloWorkerProgress } from "../simulation/monte-carlo/worker/messages";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader";
@@ -74,15 +73,8 @@ export type CreateGpuMonteCarloExperimentConfig = {
   runCount: number;
   metricSpecs: readonly MonteCarloMetricSpec[];
   /**
-   * Per-run overrides for a sweep over parameter ranges. Only numeric
-   * parameter values are supported; each run's draws are uploaded to the
-   * shader's per-run parameter buffer. At most one of `runs` and `runPlan`
-   * may be present.
-   */
-  runs?: readonly MonteCarloRunConfig[];
-  /**
-   * The compact form of `runs`: per-run numeric values in one run-major
-   * array, converted straight into the shader's per-run buffer.
+   * Per-run numeric parameter values for a sweep over parameter ranges, in
+   * one run-major array converted straight into the shader's per-run buffer.
    */
   runPlan?: ExperimentRunPlan;
   /**
@@ -188,11 +180,7 @@ export async function createGpuMonteCarloExperiment(
   }
   const metricIds = gpuMetrics.metrics.map((metric) => metric.id);
 
-  const derived = deriveRunParameters(
-    config.runs,
-    config.runPlan,
-    config.runCount,
-  );
+  const derived = deriveRunParameters(config.runPlan, config.runCount);
   if (!derived.ok) {
     return {
       supported: false,
@@ -592,10 +580,6 @@ export async function createGpuMonteCarloExperiment(
     status,
     progress,
     metrics,
-    // Metrics reduce on-device into aggregates, so per-run values never reach
-    // the host; the store stays empty. Callers needing replicates use the CPU
-    // backend.
-    runResults: createReadableStore(new Map()),
     events,
     start() {
       if (disposed || running) {

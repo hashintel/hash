@@ -1,0 +1,58 @@
+---
+title: Running locally
+description: Running the architecture docs locally, and what to do when a page looks stale.
+sidebar_order: 2
+---
+
+## Running the docs
+
+```bash
+yarn workspace @apps/petrinaut-docs dev   # http://localhost:4322
+```
+
+One process does everything: `archinaut dev` serves the site shipped with
+the tool on the last bundle, reads the annotations, writes `bundle/`, copies
+what differs into the site, and rebuilds on every change to a covered package
+or to `content/`. A source edit walks only the files it touched and their
+dependents, through a compiler kept warm in a worker; a content edit rebuilds
+in well under a second.
+
+## Reading without a server
+
+```bash
+yarn workspace @apps/petrinaut-docs doc:architecture
+```
+
+Then open `apps/petrinaut-docs/bundle/architecture.md` for the whole model in one file, or `bundle/diagrams/` for the rendered SVGs.
+
+## Checking annotations
+
+```bash
+yarn workspace @apps/petrinaut-docs lint:arch-docs
+```
+
+Around two seconds, and it needs no `d2`, because it builds the model and reports on it without rendering anything. This is the fastest way to find out whether a declaration you just wrote is valid.
+
+## When a page looks stale
+
+The site serves a copy of the bundle, so two steps sit between an annotation
+and what the browser shows: the build that writes the bundle, and the sync
+that copies what changed into the site tree. Both run on every change the dev
+server sees, and the log line names what was written.
+
+**A page is missing or out of date.** Save the file again, or restart the dev
+server: the first build after a start compares the whole bundle with the site
+tree.
+
+**A diagram keeps its old drawing.** A diagram is inlined into the page when
+the page compiles, so the dev server reloads the pages when a rendered SVG
+changes. A comment-only edit to a `.d2` renders the same SVG and changes
+nothing.
+
+**A component renders in a state your code never produces.** React Refresh keeps component state across hot reloads, so a diagram can hold a value from before your edit. Open a fresh tab before deciding a bug is real.
+
+## Changing what the docs say
+
+The pages under [Architecture](../architecture) are generated. Editing them does nothing, since the next build overwrites the lot. Change the `@layerRoot` and `@role` annotations in the source instead, or the frontmatter of the folder README that declares the layer. See [Declaring layers](doc:maintaining/declaring-layers).
+
+Pages like this one are hand-written and live in `apps/petrinaut-docs/content/`. They are optional: the generator produces a complete bundle with that directory absent.

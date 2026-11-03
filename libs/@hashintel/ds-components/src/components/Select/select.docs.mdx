@@ -1,0 +1,1078 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Form } from "../Form/form";
+import {
+  MultiSelectItemDoc,
+  Select,
+  SelectGroupDoc,
+  SelectItemDoc,
+} from "./select";
+
+<Meta title="Docs/Select" />
+
+export const meta = {
+  title: "Select",
+  description: "Let users pick one or more options from a predefined list.",
+  alternativeNames: ["Dropdown", "MultiSelect", "Picker", "Listbox"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Select/select.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-select--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/listbox/",
+    ark: "https://ark-ui.com/docs/components/select",
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/select",
+  },
+  related: ["Combobox", "Menu", "RadioGroup"],
+};
+
+# Select
+
+Let users pick one or more options from a predefined list.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      placeholder="Select an entity type…"
+      items={[
+        { value: "person", text: "Person" },
+        { value: "organization", text: "Organization" },
+        { value: "document", text: "Document" },
+      ]}
+      value="person"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      multiple
+      placeholder="Add columns…"
+      items={[
+        { value: "name", text: "Name" },
+        { value: "createdAt", text: "Created at" },
+        { value: "status", text: "Status" },
+        { value: "owner", text: "Owner" },
+      ]}
+      value={["name", "createdAt"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      variant="subtle"
+      width="fitContent"
+      items={[
+        { value: "recent", text: "Recently updated" },
+        { value: "name", text: "Name" },
+      ]}
+      value="recent"
+      onChange={noop}
+      aria-label="Sort entities"
+    />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Select } from "@hashintel/ds-components";
+
+export const EntityTypePicker = () => {
+  const [entityType, setEntityType] = useState<string | null>(null);
+
+  return (
+    <Select
+      placeholder="Select an entity type…"
+      items={[
+        { value: "person", text: "Person" },
+        { value: "organization", text: "Organization" },
+        { value: "document", text: "Document" },
+      ]}
+      value={entityType}
+      onChange={setEntityType}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Select to pick one value from multiple predefined options.",
+    <Fragment key="0">
+      Use <code>multiple</code> when several values apply together, such as
+      table columns or entity types to filter by.
+    </Fragment>,
+    <Fragment key="1">
+      Use <code>searchable</code> once a list grows past roughly 10 options, so
+      users filter instead of scrolling.
+    </Fragment>,
+    <Fragment key="2">
+      Use Select in forms — <code>name</code> submits the value through a hidden
+      native <code>&lt;select&gt;</code>.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use Select to trigger actions — options are values, not commands. Use Menu.",
+    "Don't use Select for an on/off setting — use Toggle, or Checkbox in forms.",
+    "Don't use Select when typing is the primary way in, such as huge or asynchronously searched datasets — use Combobox, a text input first.",
+    "Avoid using Select for 3 or less choices — use RadioGroup in forms or SegmentedControl in toolbars.",
+  ]}
+/>
+
+## Anatomy
+
+Select is a single component — its parts are configured through props and the
+`items` data rather than composed as JSX parts:
+
+- trigger — the field that opens the dropdown and anchors it, showing the
+  `placeholder` or the current selection, with an optional `prefix` and a
+  clear button while the selection is clearable.
+- `items` — the dropdown's content: options (`{ value, text }`), mixed freely
+  with labelled groups. In a multi select, items additionally take `suffix`,
+  `showOnlyButton`, `selectedStyle` and `selectedTone` — see
+  [Item suffixes and selection styles](#item-suffixes-and-selection-styles).
+- search field — pinned atop the dropdown when `searchable`, filtering the
+  items by their text.
+- selection summary — in a searchable multi select, an "x of y" count and a
+  "Select all" / "Clear all" toggle beneath the options.
+
+```tsx
+<Select
+  placeholder="Select a property type…" // trigger text before a selection
+  prefix={{ iconName: "search" }} // leading icon, text or custom node
+  searchable // search field atop the dropdown
+  items={[
+    { value: "text", text: "Text" }, // an option
+    {
+      id: "numeric",
+      label: "Numeric", // a group heading (not selectable)
+      items: [
+        { value: "number", text: "Number" },
+        { value: "integer", text: "Integer" },
+      ],
+    },
+  ]}
+  value={value}
+  onChange={setValue}
+/>
+```
+
+## Examples
+
+### Basic
+
+A controlled input: pass `items`, the selected `value`, and `onChange`.
+Declare `items` `as const` to narrow `value` and `onChange` to the declared
+item values.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      placeholder="Select an entity type…"
+      items={[
+        { value: "person", text: "Person" },
+        { value: "organization", text: "Organization" },
+        { value: "document", text: "Document" },
+      ]}
+      value="person"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Clearing and optional selection
+
+A single select without `required` is always clearable: a clear button shows
+on hover and focus while a value is selected, and clearing calls `onChange`
+with `null`. `required` removes the button but it can be reintroduced by setting `clearable`.
+
+A multi select only displays the clear button if `clearable` is set.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      placeholder="Filter by status…"
+      items={[
+        { value: "running", text: "Running" },
+        { value: "succeeded", text: "Succeeded" },
+        { value: "failed", text: "Failed" },
+      ]}
+      value="succeeded"
+      onChange={noop}
+      aria-label="Run status"
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      required
+      items={[
+        { value: "viewer", text: "Viewer" },
+        { value: "editor", text: "Editor" },
+        { value: "admin", text: "Admin" },
+      ]}
+      value="editor"
+      onChange={noop}
+      aria-label="Teammate role"
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      required
+      clearable
+      placeholder="Select an owner…"
+      items={[
+        { value: "alice", text: "Alice Chen" },
+        { value: "acme", text: "Acme Corp" },
+      ]}
+      value="alice"
+      onChange={noop}
+      aria-label="Entity owner"
+    />
+  </DemoState>
+</Stage>
+
+### Disabled and invalid
+
+Disabled selects grey out and ignore interaction — prefer `readonly` when the
+value still matters to the reader. Set `invalid` for validation failures and
+pair it with a `Form.Field` error message so the reason is visible.
+
+<Stage>
+  <Select
+    width="sm"
+    disabled
+    items={[{ value: "person", text: "Person" }]}
+    value="person"
+    onChange={noop}
+    aria-label="Entity type (disabled)"
+  />
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      invalid
+      placeholder="Select an entity type…"
+      items={[
+        { value: "person", text: "Person" },
+        { value: "organization", text: "Organization" },
+      ]}
+      value={null}
+      onChange={noop}
+      aria-label="Entity type (invalid)"
+    />
+  </DemoState>
+</Stage>
+
+### Read-only
+
+`readonly` strips the input chrome and renders the selection as plain text.
+Use it for view modes, so the layout holds steady when editing toggles.
+
+<Stage>
+  <Select
+    width="fitContent"
+    readonly
+    items={[
+      { value: "person", text: "Person" },
+      { value: "organization", text: "Organization" },
+    ]}
+    value="person"
+    onChange={noop}
+  />
+  <Select
+    width="fitContent"
+    readonly
+    multiple
+    items={[
+      { value: "name", text: "Name" },
+      { value: "createdAt", text: "Created at" },
+      { value: "status", text: "Status" },
+    ]}
+    value={["name", "status"]}
+    onChange={noop}
+  />
+</Stage>
+
+### Loading
+
+`loading` shows a spinner in the trigger and "Loading options…" in the
+dropdown while `items` is still empty; the control stays interactive
+throughout.
+
+<Stage>
+  <Select
+    width="sm"
+    loading
+    placeholder="Loading property types…"
+    items={[]}
+    value={null}
+    onChange={noop}
+    aria-label="Property type"
+  />
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      loading
+      items={[
+        { value: "person", text: "Person" },
+        { value: "organization", text: "Organization" },
+      ]}
+      value="person"
+      onChange={noop}
+      aria-label="Entity type"
+    />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`md` is the default. Use `xxs`–`sm` in dense chrome such as filter bars and
+table rows, and `lg` for spacious forms — `size` also scales the dropdown
+list.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      size="xxs"
+      width="fitContent"
+      items={[{ value: "xxs", text: "xxs" }]}
+      value="xxs"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      size="xs"
+      width="fitContent"
+      items={[{ value: "xs", text: "xs" }]}
+      value="xs"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      size="sm"
+      width="fitContent"
+      items={[{ value: "sm", text: "sm" }]}
+      value="sm"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      size="md"
+      width="fitContent"
+      items={[{ value: "md", text: "md" }]}
+      value="md"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      size="lg"
+      width="fitContent"
+      items={[{ value: "lg", text: "lg" }]}
+      value="lg"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Variants
+
+`default` is the bordered input. `subtle` drops the border until hover, for
+dense or inline chrome; `naked` strips all input chrome and inherits the
+surrounding text styles (`size` still sizes the dropdown) — the host supplies
+any focus affordance.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      variant="default"
+      width="fitContent"
+      items={[{ value: "default", text: "Default" }]}
+      value="default"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      variant="subtle"
+      width="fitContent"
+      items={[{ value: "subtle", text: "Subtle" }]}
+      value="subtle"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      variant="naked"
+      width="fitContent"
+      items={[{ value: "naked", text: "Naked" }]}
+      value="naked"
+      onChange={noop}
+      aria-label="Naked variant"
+    />
+  </DemoState>
+</Stage>
+
+### Widths
+
+Preset widths align selects with other form inputs: `xs`–`lg` are fixed,
+`fullWidth` (the default) fills the container, and `fitContent` hugs the
+selection. Size with CSS instead when alignment with other inputs doesn't
+matter.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="xs"
+      items={[{ value: "xs", text: "xs" }]}
+      value="xs"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      items={[{ value: "sm", text: "sm" }]}
+      value="sm"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="md"
+      items={[{ value: "md", text: "md" }]}
+      value="md"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="lg"
+      items={[{ value: "lg", text: "lg" }]}
+      value="lg"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="fullWidth"
+      items={[{ value: "fullWidth", text: "fullWidth" }]}
+      value="fullWidth"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="fitContent"
+      items={[{ value: "fitContent", text: "fitContent" }]}
+      value="fitContent"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### With prefix
+
+`prefix` places an adornment at the start of the trigger: `{ iconName }` for
+an icon, `{ text }` for a short string, or `{ content }` for a custom node.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      prefix={{ iconName: "filter" }}
+      items={[
+        { value: "person", text: "Person" },
+        { value: "organization", text: "Organization" },
+      ]}
+      value="person"
+      onChange={noop}
+      aria-label="Filter by entity type"
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      prefix={{ text: "Sort:" }}
+      items={[
+        { value: "recent", text: "Recently updated" },
+        { value: "name", text: "Name" },
+      ]}
+      value="recent"
+      onChange={noop}
+      aria-label="Sort entities"
+    />
+  </DemoState>
+</Stage>
+
+### Grouped options
+
+Group related options with `{ id, label, items }` entries — group labels are
+headings, not selectable rows. Group only when the categories are obvious; a
+flat list scans faster when it's short.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      placeholder="Select a property type…"
+      items={[
+        {
+          id: "text",
+          label: "Text",
+          items: [
+            { value: "text", text: "Text" },
+            { value: "email", text: "Email" },
+            { value: "url", text: "URL" },
+          ],
+        },
+        {
+          id: "numeric",
+          label: "Numeric",
+          items: [
+            { value: "number", text: "Number" },
+            { value: "integer", text: "Integer" },
+          ],
+        },
+      ]}
+      value="email"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Custom rendering
+
+`renderItem` controls how options render in the dropdown and doubles as the
+trigger's renderer; `renderSelectedItem` overrides the trigger alone. Keep the
+item's text in the output so options keep their accessible names.
+
+export const customRenderingCode = `import { useState } from "react";
+
+import { Select } from "@hashintel/ds-components";
+
+const runStatuses = [
+  { value: "running", text: "Running" },
+  { value: "succeeded", text: "Succeeded" },
+  { value: "failed", text: "Failed" },
+] as const;
+
+type RunStatus = (typeof runStatuses)[number]["value"];
+
+const statusColor: Record<RunStatus, string> = {
+  running: "#0775e3",
+  succeeded: "#1a9338",
+  failed: "#d13617",
+};
+
+const renderStatus = (value: RunStatus) => (
+  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <span
+      aria-hidden="true"
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: statusColor[value],
+      }}
+    />
+    {runStatuses.find((option) => option.value === value)?.text}
+  </span>
+);
+
+export const RunStatusSelect = () => {
+  const [status, setStatus] = useState<RunStatus | null>("running");
+
+  return (
+    <Select
+      width="sm"
+      items={runStatuses}
+      value={status}
+      onChange={setStatus}
+      renderItem={renderStatus}
+      aria-label="Run status"
+    />
+  );
+};`;
+
+export const CustomRenderingDemo = () => (
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      items={[
+        { value: "running", text: "Running" },
+        { value: "succeeded", text: "Succeeded" },
+        { value: "failed", text: "Failed" },
+      ]}
+      value="succeeded"
+      onChange={noop}
+      renderItem={(value) => (
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background:
+                value === "running"
+                  ? "#0775e3"
+                  : value === "succeeded"
+                    ? "#1a9338"
+                    : "#d13617",
+            }}
+          />
+          {value === "running"
+            ? "Running"
+            : value === "succeeded"
+              ? "Succeeded"
+              : "Failed"}
+        </span>
+      )}
+      aria-label="Run status"
+    />
+  </DemoState>
+);
+
+<Stage code={customRenderingCode}>
+  <CustomRenderingDemo />
+</Stage>
+
+In a multi select, `renderSelectedItem` renders each value in the trigger's
+row, and `renderSelectedAll` replaces the entire selection row — along with
+the `overflow` behavior.
+
+### Searchable
+
+`searchable` adds a search field to the top of the dropdown that filters
+options by their text — every space-separated term must match. Closing the
+dropdown resets the search; pass `{ onSearch }` to react to the query, e.g. to
+fetch options.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      searchable
+      placeholder="Select an entity type…"
+      items={[
+        { value: "person", text: "Person" },
+        { value: "organization", text: "Organization" },
+        { value: "document", text: "Document" },
+        { value: "event", text: "Event" },
+        { value: "project", text: "Project" },
+        { value: "task", text: "Task" },
+        { value: "meeting", text: "Meeting" },
+        { value: "invoice", text: "Invoice" },
+      ]}
+      value={null}
+      onChange={noop}
+      aria-label="Entity type"
+    />
+  </DemoState>
+</Stage>
+
+### Multiple selection
+
+`multiple` keeps the dropdown open while values toggle — each toggle fires
+`onChange`, and Escape reverts the selection to its state when the dropdown
+opened. A searchable multi select adds an "x of y" count and a Select all /
+Clear all toggle beneath the options — hide either with `hideCount` /
+`hideSelectAllToggle`.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      multiple
+      placeholder="Add columns…"
+      items={[
+        { value: "name", text: "Name" },
+        { value: "createdAt", text: "Created at" },
+        { value: "updatedAt", text: "Updated at" },
+        { value: "status", text: "Status" },
+        { value: "owner", text: "Owner" },
+      ]}
+      value={["name", "status"]}
+      onChange={noop}
+      aria-label="Table columns"
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      multiple
+      searchable
+      placeholder="Notify teammates…"
+      items={[
+        { value: "elena", text: "Elena Vasquez" },
+        { value: "marcus", text: "Marcus Chen" },
+        { value: "priya", text: "Priya Sharma" },
+        { value: "tom", text: "Tom Okafor" },
+      ]}
+      value={["elena"]}
+      onChange={noop}
+      aria-label="Teammates to notify"
+    />
+  </DemoState>
+</Stage>
+
+#### Selected-value overflow
+
+In multiple select, `overflow` sets how the trigger shows many values: `scroll` (the default)
+scrolls the row horizontally, `truncate` stops at a "+X" badge, and `summary`
+joins the names — falling back to "X of Y" once they no longer fit, or "any"
+when everything is selected.
+
+<Stage>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <Select
+        multiple
+        overflow="scroll"
+        items={[
+          { value: "name", text: "Name" },
+          { value: "createdAt", text: "Created at" },
+          { value: "updatedAt", text: "Updated at" },
+          { value: "status", text: "Status" },
+          { value: "owner", text: "Owner" },
+          { value: "email", text: "Email" },
+        ]}
+        value={["name", "createdAt", "updatedAt", "status", "owner"]}
+        onChange={noop}
+        aria-label="Columns (scroll)"
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <Select
+        multiple
+        overflow="truncate"
+        items={[
+          { value: "name", text: "Name" },
+          { value: "createdAt", text: "Created at" },
+          { value: "updatedAt", text: "Updated at" },
+          { value: "status", text: "Status" },
+          { value: "owner", text: "Owner" },
+          { value: "email", text: "Email" },
+        ]}
+        value={["name", "createdAt", "updatedAt", "status", "owner"]}
+        onChange={noop}
+        aria-label="Columns (truncate)"
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 220 }}>
+    <DemoState data-harness>
+      <Select
+        multiple
+        overflow="summary"
+        items={[
+          { value: "name", text: "Name" },
+          { value: "createdAt", text: "Created at" },
+          { value: "updatedAt", text: "Updated at" },
+          { value: "status", text: "Status" },
+          { value: "owner", text: "Owner" },
+          { value: "email", text: "Email" },
+        ]}
+        value={["name", "createdAt", "updatedAt", "status", "owner"]}
+        onChange={noop}
+        aria-label="Columns (summary)"
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+#### Limiting selection
+
+In multiple select, `maxItems` caps the selection: at the cap, unselected options disable until a
+value is deselected. The Select all toggle hides when the cap puts selecting
+every enabled option out of reach.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      multiple
+      maxItems={2}
+      placeholder="Pin up to 2 views…"
+      items={[
+        { value: "all", text: "All entities" },
+        { value: "recent", text: "Recently updated" },
+        { value: "drafts", text: "My drafts" },
+        { value: "shared", text: "Shared with me" },
+      ]}
+      value={["all", "recent"]}
+      onChange={noop}
+      aria-label="Pinned views"
+    />
+  </DemoState>
+</Stage>
+
+#### Item suffixes and selection styles
+
+Multi-select items can take a `suffix` aligned to the right, and `showOnlyButton`
+can swap it for an "Only" button on hover that narrows the selection to that
+item. Items indicate selection with a checkbox by default — restyle per item
+with `selectedStyle` (`checkbox`, `tick`, `highlight`) and `selectedTone`.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      multiple
+      items={[
+        {
+          value: "person",
+          text: "Person",
+          suffix: "1,204",
+          showOnlyButton: true,
+        },
+        {
+          value: "organization",
+          text: "Organization",
+          suffix: "312",
+          showOnlyButton: true,
+        },
+        {
+          value: "document",
+          text: "Document",
+          suffix: "4,087",
+          showOnlyButton: true,
+        },
+        { value: "event", text: "Event", suffix: "86" },
+      ]}
+      value={["person", "document"]}
+      onChange={noop}
+      aria-label="Entity types"
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      multiple
+      items={[
+        {
+          value: "production",
+          text: "Production",
+          selectedStyle: "highlight",
+          selectedTone: "brand",
+        },
+        {
+          value: "staging",
+          text: "Staging",
+          selectedStyle: "highlight",
+          selectedTone: "brand",
+        },
+        {
+          value: "development",
+          text: "Development",
+          selectedStyle: "highlight",
+          selectedTone: "brand",
+        },
+      ]}
+      value={["production"]}
+      onChange={noop}
+      aria-label="Environments"
+    />
+  </DemoState>
+</Stage>
+
+### Connected inputs
+
+Set `connectToRightInput` on the left input and `connectToLeftInput` on the
+right to join a pair into one visual control. Only the `default` variant
+connects — `subtle` and `readonly` inputs render separately.
+
+<Stage>
+  <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+    <DemoState data-harness>
+      <Select
+        connectToRightInput
+        width="sm"
+        items={[
+          { value: "name", text: "Name" },
+          { value: "updatedAt", text: "Last updated" },
+        ]}
+        value="name"
+        onChange={noop}
+        aria-label="Sort by"
+      />
+    </DemoState>
+    <DemoState data-harness>
+      <Select
+        connectToLeftInput
+        width="sm"
+        items={[
+          { value: "asc", text: "Ascending" },
+          { value: "desc", text: "Descending" },
+        ]}
+        value="asc"
+        onChange={noop}
+        aria-label="Sort direction"
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### In forms
+
+Inside a `Form.Field` the label wires to the trigger automatically, and `name`
+submits the selected value through a hidden native `<select>`.
+
+<Stage>
+  <Form.Field label="Entity type" required>
+    <DemoState data-harness>
+      <Select
+        name="entityType"
+        width="sm"
+        required
+        items={[
+          { value: "person", text: "Person" },
+          { value: "organization", text: "Organization" },
+          { value: "document", text: "Document" },
+        ]}
+        value="person"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+## Behavior
+
+- The menu's content mounts renders in a portal above the page, preventing most z-index + overflow issues.
+- Selected values missing from `items` render as disabled options at the top
+  of the list, so a committed selection always stays visible — except while
+  `loading` with no options yet.
+- "Select all" selects every enabled option — regardless of the active search
+  filter.
+- `defaultOpen` is read once on mount and doesn't fire `onOpenChange`.
+
+## Content
+
+- Option text is a 1–4 word noun phrase, sentence case, no punctuation:
+  "Person", "Created at", "Last 30 days". Name values, not actions — actions
+  belong in Menu.
+- Keep option text unique and front-load the distinguishing word, so the list
+  scans and typeahead works.
+- Order options by the likeliest choice, numerically, or alphabetically — one
+  scheme per list.
+- Placeholders follow "Select a [noun]…" and never carry requirements — they
+  disappear once a value is chosen.
+- Group labels are 1–2 word category nouns: "System types", "Numeric".
+- Write `emptyState` as why plus next step: "No properties yet — add one in
+  the type editor."
+
+## Accessibility
+
+Select implements the
+[WAI-ARIA listbox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/listbox/),
+
+### What Select provides
+
+- A real `<button>` trigger with listbox popup semantics, arrow-key navigation
+  and typeahead.
+- A hidden native `<select>` mirrors the selection so forms submit it under
+  `name`.
+- Inside a `Form.Field` the trigger adopts the field's label id automatically.
+- The dropdown's search field and the clear button carry built-in labels
+  ("Search options", "Clear input").
+
+### What you must do
+
+- Give every select an accessible name: a `Form.Field` label, or `aria-label`
+  where no label is visible (toolbars, `naked` selects). A placeholder is not
+  a label.
+- With `variant="naked"`, supply your own focus affordance — the variant
+  strips hover and focus styles.
+- Keep the item's text in `renderItem` output and mark decorative nodes
+  `aria-hidden`, so options keep their accessible names.
+
+### Keyboard
+
+Select adds handling beyond the listbox pattern:
+
+| Key                      | Action                                                                                                                                       |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Escape (multi select)    | Closes the dropdown and reverts the selection to its state when it opened.                                                                   |
+
+## API reference
+
+### Select
+
+<PropsTable
+  of={Select}
+  defaults={{
+    variant: '"default"',
+    size: '"md"',
+    align: '"left"',
+    width: '"fullWidth"',
+    overflow: '"scroll"',
+  }}
+/>
+
+### SelectItem
+
+The shape of `items` entries in a single select.
+
+<PropsTable of={SelectItemDoc} />
+
+### MultiSelectItem
+
+The shape of `items` entries in a multi select — `SelectItem` plus right-aligned
+suffix content and per-item selection styling; see
+[Item suffixes and selection styles](#item-suffixes-and-selection-styles).
+
+<PropsTable
+  of={MultiSelectItemDoc}
+  defaults={{ selectedStyle: '"checkbox"', selectedTone: '"neutral"' }}
+/>
+
+### SelectGroup
+
+A labelled group of options, usable wherever items are: `{ id, label, items }`.
+
+<PropsTable of={SelectGroupDoc} />

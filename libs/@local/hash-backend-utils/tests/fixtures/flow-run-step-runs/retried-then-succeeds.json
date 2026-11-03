@@ -1,0 +1,40 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "firstTwo",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-27T10:51:16.095Z",
+      "scheduledAt": "2026-10-27T10:51:13.063Z",
+      "closedAt": "2026-10-27T10:51:16.097Z",
+      "inputs": [
+        {
+          "inputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [3, 1, 4]
+          }
+        },
+        {
+          "inputName": "count",
+          "payload": {
+            "kind": "Number",
+            "value": 2
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 3,
+      "outputs": [
+        {
+          "outputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [3, 1]
+          }
+        }
+      ]
+    }
+  ],
+  "inputRequests": []
+}

@@ -4,12 +4,14 @@ use alloc::sync::Arc;
 use core::pin::Pin;
 
 use axum::{Extension, Router};
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
-use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
+use hash_graph_postgres_store::store::postgres::PostgresClient;
+use hash_graph_store::{
+    api_token::ApiTokenStore, filter::protection::PropertyProtectionFilterConfig, pool::StorePool,
+};
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
-use hash_secret::Secret;
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
@@ -17,7 +19,7 @@ use tower::ServiceBuilder;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::{
-    ApiState,
+    ApiState, PublicApiConfig,
     authentication::{self, api_token::ApiTokenRejection},
     documentation,
     legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
@@ -27,18 +29,19 @@ use super::{
 
 pub struct Dependencies<S> {
     pub store: Arc<S>,
-    pub postgres: PostgresStorePool,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub embedding_client: Option<Arc<OpenAiEmbeddingClient>>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
+    pub public_api_config: PublicApiConfig,
     pub session_auth: authentication::KratosSessionConfig,
     pub service_secret: Pin<Arc<Secret<str>>>,
     pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
+    pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
     pub clustering: Arc<ClusteringContext>,
 }
 
@@ -52,7 +55,8 @@ pub struct Dependencies<S> {
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
+    for<'pool> S::Store<'pool>:
+        RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore + AsRef<PostgresClient>,
 {
     let public_provider = Arc::new(authentication::build_api_token_provider(
         dependencies.api_tokens.clone(),
@@ -87,6 +91,7 @@ where
     let state = ApiState::new(
         Arc::clone(&dependencies.store),
         dependencies.temporal_client.clone(),
+        dependencies.public_api_config,
     );
     let apis = super::apis::<S>()
         .map(|api| api.with_state(state.clone()))
@@ -97,13 +102,13 @@ where
     // them through `ApiState`.
     let mut legacy_routes = legacy::routes::<S>()
         .layer(Extension(dependencies.store))
-        .layer(Extension(Arc::new(dependencies.postgres)))
         .layer(Extension(dependencies.temporal_client))
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
         .layer(Extension(dependencies.api_tokens))
         .layer(Extension(dependencies.compiler))
+        .layer(Extension(dependencies.filter_protection))
         .layer(Extension(dependencies.clustering));
     if let Some(query_logger) = dependencies.query_logger {
         legacy_routes = legacy_routes.layer(Extension(query_logger));

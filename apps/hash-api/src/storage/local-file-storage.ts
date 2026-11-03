@@ -6,7 +6,10 @@ import appRoot from "app-root-path";
 import express from "express";
 import mime from "mime-types";
 
-import { getSafeContentType } from "@local/hash-backend-utils/file-storage";
+import {
+  getSafeContentType,
+  readFirstLineOfStream,
+} from "@local/hash-backend-utils/file-storage";
 
 import type { Url } from "@blockprotocol/type-system";
 import type {
@@ -152,6 +155,29 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     }
 
     return fs.promises.readFile(filePath);
+  }
+
+  /** Read the first line of a stored file, without reading the rest of it. */
+  async readFirstLine({ key }: { key: string }): Promise<string | null> {
+    const filePath = path.join(this.fileUploadPath, path.normalize(key));
+
+    if (!filePath.startsWith(this.fileUploadPath)) {
+      throw new Error("Invalid key: path traversal detected");
+    }
+
+    try {
+      return await readFirstLineOfStream(fs.createReadStream(filePath));
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   /**

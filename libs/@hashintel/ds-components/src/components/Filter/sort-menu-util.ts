@@ -11,9 +11,11 @@ export type SortDirectionsAvailable =
 export type SortIcon = "alphabetical" | "numeric" | "generic";
 
 export type Sorter<SortKey> = {
+  /** Visible label of the sorter in the dropdown — also what the search bar matches, and the trigger label while this sorter is active */
   name: string;
+  /** Identifies the sorter in `value` and `onChange` */
   sortKey: SortKey;
-  /** Defaults to "both" */
+  /** Which sort directions the sorter offers. Defaults to "both" */
   directionsAvailable?: SortDirectionsAvailable;
   /** Glyph family for the direction icons. Defaults to "alphabetical" */
   sortIcon?: SortIcon;

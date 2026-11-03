@@ -328,7 +328,7 @@ mod tests {
         ResourceConstraint::try_from_cedar(&cedar_constraint, &resource_expr)?;
 
         let policy = Policy {
-            id: PolicyId::new(Uuid::new_v4()),
+            id: PolicyId::new(Uuid::now_v7()),
             name: None,
             effect: Effect::Permit,
             principal: None,
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::Web { web_id }),
             json!({

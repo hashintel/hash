@@ -12,7 +12,7 @@ version.workspace = true
 hash-graph-authorization = { workspace = true, public = true, features = ["postgres"] }
 hash-graph-store         = { workspace = true, public = true, features = ["postgres"] }
 hash-graph-validation    = { workspace = true, public = true }
-hash-secret              = { workspace = true, public = true }
+hash-crypto              = { workspace = true, public = true }
 hash-temporal-client     = { workspace = true, public = true }
 
 # Public third-party dependencies
@@ -50,7 +50,7 @@ simple-mermaid   = { workspace = true }
 time             = { workspace = true }
 tracing          = { workspace = true }
 utoipa           = { workspace = true, optional = true, features = ["uuid"] }
-uuid             = { workspace = true, features = ["v4", "serde"] }
+uuid             = { workspace = true, features = ["v7", "serde", "std"] }
 
 [dev-dependencies]
 hash-graph-authentication = { workspace = true }
@@ -69,11 +69,11 @@ tokio                     = { workspace = true, features = ["macros", "time"] }
 tracing-subscriber        = { workspace = true, features = ["env-filter", "registry"] }
 
 [features]
-clap = ["dep:clap", "hash-secret/clap"]
+clap       = ["dep:clap", "hash-crypto/clap"]
 # Exposes test-only impls, in particular `BeginReadOnlyTransaction` for stores already inside a
 # transaction. See the `TODO(BE-688)` on the trait definition.
 test-utils = []
-utoipa = [
+utoipa     = [
     "dep:utoipa",
     "hash-graph-store/utoipa",
     "hash-graph-types/utoipa",

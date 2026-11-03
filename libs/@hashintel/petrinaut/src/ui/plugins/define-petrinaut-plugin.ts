@@ -176,8 +176,7 @@ export interface PetrinautPluginManifest {
   readonly root?: true;
   /**
    * The AI assistant. The hook returns the assistant panel's content under
-   * `assistant`. The editor shows the first running plugin that declares one,
-   * and the deprecated `aiAssistant` prop's chat while none runs.
+   * `assistant`. The editor shows the first running plugin that declares one.
    */
   readonly assistant?: true;
   /** The service the hook returns under `provides`, declared with `pluginService<T>()`. */

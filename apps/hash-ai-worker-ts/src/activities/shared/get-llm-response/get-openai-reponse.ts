@@ -55,7 +55,7 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
      */
     strict: false,
     name: tool.name,
-    parameters: tool.inputSchema as OpenAI.FunctionParameters,
+    parameters: tool.inputSchema,
     description: tool.description,
   },
 });

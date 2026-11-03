@@ -117,12 +117,12 @@ pub(super) struct AuthorityScope {
     pub scope: CurrentScope,
 }
 
-impl<R: Send> FromRequestParts<AppState<R>> for AuthorityScope {
+impl FromRequestParts<AppState> for AuthorityScope {
     type Rejection = ProblemResponse<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState<R>,
+        state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let Actor(actor) = Actor::from_request_parts(parts, state).await?;
         let token = parts
@@ -178,12 +178,12 @@ pub(super) struct Renewal {
     pub carried: Option<ContinuityScope>,
 }
 
-impl<R: Send> FromRequestParts<AppState<R>> for Renewal {
+impl FromRequestParts<AppState> for Renewal {
     type Rejection = ProblemResponse<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState<R>,
+        state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let Actor(actor) = Actor::from_request_parts(parts, state).await?;
         let token = parts

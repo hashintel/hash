@@ -14,6 +14,7 @@ import { useMergeRefs } from "use-callback-ref";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { OverflowRow } from "../../util/OverflowRow/overflow-row";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
@@ -48,9 +49,11 @@ import type { ChipSize } from "../Chip/chip-util";
 import type { TextInput } from "../TextInput/text-input";
 
 export type ComboboxItem<TValue extends string = string> = {
+  /** What `onChange` receives when the option is selected */
   value: TValue;
   /** Visible label, also the text matched by filtering */
   text: string;
+  /** Disables the option in the dropdown */
   disabled?: boolean;
 } & Pick<Item, "selectedStyle">;
 
@@ -72,13 +75,19 @@ type AllowNewValueOptions = {
   renderOption?: (input: string) => React.ReactNode;
 };
 
+// Docs-only markers: render nothing, exist so react-docgen can surface these
+// object shapes in the docs prop tables.
+export const ComboboxItemDoc = (_props: MultiComboboxItem): null => null;
+export const AllowNewValueOptionsDoc = (_props: AllowNewValueOptions): null =>
+  null;
+
 type ComboboxBaseProps = Omit<
   React.ComponentProps<typeof TextInput>,
-  "autocomplete" | "onChange" | "value"
+  "autocomplete" | "onChange" | "value" | "clearable"
 > & {
   /** Called as the input's text changes, whether typed or set by a selection */
   onChangeInput?: (value: string) => void;
-  /** How options are filtered against the typed text. Defaults to `contains`. */
+  /** How options are filtered against the typed text. */
   filterAlgorithm?:
     | "contains"
     | "startsWith"
@@ -91,47 +100,59 @@ type ComboboxBaseProps = Omit<
 };
 
 type ComboboxSingleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values */
+  /** Whether multiple values can be selected. */
   multiple?: false;
   maxItems?: never;
   overflow?: never;
   clearInputOnSelect?: never;
   renderSelectedAll?: never;
   items?: ReadonlyArray<ItemOrGroup<ComboboxItem<TValue>>>;
-  /** Custom renderer for options in the dropdown. Defaults to the option's `text`. */
+  /** Custom renderer for options in the dropdown; in a multiple combobox, also each selected value's chip content unless `renderSelectedItem` overrides it. Defaults to the option's `text`. */
   renderItem?: (value: TValue) => React.ReactNode;
-  /** Custom renderer for the committed value, shown while the input is unfocused */
+  /** Custom renderer for a selected value in the input — the committed value shown while unfocused in a single combobox, or each value's chip content in a multiple one. Defaults to `renderItem`, then the option's `text`. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
 } & (
   | {
-      /** Allow committing typed text that matches no option, offered as an extra dropdown option */
+      /** Whether typed text that matches no option can be committed, offered as an extra dropdown option. In a multiple combobox, committed new values list as selected leading options, so they can be deselected like any other value. */
       allowNewValue: true | AllowNewValueOptions;
       required?: boolean;
+      /** Whether the combobox can be cleared, showing the clear button; a single-select combobox that is not `required` is always clearable. Pair with `invalid` to style the emptied field as an error. */
+      clearable?: boolean;
       value: string | null | undefined;
-      /**
-       * Called when a value is committed. `isNew` is true when the committed value is typed
-       * text that resolves to no option.
-       */
+      /** Called when the selection is committed — with the single value (`null` when cleared) or the array of selected values. With `allowNewValue`, `isNew` is true when the commit added typed text matching no option. */
       onChange: (value: string, isNew: boolean) => void;
     }
   | {
       allowNewValue?: false;
       required: true;
+      /** Whether the combobox can be cleared, showing the clear button; a single-select combobox that is not `required` is always clearable. Pair with `invalid` to style the emptied field as an error. */
+      clearable?: false;
       value: NoInfer<TValue>;
-      /** Called when a value is committed */
+      /** Called when the selection is committed — with the single value (`null` when cleared) or the array of selected values. With `allowNewValue`, `isNew` is true when the commit added typed text matching no option. */
       onChange: (value: NoInfer<TValue>) => void;
     }
   | {
       allowNewValue?: false;
-      required?: false;
+      required: true;
+      /** Whether the combobox can be cleared, showing the clear button; a single-select combobox that is not `required` is always clearable. Pair with `invalid` to style the emptied field as an error. */
+      clearable: true;
       value: NoInfer<TValue> | null | undefined;
-      /** Called when a value is committed — with `null` when the value is cleared. `value` stays wider (`undefined` allowed in) for consumers holding optional data. */
+      /** Called when the selection is committed — with the single value (`null` when cleared) or the array of selected values. With `allowNewValue`, `isNew` is true when the commit added typed text matching no option. */
+      onChange: (value: NoInfer<TValue> | null) => void;
+    }
+  | {
+      allowNewValue?: false;
+      required?: false;
+      /** Whether the combobox can be cleared, showing the clear button; a single-select combobox that is not `required` is always clearable. Pair with `invalid` to style the emptied field as an error. */
+      clearable?: never;
+      value: NoInfer<TValue> | null | undefined;
+      /** Called when the selection is committed — with the single value (`null` when cleared) or the array of selected values. With `allowNewValue`, `isNew` is true when the commit added typed text matching no option. */
       onChange: (value: NoInfer<TValue> | null) => void;
     }
 );
 
 type ComboboxMultipleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values. */
+  /** Whether multiple values can be selected. */
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
@@ -140,25 +161,27 @@ type ComboboxMultipleProps<TValue extends string> = {
   /** How the selected values render in the input when no `renderSelectedAll` is given: a chip row that scrolls horizontally (the default), a chip row that truncates with a "+X" badge, or a plain-text summary of the names (falling back to "X of Y" once they no longer fit). */
   overflow?: "scroll" | "truncate" | "summary";
   items?: ReadonlyArray<ItemOrGroup<MultiComboboxItem<TValue>>>;
-  /** Custom renderer for options in the dropdown; also each selected value's chip content, unless `renderSelectedItem` overrides that. Defaults to the option's `text`. */
+  /** Custom renderer for options in the dropdown; in a multiple combobox, also each selected value's chip content unless `renderSelectedItem` overrides it. Defaults to the option's `text`. */
   renderItem?: (value: TValue) => React.ReactNode;
-  /** Custom renderer for a selected value's chip content in the input, per value. Defaults to `renderItem`, then the option's `text`. */
+  /** Custom renderer for a selected value in the input — the committed value shown while unfocused in a single combobox, or each value's chip content in a multiple one. Defaults to `renderItem`, then the option's `text`. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
   /** Custom renderer for the selected values in the input, replacing the default overflow row */
   renderSelectedAll?: (values: TValue[]) => React.ReactNode;
   required?: boolean;
+  /** Whether the combobox can be cleared, showing the clear button; a single-select combobox that is not `required` is always clearable. Pair with `invalid` to style the emptied field as an error. */
+  clearable?: boolean | { onClear: () => void };
 } & (
   | {
-      /** Allow committing typed text that matches no option, offered as an extra dropdown option. Committed new values list as selected leading options in the dropdown, so they can be deselected like any other value. */
+      /** Whether typed text that matches no option can be committed, offered as an extra dropdown option. In a multiple combobox, committed new values list as selected leading options, so they can be deselected like any other value. */
       allowNewValue: true | AllowNewValueOptions;
       value: ReadonlyArray<string>;
-      /** Called with the next selection. `isNew` is true when the change added typed text that resolves to no option. */
+      /** Called when the selection is committed — with the single value (`null` when cleared) or the array of selected values. With `allowNewValue`, `isNew` is true when the commit added typed text matching no option. */
       onChange: (value: string[], isNew: boolean) => void;
     }
   | {
       allowNewValue?: false;
       value: ReadonlyArray<NoInfer<TValue>>;
-      /** Called with the next selection */
+      /** Called when the selection is committed — with the single value (`null` when cleared) or the array of selected values. With `allowNewValue`, `isNew` is true when the commit added typed text matching no option. */
       onChange: (value: Array<NoInfer<TValue>>) => void;
     }
 );
@@ -290,7 +313,7 @@ const maskComboboxRoleFromTagsMachine = (
     currentTarget: maskedInput,
     preventDefault: () => event.preventDefault(),
     stopPropagation: () => event.stopPropagation(),
-  } as React.KeyboardEvent<HTMLInputElement>;
+  };
 };
 
 const flattenListItems = (items: Array<ItemOrGroup<Item>>): Item[] => {
@@ -426,9 +449,7 @@ export const Combobox = <TValue extends string>({
     [items, orphanItems],
   );
 
-  const committedValue = multiple
-    ? ""
-    : ((value as string | null | undefined) ?? "");
+  const committedValue = multiple ? "" : (value ?? "");
   const committedItem = useMemo(
     () => findComboboxItemByValue(effectiveItems, committedValue),
     [effectiveItems, committedValue],
@@ -978,7 +999,7 @@ export const Combobox = <TValue extends string>({
     if (multiple) {
       return (
         <span
-          ref={mergedWrapperRef as React.Ref<HTMLSpanElement>}
+          ref={mergedWrapperRef}
           className={cx(multiClasses.readonly, className)}
           data-testid={testId}
         >
@@ -1019,9 +1040,7 @@ export const Combobox = <TValue extends string>({
 
   const clearSelection = () => {
     if (typeof clearable === "object") {
-      if (multiple) {
-        setText("");
-      }
+      setText("");
       clearable.onClear();
       return;
     }
@@ -1074,6 +1093,12 @@ export const Combobox = <TValue extends string>({
       // variant's BaseInput.
       rowKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void,
     ) => {
+      if (event.key === "Enter" && hasCommandModifier(event)) {
+        if (multiple) {
+          onKeyDown?.(event);
+        }
+        return;
+      }
       if (
         multiple &&
         renderSelectedAll !== undefined &&
@@ -1096,9 +1121,11 @@ export const Combobox = <TValue extends string>({
       // highlight). Acceptable text commits here in a single combobox — the
       // close that follows only reverts, never commits — while Enter that
       // abandons unacceptable text must not submit a form (applied after,
-      // so the machine still sees the key).
+      // so the machine still sees the key). An IME's Enter confirms the
+      // composition, never the draft.
       const entersTypedText =
         event.key === "Enter" &&
+        !event.nativeEvent.isComposing &&
         openRef.current &&
         highlightedValueRef.current === null &&
         inputTextRef.current !== committedTextRef.current;
@@ -1112,6 +1139,11 @@ export const Combobox = <TValue extends string>({
         // Snaps loosely-cased text to the named option's text — the
         // item-select close this Enter triggers leaves the text alone.
         revertInput();
+        // The machine ignores Shift+Enter outright, so the close that
+        // follows a bare Enter is ours to make.
+        if (event.shiftKey) {
+          combobox.setOpen(false);
+        }
       }
       if (event.key === "Escape" && !openRef.current) {
         revertInput();
@@ -1153,7 +1185,8 @@ export const Combobox = <TValue extends string>({
       // the dropdown is open.
       if (
         openRef.current &&
-        (event.key === "ArrowLeft" || event.key === "ArrowRight")
+        (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+        !hasCaretModifier(event)
       ) {
         rowKeyDown(maskComboboxRoleFromTagsMachine(event));
         return;
@@ -1447,8 +1480,8 @@ export const Combobox = <TValue extends string>({
         }}
         styledValue={resolvedStyledValue}
         clearable={
-          clearable === undefined || clearable === false
-            ? clearable
+          required === true && clearable !== true
+            ? undefined
             : { onClear: clearSelection }
         }
         inputElementProps={inputElementProps}
@@ -1457,3 +1490,5 @@ export const Combobox = <TValue extends string>({
     </>
   );
 };
+
+Combobox.displayName = "Combobox";

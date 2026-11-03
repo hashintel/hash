@@ -5,8 +5,9 @@ import {
   getKindSources,
   getPayloadInputNames,
 } from "./action-definitions.js";
+import { validatePayloadValue } from "./payload-schemas.js";
 
-import type { FlowActionDefinitionId } from "./types.js";
+import type { FlowActionDefinitionId, InputDefinition } from "./types.js";
 
 const findAction = {
   actionDefinitionId: "find" as FlowActionDefinitionId,
@@ -88,6 +89,37 @@ describe("getKindSources", () => {
     expect(() => getKindSources(withDefault("fallback"))).toThrow(
       /neither can have a default/,
     );
+  });
+});
+
+describe("action input defaults", () => {
+  it("gives every default a kind its input accepts and a valid value", () => {
+    for (const definition of Object.values(actionDefinitions)) {
+      const inputs: readonly InputDefinition[] = definition.inputs;
+
+      for (const input of inputs) {
+        if (input.default === undefined) {
+          continue;
+        }
+
+        const subject = `The default of input "${input.name}" of action "${definition.actionDefinitionId}"`;
+
+        expect(
+          "oneOfPayloadKinds" in input ? input.oneOfPayloadKinds : [],
+          subject,
+        ).toContain(input.default.kind);
+
+        expect(
+          validatePayloadValue({
+            kind: input.default.kind,
+            array: input.array,
+            value: input.default.value,
+            allowStoredRefs: false,
+          }),
+          subject,
+        ).toBeUndefined();
+      }
+    }
   });
 });
 

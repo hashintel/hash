@@ -1,0 +1,316 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { BaseTooltip } from "./base-tooltip";
+import { Tooltip } from "./tooltip";
+
+<Meta title="Docs/Tooltip" />
+
+export const meta = {
+  title: "Tooltip",
+  description:
+    "A short, non-interactive hint shown on hovering or focusing an element.",
+  alternativeNames: ["Hint", "Infotip"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Tooltip/tooltip.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-tooltip--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/",
+    ark: "https://ark-ui.com/docs/components/tooltip",
+  },
+  related: ["HelpTooltip", "Popover", "Button"],
+};
+
+# Tooltip
+
+A short, non-interactive hint shown on hovering or focusing an element.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Tooltip content="Copy entity ID">
+    <Button variant="subtle" iconName="copy" aria-label="Copy entity ID" />
+  </Tooltip>
+  <Tooltip content="Updated 14 Oct 2026, 09:32" variant="light">
+    <Button variant="subtle">Updated 2 hours ago</Button>
+  </Tooltip>
+  <Tooltip content="Runs every 15 minutes" position="bottom">
+    <Button variant="subtle" iconName="refresh">
+      Sync flow
+    </Button>
+  </Tooltip>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Button, Tooltip } from "@hashintel/ds-components";
+
+export const EntityUpdatedAt = () => (
+  <Tooltip content="Updated 14 Oct 2026, 09:32">
+    <Button variant="subtle" iconName="clockRotateLeft">
+      Updated 2 hours ago
+    </Button>
+  </Tooltip>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Tooltip for brief supplementary context: the absolute time behind a relative timestamp, a keyboard shortcut, the full value behind a truncation.",
+    <Fragment key="0">
+      For icon-only buttons, prefer Button's <code>tooltip</code> prop — it
+      renders this component and doubles as the accessible name.
+    </Fragment>,
+    "Use HelpTooltip for the info-icon-beside-a-label convention in forms and property panels.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't put essential instructions or values in a tooltip — touch users never see one; put them in visible text such as a form Description.",
+    "Don't put interactive content in a tooltip — it dismisses on pointer-leave, making links and buttons inside unreachable; use Popover.",
+    "Don't use a tooltip for rich previews, menus, or multi-paragraph help — use Popover or Menu.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Wrap the trigger and pass `content`. The default tooltip is `dark`, placed on
+`top`, and opens after a `medium` delay on hover — or immediately on keyboard
+focus.
+
+<Stage>
+  <Tooltip content="Updated 14 Oct 2026, 09:32">
+    <Button variant="subtle">Updated 2 hours ago</Button>
+  </Tooltip>
+</Stage>
+
+### Variants
+
+Tooltips are `dark` by default. Use `light` where the dark overlay loses
+contrast, such as over dark surfaces or imagery.
+
+<Stage>
+  <Tooltip variant="dark" content="Dark variant">
+    <Button variant="subtle">Dark</Button>
+  </Tooltip>
+  <Tooltip variant="light" content="Light variant">
+    <Button variant="subtle">Light</Button>
+  </Tooltip>
+</Stage>
+
+### Positions
+
+`position` prefers one of twelve placements — four sides, each with optional
+`-start`/`-end` alignment — and falls back to a better fit when the viewport
+cuts it off. `gapX`/`gapY` set the distance to the trigger in pixels (default
+8).
+
+<Stage>
+  <Tooltip content="top" position="top">
+    <Button variant="subtle">top</Button>
+  </Tooltip>
+  <Tooltip content="right" position="right">
+    <Button variant="subtle">right</Button>
+  </Tooltip>
+  <Tooltip content="bottom" position="bottom">
+    <Button variant="subtle">bottom</Button>
+  </Tooltip>
+  <Tooltip content="left" position="left">
+    <Button variant="subtle">left</Button>
+  </Tooltip>
+  <Tooltip content="bottom-start" position="bottom-start">
+    <Button variant="subtle">bottom-start</Button>
+  </Tooltip>
+</Stage>
+
+### Delays
+
+`openDelay` sets the hover-to-open wait: `none`, `fast`,
+`medium` (the default), `slow`. `closeDelay` takes the same
+values for closing. Keyboard focus always opens immediately.
+
+<Stage>
+  <Tooltip content="Opens immediately" openDelay="none">
+    <Button variant="subtle">none</Button>
+  </Tooltip>
+  <Tooltip content="Opens after 200 ms" openDelay="fast">
+    <Button variant="subtle">fast</Button>
+  </Tooltip>
+  <Tooltip content="Opens after 500 ms" openDelay="medium">
+    <Button variant="subtle">medium</Button>
+  </Tooltip>
+  <Tooltip content="Opens after 1 second" openDelay="slow">
+    <Button variant="subtle">slow</Button>
+  </Tooltip>
+</Stage>
+
+### Disabling the tooltip
+
+Set `disableTooltip` to render only the trigger — for hints that apply
+conditionally, such as showing a full name only while it's truncated. The
+wrapper also gives up its tab stop, so keyboard navigation is unaffected.
+
+<Stage>
+  <Tooltip content="@hash/person-with-employment-history" disableTooltip>
+    <Button variant="subtle">person-with-employment…</Button>
+  </Tooltip>
+</Stage>
+
+### Rich content
+
+`content` accepts any React node — keep it to one short line and strictly
+non-interactive.
+
+```tsx
+import { Button, Tooltip } from "@hashintel/ds-components";
+
+export const SearchShortcutHint = () => (
+  <Tooltip
+    content={
+      <>
+        Search entities <kbd>⌘ K</kbd>
+      </>
+    }
+  >
+    <Button variant="subtle" iconName="search" aria-label="Search entities" />
+  </Tooltip>
+);
+```
+
+### Custom overlays with BaseTooltip
+
+`BaseTooltip` is the unstyled primitive behind Tooltip: identical trigger
+behavior, positioning, and delays, but no overlay styling. Its `content` must
+be a single element that carries its own styling — it is rendered as the
+tooltip element itself.
+
+```tsx
+import { BaseTooltip, Button } from "@hashintel/ds-components";
+
+export const FlowRunSummary = () => (
+  <BaseTooltip
+    position="bottom"
+    content={
+      <div
+        style={{
+          width: 240,
+          padding: 12,
+          borderRadius: 8,
+          background: "white",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.16)",
+        }}
+      >
+        <strong>Sync flow</strong>
+        <p>Last run finished 12 minutes ago — 148 entities updated.</p>
+      </div>
+    }
+  >
+    <Button variant="subtle" iconName="diagramProject">
+      Run summary
+    </Button>
+  </BaseTooltip>
+);
+```
+
+## Behavior
+
+- The tooltip closes on pointer-leave (after `closeDelay`), blur, `Escape`,
+  page scroll, and clicking the trigger. Set `closeOnClick={false}` for
+  triggers whose keyboard activation fires a native click — radios checked via
+  arrow keys would otherwise dismiss the tooltip that just opened on focus.
+- When nothing inside the trigger is keyboard-focusable, the wrapper becomes a
+  tab stop so the hint stays keyboard-reachable; it stops being one when the
+  child becomes focusable or `disableTooltip` is set.
+- The menu's content mounts renders in a portal above the page, preventing most z-index + overflow issues.
+
+## Content
+
+- Keep content to a short phrase or sentence, under 20 words, under 10 words is even better.
+- Write sentence case. Skip the period on fragments; punctuate complete
+  sentences.
+- Add information instead of restating: the absolute timestamp behind "2 hours
+  ago" — never "Save" on a button labelled "Save".
+- When naming an icon-only control, use verb-first labels of 1–3 words: "Copy
+  entity ID", "Run flow".
+
+## Accessibility
+
+Tooltip implements the
+[WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/).
+
+### What Tooltip provides
+
+- The content has `role="tooltip"` and is linked to the trigger with
+  `aria-describedby` while open, so screen readers announce it as the
+  trigger's description.
+- Keyboard focus opens the tooltip without delay; `Escape` and blur close it.
+- Triggers containing nothing focusable get a tab stop, keeping the hint
+  reachable by keyboard.
+
+### What you must do
+
+- Give the trigger its own accessible name — the tooltip is a description, not
+  a name. For icon-only buttons, prefer Button's `tooltip` prop, which wires
+  both.
+- Keep content non-interactive: the tooltip dismisses on pointer-leave and
+  blur, so links or buttons inside are unreachable — use Popover.
+
+## API reference
+
+### Tooltip
+
+<PropsTable
+  of={Tooltip}
+  defaults={{
+    variant: '"dark"',
+    position: '"top"',
+    openDelay: '"medium"',
+    closeDelay: '"medium"',
+    gapX: "8",
+    gapY: "8",
+    closeOnClick: "true",
+  }}
+/>
+
+### BaseTooltip
+
+<PropsTable
+  of={BaseTooltip}
+  defaults={{
+    position: '"top"',
+    openDelay: '"medium"',
+    closeDelay: '"medium"',
+    gapX: "8",
+    gapY: "8",
+    closeOnClick: "true",
+  }}
+/>

@@ -23,6 +23,7 @@ const tones: NonNullable<ButtonElementProps["tone"]>[] = [
 
 const meta = {
   title: "Components/Button",
+  component: ButtonComponent,
   argTypes: {
     variant: { control: { type: "select" }, options: variants },
     tone: { control: { type: "select" }, options: tones },

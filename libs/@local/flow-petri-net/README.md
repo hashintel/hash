@@ -1,6 +1,6 @@
 # @local/flow-petri-net
 
-Compiles a `FlowDefinition` into the Petri net (SDCPN) that Petrinaut renders and, eventually, a net executor runs.
+Compiles a `FlowDefinition` into the Petri net (SDCPN) that Petrinaut renders, and interprets a compiled net to work out a run's tokens: from a run's recorded events now, and for a net executor eventually.
 
 ## Where this fits
 
@@ -17,6 +17,8 @@ flowchart LR
   net["SDCPN flow net"]
   engine["Temporal flow engine,<br/>startFlow API"]
   petrinaut["Petrinaut view<br/>on the flow page"]
+  interpreter["startFlowNetRun<br/>(interpreter)"]
+  events["A run's FlowRunEvents"]
   executor["Petri net executor<br/>(TODO FE-1904)"]
 
   actions --> builder
@@ -28,7 +30,10 @@ flowchart LR
   definition --> engine
   definition -->|compileFlowDefinition| net
   net --> petrinaut
-  net --> executor
+  net --> interpreter
+  events -->|replayFlowRunEvents| interpreter
+  interpreter -->|a run's marking| petrinaut
+  executor -->|fires held transitions| interpreter
 ```
 
 - **`FlowDefinition`** (`@local/hash-isomorphic-utils/flows/types`) is the source of truth for what a flow does: its inputs, steps, connections and outputs. It's plain JSON, validated by `validateFlowDefinition`. Every connection is checked by `canConnect`, the one compatibility rule, which the builder's types mirror at compile time. Definitions say nothing about how a flow is started: triggers are separate.
@@ -40,6 +45,13 @@ flowchart LR
 - `@local/flow-petri-net/compile-flow-definition` exports `compileFlowDefinition(flowDefinition, { layout }): Promise<SDCPN>`. It's async because it lays the net out with Petrinaut's ELK layout. With `layout: false` it leaves every node at the origin, for a net that runs rather than one that's shown, such as in a Temporal workflow, where ELK can't run.
 - `@local/flow-petri-net/flow-net-keys` exports the functions every key in a compiled net is made with (see **Ids** below), so that anything reading a net, such as an executor or a run's view, can work out an element's id.
 - `@local/flow-petri-net/flow-net-metadata` exports the types of what a compiled net records in its metadata (see **Metadata** below): `TransitionRole`, each role's `TransitionMetadata`, `InputSource`, and the root's, instances' and subnets' metadata.
+- `@local/flow-petri-net/interpret-flow-net` exports `startFlowNetRun(net, { flowInputNames, waitForStepStarts }): FlowNetRun`. It runs a compiled net by its transitions' roles, working out the tokens itself. Each transition is either internal or held:
+  - an internal transition fires as soon as it's enabled: `startAttempt`, `copyOutput`, `startItem`, `startCollecting`, `collectItem`, `finishCollecting` and `recordStepFailure`;
+  - a held transition (`heldRoles`) can be enabled and still wait, because what happens outside the net decides whether it fires, and the driver fires it: an attempt's `succeedAttempt`, `failAttempt`, `retryAttempt` and `giveUp` always; `startForEach` unless its array is a constant, as it needs the array's length; and `startStep` only with `waitForStepStarts`. A failure that's retried is two firings, `failAttempt` then `retryAttempt`.
+
+  `held()` lists the held transitions that are enabled, each for a step run, and `fire(heldFiring)` fires one, with an item count or the outputs an attempt produced, then every internal transition that enables, and returns those firings. `isHeld(role, stepRun)` and `attemptInProgress(stepRun)` answer for one step run without listing every other one, so a replay of a large `forEach` doesn't redo the whole list on each event. `attemptInputs(firing)` gives the inputs a `startAttempt` firing started its action with, for an executor to call the action with. A place inside a step's instance is identified with the instance, since every instance of a subnet shares its places' ids. Read arcs from one place can read the same token, as when two inputs of a step read the same value.
+
+- `@local/flow-petri-net/replay-flow-run-events` exports `replayFlowRunEvents(net, events)`, which fires the held transitions a run's `FlowRunEvent`s record. It returns the run's initial marking, each firing with the event that caused it, the marking and the held transitions enabled after the last event, and the events the net couldn't follow. It holds each action step's `startStep` until its `stepStarted` event: the executor only starts the steps that are ready once every step of the batch before has finished, so a step can have its inputs well before it starts.
 
 Its implementation is in `src/compile-flow-definition/`:
 
@@ -137,10 +149,11 @@ flowchart LR
   - Any other input accepting several kinds has a `oneOf` colour, such as `Text | WebPage`, with a `kind` element saying which kind the token carries.
   - A `for-each` step's iterator is typed by the kind of array it walks (`Iterator<Text>`).
 - **Metadata.** The root carries `metadata.flowInputs`: for each flow input, the places a run puts it in; `metadata.pendingAtStart`: the `Pending` places of the top-level steps; and `metadata.flowOutputs`: for each flow output, the arc endpoint it's found at, a place of the root net or an instance's output port. Every transition added for a step names it in `metadata.stepId`, so a run's view can map steps to the net and back; a for-each step's `t.collectItem` also carries its `collect`. A step's `t.startStep` carries `inputSources`: for each of the action's inputs, the arc endpoint its value comes from with the connection's `access`, `wrap` and `whenMissing`, or that it's a constant, takes its default, or is absent. The arcs alone don't say which value feeds which input. Each transition carries `metadata.role` (see `TransitionRole` in `src/flow-net-metadata.ts`), which tells the executor how to treat it:
-  - `succeedAttempt` and `failAttempt` fire when an action's activity completes;
+  - `succeedAttempt` and `failAttempt` fire when an action's activity completes, and `retryAttempt` or `giveUp` as the retry policy decides; `startForEach` fires once its array's length is known, unless it's a constant (see `interpret-flow-net` above);
   - every other transition fires as soon as it's enabled, including `recordStepFailure`, which moves a step that gave up into `FailedStepRuns` and so fails the run.
 
 ## Limitations
 
-- **No guards.** Kernels only carry `run_id` and `item_path` forward and give every other attribute a default (`compile-flow-definition/shared/kernels.ts`). There are no guards yet: no correlation across inputs, and no iterator or accumulator conditions. So a compiled net builds in Petrinaut but doesn't simulate meaningfully. The executor is meant to interpret roles instead (TODO FE-1904).
-- **A `for-each` step's shared item tokens stay after their item finishes.** The steps inside the `for-each` that read the item read it from one place, and nothing consumes it there. Consuming it needs a transition that knows every step of that item has finished, which needs the item correlation that FE-1914 adds. A step that consumes the item takes its own copy.- **Skip-if-missing** (`whenMissing: "skip"`), and the absent-token semantics behind it, are left to the executor.
+- **No guards.** Kernels only carry `run_id` and `item_path` forward and give every other attribute a default (`compile-flow-definition/shared/kernels.ts`). There are no guards yet: no correlation across inputs, and no iterator or accumulator conditions. So a compiled net builds in Petrinaut but doesn't simulate meaningfully. `interpret-flow-net` interprets roles instead.
+- **A `for-each` step's shared item tokens stay after their item finishes.** The steps inside the `for-each` that read the item read it from one place, and nothing consumes it there. Consuming it needs a transition that knows every step of that item has finished, which needs the item correlation that FE-1914 adds. A step that consumes the item takes its own copy.
+- **Skip-if-missing** (`whenMissing: "skip"`) has no transition yet. The interpreter holds a step while a value it skips on is missing; skipping it is left to the executor (TODO FE-1904).

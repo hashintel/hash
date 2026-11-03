@@ -19,6 +19,7 @@ import type {
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type { CompileHirArtifactsOptions } from "../../hir/compile";
+import type { HirVisualizerContext } from "../../hir/surface-context";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
@@ -248,6 +249,17 @@ type ClientRequest =
       params: {
         source: ConstraintSource;
         context: LowerConstraintContext;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/lowerVisualizer";
+      params: {
+        /** The visualizer module, as written in the editor. */
+        code: string;
+        /** The place's colour and the net's parameters it is checked against. */
+        context: HirVisualizerContext;
       };
     };
 

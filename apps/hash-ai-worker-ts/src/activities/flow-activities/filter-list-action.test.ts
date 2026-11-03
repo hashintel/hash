@@ -11,6 +11,7 @@ import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import { StatusCode } from "@local/status";
 
+import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { filterListAction } from "./filter-list-action.js";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
@@ -19,7 +20,6 @@ import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type {
   Payload,
-  ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -86,9 +86,11 @@ const outputValues = async (result: Awaited<ReturnType<typeof run>>) =>
 
 describe("filterListAction", () => {
   it("splits a stored list into stored matching and non-matching lists", async () => {
-    const entities = ["A", "B", "A", "C"].map(
-      (summary, index) =>
-        ({ summary, localEntityId: `entity-${index}` }) as ProposedEntity,
+    const entities = ["A", "B", "A", "C"].map((summary, index) =>
+      createProposedEntity({
+        summary,
+        localEntityId: `entity-${index}`,
+      }),
     );
 
     const result = await run(
@@ -141,7 +143,7 @@ describe("filterListAction", () => {
           recordId: { entityId },
           entityTypeIds: [
             index === 1
-              ? ("https://example.com/types/entity-type/person/v/1" as VersionedUrl)
+              ? "https://example.com/types/entity-type/person/v/1"
               : companyType,
           ],
         },
@@ -203,6 +205,7 @@ describe("filterListAction", () => {
     const result = await run(
       {
         kind: "EntityId",
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- These malformed fixtures still need EntityId branding despite other Payload variants accepting strings.
         value: [validEntityId, "" as EntityId, "not-an-entity-id" as EntityId],
       },
       isCompany,
@@ -467,7 +470,7 @@ describe("filterListAction", () => {
   it("reports an entity the user can't read as not found", async () => {
     vi.mocked(queryEntities).mockResolvedValueOnce({
       entities: [],
-    } as unknown as QueryEntitiesResponse);
+    });
 
     expect(
       await run({ kind: "EntityId", value: [validEntityId] }, isCompany),

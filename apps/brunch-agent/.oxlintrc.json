@@ -35,12 +35,8 @@
             "message": "Import another workspace package by its package name, not a relative path into it."
           },
           {
-            "group": [
-              "@hashintel/petrinaut/*",
-              "@hashintel/petrinaut-cli",
-              "@hashintel/petrinaut-cli/*"
-            ],
-            "message": "The Brunch server must remain independent of Petrinaut UI and CLI. Import catalogs from @hashintel/petrinaut-core, not the editor package."
+            "group": ["@hashintel/petrinaut/*"],
+            "message": "The Brunch server must remain independent of Petrinaut UI. Import catalogs from @hashintel/petrinaut-core, not the editor package."
           }
         ]
       }

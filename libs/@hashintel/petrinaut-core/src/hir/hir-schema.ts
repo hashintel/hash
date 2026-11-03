@@ -1,9 +1,7 @@
 /**
  * Runtime schema for the serialized HIR grammar that `hir.ts` declares as
- * types. Anything that carries HIR across a process boundary (an
- * optimization manifest, the CLI's describe protocol) validates it here, and
- * the CLI publishes this schema as JSON Schema so other languages generate a
- * matching, fully typed AST from the one definition.
+ * types. Anything that carries HIR across a process boundary, such as an
+ * optimization manifest, validates it here.
  *
  * The schema and the types are kept in lockstep by the `Equals` assertions
  * at the bottom of this file: adding a node kind or a field to `hir.ts`
@@ -16,9 +14,11 @@ import { HIR_MATH_FNS, HIR_STRING_FNS } from "./hir";
 
 import type {
   HirArrayConcat,
+  HirArrayFilter,
   HirArrayLit,
   HirArrayMap,
   HirArrayReduce,
+  HirArraySlice,
   HirBinary,
   HirBoolLit,
   HirCond,
@@ -33,6 +33,8 @@ import type {
   HirLet,
   HirLocalRef,
   HirMathCall,
+  HirNullLit,
+  HirNumberFormat,
   HirNumberLit,
   HirParamRef,
   HirRangeCall,
@@ -40,6 +42,7 @@ import type {
   HirScenarioRef,
   HirStringCall,
   HirStringLit,
+  HirTemplateLit,
   HirUnary,
   HirUuidFrom,
   HirUuidGenerate,
@@ -57,7 +60,7 @@ export const spanSchema = z
       "Half-open span into the user-visible source text, in UTF-16 code units.",
   });
 
-const namedSpanSchema = z
+export const namedSpanSchema = z
   .strictObject({
     name: z.string(),
     span: spanSchema,
@@ -250,7 +253,7 @@ const condSchema = z
   })
   .meta({ id: "HirCond" });
 
-const letBindingSchema = z
+export const letBindingSchema = z
   .strictObject({
     name: z.string(),
     nameSpan: spanSchema,
@@ -353,6 +356,49 @@ const distributionMapSchema = z
   .meta({ id: "HirDistributionMap" });
 
 /** One schema per `HirExpr` member; the union above is built from this. */
+const nullLitSchema = z
+  .strictObject({ ...nodeBase, kind: z.literal("nullLit") })
+  .meta({ id: "HirNullLit" });
+
+const templateLitSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("templateLit"),
+    quasis: z.array(z.string()),
+    expressions: z.array(hirExprSchema),
+  })
+  .meta({ id: "HirTemplateLit" });
+
+const arraySliceSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("arraySlice"),
+    target: hirExprSchema,
+    start: hirExprSchema.optional(),
+    end: hirExprSchema.optional(),
+  })
+  .meta({ id: "HirArraySlice" });
+
+const arrayFilterSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("arrayFilter"),
+    target: hirExprSchema,
+    param: namedSpanSchema,
+    indexParam: namedSpanSchema.optional(),
+    body: hirExprSchema,
+  })
+  .meta({ id: "HirArrayFilter" });
+
+const numberFormatSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("numberFormat"),
+    target: hirExprSchema,
+    digits: hirExprSchema.optional(),
+  })
+  .meta({ id: "HirNumberFormat" });
+
 const hirExprOptions = [
   numberLitSchema,
   boolLitSchema,
@@ -380,6 +426,11 @@ const hirExprOptions = [
   arrayConcatSchema,
   distributionSchema,
   distributionMapSchema,
+  nullLitSchema,
+  templateLitSchema,
+  arraySliceSchema,
+  arrayFilterSchema,
+  numberFormatSchema,
 ] as const;
 
 export const hirSurfaceKindSchema = z
@@ -390,6 +441,7 @@ export const hirSurfaceKindSchema = z
     "metric",
     "scenario-expression",
     "scenario-code",
+    "visualizer",
   ])
   .meta({ id: "HirSurfaceKind" });
 
@@ -459,6 +511,11 @@ type _Lockstep = [
   Equals<z.output<typeof arrayConcatSchema>, HirArrayConcat>,
   Equals<z.output<typeof distributionSchema>, HirDistribution>,
   Equals<z.output<typeof distributionMapSchema>, HirDistributionMap>,
+  Equals<z.output<typeof nullLitSchema>, HirNullLit>,
+  Equals<z.output<typeof templateLitSchema>, HirTemplateLit>,
+  Equals<z.output<typeof arraySliceSchema>, HirArraySlice>,
+  Equals<z.output<typeof arrayFilterSchema>, HirArrayFilter>,
+  Equals<z.output<typeof numberFormatSchema>, HirNumberFormat>,
   Equals<z.output<typeof hirFunctionSchema>, HirFunction>,
   // Every declared kind has a schema in the union above, and nothing more.
   Equals<SchemaKind, HirExpr["kind"]>,

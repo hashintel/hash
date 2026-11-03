@@ -178,26 +178,28 @@ export const RunFlowModal = ({
         continue;
       }
 
-      if (typeof payload.value !== "undefined") {
-        if (Array.isArray(payload.value) && payload.value.length === 0) {
-          continue;
-        }
+      if (
+        typeof payload.value === "undefined" ||
+        isPayloadValueMissing(payload) ||
+        (Array.isArray(payload.value) && payload.value.length === 0)
+      ) {
+        continue;
+      }
 
-        if (payload.kind === "VersionedUrl") {
-          flowInputs[inputName] = {
-            kind: payload.kind,
-            value: Array.isArray(payload.value)
-              ? payload.value.map((entityType) => entityType.schema.$id)
-              : payload.value.schema.$id,
-          };
-        } else {
-          const assertedPayload = {
-            kind: payload.kind satisfies LocalPayload["kind"],
-            value: payload.value satisfies LocalPayload["value"],
-          } as Payload; // this is necessary because TS isn't inferring that payload.value is not undefined
+      if (payload.kind === "VersionedUrl") {
+        flowInputs[inputName] = {
+          kind: payload.kind,
+          value: Array.isArray(payload.value)
+            ? payload.value.map((entityType) => entityType.schema.$id)
+            : payload.value.schema.$id,
+        };
+      } else {
+        const assertedPayload = {
+          kind: payload.kind satisfies LocalPayload["kind"],
+          value: payload.value satisfies LocalPayload["value"],
+        } as Payload; // this is necessary because TS isn't inferring that payload.value is not undefined
 
-          flowInputs[inputName] = assertedPayload;
-        }
+        flowInputs[inputName] = assertedPayload;
       }
     }
     return flowInputs;

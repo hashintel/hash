@@ -61,27 +61,36 @@ function getPositioningOffset(position: Position, gapX: number, gapY: number) {
 
 export type BaseTooltipProps = {
   className?: string;
+  /**
+   * Accessible name for the trigger wrapper. Only for triggers where the
+   * wrapper itself becomes the focusable element (icon-only, non-interactive
+   * children) — pair it with a `role` that permits naming. When the trigger
+   * contains a focusable control, label that control instead.
+   */
+  "aria-label"?: string;
+  /** ARIA role for the trigger wrapper, e.g. `img` for an icon-only trigger */
+  role?: React.AriaRole;
   /** The tooltip trigger */
   children: React.ReactNode;
-  /** The content that triggers the tooltip */
+  /** The content rendered inside the tooltip overlay */
   content: React.ReactNode;
-  /** The preferred position of the tooltip - depending on the viewport, trigger and content another position may be chosen for better fit */
+  /** The preferred position of the tooltip; another may be chosen for a better fit. */
   position?: Position;
   /** Whether to disable the tooltip */
   disableTooltip?: boolean;
-  /** How long before the the tooltip is opened on hover/focus */
+  /** The delay before the tooltip opens on hover or focus (`fast` 200ms, `medium` 500ms, `slow` 1s). */
   openDelay?: Delay;
-  /** How long before the the tooltip is opened when leaving hover/focus */
+  /** The delay before the tooltip closes after hover or focus ends (`fast` 100ms, `medium` 200ms, `slow` 300ms). */
   closeDelay?: Delay;
-  /** The X distance the tooltip will be from the trigger in px */
+  /** The horizontal distance in pixels between the tooltip and the trigger. */
   gapX?: number;
-  /** The Y distance the tooltip will be from the trigger in px */
+  /** The vertical distance in pixels between the tooltip and the trigger. */
   gapY?: number;
   /**
-   * Whether clicking the trigger closes the tooltip (defaults to true).
-   * Disable for triggers whose keyboard activation dispatches a native click
-   * (e.g. radios checked via arrow keys), which would otherwise instantly
-   * dismiss the tooltip that just opened on focus.
+   * Whether clicking the trigger closes the tooltip.
+   * Disable when keyboard activation dispatches a native click — e.g. a radio
+   * checked via arrow keys — which would instantly dismiss the tooltip that
+   * just opened on focus.
    */
   closeOnClick?: boolean;
   onOpen?: () => void;
@@ -100,6 +109,8 @@ export type BaseTooltipProps = {
  */
 export const BaseTooltip = ({
   className,
+  "aria-label": ariaLabel,
+  role,
   children,
   content,
   position = "top",
@@ -139,7 +150,12 @@ export const BaseTooltip = ({
   }, [children, disableTooltip]);
 
   const wrappedChildren = (
-    <span ref={triggerRef} className={cx(triggerStyles, className)}>
+    <span
+      ref={triggerRef}
+      role={role}
+      aria-label={ariaLabel}
+      className={cx(triggerStyles, className)}
+    >
       {children}
     </span>
   );
@@ -179,3 +195,5 @@ export const BaseTooltip = ({
     </ArkTooltip.Root>
   );
 };
+
+BaseTooltip.displayName = "BaseTooltip";

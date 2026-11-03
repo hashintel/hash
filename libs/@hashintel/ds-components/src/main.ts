@@ -10,7 +10,6 @@ export {
 } from "./components/Breadcrumbs/breadcrumbs";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { ButtonGroup } from "./components/ButtonGroup/button-group";
-export { CharacterCount } from "./components/CharacterCount/character-count";
 export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {
   NetworkGraph,
@@ -98,6 +97,7 @@ export { TextMark } from "./components/TextMark/text-mark";
 export { Toggle } from "./components/Toggle/toggle";
 export { BaseTooltip, type Position } from "./components/Tooltip/base-tooltip";
 export { Tooltip } from "./components/Tooltip/tooltip";
+export { CharacterCount } from "./util/CharacterCount/character-count";
 export { brandmarkScale } from "./util/color-scales";
 export {
   PortalContainerContext,

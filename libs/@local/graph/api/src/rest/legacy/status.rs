@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 use axum::response::{IntoResponse, Response};
 use error_stack::Report;
-use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
+use hash_graph_postgres_store::store::error::{BaseUrlAlreadyExists, LinkToLinkConstraint};
 use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status as HashStatus, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -107,7 +107,9 @@ where
         .unwrap_or_else(|| {
             if report.contains::<BaseUrlAlreadyExists>() {
                 StatusCode::AlreadyExists
-            } else if report.contains::<OntologyTypeMajorVersionError>() {
+            } else if report.contains::<OntologyTypeMajorVersionError>()
+                || report.contains::<LinkToLinkConstraint>()
+            {
                 StatusCode::InvalidArgument
             } else {
                 StatusCode::Unknown

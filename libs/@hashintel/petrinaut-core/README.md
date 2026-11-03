@@ -43,4 +43,4 @@ When another application is the source of truth, implement `PetrinautDocHandle`
 directly so editor edits can emit `source: "local"` and host/store updates can
 emit `source: "remote"`. The full guide, including the invariants the editor
 relies on, is in the architecture docs:
-[Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
+[Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut-core/src/handle/host-integration.mdx).

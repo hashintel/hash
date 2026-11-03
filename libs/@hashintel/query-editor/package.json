@@ -37,7 +37,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-hook-form": "7.65.0",
-    "storybook": "10.4.6",
+    "storybook": "10.6.2",
     "typescript": "catalog:"
   },
   "peerDependencies": {

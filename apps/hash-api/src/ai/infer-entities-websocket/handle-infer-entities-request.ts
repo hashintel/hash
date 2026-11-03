@@ -10,7 +10,6 @@ import { FlowRunStatus } from "../../graphql/api-types.gen";
 import type { User } from "../../graph/knowledge/system-types/user";
 import type { EntityUuid } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
@@ -25,13 +24,11 @@ import type { Client } from "@temporalio/client";
 
 export const handleInferEntitiesRequest = async ({
   graphApiClient,
-  storageProvider,
   temporalClient,
   message,
   user,
 }: {
   graphApiClient: GraphApi;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: DistributiveOmit<
     | ManualInferenceWebsocketRequestMessage
@@ -69,9 +66,6 @@ export const handleInferEntitiesRequest = async ({
         ),
       },
       graphApiClient,
-      includeDetails: true,
-      storageProvider,
-      temporalClient,
     });
 
     for (const flowRun of openFlowRuns.flowRuns) {

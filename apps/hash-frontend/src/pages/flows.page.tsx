@@ -1,8 +1,8 @@
-import { Box, Container, TableCell, Typography } from "@mui/material";
+import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
-import { InfinityLightIcon } from "@hashintel/design-system";
+import { Chip, InfinityLightIcon } from "@hashintel/design-system";
 import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
@@ -73,13 +73,21 @@ type FlowSummary = Subtype<
     name: string;
     flowDefinitionEntityId: EntityId;
     description: string;
+    /** False for a flow saved before it was finished, which can't run yet. */
+    isValid: boolean;
     lastRunStartedAt: string | null;
   }
 >;
 
 const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
-  const { web, name, flowDefinitionEntityId, description, lastRunStartedAt } =
-    flowSummary;
+  const {
+    web,
+    name,
+    flowDefinitionEntityId,
+    description,
+    isValid,
+    lastRunStartedAt,
+  } = flowSummary;
 
   return (
     <>
@@ -87,20 +95,23 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
         <FlowTableWebChip {...web} />
       </TableCell>
       <TableCell sx={flowTableCellSx}>
-        <Link
-          href={generateFlowDefinitionPath({
-            shortname: web.shortname,
-            flowDefinitionEntityId,
-          })}
-          sx={{
-            display: "block",
-            fontSize: 14,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}
-        >
-          {name}
-        </Link>
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Link
+            href={generateFlowDefinitionPath({
+              shortname: web.shortname,
+              flowDefinitionEntityId,
+            })}
+            sx={{
+              display: "block",
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            {name}
+          </Link>
+          {!isValid && <Chip label="Not valid" size="xs" color="red" />}
+        </Stack>
       </TableCell>
       <TableCell sx={flowTableCellSx}>
         <Typography
@@ -145,7 +156,7 @@ const FlowsPageContent = () => {
         ({ flowDefinitionEntityId }) =>
           !isGoalFlowDefinitionEntityId(flowDefinitionEntityId),
       )
-      .map(({ flowDefinitionEntityId, flowDefinition }) => {
+      .map(({ flowDefinitionEntityId, name, description, flowDefinition }) => {
         let lastRunStartedAt = null;
         for (const flowRun of flowRuns) {
           if (
@@ -166,9 +177,10 @@ const FlowsPageContent = () => {
                 .shortname,
               isOrg: true,
             },
-            name: flowDefinition.name,
+            name,
             flowDefinitionEntityId,
-            description: flowDefinition.description,
+            description,
+            isValid: flowDefinition !== null,
             lastRunStartedAt,
           },
         };

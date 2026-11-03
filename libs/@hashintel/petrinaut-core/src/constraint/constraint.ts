@@ -1,8 +1,8 @@
 /**
  * Constraints: boolean conditions authored as TypeScript and carried as
- * serialized HIR, so every consumer (the editors, the CLI, the Python
- * binding) reads one shared expression representation without a TypeScript
- * frontend of its own.
+ * serialized HIR, so every consumer (the editors, the optimizer's trial
+ * evaluation) reads one shared expression representation without a
+ * TypeScript frontend of its own.
  *
  * Two shapes, discriminated by `space`:
  * - a **parameter** constraint ranges over the parameter space: one

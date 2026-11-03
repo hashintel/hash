@@ -3,6 +3,7 @@
 use core::mem::ManuallyDrop;
 use std::{collections::HashMap, path::Path};
 
+use hash_crypto::Secret;
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -19,7 +20,6 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
-use hash_secret::Secret;
 use hash_telemetry::TelemetryRegistry;
 use regex::Regex;
 use time::OffsetDateTime;

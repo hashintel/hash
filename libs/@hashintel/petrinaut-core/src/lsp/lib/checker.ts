@@ -7,22 +7,25 @@ import {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
+  buildVisualizerContext,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "./check-hir";
 import { getItemFilePath } from "./file-paths";
 
 import type { HirSurfaceContext } from "../../hir";
 import type { SDCPN } from "../../types/sdcpn";
-import type { SDCPNLanguageServer } from "./create-sdcpn-language-service";
+import type { LanguageServers } from "./language-servers";
+import type { VirtualFileLanguageServer } from "./virtual-file-language-server";
 import type ts from "@typescript/typescript6";
 
 export type ItemType =
   | "transition-lambda"
   | "transition-kernel"
-  | "differential-equation";
+  | "differential-equation"
+  | "place-visualizer";
 
 export type SDCPNDiagnostic = {
-  /** The ID of the SDCPN item (transition or differential equation) */
+  /** The ID of the SDCPN item (transition, differential equation or place) */
   itemId: string;
   /** The type of the item */
   itemType: ItemType;
@@ -33,7 +36,11 @@ export type SDCPNDiagnostic = {
 };
 
 export type SDCPNCheckResult = {
-  /** Whether the SDCPN is valid (no error-severity diagnostics). */
+  /**
+   * Whether the net can run: no error-severity diagnostic in any item other
+   * than a `place-visualizer`. A visualizer that does not type-check draws
+   * nothing; it never stops a simulation.
+   */
   isValid: boolean;
   /** All diagnostics grouped by item */
   itemDiagnostics: SDCPNDiagnostic[];
@@ -50,7 +57,7 @@ const TS_CATEGORY_ERROR = 1;
  * diagnostics.
  */
 function collectItemDiagnostics(
-  server: SDCPNLanguageServer,
+  server: VirtualFileLanguageServer,
   filePath: string,
   hirContext: HirSurfaceContext | null,
 ): ts.Diagnostic[] {
@@ -74,13 +81,14 @@ function collectItemDiagnostics(
 /**
  * Checks the validity of an SDCPN by running TypeScript validation and HIR
  * semantic lints on all user-provided code (transitions and differential
- * equations).
+ * equations), and TypeScript validation on place visualizers.
  */
 export function checkSDCPN(
   sdcpn: SDCPN,
-  server: SDCPNLanguageServer,
+  servers: LanguageServers,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): SDCPNCheckResult {
+  const server = servers.sdcpn;
   const itemDiagnostics: SDCPNDiagnostic[] = [];
 
   // Check all differential equations
@@ -156,11 +164,38 @@ export function checkSDCPN(
     }
   }
 
+  // Visualizers are checked in their own JSX program, then lowered to the
+  // view HIR, which rejects what the renderer cannot draw.
+  for (const place of extensions.colors ? sdcpn.places : []) {
+    if (place.visualizerCode === undefined) {
+      continue;
+    }
+    const filePath = getItemFilePath("place-visualizer-code", {
+      placeId: place.id,
+    });
+    const visualizerDiagnostics = collectItemDiagnostics(
+      servers.visualizer,
+      filePath,
+      buildVisualizerContext(sdcpn, place, extensions),
+    );
+
+    if (visualizerDiagnostics.length > 0) {
+      itemDiagnostics.push({
+        itemId: place.id,
+        itemType: "place-visualizer",
+        filePath,
+        diagnostics: visualizerDiagnostics,
+      });
+    }
+  }
+
   return {
-    isValid: !itemDiagnostics.some((item) =>
-      item.diagnostics.some(
-        (diagnostic) => diagnostic.category === TS_CATEGORY_ERROR,
-      ),
+    isValid: !itemDiagnostics.some(
+      (item) =>
+        item.itemType !== "place-visualizer" &&
+        item.diagnostics.some(
+          (diagnostic) => diagnostic.category === TS_CATEGORY_ERROR,
+        ),
     ),
     itemDiagnostics,
   };

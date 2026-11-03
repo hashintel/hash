@@ -24,16 +24,14 @@ rm -f .env
 # `|| true`: a crash in the resolver must cost the highlighting, not the deploy.
 diff_base="$(node apps/petrinaut-docs/scripts/resolve-diff-base.mjs || true)"
 if [[ -n "${diff_base}" ]]; then
-  export PETRINAUT_ARCH_DOCS_DIFF_BASE="${diff_base}"
+  export ARCHINAUT_DIFF_BASE="${diff_base}"
   echo "Preview build: highlighting changes against ${diff_base}"
 fi
 
-# Run through Turborepo rather than `yarn workspace ... build`: the package
-# script alone skips `sync:bundle`, and would build whatever content happened to
-# be on disk.
+# Run through Turborepo so the covered packages' sources are in the task hash.
 #
 # Source links follow the commit being built rather than `main`: the generator
 # reads `VERCEL_GIT_COMMIT_SHA` and `VERCEL_GIT_COMMIT_REF`, declared in
-# `libs/@local/petrinaut-arch-docs/turbo.json`, and logs the prefix it used.
+# `turbo.json` here, and logs the prefix it used.
 echo "Building Petrinaut architecture docs from ${VERCEL_GIT_COMMIT_SHA:-a local checkout}"
 turbo build --filter='@apps/petrinaut-docs' --env-mode=loose

@@ -47,6 +47,7 @@ const provenanceIconMap: Record<
   "web-app": UserIcon,
   "mobile-app": UserIcon,
   api: CodeIcon,
+  external: CodeIcon,
   migration: CodeIcon,
 };
 
@@ -117,6 +118,9 @@ export const Provenance = ({
     originText = `${originTextPrefix} by a`;
   }
 
+  const originLabel =
+    originType === "external" ? "public API" : originType.split("-").join(" ");
+
   const OriginIcon = provenanceIconMap[originType];
 
   const sources =
@@ -151,7 +155,7 @@ export const Provenance = ({
               <Typography sx={typographySx}>
                 {originText}
                 <Box component="span" sx={{ fontWeight: 600, ml: 0.5 }}>
-                  {originType.split("-").join(" ")}
+                  {originLabel}
                 </Box>
               </Typography>
               {flowRunEntityId && flowRunShortname && (

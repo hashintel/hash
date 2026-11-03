@@ -48,7 +48,12 @@ export type HirNodeId = number;
  *   *body* ending in `return <record keyed by place name>`, with the same
  *   ambient bindings.
  *
- * The scenario surfaces are evaluated by the HIR interpreter
+ * `visualizer` — a place visualizer: the module
+ *   `export default Visualization(({ tokens, parameters }) => <jsx/>)`,
+ *   JavaScript with JSX, lowered to the view HIR over the place's tokens;
+ *   only its expressions are HIR.
+ *
+ * The scenario and visualizer surfaces are evaluated by the HIR interpreter
  * (`interpret.ts`), not emitted as JavaScript.
  */
 export type HirSurfaceKind =
@@ -57,7 +62,12 @@ export type HirSurfaceKind =
   | "kernel"
   | "metric"
   | "scenario-expression"
-  | "scenario-code";
+  | "scenario-code"
+  | "visualizer";
+
+/** The surfaces whose code lowers to an `HirFunction`. A visualizer lowers
+ * to the view HIR instead, and only its expressions come through here. */
+export type HirFunctionSurfaceKind = Exclude<HirSurfaceKind, "visualizer">;
 
 /** Scalar and structural types inferred over HIR nodes. */
 export type HirType =
@@ -80,6 +90,9 @@ export type HirType =
   | { kind: "string" }
   /** A probability distribution over reals. */
   | { kind: "distribution" }
+  /** `null` / `undefined` (visualizer surface): an index past the end, or a
+   * value that draws nothing. */
+  | { kind: "null" }
   | { kind: "unknown" };
 
 export const HIR_TYPE_REAL: HirType = { kind: "real" };
@@ -88,6 +101,7 @@ export const HIR_TYPE_BOOL: HirType = { kind: "bool" };
 export const HIR_TYPE_UUID: HirType = { kind: "uuid" };
 export const HIR_TYPE_STRING: HirType = { kind: "string" };
 export const HIR_TYPE_DISTRIBUTION: HirType = { kind: "distribution" };
+export const HIR_TYPE_NULL: HirType = { kind: "null" };
 export const HIR_TYPE_UNKNOWN: HirType = { kind: "unknown" };
 
 export type HirBinaryOp =
@@ -356,6 +370,48 @@ export type HirDistributionMap = HirNodeBase & {
   body: HirExpr;
 };
 
+/** `null` / `undefined` — a child that renders nothing (visualizer surface). */
+export type HirNullLit = HirNodeBase & {
+  kind: "nullLit";
+};
+
+/**
+ * Template literal: `quasis[0]${expressions[0]}quasis[1]…`, one more quasi
+ * than expressions. Interpolated values are converted to text.
+ */
+export type HirTemplateLit = HirNodeBase & {
+  kind: "templateLit";
+  quasis: string[];
+  expressions: HirExpr[];
+};
+
+/** Array window — lowered from `collection.slice(start?, end?)`. */
+export type HirArraySlice = HirNodeBase & {
+  kind: "arraySlice";
+  target: HirExpr;
+  start?: HirExpr;
+  end?: HirExpr;
+};
+
+/**
+ * Array selection — lowered from `collection.filter((param, index?) =>
+ * body)`, with the same callback shapes as `arrayMap`.
+ */
+export type HirArrayFilter = HirNodeBase & {
+  kind: "arrayFilter";
+  target: HirExpr;
+  param: { name: string; span: Span };
+  indexParam?: { name: string; span: Span };
+  body: HirExpr;
+};
+
+/** Fixed-point formatting — lowered from `value.toFixed(digits?)`. */
+export type HirNumberFormat = HirNodeBase & {
+  kind: "numberFormat";
+  target: HirExpr;
+  digits?: HirExpr;
+};
+
 export type HirExpr =
   | HirNumberLit
   | HirBoolLit
@@ -382,7 +438,12 @@ export type HirExpr =
   | HirArrayReduce
   | HirArrayConcat
   | HirDistribution
-  | HirDistributionMap;
+  | HirDistributionMap
+  | HirNullLit
+  | HirTemplateLit
+  | HirArraySlice
+  | HirArrayFilter
+  | HirNumberFormat;
 
 /**
  * A lowered user function. `params[0]` is the tokens/input parameter,
@@ -463,6 +524,20 @@ export function hirChildren(expr: HirExpr): HirExpr[] {
       return expr.args;
     case "distributionMap":
       return [expr.base, expr.body];
+    case "nullLit":
+      return [];
+    case "templateLit":
+      return expr.expressions;
+    case "arraySlice":
+      return [
+        expr.target,
+        ...(expr.start ? [expr.start] : []),
+        ...(expr.end ? [expr.end] : []),
+      ];
+    case "arrayFilter":
+      return [expr.target, expr.body];
+    case "numberFormat":
+      return [expr.target, ...(expr.digits ? [expr.digits] : [])];
   }
 }
 
@@ -489,6 +564,8 @@ export function formatHirType(type: HirType): string {
       return "string";
     case "distribution":
       return "Distribution";
+    case "null":
+      return "null";
     case "record":
       return `{ ${type.fields
         .map((field) => `${field.name}: ${formatHirType(field.type)}`)

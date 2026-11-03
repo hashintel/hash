@@ -70,13 +70,17 @@ type PyodideEntryModule = {
     descriptionJson: string,
     parallelism: number,
   ): StudyHandleProxy;
-  run_browser_study(
-    handle: StudyHandleProxy,
-    trials: number,
-    evaluate: (values: unknown) => Promise<PythonTrialOutcome>,
-    onTrial: (payload: unknown) => void,
-    isCancelled: () => boolean,
-  ): Promise<unknown>;
+  run_browser_study: {
+    callKwargs(
+      handle: StudyHandleProxy,
+      trials: number,
+      callbacks: {
+        evaluate: (values: unknown) => Promise<PythonTrialOutcome>;
+        on_trial: (payload: unknown) => void;
+        is_cancelled: () => boolean;
+      },
+    ): Promise<unknown>;
+  };
   release_browser_study(handle: StudyHandleProxy): void;
 };
 
@@ -276,12 +280,14 @@ export const createOptimizerStudyRunner = (options: {
       callbacks.onTrial(normalizeTrialPayload(toJsValue(payload)));
     };
     try {
-      const result = await module.run_browser_study(
+      const result = await module.run_browser_study.callKwargs(
         study.handle,
         trials,
-        evaluate,
-        onTrial,
-        () => callbacks.isCancelled(),
+        {
+          evaluate,
+          on_trial: onTrial,
+          is_cancelled: () => callbacks.isCancelled(),
+        },
       );
       const summary = normalizeSummary(toJsValue(result));
       if (isPyProxyLike(result)) {

@@ -23,6 +23,7 @@ import {
   NoopResizeObserver,
 } from "../../../shared/petrinaut-jsdom";
 import { AiAssistantPanel } from "../chat/ai-assistant-panel";
+import { fixedBrunchAssistant } from "../chat/testing/fixed-brunch-assistant";
 import { brunchPlugin, BrunchAssistantContext } from "../editor-api-plugin";
 import {
   createBrunchMutationApprovalComponents,
@@ -86,7 +87,7 @@ const ChatWithoutBrunchPlugin = definePetrinautPlugin({
 const useChatWithoutBrunchPlugin: PluginHook<typeof ChatWithoutBrunchPlugin> = (
   api,
 ) => {
-  const assistant = use(BrunchAssistantContext);
+  const assistant = use(BrunchAssistantContext)?.assistant ?? null;
   if (assistant === null) throw new Error("No assistant to render");
   return {
     assistant: {
@@ -133,7 +134,7 @@ const openPendingApproval = async (plugins: readonly PetrinautPlugin[]) => {
   const captureException = vi.fn();
   render(
     <ErrorTrackerContext value={{ captureException }}>
-      <BrunchAssistantContext value={aiAssistant}>
+      <BrunchAssistantContext value={fixedBrunchAssistant(aiAssistant)}>
         <Petrinaut
           handle={createJsonDocHandle({
             initial: { places: [], transitions: [] },
@@ -212,7 +213,7 @@ const ApprovingEditor = ({
     [],
   );
   return (
-    <BrunchAssistantContext value={aiAssistant}>
+    <BrunchAssistantContext value={fixedBrunchAssistant(aiAssistant)}>
       <Petrinaut handle={handle} plugins={[brunchPlugin]} />
     </BrunchAssistantContext>
   );

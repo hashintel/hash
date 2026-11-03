@@ -56,3 +56,17 @@ impl Args {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory as _;
+
+    use super::Args;
+
+    #[test]
+    fn command_valid() {
+        // Fails on what clap otherwise reports only when the server starts, such as two arguments
+        // with the same ID.
+        Args::command().debug_assert();
+    }
+}

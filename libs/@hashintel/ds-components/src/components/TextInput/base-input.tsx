@@ -23,46 +23,43 @@ import type {
 import type { IconName } from "../Icon/icon";
 
 export type BaseInputProps = {
-  /** The html type of the input element (text/number etc) */
+  /** The HTML `type` of the underlying input element, such as `text` or `number`. */
   type?: React.InputHTMLAttributes<HTMLInputElement>["type"];
   /** The keyboard that should be used on mobile devices. */
   inputMode?: React.InputHTMLAttributes<HTMLInputElement>["inputMode"];
-  /** An optional placeholder for the input */
   placeholder?: string;
-  /** Disable editing of the input. Unlike disabled this strips the input styles and displays the value as text */
+  /** Whether editing is disabled. Unlike `disabled`, strips the input styles and renders the value as plain text. */
   readonly?: boolean;
-  /** Whether the input is in a loading state */
+  /** Whether a loading spinner is shown inside the input. */
   loading?: boolean;
-  /** subtle inputs have no border and display similarly to inline text */
+  /** The input's visual style: `subtle` removes the border so it reads as inline text. */
   variant?: "default" | "subtle";
-  /** set the alignment of the text in the input */
+  /** The alignment of the text inside the input. */
   align?: "left" | "center" | "right";
-  /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */
+  /** A set of standard width presets, for aligning with other inputs. */
   width?: FormInputWidth;
-  /** Optional element or button to include at the beginning of an input */
+  /** Element rendered at the start of the input. */
   prefix?: PrefixOrSuffix;
-  /** Optional element or button to include at the end of an input */
+  /** Element rendered at the end of the input. */
   suffix?: PrefixOrSuffix;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  /** Whether this input renders as connected to the input on its left. Set the matching prop on both inputs; `subtle` and `readonly` inputs are never connected. */
   connectToLeftInput?: boolean;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  /** Whether this input renders as connected to the input on its right. Set the matching prop on both inputs; `subtle` and `readonly` inputs are never connected. */
   connectToRightInput?: boolean;
-  /** A customized view that is shown when the input is unfocused. Can be used to present the value with extra formatting */
+  /** A formatted view of the value, shown while the input is unfocused. */
   styledValue?: React.ReactNode;
-  /** Set to allow the input to be cleared. `true` empties the input through the normal change pipeline (`onChange` fires with `""`); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
+  /** Whether the input can be cleared. `true` empties it through the normal change pipeline (`onChange` fires with `""`); pass `{ onClear }` to control clearing yourself; `false` reserves the clear button's space without enabling it. */
   clearable?: boolean | { onClear: () => void };
-  /** Show an edit icon inside the input */
   showEditIcon?: boolean;
-  /** Defaults to false, set to true to allow browsers to autocomplete an input */
+  /** Whether the browser may autocomplete the input. */
   autocomplete?: boolean;
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   /**
-   * Extra props merged onto the inner `<input>` element — the hook for wiring
-   * the input up as a part of a composite ark-ui widget (see Combobox).
-   * Defined entries override the input's own attributes (undefined entries
-   * are dropped), event handlers run before the input's own, and
-   * `value`/`defaultValue` are ignored (the input stays controlled).
+   * Extra props merged onto the inner `<input>`, for wiring it into a
+   * composite Ark UI widget such as Combobox. Defined entries override the
+   * input's own attributes and handlers run before the input's own; `value`
+   * and `defaultValue` are ignored, keeping the input controlled.
    */
   inputElementProps?: React.ComponentPropsWithoutRef<"input">;
   min?: number;
@@ -83,10 +80,34 @@ export type BaseInputProps = {
   React.AriaAttributes;
 
 export type PrefixOrSuffix = (
-  | { iconName: IconName; onClick?: () => void; disabled?: boolean }
-  | { text: string; onClick?: () => void; disabled?: boolean }
-  | { content: React.ReactNode }
-) & { variant?: "default" | "subtle" };
+  | {
+      /** Fills the slot with a design-system icon — a slot takes exactly one of `iconName`, `text`, or `content`. */
+      iconName: IconName;
+      /** Makes the slot a button. */
+      onClick?: () => void;
+      /** Disables just the slot's button. */
+      disabled?: boolean;
+    }
+  | {
+      /** Fills the slot with a short text label, such as a unit or protocol. */
+      text: string;
+      /** Makes the slot a button. */
+      onClick?: () => void;
+      /** Disables just the slot's button. */
+      disabled?: boolean;
+    }
+  | {
+      /** Fills the slot with arbitrary content. */
+      content: React.ReactNode;
+    }
+) & {
+  /** `subtle` blends the slot into the field, with no divider from the input text. */
+  variant?: "default" | "subtle";
+};
+
+// Docs-only marker: renders nothing, exists so react-docgen can surface the
+// `prefix`/`suffix` slot object's props in the docs prop tables.
+export const PrefixOrSuffixDoc = (_props: PrefixOrSuffix): null => null;
 
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",

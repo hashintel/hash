@@ -28,6 +28,7 @@ use hash_status::StatusCode;
 use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 use type_system::{
+    Valid, Validator as _,
     knowledge::{
         Entity, Property,
         entity::{
@@ -46,10 +47,14 @@ use type_system::{
         id::VersionedUrl,
     },
     principal::actor::{ActorEntityUuid, ActorId},
+    provenance::validation::{ProvenanceValidator, ProvenanceViolation},
 };
 use uuid::Uuid;
 
-use super::{LockedEntityEdition, provenance::SqlEntityEditionProvenance};
+use super::{
+    EntityEditionInsert, LockedEntityEdition, provenance::SqlEntityEditionProvenance,
+    provenance_violations,
+};
 use crate::store::{
     AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
 };
@@ -72,6 +77,48 @@ pub(super) struct PreparedEntityPatch {
 
 pub(super) struct EntityPatchChanges {
     entity: Entity,
+    draft_transition: DraftTransition,
+}
+
+impl EntityPatchChanges {
+    /// The changes, with the provenance of the new edition and of all its properties checked.
+    ///
+    /// The properties include those the patch carries over unchanged, so stored provenance that
+    /// breaks a rule fails the patch.
+    ///
+    /// # Errors
+    ///
+    /// Returns every rule that the provenance breaks.
+    pub(super) fn validate_provenance(
+        self,
+    ) -> Result<ValidEntityPatchChanges, Vec<ProvenanceViolation>> {
+        let Self {
+            entity,
+            draft_transition,
+        } = self;
+        match (
+            SqlEntityEditionProvenance::try_from(entity.metadata.provenance.edition.clone()),
+            ProvenanceValidator.validate(entity.metadata.properties.clone()),
+        ) {
+            (Ok(provenance), Ok(property_metadata)) => Ok(ValidEntityPatchChanges {
+                entity,
+                provenance,
+                property_metadata,
+                draft_transition,
+            }),
+            (provenance, property_metadata) => Err(provenance_violations([
+                provenance.err(),
+                property_metadata.err(),
+            ])),
+        }
+    }
+}
+
+/// [`EntityPatchChanges`] whose new edition can be written.
+pub(super) struct ValidEntityPatchChanges {
+    entity: Entity,
+    provenance: SqlEntityEditionProvenance,
+    property_metadata: Valid<PropertyObjectMetadata>,
     draft_transition: DraftTransition,
 }
 
@@ -99,6 +146,17 @@ impl EntityPatchValidation {
             Report::new(UpdateError).attach_opaque(HashMap::from([(index, self.report)]))
         );
         Ok(())
+    }
+
+    /// The error for a patch whose provenance breaks the rules in `provenance`, with the property
+    /// errors found so far under its original input index.
+    pub(super) fn reject_provenance(
+        mut self,
+        provenance: Vec<ProvenanceViolation>,
+        index: usize,
+    ) -> Report<UpdateError> {
+        self.report.metadata.provenance = provenance;
+        Report::new(UpdateError).attach_opaque(HashMap::from([(index, self.report)]))
     }
 }
 
@@ -464,30 +522,30 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
     pub(super) async fn persist_entity_patch(
         &self,
         actor_id: ActorId,
-        changes: EntityPatchChanges,
+        changes: ValidEntityPatchChanges,
         locked_row: LockedEntityEdition,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<Entity, Report<UpdateError>> {
-        let EntityPatchChanges {
+        let ValidEntityPatchChanges {
             mut entity,
+            provenance,
+            property_metadata,
             draft_transition,
         } = changes;
         let entity_id = entity.metadata.record_id.entity_id;
-        let stored_provenance =
-            SqlEntityEditionProvenance::from(entity.metadata.provenance.edition);
-        let edition_id = self
-            .insert_entity_edition(
-                entity.metadata.archived,
-                &entity.metadata.entity_type_ids,
-                &entity.properties,
-                entity.metadata.confidence,
-                &stored_provenance,
-                &entity.metadata.properties,
-            )
-            .await
-            .change_context(UpdateError)?;
-        entity.metadata.provenance.edition = EntityEditionProvenance::from(stored_provenance);
+        let edition_id = EntityEditionId::new(Uuid::now_v7());
+        self.insert_entity_edition(EntityEditionInsert {
+            edition_id,
+            archived: entity.metadata.archived,
+            entity_type_ids: &entity.metadata.entity_type_ids,
+            properties: &entity.properties,
+            property_metadata: &property_metadata,
+            confidence: entity.metadata.confidence,
+            provenance: &provenance,
+        })
+        .await
+        .change_context(UpdateError)?;
         let (entity_id, temporal_versioning) = match draft_transition {
             DraftTransition::Update => (
                 entity_id,
@@ -537,7 +595,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let draft_id = DraftId::new(Uuid::new_v4());
+        let draft_id = DraftId::new(Uuid::now_v7());
         self.as_client()
             .query(
                 "INSERT INTO entity_drafts (web_id, entity_uuid, draft_id) VALUES ($1, $2, $3);",

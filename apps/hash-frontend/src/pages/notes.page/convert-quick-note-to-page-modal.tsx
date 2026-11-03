@@ -28,7 +28,7 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import type { BaseUrl, WebId } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";
 import type {
   FractionalIndexPropertyValueWithMetadata,
   PageProperties,
@@ -65,7 +65,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
   const defaultTitle = `Quick Note - ${createdAt.toLocaleString()}`;
 
-  const { data: pages } = useAccountPages(authenticatedUser.accountId as WebId);
+  const { data: pages } = useAccountPages(authenticatedUser.accountId);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -73,7 +73,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   >(updateEntityMutation);
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    authenticatedUser.accountId as WebId,
+    authenticatedUser.accountId,
   );
 
   const innerSubmit = handleSubmit(async (data) => {

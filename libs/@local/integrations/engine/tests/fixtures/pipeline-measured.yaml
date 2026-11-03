@@ -1,0 +1,21 @@
+connector: demo
+unitMaps:
+  masses:
+    units:
+      KG: https://example.com/data-type/kilogram/v/1
+      LB: https://example.com/data-type/pound/v/1
+sources:
+  source:
+    primaryKey: [ID]
+    sql: SELECT 1 AS ID
+pipelines:
+  entities:
+    - source: source
+      steps:
+        - id: sink
+          sink:
+            entityType: https://example.com/entity/v/1
+            entityId: ID
+            properties:
+              https://example.com/property/v/1:
+                { amount: AMOUNT, unit: UNIT, unitMap: masses }

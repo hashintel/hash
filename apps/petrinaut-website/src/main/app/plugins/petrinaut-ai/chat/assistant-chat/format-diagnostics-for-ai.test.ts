@@ -15,7 +15,18 @@ const errorSeverity = 1;
 const warningSeverity = 2;
 
 const definition: SDCPN = {
-  places: [],
+  places: [
+    {
+      id: "place__ward",
+      name: "Ward",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      visualizerCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
   transitions: [
     {
       id: "transition__infect",
@@ -67,7 +78,7 @@ describe("formatDiagnosticsForAi", () => {
     );
   });
 
-  test("formats transition and differential-equation diagnostics", () => {
+  test("formats transition, differential-equation and visualizer diagnostics", () => {
     const diagnosticsByUri = new Map<string, Diagnostic[]>([
       [
         "inmemory://sdcpn/transitions/transition__infect/lambda.ts",
@@ -102,14 +113,23 @@ describe("formatDiagnosticsForAi", () => {
           }),
         ],
       ],
+      [
+        "inmemory://sdcpn/places/place__ward/visualizer.jsx",
+        [
+          diagnostic("Property 'strokeWidht' does not exist.", {
+            code: 2322,
+          }),
+        ],
+      ],
     ]);
 
     expect(formatDiagnosticsForAi({ definition, diagnosticsByUri })).toBe(
       [
-        "Current TypeScript diagnostics (3 issues):",
+        "Current TypeScript diagnostics (4 issues):",
         "- Transition: Infect lambda: error TS2304 at Ln 4, Col 11: Cannot find name 'infected'.",
         "- Transition: Infect kernel: warning TS2322 at Ln 2, Col 3: Type 'string' is not assignable to type 'number'.",
         "- Differential Equation: Viral load: error TS1128 at Ln 1, Col 1: Declaration or statement expected.",
+        "- Place: Ward visualizer: error TS2322 at Ln 2, Col 3: Property 'strokeWidht' does not exist.",
       ].join("\n"),
     );
   });

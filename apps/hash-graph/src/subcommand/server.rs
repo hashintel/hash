@@ -15,9 +15,10 @@ use futures::{StreamExt as _, channel::mpsc};
 use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
+use hash_crypto::Secret;
 use hash_graph_api::{
     rest::{
-        self,
+        self, PublicApiConfig,
         authentication::{
             KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
@@ -42,7 +43,6 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_graph_type_fetcher::FetchingPool;
-use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
@@ -50,7 +50,7 @@ use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
+use tokio_postgres::{Client as PostgresClient, NoTls};
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
 use uuid::Uuid;
@@ -443,6 +443,9 @@ pub struct ServerConfig {
     pub api_config: ApiConfig,
 
     #[clap(flatten)]
+    pub public_api_config: PublicApiConfig,
+
+    #[clap(flatten)]
     pub rate_limit: RateLimitConfig,
 
     #[clap(flatten)]
@@ -668,23 +671,36 @@ pub(crate) struct AuthenticationSetup {
     pub api_tokens: Option<Arc<ApiTokenIssuer>>,
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "Every parameter is a distinct resource the one caller assembles."
-)]
-async fn start_server<S>(
+/// Resources assembled for graph API startup.
+struct ServerResources<S> {
     pool: S,
-    postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
-    config: ServerConfig,
-    authentication: AuthenticationSetup,
     query_logger: Option<QueryLogger>,
     meter: Meter,
+    filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
+}
+
+/// Starts the main graph API server (REST + optional RPC).
+///
+/// # Errors
+///
+/// Returns an error if a configured client or the RPC server cannot be initialized.
+async fn start_server<S>(
+    ServerResources {
+        pool,
+        compiler,
+        query_logger,
+        meter,
+        filter_protection,
+    }: ServerResources<S>,
+    config: ServerConfig,
+    authentication: AuthenticationSetup,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
+    for<'pool> S::Store<'pool>:
+        RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore + AsRef<PostgresClient>,
 {
     let store = Arc::new(pool);
     let temporal_client = create_temporal_client(&config.temporal)
@@ -708,12 +724,12 @@ where
 
     let router = rest::router(rest::Dependencies {
         store,
-        postgres,
         temporal_client,
         embedding_client,
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        public_api_config: config.public_api_config,
         session_auth: authentication.session_auth,
         service_secret: authentication.service_secret,
         api_tokens: authentication.api_tokens,
@@ -721,6 +737,7 @@ where
         meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
+        filter_protection,
     });
     start_rest_server(router, config.http_address, lifecycle);
 
@@ -755,9 +772,9 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             validate_links: !args.config.skip_link_validation,
             skip_embedding_creation: args.config.skip_embedding_creation,
             filter_protection: if args.config.skip_filter_protection {
-                PropertyProtectionFilterConfig::new()
+                Arc::new(PropertyProtectionFilterConfig::new())
             } else {
-                PropertyProtectionFilterConfig::hash_default()
+                Arc::new(PropertyProtectionFilterConfig::hash_default())
             },
             semantic_search: SemanticSearchSettings {
                 candidate_overfetch: args.config.semantic_search_candidate_overfetch,
@@ -779,8 +796,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         .attach("Connection to database failed")?;
 
     let lifecycle = ServerLifecycle::new();
-
-    let postgres = pool.clone();
 
     if args.embed_admin {
         // The admin surface gets its own meter scope, as running it standalone would, so its
@@ -812,6 +827,8 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             return Err(report.change_context(GraphError));
         }
     }
+
+    let filter_protection = Arc::clone(&pool.settings.filter_protection);
 
     let pool = FetchingPool::new(
         pool,
@@ -847,17 +864,19 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     ));
 
     if let Err(error) = start_server(
-        pool,
-        postgres,
-        compiler,
+        ServerResources {
+            pool,
+            compiler,
+            query_logger,
+            meter: telemetry.meter("Graph API"),
+            filter_protection,
+        },
         args.config,
         AuthenticationSetup {
             session_auth,
             service_secret,
             api_tokens,
         },
-        query_logger,
-        telemetry.meter("Graph API"),
         &lifecycle,
     )
     .await
@@ -927,11 +946,11 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 mod tests {
     use core::{num::NonZero, pin::Pin};
 
+    use hash_crypto::Secret;
     use hash_graph_api::rest::authentication::api_token::{
         ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
     };
     use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
-    use hash_secret::Secret;
     use reqwest::Url;
     use rstest::rstest;
     use type_system::principal::{
@@ -1010,7 +1029,7 @@ mod tests {
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )
-            .expect("the random number generator should provide bytes");
+            .expect("the API token should be issued");
 
         let hashed = HashedApiToken::from(&token);
         assert_eq!(
@@ -1022,14 +1041,14 @@ mod tests {
             params.encryption_key_id, key_id,
             "the token should record the configured key ID"
         );
-        assert_eq!(
+        assert!(
             ApiTokenEncryptionKey::new(key_id, &key())
-                .decrypt(
+                .matches(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),
+                    hashed.secret_hash(),
                 )
                 .expect("the configured key should decrypt the secret hash"),
-            hashed.secret_hash(),
             "the token should be encrypted with the configured key"
         );
     }

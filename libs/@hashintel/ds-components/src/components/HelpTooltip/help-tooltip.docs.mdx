@@ -1,0 +1,215 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { HelpTooltip } from "./help-tooltip";
+
+<Meta title="Docs/HelpTooltip" />
+
+export const meta = {
+  title: "HelpTooltip",
+  description:
+    "An inline info icon that explains the term it follows on hover or focus.",
+  alternativeNames: ["HelpText", "InfoLabel", "InfoTip"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/HelpTooltip/help-tooltip.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-helptooltip--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/",
+    ark: "https://ark-ui.com/docs/components/tooltip",
+  },
+  related: ["Tooltip", "Popover", "Form"],
+};
+
+# HelpTooltip
+
+An inline info icon that explains the term it follows on hover or focus.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <span>Entity type<HelpTooltip content="The schema an entity conforms to — its properties and links" /></span>
+
+  <small>Draft entities<HelpTooltip position="bottom" content="Proposed by a flow and awaiting review" /></small>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { HelpTooltip } from "@hashintel/ds-components";
+
+export const EntityTypeLabel = () => (
+  <span>
+    Entity type
+    <HelpTooltip content="The schema this entity conforms to" />
+  </span>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use HelpTooltip after a term, field label, or setting that needs one short clarifying sentence.",
+    "Use it for supplemental detail users can succeed without — definitions, consequences, defaults.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Avoid hiding required information in it — instructions users need to complete a task usually belong in visible text, such as a form field's description.",
+    "Don't use it to explain an existing control — HelpTooltip brings its own icon trigger; wrap the control in Tooltip instead.",
+    "Don't put links, buttons, or rich layout in the content — a hover overlay can't be interacted with; use Popover.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Place it flush after the term it explains, with the explanation in `content`.
+Don't type a space before it — the icon brings its own gap and stays glued to
+the last word.
+
+{/* The MDX source must keep the text and HelpTooltip on one line: a line
+    break between them becomes a markdown soft-break space, which lets the
+    icon wrap onto its own line. */}
+
+<Stage>
+  <span>Inference depth<HelpTooltip content="How many hops of linked entities the flow traverses" /></span>
+</Stage>
+
+### Alignment
+
+`align` tunes the icon's vertical position: `top` (default) suits labels and
+running text; use `center` in vertically centered rows such as tab labels.
+
+<Stage>
+  <span>Top<HelpTooltip align="top" content="Hangs from the top of the text line" /></span>
+
+  <span>Center<HelpTooltip align="center" content="Centers on the text line" /></span>
+</Stage>
+
+### Tooltip position
+
+The tooltip prefers the right side, where it won't cover the text just read,
+and flips automatically when there's no room. Set `position` to prefer another
+side.
+
+<Stage>
+  <span>Opens right<HelpTooltip position="right" content="Appears beside the icon" /></span>
+
+  <span>Opens above<HelpTooltip position="top" content="Appears above the icon" /></span>
+
+  <span>Opens below<HelpTooltip position="bottom" content="Appears below the icon" /></span>
+</Stage>
+
+### Light and dark
+
+`variant` sets the overlay surface. Keep the default `dark` for contrast;
+switch to `light` where a dark panel feels heavy against the surrounding UI.
+
+<Stage>
+  <span>Dark<HelpTooltip variant="dark" content="Highest contrast on light surfaces" /></span>
+
+  <span>Light<HelpTooltip variant="light" content="A white panel for darker surroundings" /></span>
+</Stage>
+
+### In form labels
+
+In forms, don't place HelpTooltip by hand: `Form.Field` takes `labelTooltip`
+and renders the icon after the label text — outside the `<label>` element and
+on the side away from the control.
+
+```tsx
+import { useState } from "react";
+
+import { Form, TextInput } from "@hashintel/ds-components";
+
+export const WorkspaceNameField = () => {
+  const [name, setName] = useState("");
+  return (
+    <Form.Field
+      label="Workspace name"
+      labelTooltip="Shown in the sidebar and on invitations"
+    >
+      <TextInput value={name} onChange={setName} placeholder="Acme Research" />
+    </Form.Field>
+  );
+};
+```
+
+## Content
+
+- Write one clarifying sentence, ideally under 15 words — the overlay caps at
+  its width and wraps; anything needing paragraphs belongs in a Popover or
+  the docs.
+- Add what the label can't carry: a definition, a consequence, a constraint,
+  or a default. Don't restate the label — a redundant tooltip teaches users to
+  skip the rest.
+- Keep it plain text in sentence case. No links or "Learn more" — they're
+  unreachable in a hover overlay.
+
+## Accessibility
+
+HelpTooltip implements the
+[WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/).
+
+### What HelpTooltip provides
+
+- The icon trigger receives `tabindex="0"` automatically, so keyboard users
+  can reach it; the tooltip opens on hover and keyboard focus, and closes on
+  Escape, blur, or pointer-leave.
+- While open, the trigger references the content via `aria-describedby`, so
+  screen readers announce the explanation.
+- The trigger is exposed as an image named "Information" (`role="img"`),
+  so it isn't an unnamed tab stop; the decorative info icon inside stays
+  `aria-hidden`. Pass `aria-label` to rename it — useful when several help
+  icons land in the same list of form fields.
+
+### What you must do
+
+- Write the component flush against the preceding word, no space or line
+  break before it, to avoid the help tooltip becoming a widow. 
+- Keep `content` plain text so the `aria-describedby` announcement reads
+  cleanly.
+- Place the trigger beside, not inside, `<label>` elements — inside one,
+  clicking the icon focuses the form control. `Form.Field` already renders it
+  outside.
+
+## API reference
+
+<PropsTable
+  of={HelpTooltip}
+  defaults={{
+    align: '"top"',
+    "aria-label": '"Information"',
+    position: '"right"',
+    variant: '"dark"',
+    openDelay: '"medium"',
+    closeDelay: '"medium"',
+    gapX: "8",
+    gapY: "8",
+    closeOnClick: "true",
+  }}
+/>

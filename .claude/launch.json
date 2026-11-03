@@ -18,14 +18,7 @@
     {
       "name": "@apps/petrinaut-docs",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": [
-        "exec",
-        "turbo",
-        "run",
-        "dev",
-        "--filter",
-        "@apps/petrinaut-docs"
-      ],
+      "runtimeArgs": ["workspace", "@apps/petrinaut-docs", "dev"],
       "port": 4322,
       "autoPort": true
     }

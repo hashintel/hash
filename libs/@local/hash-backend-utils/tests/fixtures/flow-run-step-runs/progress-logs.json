@@ -1,0 +1,71 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-24T11:09:25.450Z",
+      "scheduledAt": "2026-10-24T11:09:25.449Z",
+      "closedAt": "2026-10-24T11:09:27.470Z",
+      "inputs": [
+        {
+          "inputName": "prompt",
+          "payload": {
+            "kind": "Text",
+            "value": "Who makes HASH?"
+          }
+        }
+      ],
+      "logs": [
+        {
+          "type": "CreatedPlan",
+          "plan": "Search the web",
+          "stepId": "research",
+          "recordedAt": "2026-10-24T11:09:25.451Z",
+          "workerType": "Coordinator",
+          "workerInstanceId": "coordinator",
+          "parentInstanceId": null,
+          "toolCallId": null
+        },
+        {
+          "type": "UpdatedPlan",
+          "plan": "Search the web, then read",
+          "stepId": "research",
+          "recordedAt": "2026-10-24T11:09:25.451Z",
+          "workerType": "Coordinator",
+          "workerInstanceId": "coordinator",
+          "parentInstanceId": null,
+          "toolCallId": null
+        },
+        {
+          "type": "UpdatedPlan",
+          "plan": "Read what was found",
+          "stepId": "research",
+          "recordedAt": "2026-10-24T11:09:26.453Z",
+          "workerType": "Coordinator",
+          "workerInstanceId": "coordinator",
+          "parentInstanceId": null,
+          "toolCallId": null
+        }
+      ],
+      "status": "COMPLETED",
+      "attempt": 1,
+      "outputs": [
+        {
+          "outputName": "proposedEntities",
+          "payload": {
+            "kind": "ProposedEntity",
+            "value": []
+          }
+        },
+        {
+          "outputName": "highlightedEntities",
+          "payload": {
+            "kind": "EntityId",
+            "value": []
+          }
+        }
+      ]
+    }
+  ],
+  "inputRequests": []
+}

@@ -6,7 +6,7 @@ use aws_sdk_s3::{
     Client,
     config::{Credentials, ProvideCredentials as _},
 };
-use hash_secret::Secret;
+use hash_crypto::Secret;
 
 /// A failure to resolve the region or credentials for an enabled S3 backend.
 #[derive(Debug)]

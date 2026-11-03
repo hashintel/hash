@@ -13,7 +13,9 @@ export type ToggleProps = {
   tone?: Exclude<Tone, "error" | "warning">;
   /** The tone applied when the toggle is off (unchecked) */
   offTone?: Extract<Tone, "neutral" | "error">;
+  /** Label rendered after the control, on the on side — visible in both states. */
   labelOnText?: string;
+  /** Label rendered before the control, on the off side — visible in both states. */
   labelOffText?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
   React.AriaAttributes;
@@ -76,3 +78,5 @@ export const Toggle = ({
     </Switch.Root>
   );
 };
+
+Toggle.displayName = "Toggle";

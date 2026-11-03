@@ -83,7 +83,7 @@ f64 fields are addressable through a shared `Float64Array` view
 u8 fields through a `Uint8Array` view — no `DataView` in hot paths.
 
 Place counts and per-place byte offsets are stored in separate `Uint32Array`
-sections, so a place can be accessed in O(1) when the SDCPN layout is known.
+sections, so a place can be accessed in $O(1)$ when the SDCPN layout is known.
 
 ```text
 Colour of p1: { x: real, n: integer, on: boolean } → stride 24 B

@@ -1,0 +1,37 @@
+toml-version = "v1.0.0"
+
+[files]
+exclude = ["**/node_modules/**", "**/.venv/**", "**/venv/**"]
+
+[format.rules]
+indent-width                    = 4
+key-value-equals-sign-alignment = true
+trailing-comment-alignment      = true
+trailing-comment-space-width    = 1
+string-quote-style              = "preserve"
+
+[schema.format.rules]
+array-values-order.enabled = false
+table-keys-order.enabled   = false
+
+[[schemas]]
+path    = "tombi://www.schemastore.org/cargo.json"
+include = ["**/Cargo.toml"]
+
+[[schemas.overrides]]
+targets                       = [
+    "dependencies",
+    "dev-dependencies",
+    "build-dependencies",
+    "workspace.dependencies",
+    "target.*.dependencies",
+    "target.*.dev-dependencies",
+    "workspace",
+    "workspace.package",
+    "workspace.metadata",
+]
+format.rules.table-keys-order = "ascending"
+
+[[schemas.overrides]]
+targets                         = ["workspace.members", "workspace.exclude", "workspace.default-members"]
+format.rules.array-values-order = "ascending"

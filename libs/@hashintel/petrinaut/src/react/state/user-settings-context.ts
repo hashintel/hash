@@ -66,6 +66,12 @@ export type UserSettings = {
   codeEditorTheme: string;
   /** Plugins the user switched off in the Plugins section, by id. */
   disabledPluginIds: readonly string[];
+  /**
+   * The plugin whose assistant the user chose, by id. While it is not
+   * running, the editor shows the assistant of the first running plugin that
+   * provides one.
+   */
+  assistantPluginId: string | null;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -94,6 +100,7 @@ export type UserSettingsActions = {
   setShowCompilationOutput: (value: boolean) => void;
   setCodeEditorTheme: (value: string) => void;
   setPluginEnabled: (pluginId: string, enabled: boolean) => void;
+  setAssistantPluginId: (pluginId: string) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -127,6 +134,7 @@ export const defaultUserSettings: UserSettings = {
   showCompilationOutput: false,
   codeEditorTheme: "petrinaut-light",
   disabledPluginIds: [],
+  assistantPluginId: null,
   subViewPanels: {},
   canvasViewports: {},
 };
@@ -159,6 +167,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setShowCompilationOutput: () => {},
   setCodeEditorTheme: () => {},
   setPluginEnabled: () => {},
+  setAssistantPluginId: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };
