@@ -12,8 +12,6 @@
  * - `lanes`: one lane per transition with a mark at every event it fired at.
  */
 
-import { DEFAULT_COLORS } from "../simulation-timeline/default-colors";
-
 import type {
   TimelineSeriesExtractor,
   TimelineSeriesMeta,
@@ -27,11 +25,15 @@ export type TraceReader = Pick<
   "getEvent" | "getEventState" | "getStateAt"
 >;
 
+/**
+ * Transitions carry no colour of their own, so every firing is marked in
+ * this one neutral tone, on the ruler and in the lanes alike.
+ */
+export const FIRING_COLOR = "#475569";
+
 export type FiringMark = {
   time: number;
   transitionIds: readonly string[];
-  /** The colour of the first transition that fired. */
-  color: string;
 };
 
 export type EventTimelineData =
@@ -141,44 +143,30 @@ export const buildLaneData = (
   }
   return {
     kind: "lanes",
-    series: transitions.map((transition, index) => ({
+    series: transitions.map((transition) => ({
       seriesId: `transition__${transition.id}`,
       seriesName: transition.name,
-      color: DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+      color: FIRING_COLOR,
     })),
     data: [times, ...columns] as uPlot.AlignedData,
     laneLabels: [...transitions].reverse().map((transition) => transition.name),
   };
 };
 
-/** The colour each transition's firings are marked with, by net order. */
-export const transitionColors = (
-  transitions: readonly Transition[],
-): Map<string, string> =>
-  new Map(
-    transitions.map((transition, index) => [
-      transition.id,
-      DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
-    ]),
-  );
-
 /** Every firing in the trace, in time order. */
 export const collectFirings = (
   trace: TraceReader,
   eventCount: number,
-  colors: ReadonlyMap<string, string>,
 ): FiringMark[] => {
   const firings: FiringMark[] = [];
   for (let index = 0; index < eventCount; index++) {
     const event = trace.getEvent(index);
-    const first = event?.firedTransitionIds[0];
-    if (!event || first === undefined) {
+    if (!event || event.firedTransitionIds.length === 0) {
       continue;
     }
     firings.push({
       time: event.time,
       transitionIds: event.firedTransitionIds,
-      color: colors.get(first) ?? DEFAULT_COLORS[0]!,
     });
   }
   return firings;

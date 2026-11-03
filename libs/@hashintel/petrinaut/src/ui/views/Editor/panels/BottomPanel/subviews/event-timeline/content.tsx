@@ -200,7 +200,7 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
               />
             </div>
           </div>
-          {showLegend && data.series.length > 1 && (
+          {showLegend && data.kind !== "lanes" && data.series.length > 1 && (
             <TimelineLegend
               series={data.series}
               hiddenSeries={hiddenSeries}
