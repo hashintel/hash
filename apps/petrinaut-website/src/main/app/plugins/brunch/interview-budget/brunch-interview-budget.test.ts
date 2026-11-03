@@ -1,6 +1,9 @@
 import { expect, test } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+import {
+  ledgerCommentsMessage,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
 
 import { getInterviewBudget } from "../../../../../shared/interview-budget";
 import { canonicalBrunchFlueAdapter } from "../brunch-flue-adapter";
@@ -160,4 +163,29 @@ test("the interview is closing only once the latest submission had no questions 
   expect(isInterviewClosing({ messages })).toBe(true);
   messages.push(answer("raised", "thorough"));
   expect(isInterviewClosing({ messages })).toBe(false);
+});
+
+test("replies to a turn of Ledger comments spend no question", () => {
+  const { body, tagName } = ledgerCommentsMessage([
+    { id: "n1", records: ["c1"], text: "Only in winter." },
+  ]);
+  const comments: FlueConversationMessage = {
+    id: "comments-1",
+    submissionId: "comments",
+    role: "system",
+    purpose: "dispatch",
+    display: "diagnostic",
+    ...(tagName === undefined ? {} : { signal: { tagName } }),
+    parts: [{ type: "text", text: body, state: "done" }],
+  };
+  const messages: FlueConversationMessage[] = [
+    reply("question-0", "Which hours?"),
+    comments,
+    {
+      ...reply("comments-reply", "Corrected: winter only. Which months?"),
+      submissionId: "comments",
+    },
+    reply("question-1", "How many crews?"),
+  ];
+  expect(countInterviewReplies({ messages })).toBe(2);
 });

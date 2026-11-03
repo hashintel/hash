@@ -20,8 +20,7 @@ import { instrument, setProvider } from "@flue/runtime";
 import { Hono } from "hono";
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
-
+import { brunchEnv } from "../env.ts";
 import { STEP_A_MODEL_ID } from "../shared/chat-model.ts";
 
 vi.mock("./telemetry-bootstrap.ts", () => ({}));

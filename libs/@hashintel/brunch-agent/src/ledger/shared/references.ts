@@ -46,6 +46,21 @@ export const vObligationId = v.pipe(
   v.description("An existing obligation ID issued by the system, such as o7."),
 );
 
+// Numeric IDs remain readable in stored conversations; new browser comments use UUIDs.
+export const commentIdGrammar = String.raw`n(?:0|[1-9]\d*|-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})`;
+
+/** The comments an entry addresses; every payload route accepts it. */
+export const resolvesField = {
+  resolves: v.optional(
+    v.pipe(
+      v.array(v.pipe(v.string(), v.regex(new RegExp(`^${commentIdGrammar}$`)))),
+      v.description(
+        "Exact IDs of the USER's Ledger comments this entry addresses. Copy each ID from the comment; do not assign or shorten it. Resolve a comment with the entry that acts on it; a comment you answer with a question stays open until the USER replies.",
+      ),
+    ),
+  ),
+};
+
 export const vObligationReference = v.pipe(
   v.union([vObligationId, vLocalReference]),
   v.description(

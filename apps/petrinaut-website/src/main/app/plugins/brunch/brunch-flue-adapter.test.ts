@@ -1,7 +1,10 @@
 import { readUIMessageStream } from "ai";
 import { describe, expect, test, vi } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+import {
+  ledgerCommentsMessage,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
 
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 
@@ -127,4 +130,30 @@ describe("Brunch's stop marker through Petrinaut's metadata schema", () => {
     expect(live?.metadata).toEqual({ source: "voice", stopped: true });
     expect(reopen("aborted")).toEqual({ source: "voice", stopped: true });
   });
+});
+
+test("a reopened turn of Ledger comments reads as the user's message, as it was sent", () => {
+  const { body, tagName } = ledgerCommentsMessage([
+    { id: "n1", records: ["e1"], text: "There are two crews." },
+  ]);
+  expect(
+    canonicalBrunchFlueAdapter.reopen({
+      messages: [
+        {
+          id: "comments-1",
+          role: "system",
+          purpose: "dispatch",
+          display: "diagnostic",
+          ...(tagName === undefined ? {} : { signal: { tagName } }),
+          parts: [{ type: "text", text: body, state: "done" }],
+        },
+      ],
+    }),
+  ).toEqual([
+    {
+      id: "comments-1",
+      role: "user",
+      parts: [{ type: "text", text: body, state: "done" }],
+    },
+  ]);
 });

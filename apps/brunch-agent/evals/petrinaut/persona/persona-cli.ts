@@ -19,6 +19,8 @@ export const personaSocketVariable = "BRUNCH_PERSONA_SOCKET";
 
 export const personaCliUsage = `Usage: persona <command> [arguments] [--json]
 
+  open                Send the case's opening message and print it with Brunch's
+                      reply. Runs once, before any say.
   say <text>          Send one message through the browser and print Brunch's reply.
                       Reads the message from stdin when no text is given.
   state               Print the conversation state as JSON.
@@ -77,6 +79,8 @@ export const personaCommandFromArguments = async (
   const [name, ...rest] = positionals;
   const text = rest.length > 0 ? rest.join(" ") : undefined;
   switch (name) {
+    case "open":
+      return { type: "open" };
     case "say":
       // Heredocs end in a newline the person never typed.
       return { type: "prompt", message: text ?? (await stdin()).trimEnd() };
@@ -118,17 +122,22 @@ export const formatPersonaResult = (
   if (!response) throw new Error("The persona bridge sent no response");
   if (!response.success) throw new Error(response.error);
   switch (command.type) {
+    case "open":
     case "prompt": {
       const settled = records.find((record) => record.type === "turn_settled");
       if (settled?.outcome !== "replied")
         throw new Error(
           `Brunch turn ${settled?.outcome ?? "did not settle"}${settled?.error ? `: ${settled.error}` : ""}`,
         );
-      return records
+      const reply = records
         .flatMap((record) =>
           record.type === "assistant_message" ? [record.text] : [],
         )
         .join("\n\n");
+      if (command.type === "prompt") return reply;
+      // The opening is the persona's own first message; show it as sent.
+      const sent = records.find((record) => record.type === "turn_start");
+      return `You: ${sent?.type === "turn_start" ? sent.message : ""}\n\nBrunch: ${reply}`;
     }
     case "get_state":
       return JSON.stringify(response.data, null, 2);

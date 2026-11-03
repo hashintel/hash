@@ -10,7 +10,6 @@ import { Hono } from "hono";
 
 import {
   browserExecutedToolNames,
-  brunchEnv,
   brunchRoutes,
   brunchTools,
   netReaderToolNames,
@@ -24,6 +23,7 @@ import {
 } from "@local/flue-aisdk-transport/server";
 
 import { agents } from "./agents/index.ts";
+import { brunchEnv } from "./env.ts";
 import { healthHandler } from "./server/health.ts";
 import { assetHandler } from "./server/http/assets.ts";
 import { createBrowserCallRouter } from "./server/http/browser-calls.ts";
@@ -99,6 +99,13 @@ for (const { agent } of mountedAgents) {
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
 const admissionScope = modelAdmissionScope;
+// Honoured only under `NODE_ENV=test`, so these stay out of `brunchEnv`.
+const modelStreamTimeoutEnv = {
+  cancellationMs: "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
+  firstEventMs: "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
+  idleMs: "BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS",
+  reasoningStartMs: "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
+} as const;
 const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   if (process.env.NODE_ENV !== "test") return productionMs;
   const configured = process.env[environmentName];
@@ -110,19 +117,19 @@ const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   return milliseconds;
 };
 const modelStreamIdleTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamIdleTimeoutMs,
+  modelStreamTimeoutEnv.idleMs,
   modelStreamIdleTimeoutDefaults.idleTimeoutMs,
 );
 const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamFirstEventTimeoutMs,
+  modelStreamTimeoutEnv.firstEventMs,
   modelStreamIdleTimeoutDefaults.firstEventTimeoutMs,
 );
 const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamReasoningStartTimeoutMs,
+  modelStreamTimeoutEnv.reasoningStartMs,
   modelStreamIdleTimeoutDefaults.reasoningStartTimeoutMs,
 );
 const modelStreamCancellationTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamCancellationTimeoutMs,
+  modelStreamTimeoutEnv.cancellationMs,
   modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
 instrument({

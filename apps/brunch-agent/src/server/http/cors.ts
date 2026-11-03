@@ -1,6 +1,8 @@
 import { cors } from "hono/cors";
 
-import { brunchEnv, brunchHeaders } from "@hashintel/brunch-agent";
+import { brunchHeaders } from "@hashintel/brunch-agent";
+
+import { brunchEnv } from "../../env.ts";
 
 import type { MiddlewareHandler } from "hono";
 

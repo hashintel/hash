@@ -29,6 +29,12 @@ export interface FlueUiProjectionOptions<Metadata = unknown> {
   readonly mapToolOutput?: (output: unknown) => unknown;
   /** Derive message metadata; without it, agent metadata passes through. */
   readonly projectMetadata?: MetadataProjection<Metadata>;
+  /**
+   * Tag names of signals the user's own submissions deliver. A reopened
+   * transcript shows each as a user message carrying the signal's body, the
+   * way the submission showed it; other signals stay hidden.
+   */
+  readonly userSignalTags?: ReadonlySet<string>;
 }
 
 /**

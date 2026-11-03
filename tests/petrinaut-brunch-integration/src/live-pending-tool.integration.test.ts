@@ -15,7 +15,6 @@ import {
 } from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-panel-transport";
 import {
   agentOwnershipHeaders,
-  brunchEnv,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
@@ -44,10 +43,10 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
   process.env.BRUNCH_CHAT_THINKING = "low";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.NODE_ENV = "test";
-  process.env[brunchEnv.modelStreamCancellationTimeoutMs] = "100";
-  process.env[brunchEnv.modelStreamFirstEventTimeoutMs] = "3000";
-  process.env[brunchEnv.modelStreamIdleTimeoutMs] = "500";
-  process.env[brunchEnv.modelStreamReasoningStartTimeoutMs] = "3000";
+  process.env.BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS = "100";
+  process.env.BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS = "3000";
+  process.env.BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS = "500";
+  process.env.BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS = "3000";
   const faux = fauxProvider({
     models: [{ id: "gpt-5.6-sol", reasoning: true }],
     provider: "openai",

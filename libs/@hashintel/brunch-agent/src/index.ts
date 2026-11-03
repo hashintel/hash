@@ -6,9 +6,9 @@
  */
 
 export {
-  brunchEnv,
   brunchHeaders,
   brunchRoutes,
+  brunchSignals,
   brunchTools,
   localUiPrincipal,
   previewConversationIdPrefix,

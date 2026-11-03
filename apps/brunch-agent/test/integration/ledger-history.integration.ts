@@ -24,7 +24,12 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { agentOwnershipHeaders, foldCommits } from "@hashintel/brunch-agent";
+import {
+  agentOwnershipHeaders,
+  brunchSignals,
+  foldCommits,
+  ledgerCommentsMessage,
+} from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
 import { flueConversationId } from "../../src/shared/conversation/identity.ts";
@@ -136,6 +141,7 @@ const inflated = (message: AssistantMessage): AssistantMessage => ({
 });
 
 const observed: Record<string, unknown> = {};
+const commentId = `n-${crypto.randomUUID()}`;
 const claim = (
   text: string,
   {
@@ -272,15 +278,58 @@ try {
     },
   );
   await speak("Read the Ledger back.");
+
+  steps.push(
+    (context) => {
+      observed.commentReachedModel = JSON.stringify(context.messages).includes(
+        "There are two night crews, not one.",
+      );
+      return call("commit-4", "ledger_commit", {
+        entries: [
+          [
+            "entity/update/e1",
+            {
+              name: "Night crews",
+              kind: "resource",
+              origin: "stated",
+              status: "confirmed",
+              resolves: [commentId],
+            },
+          ],
+        ],
+      });
+    },
+    (context) => {
+      observed.commit4 = toolOutput(context, "commit-4");
+      return fauxAssistantMessage([fauxText("Renamed.")]);
+    },
+  );
+  await client.wait(
+    await client.send({
+      message: ledgerCommentsMessage([
+        {
+          id: commentId,
+          records: ["e1"],
+          quote: "Night crew",
+          text: "There are two night crews, not one.",
+        },
+      ]),
+    }),
+  );
   const finalHistory = await client.history();
   save("history-turn-3", finalHistory);
   observed.summaryRequests = contexts.filter(
     ({ label }) => label === "summary-request",
   ).length;
-  observed.reconstructed = foldCommits(finalHistory).commits;
+  const finalLedger = foldCommits(finalHistory);
+  observed.reconstructed = finalLedger.commits;
+  observed.comments = finalLedger.state.comments;
   observed.userMessageIds = finalHistory.messages
     .filter((message) => message.role === "user" && message.purpose === "user")
     .map((message) => message.id);
+  observed.commentMessageId = finalHistory.messages.find(
+    (message) => message.signal?.tagName === brunchSignals.ledgerComments,
+  )?.id;
 } finally {
   save("contexts", contexts);
   save("observations", observed);
@@ -358,9 +407,26 @@ assert.deepEqual(
       ? [{ commitId: "sibling-2", afterMessageId: userIds[0] }]
       : []),
     { commitId: "commit-3", afterMessageId: userIds[1] },
+    { commitId: "commit-4", afterMessageId: observed.commentMessageId },
   ],
-  "The host stamps each commit with the user message it followed.",
+  "The host stamps each commit with the user message or comment turn it followed.",
 );
+assert.equal(
+  observed.commentReachedModel,
+  true,
+  "The comment signal reaches the model.",
+);
+assert.partialDeepStrictEqual(observed.commit4, {
+  status: "recorded",
+  ids: ["e1"],
+});
+assert(
+  !Object.hasOwn(observed.commit4 as object, "openComments"),
+  `No comment stays open once resolved: ${JSON.stringify(observed.commit4)}`,
+);
+assert.partialDeepStrictEqual(observed.comments, [
+  { id: commentId, records: ["e1"], resolvedBy: "e1" },
+]);
 const turn2Requests = observed.turn2Requests as string[];
 assert.deepEqual(
   turn2Requests.filter((label) => label === "agent"),

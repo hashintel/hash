@@ -93,6 +93,10 @@ A host may also enable live history following, as the local Brunch panel does. T
 
 ### Ledger in Brunch
 
+Select text on a Ledger record and choose **Comment** to write a correction or question. Comments wait under their records until you choose **Send** in the composer, from either tab, or **Discard**. Send includes the wording currently in an open comment editor; **Cancel** restores its previous wording. Empty comments cannot be sent. Brunch reads the batch as its own turn and resolves a comment when it records the change that addresses it. Open comments have a badge on their records.
+
+Comments waiting to be sent belong to the conversation where you wrote them: **Clear chat** does not carry them into the new Ledger. Reloading drops unsent comments. If delivery is rejected, the comments remain editable for retry. If delivery cannot be confirmed, **Retry** checks the original batch without submitting it as a new turn; editing and discarding stay unavailable until that admission is settled.
+
 In Brunch construction conversations, the **Ledger** tab shows what Brunch has recorded about your process while **Chat** contains the transcript. As the conversation proceeds, Brunch commits batches of typed entries: the parts of your process, claims about them, checks it still owes, and reflections on what it changed or ran. The Ledger is append-only: each commit adds to it, and no commit is removed. A correction to a claim is a new claim that supersedes the earlier one, which stays visible, struck through; an update to a part of your process replaces how that part is described. Ledger fills in as each commit is recorded, without covering the canvas or opening another panel, and says **Nothing is recorded in the Ledger yet.** before the first.
 
 Ledger groups the parts of your process by section and kind, each with its origin and status and its current claims beneath; superseded claims are struck through. Open questions, checks still owed, checks met with the reflection that met each, and anything excluded from the model follow. Internal record IDs are not shown.

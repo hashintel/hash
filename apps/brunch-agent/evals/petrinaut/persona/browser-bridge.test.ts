@@ -20,6 +20,8 @@ afterEach(async () => {
 
 const openBridge = async (handlers: Partial<PersonaBridgeHandlers>) => {
   const bridge = await openPersonaBrowserBridge({
+    // Most tests talk to an open conversation, as on resume.
+    opening: undefined,
     prompt: async (_message, turn) => {
       turn.admitted();
       return { text: "Tell me more.", submissionIds: ["sub_1"] };
@@ -68,6 +70,82 @@ test("an admitted prompt yields its response, then the turn's events through set
       completedTurns: 1,
     },
   });
+});
+
+test("open sends the case's opening once, and say waits for it", async () => {
+  const prompt = vi.fn<PersonaBridgeHandlers["prompt"]>(
+    async (_message, turn) => {
+      turn.admitted();
+      return { text: "Tell me more.", submissionIds: ["sub_1"] };
+    },
+  );
+  const bridge = await openBridge({ opening: "Hello, I run a desk.", prompt });
+  expect(
+    await sendPersonaCommand(bridge.socketPath, {
+      type: "prompt",
+      message: "Hi.",
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      success: false,
+      error:
+        "Start the conversation with `open`, which sends your opening message.",
+    }),
+  ]);
+  expect(
+    await sendPersonaCommand(bridge.socketPath, { id: "o", type: "open" }),
+  ).toEqual([
+    { id: "o", type: "response", command: "open", success: true },
+    { type: "turn_start", message: "Hello, I run a desk." },
+    { type: "assistant_message", text: "Tell me more." },
+    { type: "turn_settled", outcome: "replied", submissionIds: ["sub_1"] },
+  ]);
+  expect(prompt).toHaveBeenLastCalledWith(
+    "Hello, I run a desk.",
+    expect.objectContaining({ opening: true }),
+  );
+  expect(await sendPersonaCommand(bridge.socketPath, { type: "open" })).toEqual(
+    [
+      expect.objectContaining({
+        success: false,
+        error: "The conversation is already open; reply with `say`.",
+      }),
+    ],
+  );
+  await sendPersonaCommand(bridge.socketPath, {
+    type: "prompt",
+    message: "Six agents.",
+  });
+  expect(prompt).toHaveBeenLastCalledWith(
+    "Six agents.",
+    expect.objectContaining({ opening: false }),
+  );
+});
+
+test("an opening refused before admission may be retried; once admitted it is never resent", async () => {
+  let attempts = 0;
+  const bridge = await openBridge({
+    opening: "Hello.",
+    prompt: async (_message, turn) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("Composer has an unsent draft");
+      turn.admitted();
+      throw new Error("Brunch turn failed");
+    },
+  });
+  expect(await sendPersonaCommand(bridge.socketPath, { type: "open" })).toEqual(
+    [expect.objectContaining({ success: false })],
+  );
+  expect(
+    (await sendPersonaCommand(bridge.socketPath, { type: "open" })).at(-1),
+  ).toMatchObject({ type: "turn_settled", outcome: "failed" });
+  expect(await sendPersonaCommand(bridge.socketPath, { type: "open" })).toEqual(
+    [
+      expect.objectContaining({
+        error: "The conversation is already open; reply with `say`.",
+      }),
+    ],
+  );
 });
 
 test("a failure before admission is a failed response; after admission it settles the turn", async () => {
@@ -197,12 +275,15 @@ test("end is acknowledged before the launcher is told to stop", async () => {
 test("the generated helper reads like an ordinary CLI over the bridge", async () => {
   const run = await mkdtemp(join(tmpdir(), "TEST-persona-helper-"));
   cleanup.push(() => rm(run, { recursive: true }));
-  const bridge = await openBridge({});
+  const bridge = await openBridge({ opening: "Hello." });
   const helper = await writePersonaHelper(run, bridge.socketPath);
   const persona = (...args: string[]) =>
     promisify(execFile)(helper, args, { env: process.env });
 
-  expect((await persona("say", "Hello.")).stdout).toBe("Tell me more.\n");
+  expect((await persona("open")).stdout).toBe(
+    "You: Hello.\n\nBrunch: Tell me more.\n",
+  );
+  expect((await persona("say", "Go on.")).stdout).toBe("Tell me more.\n");
   expect((await persona("transcript")).stdout).toBe(
     "You: Hello.\n\nBrunch: Tell me more.\n",
   );
