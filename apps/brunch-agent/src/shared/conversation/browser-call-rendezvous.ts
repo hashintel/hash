@@ -23,6 +23,8 @@ export class BrowserCallNotStartedError extends Error {
   override name = "BrowserCallNotStartedError";
 }
 interface IssuedCall {
+  /** The agent that issued the call; only that agent's mounts address it. */
+  readonly agentName: string;
   readonly binding: string;
   readonly input: string;
   readonly toolName: string;
@@ -69,8 +71,9 @@ const outcomeError = (
       );
   }
 };
-const keyFor = (instanceId: string, toolCallId: string) =>
-  JSON.stringify([instanceId, toolCallId]);
+// Instance ids are unique only within an agent name, so the issuing agent is part of the key.
+const keyFor = (agentName: string, instanceId: string, toolCallId: string) =>
+  JSON.stringify([agentName, instanceId, toolCallId]);
 
 const retire = (key: string) => {
   const entry = calls.get(key);
@@ -81,8 +84,9 @@ const retire = (key: string) => {
   calls.delete(key);
 };
 
-/** The call a browser request addresses, by its route parameters. */
+/** The call a browser request addresses, by the agent mount it arrives on and its route parameters. */
 interface CallAddress {
+  readonly agentName: string;
   readonly instanceId: string;
   readonly toolCallId: string;
 }
@@ -91,7 +95,9 @@ type LeaseProof = CallAddress & Readonly<BrowserCallLeaseBody>;
 
 /** The claimed, unexpired call this capability and binding hold. */
 const leasedCall = (proof: LeaseProof): IssuedCall | undefined => {
-  const entry = calls.get(keyFor(proof.instanceId, proof.toolCallId));
+  const entry = calls.get(
+    keyFor(proof.agentName, proof.instanceId, proof.toolCallId),
+  );
   return entry?.claimed &&
     !entry.finished &&
     entry.capability === proof.capability &&
@@ -116,6 +122,7 @@ const deliverableCall = (
 };
 
 export const issueBrowserCall = (input: {
+  readonly agentName: string;
   readonly instanceId: string;
   readonly toolCallId: string;
   readonly toolName: string;
@@ -124,12 +131,13 @@ export const issueBrowserCall = (input: {
   readonly expectedRevision?: string;
   readonly signal?: AbortSignal;
 }): Promise<ClientToolResult> => {
-  const key = keyFor(input.instanceId, input.toolCallId);
+  const key = keyFor(input.agentName, input.instanceId, input.toolCallId);
   if (calls.has(key)) throw new Error("Duplicate issued browser call.");
   if (input.signal?.aborted)
     throw new BrowserCallNotStartedError(BROWSER_CALL_UNSTARTED_ERROR);
   const result = Promise.withResolvers<ClientToolResult>();
   const entry: IssuedCall = {
+    agentName: input.agentName,
     binding: input.binding,
     input: JSON.stringify(input.canonicalInput),
     toolName: input.toolName,
@@ -171,11 +179,12 @@ export const issueBrowserCall = (input: {
 
 /** The caller's ownership middleware runs before these operations. The capability is one-use, not user authentication. */
 export const claimBrowserCall = (
+  agentName: string,
   instanceId: string,
   toolCallId: string,
   binding: string,
 ): BrowserCallClaim | undefined => {
-  const entry = calls.get(keyFor(instanceId, toolCallId));
+  const entry = calls.get(keyFor(agentName, instanceId, toolCallId));
   if (
     !entry ||
     entry.binding !== binding ||
@@ -203,7 +212,11 @@ export const renewBrowserCall = (input: LeaseProof): boolean => {
   entry.deadline = deadline;
   // A renewing browser is still working through this document's lane, so calls queued behind this one stay claimable.
   for (const queued of calls.values())
-    if (!queued.claimed && queued.binding === entry.binding)
+    if (
+      !queued.claimed &&
+      queued.agentName === entry.agentName &&
+      queued.binding === entry.binding
+    )
       queued.deadline = deadline;
   return true;
 };
@@ -211,7 +224,7 @@ export const renewBrowserCall = (input: LeaseProof): boolean => {
 export const failBrowserCall = (
   input: CallAddress & Readonly<BrowserCallFailureBody>,
 ): boolean => {
-  const key = keyFor(input.instanceId, input.toolCallId);
+  const key = keyFor(input.agentName, input.instanceId, input.toolCallId);
   const entry = deliverableCall(input);
   if (!entry) return false;
   retire(key);
@@ -222,7 +235,7 @@ export const failBrowserCall = (
 export const settleBrowserCall = (
   input: CallAddress & Readonly<BrowserCallResultBody>,
 ): "settled" | "not-issued" => {
-  const key = keyFor(input.instanceId, input.toolCallId);
+  const key = keyFor(input.agentName, input.instanceId, input.toolCallId);
   const entry = deliverableCall(input);
   if (!entry) return "not-issued";
   retire(key);

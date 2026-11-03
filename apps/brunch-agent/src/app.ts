@@ -296,7 +296,7 @@ for (const { route, aliases = [], agent } of mountedAgents) {
         request: context.req.raw,
       }),
     );
-    app.route(mount, createBrowserCallRouter());
+    app.route(mount, createBrowserCallRouter(agent.agentName));
     app.route(mount, createAgentRouter(agent));
   }
 }

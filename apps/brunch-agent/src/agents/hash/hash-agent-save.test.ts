@@ -74,7 +74,7 @@ const resultText = (context: TranscriptContext, toolCallId: string) =>
     ?.content.flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("");
 
-let hashAgent: Parameters<typeof createAgentRouter>[0];
+let hashAgent: typeof import("./agent.ts").HashAgent;
 let stopRuntime: () => Promise<void> = async () => {};
 beforeAll(async () => {
   vi.stubEnv("BRUNCH_CHAT_MODEL", "faux/faux-1");
@@ -122,6 +122,7 @@ const claimed = async (
 ): Promise<BrowserCallClaim> => {
   for (let attempt = 0; attempt < 200; attempt += 1) {
     const claim = claimBrowserCall(
+      hashAgent.agentName,
       instanceId,
       toolCallId,
       canonicalContent(binding),
@@ -159,7 +160,12 @@ test("a save with no view of the net in context is refused as not started and ne
     hashSaveUnconfirmedNote,
   );
   expect(
-    claimBrowserCall(chat.instanceId, "s0", canonicalContent(chat.binding)),
+    claimBrowserCall(
+      hashAgent.agentName,
+      chat.instanceId,
+      "s0",
+      canonicalContent(chat.binding),
+    ),
   ).toBeUndefined();
 });
 
@@ -203,6 +209,7 @@ const saveAfterRead = async (
   const read = await claimed(chat.instanceId, "n1", chat.binding);
   expect(
     settleBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId: chat.instanceId,
       toolCallId: "n1",
       capability: read.capability,
@@ -216,6 +223,7 @@ const saveAfterRead = async (
 
   const claim = await claimed(chat.instanceId, "s1", chat.binding);
   const call = {
+    agentName: hashAgent.agentName,
     instanceId: chat.instanceId,
     toolCallId: "s1",
     capability: claim.capability,

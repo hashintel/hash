@@ -67,7 +67,7 @@ const toolResult = (context: TranscriptContext, toolCallId: string) =>
       message.role === "toolResult" && message.toolCallId === toolCallId,
   );
 
-let hashAgent: Parameters<typeof createAgentRouter>[0];
+let hashAgent: typeof import("./agent.ts").HashAgent;
 let stopRuntime: () => Promise<void> = async () => {};
 beforeAll(async () => {
   vi.stubEnv("BRUNCH_CHAT_MODEL", "faux/faux-1");
@@ -100,7 +100,12 @@ const claimed = async (
   binding: string,
 ): Promise<BrowserCallClaim> => {
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    const claim = claimBrowserCall(instanceId, toolCallId, binding);
+    const claim = claimBrowserCall(
+      hashAgent.agentName,
+      instanceId,
+      toolCallId,
+      binding,
+    );
     if (claim) return claim;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -164,6 +169,7 @@ const createPlaceAfterRead = async (
   const read = await claimed(instanceId, "n1", issuedBinding);
   expect(
     settleBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId,
       toolCallId: "n1",
       capability: read.capability,
@@ -203,6 +209,7 @@ test("a call naming the page's editor is issued as a change against the revision
       const issued = await claimed(instanceId, "p1", binding);
       expect(
         settleBrowserCall({
+          agentName: hashAgent.agentName,
           instanceId,
           toolCallId: "p1",
           capability: issued.capability,
@@ -242,7 +249,9 @@ test("a call naming another editor is not started and never issued", async () =>
   expect(JSON.stringify(seen?.content)).toContain(
     `Not started: editor_id \\"another-editor\\" names no open editor; the open editor is \\"${hashProcessEditorId}\\".`,
   );
-  expect(claimBrowserCall(instanceId, "p1", issuedBinding)).toBeUndefined();
+  expect(
+    claimBrowserCall(hashAgent.agentName, instanceId, "p1", issuedBinding),
+  ).toBeUndefined();
 });
 
 test("a change with no read of the net in context is not started, and the model is told to read it with petrinaut_get_net", async () => {
@@ -284,6 +293,11 @@ test("a change with no read of the net in context is not started, and the model 
   expect(JSON.stringify(seen?.content)).toContain("petrinaut_get_net");
   expect(JSON.stringify(seen?.content)).not.toContain("readNetOutline");
   expect(
-    claimBrowserCall(instanceId, "p0", canonicalContent(binding)),
+    claimBrowserCall(
+      hashAgent.agentName,
+      instanceId,
+      "p0",
+      canonicalContent(binding),
+    ),
   ).toBeUndefined();
 });

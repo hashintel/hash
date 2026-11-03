@@ -26,8 +26,11 @@ const readBody = async <Schema extends v.GenericSchema>(
   return parsed.success ? parsed.output : undefined;
 };
 
-/** The browser half of an issued client-tool call: claim, lease renewal, result, failure. */
-export const createBrowserCallRouter = (): Hono => {
+/**
+ * The browser half of an issued client-tool call: claim, lease renewal, result, failure.
+ * Mounted once per agent route; it addresses only calls `agentName` issued.
+ */
+export const createBrowserCallRouter = (agentName: string): Hono => {
   const router = new Hono();
 
   router.get(callRoute, (context) => {
@@ -36,7 +39,7 @@ export const createBrowserCallRouter = (): Hono => {
     if (binding === undefined)
       return context.json({ error: "invalid-binding" }, 400);
     const { id, callId } = context.req.param();
-    const issued = claimBrowserCall(id, callId, binding);
+    const issued = claimBrowserCall(agentName, id, callId, binding);
     return issued
       ? context.json(issued)
       : context.json({ error: "not-issued" }, 404);
@@ -46,7 +49,12 @@ export const createBrowserCallRouter = (): Hono => {
     const body = await readBody(context, vBrowserCallLeaseBody);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
-    return renewBrowserCall({ instanceId: id, toolCallId: callId, ...body })
+    return renewBrowserCall({
+      agentName,
+      instanceId: id,
+      toolCallId: callId,
+      ...body,
+    })
       ? context.json({ renewed: true })
       : context.json({ error: "not-issued" }, 409);
   });
@@ -56,6 +64,7 @@ export const createBrowserCallRouter = (): Hono => {
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
     return settleBrowserCall({
+      agentName,
       instanceId: id,
       toolCallId: callId,
       ...body,
@@ -68,7 +77,12 @@ export const createBrowserCallRouter = (): Hono => {
     const body = await readBody(context, vBrowserCallFailureBody);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
-    return failBrowserCall({ instanceId: id, toolCallId: callId, ...body })
+    return failBrowserCall({
+      agentName,
+      instanceId: id,
+      toolCallId: callId,
+      ...body,
+    })
       ? context.json({ failed: true })
       : context.json({ error: "not-issued" }, 409);
   });
