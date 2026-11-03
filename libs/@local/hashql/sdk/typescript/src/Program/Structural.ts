@@ -5,6 +5,7 @@
  *
  * {@link value} accepts a structural value only when its semantic descriptor matches the requested type. Value construction combines input requirements from every possible host-side alternative. Nested host arrays denote tuples and records denote structs. Construct a nested list or dictionary explicitly before placing it inside another value.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable max-lines -- type and value shorthand share one definition vocabulary with its guards and normalization
@@ -30,6 +31,7 @@ interface Fields extends Record.ReadonlyRecord<string, Definition> {}
  * `BigInt`, `Number`, `String` and `Boolean` denote their HashQL primitive types. Arrays denote tuples, not lists. Use a declared generic type constructor for lists and dictionaries. See {@link "type"} for normalization.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Definition =
   | TypeExpression.TypeExpression.Any
@@ -81,6 +83,7 @@ type TupleValues<T extends readonly Type.Any[]> = {
  * Nominal descriptors require a matching handle rather than their underlying host representation. Lists and dictionaries likewise require expressions. A host array always denotes a tuple.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Value<T extends Type.Any> =
   | Expression.Value<T>
@@ -174,6 +177,7 @@ const isTupleOrRecord = (value: unknown): value is object => {
  * This dispatch check examines enumerable own string-keyed values and the SDK type marker. It does not validate field names or stored type syntax. Empty records and arrays qualify, and other objects such as a `Map` do not. Host objects must be acyclic.
  *
  * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isDefinition = (value: unknown): value is Definition => {
@@ -203,6 +207,7 @@ export const isDefinition = (value: unknown): value is Definition => {
  * This dispatch check traverses enumerable own string-keyed values without validating field names or stored syntax. Arrays and records qualify, and other objects such as a `Map` do not. Non-finite numbers pass this check too. Validation belongs to {@link value} or {@link toJExpr}. Host objects must be acyclic.
  *
  * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isValue = (value: unknown): value is Value.Any => {
@@ -255,6 +260,7 @@ export const isValue = (value: unknown): value is Value.Any => {
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const type = <const D extends Definition>(
   definition: D,
@@ -301,6 +307,7 @@ type ArgumentTypes<A extends readonly Definition[]> = {
  * A named generic type accepting the same shorthand as a local alias.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Constructor<F extends Type.TypeConstructor>
   extends TypeExpression.Constructor.Any {
@@ -319,6 +326,7 @@ export interface Constructor<F extends Type.TypeConstructor>
  * The original constructor still checks arity and retains failed type arguments. Relocation rebuilds the adapter around the new declaration path. Apply the returned constructor before using it as a type.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const constructor = <F extends Type.TypeConstructor>(
   declaration: TypeExpression.Constructor<F>,
@@ -364,6 +372,7 @@ type ValueTypes<V extends readonly Value.Any[]> = {
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const value =
   <T extends Type.Any>() =>
@@ -382,6 +391,7 @@ export const value =
  * Arrays encode tuples and records encode enumerable own string keys, as in {@link value}. Invalid nested syntax returns a construction failure. Existing handles contribute their stored failures unchanged. Use {@link value} when the result needs a typed expression handle.
  *
  * @category Conversions
+ * @since 0.1.0
  */
 export const toJExpr = (
   value: Value.Any,
@@ -425,6 +435,7 @@ type Annotated<V extends Value.Any, A extends Annotation> = A extends readonly [
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const struct = <const V extends FieldValues, const A extends Annotation>(
   fields: V,
@@ -442,6 +453,7 @@ export const struct = <const V extends FieldValues, const A extends Annotation>(
  * The argument must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}. A `type` annotates the tuple as it does a {@link struct}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const tuple = <
   const V extends readonly Value.Any[],
@@ -481,6 +493,7 @@ export const tuple = <
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from its type definition and members
 export const list = <
@@ -531,6 +544,7 @@ export const list = <
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from independent key and value definitions and entries
 export const dict = <
@@ -597,6 +611,7 @@ type InputRequirements<
  * A definitely present default makes this occurrence optional and contributes its own requirements. An omitted or possibly undefined default keeps the input required. Defaults must match the definition exactly, including nested fields and tuple positions. Use constructed expressions for list, dictionary and nominal defaults. Failure handling follows {@link value}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const input = <
   const Name extends string,

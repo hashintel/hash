@@ -17,6 +17,7 @@ import type {
  * A URL-shaped identifier that is not an HTTP(S) URL ending in a slash.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export interface InvalidBaseUrl {
   readonly _tag: "InvalidBaseUrl";
@@ -30,6 +31,7 @@ export const InvalidBaseUrl: Data.TaggedEnum.Constructor<InvalidBaseUrl>["Invali
  * Failures of an identifier prefix parse.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export type IdentReason =
   | ExpectedCharacterClass

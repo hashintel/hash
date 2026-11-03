@@ -7,6 +7,7 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
  * Schema for {@link List} values.
  *
  * @category Schemas
+ * @since 0.1.0
  */
 export const Schema: typeof Defs.List = Defs.List;
 
@@ -16,6 +17,7 @@ export const Schema: typeof Defs.List = Defs.List;
  * The schema checks each expression. HashQL determines their common element type.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface List extends Defs.ListType {}
 
@@ -35,6 +37,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => List =
@@ -44,6 +47,7 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => List =
  * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
@@ -55,6 +59,7 @@ export const makeEffect: (
  * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (

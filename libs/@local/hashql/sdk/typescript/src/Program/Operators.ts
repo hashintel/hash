@@ -3,6 +3,7 @@
  *
  * Ordinary expressions have no operator methods. These constructors return Boolean expressions with chaining methods. Binding one through let produces an ordinary expression again. Both composition forms emit HashQL calls, not host predicates, and preserve every operand's input requirements.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -29,6 +30,7 @@ type Requirements<L, R> = Inputs.Merge<
  * Chaining constructs syntax rather than testing a host condition. Binding the result with a declaration gives an ordinary Boolean expression. Use the standalone operators to continue composing that binding. See {@link eq} for both fluent and pipe-based forms.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Predicate<I> extends Expression.Expression<
   Type.PrimitiveBoolean,
@@ -154,6 +156,7 @@ const comparison = (path: string): Comparison =>
  * ```
  *
  * @category Comparisons
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the curried form fixes the right descriptor and checks the left; both argument orders have exact-type tests
 export const eq: Comparison = comparison("::core::cmp::eq");
@@ -162,6 +165,7 @@ export const eq: Comparison = comparison("::core::cmp::eq");
  * Constructs inequality with the same operand constraints and composition forms as {@link eq}.
  *
  * @category Comparisons
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the curried form fixes the right descriptor and checks the left; both argument orders have exact-type tests
 export const ne: Comparison = comparison("::core::cmp::ne");
@@ -190,6 +194,7 @@ const combination = (path: string): BooleanCombination =>
  * Constructs a Boolean conjunction, directly or as `and(right)(left)`, without short-circuiting host construction.
  *
  * @category Logic
+ * @since 0.1.0
  */
 export const and: BooleanCombination = combination("::core::bool::and");
 
@@ -197,6 +202,7 @@ export const and: BooleanCombination = combination("::core::bool::and");
  * Constructs a Boolean disjunction, directly or as `or(right)(left)`, without short-circuiting host construction.
  *
  * @category Logic
+ * @since 0.1.0
  */
 export const or: BooleanCombination = combination("::core::bool::or");
 
@@ -204,6 +210,7 @@ export const or: BooleanCombination = combination("::core::bool::or");
  * Constructs Boolean negation while retaining the operand's inputs and construction failures.
  *
  * @category Logic
+ * @since 0.1.0
  */
 export const not = <const E extends BooleanValue>(
   expression: E,
@@ -214,6 +221,7 @@ export const not = <const E extends BooleanValue>(
  * Constructs an equality comparison with true, returning a chainable {@link Predicate}.
  *
  * @category Comparisons
+ * @since 0.1.0
  */
 export const isTrue = <const E extends BooleanValue>(
   expression: E,
@@ -224,6 +232,7 @@ export const isTrue = <const E extends BooleanValue>(
  * Constructs an equality comparison with false, returning a chainable {@link Predicate}.
  *
  * @category Comparisons
+ * @since 0.1.0
  */
 export const isFalse = <const E extends BooleanValue>(
   expression: E,
@@ -246,6 +255,7 @@ type Optional<E extends Expression.Value.Any> =
  * The operand's normalized descriptor must be a union with a {@link Type.Opaque} member whose name is the string `"::core::option::None"`. The check compares that name, so it rejects a None declared under a symbol identity or any other name. Null is a different value and does not satisfy this constraint. The resulting equality expression retains the operand's TypeScript descriptor without narrowing it.
  *
  * @category Comparisons
+ * @since 0.1.0
  */
 export const isNone = <const E extends Expression.Value.Any>(
   expression: E & Optional<E>,
@@ -267,6 +277,7 @@ export const isNone = <const E extends Expression.Value.Any>(
  * The same constructors are available on authoring contexts and as standalone functions.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Operations {
   readonly eq: typeof eq;

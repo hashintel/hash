@@ -3,6 +3,7 @@
  *
  * Each reason identifies a construction failure independently of its diagnostic wording. Parser failures retain their typed causes. {@link Construction} renders the human-readable message and provides constructors for failures shared by builders.
  *
+ * @since 0.1.0
  * @module
  */
 import { Cause, Schema, SchemaIssue } from "effect";
@@ -15,6 +16,7 @@ const Issue = Schema.declare(SchemaIssue.isIssue);
  * Name and syntax failures retain their parser cause. `CallbackException` retains the original thrown value inside `Cause.UnknownError`. HashQL compiler diagnostics and query execution errors belong to later stages, outside this reason type.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export const Reason = Schema.TaggedUnion({
   /** A declaration name is not a valid HashQL identifier. */
@@ -77,6 +79,7 @@ export const Reason = Schema.TaggedUnion({
  * ```
  *
  * @category Errors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line unicorn/throw-new-error -- false positive
 export class Construction extends Schema.TaggedError<Construction>()(

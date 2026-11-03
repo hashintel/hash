@@ -7,6 +7,7 @@
  *
  * Expected construction failures, such as an invalid path or export name, arrive in a `Result`.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable max-lines -- definition, rebinding and relocation share the private table helpers of one module record
@@ -32,7 +33,10 @@ import type * as TypeExpression from "./TypeExpression.js";
 export { genericType, type, value } from "./Declaration.js";
 export type { Declaration } from "./Declaration.js";
 
-/** @category Type IDs */
+/**
+ * @category Type IDs
+ * @since 0.1.0
+ */
 export type TypeId = "~hashql/Module";
 const TypeId: TypeId = "~hashql/Module";
 
@@ -50,6 +54,7 @@ type Declarations<E> = {
  * Each table is optional. The type and value tables accept declarations or existing exports, and the module table accepts modules that are already bound.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Definition {
   readonly modules?: Namespace<Module.Any>;
@@ -115,6 +120,7 @@ type RebindableDefinition<S> = {
  * Equality and hashing compare the path and all three export tables. Members use their existing Effect equality, not their printed syntax, so two binding calls need not produce equal exports. Construction freezes the records and tables but shares alias members and paths. Treat those values as immutable after comparison or hashing, because Effect caches its results.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Module<S extends Definition>
   extends
@@ -151,6 +157,7 @@ export declare namespace Module {
  * The guard checks for the module marker property. A joined namespace name that includes a module also passes. The record {@link root} returns does not.
  *
  * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isModule = (value: unknown): value is Module.Any =>
@@ -383,6 +390,7 @@ class ModuleImpl<
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the path names the module under construction
 export function define<const S extends Definition>(
@@ -474,6 +482,7 @@ export function define<
  * ```
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const relocate: {
   (
@@ -493,6 +502,7 @@ export const relocate: {
  * The result is a frozen `{ modules }` record keyed by the supplied names. It is not a module: it has no path, and {@link isModule} rejects it. Each child keeps its identity and its own path. The record fits any parameter that takes a scope definition, such as a prelude. Names follow the rules and failures of the module table of {@link define}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const root = <const M extends Namespace<Module.Any>>(
   modules: M & StringKeyed<M>,

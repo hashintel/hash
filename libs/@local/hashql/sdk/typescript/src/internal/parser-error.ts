@@ -13,6 +13,7 @@ import { Data, HashSet } from "effect";
  * Keep reasons immutable after insertion into a set. Built-in constructors provide readonly fields, not runtime freezing.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export interface Reason {
   readonly _tag: string;
@@ -41,6 +42,7 @@ const constructors = Data.taggedEnum<SyntaxReason>();
  * A repeated parser succeeded without consuming input.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export type ExpectedProgress = Data.TaggedEnum.Value<
   SyntaxReason,
@@ -54,6 +56,7 @@ export const ExpectedProgress: Data.TaggedEnum.Constructor<SyntaxReason>["Expect
  * Input remains where the grammar requires its end.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export type ExpectedEndOfInput = Data.TaggedEnum.Value<
   SyntaxReason,
@@ -87,6 +90,7 @@ export const InsufficientLength: Data.TaggedEnum.Constructor<SyntaxReason>["Insu
  * The input does not match an exact source spelling.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export type ExpectedLiteral = Data.TaggedEnum.Value<
   SyntaxReason,
@@ -101,6 +105,7 @@ export const ExpectedLiteral: Data.TaggedEnum.Constructor<SyntaxReason>["Expecte
  * The next scalar is absent or outside a named character class.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export type ExpectedCharacterClass = Data.TaggedEnum.Value<
   SyntaxReason,
@@ -137,6 +142,7 @@ export const ExpectedCharacterClass: Data.TaggedEnum.Constructor<SyntaxReason>["
  * ```
  *
  * @category Errors
+ * @since 0.1.0
  */
 export class ParserError<R extends Reason> extends Data.Class<{
   readonly offset: number;

@@ -5,6 +5,7 @@
  *
  * This module also re-exports the semantic types of the declarations, such as {@link Semantic.Uuid | Prelude.Uuid} and the {@link Semantic.Arithmetic | Prelude.Arithmetic} signature.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -110,6 +111,7 @@ const math: Module.Module<typeof arithmeticDeclarations> = Result.getOrThrow(
  * It derives the export types from the declaration tables without repeating their semantic annotations.
  *
  * @category Prelude
+ * @since 0.1.0
  */
 export interface Builtin extends Scope.Scope<{
   readonly modules: {
@@ -178,6 +180,7 @@ export interface Builtin extends Scope.Scope<{
  * ```
  *
  * @category Prelude
+ * @since 0.1.0
  */
 export const builtin: Builtin = Scope.merge(Scope.empty, {
   modules: { entity, uuid, cmp, math },

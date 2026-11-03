@@ -3,6 +3,7 @@
  *
  * Every operation that emits a value checks its requirements, including discarded let initializers and nested callback bodies. This policy belongs to the program boundary rather than Context: the constructor implementation can accept more values than a particular program permits.
  *
+ * @since 0.1.0
  * @module
  */
 import type * as Expression from "../Program/Expression.js";
@@ -20,6 +21,7 @@ import type { ReadonlyRecord } from "effect/Record";
  * `BigInt`, `Number`, `String` and `Boolean` denote the primitive types, and records and arrays of definitions denote structs and tuples, as in `$.type`. Every enumerable own string key becomes an input handle. A symbol key cannot name an input, so TypeScript rejects one.
  *
  * @category Inputs
+ * @since 0.1.0
  */
 export type Inputs = ReadonlyRecord<string, Structural.Definition>;
 
@@ -60,6 +62,7 @@ type TypeInputs<I extends Inputs> = {
  * ```
  *
  * @category Inputs
+ * @since 0.1.0
  */
 export type Requirements<I extends Inputs> = Input.Conservative<TypeInputs<I>>;
 
@@ -67,6 +70,7 @@ export type Requirements<I extends Inputs> = Input.Conservative<TypeInputs<I>>;
  * The input handle for the schema key `K` with the definition `D`, which references that input and requires `K`.
  *
  * @category Inputs
+ * @since 0.1.0
  */
 export type Handle<
   K extends PropertyKey,
@@ -82,6 +86,7 @@ export type Handle<
  * Each handle emits an input reference without a default at every use.
  *
  * @category Inputs
+ * @since 0.1.0
  */
 export type Handles<I extends Inputs> = {
   readonly [K in keyof I]: Handle<K, I[K]>;
@@ -107,6 +112,7 @@ type Mismatches<S, I> = I extends unknown
  * It evaluates to `unknown`, which leaves an intersection unchanged, when every host-side alternative of the requirements fits. Otherwise it evaluates to `never`, which rejects the value it constrains. An input used with a default still needs a declaration. Erased requirements, such as those of `Expression.Expression.Any` or `Expression.Value.Any`, never fit, because they cannot show which inputs they need.
  *
  * @category Inputs
+ * @since 0.1.0
  */
 export type Check<S, I> = [I] extends [never]
   ? never
@@ -122,6 +128,7 @@ type Accept<I, E> = Check<I, Expression.Value.Inputs<E>>;
  * A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | Context.Query}.
  *
  * @category Queries
+ * @since 0.1.0
  */
 export interface Query<
   S extends Scope.Scope.Any,
@@ -146,6 +153,7 @@ export interface Query<
  * `$.query` in a program callback, whose graph or axes must fit the schema `I` and whose queries take restricted predicates. Otherwise it is {@link Construction.Queries | Context.Queries}.
  *
  * @category Queries
+ * @since 0.1.0
  */
 export interface Queries<S extends Scope.Scope.Any, I> {
   <const G extends Expression.Expression.Any>(
@@ -164,6 +172,7 @@ export interface Queries<S extends Scope.Scope.Any, I> {
  * `let`, `if` and `query` accept only values whose input requirements fit the schema, and branch and filter callbacks receive the same restricted view. The other members are the unrestricted Draft {@link Construction.Context | Context.Context} operations. The unrestricted constructor implements this view, but the view is not assignable to {@link Construction.Context | Context.Context}, so a helper typed with the unrestricted context cannot receive a program's `$`.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   Construction.Context<S>,
@@ -280,6 +289,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
  * The returned expression's input requirements must fit the schema. Returning anything other than an expression handle fails construction with `InvalidBodyResult`. The type rejects an asynchronous callback, and at runtime its promise fails construction the same way.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Body<
   S extends Scope.Scope.Any,
@@ -294,6 +304,7 @@ export type Body<
  * A {@link Body} with its input handles already supplied.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type WithoutInputs<
   S extends Scope.Scope.Any,

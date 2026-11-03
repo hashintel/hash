@@ -32,6 +32,7 @@
  * ```
  *
  * @stability beta
+ * @since 0.1.0
  * @module
  */
 
@@ -42,6 +43,7 @@ import type { ReadonlyRecord } from "effect/Record";
  * A HashQL type with its parameters erased.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Any {
   readonly _tag: All["_tag"];
@@ -51,6 +53,7 @@ export interface Any {
  * All supported type forms, with recursively inspectable children.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type All =
   | Union.All
@@ -76,6 +79,7 @@ type AllTypes = All;
  * A value belonging to at least one of the member types.
  *
  * @category Composites
+ * @since 0.1.0
  */
 export interface Union<T extends readonly Any[]> {
   readonly _tag: "Union";
@@ -93,6 +97,7 @@ export declare namespace Union {
  * A value satisfying every member type.
  *
  * @category Composites
+ * @since 0.1.0
  */
 export interface Intersection<T extends readonly Any[]> {
   readonly _tag: "Intersection";
@@ -114,6 +119,7 @@ export declare namespace Intersection {
  * The name exists only in TypeScript. Emitted syntax names the declaration that introduced the type, such as `::core::uuid::Uuid`, rather than this name. Declarations that share a name and an underlying type are therefore interchangeable to TypeScript even when they emit different HashQL types.
  *
  * @category Composites
+ * @since 0.1.0
  */
 export interface Opaque<Name extends string | symbol, T extends Any> {
   readonly _tag: "Opaque";
@@ -137,6 +143,7 @@ interface StructFields<T extends Any> extends ReadonlyRecord<string, T> {}
  * A record with a type for each named field.
  *
  * @category Composites
+ * @since 0.1.0
  */
 export interface Struct<T extends StructFields<Any>> {
   readonly _tag: "Struct";
@@ -156,6 +163,7 @@ export declare namespace Struct {
  * `T` must be a tuple of required elements. Arrays, optional elements and open-ended rest elements fail the constraint. {@link Tuple.Any} and {@link Tuple.All} erase the length for code that handles arbitrary tuple types.
  *
  * @category Composites
+ * @since 0.1.0
  */
 export interface Tuple<
   T extends readonly Any[] & {
@@ -184,6 +192,7 @@ export declare namespace Tuple {
  * A dictionary with a common key type and value type.
  *
  * @category Composites
+ * @since 0.1.0
  */
 export interface Dict<K extends Any, V extends Any> {
   readonly _tag: "Dict";
@@ -202,6 +211,7 @@ export declare namespace Dict {
  * A variable-length sequence with a common element type.
  *
  * @category Composites
+ * @since 0.1.0
  */
 export interface List<T extends Any> {
   readonly _tag: "List";
@@ -219,6 +229,7 @@ export declare namespace List {
  * A function with ordered parameters and a result type.
  *
  * @category Function Types
+ * @since 0.1.0
  */
 export interface Function<
   Parameters extends readonly Any[],
@@ -246,6 +257,7 @@ export declare namespace Function {
  * An implementation reads its arguments from `this["Target"]` and computes the descriptor in `type`. This is Effect's `HKT.TypeLambda` encoding with the result constrained to a descriptor. {@link TypeConstructor} and {@link FunctionSignature} are the two kinds the SDK applies.
  *
  * @category Generics
+ * @since 0.1.0
  */
 export interface TypeLambda extends HKT.TypeLambda {
   readonly type: Any;
@@ -294,6 +306,7 @@ export declare namespace TypeLambda {
  * ```
  *
  * @category Generics
+ * @since 0.1.0
  */
 export interface TypeConstructor extends TypeLambda {
   /** The number of type arguments every application supplies. */
@@ -334,6 +347,7 @@ export interface TypeConstructor extends TypeLambda {
  * ```
  *
  * @category Function Types
+ * @since 0.1.0
  */
 export interface FunctionSignature extends TypeLambda {
   readonly type: Function.Any;
@@ -343,6 +357,7 @@ export interface FunctionSignature extends TypeLambda {
  * A function whose parameter and result types depend on its call arguments.
  *
  * @category Function Types
+ * @since 0.1.0
  */
 export interface GenericFunction<Signature extends FunctionSignature> {
   readonly _tag: "GenericFunction";
@@ -363,6 +378,7 @@ export declare namespace GenericFunction {
  * A `bigint` stands for this type in builder arguments. A JavaScript `number` stands for {@link PrimitiveNumber} even when its value is integral.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export interface PrimitiveInteger {
   readonly _tag: "Integer";
@@ -375,6 +391,7 @@ export interface PrimitiveInteger {
  * TypeScript does not widen {@link PrimitiveInteger} to this type. A parameter of this type rejects an Integer expression or a `bigint`.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export interface PrimitiveNumber {
   readonly _tag: "Number";
@@ -385,6 +402,7 @@ export interface PrimitiveNumber {
  * A string value.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export interface PrimitiveString {
   readonly _tag: "String";
@@ -395,6 +413,7 @@ export interface PrimitiveString {
  * A Boolean value.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export interface PrimitiveBoolean {
   readonly _tag: "Boolean";
@@ -405,6 +424,7 @@ export interface PrimitiveBoolean {
  * The null value.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export interface PrimitiveNull {
   readonly _tag: "Null";
@@ -417,6 +437,7 @@ export interface PrimitiveNull {
  * Each `value` member names the host JavaScript value type that builders accept in place of an expression of that type, such as `"text"` for {@link PrimitiveString} or `null` for {@link PrimitiveNull}.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export type Primitive =
   | PrimitiveInteger
@@ -429,6 +450,7 @@ export type Primitive =
  * The bottom type, which has no values.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export interface Never {
   readonly _tag: "Never";
@@ -439,6 +461,7 @@ export interface Never {
  * The top type, which includes every value.
  *
  * @category Primitives
+ * @since 0.1.0
  */
 export interface Unknown {
   readonly _tag: "Unknown";

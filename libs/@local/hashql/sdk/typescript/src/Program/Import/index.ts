@@ -3,6 +3,7 @@
  *
  * Selection changes local names, not the declared types or callable capabilities. Each selected producer rebinds itself before the namespace join. The compiler remains responsible for resolving the emitted import.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable import/max-dependencies -- an import selects a module's exports, rebinds each producer and emits its AST node
@@ -34,6 +35,7 @@ import type * as Namespace from "../Namespace.js";
  * Marker for a lexical import declaration, distinct from its bindings.
  *
  * @category Type IDs
+ * @since 0.1.0
  */
 export type TypeId = "~hashql/Import";
 const TypeId: TypeId = "~hashql/Import";
@@ -84,6 +86,7 @@ export type * as Bindings from "./Bindings.js";
  * ```
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Selection<
   M extends Module.Module.Any,
@@ -241,6 +244,7 @@ type Rebindings<E> = { readonly [K in keyof E]: Relocation.Relocatable<E[K]> };
  * A module whose exports each rebind to their own type, as an import requires.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Rebindable<M extends Module.Module.Any> {
   readonly modules: M["modules"] & Rebindings<M["modules"]>;
@@ -305,6 +309,7 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
  * An import's bindings and the lexical wrapper that makes their local names available.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Declaration<M extends Module.Module.Any, I> {
   readonly [TypeId]: TypeId;
@@ -358,6 +363,7 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
  * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for an invalid alias or one that two exports share, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It returns frozen tables without a prototype, so a name the import does not bind reads as `undefined`. The HashQL compiler resolves the emitted import.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the module and selection construct a declaration
 export const bind = <

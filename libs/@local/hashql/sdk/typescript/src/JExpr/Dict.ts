@@ -7,6 +7,7 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
  * Schema for {@link Dict} values.
  *
  * @category Schemas
+ * @since 0.1.0
  */
 export const Schema: typeof Defs.Dict = Defs.Dict;
 
@@ -28,6 +29,7 @@ export const Schema: typeof Defs.Dict = Defs.Dict;
  * ```
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Dict extends Defs.DictType {}
 
@@ -47,6 +49,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Dict =
@@ -56,6 +59,7 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Dict =
  * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
@@ -67,6 +71,7 @@ export const makeEffect: (
  * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (

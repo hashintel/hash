@@ -7,8 +7,10 @@
  *
  * A failed construction stays inside the type expression. Read the syntax or its failure with {@link toType}.
  *
+ * @since 0.1.0
  * @module
  */
+// oxlint-disable max-lines -- the guards, constructors and adapter all read the module-private constructor marker
 import { Array, Predicate, Result, identity, pipe } from "effect";
 import { dual } from "effect/Function";
 
@@ -33,6 +35,7 @@ export type { Relocatable } from "../internal/relocation.js";
  * The string key that marks a type expression, which {@link isTypeExpression} and {@link isExport} check.
  *
  * @category Type IDs
+ * @since 0.1.0
  */
 export type TypeId = "~hashql/TypeExpression";
 const TypeId: TypeId = "~hashql/TypeExpression";
@@ -41,6 +44,7 @@ const TypeId: TypeId = "~hashql/TypeExpression";
  * The string key that marks a generic type constructor, which {@link isConstructor} and {@link isExport} check.
  *
  * @category Type IDs
+ * @since 0.1.0
  */
 export type ConstructorId = "~hashql/TypeConstructor";
 const ConstructorId: ConstructorId = "~hashql/TypeConstructor";
@@ -49,6 +53,7 @@ const ConstructorId: ConstructorId = "~hashql/TypeConstructor";
  * Type syntax or its construction failure, annotated with its semantic type.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface TypeExpression<T extends Type.Any> extends TypeExpression.Any {
   readonly [TypeId]: Types.Covariant<T>;
@@ -79,6 +84,7 @@ export declare namespace TypeExpression {
  * A call emits a reference to the constructor's path with one generic argument per supplied type. The result's descriptor is `Type.TypeLambda.Apply<F, A>`. TypeScript rejects a call with the wrong number of arguments. At runtime, such a call returns a type expression holding a `TypeArgumentCountMismatch` failure. An argument's construction failure becomes the result's failure.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Constructor<F extends Type.TypeConstructor>
   extends Constructor.Any {
@@ -108,6 +114,7 @@ export declare namespace Constructor {
  * An entry of a type namespace: a concrete type expression or a generic type constructor.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Export = TypeExpression.Any | Constructor.Any;
 
@@ -117,6 +124,7 @@ export type Export = TypeExpression.Any | Constructor.Any;
  * The guard checks for the SDK's marker properties and does not check a semantic descriptor. A joined namespace name that includes a type also passes.
  *
  * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isExport = (value: unknown): value is Export =>
@@ -127,6 +135,7 @@ export const isExport = (value: unknown): value is Export =>
  * Recognizes concrete type expressions by their marker property, without checking the stored syntax or the semantic descriptor.
  *
  * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
 export const isTypeExpression = (value: unknown): value is TypeExpression.Any =>
@@ -136,6 +145,7 @@ export const isTypeExpression = (value: unknown): value is TypeExpression.Any =>
  * Recognizes generic type constructors by their marker property, including combined namespace handles.
  *
  * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
 export const isConstructor = (value: unknown): value is Constructor.Any =>
@@ -147,6 +157,7 @@ export const isConstructor = (value: unknown): value is Constructor.Any =>
  * An adapted constructor reports the arity of the constructor it adapts, whatever its own signature takes.
  *
  * @category Getters
+ * @since 0.1.0
  */
 export const arity = (constructor: Constructor.Any): number =>
   constructor[ConstructorId].arity;
@@ -157,6 +168,7 @@ export const arity = (constructor: Constructor.Any): number =>
  * The caller must ensure that the node's syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
  *
  * @category Conversions
+ * @since 0.1.0
  */
 export const fromNode = <T extends Type.Any>(
   node: Result.Result<TAST.TypeNode.Any, ProgramError.Construction>,
@@ -185,6 +197,7 @@ export const fromNode = <T extends Type.Any>(
  * The caller must ensure that successful syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
  *
  * @category Conversions
+ * @since 0.1.0
  */
 export const fromResult = <T extends Type.Any>(
   syntax: Result.Result<Syntax.Type, ProgramError.Construction>,
@@ -199,6 +212,7 @@ export const fromResult = <T extends Type.Any>(
  * Reads the type syntax a type expression emits, or its construction failure.
  *
  * @category Conversions
+ * @since 0.1.0
  */
 export const toType = (
   type: TypeExpression.Any,
@@ -210,6 +224,7 @@ export const toType = (
  * The caller must ensure that `syntax` denotes `T`, because the annotation performs no runtime type check.
  *
  * @category Conversions
+ * @since 0.1.0
  */
 export const fromType = <T extends Type.Any>(
   syntax: Syntax.Type,
@@ -221,6 +236,7 @@ export const fromType = <T extends Type.Any>(
  * The result emits `path` as a type reference and carries the descriptor `T`. Nothing checks that the path exists or has that meaning.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const reference = <T extends Type.Any>(
   path: JExpr.Path.Path,
@@ -309,6 +325,7 @@ const constructorAt = <F extends Type.TypeConstructor>(
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the path names the reference under construction
 export const constructor = <F extends Type.TypeConstructor>(
@@ -359,6 +376,7 @@ export const constructor = <F extends Type.TypeConstructor>(
  * ```
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const relocate: {
   (
@@ -378,6 +396,7 @@ export const relocate: {
  * It keeps the constructor's marker. Relocating it runs the callback again at the new path.
  *
  * @category Utility Types
+ * @since 0.1.0
  */
 export type Adapted<C> = C &
   Constructor.Any & {
@@ -441,6 +460,7 @@ export type Adapted<C> = C &
  * ```
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const adaptConstructor: {
   <

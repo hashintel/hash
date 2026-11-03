@@ -5,6 +5,7 @@
  *
  * {@link flatten} and {@link modules} return these views, typed as {@link Flatten} describes.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -38,6 +39,7 @@ type RebindableEntry<E> = E extends Capability ? Relocation.Relocatable<E> : E;
  * Flattening requires this of a scope. An export extended through `Object.assign` fails it, because rebinding would drop the added properties.
  *
  * @category Utility Types
+ * @since 0.1.0
  */
 export type Rebindable<S> = {
   readonly [N in keyof S]: N extends keyof Tables
@@ -111,6 +113,7 @@ type Combined<L, R> = WithMetadata<
  * Property reads follow the precedence the module introduction states. When only the type constructor or only the value is callable, every call goes to it with its arguments unchanged. An adapted signature can therefore take host values. When both can, a call with type arguments reaches the type constructor and value arguments reach the value instead. Arguments that fit both, such as none at all, reach the value. They also reach the type constructor when their count equals its {@link TypeExpression.arity | arity}, and the call then returns the join of both results. An adapted constructor keeps the arity of the constructor it adapts, so such arguments reach it only at that count. The last relocation signature returns the whole joined capability set.
  *
  * @category Utility Types
+ * @since 0.1.0
  */
 export type Joined<L, R> = Combined<L, R> & {
   readonly [Components]: readonly [L, R];
@@ -152,6 +155,7 @@ type RequiredNames<S extends Tables> =
  * A guaranteed export in any namespace makes the flattened name required. A name that only optional entries supply is optional. A module also exposes its child exports directly, beside its own `modules`, `types` and `values` tables.
  *
  * @category Utility Types
+ * @since 0.1.0
  */
 export type Flatten<S extends Tables> = {
   readonly [K in RequiredNames<S>]: FlattenMember<S, K>;
@@ -169,6 +173,7 @@ type ModuleScope<S extends Tables> = Required<
  * The flattened view of a scope's modules alone, each exposing its child exports directly.
  *
  * @category Utility Types
+ * @since 0.1.0
  */
 export type Modules<S extends Tables> = Flatten<ModuleScope<S>>;
 
@@ -241,6 +246,7 @@ const forward = (
  * For each kind of capability, the right side's wins when both sides carry one. The left one is then unreachable, but relocation still moves it. A left side that cannot move fails the joined relocation. A call reaches the type constructor, the value or both, as {@link Joined} describes.
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const combine: {
   <R extends Capability & Relocation.Relocatable<R>>(
@@ -527,6 +533,7 @@ const flattenScope = <S extends Tables>(scope: S): Flatten<S> => {
  * {@link Module.define} checks the same producer requirement for the tables of a nested module.
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const flatten = <S extends Tables>(
   scope: S & Rebindable<S>,
@@ -536,6 +543,7 @@ export const flatten = <S extends Tables>(
  * Keeps only module names, with their child exports available directly.
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const modules = <S extends Tables>(
   scope: S & Pick<Rebindable<S>, "modules">,

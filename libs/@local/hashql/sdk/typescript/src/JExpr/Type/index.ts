@@ -5,14 +5,14 @@
  *
  * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`, and so does an invalid generic argument passed to {@link reference}. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
  *
+ * @since 0.1.0
  * @module
  */
-// oxlint-disable max-lines -- the type builders are one vocabulary under `JExpr.Type`, each documented with its examples and category
 import { Array, Option, Record, Result, Tuple } from "effect";
 import { compose, dual, pipe } from "effect/Function";
 
 import * as Overflow from "../../internal/overflow.js";
-import { compileType } from "../../internal/type-compile.js";
+import { compileType, typeToExpression } from "../../internal/type-compile.js";
 import * as Ident from "../Ident.js";
 import * as Path from "../Path.js";
 import * as Defs from "./schema.js";
@@ -37,6 +37,7 @@ export * as Union from "./Union.js";
  * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Type.Encoded}.
  *
  * @category Schemas
+ * @since 0.1.0
  */
 export const Schema: typeof Defs.Type = Defs.Type;
 
@@ -46,6 +47,7 @@ export const Schema: typeof Defs.Type = Defs.Type;
  * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics. `Struct` lists named members and `Tuple` positional ones. `Union` and `Intersection` combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Type = Defs.Type;
 
@@ -90,6 +92,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Type =
@@ -103,6 +106,7 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Type =
  * @see {@link make} for construction examples.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
@@ -118,6 +122,7 @@ export const makeEffect: (
  * @see {@link make} for construction examples.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
@@ -142,6 +147,7 @@ export const makeOption: (
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const union = (
   ...members: NonEmptyReadonlyArray<Type>
@@ -163,6 +169,7 @@ export const union = (
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const intersection = (
   ...members: NonEmptyReadonlyArray<Type>
@@ -190,6 +197,7 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const struct = (
   fields: Record.ReadonlyRecord<string, Type>,
@@ -235,6 +243,7 @@ export const struct = (
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const tuple = (...members: readonly Type[]): Defs.TupleType => ({
   _tag: "Tuple",
@@ -245,6 +254,7 @@ export const tuple = (...members: readonly Type[]): Defs.TupleType => ({
  * Creates the `_` placeholder for compiler-inferred type syntax.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const infer = (): Defs.InferType => ({ _tag: "Infer" });
 
@@ -307,6 +317,7 @@ const segmentArgument = (
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const reference = (
   path: string,
@@ -363,6 +374,7 @@ const intersectionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
  * ```
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const or: {
   (that: Type): (self: Type) => Defs.UnionType;
@@ -392,6 +404,7 @@ export const or: {
  * ```
  *
  * @category Combinators
+ * @since 0.1.0
  */
 export const and: {
   (that: Type): (self: Type) => Defs.IntersectionType;
@@ -420,66 +433,9 @@ export const and: {
  * ```
  *
  * @category Compiling
+ * @since 0.1.0
  */
 export const compile: (type: Type) => Identifier = compileType;
-
-/** A type and the expressions of its members built so far, in member order. */
-interface Frame {
-  readonly type: Type;
-  readonly members: readonly Type[];
-  readonly expressions: ExpressionType[];
-}
-
-const open = (type: Type): Frame => {
-  switch (type._tag) {
-    case "Infer":
-    case "Reference": {
-      return { type, members: [], expressions: [] };
-    }
-    case "Struct": {
-      return {
-        type,
-        members: Array.map(type.members, Tuple.get(1)),
-        expressions: [],
-      };
-    }
-    case "Tuple":
-    case "Union":
-    case "Intersection": {
-      return { type, members: type.members, expressions: [] };
-    }
-  }
-};
-
-const construct = ({ type, expressions }: Frame): ExpressionType => {
-  switch (type._tag) {
-    case "Infer": {
-      return "_";
-    }
-    case "Reference": {
-      return compile(type);
-    }
-    case "Tuple": {
-      return { "#tuple": expressions };
-    }
-    case "Struct": {
-      return {
-        "#struct": Record.fromEntries(
-          Array.zipWith(type.members, expressions, ([name], expression) => [
-            Ident.compile(name),
-            expression,
-          ]),
-        ),
-      };
-    }
-    case "Union": {
-      return ["::kernel::type::Union", ...expressions];
-    }
-    case "Intersection": {
-      return ["::kernel::type::Intersection", ...expressions];
-    }
-  }
-};
 
 /**
  * Encodes a type in an expression position, such as a type definition or closure parameter.
@@ -487,26 +443,6 @@ const construct = ({ type, expressions }: Frame): ExpressionType => {
  * Compound types use constructors here. Only annotation positions accept their type-syntax strings.
  *
  * @category Conversions
+ * @since 0.1.0
  */
-export const toExpression = (type: Type): ExpressionType => {
-  // Types wait here for their members instead of on the call stack, which bounds the nesting depth by memory alone.
-  const parents: Frame[] = [];
-  let current = open(type);
-
-  for (;;) {
-    const member = current.members[current.expressions.length];
-    if (member === undefined) {
-      const expression = construct(current);
-      const parent = parents.pop();
-      if (parent === undefined) {
-        return expression;
-      }
-
-      parent.expressions.push(expression);
-      current = parent;
-    } else {
-      parents.push(current);
-      current = open(member);
-    }
-  }
-};
+export const toExpression: (type: Type) => ExpressionType = typeToExpression;

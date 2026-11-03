@@ -3,6 +3,7 @@
  *
  * {@link make} checks a decoded object such as `{ _tag: "Intersection", members: [a, b] }` rather than source text. It requires at least one member and checks the paths and identifiers inside each one. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -11,10 +12,16 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
-/** @category Schemas */
+/**
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.Intersection = Defs.Intersection;
 
-/** @category Models */
+/**
+ * @category Models
+ * @since 0.1.0
+ */
 export interface Intersection extends Defs.IntersectionType {}
 
 export declare namespace Intersection {
@@ -29,6 +36,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
@@ -36,7 +44,10 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => Intersection = Overflow.make(Schema);
 
-/** @category Constructors */
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -44,7 +55,10 @@ export const makeEffect: (
 ) => Effect.Effect<Intersection, SchemaIssue.Issue> =
   Overflow.makeEffect(Schema);
 
-/** @category Constructors */
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
