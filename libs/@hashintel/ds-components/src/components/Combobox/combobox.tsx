@@ -13,12 +13,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { resolveAutoFocusProps } from "../../util/form-shared";
-import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { OverflowRow } from "../../primitives/OverflowRow/overflow-row";
-import { parkedPopperPositioner } from "../../util/popper-positioner";
-import { usePortalContainerRef } from "../../util/portal-container-context";
-import { renderAdornment } from "../../util/render-adornment";
 import { hasMultiItemSuffix } from "../../primitives/SelectableList/has-multi-item-suffix";
 import {
   type Item,
@@ -30,6 +25,11 @@ import {
   getItemId,
   isCustomItem,
 } from "../../primitives/SelectableList/selectable-list-util";
+import { resolveAutoFocusProps } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
+import { usePortalContainerRef } from "../../util/portal-container-context";
+import { renderAdornment } from "../../util/render-adornment";
 import { Chip } from "../Chip/chip";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
