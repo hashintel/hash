@@ -1,13 +1,13 @@
 import { ServerCodeBlock } from "@fumadocs/base-ui/components/codeblock.rsc";
 
-import { coloursOf, themes } from "./colours.js";
+import * as Colours from "./colours.js";
 
-import type { CodeProps } from "../../lib/components.js";
+import type * as Components from "../../lib/components.js";
 import type { ReactNode } from "react";
 
 /** The colours of a link naming `kind`, as a `style` attribute, or none for a kind the themes do not colour. */
 const styleOf = (kind: string | undefined): string | undefined => {
-  const colours = coloursOf(kind);
+  const colours = Colours.coloursOf(kind);
   if (colours === undefined) {
     return undefined;
   }
@@ -17,7 +17,12 @@ const styleOf = (kind: string | undefined): string | undefined => {
     .join(";");
 };
 
-export function ApiCode({ lang, code, links, title }: CodeProps): ReactNode {
+export function ApiCode({
+  lang,
+  code,
+  links,
+  title,
+}: Components.CodeProps): ReactNode {
   // Shiki wraps each linked name in an `a`, across the tokens it splits the name into.
   // oxlint-disable-next-line react-perf/jsx-no-new-array-as-prop -- rendered once, on the server
   const decorations = links.map(({ offset, length, href, kind }) => ({
@@ -38,7 +43,7 @@ export function ApiCode({ lang, code, links, title }: CodeProps): ReactNode {
     <ServerCodeBlock
       code={code}
       lang={lang}
-      themes={themes}
+      themes={Colours.themes}
       decorations={decorations}
       codeblock={codeblock}
     />

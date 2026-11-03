@@ -482,6 +482,15 @@
   color: var(--api-link-dark);
 }
 
+/* A link in prose that names an export as code, in the colour of the export's kind. */
+.api-link > a > code {
+  color: var(--api-link-light);
+}
+
+.dark .api-link > a > code {
+  color: var(--api-link-dark);
+}
+
 .api-index-summary {
   color: var(--color-fd-muted-foreground);
   white-space: nowrap;
