@@ -25,6 +25,13 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type uPlot from "uplot";
 
+/**
+ * How often the chart takes new data while the run is live. The playhead
+ * moves on its own overlay between updates, so the series can arrive in
+ * steps, and each step is a full redraw of every series by uPlot.
+ */
+export const TRACE_UPDATE_INTERVAL_MS = 250;
+
 export type TimelineSeriesSource = TraceReader & {
   trace: ReadableStore<EventTraceSummary>;
 };
@@ -305,13 +312,33 @@ export const createTimelineSeriesStore = (
     },
     getSnapshot: () => snapshot,
     attach() {
-      // Catch up on what arrived between creation and now, then follow.
+      // Catch up on what arrived between creation and now, then follow,
+      // taking the trace's updates at most every interval.
       rebuild();
       notify();
-      return source.trace.subscribe(() => {
-        rebuild();
-        notify();
+      let lastUpdate = Date.now();
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const unsubscribe = source.trace.subscribe(() => {
+        if (timer !== null) {
+          return;
+        }
+        const wait = Math.max(
+          0,
+          TRACE_UPDATE_INTERVAL_MS - (Date.now() - lastUpdate),
+        );
+        timer = setTimeout(() => {
+          timer = null;
+          lastUpdate = Date.now();
+          rebuild();
+          notify();
+        }, wait);
       });
+      return () => {
+        unsubscribe();
+        if (timer !== null) {
+          clearTimeout(timer);
+        }
+      };
     },
     setViewRange(min, max) {
       if (min === range.min && max === range.max) {
