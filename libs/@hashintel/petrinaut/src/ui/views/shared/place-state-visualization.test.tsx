@@ -87,7 +87,7 @@ it("keeps the last drawing visible until the newest compilation completes", asyn
   ).toBeDefined();
   await complete(first);
   const picture = screen.getByText("First picture").closest("svg");
-  expect(picture?.getAttribute("preserveAspectRatio")).toBe("none");
+  expect(picture?.getAttribute("preserveAspectRatio")).toBe("xMidYMid meet");
   expect(screen.queryByRole("status")).toBeNull();
 
   await act(async () => rerender(<Harness code={second} />));

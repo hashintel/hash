@@ -107,7 +107,7 @@ const VisualizerPicture: React.FC<{
     hir.view,
     tokens,
     mergeParameterValues(parameterValues, defaultParameterValues),
-    { fillViewport: true },
+    { fitViewport: true },
   );
 };
 

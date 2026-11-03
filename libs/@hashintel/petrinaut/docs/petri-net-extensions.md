@@ -98,7 +98,7 @@ A visualizer renders a custom view of a place's tokens during simulation. It is 
 ```tsx
 export default Visualization(({ tokens, parameters }) => {
   return (
-    <svg viewBox="0 0 800 600">
+    <svg viewBox="0 0 800 600" style={{ backgroundColor: "#eff6ff" }}>
       {tokens.map(({ x, y }, i) => (
         <circle key={i} cx={x} cy={y} r={5} fill="red" />
       ))}
@@ -125,7 +125,11 @@ Move the pointer away to close an unpinned preview. Click the eye button to pin 
 
 Drag anywhere on the picture to move it. The cursor changes from an open hand to a closed hand, and the window lifts slightly while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings. Width and height change independently; hold Alt to keep the center fixed. Focus the invisible drag area along the top or the bottom-right resize handle to use the arrow keys, with Shift for larger steps.
 
-A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary. The SVG fills the window regardless of its authored width and height. Its `viewBox` stretches to fit both dimensions, including the drawing's background. While new code compiles, the previous drawing stays visible with a small loading indicator in the bottom-right corner. The window keeps its size throughout loading and compilation.
+A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary.
+
+The SVG element fills the window regardless of its authored width and height. Its `viewBox` stays centered and scales proportionally, so shapes and text keep their proportions. Set `style={{ backgroundColor: "#eff6ff" }}` on the root SVG to color the whole window, including the space around the drawing. A background rectangle only colors the drawing area; replace it with the SVG background style in existing visualizer code.
+
+While new code compiles, the previous drawing stays visible with a small loading indicator in the bottom-right corner. The window keeps its size throughout loading and compilation.
 
 A thin line connects the preview to its place. Moving the place, panning, or zooming updates the line while the window stays in the same position and at the same size on screen. Dragging and resizing stop at the edges of the visible area, keeping clear of Canvas controls and open panels. If the available area shrinks, the window moves or shrinks to fit. Position and size last while the preview remains open in the current Canvas view.
 

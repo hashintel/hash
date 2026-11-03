@@ -82,7 +82,7 @@ const toAttributeValue = (
 
 const elementToReactNode = (
   element: ViewElementValue,
-  fillViewport: boolean,
+  fitViewport: boolean,
 ): ReactNode => {
   const { tag } = element;
   if (tag !== VIEW_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(tag)) {
@@ -104,18 +104,18 @@ const elementToReactNode = (
   } else if (typeof key === "bigint") {
     props.key = String(key);
   }
-  if (fillViewport && tag === "svg") props.preserveAspectRatio = "none";
+  if (fitViewport && tag === "svg") props.preserveAspectRatio = "xMidYMid meet";
   return createElement(
     tag === VIEW_FRAGMENT_TAG ? Fragment : tag,
     props,
     ...element.children.map((child) =>
       // eslint-disable-next-line no-use-before-define -- mutual recursion
-      toReactNode(child, fillViewport && tag === VIEW_FRAGMENT_TAG),
+      toReactNode(child, fitViewport && tag === VIEW_FRAGMENT_TAG),
     ),
   );
 };
 
-const toReactNode = (value: ViewValue, fillViewport: boolean): ReactNode => {
+const toReactNode = (value: ViewValue, fitViewport: boolean): ReactNode => {
   if (value === null || typeof value === "boolean") {
     return null;
   }
@@ -127,11 +127,11 @@ const toReactNode = (value: ViewValue, fillViewport: boolean): ReactNode => {
   }
   if (Array.isArray(value)) {
     return (value as readonly ViewValue[]).map((child) =>
-      toReactNode(child, fillViewport),
+      toReactNode(child, fitViewport),
     );
   }
   if (value instanceof ViewElementValue) {
-    return elementToReactNode(value, fillViewport);
+    return elementToReactNode(value, fitViewport);
   }
   return null;
 };
@@ -151,6 +151,6 @@ export const renderVisualizerHir = (
   view: ViewHir,
   tokens: VisualizerTokens,
   parameters: VisualizerParameters,
-  { fillViewport = false }: { fillViewport?: boolean } = {},
+  { fitViewport = false }: { fitViewport?: boolean } = {},
 ): ReactNode =>
-  toReactNode(interpretViewHir(view, { tokens, parameters }), fillViewport);
+  toReactNode(interpretViewHir(view, { tokens, parameters }), fitViewport);
