@@ -217,7 +217,7 @@ const FlowCanvas = ({
       position: dragPositions.get(node.id) ?? node.position,
       measured: measurements.get(node.id),
       selected: stepId !== null && selectedStepIdSet.has(stepId),
-    } as FlowNode;
+    };
   });
   const edges = graph.edges.map((edge) => ({
     ...edge,
