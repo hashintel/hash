@@ -27,7 +27,10 @@ import { StatusCode } from "@local/status";
 
 import { sleep } from "../utils.js";
 import { getActionActivityOptions } from "./action-activity-options.js";
-import { getAllStepsInFlow } from "./process-flow-workflow/get-all-steps-in-flow.js";
+import {
+  getAllStepsInFlow,
+  getStepsInFlowById,
+} from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";
 import {
   initializeActionStep,
@@ -56,7 +59,6 @@ import type {
   FlowInputValues,
   FlowOutputDefinition,
   FlowStep,
-  LocalFlowRun,
   Payload,
   StepInputSource,
   SkippedStep,
@@ -81,11 +83,11 @@ type StepReadiness = "ready" | "waiting" | "skip";
  * branch if there is one, otherwise the producer outside the for-each step.
  */
 const getProducerRunStepId = ({
-  flow,
+  stepsById,
   consumerStepId,
   producerStepId,
 }: {
-  flow: LocalFlowRun;
+  stepsById: ReadonlyMap<string, FlowStep>;
   consumerStepId: string;
   producerStepId: string;
 }) => {
@@ -94,9 +96,7 @@ const getProducerRunStepId = ({
   if (itemIndex !== undefined) {
     const producerInBranch = generateStepRunId(producerStepId, itemIndex);
 
-    if (
-      getAllStepsInFlow(flow).some(({ stepId }) => stepId === producerInBranch)
-    ) {
+    if (stepsById.has(producerInBranch)) {
       return producerInBranch;
     }
   }
@@ -104,35 +104,40 @@ const getProducerRunStepId = ({
   return producerStepId;
 };
 
-export const getStepReadiness = (params: {
-  step: FlowStep;
-  flow: LocalFlowRun;
+/**
+ * What `getStepReadiness` looks steps up in. Built once for each pass over the run's steps, rather than for each
+ * step, as a run can have many.
+ */
+export type StepReadinessContext = {
   flowDefinition: FlowDefinition;
-  processedStepIds: string[];
-  skippedStepIds: string[];
+  stepsById: ReadonlyMap<string, FlowStep>;
+  processedStepIds: ReadonlySet<string>;
+  skippedStepIds: ReadonlySet<string>;
   /** Steps that ran and failed. */
-  failedStepIds: string[];
-}): StepReadiness => {
+  failedStepIds: ReadonlySet<string>;
+};
+
+export const getStepReadiness = (
+  step: FlowStep,
+  context: StepReadinessContext,
+): StepReadiness => {
   const {
-    step,
-    flow,
     flowDefinition,
+    stepsById,
     processedStepIds,
     skippedStepIds,
     failedStepIds,
-  } = params;
+  } = context;
 
   /**
    * Whether a step of the run has finished. A for-each step is processed once it starts its branches, but only
    * finishes once every branch has.
    */
   const hasFinished = (runStepId: string) => {
-    const runStep = getAllStepsInFlow(flow).find(
-      ({ stepId }) => stepId === runStepId,
-    );
+    const runStep = stepsById.get(runStepId);
 
     return (
-      processedStepIds.includes(runStepId) &&
+      processedStepIds.has(runStepId) &&
       (runStep?.kind !== "for-each" || runStep.collected !== undefined)
     );
   };
@@ -162,12 +167,12 @@ export const getStepReadiness = (params: {
     }
 
     const producerStepId = getProducerRunStepId({
-      flow,
+      stepsById,
       consumerStepId: step.stepId,
       producerStepId: source.stepId,
     });
 
-    if (skippedStepIds.includes(producerStepId)) {
+    if (skippedStepIds.has(producerStepId)) {
       return required ? "skip" : "ready";
     }
 
@@ -184,8 +189,7 @@ export const getStepReadiness = (params: {
      * The producer finished without producing the value. If it failed, or the connection doesn't skip this step when
      * the value is missing, the step never becomes ready, and the run fails.
      */
-    return source.whenMissing === "skip" &&
-      !failedStepIds.includes(producerStepId)
+    return source.whenMissing === "skip" && !failedStepIds.has(producerStepId)
       ? "skip"
       : "waiting";
   };
@@ -195,17 +199,15 @@ export const getStepReadiness = (params: {
    * step, so is every step in each of its items. A step that failed never is.
    */
   const isDone = (runStepId: string): boolean => {
-    if (skippedStepIds.includes(runStepId)) {
+    if (skippedStepIds.has(runStepId)) {
       return true;
     }
 
-    if (failedStepIds.includes(runStepId) || !hasFinished(runStepId)) {
+    if (failedStepIds.has(runStepId) || !hasFinished(runStepId)) {
       return false;
     }
 
-    const runStep = getAllStepsInFlow(flow).find(
-      ({ stepId }) => stepId === runStepId,
-    );
+    const runStep = stepsById.get(runStepId);
 
     return (
       runStep?.kind !== "for-each" ||
@@ -222,7 +224,7 @@ export const getStepReadiness = (params: {
     ({ stepId }) =>
       !isDone(
         getProducerRunStepId({
-          flow,
+          stepsById,
           consumerStepId: step.stepId,
           producerStepId: stepId,
         }),
@@ -304,9 +306,9 @@ export const getStepReadiness = (params: {
 const isRequiredFlowOutput = (
   flowDefinition: FlowDefinition,
   outputDefinition: FlowOutputDefinition,
-  skippedStepIds: string[],
+  skippedStepIds: ReadonlySet<string>,
 ) => {
-  if (skippedStepIds.includes(outputDefinition.stepId)) {
+  if (skippedStepIds.has(outputDefinition.stepId)) {
     return false;
   }
 
@@ -565,9 +567,9 @@ const processFlow = async (
     });
   }
 
-  const processedStepIds: string[] = [];
+  const processedStepIds = new Set<string>();
   /** Steps skipped because a value they need is missing (see `getStepReadiness`); also in `processedStepIds`. */
-  const skippedStepIds: string[] = [];
+  const skippedStepIds = new Set<string>();
   const skippedSteps: SkippedStep[] = [];
   const startedForEachSteps: StartedForEachStep[] = [];
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};
@@ -637,7 +639,7 @@ const processFlow = async (
        * Consider the step processed, even if the action failed to prevent
        * an infinite loop of retries.
        */
-      processedStepIds.push(currentStep.stepId);
+      processedStepIds.add(currentStep.stepId);
 
       if (actionResponse.code !== StatusCode.Ok) {
         log(
@@ -720,7 +722,7 @@ const processFlow = async (
         };
 
         /* A step with an array to iterate over is ready, so it would be processed again on every pass. */
-        processedStepIds.push(currentStep.stepId);
+        processedStepIds.add(currentStep.stepId);
 
         return;
       }
@@ -763,7 +765,7 @@ const processFlow = async (
        * We consider the for-each step "processed", even though its child steps may not have finished executing,
        * so that the step is not re-evaluated in a subsequent iteration of `processSteps`.
        */
-      processedStepIds.push(currentStep.stepId);
+      processedStepIds.add(currentStep.stepId);
 
       /* With no items, the step is complete now, with an empty collected output. Otherwise its last branch completes it. */
       const status = completeForEachStep({
@@ -788,30 +790,37 @@ const processFlow = async (
    */
   let skippedStepCountInMemo = 0;
 
+  /*
+   * Only valid until a step is processed, which can add steps (a for-each step's items) or fail. The id sets are
+   * live, so steps skipped while it's in use are seen.
+   */
+  const getReadinessContext = (): StepReadinessContext => ({
+    flowDefinition,
+    stepsById: getStepsInFlowById(flow),
+    processedStepIds,
+    skippedStepIds,
+    failedStepIds: new Set(Object.keys(processStepErrors)),
+  });
+
   const skipUnrunnableSteps = () => {
     let skippedAny = true;
 
     while (skippedAny) {
       skippedAny = false;
 
-      for (const step of getAllStepsInFlow(flow)) {
+      const context = getReadinessContext();
+
+      for (const step of context.stepsById.values()) {
         if (
-          !processedStepIds.includes(step.stepId) &&
-          getStepReadiness({
-            step,
-            flow,
-            flowDefinition,
-            processedStepIds,
-            skippedStepIds,
-            failedStepIds: Object.keys(processStepErrors),
-          }) === "skip"
+          !processedStepIds.has(step.stepId) &&
+          getStepReadiness(step, context) === "skip"
         ) {
           log(
             `Step ${step.stepId}: skipped, because a value it needs is missing`,
           );
 
-          processedStepIds.push(step.stepId);
-          skippedStepIds.push(step.stepId);
+          processedStepIds.add(step.stepId);
+          skippedStepIds.add(step.stepId);
           skippedSteps.push({
             stepId: step.stepId,
             stepType:
@@ -843,16 +852,16 @@ const processFlow = async (
     }
   };
 
-  const isReadyToProcess = (step: FlowStep) =>
-    !processedStepIds.includes(step.stepId) &&
-    getStepReadiness({
-      step,
-      flow,
-      flowDefinition,
-      processedStepIds,
-      skippedStepIds,
-      failedStepIds: Object.keys(processStepErrors),
-    }) === "ready";
+  /** The steps that are ready to process, from a context built once processing the last ones finished. */
+  const getStepsReadyToProcess = () => {
+    const context = getReadinessContext();
+
+    return [...context.stepsById.values()].filter(
+      (step) =>
+        !processedStepIds.has(step.stepId) &&
+        getStepReadiness(step, context) === "ready",
+    );
+  };
 
   /*
    * Skip the steps that can't run first: a flow whose first steps are all skipped, or that has no steps, has
@@ -860,11 +869,9 @@ const processFlow = async (
    */
   skipUnrunnableSteps();
 
-  const allSteps = getAllStepsInFlow(flow);
-
   if (
-    !allSteps.some(isReadyToProcess) &&
-    allSteps.some(({ stepId }) => !processedStepIds.includes(stepId))
+    getStepsReadyToProcess().length === 0 &&
+    getAllStepsInFlow(flow).some(({ stepId }) => !processedStepIds.has(stepId))
   ) {
     const errorMessage =
       "No steps have satisfied dependencies when initializing the flow.";
@@ -884,7 +891,7 @@ const processFlow = async (
   const processSteps = async () => {
     skipUnrunnableSteps();
 
-    const stepsToProcess = getAllStepsInFlow(flow).filter(isReadyToProcess);
+    const stepsToProcess = getStepsReadyToProcess();
 
     // There are no more steps which can be processed, so we exit the recursive loop
     if (stepsToProcess.length === 0) {
@@ -922,7 +929,7 @@ const processFlow = async (
   );
 
   /** @todo this is not necessarily an error once there are branches */
-  if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
+  if (processedStepIds.size !== getAllStepsInFlow(flow).length) {
     const errorMessage = "Not all steps in the flows were processed.";
     throw ApplicationFailure.create({
       message: errorMessage,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getStepReadiness } from "./process-flow-workflow.js";
+import { getStepsInFlowById } from "./process-flow-workflow/get-all-steps-in-flow.js";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
@@ -107,15 +108,14 @@ describe("getStepReadiness", () => {
         ],
       };
 
-      const step = flow.steps.find((candidate) => candidate.stepId === stepId)!;
+      const stepsById = getStepsInFlowById(flow);
 
-      return getStepReadiness({
-        step,
-        flow,
+      return getStepReadiness(stepsById.get(stepId)!, {
         flowDefinition,
-        processedStepIds: processed,
-        skippedStepIds: skipped,
-        failedStepIds: failed,
+        stepsById,
+        processedStepIds: new Set(processed),
+        skippedStepIds: new Set(skipped),
+        failedStepIds: new Set(failed),
       });
     };
 

@@ -30,18 +30,17 @@ export const passOutputsToUnprocessedSteps = (params: {
   flowDefinition: FlowDefinition;
   stepId: string;
   outputs: StepOutput[];
-  processedStepIds: string[];
+  processedStepIds: ReadonlySet<string>;
 }): Omit<Status<never>, "contents"> => {
   const { flow, flowDefinition, stepId, processedStepIds, outputs } = params;
 
   const { stepId: currentStepIdWithoutIndex, itemIndex: currentItemIndex } =
     parseStepRunId(stepId);
 
-  const unprocessedSteps = getAllStepsInFlow(flow).filter(
-    (step) =>
-      !processedStepIds.some(
-        (processedStepId) => processedStepId === step.stepId,
-      ),
+  const allSteps = getAllStepsInFlow(flow);
+
+  const unprocessedSteps = allSteps.filter(
+    (step) => !processedStepIds.has(step.stepId),
   );
 
   for (const unprocessedStep of unprocessedSteps) {
@@ -113,8 +112,8 @@ export const passOutputsToUnprocessedSteps = (params: {
     }
   }
 
-  const processedSteps = getAllStepsInFlow(flow).filter((step) =>
-    processedStepIds.some((processedStepId) => processedStepId === step.stepId),
+  const processedSteps = allSteps.filter((step) =>
+    processedStepIds.has(step.stepId),
   );
 
   for (const processedStep of processedSteps) {
@@ -189,7 +188,7 @@ export const completeForEachStep = (params: {
   flow: LocalFlowRun;
   flowDefinition: FlowDefinition;
   forEachStep: ForEachStep;
-  processedStepIds: string[];
+  processedStepIds: ReadonlySet<string>;
 }): Omit<Status<never>, "contents"> => {
   const { flow, flowDefinition, forEachStep, processedStepIds } = params;
 
@@ -253,7 +252,7 @@ export const collectSkippedBranchStep = (params: {
   flow: LocalFlowRun;
   flowDefinition: FlowDefinition;
   stepId: string;
-  processedStepIds: string[];
+  processedStepIds: ReadonlySet<string>;
 }): Omit<Status<never>, "contents"> => {
   const { flow, flowDefinition, stepId, processedStepIds } = params;
 
