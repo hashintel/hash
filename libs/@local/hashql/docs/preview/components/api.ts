@@ -4,6 +4,7 @@ import { Struct } from "effect";
 
 import { ApiCode } from "./api-code.js";
 import { ApiContents } from "./api-contents.js";
+import { ApiDeprecation } from "./api-deprecation.js";
 import { ApiExport } from "./api-export.js";
 import { ApiHierarchy } from "./api-hierarchy.js";
 import { ApiIndexRow } from "./api-index-row.js";
@@ -22,6 +23,7 @@ import type * as Components from "../../lib/components.js";
 export const components: Components.Components = {
   Export: ApiExport,
   Part: ApiPart,
+  Deprecation: ApiDeprecation,
   Contents: ApiContents,
   Section: ApiSection,
   Code: ApiCode,

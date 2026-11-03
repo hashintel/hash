@@ -7,9 +7,12 @@ import * as Slots from "./slots.js";
 import type * as Components from "../../lib/components.js";
 import type { ReactNode } from "react";
 
-/** The namespaces an entry's export is in, from its anchor, which starts with their names when there are any. */
-const ownerOf = (name: string, title: string): string => {
-  if (!name.endsWith(`.${title}`)) {
+/** The namespaces an entry's export is in, from its anchor, which starts with their names when there are any. A trait's anchor names the trait alone. */
+const ownerOf = (
+  name: string,
+  { title, kind }: Pick<Components.ExportProps, "title" | "kind">,
+): string => {
+  if (kind === "trait" || !name.endsWith(`.${title}`)) {
     return "";
   }
 
@@ -25,10 +28,12 @@ export function ApiExport({
   since,
   stability,
   source,
+  internal,
+  deprecated,
   children,
 }: Components.ExportProps): ReactNode {
   const keyword = Kinds.keywordOf(kind);
-  const owner = ownerOf(name, title);
+  const owner = ownerOf(name, { title, kind });
   const { slot: header, rest: body } = Slots.slotted(children, "header");
 
   return (
@@ -41,11 +46,21 @@ export function ApiExport({
             </span>
           )}
           <span className="api-owner">{owner}</span>
-          {title}
+          <span
+            className="api-name"
+            data-deprecated={deprecated === true ? "" : undefined}
+          >
+            {title}
+          </span>
         </Heading>
         <div className="api-export-tools">
           {header}
-          <Facts since={since} stability={stability} source={source} />
+          <Facts
+            since={since}
+            stability={stability}
+            source={source}
+            internal={internal}
+          />
         </div>
       </div>
       <div className="api-export-body">{body}</div>

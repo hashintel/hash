@@ -1,15 +1,23 @@
 import type * as Page from "../../lib/Page.js";
 import type { ReactNode } from "react";
 
-/** An export's stability unless it is stable, the version it arrived in, and a link to its source drawn as GitHub's mark, with the word "Source" after it when `labelled`. */
+const internalLabel = "internal";
+
+/** Whether an export is internal and its stability unless it is stable, each a word coloured by how far a reader can rely on the export, the version it arrived in, and a link to its source drawn as GitHub's mark, with the word "Source" after it when `labelled`. */
 export function Facts({
   since,
   stability,
   source,
+  internal = false,
   labelled = false,
 }: Page.Facts & { readonly labelled?: boolean }): ReactNode {
   return (
     <span className="api-facts">
+      {internal ? (
+        <span className="api-stability" data-stability="internal">
+          {internalLabel}
+        </span>
+      ) : null}
       {stability === undefined || stability === "stable" ? null : (
         <span className="api-stability" data-stability={stability}>
           {stability}
