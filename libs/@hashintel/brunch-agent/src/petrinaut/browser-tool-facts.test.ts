@@ -60,6 +60,7 @@ const browserCalls = () =>
     binding,
     metadataFor: () => undefined,
     prepareInput: () => {},
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
 

@@ -13,7 +13,11 @@ import {
 import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
-import { canonicalContent, hashProcessEditorId } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  canonicalContent,
+  hashProcessEditorId,
+} from "@hashintel/brunch-agent";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   canonicalizePetrinautIds,
@@ -33,6 +37,10 @@ import {
 } from "@hashintel/petrinaut/react";
 
 import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
+import {
+  type BrunchHostSave,
+  createBrunchHostSaveTool,
+} from "../tools/brunch-mutation-approval";
 import { hashPetrinautHostTools } from "../tools/hash-petrinaut-host-tools";
 import {
   addMappedToolOutput,
@@ -4056,6 +4064,7 @@ describe("AiAssistantPanel composer submissions", () => {
         binding,
         metadataFor: () => undefined,
         prepareInput: () => {},
+        admit: async () => ({ admitted: true }),
         acceptsRevision: () => true,
       });
       const signals = new Map<string, AbortSignal>();
@@ -4259,6 +4268,108 @@ describe("AiAssistantPanel composer submissions", () => {
     await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
     expect(run).not.toHaveBeenCalled();
     expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("leaves a consent-gated tool the in-band path owns to that path, while still running other automatic tools", async () => {
+    const removePlaceTool = hashPetrinautHostTools.find(
+      ({ toolName }) => toolName === "petrinaut_remove_place",
+    );
+    if (!removePlaceTool) throw new Error("The page has no remove tool.");
+    const removePlace = vi.fn(removePlaceTool.execute);
+    const hostSave: BrunchHostSave = {
+      read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+      save: vi.fn<BrunchHostSave["save"]>(),
+    };
+    const hostAutomatic = vi.fn(({ input }: { input: unknown }) => ({
+      doubled: (input as { value: number }).value * 2,
+    }));
+    const admit = vi.fn(async () => ({ admitted: true }) as const);
+    const brunchFetch = vi.fn<typeof fetch>(
+      async () => new Response(null, { status: 404 }),
+    );
+    const calls = createInBandBrowserCalls({
+      client: Promise.resolve({
+        url: "http://brunch.local/agents/hash/instance",
+      } as FlueClient),
+      ownerKey: "owner",
+      fetch: brunchFetch,
+      binding: { conversationId: "conversation", documentId: "net" },
+      metadataFor: () => undefined,
+      prepareInput: () => {},
+      admit,
+      acceptsRevision: () => true,
+    });
+    expect(calls.has("petrinaut_remove_place")).toBe(true);
+    expect(calls.has(brunchTools.appSaveNet)).toBe(true);
+    expect(calls.has("hostAutomatic")).toBe(false);
+    const run = vi.fn(calls.run);
+    // A continuation replies, so a settled turn ends.
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([...textChunks("reply", "Done.")]),
+    );
+    const { instance } = renderTestPanel({
+      aiAssistant: {
+        // Calls that reach the panel only as parts, with the chat `ready`.
+        messages: [
+          {
+            id: "ready-turn",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "petrinaut_remove_place",
+                toolCallId: "remove-call",
+                state: "input-available",
+                input: {
+                  editor_id: hashProcessEditorId,
+                  placeId:
+                    canonicalizePetrinautIds(nonEmptySDCPN).places[0]?.id,
+                },
+              },
+              {
+                type: "dynamic-tool",
+                toolName: brunchTools.appSaveNet,
+                toolCallId: "save-call",
+                state: "input-available",
+                input: { documentId: "web~net" },
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "hostAutomatic",
+                toolCallId: "automatic-call",
+                state: "input-available",
+                input: { value: 2 },
+              },
+            ],
+          },
+        ],
+        automaticTools: [
+          ...hashPetrinautHostTools.map((tool) =>
+            tool === removePlaceTool ? { ...tool, execute: removePlace } : tool,
+          ),
+          createBrunchHostSaveTool(hostSave),
+          {
+            toolName: "hostAutomatic",
+            inputParser: { parse: (raw: unknown) => raw as { value: number } },
+            outputParser: { parse: (raw: unknown) => raw },
+            execute: hostAutomatic,
+          },
+        ],
+        inBandBrowserTools: { has: calls.has, run },
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(hostAutomatic).toHaveBeenCalledOnce());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+    expect(removePlace).not.toHaveBeenCalled();
+    expect(hostSave.save).not.toHaveBeenCalled();
+    expect(instance.definition.get().places.map(({ name }) => name)).toEqual([
+      "PlaceOne",
+    ]);
+    expect(run).not.toHaveBeenCalled();
+    expect(admit).not.toHaveBeenCalled();
   });
 
   test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {

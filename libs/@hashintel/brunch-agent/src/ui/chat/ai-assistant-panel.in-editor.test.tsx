@@ -474,9 +474,9 @@ test("a call claimed in one editor never runs in a replacement with identical co
       binding,
       metadataFor: () => undefined,
       prepareInput: () => {},
-      ...(history.waitForAdmission
-        ? { admit: () => admission.then(() => ({ admitted: true }) as const) }
-        : {}),
+      admit: history.waitForAdmission
+        ? () => admission.then(() => ({ admitted: true }) as const)
+        : async () => ({ admitted: true }),
       // The replacement holds the same content, so its revision matches.
       acceptsRevision: () => true,
     });

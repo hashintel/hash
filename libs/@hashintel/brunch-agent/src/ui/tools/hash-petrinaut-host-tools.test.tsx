@@ -163,7 +163,7 @@ const runIssuedCall = async (
     binding,
     metadataFor: host.clientToolResultMetadataFor,
     prepareInput: host.mapClientToolInput,
-    ...(admit === undefined ? {} : { admit }),
+    admit: admit ?? (async () => ({ admitted: true })),
     acceptsRevision: host.acceptsRevision,
   });
   const tool = hashPetrinautHostTools.find(
