@@ -26,28 +26,78 @@ return <Visualizer.Svg origin="center">
   <circle r={Math.min(width, height) * 0.4} stroke="black" strokeWidth="3" fill="red" />
 </Visualizer.Svg>;`;
 
-export function generateDefaultDifferentialEquationCode(type: Color): string {
+/** `a`, `b`, … `z`, then `t26`, `t27`, … for the tokens of a coupled equation. */
+const tokenParameterName = (position: number): string =>
+  position < 26 ? String.fromCharCode(97 + position) : `t${position}`;
+
+/**
+ * The starting code of a differential equation over `type`: the whole-place
+ * form without `arity`, otherwise a body over a tuple of `arity` tokens that
+ * returns one derivative record (arity 1) or one per token.
+ */
+export function generateDefaultDifferentialEquationCode(
+  type: Color,
+  arity?: number,
+): string {
   const realElements = type.elements.filter(
     (element) => element.type === "real",
   );
-  const derivativeSource =
+  const derivativeSource = (indent: string): string =>
     realElements.length > 0
       ? `{
-    ${realElements.map((el) => `${el.name}: 1`).join(",\n    ")}
-  }; // Example: all real-valued derivatives = 1`
-      : `{}; // This type has no real-valued attributes; discrete values are unchanged by dynamics`;
+${indent}  ${realElements.map((el) => `${el.name}: 1`).join(`,\n${indent}  `)}
+${indent}}`
+      : `{}`;
+  const derivativeNote =
+    realElements.length > 0
+      ? "// Example: all real-valued derivatives = 1"
+      : "// This type has no real-valued attributes; discrete values are unchanged by dynamics";
+  const elementNames = type.elements.map((el) => el.name).join(", ");
 
-  return `// This code defines the differential equation for the place of type "${
-    type.name
-  }".
+  if (arity === undefined) {
+    return `// This code defines the differential equation for the place of type "${
+      type.name
+    }".
 // \`tokens\` holds the current tokens in this place, and \`parameters\` any
 // global parameters defined.
 // Return derivatives for real-valued token attributes in this place.
-return tokens.map(({ ${type.elements.map((el) => el.name).join(", ")} }) => {
+return tokens.map(({ ${elementNames} }) => {
   // ...Do some computation with input token here if needed
 
-  return ${derivativeSource}
+  return ${derivativeSource("  ")}; ${derivativeNote}
 });`;
+  }
+
+  if (arity === 1) {
+    return `// This code defines the differential equation for one token of type "${
+      type.name
+    }".
+// \`tokens\` is a tuple holding that token, and \`parameters\` any global
+// parameters defined. It runs once per token in the place.
+// Return the derivatives of the token's real-valued attributes.
+const [token] = tokens;
+const { ${elementNames} } = token;
+
+return ${derivativeSource("")}; ${derivativeNote}`;
+  }
+
+  const names = Array.from({ length: arity }, (_, position) =>
+    tokenParameterName(position),
+  );
+  return `// This code couples every combination of ${arity} tokens of type "${
+    type.name
+  }".
+// \`tokens\` is a tuple of the ${arity} tokens, in the place's order, and
+// \`parameters\` any global parameters defined. It runs once per combination
+// and its contributions are summed into each token's derivative.
+// Return one derivative record per token, in the same order.
+const [${names.join(", ")}] = tokens;
+
+return [
+${names
+  .map((name) => `  ${derivativeSource("  ")}, // derivatives of \`${name}\``)
+  .join("\n")}
+];`;
 }
 
 export const DEFAULT_DIFFERENTIAL_EQUATION_CODE = `// This code defines the differential equation for the place.

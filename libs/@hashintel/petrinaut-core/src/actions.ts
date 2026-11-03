@@ -35,6 +35,7 @@ import {
 import { toPetrinautId } from "./petrinaut-id";
 import {
   getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
   withoutDifferentialEquation,
 } from "./place-dynamics";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
@@ -983,9 +984,14 @@ export function createPetrinautActions(
         for (const equation of net.differentialEquations) {
           if (equation.id === parsed.equationId) {
             Object.assign(equation, parsed.update);
+            if (equation.arity === undefined) {
+              // Back to the whole-place form: absent, not `undefined`, so
+              // the document compares equal to its persisted form.
+              delete equation.arity;
+            }
             differentialEquationSchema.parse(equation);
             for (const place of net.places) {
-              if (place.differentialEquationId === equation.id) {
+              if (placeUsesDifferentialEquation(place, equation.id)) {
                 assertPlaceDynamicsReferences(place, net.differentialEquations);
               }
             }

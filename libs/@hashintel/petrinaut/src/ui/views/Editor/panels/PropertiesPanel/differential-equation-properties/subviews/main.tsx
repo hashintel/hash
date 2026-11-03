@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
+  placeUsesDifferentialEquation,
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
 
@@ -22,16 +23,18 @@ import { PropertyValue } from "../../../../../../components/property-value";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
+import { describeEquationForm } from "../../place-properties/subviews/place-dynamics/compose-dynamics";
 import { useDiffEqPropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
+import type { Color } from "@hashintel/petrinaut-core";
 
 // the section fills the panel; the last row (Code) takes the remaining height
 const fieldsSectionStyle = css({
   paddingTop: "3",
   flex: "[1]",
   minHeight: "[0]",
-  gridTemplateRows: "[auto auto minmax(0, 1fr)]",
+  gridTemplateRows: "[auto auto auto minmax(0, 1fr)]",
 });
 
 const colorDotStyle = css({
@@ -71,6 +74,37 @@ const arcStyle = css({
   alignItems: "center",
 });
 
+/** The Tokens select's value for the whole-place form. */
+const WHOLE_PLACE = "whole-place";
+
+/** Arities the select offers; a file may carry a larger one, listed then. */
+const OFFERED_ARITIES = [1, 2, 3, 4];
+
+const arityItems = (arity: number | undefined) =>
+  [
+    { value: WHOLE_PLACE, text: "Whole place (tokens.map)" },
+    ...[
+      ...OFFERED_ARITIES,
+      ...(arity !== undefined && !OFFERED_ARITIES.includes(arity)
+        ? [arity]
+        : []),
+    ].map((candidate) => ({
+      value: String(candidate),
+      text: describeEquationForm({ arity: candidate }),
+    })),
+  ] as const;
+
+/** Whether the code is still a template nobody has edited. */
+const isTemplateCode = (
+  code: string,
+  type: Color | undefined,
+  arity: number | undefined,
+): boolean =>
+  code.trim() === "" ||
+  code === DEFAULT_DIFFERENTIAL_EQUATION_CODE ||
+  (type !== undefined &&
+    code === generateDefaultDifferentialEquationCode(type, arity));
+
 const DeferredDifferentialEquationCodeField = lazy(async () => {
   const { DifferentialEquationCodeField } = await import("./code-field");
   return { default: DifferentialEquationCodeField };
@@ -84,15 +118,34 @@ const DiffEqMainContent: React.FC = () => {
   const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
 
-  const placesUsingEquation = places.filter((place) => {
-    if (!place.differentialEquationId) {
-      return false;
-    }
-    if (typeof place.differentialEquationId === "object") {
-      return place.differentialEquationId === differentialEquation.id;
-    }
-    return false;
-  });
+  const placesUsingEquation = places.filter((place) =>
+    placeUsesDifferentialEquation(place, differentialEquation.id),
+  );
+  const equationType = types.find(
+    (candidate) => candidate.id === differentialEquation.colorId,
+  );
+
+  /**
+   * Changing how the equation sees tokens changes its code's shape, so an
+   * untouched template is swapped for the new form's template; edited code
+   * is kept for the author to adapt.
+   */
+  const handleArityChange = (value: string) => {
+    const arity = value === WHOLE_PLACE ? undefined : Number(value);
+    const code =
+      equationType !== undefined &&
+      isTemplateCode(
+        differentialEquation.code,
+        equationType,
+        differentialEquation.arity,
+      )
+        ? generateDefaultDifferentialEquationCode(equationType, arity)
+        : differentialEquation.code;
+    updateDifferentialEquation({
+      equationId: differentialEquation.id,
+      update: { arity, code },
+    });
+  };
 
   const handleTypeChange = (newTypeId: string) => {
     if (placesUsingEquation.length > 0) {
@@ -179,6 +232,29 @@ const DiffEqMainContent: React.FC = () => {
                     </div>
                   );
                 }}
+              />
+            </Tooltip>
+          </PropertyValue>
+        </Form.Field>
+
+        <Form.Field label="Tokens" size="sm">
+          <PropertyValue text={describeEquationForm(differentialEquation)}>
+            <Tooltip
+              content={UI_MESSAGES.READ_ONLY_MODE}
+              disableTooltip={!isReadOnly}
+            >
+              <Select
+                aria-label="Tokens"
+                required
+                value={
+                  differentialEquation.arity === undefined
+                    ? WHOLE_PLACE
+                    : String(differentialEquation.arity)
+                }
+                onChange={handleArityChange}
+                items={arityItems(differentialEquation.arity)}
+                size="sm"
+                disabled={isReadOnly}
               />
             </Tooltip>
           </PropertyValue>
@@ -279,7 +355,10 @@ const DiffEqCodeAction: React.FC = () => {
               equationId: differentialEquation.id,
               update: {
                 code: equationType
-                  ? generateDefaultDifferentialEquationCode(equationType)
+                  ? generateDefaultDifferentialEquationCode(
+                      equationType,
+                      differentialEquation.arity,
+                    )
                   : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
               },
             });
