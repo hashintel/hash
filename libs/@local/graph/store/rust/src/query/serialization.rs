@@ -6,11 +6,11 @@ use serde::{
 };
 
 use crate::{
-    data_type::DataTypeQueryPath,
-    entity::EntityQueryPath,
-    entity_type::EntityTypeQueryPath,
+    data_type::{DataTypeQueryPath, DataTypeQueryToken},
+    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
+    entity_type::{EntityTypeQueryPath, EntityTypeQueryToken},
     filter::{JsonPath, Parameter, PathToken},
-    property_type::PropertyTypeQueryPath,
+    property_type::{PropertyTypeQueryPath, PropertyTypeQueryToken},
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
@@ -52,10 +52,10 @@ fn with_depth(token: &str, depth: Option<u32>) -> String {
 
 fn json_path<S: SerializeSeq>(
     sequence: &mut S,
-    token: &str,
+    token: impl Serialize,
     path: Option<&JsonPath<'_>>,
 ) -> Result<(), S::Error> {
-    sequence.serialize_element(token)?;
+    sequence.serialize_element(&token)?;
     if let Some(path) = path {
         for token in path.path_tokens() {
             sequence.serialize_element(token)?;
@@ -67,20 +67,24 @@ fn json_path<S: SerializeSeq>(
 impl SerializePath for EntityQueryPath<'_> {
     fn write_path<S: SerializeSeq>(&self, sequence: &mut S) -> Result<(), S::Error> {
         let token = match self {
-            Self::Uuid => "uuid",
-            Self::WebId => "webId",
-            Self::DraftId => "draftId",
-            Self::EditionId => "editionId",
-            Self::Archived => "archived",
-            Self::CreatedById => "createdById",
-            Self::EditionCreatedById => "editionCreatedById",
-            Self::CreatedAtTransactionTime => "createdAtTransactionTime",
-            Self::CreatedAtDecisionTime => "createdAtDecisionTime",
-            Self::Embedding => "embedding",
-            Self::Properties(path) => return json_path(sequence, "properties", path.as_ref()),
-            Self::Provenance(path) => return json_path(sequence, "provenance", path.as_ref()),
+            Self::Uuid => EntityQueryToken::Uuid,
+            Self::WebId => EntityQueryToken::WebId,
+            Self::DraftId => EntityQueryToken::DraftId,
+            Self::EditionId => EntityQueryToken::EditionId,
+            Self::Archived => EntityQueryToken::Archived,
+            Self::CreatedById => EntityQueryToken::CreatedById,
+            Self::EditionCreatedById => EntityQueryToken::EditionCreatedById,
+            Self::CreatedAtTransactionTime => EntityQueryToken::CreatedAtTransactionTime,
+            Self::CreatedAtDecisionTime => EntityQueryToken::CreatedAtDecisionTime,
+            Self::Embedding => EntityQueryToken::Embedding,
+            Self::Properties(path) => {
+                return json_path(sequence, EntityQueryToken::Properties, path.as_ref());
+            }
+            Self::Provenance(path) => {
+                return json_path(sequence, EntityQueryToken::Provenance, path.as_ref());
+            }
             Self::EditionProvenance(path) => {
-                return json_path(sequence, "editionProvenance", path.as_ref());
+                return json_path(sequence, EntityQueryToken::EditionProvenance, path.as_ref());
             }
             Self::Label { inheritance_depth } => {
                 return sequence.serialize_element(&with_depth("label", *inheritance_depth));
@@ -100,23 +104,23 @@ impl SerializePath for EntityQueryPath<'_> {
             } => {
                 let token = match (edge_kind, direction) {
                     (KnowledgeGraphEdgeKind::HasLeftEntity, EdgeDirection::Outgoing) => {
-                        "leftEntity"
+                        EntityQueryToken::LeftEntity
                     }
                     (KnowledgeGraphEdgeKind::HasRightEntity, EdgeDirection::Outgoing) => {
-                        "rightEntity"
+                        EntityQueryToken::RightEntity
                     }
                     (KnowledgeGraphEdgeKind::HasLeftEntity, EdgeDirection::Incoming) => {
-                        "outgoingLinks"
+                        EntityQueryToken::OutgoingLinks
                     }
                     (KnowledgeGraphEdgeKind::HasRightEntity, EdgeDirection::Incoming) => {
-                        "incomingLinks"
+                        EntityQueryToken::IncomingLinks
                     }
                 };
-                sequence.serialize_element(token)?;
+                sequence.serialize_element(&token)?;
                 return path.write_path(sequence);
             }
             Self::PropertyMetadata(Some(path)) => {
-                sequence.serialize_element("properties")?;
+                sequence.serialize_element(&EntityQueryToken::Properties)?;
                 let mut tokens = path.path_tokens();
                 while let [PathToken::Field(value), property, rest @ ..] = tokens {
                     if value != "value" {
@@ -156,25 +160,29 @@ impl SerializePath for EntityQueryPath<'_> {
             | Self::FirstLabel
             | Self::FirstLabelProperty => return Err(unsupported(self)),
         };
-        sequence.serialize_element(token)
+        sequence.serialize_element(&token)
     }
 }
 
 impl SerializePath for EntityTypeQueryPath<'_> {
     fn write_path<S: SerializeSeq>(&self, sequence: &mut S) -> Result<(), S::Error> {
         let token = match self {
-            Self::BaseUrl => "baseUrl",
-            Self::Version => "version",
-            Self::VersionedUrl => "versionedUrl",
-            Self::WebId => "webId",
-            Self::Title => "title",
-            Self::Description => "description",
-            Self::Required => "required",
-            Self::LabelProperty => "labelProperty",
-            Self::Icon => "icon",
-            Self::Embedding => "embedding",
+            Self::BaseUrl => EntityTypeQueryToken::BaseUrl,
+            Self::Version => EntityTypeQueryToken::Version,
+            Self::VersionedUrl => EntityTypeQueryToken::VersionedUrl,
+            Self::WebId => EntityTypeQueryToken::WebId,
+            Self::Title => EntityTypeQueryToken::Title,
+            Self::Description => EntityTypeQueryToken::Description,
+            Self::Required => EntityTypeQueryToken::Required,
+            Self::LabelProperty => EntityTypeQueryToken::LabelProperty,
+            Self::Icon => EntityTypeQueryToken::Icon,
+            Self::Embedding => EntityTypeQueryToken::Embedding,
             Self::EditionProvenance(path) => {
-                return json_path(sequence, "editionProvenance", path.as_ref());
+                return json_path(
+                    sequence,
+                    EntityTypeQueryToken::EditionProvenance,
+                    path.as_ref(),
+                );
             }
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
@@ -212,28 +220,32 @@ impl SerializePath for EntityTypeQueryPath<'_> {
             | Self::ClosedSchema(_)
             | Self::AdditionalMetadata => return Err(unsupported(self)),
         };
-        sequence.serialize_element(token)
+        sequence.serialize_element(&token)
     }
 }
 
 impl SerializePath for PropertyTypeQueryPath<'_> {
     fn write_path<S: SerializeSeq>(&self, sequence: &mut S) -> Result<(), S::Error> {
         let token = match self {
-            Self::BaseUrl => "baseUrl",
-            Self::Version => "version",
-            Self::VersionedUrl => "versionedUrl",
-            Self::WebId => "webId",
-            Self::Title => "title",
-            Self::Description => "description",
-            Self::Embedding => "embedding",
+            Self::BaseUrl => PropertyTypeQueryToken::BaseUrl,
+            Self::Version => PropertyTypeQueryToken::Version,
+            Self::VersionedUrl => PropertyTypeQueryToken::VersionedUrl,
+            Self::WebId => PropertyTypeQueryToken::WebId,
+            Self::Title => PropertyTypeQueryToken::Title,
+            Self::Description => PropertyTypeQueryToken::Description,
+            Self::Embedding => PropertyTypeQueryToken::Embedding,
             Self::EditionProvenance(path) => {
-                return json_path(sequence, "editionProvenance", path.as_ref());
+                return json_path(
+                    sequence,
+                    PropertyTypeQueryToken::EditionProvenance,
+                    path.as_ref(),
+                );
             }
             Self::DataTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                 path,
             } => {
-                sequence.serialize_element("dataTypes")?;
+                sequence.serialize_element(&PropertyTypeQueryToken::DataTypes)?;
                 sequence.serialize_element("*")?;
                 return path.write_path(sequence);
             }
@@ -242,7 +254,7 @@ impl SerializePath for PropertyTypeQueryPath<'_> {
                 path,
                 direction: EdgeDirection::Outgoing,
             } => {
-                sequence.serialize_element("propertyTypes")?;
+                sequence.serialize_element(&PropertyTypeQueryToken::PropertyTypes)?;
                 sequence.serialize_element("*")?;
                 return path.write_path(sequence);
             }
@@ -254,23 +266,27 @@ impl SerializePath for PropertyTypeQueryPath<'_> {
             | Self::Schema(_)
             | Self::AdditionalMetadata => return Err(unsupported(self)),
         };
-        sequence.serialize_element(token)
+        sequence.serialize_element(&token)
     }
 }
 
 impl SerializePath for DataTypeQueryPath<'_> {
     fn write_path<S: SerializeSeq>(&self, sequence: &mut S) -> Result<(), S::Error> {
         let token = match self {
-            Self::BaseUrl => "baseUrl",
-            Self::Version => "version",
-            Self::VersionedUrl => "versionedUrl",
-            Self::WebId => "webId",
-            Self::Title => "title",
-            Self::Description => "description",
-            Self::Type => "type",
-            Self::Embedding => "embedding",
+            Self::BaseUrl => DataTypeQueryToken::BaseUrl,
+            Self::Version => DataTypeQueryToken::Version,
+            Self::VersionedUrl => DataTypeQueryToken::VersionedUrl,
+            Self::WebId => DataTypeQueryToken::WebId,
+            Self::Title => DataTypeQueryToken::Title,
+            Self::Description => DataTypeQueryToken::Description,
+            Self::Type => DataTypeQueryToken::Type,
+            Self::Embedding => DataTypeQueryToken::Embedding,
             Self::EditionProvenance(path) => {
-                return json_path(sequence, "editionProvenance", path.as_ref());
+                return json_path(
+                    sequence,
+                    DataTypeQueryToken::EditionProvenance,
+                    path.as_ref(),
+                );
             }
             Self::DataTypeEdge {
                 edge_kind: OntologyEdgeKind::InheritsFrom,
@@ -296,7 +312,7 @@ impl SerializePath for DataTypeQueryPath<'_> {
             | Self::FromConversions
             | Self::IntoConversions => return Err(unsupported(self)),
         };
-        sequence.serialize_element(token)
+        sequence.serialize_element(&token)
     }
 }
 
@@ -320,14 +336,18 @@ pub(crate) fn sorting_path<S: Serializer>(
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let token = match path {
-        EntityQueryPath::Uuid => "uuid",
-        EntityQueryPath::Archived => "archived",
-        EntityQueryPath::TransactionTime => "editionCreatedAtTransactionTime",
-        EntityQueryPath::DecisionTime => "editionCreatedAtDecisionTime",
-        EntityQueryPath::CreatedAtTransactionTime => "createdAtTransactionTime",
-        EntityQueryPath::CreatedAtDecisionTime => "createdAtDecisionTime",
-        EntityQueryPath::FirstTypeTitle => "typeTitle",
-        EntityQueryPath::FirstLabel => "label",
+        EntityQueryPath::Uuid => EntityQuerySortingToken::Uuid,
+        EntityQueryPath::Archived => EntityQuerySortingToken::Archived,
+        EntityQueryPath::TransactionTime => {
+            EntityQuerySortingToken::EditionCreatedAtTransactionTime
+        }
+        EntityQueryPath::DecisionTime => EntityQuerySortingToken::EditionCreatedAtDecisionTime,
+        EntityQueryPath::CreatedAtTransactionTime => {
+            EntityQuerySortingToken::CreatedAtTransactionTime
+        }
+        EntityQueryPath::CreatedAtDecisionTime => EntityQuerySortingToken::CreatedAtDecisionTime,
+        EntityQueryPath::FirstTypeTitle => EntityQuerySortingToken::TypeTitle,
+        EntityQueryPath::FirstLabel => EntityQuerySortingToken::Label,
         EntityQueryPath::WebId
         | EntityQueryPath::DraftId
         | EntityQueryPath::EditionId

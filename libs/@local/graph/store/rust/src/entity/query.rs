@@ -667,7 +667,7 @@ impl QueryPath for EntityQueryPath<'_> {
 }
 
 /// A single token in an [`EntityQueryPath`].
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
@@ -910,7 +910,7 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQuerySortingToken {
