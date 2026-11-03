@@ -13,6 +13,7 @@ import {
   tooltipStyle,
   tooltipValueStyle,
 } from "../simulation-timeline/styles";
+import { formatTick, formatValue } from "./format";
 import {
   classifyWheel,
   hitTest,
@@ -368,7 +369,7 @@ const updateTooltip = (
   nodes.dot.style.background = series?.color ?? "";
   nodes.name.textContent = showSeries ? series.seriesName : "";
   nodes.value.textContent =
-    showSeries && value != null ? String(Math.round(value * 1000) / 1000) : "";
+    showSeries && value != null ? formatValue(value) : "";
   nodes.time.textContent = formatSeconds(time);
   nodes.firing.textContent = firing
     ? `${firing.transitionIds
@@ -657,6 +658,8 @@ const buildOptions = (
             stroke: "#999",
             grid: { stroke: "#f3f4f6", width: 1, dash: [4, 4] },
             ticks: { stroke: "#e5e7eb", width: 1 },
+            values: (_u, splits, _axis, _space, increment) =>
+              splits.map((split) => formatTick(split, increment)),
           },
     ],
     scales: {
@@ -671,10 +674,12 @@ const buildOptions = (
         ? { range: () => [-0.6, laneLabels.length - 0.4] }
         : {
             auto: true,
-            range: (_u, min, max) => [
-              Math.min(0, min),
-              Math.max(1, max * 1.05),
-            ],
+            range: (_u, min, max) => {
+              const current = stateRef.current.data;
+              const atLeast =
+                current.kind === "steps" ? (current.axisMinimum ?? 1) : 1;
+              return [Math.min(0, min), Math.max(atLeast, max * 1.05)];
+            },
           },
     },
     hooks: {

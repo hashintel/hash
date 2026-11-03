@@ -68,6 +68,8 @@ export interface EventSimulation {
   readonly status: ReadableStore<SimulationState>;
   readonly trace: ReadableStore<EventTraceSummary>;
   readonly events: EventStream<EventSimulationEvent>;
+  /** Frame place index by place id: the order of an event's per-place arrays. */
+  readonly placeIndexById: ReadonlyMap<string, number>;
 
   run(this: void): void;
   pause(this: void): void;
@@ -223,6 +225,7 @@ export function createEventSimulation(
       status,
       trace,
       events,
+      placeIndexById: store.placeIndexById,
 
       run() {
         if (disposed) {

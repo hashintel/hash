@@ -14,6 +14,25 @@ import {
 } from "./series-store";
 
 import type { EventTimelineData, FiringMark } from "./series";
+import type { TraceEvent } from "@hashintel/petrinaut-core";
+
+/**
+ * The y axis of the solver error reaches at least this far: a run whose
+ * places all advance exactly records zero everywhere, drawn along the floor.
+ */
+const SOLVER_ERROR_AXIS_MINIMUM = 1e-12;
+
+/** Reads a place's accumulated solver error off an event, by frame place index. */
+const solverErrorExtractor = (
+  placeIndices: readonly (number | undefined)[],
+): ((event: TraceEvent, seriesIndex: number) => number) => {
+  return (event, seriesIndex) => {
+    const placeIndex = placeIndices[seriesIndex];
+    return placeIndex === undefined
+      ? Number.NaN
+      : (event.solverError?.[placeIndex] ?? 0);
+  };
+};
 
 export type TimeRange = { min: number; max: number };
 
@@ -38,13 +57,18 @@ const sameView = (
   if (left.kind === "lanes" && right.kind === "lanes") {
     return left.transitions === right.transitions;
   }
-  if (left.kind !== "lanes" && right.kind !== "lanes") {
+  if (left.kind === "steps" && right.kind === "steps") {
     return (
       left.series === right.series &&
       left.extract === right.extract &&
-      (left.kind !== "sampled" ||
-        right.kind !== "sampled" ||
-        left.sampleCount === right.sampleCount)
+      left.extractEvent === right.extractEvent
+    );
+  }
+  if (left.kind === "sampled" && right.kind === "sampled") {
+    return (
+      left.series === right.series &&
+      left.extract === right.extract &&
+      left.sampleCount === right.sampleCount
     );
   }
   return false;
@@ -124,7 +148,15 @@ export function useEventTimelineData({
 
   // Counts, and a metric whose code reads only what changes at events, are
   // exact as steps read at the events; a metric that follows dynamics is
-  // sampled between them.
+  // sampled between them. The solver's error is recorded on the events.
+  const solverErrorPlaceIndices =
+    timelineView.kind === "solver-error"
+      ? seriesConfig.series.map((series) =>
+          eventSimulation?.placeIndexById.get(
+            series.seriesId.replace(/^solver-error__/, ""),
+          ),
+        )
+      : null;
   const view: TimelineSeriesView =
     timelineView.kind === "per-transition"
       ? { kind: "lanes", transitions }
@@ -135,11 +167,19 @@ export function useEventTimelineData({
             extract: seriesConfig.extract,
             sampleCount,
           }
-        : {
-            kind: "steps",
-            series: seriesConfig.series,
-            extract: seriesConfig.extract,
-          };
+        : solverErrorPlaceIndices
+          ? {
+              kind: "steps",
+              series: seriesConfig.series,
+              extract: seriesConfig.extract,
+              extractEvent: solverErrorExtractor(solverErrorPlaceIndices),
+              axisMinimum: SOLVER_ERROR_AXIS_MINIMUM,
+            }
+          : {
+              kind: "steps",
+              series: seriesConfig.series,
+              extract: seriesConfig.extract,
+            };
 
   const store = useTimelineSeriesStore(eventSimulation, view);
   useEffect(() => store?.attach(), [store]);
