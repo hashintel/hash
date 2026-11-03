@@ -273,16 +273,14 @@ export const figmaScreens: FigmaScreen[] = [
     name: "Several rows with AND / OR joiners · flow: Untitled flow",
     nodeId: "970:190",
     section: "J2a · Find entities: the query",
-    tag: "Ready after fix",
-    why: "old screen template: rebuild on the current one (top bar, minimap, sizes)",
+    tag: "Ready",
   },
   {
     id: "J2.10",
     name: "Joiner chip menu open · flow: Untitled flow",
     nodeId: "970:299",
     section: "J2a · Find entities: the query",
-    tag: "Ready after fix",
-    why: "old screen template: rebuild on the current one (top bar, minimap, sizes)",
+    tag: "Ready",
   },
   {
     id: "J2.11",
