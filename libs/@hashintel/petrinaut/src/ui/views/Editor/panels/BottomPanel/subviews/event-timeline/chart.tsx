@@ -87,7 +87,7 @@ const createTooltip = (): TooltipNodes => {
 /** What the chart reads on every draw and pointer event, kept out of React. */
 type ChartState = {
   data: EventTimelineData;
-  firings: FiringMark[];
+  firings: readonly FiringMark[];
   references: readonly number[];
   transitionNames: ReadonlyMap<string, string>;
   viewRange: TimeRange;
@@ -716,7 +716,7 @@ const hostStyle = css({
 
 export const EventTimelineChart: FC<{
   data: EventTimelineData;
-  firings: FiringMark[];
+  firings: readonly FiringMark[];
   /** Times of the reference frames recorded between firings. */
   references: readonly number[];
   transitionNames: ReadonlyMap<string, string>;
