@@ -33,6 +33,10 @@ import {
   type PetrinautExtensionSettings,
 } from "./extensions";
 import { toPetrinautId } from "./petrinaut-id";
+import {
+  getPlaceDynamicsEquationIds,
+  withoutDifferentialEquation,
+} from "./place-dynamics";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 
 import type {
@@ -377,10 +381,11 @@ const assertComponentInstanceReferences = (
 };
 
 /**
- * Validate that a single place's reference to a differential equation is
- * consistent: the equation must exist, the place must have a colour, and the
- * equation's `colorId` must match the place's `colorId`. Throws a descriptive
- * error when the invariant is violated; otherwise no-ops.
+ * Validate that a place's references to differential equations (the selected
+ * equation and every composed term) are consistent: each equation must
+ * exist, the place must have a colour, and each equation's `colorId` must
+ * match the place's `colorId`. Throws a descriptive error when the invariant
+ * is violated; otherwise no-ops.
  *
  * Mirrors the runtime invariant enforced by the simulation engine, but raises
  * at mutation time so AI callers see the failure immediately instead of at
@@ -390,28 +395,35 @@ function assertPlaceDynamicsReferences(
   place: SDCPN["places"][number],
   equations: SDCPN["differentialEquations"],
 ): void {
-  if (place.differentialEquationId === null) {
-    return;
-  }
-  const equation = equations.find(
-    (eq) => eq.id === place.differentialEquationId,
-  );
-  if (!equation) {
-    throw new Error(
-      `Place \`${place.name}\` references differential equation ID \`${place.differentialEquationId}\` which does not exist.`,
-    );
-  }
-  if (place.colorId === null) {
-    throw new Error(
-      `Place \`${place.name}\` has a differential equation but no \`colorId\`. Set the place's \`colorId\` to match the equation's \`colorId\` (\`${String(equation.colorId)}\`).`,
-    );
-  }
-  if (equation.colorId !== null && equation.colorId !== place.colorId) {
-    throw new Error(
-      `Place \`${place.name}\` (colorId \`${place.colorId}\`) references differential equation \`${equation.name}\` (colorId \`${equation.colorId}\`); the equation's \`colorId\` must match the place's \`colorId\`.`,
-    );
+  for (const equationId of getPlaceDynamicsEquationIds(place)) {
+    const equation = equations.find((eq) => eq.id === equationId);
+    if (!equation) {
+      throw new Error(
+        `Place \`${place.name}\` references differential equation ID \`${equationId}\` which does not exist.`,
+      );
+    }
+    if (place.colorId === null) {
+      throw new Error(
+        `Place \`${place.name}\` has a differential equation but no \`colorId\`. Set the place's \`colorId\` to match the equation's \`colorId\` (\`${String(equation.colorId)}\`).`,
+      );
+    }
+    if (equation.colorId !== null && equation.colorId !== place.colorId) {
+      throw new Error(
+        `Place \`${place.name}\` (colorId \`${place.colorId}\`) references differential equation \`${equation.name}\` (colorId \`${equation.colorId}\`); the equation's \`colorId\` must match the place's \`colorId\`.`,
+      );
+    }
   }
 }
+
+/** The place without any reference to the given equations. */
+const withoutDifferentialEquations = (
+  place: SDCPN["places"][number],
+  equationIds: ReadonlySet<string>,
+): SDCPN["places"][number] =>
+  [...equationIds].reduce(
+    (current, equationId) => withoutDifferentialEquation(current, equationId),
+    place,
+  );
 
 const collectWrittenIds = (
   value: unknown,
@@ -996,11 +1008,9 @@ export function createPetrinautActions(
             break;
           }
         }
-        for (const place of net.places) {
-          if (place.differentialEquationId === parsed.equationId) {
-            place.differentialEquationId = null;
-          }
-        }
+        net.places = net.places.map((place) =>
+          withoutDifferentialEquation(place, parsed.equationId),
+        );
       });
     },
     addParameter(input) {
@@ -1365,14 +1375,9 @@ export function createPetrinautActions(
               net.differentialEquations.splice(i, 1);
             }
           }
-          for (const place of net.places) {
-            if (
-              place.differentialEquationId &&
-              equationIds.has(place.differentialEquationId)
-            ) {
-              place.differentialEquationId = null;
-            }
-          }
+          net.places = net.places.map((place) =>
+            withoutDifferentialEquations(place, equationIds),
+          );
         }
 
         if (parameterIds.size > 0) {

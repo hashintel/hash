@@ -331,6 +331,15 @@ const flattenNet = ({
       differentialEquationId: place.differentialEquationId
         ? (equationIdMap.get(place.differentialEquationId) ?? null)
         : null,
+      ...(place.dynamics === undefined
+        ? {}
+        : {
+            dynamics: place.dynamics.map((term) => ({
+              differentialEquationId:
+                equationIdMap.get(term.differentialEquationId) ??
+                term.differentialEquationId,
+            })),
+          }),
     });
   }
 

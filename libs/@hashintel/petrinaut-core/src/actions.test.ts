@@ -704,6 +704,94 @@ describe("Petrinaut core actions", () => {
     expect(definition.places[0]!.differentialEquationId).toBeNull();
   });
 
+  test("composes further equations into a place and validates their colour", () => {
+    const instance = createInstance();
+    instance.mutations.addType({
+      id: "type-1",
+      name: "Particle",
+      iconSlug: "circle",
+      displayColor: "#34a0fa",
+      elements: [{ elementId: "x", name: "x", type: "real" }],
+    });
+    instance.mutations.addType({
+      id: "type-2",
+      name: "Other",
+      iconSlug: "circle",
+      displayColor: "#000000",
+      elements: [{ elementId: "y", name: "y", type: "real" }],
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "drift",
+      name: "Drift",
+      colorId: "type-1",
+      code: "return tokens.map(() => ({ x: 1 }));",
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "pull",
+      name: "Pull",
+      colorId: "type-1",
+      code: "return [{ x: 1 }, { x: -1 }];",
+      arity: 2,
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "other",
+      name: "Other",
+      colorId: "type-2",
+      code: "return [{ y: 1 }, { y: -1 }];",
+      arity: 2,
+    });
+    instance.mutations.addPlace({
+      id: "place-1",
+      name: "Space",
+      colorId: "type-1",
+      dynamicsEnabled: true,
+      differentialEquationId: "drift",
+      dynamics: [{ differentialEquationId: "pull" }],
+      x: 0,
+      y: 0,
+    });
+
+    expect(instance.definition.get().places[0]).toMatchObject({
+      differentialEquationId: idOf("drift"),
+      dynamics: [{ differentialEquationId: idOf("pull") }],
+    });
+    expect(instance.definition.get().differentialEquations[1]).toMatchObject({
+      id: idOf("pull"),
+      arity: 2,
+    });
+
+    expect(() =>
+      instance.mutations.updatePlace({
+        placeId: "place-1",
+        update: { dynamics: [{ differentialEquationId: "other" }] },
+      }),
+    ).toThrow(/colorId/);
+    expect(() =>
+      instance.mutations.updatePlace({
+        placeId: "place-1",
+        update: { dynamics: [{ differentialEquationId: "missing" }] },
+      }),
+    ).toThrow(/does not exist/);
+    expect(() =>
+      instance.mutations.updateDifferentialEquation({
+        equationId: "pull",
+        update: { arity: 0 },
+      }),
+    ).toThrow();
+
+    instance.mutations.removeDifferentialEquation({ equationId: "pull" });
+    expect(instance.definition.get().places[0]).toMatchObject({
+      differentialEquationId: idOf("drift"),
+      dynamics: [],
+    });
+
+    instance.mutations.removeDifferentialEquation({ equationId: "drift" });
+    expect(instance.definition.get().places[0]).toMatchObject({
+      differentialEquationId: null,
+      dynamics: [],
+    });
+  });
+
   test("does not mutate readonly instances", () => {
     const instance = createPetrinaut({
       document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),

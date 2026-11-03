@@ -146,6 +146,13 @@ describe("flattenComponentInstancesForSimulation", () => {
       colorId: "token",
       code: "export default Dynamics(() => []);",
     };
+    const pairwise: DifferentialEquation = {
+      id: "pull",
+      name: "Pull",
+      colorId: "token",
+      code: "return [{ x: 1 }, { x: -1 }];",
+      arity: 2,
+    };
     const definition = sdcpn({
       places: [place("root")],
       transitions: [
@@ -169,7 +176,7 @@ describe("flattenComponentInstancesForSimulation", () => {
       subnets: [
         subnet("processor", {
           types: [color],
-          differentialEquations: [equation],
+          differentialEquations: [equation, pairwise],
           places: [
             place("port-in", {
               name: "Port In",
@@ -177,6 +184,7 @@ describe("flattenComponentInstancesForSimulation", () => {
               colorId: "token",
               dynamicsEnabled: true,
               differentialEquationId: "flow",
+              dynamics: [{ differentialEquationId: "pull" }],
             }),
           ],
           transitions: [
@@ -198,6 +206,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     expect(result.sdcpn.types.map(({ id }) => id)).toEqual(["worker::token"]);
     expect(result.sdcpn.differentialEquations).toMatchObject([
       { id: "worker::flow", colorId: "worker::token" },
+      { id: "worker::pull", colorId: "worker::token", arity: 2 },
     ]);
     expect(result.sdcpn.places).toMatchObject([
       { id: "root" },
@@ -205,8 +214,10 @@ describe("flattenComponentInstancesForSimulation", () => {
         id: "worker::port-in",
         colorId: "worker::token",
         differentialEquationId: "worker::flow",
+        dynamics: [{ differentialEquationId: "worker::pull" }],
       },
     ]);
+    expect(result.sdcpn.places[0]).not.toHaveProperty("dynamics");
     expect(result.sdcpn.transitions).toMatchObject([
       {
         id: "send",

@@ -214,8 +214,22 @@ export const placeSchema = z
     }),
     differentialEquationId: idSchema.nullable().meta({
       description:
-        "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`.",
+        "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`. With `dynamics`, this is the first term of the sum.",
     }),
+    dynamics: z
+      .array(
+        z.strictObject({
+          differentialEquationId: idSchema.meta({
+            description:
+              "ID of a differential equation whose `colorId` matches this place's `colorId`.",
+          }),
+        }),
+      )
+      .optional()
+      .meta({
+        description:
+          "Further differential equations composed into this place's dynamics, applied after `differentialEquationId` while `dynamicsEnabled`. A token's derivative is the SUM of every term: a whole-place equation contributes one record per token; an equation with `arity` n contributes to every unordered combination of n distinct tokens. Omit when the place has a single equation.",
+      }),
     capacity: z.int().nonnegative().nullable().optional().meta({
       description:
         "Optional maximum number of tokens this place will hold. A transition whose firing would take this place past its capacity is NOT enabled, exactly like a transition without enough input tokens — so a full place blocks the transitions that feed it and the limit is never exceeded. The check uses the net change per firing, so a transition that both consumes from and produces into this place is not blocked by its own output. A capacity of 0 means the place can never receive tokens. Omit or set null for unbounded. The initial marking must not exceed it.",
@@ -339,16 +353,20 @@ export const differentialEquationSchema = z
     code: z.string().meta({
       description: [
         "Function body ending in `return`, with `tokens` and `parameters` ambient (the legacy `export default Dynamics((tokens, parameters) => …)` module form is also accepted).",
-        "`tokens` is THIS place's current tokens only — NOT all places' tokens.",
-        "MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
+        "Without `arity`: `tokens` is THIS place's current tokens only — NOT all places' tokens — and the body MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
+        "With `arity` n: `tokens` is a tuple of exactly n tokens (`const [a, b] = tokens;`) and the body returns one derivative record for arity 1, or an array of n records (one per token, in order) above that; the module form then declares the n token parameters, `export default Dynamics((a, b, parameters) => …)`.",
         "Integer and boolean elements are discrete and remain unchanged by dynamics.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
     }),
+    arity: z.int().positive().optional().meta({
+      description:
+        "How many tokens the equation couples. Omit for the whole-place form (`tokens.map(...)`). With n, the simulator applies the code to every unordered combination of n distinct tokens of the place, in index order, and sums the contributions into each token's derivative: 1 is a per-token equation, 2 a pairwise interaction such as an attraction between every two tokens.",
+    }),
   })
   .meta({
     description:
-      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId`, and returned derivatives only update that colour's real-valued elements.",
+      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId` or `dynamics`, and returned derivatives only update that colour's real-valued elements.",
   }) satisfies z.ZodType<DifferentialEquation>;
 
 export const parameterObjectSchema = z.strictObject({

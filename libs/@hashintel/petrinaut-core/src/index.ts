@@ -411,6 +411,11 @@ export {
   parseArcEndpointKey,
   placeArcEndpoint,
 } from "./arc-endpoints";
+export {
+  getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
+  withoutDifferentialEquation,
+} from "./place-dynamics";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,

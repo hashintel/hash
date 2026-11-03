@@ -97,6 +97,13 @@ const legacyNet = (): SDCPN => ({
   ],
   differentialEquations: [
     { id: "decay", name: "Decay", colorId: "colour", code: "return 0;" },
+    {
+      id: "drift",
+      name: "Drift",
+      colorId: "colour",
+      code: "return { weight: 1 };",
+      arity: 1,
+    },
   ],
   parameters: [
     {
@@ -114,6 +121,7 @@ const legacyNet = (): SDCPN => ({
       colorId: "colour",
       dynamicsEnabled: true,
       differentialEquationId: "decay",
+      dynamics: [{ differentialEquationId: "drift" }],
       x: 0,
       y: 0,
     },
@@ -279,12 +287,14 @@ describe("canonicalizePetrinautIds", () => {
       id: idOf("waiting"),
       colorId: idOf("colour"),
       differentialEquationId: idOf("decay"),
+      dynamics: [{ differentialEquationId: idOf("drift") }],
     });
     expect(canonical.places[1]).toMatchObject({
       id: idOf("done"),
       colorId: null,
       differentialEquationId: null,
     });
+    expect(canonical.places[1]).not.toHaveProperty("dynamics");
     expect(canonical.transitions[0]).toMatchObject({
       id: idOf("serve"),
       inputArcs: [{ placeId: idOf("waiting") }],

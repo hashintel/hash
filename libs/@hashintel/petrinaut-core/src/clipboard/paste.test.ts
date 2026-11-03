@@ -127,6 +127,42 @@ describe("paste — ID generation", () => {
     expect(sdcpn.differentialEquations[0]!.id).not.toBe("old-de");
   });
 
+  it("remaps composed dynamics to the pasted equations", () => {
+    const sdcpn = emptyNet();
+    const payload = makePayload({
+      differentialEquations: [
+        { id: "old-orbit", name: "Orbit", colorId: "c", code: "" },
+        { id: "old-pull", name: "Pull", colorId: "c", code: "", arity: 2 },
+      ],
+      places: [
+        {
+          id: "old-place",
+          name: "Space",
+          colorId: "c",
+          dynamicsEnabled: true,
+          differentialEquationId: "old-orbit",
+          dynamics: [
+            { differentialEquationId: "old-pull" },
+            { differentialEquationId: "not-pasted" },
+          ],
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+
+    pastePayloadIntoSDCPN(sdcpn, payload);
+
+    const [orbit, pull] = sdcpn.differentialEquations;
+    expect(sdcpn.places[0]).toMatchObject({
+      differentialEquationId: orbit!.id,
+      dynamics: [
+        { differentialEquationId: pull!.id },
+        { differentialEquationId: "not-pasted" },
+      ],
+    });
+  });
+
   it("assigns new IDs to pasted parameters", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({

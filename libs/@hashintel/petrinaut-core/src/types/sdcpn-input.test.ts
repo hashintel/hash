@@ -62,6 +62,7 @@ describe("normalizeSDCPN", () => {
 
     expect(Object.hasOwn(result.places[0]!, "visualizerCode")).toBe(false);
     expect(Object.hasOwn(result.places[0]!, "showAsInitialState")).toBe(false);
+    expect(Object.hasOwn(result.places[0]!, "dynamics")).toBe(false);
     expect(Object.hasOwn(result, "scenarios")).toBe(false);
     expect(Object.hasOwn(result, "metrics")).toBe(false);
   });
@@ -101,6 +102,7 @@ describe("normalizeSDCPN", () => {
           colorId: "c1",
           dynamicsEnabled: true,
           differentialEquationId: "d1",
+          dynamics: [{ differentialEquationId: "d2" }],
           visualizerCode: "code",
           showAsInitialState: true,
         },
@@ -124,6 +126,7 @@ describe("normalizeSDCPN", () => {
       colorId: idOf("c1"),
       dynamicsEnabled: true,
       differentialEquationId: idOf("d1"),
+      dynamics: [{ differentialEquationId: idOf("d2") }],
       visualizerCode: "code",
       showAsInitialState: true,
     });

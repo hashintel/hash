@@ -64,6 +64,7 @@ export type SDCPNPlaceInput = {
   dynamicsEnabled?: boolean;
   /** @default null */
   differentialEquationId?: ID | null;
+  dynamics?: Place["dynamics"];
   capacity?: Place["capacity"];
   isPort?: boolean;
   visualizerCode?: string;
@@ -129,8 +130,8 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * {@link SDCPN}. Idempotent: normalizing an already-complete `SDCPN` returns an
  * equivalent value.
  *
- * Optional output fields (`capacity`, `isPort`, `visualizerCode`, `showAsInitialState`,
- * arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
+ * Optional output fields (`dynamics`, `capacity`, `isPort`, `visualizerCode`,
+ * `showAsInitialState`, arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
  * `componentInstances`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
  * dirty-tracking via `isSDCPNEqual`). Entity ids and the references to them
@@ -150,6 +151,9 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
       };
       if (place.description !== undefined) {
         normalized.description = place.description;
+      }
+      if (place.dynamics !== undefined) {
+        normalized.dynamics = place.dynamics;
       }
       if (place.capacity !== undefined) {
         normalized.capacity = place.capacity;

@@ -279,7 +279,7 @@ export const sanitizePlaceForExtensions = <
     return place;
   }
 
-  return {
+  const sanitized: Place = {
     ...place,
     colorId: extensions.colors ? place.colorId : null,
     dynamicsEnabled: canUseDynamics(extensions) ? place.dynamicsEnabled : false,
@@ -288,6 +288,10 @@ export const sanitizePlaceForExtensions = <
       : null,
     visualizerCode: extensions.colors ? place.visualizerCode : undefined,
   };
+  if (!canUseDynamics(extensions)) {
+    delete sanitized.dynamics;
+  }
+  return sanitized;
 };
 
 export const sanitizeTransitionForExtensions = <
@@ -356,6 +360,9 @@ const stripDisabledExtensionDataFromNet = (
     if (!extensions.colors) {
       delete place.visualizerCode;
     }
+    if (!canUseDynamics(extensions)) {
+      delete place.dynamics;
+    }
   }
 
   for (const transition of net.transitions) {
@@ -409,13 +416,21 @@ const cloneComponentInstances = (
     parameterValues: { ...instance.parameterValues },
   }));
 
+/** A copy that shares nothing with `place`; `dynamics` stays absent when absent. */
+const clonePlace = (place: SDCPNPlace): SDCPNPlace => ({
+  ...place,
+  ...(place.dynamics === undefined
+    ? {}
+    : { dynamics: place.dynamics.map((term) => ({ ...term })) }),
+});
+
 const cloneSubnet = (
   subnet: NonNullable<SDCPN["subnets"]>[number],
 ): NonNullable<SDCPN["subnets"]>[number] => {
   const next: NonNullable<SDCPN["subnets"]>[number] = {
     id: subnet.id,
     name: subnet.name,
-    places: subnet.places.map((place) => ({ ...place })),
+    places: subnet.places.map(clonePlace),
     transitions: subnet.transitions.map((transition) => ({
       ...transition,
       inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
@@ -467,7 +482,7 @@ export const sanitizeSDCPNForExtensions = (
   extensions: PetrinautExtensionSettings,
 ): SDCPN => {
   const next: SDCPN = {
-    places: sdcpn.places.map((place) => ({ ...place })),
+    places: sdcpn.places.map(clonePlace),
     transitions: sdcpn.transitions.map((transition) => ({
       ...transition,
       inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),

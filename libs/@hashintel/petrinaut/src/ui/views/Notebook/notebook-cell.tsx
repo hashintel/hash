@@ -1,7 +1,11 @@
 import { Fragment, useRef, useState } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { getDocumentUri } from "@hashintel/petrinaut-core";
+import {
+  getDocumentUri,
+  getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -612,11 +616,16 @@ const typeName = (net: ActiveNetDefinition, colorId: string | null): string => {
 
 const placeSummary = (net: ActiveNetDefinition, place: Place): string => {
   const parts = [typeName(net, place.colorId)];
-  if (place.dynamicsEnabled && place.differentialEquationId !== null) {
-    const equation = net.differentialEquations.find(
-      ({ id }) => id === place.differentialEquationId,
+  const equationIds = place.dynamicsEnabled
+    ? getPlaceDynamicsEquationIds(place)
+    : [];
+  if (equationIds.length > 0) {
+    const names = equationIds.map(
+      (equationId) =>
+        net.differentialEquations.find(({ id }) => id === equationId)?.name ??
+        equationId,
     );
-    parts.push(`d/dt: ${equation?.name ?? place.differentialEquationId}`);
+    parts.push(`d/dt: ${names.join(" + ")}`);
   }
   if (place.isPort) {
     parts.push("port");
@@ -651,8 +660,8 @@ const equationSummary = (
   net: ActiveNetDefinition,
   equation: DifferentialEquation,
 ): string => {
-  const places = net.places.filter(
-    ({ differentialEquationId }) => differentialEquationId === equation.id,
+  const places = net.places.filter((place) =>
+    placeUsesDifferentialEquation(place, equation.id),
   );
   return `${typeName(net, equation.colorId)} · ${places.length} place${places.length === 1 ? "" : "s"}`;
 };

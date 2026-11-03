@@ -134,6 +134,15 @@ export function pastePayloadIntoSDCPN(
           ? (idMap.get(place.differentialEquationId) ??
             place.differentialEquationId)
           : null,
+      ...(place.dynamics === undefined
+        ? {}
+        : {
+            dynamics: place.dynamics.map((term) => ({
+              differentialEquationId:
+                idMap.get(term.differentialEquationId) ??
+                term.differentialEquationId,
+            })),
+          }),
     });
     newItemIds.push({ type: "place", id: newId });
   }

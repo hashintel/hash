@@ -334,6 +334,7 @@ describe("parseSDCPNFile", () => {
             colorId: "c1",
             dynamicsEnabled: true,
             differentialEquationId: "de1",
+            dynamics: [{ differentialEquationId: "de2" }],
             x: 100,
             y: 200,
           },
@@ -348,6 +349,7 @@ describe("parseSDCPNFile", () => {
         types: [{ id: "c1", name: "Colour 1", elements: [] }],
         differentialEquations: [
           { id: "de1", name: "Equation 1", colorId: "c1", code: "" },
+          { id: "de2", name: "Pairwise", colorId: "c1", code: "", arity: 2 },
         ],
       });
 
@@ -357,6 +359,11 @@ describe("parseSDCPNFile", () => {
         colorId: idOf("c1"),
         dynamicsEnabled: true,
         differentialEquationId: idOf("de1"),
+        dynamics: [{ differentialEquationId: idOf("de2") }],
+      });
+      expect(result.sdcpn.differentialEquations[1]).toMatchObject({
+        id: idOf("de2"),
+        arity: 2,
       });
       expect(result.sdcpn.transitions[0]?.inputArcs[0]).toMatchObject({
         weight: 3,
