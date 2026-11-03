@@ -28,7 +28,7 @@ uv             = "0.13.4"
 # wasm-opt crate from source added ~7 minutes to every install that needed it.
 "github:WebAssembly/binaryen"   = "version_131"
 "github:wasm-bindgen/wasm-pack" = "0.15.0"
-java                            = "25"
+java                            = "temurin-25.0.5+8.0.LTS"
 protoc                          = "35.1"
 
 # CLI tools
