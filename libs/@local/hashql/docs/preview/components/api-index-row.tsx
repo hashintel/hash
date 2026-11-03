@@ -1,7 +1,7 @@
-import { coloursOf } from "./colours.js";
+import * as Colours from "./colours.js";
 import { Glyph } from "./glyph.js";
 
-import type { IndexRowProps } from "../../lib/components.js";
+import type * as Components from "../../lib/components.js";
 import type { ReactNode } from "react";
 
 /** A row with the kind's glyph, then the name in the colour the themes give that kind of name in code, then the first sentence. */
@@ -11,8 +11,8 @@ export function ApiIndexRow({
   depth,
   title,
   summary,
-}: IndexRowProps): ReactNode {
-  const colours = coloursOf(kind);
+}: Components.IndexRowProps): ReactNode {
+  const colours = Colours.coloursOf(kind);
 
   return (
     <li

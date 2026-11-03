@@ -1,10 +1,10 @@
 import { Heading } from "@fumadocs/base-ui/components/heading";
 
 import { Facts } from "./facts.js";
-import { keywordOf } from "./kinds.js";
-import { slotted } from "./slots.js";
+import * as Kinds from "./kinds.js";
+import * as Slots from "./slots.js";
 
-import type { ExportProps } from "../../lib/components.js";
+import type * as Components from "../../lib/components.js";
 import type { ReactNode } from "react";
 
 /** The namespaces an entry's export is in, from its anchor, which starts with their names when there are any. */
@@ -26,10 +26,10 @@ export function ApiExport({
   stability,
   source,
   children,
-}: ExportProps): ReactNode {
-  const keyword = keywordOf(kind);
+}: Components.ExportProps): ReactNode {
+  const keyword = Kinds.keywordOf(kind);
   const owner = ownerOf(name, title);
-  const { slot: header, rest: body } = slotted(children, "header");
+  const { slot: header, rest: body } = Slots.slotted(children, "header");
 
   return (
     <section className="api-export" data-depth={depth} data-kind={kind}>

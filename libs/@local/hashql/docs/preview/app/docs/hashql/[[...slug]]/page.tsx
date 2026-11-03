@@ -9,12 +9,12 @@ import defaultMdxComponents from "@fumadocs/base-ui/mdx";
 import { notFound } from "next/navigation.js";
 
 import { Body } from "../../../../../lib/components.js";
-import { components } from "../../../../components/api.js";
+import { components, html } from "../../../../components/api.js";
 import { Glyph } from "../../../../components/glyph.js";
 import { Rail } from "../../../../components/rail.js";
 import { source } from "../../../../lib/source.js";
 
-import type { OutlineEntry } from "../../../../../lib/source.js";
+import type * as Source from "../../../../../lib/source.js";
 import type { TOCItemType } from "fumadocs-core/toc";
 import type { Root, RootContent } from "hast";
 import type { Metadata } from "next";
@@ -34,7 +34,7 @@ const ownNameOf = (title: ReactNode): ReactNode => {
 };
 
 /** The outline, with each entry's glyph and its own name in monospace, as the page draws them, and each group's title. */
-const outlineOf = (entries: readonly OutlineEntry[]): TOCItemType[] =>
+const outlineOf = (entries: readonly Source.OutlineEntry[]): TOCItemType[] =>
   entries.map(({ title, url, depth, kind }) => {
     if (kind === undefined) {
       return {
@@ -90,23 +90,21 @@ export default async function Page({ params }: Props): Promise<ReactNode> {
   // A page with an index draws it in the rail in place of the outline, and gives its entries the width they need to draw two columns.
   const hasIndex = index.children.length > 0;
   // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- rendered once, on the server
-  const tableOfContent = {
-    enabled: true,
-    ...(hasIndex
-      ? {
-          component: (
-            <Rail>
-              <Body
-                tree={index}
-                components={components}
-                html={defaultMdxComponents}
-                resolve={resolve}
-              />
-            </Rail>
-          ),
-        }
-      : {}),
-  };
+  const tableOfContent = hasIndex
+    ? {
+        enabled: true,
+        component: (
+          <Rail>
+            <Body
+              tree={index}
+              components={components}
+              html={html}
+              resolve={resolve}
+            />
+          </Rail>
+        ),
+      }
+    : { enabled: true };
 
   return (
     <DocsPage
@@ -120,7 +118,7 @@ export default async function Page({ params }: Props): Promise<ReactNode> {
         <Body
           tree={data.hast}
           components={components}
-          html={defaultMdxComponents}
+          html={html}
           resolve={resolve}
         />
       </DocsBody>
