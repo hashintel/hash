@@ -282,7 +282,9 @@ describe("net freshness", () => {
     {
       part: "descriptions",
       change: (definition) => {
-        definition.description = "An updated explanation of the operation.";
+        Object.assign(definition, {
+          description: "An updated explanation of the operation.",
+        });
       },
     },
     {
@@ -296,7 +298,9 @@ describe("net freshness", () => {
     {
       part: "metadata",
       change: (definition) => {
-        definition.metadata = { lastSavedTime: "2026-10-24T01:00:00.000Z" };
+        Object.assign(definition, {
+          metadata: { lastSavedTime: "2026-10-24T01:00:00.000Z" },
+        });
       },
     },
   ])("changing $part by hand leaves the model's view current", ({ change }) => {
