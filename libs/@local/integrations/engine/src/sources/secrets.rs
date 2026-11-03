@@ -78,11 +78,11 @@ struct VaultSecret<T> {
 }
 
 impl GraphVaultSecretStore {
-    /// Builds an HTTPS-only client with redirects disabled and a finite request timeout.
+    /// Builds a client with redirects disabled and a finite request timeout.
     ///
     /// # Errors
     ///
-    /// Returns [`SourceError::Configuration`] for invalid or non-HTTPS endpoints, a mount
+    /// Returns [`SourceError::Configuration`] for invalid or non-HTTP(S) endpoints, a mount
     /// containing path separators, or a failed HTTP client initialization.
     pub fn new(config: GraphVaultConfig) -> Result<Self, Report<SourceError>> {
         let graph = endpoint(&config.graph_url)?;
@@ -94,7 +94,6 @@ impl GraphVaultSecretStore {
             return Err(Report::new(SourceError::Configuration));
         }
         let client = Client::builder()
-            .https_only(true)
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()
             .timeout(Duration::from_secs(30))
@@ -111,7 +110,7 @@ impl GraphVaultSecretStore {
 
 fn endpoint(value: &str) -> Result<Url, Report<SourceError>> {
     let url = Url::parse(value).map_err(|_error| Report::new(SourceError::Configuration))?;
-    if url.scheme() != "https"
+    if !matches!(url.scheme(), "http" | "https")
         || url.host().is_none()
         || !url.username().is_empty()
         || url.password().is_some()
@@ -321,7 +320,8 @@ mod tests {
 
     use axum::{
         Json, Router,
-        http::{HeaderMap, StatusCode},
+        http::{HeaderMap, StatusCode, header::LOCATION},
+        response::IntoResponse as _,
         routing::{get, post},
     };
     use hash_crypto::Secret;
@@ -337,7 +337,7 @@ mod tests {
     use hash_middleware::authentication::{
         request::ACTOR_ID_HEADER, service_secret::service_credential,
     };
-    use reqwest::{Client, Url};
+    use reqwest::Client;
     use rstest::rstest;
     use serde::{Deserialize, Serialize};
     use serde_json::{Map, Value};
@@ -547,23 +547,14 @@ mod tests {
                 }),
             );
         let server = server(router).await;
-        let config = GraphVaultConfig {
+        let store = GraphVaultSecretStore::new(GraphVaultConfig {
             graph_url: server.url().to_owned(),
             graph_service_secret: Secret::from_string("graph-token".to_owned()),
             vault_url: server.url().to_owned(),
             vault_mount: "secret".to_owned(),
             vault_token: Secret::from_string("vault-token".to_owned()),
-        };
-        let store = GraphVaultSecretStore {
-            graph: Url::parse(server.url()).expect("should parse the mock Graph endpoint"),
-            vault: Url::parse(server.url()).expect("should parse the mock Vault endpoint"),
-            config,
-            client: Client::builder()
-                .no_proxy()
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .expect("should build the mock client"),
-        };
+        })
+        .expect("should configure the HTTP service endpoints");
         let result = store
             .read(
                 web,
@@ -694,11 +685,14 @@ mod tests {
         );
     }
 
+    #[rstest]
+    #[case::graph(true)]
+    #[case::vault(false)]
     #[tokio::test]
-    async fn read_rejects_cleartext_transport() {
+    async fn read_redirects(#[case] redirect_graph: bool) {
         let requests = Arc::new(AtomicUsize::new(0));
         let observed = Arc::clone(&requests);
-        let server = server(Router::new().fallback(move || {
+        let destination = server(Router::new().fallback(move || {
             let observed = Arc::clone(&observed);
             async move {
                 observed.fetch_add(1, Ordering::SeqCst);
@@ -706,49 +700,68 @@ mod tests {
             }
         }))
         .await;
-        for (graph_url, vault_url) in [
-            (server.url(), "https://vault.example.com"),
-            ("https://graph.example.com", server.url()),
-        ] {
-            let result = GraphVaultSecretStore::new(GraphVaultConfig {
-                graph_url: graph_url.to_owned(),
-                graph_service_secret: Secret::from_string("graph-token".to_owned()),
-                vault_url: vault_url.to_owned(),
-                vault_mount: "secret".to_owned(),
-                vault_token: Secret::from_string("vault-token".to_owned()),
-            });
-            assert!(
-                matches!(result, Err(error) if matches!(error.current_context(), SourceError::Configuration)),
-                "should reject an HTTP Graph or Vault endpoint"
+        let location = destination.url().to_owned();
+        let graph_location = location.clone();
+        let web = Uuid::new_v4();
+        let id = Uuid::new_v4();
+        let secret = entity(web, id);
+        let router = Router::new()
+            .route(
+                "/entities/query",
+                post(move || {
+                    let location = graph_location.clone();
+                    let entity = secret.clone();
+                    async move {
+                        if redirect_graph {
+                            (StatusCode::TEMPORARY_REDIRECT, [(LOCATION, location)]).into_response()
+                        } else {
+                            Json(SecretQueryResponse {
+                                entities: vec![entity],
+                            })
+                            .into_response()
+                        }
+                    }
+                }),
+            )
+            .route(
+                &format!("/v1/secret/data/users/{web}/connector/token"),
+                get(move || {
+                    let location = location.clone();
+                    async move { (StatusCode::TEMPORARY_REDIRECT, [(LOCATION, location)]) }
+                }),
             );
-        }
-        let mut store = GraphVaultSecretStore::new(GraphVaultConfig {
-            graph_url: "https://graph.example.com".to_owned(),
+        let services = server(router).await;
+        let store = GraphVaultSecretStore::new(GraphVaultConfig {
+            graph_url: services.url().to_owned(),
             graph_service_secret: Secret::from_string("graph-token".to_owned()),
-            vault_url: "https://vault.example.com".to_owned(),
+            vault_url: services.url().to_owned(),
             vault_mount: "secret".to_owned(),
             vault_token: Secret::from_string("vault-token".to_owned()),
         })
-        .expect("should configure HTTPS endpoints");
-        store.graph = Url::parse(server.url()).expect("should parse the HTTP endpoint");
+        .expect("should configure the HTTP service endpoints");
         let error = store
             .read(
-                Uuid::new_v4(),
+                web,
                 Uuid::new_v4(),
                 SecretReference {
-                    secret_entity_uuid: Uuid::new_v4(),
+                    secret_entity_uuid: id,
                 },
             )
             .await
-            .expect_err("should enforce HTTPS when sending credentials");
+            .expect_err("should reject a redirected secret request");
+        let diagnostic = format!("{error:?}");
         assert!(
-            matches!(error.current_context(), SourceError::Secret),
-            "should report an unavailable secret"
+            diagnostic.contains("307"),
+            "should report the redirect status"
+        );
+        assert!(
+            diagnostic.contains(if redirect_graph { "Graph" } else { "Vault" }),
+            "should identify the redirecting service"
         );
         assert_eq!(
             requests.load(Ordering::SeqCst),
             0,
-            "should reject cleartext before sending credentials"
+            "should keep credentials away from redirect destinations"
         );
     }
 
