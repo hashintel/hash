@@ -303,13 +303,14 @@ impl SyntaxDump for value::Integer<'_> {
 
 impl SyntaxDump for value::String<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        // A raw control character would reach the terminal or split this node across lines.
         write_header(
             fmt,
             depth,
             "String",
             None,
             None,
-            Some(&format!("{}", self.as_symbol())),
+            Some(&self.as_str().escape_debug().to_string()),
         )
     }
 }
