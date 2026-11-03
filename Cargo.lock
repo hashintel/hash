@@ -6817,6 +6817,7 @@ dependencies = [
  "futures",
  "hash-crypto",
  "hash-graph-migrations-macros",
+ "hash-graph-postgres-store",
  "hash-telemetry",
  "include_dir",
  "include_dir_macros",
@@ -6825,6 +6826,7 @@ dependencies = [
  "time",
  "tokio",
  "tokio-postgres",
+ "tokio-postgres-rustls",
  "tracing",
 ]
 
