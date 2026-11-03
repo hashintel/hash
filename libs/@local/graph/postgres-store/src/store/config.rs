@@ -22,18 +22,16 @@ pub enum DatabaseSslMode {
     /// Connect without TLS.
     #[default]
     Disable,
-    /// Connect with TLS if the server supports it, otherwise without.
-    Prefer,
-    /// Connect with TLS and fail if the server does not support it.
-    Require,
+    /// Connect with TLS, verifying the server's certificate chain and hostname against the root
+    /// certificate.
+    VerifyFull,
 }
 
 impl From<DatabaseSslMode> for SslMode {
     fn from(mode: DatabaseSslMode) -> Self {
         match mode {
             DatabaseSslMode::Disable => Self::Disable,
-            DatabaseSslMode::Prefer => Self::Prefer,
-            DatabaseSslMode::Require => Self::Require,
+            DatabaseSslMode::VerifyFull => Self::Require,
         }
     }
 }
@@ -130,7 +128,7 @@ pub struct DatabaseConnectionInfo {
         clap(
             long = "pg-ssl-root-cert",
             env = "HASH_GRAPH_PG_SSL_ROOT_CERT",
-            required_if_eq_any = [("ssl_mode", "prefer"), ("ssl_mode", "require")],
+            required_if_eq("ssl_mode", "verify-full"),
             global = true
         )
     )]
@@ -193,12 +191,10 @@ impl DatabaseConnectionInfo {
         match (self.ssl_mode, &self.ssl_root_cert) {
             // `config` sets `SslMode::Disable`, so tokio-postgres never uses the connector.
             (DatabaseSslMode::Disable, _) => Ok(connector(RootCertStore::empty())),
-            (DatabaseSslMode::Prefer | DatabaseSslMode::Require, Some(path)) => {
-                load_root_certificates(path)
-                    .map(connector)
-                    .attach_with(|| path.display().to_string())
-            }
-            (DatabaseSslMode::Prefer | DatabaseSslMode::Require, None) => {
+            (DatabaseSslMode::VerifyFull, Some(path)) => load_root_certificates(path)
+                .map(connector)
+                .attach_with(|| path.display().to_string()),
+            (DatabaseSslMode::VerifyFull, None) => {
                 Err(Report::new(RootCertificateError).attach("TLS is enabled without one"))
             }
         }
@@ -336,12 +332,10 @@ mod tests {
 
     #[test]
     fn tls_enabled_without_root_cert() {
-        for mode in [DatabaseSslMode::Prefer, DatabaseSslMode::Require] {
-            assert!(
-                local_info(mode).tls().is_err(),
-                "{mode:?} should require a root certificate"
-            );
-        }
+        assert!(
+            local_info(DatabaseSslMode::VerifyFull).tls().is_err(),
+            "verify-full should require a root certificate"
+        );
     }
 
     #[cfg(feature = "clap")]
@@ -369,16 +363,14 @@ mod tests {
 
         #[test]
         fn ssl_requires_root_cert() {
-            for mode in ["prefer", "require"] {
-                let error = Cli::try_parse_from(["graph", "--pg-ssl-mode", mode])
-                    .expect_err("a TLS mode without a root certificate should be rejected");
+            let error = Cli::try_parse_from(["graph", "--pg-ssl-mode", "verify-full"])
+                .expect_err("verify-full without a root certificate should be rejected");
 
-                assert_eq!(
-                    error.kind(),
-                    ErrorKind::MissingRequiredArgument,
-                    "`{mode}` should require `--pg-ssl-root-cert`"
-                );
-            }
+            assert_eq!(
+                error.kind(),
+                ErrorKind::MissingRequiredArgument,
+                "`verify-full` should require `--pg-ssl-root-cert`"
+            );
         }
 
         #[test]
@@ -386,7 +378,7 @@ mod tests {
             let cli = Cli::try_parse_from([
                 "graph",
                 "--pg-ssl-mode",
-                "require",
+                "verify-full",
                 "--pg-ssl-root-cert",
                 "/etc/ssl/rds.pem",
             ])

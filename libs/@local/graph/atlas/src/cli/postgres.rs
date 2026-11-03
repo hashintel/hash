@@ -72,7 +72,7 @@ pub struct PostgresArgs {
     #[arg(
         long = "pg-ssl-root-cert",
         env = "HASH_GRAPH_PG_SSL_ROOT_CERT",
-        required_if_eq_any = [("ssl_mode", "prefer"), ("ssl_mode", "require")]
+        required_if_eq("ssl_mode", "verify-full")
     )]
     ssl_root_cert: Option<PathBuf>,
 }
@@ -190,16 +190,14 @@ mod tests {
 
     #[test]
     fn ssl_requires_root_cert() {
-        for mode in ["prefer", "require"] {
-            let error = Cli::try_parse_from(["atlas", "--pg-ssl-mode", mode])
-                .expect_err("a TLS mode without a root certificate should be rejected");
+        let error = Cli::try_parse_from(["atlas", "--pg-ssl-mode", "verify-full"])
+            .expect_err("verify-full without a root certificate should be rejected");
 
-            assert_eq!(
-                error.kind(),
-                ErrorKind::MissingRequiredArgument,
-                "`{mode}` should require `--pg-ssl-root-cert`"
-            );
-        }
+        assert_eq!(
+            error.kind(),
+            ErrorKind::MissingRequiredArgument,
+            "`verify-full` should require `--pg-ssl-root-cert`"
+        );
     }
 
     #[test]
@@ -207,7 +205,7 @@ mod tests {
         Cli::try_parse_from([
             "atlas",
             "--pg-ssl-mode",
-            "require",
+            "verify-full",
             "--pg-ssl-root-cert",
             "/etc/ssl/rds.pem",
         ])
