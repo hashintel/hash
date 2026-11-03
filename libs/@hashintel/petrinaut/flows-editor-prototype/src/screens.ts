@@ -161,7 +161,7 @@ export const figmaScreens: FigmaScreen[] = [
     id: "J1.11",
     aliases: ["J1.20"],
     name: "Steps tree with groups, large flow · flow: Monthly supplier review",
-    nodeId: "806:63095",
+    nodeId: "970:16",
     section: "J1 · Create a flow and add steps",
     tag: "Waiting",
     why: "parallel steps parked",
@@ -271,7 +271,7 @@ export const figmaScreens: FigmaScreen[] = [
   {
     id: "J2.9",
     name: "Several rows with AND / OR joiners · flow: Untitled flow",
-    nodeId: "806:64821",
+    nodeId: "970:190",
     section: "J2a · Find entities: the query",
     tag: "Ready after fix",
     why: "old screen template: rebuild on the current one (top bar, minimap, sizes)",
@@ -279,7 +279,7 @@ export const figmaScreens: FigmaScreen[] = [
   {
     id: "J2.10",
     name: "Joiner chip menu open · flow: Untitled flow",
-    nodeId: "806:65125",
+    nodeId: "970:299",
     section: "J2a · Find entities: the query",
     tag: "Ready after fix",
     why: "old screen template: rebuild on the current one (top bar, minimap, sizes)",
@@ -304,7 +304,8 @@ export const figmaScreens: FigmaScreen[] = [
     name: "Entity type menu, from earlier steps · flow: Untitled flow",
     nodeId: "955:23195",
     section: "J2b · Pick a value for an input",
-    tag: "Ready",
+    tag: "Ready after fix",
+    why: "first 3–4 values, then Show more",
   },
   {
     id: "J2.13a",
