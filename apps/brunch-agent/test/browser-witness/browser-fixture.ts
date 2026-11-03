@@ -21,7 +21,10 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 
-import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
+import {
+  agentOwnershipHeaders,
+  brunchOwnerKeyStorageKey,
+} from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 import { nativeOpenaiProvider } from "@local/pi-faux-providers/native-openai-provider";
 
@@ -194,7 +197,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
   }
   const launched = browser;
 
-  /** A fresh browser context, so each case gets its own principal and storage. */
+  /** A fresh browser context, so each case gets its own owner key and storage. */
   const openPage = async () => {
     const page = await launched.newPage({
       viewport: { width: 1440, height: 1000 },
@@ -274,16 +277,13 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     openStreams.clear();
   };
 
-  const principalOf = async (page: Page) => {
-    const principalKey = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find((entry) =>
-        entry.includes("principal"),
-      );
-      const raw = key === undefined ? null : localStorage.getItem(key);
+  const ownerKeyOf = async (page: Page) => {
+    const ownerKey = await page.evaluate((storageKey) => {
+      const raw = localStorage.getItem(storageKey);
       return raw?.startsWith('"') ? (JSON.parse(raw) as string) : raw;
-    });
-    assert(principalKey, "Missing browser principal");
-    return principalKey;
+    }, brunchOwnerKeyStorageKey);
+    assert(ownerKey, "Missing browser owner key");
+    return ownerKey;
   };
 
   /** The Flue client for the conversation the delivery's binding names. */
@@ -291,7 +291,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     const binding = delivery.initialData?.binding;
     assert(binding, "Missing browser conversation binding");
     const identity = {
-      principalKey: await principalOf(page),
+      ownerKey: await ownerKeyOf(page),
       conversationId: binding.conversationId,
     };
     const client = createFlueClient({

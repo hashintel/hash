@@ -45,10 +45,21 @@ export const brunchSignals = {
   ledgerComments: "brunch.ledger-comments",
 } as const;
 
-/** Request headers that carry conversation identity. */
+/**
+ * Where a browser host stores its owner key. Keeps its pre-rename name: it
+ * addresses owner keys already stored in users' browsers, and a new name would
+ * orphan their conversations.
+ */
+export const brunchOwnerKeyStorageKey = "brunch-principal-v1";
+
+/**
+ * Request headers that carry conversation identity. The owner key's header
+ * name predates its rename from "principal" and is a wire name: changing it
+ * needs a coordinated deploy of every client and server.
+ */
 export const brunchHeaders = {
   conversation: "x-brunch-conversation",
-  principal: "x-brunch-principal",
+  ownerKey: "x-brunch-principal",
 } as const;
 
 /** Server routes and route segments. */
@@ -63,8 +74,8 @@ export const brunchRoutes = {
   health: "/health",
 } as const;
 
-/** Principal for the stock Flue UI at `/`. Not a second ownership rule. */
-export const localUiPrincipal = "local";
+/** Owner key for the stock Flue UI at `/`. Not a second ownership rule. */
+export const localUiOwnerKey = "local";
 
 /** Prefix of the conversation ID the Petrinaut website derives from a net ID. */
 export const previewConversationIdPrefix = "petrinaut-preview:";

@@ -39,7 +39,7 @@ assert(
 const dbPath = join(directory, "conversation.db");
 assert.equal(existsSync(dbPath), phase === "recover");
 const identity = {
-  principalKey: `a4-crash-${basename(directory)}`,
+  ownerKey: `a4-crash-${basename(directory)}`,
   conversationId: `a4-crash-${basename(directory)}`,
 };
 const inspect = () => {
