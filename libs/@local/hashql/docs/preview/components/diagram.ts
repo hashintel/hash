@@ -1,10 +1,10 @@
 import { renderMermaidSVG } from "beautiful-mermaid";
-import { Function } from "effect";
+import { Array, Function, HashMap, Option, pipe } from "effect";
 
-import type { HierarchyProps } from "../../lib/components.js";
+import type * as Components from "../../lib/components.js";
 
 /** The types of a hierarchy, and the edges between them. */
-type Graph = Pick<HierarchyProps, "nodes" | "edges">;
+type Graph = Pick<Components.HierarchyProps, "nodes" | "edges">;
 
 const escapeAttribute = (value: string): string =>
   value
@@ -38,8 +38,10 @@ const boxOf = (
   group: string,
   { open = "", body = "", close = "" }: Readonly<Record<string, string>>,
 ): string => {
-  const [outer, header] = Array.from(
-    body.matchAll(/<rect [^>]*height="(?<height>[\d.]+)"/gu),
+  const [outer, header] = Array.map(
+    Array.fromIterable(
+      body.matchAll(/<rect [^>]*height="(?<height>[\d.]+)"/gu),
+    ),
     (match) => Number(match.groups?.["height"]),
   );
   if (outer === undefined || header === undefined) {
@@ -69,26 +71,36 @@ export const diagramOf: {
   (id: string, graph: Graph): string;
 } = Function.dual(2, (id: string, { nodes, edges }: Graph): string => {
   // Mermaid names a box by its label, so a label two types share takes a count after the first.
-  const used = new Map<string, number>();
-  const ids = nodes.map(({ label }) => {
-    const count = used.get(label) ?? 0;
-    used.set(label, count + 1);
-    return count === 0 ? label : `${label}_${count}`;
-  });
-  const text = [
-    "classDiagram",
-    ...nodes.map(({ role }, index) => {
-      const box = ids[index] ?? "";
-      return role === "trait"
-        ? `  class ${box} { <<trait>> }`
-        : `  class ${box}`;
-    }),
-    ...edges.map(
-      ([base, derived]) => `  ${ids[base] ?? ""} <|-- ${ids[derived] ?? ""}`,
-    ),
-  ].join("\n");
+  const [, ids] = Array.mapAccum(
+    nodes,
+    HashMap.empty<string, number>(),
+    (used, { label }): readonly [HashMap.HashMap<string, number>, string] => {
+      const count = pipe(
+        HashMap.get(used, label),
+        Option.getOrElse(() => 0),
+      );
+
+      return [
+        HashMap.set(used, label, count + 1),
+        count === 0 ? label : `${label}_${count}`,
+      ];
+    },
+  );
+  const text = pipe(
+    Array.flatten([
+      ["classDiagram"],
+      Array.zipWith(nodes, ids, ({ role }, box) =>
+        role === "trait" ? `  class ${box} { <<trait>> }` : `  class ${box}`,
+      ),
+      Array.map(
+        edges,
+        ([base, derived]) => `  ${ids[base] ?? ""} <|-- ${ids[derived] ?? ""}`,
+      ),
+    ]),
+    Array.join("\n"),
+  );
   const arrowhead = `${id}-arrowhead`;
-  const byId = new Map(ids.map((own, index) => [own, nodes[index]]));
+  const byId = HashMap.fromIterable(Array.zip(ids, nodes));
 
   const svg = renderMermaidSVG(text, {
     bg: "var(--color-fd-card)",
@@ -114,10 +126,12 @@ export const diagramOf: {
     boxes,
     /<g class="class-node" data-id="(?<box>[^"]+)"[^>]*>[\s\S]*?<\/g>/gu,
     (group, { box = "" }) => {
-      const node = byId.get(box.replaceAll("&amp;", "&"));
-      if (node === undefined) {
+      const found = HashMap.get(byId, box.replaceAll("&amp;", "&"));
+      if (Option.isNone(found)) {
         return group;
       }
+
+      const node = found.value;
 
       const marked = group.replace(
         "<g ",

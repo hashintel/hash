@@ -1,4 +1,4 @@
-import type { Facts as FactsProps } from "../../lib/Page.js";
+import type * as Page from "../../lib/Page.js";
 import type { ReactNode } from "react";
 
 /** An export's stability unless it is stable, the version it arrived in, and a link to its source drawn as GitHub's mark, with the word "Source" after it when `labelled`. */
@@ -7,7 +7,7 @@ export function Facts({
   stability,
   source,
   labelled = false,
-}: FactsProps & { readonly labelled?: boolean }): ReactNode {
+}: Page.Facts & { readonly labelled?: boolean }): ReactNode {
   return (
     <span className="api-facts">
       {stability === undefined || stability === "stable" ? null : (
