@@ -44,6 +44,14 @@ export type TraceEvent = {
   newStrings?: SimulationFrameNewStrings;
 };
 
+/**
+ * Whether an event changes the discrete state: the initial marking or a
+ * firing. Reference frames only re-anchor the continuous evolution, so a
+ * viewer stepping between events skips them.
+ */
+export const isDiscreteEvent = (event: Pick<TraceEvent, "kind">): boolean =>
+  event.kind !== "reference";
+
 /** What a host sees of a trace without holding its events. */
 export type EventTraceSummary = {
   eventCount: number;

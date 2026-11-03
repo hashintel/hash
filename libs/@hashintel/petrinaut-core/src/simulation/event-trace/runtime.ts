@@ -76,6 +76,13 @@ export interface EventSimulation {
   getEvent(this: void, index: number): TraceEvent | null;
   /** Index of the last event at or before `time`, or -1 before the first. */
   findEventIndexAt(this: void, time: number): number;
+  /**
+   * Index of the last discrete event (the initial state or a firing) at or
+   * before `index`, or null. Reference frames are skipped.
+   */
+  findDiscreteEventAtOrBefore(this: void, index: number): number | null;
+  /** Index of the first discrete event after `index`, or null. */
+  findDiscreteEventAfter(this: void, index: number): number | null;
   /** The state an event recorded. */
   getEventState(this: void, index: number): SimulationFrameReader | null;
   /** The state at any `time` the trace covers, interpolated between events. */
@@ -234,6 +241,9 @@ export function createEventSimulation(
       demand: (time) => send({ type: "demand", time }),
       getEvent: (index) => store.getEvent(index),
       findEventIndexAt: (time) => store.findIndexAt(time),
+      findDiscreteEventAtOrBefore: (index) =>
+        store.findDiscreteEventAtOrBefore(index),
+      findDiscreteEventAfter: (index) => store.findDiscreteEventAfter(index),
       getEventState: (index) => store.getEventState(index),
       getStateAt: (time) => store.getStateAt(time),
       dispose() {

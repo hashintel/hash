@@ -65,7 +65,7 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const onScreen = useElementOnScreen(containerRef);
 
-  const { data, firings, metricError } = useEventTimelineData({
+  const { data, firings, references, metricError } = useEventTimelineData({
     viewRange,
     sampleCount: SAMPLE_COUNT,
   });
@@ -98,6 +98,7 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
               className={chartAreaStyle}
               data={data}
               firings={firings}
+              references={references}
               transitionNames={transitionNames}
               hiddenSeries={hiddenSeries}
               viewRange={viewRange}

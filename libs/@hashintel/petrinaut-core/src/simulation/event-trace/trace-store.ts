@@ -1,6 +1,7 @@
 import { compileSimulationFrameReader } from "../frames/frame-reader";
 import { createEngineFrameLayout } from "../frames/internal-frame";
 import { interpolateFrame } from "./interpolation";
+import { isDiscreteEvent } from "./trace";
 
 import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
@@ -14,6 +15,10 @@ export interface EventTraceStore {
   getEvent(index: number): TraceEvent | null;
   /** Index of the last event at or before `time`, or -1 before the first. */
   findIndexAt(time: number): number;
+  /** Index of the last discrete event at or before `index`, or null. */
+  findDiscreteEventAtOrBefore(index: number): number | null;
+  /** Index of the first discrete event after `index`, or null. */
+  findDiscreteEventAfter(index: number): number | null;
   /** The state an event recorded, as it was recorded. */
   getEventState(index: number): SimulationFrameReader | null;
   /**
@@ -96,6 +101,22 @@ export function createInMemoryEventTraceStore(
     latest: () => events[events.length - 1] ?? null,
     getEvent: (index) => events[index] ?? null,
     findIndexAt: (time) => findLastEventIndexAt(events, time),
+    findDiscreteEventAtOrBefore(index) {
+      for (let at = Math.min(index, events.length - 1); at >= 0; at -= 1) {
+        if (isDiscreteEvent(events[at]!)) {
+          return at;
+        }
+      }
+      return null;
+    },
+    findDiscreteEventAfter(index) {
+      for (let at = Math.max(index + 1, 0); at < events.length; at += 1) {
+        if (isDiscreteEvent(events[at]!)) {
+          return at;
+        }
+      }
+      return null;
+    },
     getEventState(index) {
       const event = events[index];
       return event

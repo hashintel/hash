@@ -11,6 +11,7 @@ import {
   buildSampledData,
   buildStepData,
   collectFirings,
+  collectReferenceTimes,
   transitionColors,
   type EventTimelineData,
   type FiringMark,
@@ -33,6 +34,8 @@ export function useEventTimelineData({
 }): {
   data: EventTimelineData | null;
   firings: FiringMark[];
+  /** Times of the reference frames recorded between firings. */
+  references: number[];
   metricError: string | null;
 } {
   const { eventSimulation } = use(SimulationContext);
@@ -62,7 +65,12 @@ export function useEventTimelineData({
   });
 
   if (!eventSimulation || eventCount === 0) {
-    return { data: null, firings: [], metricError: timelineMetric.error };
+    return {
+      data: null,
+      firings: [],
+      references: [],
+      metricError: timelineMetric.error,
+    };
   }
 
   const firings = collectFirings(
@@ -70,12 +78,14 @@ export function useEventTimelineData({
     eventCount,
     transitionColors(transitions),
   );
+  const references = collectReferenceTimes(eventSimulation, eventCount);
 
   switch (timelineView.kind) {
     case "per-transition":
       return {
         data: buildLaneData(eventSimulation, eventCount, transitions),
         firings,
+        references,
         metricError: null,
       };
     case "metric":
@@ -93,6 +103,7 @@ export function useEventTimelineData({
           ),
         },
         firings,
+        references,
         metricError: timelineMetric.error,
       };
     case "per-place":
@@ -110,6 +121,7 @@ export function useEventTimelineData({
           ),
         },
         firings,
+        references,
         metricError: null,
       };
   }

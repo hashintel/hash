@@ -25,6 +25,7 @@ import {
   EventPlaybackContext,
   type EventPlaybackContextValue,
 } from "./context";
+import { findStepTargetIndex } from "./step-target";
 
 const EMPTY_TRACE: EventTraceSummary = {
   eventCount: 0,
@@ -148,6 +149,12 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
   ]);
 
   const currentEventIndex = eventSimulation?.findEventIndexAt(time) ?? -1;
+  const hasPreviousEvent =
+    eventSimulation !== null &&
+    findStepTargetIndex(eventSimulation, time, -1) !== null;
+  const hasNextEvent =
+    eventSimulation !== null &&
+    findStepTargetIndex(eventSimulation, time, 1) !== null;
   const currentFrameReader = eventSimulation?.getStateAt(time) ?? null;
 
   const setTime = (next: number) => {
@@ -159,13 +166,13 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     if (!simulation) {
       return;
     }
-    const current = simulation.findEventIndexAt(snapshotRef.current.time);
-    // Stepping back from between two events lands on the earlier one first.
-    const atEvent =
-      simulation.getEvent(current)?.time === snapshotRef.current.time;
-    const target = simulation.getEvent(
-      direction === 1 ? current + 1 : atEvent ? current - 1 : current,
+    const targetIndex = findStepTargetIndex(
+      simulation,
+      snapshotRef.current.time,
+      direction,
     );
+    const target =
+      targetIndex === null ? null : simulation.getEvent(targetIndex);
     if (target) {
       playback.setTime(target.time, coveredTimeRef.current);
     }
@@ -225,6 +232,8 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     coveredTime,
     eventCount,
     currentEventIndex,
+    hasPreviousEvent,
+    hasNextEvent,
     currentFrameReader,
     playbackState: playState,
     playbackSpeed: speed,
