@@ -16,7 +16,7 @@ import {
   useAssistantChoice,
 } from "../../../plugins/plugin-assistant";
 import { ResizeHandle } from "../../../resize/resize-handle";
-import { FloatingResizeHandles } from "../shared/floating-resize-handles";
+import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../shared/use-floating-panel";
 
 const dockSpaceStyle = css({

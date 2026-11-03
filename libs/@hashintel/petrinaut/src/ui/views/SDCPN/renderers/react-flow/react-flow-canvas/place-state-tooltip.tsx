@@ -8,7 +8,7 @@ import {
 import { use, useEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { EditorContext } from "../../../../../../react/state/editor-context";
@@ -16,6 +16,7 @@ import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { PinIcon } from "../../../../../components/pin-icon";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { PinnedVisualizer } from "./place-state-tooltip/pinned-visualizer";
 
 /**
  * The module that draws a visualizer, loaded on demand and remembered.
@@ -191,69 +192,24 @@ const pinButtonStyle = css({
   borderRadius: "[calc(var(--visualizer-radius) - 9px)]",
 });
 
-/**
- * The pin sits over the visualizer's top-right corner rather than beside it,
- * so the box stays the size of the artwork.
- *
- * A pane of frosted glass around the button, not the button's own surface: a
- * visualizer draws whatever it likes underneath — black, in the satellites
- * example — and every button variant in the system paints in translucent ink
- * meant for the app's own background, so a bare glyph disappears into the
- * artwork. Blurring what is behind it and tinting that pale gives the glass
- * the artwork's own colour while lifting it enough for a dark glyph to read
- * over anything, and leaves the button's hover and pressed ink to sit on top
- * of it as designed.
- *
- * Held back until the pointer or the keyboard reaches the box, and at full
- * strength while pinned, which is when it has to be found again to release
- * it.
- *
- * Anchored on the wrapper rather than inside the box, so it keeps its corner
- * while a tall visualizer scrolls underneath.
- */
-const pinStyle = cva({
-  base: {
-    position: "absolute",
-    // 8px inside the box's top-right corner, past the wrapper's gap to the
-    // node when that gap is on top; the wrapper sets the variable.
-    top: "[calc(8px + var(--node-gap-top, 0px))]",
-    right: "[8px]",
-    display: "flex",
-    // Inset 8px from the box's corner, so it curves 8px tighter.
-    borderRadius: "[calc(var(--visualizer-radius) - 8px)]",
-    // A rim of light rather than a drawn border: it reads against a dark
-    // artwork and dissolves into a pale one.
-    border: "[1px solid rgba(255, 255, 255, 0.5)]",
-    boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.14)]",
-    backdropFilter: "[blur(8px) saturate(140%)]",
-    transition: "[opacity 120ms ease, background-color 150ms ease]",
-    /*
-     * The focus ring belongs to the glass, not to the button inside it: the
-     * button draws its own at no offset, which lands on the glass's rim and is
-     * indistinguishable from it.
-     */
-    "&:has(:focus-visible)": {
-      // Two tones, because the ring floats over the visualizer's artwork:
-      // the light one carries a dark picture, the dark halo beyond it carries
-      // a pale one, and neither can go missing.
-      outline: "[2px solid rgba(255, 255, 255, 0.95)]",
-      outlineOffset: "[1px]",
-      boxShadow:
-        "[0 0 0 5px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.14)]",
-    },
+const pinStyle = css({
+  position: "absolute",
+  // The wrapper's padding bridges the gap from the node to the tooltip.
+  top: "[calc(8px + var(--node-gap-top, 0px))]",
+  right: "[8px]",
+  display: "flex",
+  borderRadius: "[calc(var(--visualizer-radius) - 8px)]",
+  border: "[1px solid rgba(255, 255, 255, 0.5)]",
+  boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.14)]",
+  backdropFilter: "[blur(8px) saturate(140%)]",
+  transition: "[opacity 120ms ease, background-color 150ms ease]",
+  "&:has(:focus-visible)": {
+    outline: "[2px solid rgba(255, 255, 255, 0.95)]",
+    outlineOffset: "[1px]",
+    boxShadow: "[0 0 0 5px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.14)]",
   },
-  variants: {
-    pinned: {
-      true: {
-        opacity: "[1]",
-        backgroundColor: "[rgba(255, 255, 255, 0.86)]",
-      },
-      false: {
-        opacity: "[0.72]",
-        backgroundColor: "[rgba(255, 255, 255, 0.46)]",
-      },
-    },
-  },
+  opacity: "[0.72]",
+  backgroundColor: "[rgba(255, 255, 255, 0.46)]",
 });
 
 /**
@@ -341,6 +297,19 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   // the pointer rests, so without this the button would pop in on the way out.
   if (!showVisualizer && hoveredItem?.id !== nodeId) {
     return null;
+  }
+
+  if (pinned && showVisualizer) {
+    return (
+      <PinnedVisualizer
+        nodeId={nodeId}
+        name={place.name}
+        initialSize={boxSize}
+        onUnpin={() => toggleVisualizerPin(nodeId)}
+      >
+        <PlaceStateVisualization place={place} placeType={placeType} />
+      </PinnedVisualizer>
+    );
   }
 
   const nodeTopY = flowToScreenPosition({
@@ -445,17 +414,15 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         <div ref={contentRef} className={tooltipStyle}>
           <PlaceStateVisualization place={place} placeType={placeType} />
         </div>
-        <div className={cx(pinStyle({ pinned }), PIN_CLASS)}>
+        <div className={cx(pinStyle, PIN_CLASS)}>
           <Button
             className={pinButtonStyle}
             size="xxs"
             variant="ghost"
             prefix={<PinIcon />}
-            aria-label={
-              pinned ? "Unpin state visualizer" : "Pin state visualizer"
-            }
-            aria-pressed={pinned}
-            tooltip={pinned ? "Unpin" : "Keep open while you work"}
+            aria-label="Pin state visualizer"
+            aria-pressed={false}
+            tooltip="Keep open while you work"
             onClick={() => toggleVisualizerPin(nodeId)}
           />
         </div>

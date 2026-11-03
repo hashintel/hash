@@ -1,12 +1,13 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
-import {
-  RESIZE_HANDLE_OFFSET,
-  RESIZE_HANDLE_SIZE,
-} from "../../../constants/ui";
+import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../../constants/ui";
 
-import type { FloatingResizeDirection } from "./use-floating-panel";
+import type { ResizableEdge } from "../../resize/resize-handle";
 import type { ComponentProps } from "react";
+
+export type FloatingResizeDirection =
+  | ResizableEdge
+  | `${"top" | "bottom"}-${"left" | "right"}`;
 
 const handleStyle = cva({
   base: {
@@ -20,6 +21,7 @@ const handleStyle = cva({
     touchAction: "none",
     _hover: { color: "neutral.a30" },
     _active: { color: "blue.a40" },
+    _focusVisible: { color: "blue.a40", outline: "none" },
   },
   variants: {
     corner: {
@@ -122,6 +124,7 @@ const handleStyle = cva({
 const FloatingResizeHandle = ({
   direction,
   label,
+  tabIndex = -1,
   ...props
 }: ComponentProps<"button"> & {
   direction: FloatingResizeDirection;
@@ -130,7 +133,7 @@ const FloatingResizeHandle = ({
   <button
     {...props}
     type="button"
-    tabIndex={-1}
+    tabIndex={tabIndex}
     aria-label={`Resize ${label} from ${direction}`}
     data-resize-edge={direction}
     className={handleStyle({ direction, corner: direction.includes("-") })}

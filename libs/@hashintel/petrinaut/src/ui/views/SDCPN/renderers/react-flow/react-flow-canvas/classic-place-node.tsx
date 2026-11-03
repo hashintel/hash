@@ -79,10 +79,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const showStateTooltip =
     data.hasColorType &&
     data.hasVisualizer &&
-    // Dragging the place would carry the box along over the canvas it is
-    // being dropped on, and redraw the visualizer every frame of the drag.
-    !data.dragging &&
-    (data.hovered || data.visualizerPinned);
+    (data.visualizerPinned || (!data.dragging && data.hovered));
 
   // Wrap points let a long name break inside the box instead of clipping.
   const label = withLabelWrapPoints(data.label);
