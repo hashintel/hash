@@ -96,7 +96,7 @@ const CanvasToolbar = ({
                 {
                   id: "zoom-to-100",
                   text: "Zoom to 100%",
-                  icon: "oneHundred",
+                  icon: "search",
                   onClick: () => {
                     void zoomTo(1);
                   },
