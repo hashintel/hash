@@ -14,7 +14,7 @@ results, events.
 Two invariants keep shard count out of the results, with one exception:
 
 - **Seeds derive from the global run index.** `shard-plan.ts` assigns each
-  shard a contiguous slice of runs and its global index offset, so run _i_
+  shard a contiguous slice of runs and its global index offset, so run $i$
   gets the same seed regardless of which shard owns it.
 - **Frames are released on a watermark.** A frame number finalises only once
   every still-running shard has reported it; a finished shard drops out of the

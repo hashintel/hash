@@ -38,7 +38,7 @@ never blocks a firing over it.
    per place, folded into the summary). A probe that overflows quadruples
    the slabs, recompiles, and probes again — shedding runs to stay inside a
    128 MB probe budget, so seven growth attempts reach counts past a million
-   (64 × 4⁷) before conceding.
+   ($64 \times 4^7$) before conceding.
 2. **Decide, per place.** The probe yields the largest per-run maximum and
    the mean of the per-run maxima. When the largest is close to typical, the
    slab becomes 1.5 × the observed maximum plus headroom — recompile, run in
