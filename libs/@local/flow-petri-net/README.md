@@ -127,6 +127,7 @@ flowchart LR
   - a connected value;
   - a constant, recorded in the instance's `metadata.constants`;
   - or, for an optional input with nothing connected and no default, a token marked absent (`present: false`).
+- **`runAfter`.** Each step a step runs after adds a read arc to its `t.startStep` or `t.startForEach`, from that step's first output (its collected output for a for-each step, its `Done` port for an action with no outputs), unless the step already reads it. `metadata.runAfter` lists these endpoints. `position` doesn't change the net.
 - **Ports.** Actions have a port per input and per output. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
 - **Outputs.** A transition is only added where one token has to become several. A step's output stays in its instance's output port:
   - steps that only read it read the port, with read arcs;
@@ -155,5 +156,5 @@ flowchart LR
 ## Limitations
 
 - **No guards.** Kernels only carry `run_id` and `item_path` forward and give every other attribute a default (`compile-flow-definition/shared/kernels.ts`). There are no guards yet: no correlation across inputs, and no iterator or accumulator conditions. So a compiled net builds in Petrinaut but doesn't simulate meaningfully. `interpret-flow-net` interprets roles instead.
-- **A `for-each` step's shared item tokens stay after their item finishes.** The steps inside the `for-each` that read the item read it from one place, and nothing consumes it there. Consuming it needs a transition that knows every step of that item has finished, which needs the item correlation that FE-1914 adds. A step that consumes the item takes its own copy.
-- **Skip-if-missing** (`whenMissing: "skip"`) has no transition yet. The interpreter holds a step while a value it skips on is missing; skipping it is left to the executor (TODO FE-1904).
+- **A `for-each` step's shared item tokens stay after their item finishes.** The steps inside the `for-each` that read the item read it from one place, and nothing consumes it there. Consuming it needs a transition that knows every step of that item has finished, which needs the item correlation that FE-1914 adds. A step that consumes the item takes its own copy. For the same reason, a step that runs after a `for-each` step waits for its collected output, not for every step in its items, as the engine does.
+- **Skip-if-missing** (`whenMissing: "skip"`) has no transition yet. The interpreter holds a step while a value it skips on is missing; skipping it is left to the executor (TODO FE-1904). So in the net, a step waits forever for a skipped step it runs after, while the engine counts it as finished.

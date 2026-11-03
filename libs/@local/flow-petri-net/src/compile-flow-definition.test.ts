@@ -469,6 +469,42 @@ describe("compileFlowDefinition", () => {
     });
   });
 
+  it("keeps a step's inputs apart from what another step waits on, whatever their ids", async () => {
+    const getFileStep = (stepId: string): ActionStepDefinition => ({
+      kind: "action",
+      stepId,
+      actionDefinitionId: "getFileFromUrl",
+      description: "",
+      inputs: { url: { kind: "flow-input", inputName: "url" } },
+    });
+
+    const sdcpn = await compileFlowDefinition({
+      name: "Step ids with dots",
+      description: "",
+      inputs: [
+        { name: "url", payloadKind: "Text", array: false, required: true },
+      ],
+      steps: [
+        getFileStep("url"),
+        getFileStep("x.runAfter"),
+        { ...getFileStep("x"), runAfter: [{ stepId: "url" }] },
+      ],
+      outputs: [],
+    });
+
+    expect(
+      sdcpn.transitions.find(
+        byKey(generateStepTransitionKey("startStep", "x.runAfter")),
+      )?.metadata?.inputSources,
+    ).toMatchObject({
+      url: {
+        from: placeEndpointOf(
+          generateValuePlaceKey(generateInputValueKey("url")),
+        ),
+      },
+    });
+  });
+
   it("gives each step inside a forEach that consumes the item a copy of its own", async () => {
     const sdcpn = await compileFlowDefinition(
       defineFlow(
