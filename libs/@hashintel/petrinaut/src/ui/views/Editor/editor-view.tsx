@@ -53,6 +53,7 @@ import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import {
+  AssistantCommands,
   EditorAssistantPanel,
   useEditorAssistant,
 } from "./editor-view/editor-assistant";
@@ -513,6 +514,7 @@ const EditorViewContent = ({
           assistant.hasAssistant ? toggleAiAssistant : undefined
         }
       />
+      <AssistantCommands />
       <PluginRoots />
       <UserSettings settingsLabs={slots?.settingsLabs} />
       <ImportErrorDialog

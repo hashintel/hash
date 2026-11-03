@@ -157,14 +157,14 @@ Header fields worth knowing: `magic` (`0x5046524d`, a corrupt-frame guard),
 
 ### Token packing
 
-Each coloured place owns a contiguous run of `count × strideBytes` starting at
-its byte offset, giving O(1) access to any place. Uncoloured places have stride
+Each coloured place owns a contiguous run of $\mathit{count} \times \mathit{strideBytes}$ starting at
+its byte offset, giving $O(1)$ access to any place. Uncoloured places have stride
 0 and only a count.
 
 | Element type | Physical                   | Notes                                                                                                                                                         |
 | ------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `real`       | `f64` — 8 B                |                                                                                                                                                               |
-| `integer`    | `f64` — 8 B, rounded       | Exact within ±2^53. `i32` was rejected for silent wraparound; `i64` because bigint is contagious into user code.                                              |
+| `integer`    | `f64` — 8 B, rounded       | Exact within $\pm 2^{53}$. `i32` was rejected for silent wraparound; `i64` because bigint is contagious into user code.                                       |
 | `boolean`    | `u8` — 1 B                 | Not bit-packed: that would break byte-granular copies for marginal savings.                                                                                   |
 | `uuid`       | `u64 × 2` — 16 B           | Two little-endian lanes via a shared `BigUint64Array`, combined to one `bigint` at the boundary. Never routed through `number`.                               |
 | `string`     | `u64` pool reference — 8 B | The frame stores an ID into an append-only per-run intern pool. The pool lives on the instance, not the frame, so frames stay fixed-stride and byte-copyable. |
