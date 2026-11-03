@@ -122,10 +122,13 @@ export function useEventTimelineData({
     evaluateMetric: timelineMetric.evaluate,
   });
 
+  // Counts, and a metric whose code reads only what changes at events, are
+  // exact as steps read at the events; a metric that follows dynamics is
+  // sampled between them.
   const view: TimelineSeriesView =
     timelineView.kind === "per-transition"
       ? { kind: "lanes", transitions }
-      : timelineView.kind === "metric"
+      : timelineView.kind === "metric" && timelineMetric.shape !== "discrete"
         ? {
             kind: "sampled",
             series: seriesConfig.series,

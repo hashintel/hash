@@ -31,6 +31,7 @@ import {
   emitBufferMetricJs,
 } from "./emit-buffer-js";
 import { lowerTypeScriptToHir } from "./lower-typescript";
+import { inferMetricShape } from "./metric-shape";
 import {
   buildDynamicsContext,
   buildKernelContext,
@@ -306,6 +307,7 @@ export function compileHirArtifacts(
     artifacts.metrics[metric.id] = {
       source: program.source,
       placeNames: program.placeNames,
+      shape: inferMetricShape(item.fn, sanitized.places, sanitized.types),
       ...(options.includeHir ? { hir: item.fn } : {}),
     };
   }
