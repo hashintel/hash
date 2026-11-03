@@ -4,17 +4,17 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import FlowEditorPage from "./edit.page";
 
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
 import type { EntityEditionId } from "@blockprotocol/type-system";
 
-const codeFlowUuid = vi.hoisted(() => "113ce2ec-6a12-56b6-b495-072475889b37");
-
 vi.mock("next/router", () => ({
-  useRouter: () => ({ query: { "flow-def-id": codeFlowUuid }, push: vi.fn() }),
+  useRouter: () => ({
+    query: { "flow-def-id": "7f9d2b1e-3c4a-4e5f-8a6b-9c0d1e2f3a4b" },
+    push: vi.fn(),
+  }),
 }));
 
 vi.mock("../../shared/use-route-namespace", () => ({
@@ -32,14 +32,14 @@ vi.mock("../../../../shared/use-flow-definitions", async (importOriginal) => ({
   } => ({
     flow: {
       flowDefinition: {
-        name: "Get Historical Flights",
+        name: "Someone else's flow",
         description: "",
         inputs: [],
         steps: [],
         outputs: [],
       },
       editionId: "edition-1" as EntityEditionId,
-      userCanUpdate: true,
+      userCanUpdate: false,
     },
     loading: false,
   }),
@@ -48,17 +48,15 @@ vi.mock("../../../../shared/use-flow-definitions", async (importOriginal) => ({
 describe("FlowEditorPage", () => {
   afterEach(cleanup);
 
-  it("refuses a flow defined in code, even when the user can update it", () => {
-    expect(codeFlowUuid).toBe(flowDefinitionIds.historicalFlights);
-
+  it("refuses a flow the user can't update", () => {
     render(
       <ThemeProvider theme={theme}>
         <FlowEditorPage />
       </ThemeProvider>,
     );
 
-    expect(screen.getByText("This flow can't be edited")).toBeTruthy();
+    expect(screen.getByText("You can't edit this flow")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Back to flows/ })).toBeTruthy();
-    expect(screen.queryByText("Get Historical Flights")).toBeNull();
+    expect(screen.queryByText("Someone else's flow")).toBeNull();
   });
 });

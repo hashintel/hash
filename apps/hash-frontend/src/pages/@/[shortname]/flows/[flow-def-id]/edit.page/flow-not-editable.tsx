@@ -7,17 +7,11 @@ import { HEADER_HEIGHT } from "../../../../../../shared/layout/layout-with-heade
 import { DsComponentsScope } from "../../../../../shared/ds-components-scope";
 
 const title = css({ textStyle: "base", fontWeight: "semibold" });
-const reason = css({ textStyle: "sm", color: "fg.muted" });
 
 /**
  * Shown in place of the editor for a flow the user can't edit.
  */
-export const FlowNotEditable = ({
-  definedInCode,
-}: {
-  /** Whether the flow is one of those defined in code, rather than one in a web the user can't change. */
-  definedInCode: boolean;
-}) => {
+export const FlowNotEditable = () => {
   const router = useRouter();
 
   return (
@@ -33,12 +27,7 @@ export const FlowNotEditable = ({
         textAlign: "center",
       }}
     >
-      <h2 className={title}>This flow can't be edited</h2>
-      <p className={reason}>
-        {definedInCode
-          ? "It's built into HASH, so it's changed in code rather than here."
-          : "It's in a web you can't change."}
-      </p>
+      <h2 className={title}>You can't edit this flow</h2>
       <Button
         variant="solid"
         size="md"

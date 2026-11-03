@@ -5,7 +5,6 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { isFlowDefinedInCode } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import {
   archiveFlowDefinitionMutation,
@@ -16,10 +15,7 @@ import { HEADER_HEIGHT } from "../../../../../shared/layout/layout-with-header/p
 import { useSidebarContext } from "../../../../../shared/layout/layout-with-sidebar/page-sidebar";
 import { DsComponentsScope } from "../../../../shared/ds-components-scope";
 import { NotFound } from "../../../../shared/not-found";
-import {
-  canEditFlowDefinition,
-  useFlowDefinitionToEdit,
-} from "../../../../shared/use-flow-definitions";
+import { useFlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
@@ -242,18 +238,8 @@ const FlowEditorLoader = ({
     flowDefinitionEntityId,
   );
 
-  if (
-    flow &&
-    !canEditFlowDefinition({
-      flowDefinitionEntityId,
-      userCanUpdate: flow.userCanUpdate,
-    })
-  ) {
-    return (
-      <FlowNotEditable
-        definedInCode={isFlowDefinedInCode(flowDefinitionEntityId)}
-      />
-    );
+  if (flow && !flow.userCanUpdate) {
+    return <FlowNotEditable />;
   }
 
   if (flow) {

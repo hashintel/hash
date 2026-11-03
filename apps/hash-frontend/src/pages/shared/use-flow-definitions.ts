@@ -4,7 +4,6 @@ import { useCallback, useMemo } from "react";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import { isFlowDefinedInCode } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import {
   getUnvalidatedFlowDefinitionFromEntity,
   validateFlowDefinitionEntity,
@@ -46,17 +45,6 @@ export type LoadedFlowDefinition = {
   /** Whether the graph lets the user update the entity. */
   userCanUpdate: boolean;
 } & ReturnType<typeof validateFlowDefinitionEntity>;
-
-/**
- * Whether the user can edit a flow in the editor: one they can update, unless it's defined in code.
- */
-export const canEditFlowDefinition = ({
-  flowDefinitionEntityId,
-  userCanUpdate,
-}: {
-  flowDefinitionEntityId: EntityId;
-  userCanUpdate: boolean;
-}) => userCanUpdate && !isFlowDefinedInCode(flowDefinitionEntityId);
 
 const userCanUpdateEntity = (
   data: QueryEntitySubgraphQuery,

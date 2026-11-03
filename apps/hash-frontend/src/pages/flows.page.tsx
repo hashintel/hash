@@ -27,7 +27,6 @@ import {
   flowTableRowHeight,
   FlowTableWebChip,
 } from "./shared/flow-tables";
-import { canEditFlowDefinition } from "./shared/use-flow-definitions";
 import { VirtualizedTable } from "./shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
 
@@ -222,25 +221,22 @@ const FlowsPageContent = () => {
             }
           }
 
+          const owner = getOwner({ entityId: flowDefinitionEntityId });
+
           return {
             id: flowDefinitionEntityId,
             data: {
               web: {
-                avatarUrl: "/hash-logo-black.png",
-                name: "HASH",
-                shortname: getOwner({ entityId: flowDefinitionEntityId })
-                  .shortname,
-                isOrg: true,
+                name: owner.name,
+                shortname: owner.shortname,
+                isOrg: owner.isOrg,
               },
               name,
               flowDefinitionEntityId,
               description,
               isValid: flowDefinition !== null,
               lastRunStartedAt,
-              editable: canEditFlowDefinition({
-                flowDefinitionEntityId,
-                userCanUpdate,
-              }),
+              editable: userCanUpdate,
             },
           };
         },

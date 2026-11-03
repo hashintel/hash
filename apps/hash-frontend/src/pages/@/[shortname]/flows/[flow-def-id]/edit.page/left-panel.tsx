@@ -48,7 +48,6 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
   return (
     <div className={panel}>
       <div className={tabs}>
-        {/* The design system has no tabs yet (a gap logged in Notion), so a segmented control stands in for them. */}
         <SegmentedControl
           size="md"
           aria-label="Left panel"

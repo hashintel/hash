@@ -52,16 +52,3 @@ export const isGoalFlowDefinitionEntityId = (
   flowDefinitionEntityId: EntityId,
 ) =>
   isHashFlowDefinitionEntityId(flowDefinitionEntityId, flowDefinitionIds.goal);
-
-const flowDefinitionIdsInCode = new Set<EntityUuid>(
-  Object.values(flowDefinitionIds),
-);
-
-/**
- * Whether a definition is one of the flows defined in code. They're seeded from their definitions in `definitions/`,
- * so they're changed there rather than in the app.
- */
-export const isFlowDefinedInCode = (flowDefinitionEntityId: EntityId) =>
-  flowDefinitionIdsInCode.has(
-    extractEntityUuidFromEntityId(flowDefinitionEntityId),
-  );

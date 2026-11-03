@@ -156,7 +156,7 @@ export const TopBar = ({
   return (
     <div className={topBar}>
       <div className={titleGroup}>
-        {/* BreadCrumbs has no back button of its own yet (a design system gap logged in Notion), so it sits beside it. */}
+        {/* BreadCrumbs has no back button of its own yet, so it sits beside it. */}
         <Button
           variant="subtle"
           size="xs"
