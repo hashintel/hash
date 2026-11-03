@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { createContext, use, useEffect } from "react";
+import { createContext, use, useEffect, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { EmbedContent } from "./embed-content";
@@ -13,7 +13,10 @@ import type {
   EditorToHostMessage,
 } from "./shared/messages";
 import type { EntityId } from "@blockprotocol/type-system";
-import type { useBrunchAssistant } from "@hashintel/brunch-agent/ui";
+import type {
+  BrunchAssistantHost,
+  useBrunchAssistant,
+} from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
 import type * as PetrinautCore from "@hashintel/petrinaut-core";
 
@@ -31,6 +34,12 @@ const observed = vi.hoisted(() => ({
   brunchFailure: null as null | { error: Error; source: string },
 }));
 
+const brunchPluginMarker = vi.hoisted(() => ({ id: "brunch" }));
+const brunchHostContext = await vi.hoisted(async () => {
+  const { createContext: createHostContext } = await import("react");
+  return createHostContext<BrunchAssistantHost | null>(null);
+});
+
 vi.mock("@hashintel/petrinaut", async () => {
   const core = await vi.importActual<typeof PetrinautCore>(
     "@hashintel/petrinaut-core",
@@ -40,10 +49,24 @@ vi.mock("@hashintel/petrinaut", async () => {
   const errorTrackerContext = createContext<ErrorTracker>({
     captureException: () => {},
   });
-  const Petrinaut = ({ handle }: { handle: PetrinautDocHandle }) => {
+  const Petrinaut = ({
+    handle,
+    plugins,
+  }: {
+    handle: PetrinautDocHandle;
+    plugins: unknown[];
+  }) => {
     const { captureException } = use(errorTrackerContext);
     observed.petrinautHandles.push(handle);
     observed.chromes.push(use(EmbedChromeContext));
+    // Brunch is the only assistant, so the editor shows it, mounting its
+    // content, which marks it as shown, while its plugin is listed.
+    const show = use(brunchHostContext)?.show;
+    const brunchListed = plugins.includes(brunchPluginMarker);
+    useLayoutEffect(
+      () => (brunchListed ? show?.(handle.id) : undefined),
+      [brunchListed, show, handle.id],
+    );
     const failure = observed.petrinautFailure;
     useEffect(() => {
       if (failure) {
@@ -68,7 +91,8 @@ vi.mock("@hashintel/petrinaut", async () => {
 vi.mock("@hashintel/brunch-agent/ui", async () => {
   const { ErrorTrackerContext } = await import("@hashintel/petrinaut");
   return {
-    BrunchAssistantContext: createContext(null),
+    BrunchAssistantContext: brunchHostContext,
+    brunchPlugin: brunchPluginMarker,
     // Mirrors the hook's contract: its runner's `documentHandle` is the
     // open document's editor handle, and its failures go to the tracker the
     // hook reads where it is called.
@@ -84,7 +108,7 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
           });
         }
       }, [captureException, failure]);
-      return { assistant: null, plugins: input.plugins };
+      return { assistant: null, openAIVoiceConfig: null };
     },
   };
 });
@@ -189,6 +213,7 @@ test("Brunch's runner gets the handle the editor shows, and a new one on every l
   });
 
   await waitFor(() => expect(lastBrunchInput()?.selected).toBe(true));
+  const shownFrom = observed.brunchInputs.length - 1;
   const firstHandle = observed.petrinautHandles.at(-1);
   expect(firstHandle).toBeDefined();
   expect(lastEditorHandle()).toBe(firstHandle);
@@ -226,6 +251,11 @@ test("Brunch's runner gets the handle the editor shows, and a new one on every l
   expect(lastEditorHandle()).toBe(secondHandle);
   // The credentialed fetch keeps its identity, so the conversation's client survives.
   expect(lastBrunchInput()?.fetch).toBe(brunchFetch);
+  // The new handle's Brunch content marks Brunch as the old one unmarks it,
+  // so Brunch stays shown, and connected, across the load.
+  expect(
+    observed.brunchInputs.slice(shownFrom).map(({ selected }) => selected),
+  ).not.toContain(false);
   expect(identityRequests).toHaveLength(1);
 });
 
