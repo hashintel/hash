@@ -459,16 +459,38 @@ svg.deck-head__logo {
   opacity: 0.15;
 }
 
+/* A token waits hidden, travels for 900ms, and stays, or goes if handed on. */
 .deck-token {
   fill: var(--text-primary);
   offset-rotate: 0deg;
   offset-distance: 100%;
-  animation: deck-token 900ms ease-in-out backwards;
+  animation:
+    deck-token 900ms ease-in-out var(--deck-wait) backwards,
+    deck-token-wait 1ms var(--deck-wait) backwards;
+}
+
+.deck-token[data-handed-on="true"] {
+  animation:
+    deck-token 900ms ease-in-out var(--deck-wait) backwards,
+    deck-token-wait 1ms var(--deck-wait) backwards,
+    deck-token-gone 1ms calc(var(--deck-wait) + 900ms) forwards;
 }
 
 @keyframes deck-token {
   from {
     offset-distance: 0%;
+  }
+}
+
+@keyframes deck-token-wait {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes deck-token-gone {
+  to {
+    opacity: 0;
   }
 }
 

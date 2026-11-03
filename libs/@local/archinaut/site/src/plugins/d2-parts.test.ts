@@ -103,6 +103,23 @@ describe("prepareD2Parts", () => {
     ).toBe("arrow");
   });
 
+  it("chains the tokens of one step through the node they share", () => {
+    const svg = drawing(
+      [
+        `<g class="${base64("(p1 -&gt; t1)[0]")} token-3"><path d="M 0 0"/></g>`,
+        `<g class="${base64("(t1 -&gt; p2)[0]")} token-3 token-5"><path d="M 1 1"/></g>`,
+        `<g class="${base64("(p2 -&gt; t2)[0]")} token-5"><path d="M 2 2"/></g>`,
+      ].join(""),
+    );
+    prepareD2Parts(svg);
+    const inner = svg.children[0] as Element;
+    expect(
+      inner.children.map((child) =>
+        child.type === "element" ? child.properties.dataTokenTiming : undefined,
+      ),
+    ).toEqual(["3:0:1", "3:1:0 5:0:1", "5:1:0"]);
+  });
+
   it("refuses a class list written with commas", () => {
     expect(() =>
       prepareD2Parts(drawing(`<g class="${base64("ui")} ui, at-2"/>`)),

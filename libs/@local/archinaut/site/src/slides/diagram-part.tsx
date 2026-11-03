@@ -8,7 +8,8 @@
  * flow on a later step that ends never replays it. Events happen on their step alone: on a step in `flow`
  * dashes run along its lines, on a step in `focus` the rest of the drawing
  * fades, and on a step in `tokens` a token travels `path` from start to
- * end. The motion lives in the deck's CSS, which drops it in print and for
+ * end, after waiting for the legs before it, and goes on arrival when the
+ * next leg carries it on. The motion lives in the deck's CSS, which drops it in print and for
  * reduced motion.
  */
 
@@ -17,6 +18,9 @@ import { useStep } from "./stepper";
 import type { CSSProperties, ReactNode } from "react";
 
 const lines = "path, line, polyline, polygon, rect, circle, ellipse";
+
+/** How long one token takes to travel one line, as the deck's CSS animates it. */
+const tokenLeg = 900;
 
 /** Each line's length, for the CSS that draws it. */
 const measureLines = (part: SVGGElement | null): void => {
@@ -32,6 +36,8 @@ export const DiagramPart = ({
   flow = [],
   focus = [],
   tokens = [],
+  tokenWaits = [],
+  tokensHandedOn = [],
   path,
   children,
 }: {
@@ -41,11 +47,16 @@ export const DiagramPart = ({
   flow?: readonly number[];
   focus?: readonly number[];
   tokens?: readonly number[];
+  /** For each token, how many legs it waits for before it sets off. */
+  tokenWaits?: readonly number[];
+  /** For each token, 1 when another token carries it on, so it goes on arrival. */
+  tokensHandedOn?: readonly number[];
   /** The line a token travels, in the drawing's coordinates. */
   path?: string;
   children: ReactNode;
 }) => {
   const step = useStep();
+  const token = tokens.indexOf(step);
   const shown =
     step >= Math.max(at, draw ?? 0) && (until === undefined || step < until);
   return (
@@ -59,11 +70,17 @@ export const DiagramPart = ({
       aria-hidden={!shown}
     >
       {children}
-      {path !== undefined && tokens.includes(step) ? (
+      {path !== undefined && token !== -1 ? (
         <circle
           className="deck-token"
           r={7}
-          style={{ offsetPath: `path("${path}")` } as CSSProperties}
+          data-handed-on={tokensHandedOn[token] === 1}
+          style={
+            {
+              offsetPath: `path("${path}")`,
+              "--deck-wait": `${(tokenWaits[token] ?? 0) * tokenLeg}ms`,
+            } as CSSProperties
+          }
         />
       ) : null}
     </g>

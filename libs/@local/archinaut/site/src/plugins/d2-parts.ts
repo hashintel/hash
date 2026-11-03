@@ -4,7 +4,8 @@
  * `(website -> core)[0]`, followed by the d2 classes the source gave it.
  * Here each part learns the steps of what it hangs on: a connection waits
  * for both its ends and a shape for its container, so marking a shape
- * brings its connections with it. `svg-steps.ts` then wraps the parts.
+ * brings its connections with it, and tokens moving on one step travel one
+ * after another along a chain. `svg-steps.ts` then wraps the parts.
  */
 
 import { classesOf, planOf } from "./svg-steps.ts";
@@ -107,6 +108,59 @@ const takeMarkers = (element: Element): Element[] => {
 };
 
 /**
+ * Orders the tokens of one step along the drawing, as a Petri net fires: a
+ * token leaving a node waits for each token that, earlier in the source,
+ * arrives at that node on the same step, and a token handed on like that
+ * goes when it arrives. Each connection's timing is written as
+ * `data-token-timing`, `<step>:<wait>:<handed on>` per step, which
+ * `svg-steps.ts` passes to its part.
+ */
+const chainTokens = (
+  parts: ReadonlyMap<Element, { id: string; classes: string[] }>,
+): void => {
+  const legs = [...parts].flatMap(([element, { id, classes }]) => {
+    const edge = connection.exec(id);
+    const steps = planOf(classes)?.token ?? [];
+    if (edge === null || steps.length === 0) {
+      return [];
+    }
+    const scoped = (end: string): string =>
+      edge[1] === undefined ? end : `${edge[1]}.${end}`;
+    return [
+      {
+        element,
+        from: scoped(edge[2] ?? ""),
+        to: scoped(edge[3] ?? ""),
+        steps,
+      },
+    ];
+  });
+  const timing = new Map<Element, string[]>();
+  for (const step of new Set(legs.flatMap((leg) => leg.steps))) {
+    const moving = legs.filter((leg) => leg.steps.includes(step));
+    const waits = moving.map(() => 0);
+    const handedOn = moving.map(() => false);
+    moving.forEach((leg, index) => {
+      moving.slice(0, index).forEach((earlier, before) => {
+        if (earlier.to === leg.from) {
+          waits[index] = Math.max(waits[index] ?? 0, (waits[before] ?? 0) + 1);
+          handedOn[before] = true;
+        }
+      });
+    });
+    moving.forEach((leg, index) => {
+      timing.set(leg.element, [
+        ...(timing.get(leg.element) ?? []),
+        `${step}:${waits[index]}:${handedOn[index] ? 1 : 0}`,
+      ]);
+    });
+  }
+  for (const [element, entries] of timing) {
+    element.properties.dataTokenTiming = entries.join(" ");
+  }
+};
+
+/**
  * Gives each part of a d2 drawing the step classes it inherits, and moves
  * the arrowheads to the top of the drawing: d2 defines each one inside the
  * first connection that draws it, and hiding that connection would hide
@@ -146,6 +200,7 @@ export const prepareD2Parts = (svg: Element): void => {
       ...(inherited.until === null ? [] : [`until-${inherited.until}`]),
     ];
   }
+  chainTokens(parts);
   const markers = [...parts.keys()].flatMap(takeMarkers);
   if (markers.length > 0) {
     drawing.children.unshift({

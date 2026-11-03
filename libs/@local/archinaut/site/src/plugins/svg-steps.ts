@@ -103,8 +103,33 @@ const firstPath = (element: Element): string | null => {
   return null;
 };
 
+/**
+ * When each token sets off and whether it goes on arrival, read from a
+ * `data-token-timing` of `<step>:<wait>:<handed on>` entries; a token the
+ * attribute does not name sets off at once and stays.
+ */
+const tokenTiming = (
+  element: Element,
+  steps: readonly number[],
+): { waits: number[]; handedOn: number[] } => {
+  const entries = new Map(
+    String(element.properties.dataTokenTiming ?? "")
+      .split(" ")
+      .filter((entry) => entry !== "")
+      .map((entry) => {
+        const [step, wait, handedOn] = entry.split(":").map(Number);
+        return [step, { wait: wait ?? 0, handedOn: handedOn ?? 0 }] as const;
+      }),
+  );
+  return {
+    waits: steps.map((step) => entries.get(step)?.wait ?? 0),
+    handedOn: steps.map((step) => entries.get(step)?.handedOn ?? 0),
+  };
+};
+
 const partOf = (element: Element, plan: PartPlan): ElementContent => {
   const path = plan.token.length > 0 ? firstPath(element) : null;
+  const timing = tokenTiming(element, plan.token);
   if (plan.token.length > 0 && path === null) {
     throw new Error(
       `token-${plan.token[0]} needs a line to travel; put it on a connection or a path`,
@@ -124,6 +149,12 @@ const partOf = (element: Element, plan: PartPlan): ElementContent => {
         : [
             numbersAttribute("tokens", plan.token),
             stringAttribute("path", path),
+            ...(timing.waits.some((wait) => wait > 0)
+              ? [numbersAttribute("tokenWaits", timing.waits)]
+              : []),
+            ...(timing.handedOn.some((handedOn) => handedOn > 0)
+              ? [numbersAttribute("tokensHandedOn", timing.handedOn)]
+              : []),
           ]),
     ],
     children: [element],
