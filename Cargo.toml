@@ -50,6 +50,8 @@ members         = [
     "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
+    "libs/@local/stubs/burn-candle",
+    "libs/@local/stubs/burn-tch",
     "libs/@local/telemetry",
     "libs/@local/temporal-client",
     "libs/@local/typst-railroad",
@@ -484,7 +486,8 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 # keep both backends and their dependency trees out of `Cargo.lock`.
 #
 # Enabling Burn's `candle` or `tch` feature fails to build while these patches are in place.
-# Remove them once Burn stops forwarding features to these crates or Cargo fixes that issue.
+# Remove them, and the stubs' `members` entries, once Burn stops forwarding features to these crates
+# or Cargo fixes that issue.
 burn-candle = { path = "libs/@local/stubs/burn-candle" }
 burn-tch    = { path = "libs/@local/stubs/burn-tch" }
 
