@@ -62,21 +62,21 @@ tab's documents survive.
 
 ## Choosing the assistant
 
-Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and automatically enables **Voice**. You can turn **Enable Voice** off manually; that choice survives reload until you select Brunch again. Voice defaults on for an already selected Brunch assistant unless explicitly disabled. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled`. These preferences belong to the website host, not Petrinaut.
+With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the editor gets two assistant plugins: **Petrinaut AI**, the stock assistant, and **Brunch**. Choose between them in **User settings → General → AI assistant**, or with **Use Petrinaut AI as the AI assistant** and **Use Brunch as the AI assistant** in the command palette (⌘K). Petrinaut saves that choice with its own settings. Until you choose, it shows the first assistant: Brunch when this browser saved Brunch under `petrinaut-website:assistant` before Petrinaut offered the choice, else the one `VITE_PETRINAUT_DEFAULT_ASSISTANT` names, `stock` by default. Without a configured endpoint, Petrinaut AI is the only assistant and there is nothing to choose.
+
+Brunch's Labs controls apply while Brunch is the assistant. **Enable Voice** is saved under `petrinaut-website:voice-enabled` and defaults on; choosing an assistant leaves it as it is.
 
 When Voice is enabled for Brunch, Labs also shows **Realtime mode**, off by default. Leave it off to use Live; turn it on to use Realtime. This choice is saved under `petrinaut-website:realtime-enabled` and applies to the next Voice session. Changing it does not interrupt active audio: end Voice and start it again to switch providers.
 
-With Brunch selected, Labs also shows **Interview length**, off by default, for choosing how many questions Brunch asks before wrapping up. The toggle and the chosen level are saved under `petrinaut-website:interview-budget-enabled` and `petrinaut-website:interview-budget`. See [Interview length](docs/interview-length.md).
+With Brunch as the assistant, Labs also shows **Interview length**, off by default, for choosing how many questions Brunch asks before wrapping up. The toggle and the chosen level are saved under `petrinaut-website:interview-budget-enabled` and `petrinaut-website:interview-budget`. See [Interview length](docs/interview-length.md).
 
-A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Ledger pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
+With Petrinaut AI shown, the panel talks to `/api/chat` with the stock tool surface and keeps its messages in the local store. Brunch then creates no Flue client, reads no history, checks no Voice and mounts no tools; its conversation lives in Flue history and is untouched. Choosing Brunch again restores it.
 
-With the stock assistant selected, **User settings → Plugins** lists **Petrinaut AI**, the `website.petrinaut-ai` plugin in `src/main/app/plugins/petrinaut-ai/plugin.tsx`, which renders the chat in the assistant panel.
+**User settings → Plugins** lists both: **Petrinaut AI**, the `website.petrinaut-ai` plugin in `src/main/app/plugins/petrinaut-ai/plugin.tsx`, and **Brunch**, the `website.brunch` plugin in `src/main/app/plugins/brunch/editor-api-plugin.tsx`. Each renders its chat in the assistant panel while shown. Switching Brunch off there shows Petrinaut AI and closes Brunch's connections, even while Brunch is the chosen assistant. Brunch's cards read the open net, its experiments and the editor's navigation through its plugin `api`.
 
-While Brunch is the assistant, **User settings → Plugins** lists **Brunch**, the `website.brunch` plugin in `src/main/app/plugins/brunch/editor-api-plugin.tsx`. It has no switch: Brunch's cards read the open net, its experiments and the editor's navigation through its `api`, and without it they show a notice instead and report the failure. It leaves the list with the Brunch assistant.
+Voice is available only when Brunch is the assistant, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
-Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
-
-With Brunch selected, Labs also shows **Custom words**, off by default, for preferred spellings and pronunciation hints in Voice. See [Custom words](docs/custom-words.md).
+With Brunch as the assistant, Labs also shows **Custom words**, off by default, for preferred spellings and pronunciation hints in Voice. See [Custom words](docs/custom-words.md).
 
 ## Snapshot links
 
@@ -458,7 +458,7 @@ disclosure before requesting microphone access. The disclosure also provides a
 microphone check and is remembered in browser storage only after Voice mode
 starts.
 
-When Brunch is selected, typed turns and completed Voice transcripts both enter
+When Brunch is the assistant, typed turns and completed Voice transcripts both enter
 the same mounted Flue conversation route. Each logical turn carries a stable
 delivery key so a replayed request converges on the existing admission instead
 of creating another turn. If admission cannot be confirmed, the UI reports the
