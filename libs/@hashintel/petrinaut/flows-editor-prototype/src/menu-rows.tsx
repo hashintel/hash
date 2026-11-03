@@ -6,7 +6,7 @@
  * The rows stay DS Menu items (keyboard, submenus, highlight) and carry this content as their `text`.
  */
 import { Icon, type IconName, type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 /** A row with a second line: 8 px above and below, 6 px in; a one-line row: 6 px all round; 4 px between rows. */
 export const tiledRowsStyle = css({
@@ -40,6 +40,8 @@ const rowStyle = css({
   gap: "3",
   minWidth: "[0]",
   width: "[100%]",
+  // A two-line row hangs from the top: the tile starts at the title's cap height, as Figma draws it (3 Nov).
+  "&[data-menu-row=two]": { alignItems: "flex-start" },
 });
 
 /** The 32 px slot of a one-line row: the 14 px icon centred, or nothing (Any). */
@@ -54,18 +56,35 @@ const slotStyle = css({
   "& svg": { width: "[14px]", height: "[14px]", "--icon-size": "14px" },
 });
 
-/** The 32 px tile: 8 px corners, the step-tile grey, a 16 px icon. */
-const tileStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
+/** A two-line row's 32 px column, so its text lines up with the one-line rows; the tile is centred in it. */
+const tileColumnStyle = css({
+  display: "flex",
   justifyContent: "center",
   flexShrink: 0,
   width: "[32px]",
-  height: "[32px]",
-  borderRadius: "lg",
-  backgroundColor: "neutral.a25",
-  color: "neutral.fg.muted",
-  "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
+});
+
+/**
+ * The tile runs from the title's cap height to the description's baseline (Figma, 3 Nov): 28 px, 1 px down, in a
+ * value menu (12 px title line, 16 px description line); 30 px, 2 px down, for a step (14 px and 18 px lines).
+ * 8 px corners, the step-tile grey, a 16 px icon.
+ */
+const tileStyle = cva({
+  base: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "lg",
+    backgroundColor: "neutral.a25",
+    color: "neutral.fg.muted",
+    "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
+  },
+  variants: {
+    lines: {
+      value: { width: "[28px]", height: "[28px]", marginTop: "[1px]" },
+      step: { width: "[30px]", height: "[30px]", marginTop: "[2px]" },
+    },
+  },
 });
 
 const textStyle = css({
@@ -88,48 +107,73 @@ const titleStyle = css({
   color: "neutral.fg.heading",
 });
 
-/** In a two-line row Figma sets the title on a 12 px line, so title, 4 px and description fill the 32 px tile. */
-const twoLineTitleStyle = css({
-  ...ellipsis,
-  textStyle: "sm",
-  lineHeight: "[12px]",
-  paddingY: "[1px]",
-  marginY: "[-1px]",
-  color: "neutral.fg.heading",
+/** A two-line row's title: a 12 px line in a value menu (with 1 px of room for the glyphs), 14 px for a step. */
+const twoLineTitleStyle = cva({
+  base: {
+    ...ellipsis,
+    textStyle: "sm",
+    color: "neutral.fg.heading",
+  },
+  variants: {
+    lines: {
+      value: { lineHeight: "[12px]", paddingY: "[1px]", marginY: "[-1px]" },
+      step: { lineHeight: "[14px]" },
+    },
+  },
 });
 
-/** A long line wraps, as Figma draws Send email's (J0.10); the tile stays centred on the row. */
-const descriptionStyle = css({
-  whiteSpace: "normal",
-  textStyle: "xs",
-  lineHeight: "[16px]",
-  // Figma sets the line with no tracking; the DS xs style's 0.12 px clips the longest step line.
-  letterSpacing: "[0]",
-  fontWeight: "normal",
-  color: "neutral.fg.subtle",
+/** A long line wraps, as Figma draws Send email's (J0.10); the tile stays at the top. */
+const descriptionStyle = cva({
+  base: {
+    whiteSpace: "normal",
+    textStyle: "xs",
+    // Figma sets the line with no tracking; the DS xs style's 0.12 px clips the longest step line.
+    letterSpacing: "[0]",
+    fontWeight: "normal",
+    color: "neutral.fg.subtle",
+  },
+  variants: {
+    lines: {
+      value: { lineHeight: "[16px]" },
+      step: { lineHeight: "[18px]" },
+    },
+  },
 });
+
+/** How a two-line row sets its lines: a value menu's (12 / 16 px) or a step picker's (14 / 18 px). */
+export type RowLines = "value" | "step";
 
 export const MenuRow = ({
   icon,
   title,
   description,
+  lines = "value",
 }: {
   icon?: IconName | React.ReactElement;
   title: React.ReactNode;
   description?: React.ReactNode;
+  lines?: RowLines;
 }) => {
   const twoLine = description !== undefined && description !== null && description !== "";
   const glyph = typeof icon === "string" ? <Icon name={icon} size="sm" /> : icon;
   return (
     <span className={rowStyle} data-menu-row={twoLine ? "two" : "one"}>
-      <span className={twoLine ? tileStyle : slotStyle} aria-hidden="true">
-        {glyph}
-      </span>
+      {twoLine ? (
+        <span className={tileColumnStyle} aria-hidden="true">
+          <span className={tileStyle({ lines })}>{glyph}</span>
+        </span>
+      ) : (
+        <span className={slotStyle} aria-hidden="true">
+          {glyph}
+        </span>
+      )}
       <span className={textStyle}>
-        <span className={twoLine ? twoLineTitleStyle : titleStyle}>
+        <span className={twoLine ? twoLineTitleStyle({ lines }) : titleStyle}>
           {title}
         </span>
-        {twoLine ? <span className={descriptionStyle}>{description}</span> : null}
+        {twoLine ? (
+          <span className={descriptionStyle({ lines })}>{description}</span>
+        ) : null}
       </span>
     </span>
   );
@@ -152,13 +196,19 @@ const hasDescription = (item: MenuItem) =>
  */
 export const tileMenu = (
   entries: Array<ItemOrGroup<TiledItem>>,
+  lines: RowLines = "value",
 ): Array<ItemOrGroup<MenuItem>> => {
   const rows = entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]));
   const tiled = rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
     const { glyph, ...rest } = item;
     const subItems = rest.subItems
-      ? { subItems: tileMenu(rest.subItems as Array<ItemOrGroup<TiledItem>>) }
+      ? {
+          subItems: tileMenu(
+            rest.subItems as Array<ItemOrGroup<TiledItem>>,
+            lines,
+          ),
+        }
       : {};
     if (!tiled) {
       return { ...rest, ...subItems } as MenuItem;
@@ -168,7 +218,12 @@ export const tileMenu = (
       ...subItems,
       id: rest.id ?? (typeof rest.text === "string" ? rest.text : undefined),
       text: (
-        <MenuRow icon={glyph ?? rest.icon} title={rest.text} description={rest.description} />
+        <MenuRow
+          icon={glyph ?? rest.icon}
+          title={rest.text}
+          description={rest.description}
+          lines={lines}
+        />
       ),
       icon: undefined,
       description: undefined,

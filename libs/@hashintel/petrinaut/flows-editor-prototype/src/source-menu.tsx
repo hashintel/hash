@@ -594,51 +594,50 @@ export const SourceMenu = ({
           },
         ]
       : []),
-    ...(fromSteps && (earlier.length > 0 || !searching)
-      ? [
-          {
-            id: "Earlier steps",
-            label: "Earlier steps",
-            items:
-              earlier.length > 0
-                ? earlier
-                : [
-                    {
-                      id: "none:earlier",
-                      text: `No earlier step gives ${phrase}`,
-                      disabled: true,
-                    },
-                  ],
-          },
-        ]
-      : []),
+    // With nothing earlier that fits, Earlier steps offers only the way to add one on Start, with no line saying
+    // why (Figma J2.21, 3 Nov). The For each list has no such action, so it keeps its line.
+    ...(fromSteps && earlier.length > 0
+      ? [{ id: "Earlier steps", label: "Earlier steps", items: earlier }]
+      : fromSteps && !searching && listsOnly
+        ? [
+            {
+              id: "Earlier steps",
+              label: "Earlier steps",
+              items: [
+                {
+                  id: "none:earlier",
+                  text: `No earlier step gives ${phrase}`,
+                  disabled: true,
+                },
+              ],
+            },
+          ]
+        : fromSteps && !searching && flowInputs.length === 0
+          ? [
+              {
+                id: "Earlier steps",
+                label: "Earlier steps",
+                items: [
+                  {
+                    id: "add-flow-input",
+                    text: input.array
+                      ? "Add a list input on Start"
+                      : `Add ${phrase} input on Start`,
+                    icon: "plus" as const,
+                    onPick: goToStart,
+                  },
+                ],
+              },
+            ]
+          : []),
     ...(thisItem.length > 0
       ? [{ id: "This item", label: "This item", items: thisItem }]
       : []),
-    ...(fromSteps && !listsOnly && (flowInputs.length > 0 || !searching)
-      ? [
-          {
-            id: "Flow inputs",
-            label: "Flow inputs",
-            items:
-              flowInputs.length > 0
-                ? flowInputs
-                : [
-                    {
-                      id: "none:flow-input",
-                      text: `No flow input is ${phrase}`,
-                      disabled: true,
-                    },
-                    {
-                      id: "add-flow-input",
-                      text: "Add flow input on Start",
-                      onPick: goToStart,
-                    },
-                  ],
-          },
-        ]
+    ...(fromSteps && !listsOnly && flowInputs.length > 0
+      ? [{ id: "Flow inputs", label: "Flow inputs", items: flowInputs }]
       : []),
-    ...(nothingFits
+    // A search that finds nothing says so; with no search there is always the Start action above.
+    ...(nothingFits && (searching || !fromSteps)
       ? [
           {
             id: "nothing",

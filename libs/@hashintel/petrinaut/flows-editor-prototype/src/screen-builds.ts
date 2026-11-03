@@ -156,9 +156,9 @@ const typeFromStart = (picked: boolean) => {
   };
 };
 
-/** J1.4's frame draws its cards at 90% and labels that 100%. */
+/** J1.4's frame draws its cards at 90% and labels that 100%; Start 16 px into the canvas, so they clear the panel. */
 const ninetyPercent: Partial<EditorUi> = {
-  viewport: { left: 40, top: 346, zoom: 0.9 },
+  viewport: { left: 16, top: 346, zoom: 0.9 },
   zoomBase: 0.9,
 };
 

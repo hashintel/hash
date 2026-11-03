@@ -326,7 +326,7 @@ export const AddNodePicker = ({
           focusOnOpen
         />
       }
-      items={tileMenu(items)}
+      items={tileMenu(items, "step")}
     />
   );
 };
