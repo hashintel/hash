@@ -11,8 +11,10 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
+/** @category Schemas */
 export const Schema: typeof Defs.Union = Defs.Union;
 
+/** @category Models */
 export interface Union extends Defs.UnionType {}
 
 export declare namespace Union {
@@ -25,17 +27,21 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * Checks a decoded union object and returns it.
  *
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Union =
   Overflow.make(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Union, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

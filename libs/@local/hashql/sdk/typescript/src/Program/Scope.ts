@@ -27,6 +27,7 @@ import type * as Module from "./Module.js";
 import type * as TypeExpression from "./TypeExpression.js";
 import type { Types } from "effect";
 
+/** @category Type IDs */
 export type TypeId = "~hashql/Scope";
 const TypeId: TypeId = "~hashql/Scope";
 
@@ -38,7 +39,11 @@ type Entry =
   | Expression.Expression.Any
   | TypeExpression.Export;
 
-/** Lists a table's enumerable own names, typed as its literal keys rather than `string`. */
+/**
+ * Lists a table's enumerable own names, typed as its literal keys rather than `string`.
+ *
+ * @category Utilities
+ */
 export const universeKeys = <U extends Universe<Entry>>(
   universe: U,
 ): (string & keyof U)[] => Record.keys<string & keyof U, U[keyof U]>(universe);
@@ -47,6 +52,8 @@ export const universeKeys = <U extends Universe<Entry>>(
  * Tables that supply a scope, such as a prelude.
  *
  * Each table is optional. A module record, the record {@link Module.root} returns and {@link @local/hashql#Program.Prelude.builtin | Prelude.builtin} all fit.
+ *
+ * @category Models
  */
 export interface Definition<S extends Scope.Any> extends Definition.Base<
   S["modules"],
@@ -105,7 +112,11 @@ type StringKeyedTables<D> = {
     : D[K];
 };
 
-/** The module, value and type tables of a construction scope. */
+/**
+ * The module, value and type tables of a construction scope.
+ *
+ * @category Models
+ */
 export interface Scope<D extends Definition.Any> extends Scope.Base<
   Names<D, "modules">,
   Names<D, "values">,
@@ -216,7 +227,11 @@ class ScopeImpl<M, V, T>
   }
 }
 
-/** Recognizes the scope marker without validating the export tables. */
+/**
+ * Recognizes the scope marker without validating the export tables.
+ *
+ * @category Guards
+ */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard accepts unchecked host values
 export const isScope = (value: unknown): value is Scope.Any =>
   Predicate.hasProperty(value, TypeId);
@@ -254,6 +269,8 @@ const union = <B extends Universe<Entry>, A extends Universe<Entry>>(
  * Copies and merges scope tables, with later enumerable own names replacing earlier ones.
  *
  * Accepts the original scope first or last. An added name that is absent or holds `undefined` keeps the earlier export, and its type keeps the earlier export as an alternative. TypeScript rejects a symbol key, which cannot name an export. The operation neither freezes nor mutates either input.
+ *
+ * @category Combinators
  */
 export const merge: {
   <const D extends Definition.Any>(
@@ -281,7 +298,11 @@ export const merge: {
   },
 );
 
-/** An immutable scope with no exported names. */
+/**
+ * An immutable scope with no exported names.
+ *
+ * @category Constructors
+ */
 export const empty: Scope.Empty = new ScopeImpl({
   modules: emptyTable(),
   values: emptyTable(),

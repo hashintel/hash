@@ -13,7 +13,11 @@ import type {
   ParserError,
 } from "./parser-error.js";
 
-/** A URL-shaped identifier that is not an HTTP(S) URL ending in a slash. */
+/**
+ * A URL-shaped identifier that is not an HTTP(S) URL ending in a slash.
+ *
+ * @category Reasons
+ */
 export interface InvalidBaseUrl {
   readonly _tag: "InvalidBaseUrl";
   readonly value: string;
@@ -22,7 +26,11 @@ export interface InvalidBaseUrl {
 export const InvalidBaseUrl: Data.TaggedEnum.Constructor<InvalidBaseUrl>["InvalidBaseUrl"] =
   Data.taggedEnum<InvalidBaseUrl>().InvalidBaseUrl;
 
-/** Failures of an identifier prefix parse. */
+/**
+ * Failures of an identifier prefix parse.
+ *
+ * @category Reasons
+ */
 export type IdentReason =
   | ExpectedCharacterClass
   | ExpectedLiteral

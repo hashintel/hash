@@ -5,13 +5,18 @@
  *
  * Host-side alternatives retain every possible requirement. The types here cannot know which expression the host will select. An empty alternative therefore must not hide a branch that needs an input.
  *
+ * @stability experimental
  * @module
  */
 import type * as Type from "../Type.js";
 import type { Normalize } from "./ExpressionType.js";
 import type { Types } from "effect";
 
-/** The requirement record of an expression that needs no inputs. */
+/**
+ * The requirement record of an expression that needs no inputs.
+ *
+ * @category Models
+ */
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- a closed expression requires no input names
 export type Empty = Record<never, never>;
 
@@ -21,6 +26,8 @@ declare const ErasedRequirement: unique symbol;
  * Marks input requirements that TypeScript could not recover.
  *
  * Requirement inference produces this marker when an expression's requirement record is `never` or `unknown`, or when a value lacks the SDK's requirement metadata. No input schema has the marker key, so a program's input schema cannot satisfy an erased requirement. Merging it with a named requirement gives `never`.
+ *
+ * @category Models
  */
 export interface Erased {
   readonly [ErasedRequirement]: Type.Unknown;
@@ -81,6 +88,8 @@ type Collapse<U, I> = [U] extends [never]
  * Requires every host-side alternative, preserving shared semantic constraints.
  *
  * A union of requirement records becomes one record that requires each name any alternative requires. `never` and `unknown` become {@link Erased}.
+ *
+ * @category Utility Types
  */
 export type Conservative<I> = [I] extends [never]
   ? Erased
@@ -135,10 +144,16 @@ type MergeRight<L, R> = [keyof R] extends [never]
  *   { readonly id: Type.Never }
  * > = true;
  * ```
+ *
+ * @category Utility Types
  */
 export type Merge<L, R> = MergeRight<L, Conservative<R>>;
 
-/** Combines tuple members, retaining every possible requirement in arrays and optional positions. */
+/**
+ * Combines tuple members, retaining every possible requirement in arrays and optional positions.
+ *
+ * @category Utility Types
+ */
 // oxlint-disable-next-line typescript/no-restricted-types -- inferred metadata includes unknown and never; Conservative detects erasure instead of assuming a valid input record
 export type All<T extends readonly unknown[]> = T extends readonly []
   ? Empty

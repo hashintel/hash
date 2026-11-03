@@ -25,7 +25,11 @@ import type {
   ExpectedProgress,
 } from "./parser-error.js";
 
-/** The input nests deeper than the call stack lets the parser follow. Its offset is 0, because the parser cannot tell where the stack ran out. */
+/**
+ * The input nests deeper than the call stack lets the parser follow. Its offset is 0, because the parser cannot tell where the stack ran out.
+ *
+ * @category Reasons
+ */
 export interface NestingTooDeep {
   readonly _tag: "NestingTooDeep";
 }
@@ -33,7 +37,11 @@ export interface NestingTooDeep {
 export const NestingTooDeep: Data.TaggedEnum.Constructor<NestingTooDeep>["NestingTooDeep"] =
   Data.taggedEnum<NestingTooDeep>().NestingTooDeep;
 
-/** A struct type names the same field twice. Its offset is the end of the struct, because the parser compares names after it reads every field. */
+/**
+ * A struct type names the same field twice. Its offset is the end of the struct, because the parser compares names after it reads every field.
+ *
+ * @category Reasons
+ */
 export interface DuplicateStructField {
   readonly _tag: "DuplicateStructField";
   readonly name: Ident.Ident;
@@ -42,7 +50,11 @@ export interface DuplicateStructField {
 export const DuplicateStructField: Data.TaggedEnum.Constructor<DuplicateStructField>["DuplicateStructField"] =
   Data.taggedEnum<DuplicateStructField>().DuplicateStructField;
 
-/** All syntax and semantic reasons this recursive grammar can report. */
+/**
+ * All syntax and semantic reasons this recursive grammar can report.
+ *
+ * @category Reasons
+ */
 export type TypeReason =
   | IdentReason
   | ExpectedEndOfInput

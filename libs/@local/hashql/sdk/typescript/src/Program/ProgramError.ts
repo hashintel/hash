@@ -13,6 +13,8 @@ const Issue = Schema.declare(SchemaIssue.isIssue);
  * A structured explanation of a construction failure, selected by `_tag`.
  *
  * Name and syntax failures retain their parser cause. `CallbackException` retains the original thrown value inside `Cause.UnknownError`. HashQL compiler diagnostics and query execution errors belong to later stages, outside this reason type.
+ *
+ * @category Reasons
  */
 export const Reason = Schema.TaggedUnion({
   /** A declaration name is not a valid HashQL identifier. */
@@ -73,6 +75,8 @@ export const Reason = Schema.TaggedUnion({
  * assert.ok(Result.isFailure(declaration));
  * assert.equal(declaration.failure.reason._tag, "InvalidTypeArity");
  * ```
+ *
+ * @category Errors
  */
 // oxlint-disable-next-line unicorn/throw-new-error -- false positive
 export class Construction extends Schema.TaggedError<Construction>()(

@@ -30,7 +30,11 @@ import * as Bindings from "./Bindings.js";
 import type * as Module from "../Module.js";
 import type * as Namespace from "../Namespace.js";
 
-/** Marker for a lexical import declaration, distinct from its bindings. */
+/**
+ * Marker for a lexical import declaration, distinct from its bindings.
+ *
+ * @category Type IDs
+ */
 export type TypeId = "~hashql/Import";
 const TypeId: TypeId = "~hashql/Import";
 
@@ -78,6 +82,8 @@ export type * as Bindings from "./Bindings.js";
  * assert.ok(Result.isFailure(invalid));
  * assert.equal(invalid.failure.reason._tag, "InvalidImportName");
  * ```
+ *
+ * @category Models
  */
 export type Selection<
   M extends Module.Module.Any,
@@ -231,7 +237,11 @@ const plan = (
 interface Capability extends Relocation.Relocatable<Capability> {}
 type Rebindings<E> = { readonly [K in keyof E]: Relocation.Relocatable<E[K]> };
 
-/** A module whose exports each rebind to their own type, as an import requires. */
+/**
+ * A module whose exports each rebind to their own type, as an import requires.
+ *
+ * @category Models
+ */
 export interface Rebindable<M extends Module.Module.Any> {
   readonly modules: M["modules"] & Rebindings<M["modules"]>;
   readonly types: M["types"] & Rebindings<M["types"]>;
@@ -291,7 +301,11 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
     return Object.freeze(selected) as Bindings.Selected<E, I>;
   });
 
-/** An import's bindings and the lexical wrapper that makes their local names available. */
+/**
+ * An import's bindings and the lexical wrapper that makes their local names available.
+ *
+ * @category Models
+ */
 export interface Declaration<M extends Module.Module.Any, I> {
   readonly [TypeId]: TypeId;
   readonly scope: Bindings.Bindings<M, I> &
@@ -342,6 +356,8 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
  * The import emits a `use` of the module's path. HashQL must therefore provide every selected export under that path, aliases included. HashQL can also bind exports the record does not declare, as {@link Selection} describes.
  *
  * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for an invalid alias or one that two exports share, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It returns frozen tables without a prototype, so a name the import does not bind reads as `undefined`. The HashQL compiler resolves the emitted import.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the module and selection construct a declaration
 export const bind = <

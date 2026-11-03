@@ -3,6 +3,7 @@
  *
  * {@link program} wraps a root expression as a program. {@link compile} serializes a program to J-Expr JSON text. {@link Expression} builds the typed expressions. {@link TypeExpression} annotates type syntax with semantic descriptors. A builder that fails stores a {@link ProgramError.Construction} in its expression instead of throwing. {@link Program.Inputs} extracts the input requirements a program's caller must supply.
  *
+ * @stability beta
  * @module
  */
 import { Result, pipe } from "effect";
@@ -18,6 +19,8 @@ import type * as Type from "../Type.js";
  * A root {@link Expression.Expression} carrying its result descriptor and input requirements.
  *
  * The wrapper does not establish that the expression constructed successfully or that the HashQL compiler accepts it. {@link compile} extracts the syntax and returns any {@link ProgramError.Construction} the expression stored. Query execution is separate.
+ *
+ * @category Models
  */
 export interface Program<T extends Type.Any, Requirements> {
   /** The expression whose syntax becomes the program, including its retained construction result. */
@@ -39,6 +42,8 @@ export declare namespace Program {
  * Wraps a root expression without validating or evaluating it.
  *
  * The constructor freezes the wrapper. It keeps the original handle as {@link Program.root}. See {@link compile} for serialization and failure handling.
+ *
+ * @category Constructors
  */
 export const program = <T extends Type.Any, Inputs>(
   root: Expression.Expression<T, Inputs>,
@@ -62,6 +67,8 @@ export const program = <T extends Type.Any, Inputs>(
  * const greeting = Program.program(Program.Expression.literal("hello"));
  * assert.equal(Result.getOrThrow(Program.compile(greeting)), '{"#literal":"hello"}');
  * ```
+ *
+ * @category Compiling
  */
 export const compile = <T extends Type.Any, Inputs>(
   self: Program<T, Inputs>,

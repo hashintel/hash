@@ -9,6 +9,7 @@
  *
  * @module
  */
+// oxlint-disable max-lines -- definition, rebinding and relocation share the private table helpers of one module record
 import { Equal, Hash, Pipeable, Predicate, Record, Result, pipe } from "effect";
 
 import { emptyTable } from "../internal/record.js";
@@ -31,6 +32,7 @@ import type * as TypeExpression from "./TypeExpression.js";
 export { genericType, type, value } from "./Declaration.js";
 export type { Declaration } from "./Declaration.js";
 
+/** @category Type IDs */
 export type TypeId = "~hashql/Module";
 const TypeId: TypeId = "~hashql/Module";
 
@@ -46,6 +48,8 @@ type Declarations<E> = {
  * Named declarations and existing exports to assemble into a module.
  *
  * Each table is optional. The type and value tables accept declarations or existing exports, and the module table accepts modules that are already bound.
+ *
+ * @category Models
  */
 export interface Definition {
   readonly modules?: Namespace<Module.Any>;
@@ -109,6 +113,8 @@ type RebindableDefinition<S> = {
  * An omitted table becomes an empty table, and the names of an optional table become optional exports.
  *
  * Equality and hashing compare the path and all three export tables. Members use their existing Effect equality, not their printed syntax, so two binding calls need not produce equal exports. Construction freezes the records and tables but shares alias members and paths. Treat those values as immutable after comparison or hashing, because Effect caches its results.
+ *
+ * @category Models
  */
 export interface Module<S extends Definition>
   extends
@@ -143,6 +149,8 @@ export declare namespace Module {
  * Recognizes a module assembled by this SDK.
  *
  * The guard checks for the module marker property. A joined namespace name that includes a module also passes. The record {@link root} returns does not.
+ *
+ * @category Guards
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isModule = (value: unknown): value is Module.Any =>
@@ -373,6 +381,8 @@ class ModuleImpl<
  * assert.ok(Result.isFailure(relative));
  * assert.equal(relative.failure.reason._tag, "RelativeModulePath");
  * ```
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the path names the module under construction
 export function define<const S extends Definition>(
@@ -462,6 +472,8 @@ export function define<
  *   '"local::settings::limit"',
  * );
  * ```
+ *
+ * @category Combinators
  */
 export const relocate: {
   (
@@ -479,6 +491,8 @@ export const relocate: {
  * Assembles already-bound modules without rebasing their references.
  *
  * The result is a frozen `{ modules }` record keyed by the supplied names. It is not a module: it has no path, and {@link isModule} rejects it. Each child keeps its identity and its own path. The record fits any parameter that takes a scope definition, such as a prelude. Names follow the rules and failures of the module table of {@link define}.
+ *
+ * @category Constructors
  */
 export const root = <const M extends Namespace<Module.Any>>(
   modules: M & StringKeyed<M>,

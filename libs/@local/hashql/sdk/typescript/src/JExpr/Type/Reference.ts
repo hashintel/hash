@@ -11,12 +11,15 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
+/** @category Schemas */
 export const Schema: typeof Defs.Reference = Defs.Reference;
 
 /**
  * Type syntax naming a type by its decoded path, with ordered generic entries on each segment.
  *
  * `JExpr.type` and `JExpr.newtype` also accept a reference as a declaration name. There its generic list declares parameters: a bare name such as `T` is an unbounded parameter and `T: Integer` a bounded one.
+ *
+ * @category Models
  */
 export interface Reference extends Defs.ReferenceType {}
 
@@ -30,17 +33,21 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * Checks a decoded reference object and returns it.
  *
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Reference =
   Overflow.make(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Reference, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

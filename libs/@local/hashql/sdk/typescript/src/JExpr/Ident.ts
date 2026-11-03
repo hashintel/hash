@@ -71,6 +71,8 @@ const BaseUrlSchema: $Schema.TaggedStruct<
  * Schema for identifier objects with unquoted values.
  *
  * `Arbitrary.schema(SchemaFromSelf)` generates every identifier kind. Derivation computes and caches character ranges from the runtime's Unicode tables on first use.
+ *
+ * @category Schemas
  */
 export const SchemaFromSelf: $Schema.toTaggedUnion<
   "_tag",
@@ -83,6 +85,8 @@ export const SchemaFromSelf: $Schema.toTaggedUnion<
  * Codec between source syntax and an identifier object.
  *
  * Decoding accepts exactly one identifier. Encoding quotes symbol and base-URL identifiers. {@link make} validates the decoded object rather than source text. Arbitrary generation uses the decoded {@link SchemaFromSelf}.
+ *
+ * @category Schemas
  */
 export const Schema: $Schema.decodeTo<
   typeof SchemaFromSelf,
@@ -111,6 +115,8 @@ export const Schema: $Schema.decodeTo<
  * The decoded form of an identifier, with its kind in `_tag` and its value without backticks.
  *
  * A `Lexical` value follows Unicode XID rules, with `_` permitted before one or more continuation characters. A `Symbol` contains ASCII operator characters or non-ASCII punctuation and symbols. Lexical and symbol values retain their Unicode spelling, because normalizing can produce text HashQL does not parse, such as U+1FEF becoming a backtick. HashQL compares identifiers by their {@link name} instead. Character membership follows the JavaScript runtime's Unicode tables. A `BaseUrl` retains the source spelling of a validated HTTP(S) URL ending in `/`. An object literal remains unchecked until {@link make} validates it.
+ *
+ * @category Models
  */
 export type Ident = Ident.Lexical | Ident.Symbol | Ident.BaseUrl;
 
@@ -137,26 +143,40 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * Use {@link decodeResult} for source text. Without `_tag`, the result takes the kind whose pattern matches `value`.
  *
  * @throws `Error` If `value` is not valid for the given kind. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Ident =
   SchemaParser.make(Schema);
 
-/** Checks an identifier object like {@link make}, failing the synchronous effect with the issue instead of throwing. */
+/**
+ * Checks an identifier object like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
+ * @category Constructors
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Ident, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
 
-/** Checks an identifier object like {@link make}, returning `None` if validation fails. */
+/**
+ * Checks an identifier object like {@link make}, returning `None` if validation fails.
+ *
+ * @category Constructors
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Option.Option<Ident> = SchemaParser.makeOption(Schema);
 
-/** Parses one identifier with typed reasons and a UTF-16 error offset, preserving its spelling. */
+/**
+ * Parses one identifier with typed reasons and a UTF-16 error offset, preserving its spelling.
+ *
+ * @category Parsing
+ */
 export const parse: (
   input: string,
 ) => Result.Result<
@@ -166,10 +186,18 @@ export const parse: (
   >
 > = Grammar.parseIdent;
 
-/** Source text accepted by the identifier grammar, paired with the identifier it parses to. */
+/**
+ * Source text accepted by the identifier grammar, paired with the identifier it parses to.
+ *
+ * @category Testing
+ */
 export type Sample = Parser.Parser.Sample<Ident>;
 
-/** Generates source text and its parsed identifier from the identifier grammar. */
+/**
+ * Generates source text and its parsed identifier from the identifier grammar.
+ *
+ * @category Testing
+ */
 export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
   Grammar.completeIdentifier.arbitrary;
 
@@ -189,6 +217,8 @@ export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
  * assert.equal(JExpr.Ident.compile(plus), "`+`");
  * assert.ok(Result.isFailure(JExpr.Ident.decodeResult("user.name")));
  * ```
+ *
+ * @category Parsing
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const decodeResult: (
@@ -203,10 +233,16 @@ export const decodeResult: (
  * Quotes symbols and base URLs in backticks, so the bare `+` decodes and compiles to <code>\`+\`</code>, while lexical values keep their spelling.
  *
  * Nothing validates the value first.
+ *
+ * @category Compiling
  */
 export const compile: (ident: Ident) => string = Grammar.compileIdent;
 
-/** An identifier's value in Unicode normalization form C, as HashQL interns it. */
+/**
+ * An identifier's value in Unicode normalization form C, as HashQL interns it.
+ *
+ * @category Models
+ */
 export type Name = string & Brand.Brand<"Ident.Name">;
 const Name = Brand.nominal<Name>();
 
@@ -214,5 +250,7 @@ const Name = Brand.nominal<Name>();
  * Returns the name HashQL interns for an identifier.
  *
  * Canonically equivalent spellings, such as the precomposed `"\u00E9"` and the combining `"e\u0301"`, have one name, so HashQL reads them as one binding or one struct field.
+ *
+ * @category Getters
  */
 export const name = (ident: Ident): Name => Name(ident.value.normalize("NFC"));
