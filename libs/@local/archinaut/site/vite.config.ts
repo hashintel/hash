@@ -27,6 +27,7 @@ import { remarkLayerCards } from "./src/plugins/layer-cards.mjs";
 import { reloadDiagrams } from "./src/plugins/reload-diagrams.mjs";
 import { remarkAsides } from "./src/plugins/remark-asides.mjs";
 import { remarkSchemeLinks } from "./src/plugins/scheme-links.mjs";
+import { remarkSlideDiagrams } from "./src/plugins/slide-diagrams.ts";
 import { remarkSlideMetadata } from "./src/plugins/slide-metadata.mjs";
 
 import type { BundleManifest } from "../src/bundle/outputs.ts";
@@ -85,6 +86,17 @@ export default defineConfig(async () => ({
             },
           ],
           [remarkSlideMetadata, { docsDirectory: contentPath("docs/") }],
+          // After the step count, which reads the d2 source this replaces.
+          [
+            remarkSlideDiagrams,
+            {
+              docsDirectory: contentPath("docs/"),
+              cwd: fileURLToPath(new URL("..", import.meta.url)),
+              fontsDirectory: fileURLToPath(
+                new URL("../fonts", import.meta.url),
+              ),
+            },
+          ],
         ],
         rehypePlugins: [
           rehypeSlug,

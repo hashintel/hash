@@ -90,6 +90,21 @@ describe("remarkSlideMetadata", () => {
     expect(exported(root)).toMatch(/export const steps = 9;$/u);
   });
 
+  it("counts the step classes of a d2 block, and nothing else in it", () => {
+    const root = tree({
+      type: "code",
+      lang: "d2",
+      value: [
+        "react: {class: [react; at-2]}",
+        "ui.class: until-4",
+        "core: at-9 is a label, not a class",
+        "classes: {at-7: {}}",
+      ].join("\n"),
+    });
+    plugin(root, slide);
+    expect(exported(root)).toBe("export const steps = 5;");
+  });
+
   it("gives a slide with nothing to step one step", () => {
     const root = tree({ type: "paragraph", children: [] });
     plugin(root, slide);

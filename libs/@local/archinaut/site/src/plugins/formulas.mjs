@@ -24,6 +24,8 @@ import { fromHtml } from "hast-util-from-html";
 import katex from "katex";
 import { SKIP, visit } from "unist-util-visit";
 
+import { numberAttribute } from "./mdx-jsx.mjs";
+
 /**
  * The formula an element carries, if `remark-math` emitted it: a `$…$` span
  * is a `code.math-inline`, a `$$` block the `pre` around a `code.math-display`.
@@ -60,33 +62,6 @@ const slideOptions = () => ({
     context.command === "\\htmlData",
   strict: (/** @type {string} */ errorCode) =>
     errorCode === "htmlExtension" ? "ignore" : "warn",
-});
-
-/**
- * A JSX attribute holding a number literal, as MDX compiles one.
- *
- * @param {string} name
- * @param {number} value
- */
-const numberAttribute = (name, value) => ({
-  type: "mdxJsxAttribute",
-  name,
-  value: {
-    type: "mdxJsxAttributeValueExpression",
-    value: String(value),
-    data: {
-      estree: {
-        type: "Program",
-        sourceType: "module",
-        body: [
-          {
-            type: "ExpressionStatement",
-            expression: { type: "Literal", value, raw: String(value) },
-          },
-        ],
-      },
-    },
-  },
 });
 
 /**

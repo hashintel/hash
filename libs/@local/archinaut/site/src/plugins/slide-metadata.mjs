@@ -6,6 +6,7 @@
  *
  * - `<Reveal at={n} until={m}>`, whose `at` and `until` are number literals;
  * - `\step{n}{…}` and `\swap{n}{…}{…}` inside a formula;
+ * - an `at-<n>` or `until-<n>` class in a d2 block;
  * - a key of the frontmatter's `notes.byStep`.
  *
  * A `steps` key in the frontmatter overrides the count, and the compile
@@ -26,6 +27,10 @@ import {
 } from "./slide-frontmatter.mjs";
 
 const formulaStep = /\\(?:step|swap)\s*\{\s*(\d+)\s*\}/gu;
+
+/** A d2 `class:` value, one name or a list, and the step classes in it. */
+const diagramClass = /\bclass\s*:\s*(\[[^\]]*\]|[^\s;}]+)/gu;
+const diagramStep = /\b(?:at|until)-(\d+)\b/gu;
 
 /**
  * The number an attribute's literal expression holds, `undefined` when the
@@ -135,6 +140,14 @@ export const remarkSlideMetadata =
       if (node.type === "math" || node.type === "inlineMath") {
         for (const match of node.value.matchAll(formulaStep)) {
           named.push(Number(match[1]));
+        }
+        return;
+      }
+      if (node.type === "code" && node.lang === "d2") {
+        for (const [, names = ""] of node.value.matchAll(diagramClass)) {
+          for (const match of names.matchAll(diagramStep)) {
+            named.push(Number(match[1]));
+          }
         }
         return;
       }
