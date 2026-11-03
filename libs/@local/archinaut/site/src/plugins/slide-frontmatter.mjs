@@ -19,6 +19,8 @@ const fields = z.strictObject({
   label: text.optional(),
   /** `title` draws the talk's title: `title` large, then `subtitle` and `author`. */
   layout: z.enum(["content", "title"]).optional(),
+  /** Where a content slide's body sits under its heading: at the top, or centred in the space left. */
+  align: z.enum(["top", "center"]).optional(),
   subtitle: text.optional(),
   author: text.optional(),
   notes: z
@@ -56,6 +58,10 @@ export const slideFrontmatterSchema = fields
   .refine((meta) => meta.layout !== "title" || meta.title !== undefined, {
     message: "a title slide needs a `title`",
     path: ["title"],
+  })
+  .refine((meta) => meta.layout !== "title" || meta.align === undefined, {
+    message: "a title slide lays itself out; `align` is for content slides",
+    path: ["align"],
   });
 
 /**

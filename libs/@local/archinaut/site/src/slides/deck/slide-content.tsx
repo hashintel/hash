@@ -1,7 +1,8 @@
 /**
  * One slide on screen. A TSX slide draws its own `Slide`; an MDX slide is
- * prose, so the deck puts it in a `Slide` with the theme's text styles, or,
- * on a title slide, under the talk's title, subtitle and author.
+ * prose, so the deck puts it in a `Slide` with the theme's text styles,
+ * its body at the top or centred under its heading, or, on a title slide,
+ * under the talk's title, subtitle and author.
  */
 
 import { Slide } from "../slide";
@@ -15,7 +16,11 @@ export const SlideContent = ({ slide }: { slide: LoadedSlide }) => {
   }
   if (layout.kind === "content") {
     return (
-      <Slide className="deck-mdx">
+      <Slide
+        className={
+          layout.align === "center" ? "deck-mdx deck-mdx--centered" : "deck-mdx"
+        }
+      >
         <Content />
       </Slide>
     );

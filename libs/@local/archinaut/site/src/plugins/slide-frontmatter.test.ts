@@ -46,6 +46,11 @@ describe("readSlideFrontmatter", () => {
     expect(() => read("subtitle: Lost")).toThrow(/add `layout: title`/u);
     expect(() => read("layout: title")).toThrow(/needs a `title`/u);
     expect(() => read("label: 2026")).toThrow(/label/u);
+    expect(read("align: center")).toEqual({ align: "center" });
+    expect(() => read("align: middle")).toThrow(/align/u);
+    expect(() => read("layout: title\ntitle: T\nalign: center")).toThrow(
+      /`align` is for content slides/u,
+    );
     expect(() => read("notes:\n  byStep:\n    next: Say")).toThrow(
       /keyed by step number/u,
     );

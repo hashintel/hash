@@ -87,12 +87,23 @@ describe("labels and layouts", () => {
     );
   });
 
+  it("centres a content slide's body when it asks", () => {
+    expect(mdx({ title: "Metrics", align: "center" }).layout).toEqual({
+      kind: "content",
+      align: "center",
+    });
+    expect(mdx({ title: "Metrics" }).layout).toEqual({
+      kind: "content",
+      align: "top",
+    });
+  });
+
   it("leaves a TSX slide's layout to the slide", () => {
     const slide = resolveSlideModule(
       { id: "title", kind: "tsx" },
       { default: Component, layout: "title", title: "Petrinaut" },
     );
-    expect(slide.layout).toEqual({ kind: "content" });
+    expect(slide.layout).toEqual({ kind: "content", align: "top" });
     expect(slide.label).toBe("Petrinaut");
   });
 });

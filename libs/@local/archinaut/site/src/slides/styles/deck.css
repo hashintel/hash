@@ -207,6 +207,23 @@ svg.deck-head__logo {
   line-height: 1.4;
 }
 
+/*
+ * `align: center`: the body sits in the middle of the space under the
+ * heading. The heading's auto margin and the last block's split that space
+ * between them; a slide with no heading centres all of its body.
+ */
+.deck-mdx--centered > :first-child:is(h1, h2) {
+  margin-bottom: auto;
+}
+
+.deck-mdx--centered > :first-child:not(h1, h2) {
+  margin-top: auto;
+}
+
+.deck-mdx--centered > :last-child {
+  margin-bottom: auto;
+}
+
 .deck .deck-mdx h1 {
   font-size: clamp(2.25rem, 4.5cqw, 4rem);
   font-weight: 600;

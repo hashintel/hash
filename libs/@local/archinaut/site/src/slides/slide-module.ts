@@ -25,7 +25,11 @@ export interface SlideSource {
 
 /** How the deck lays out an MDX slide: as prose, or as the talk's title. */
 export type SlideLayout =
-  | { kind: "content" }
+  | {
+      kind: "content";
+      /** Where the body sits under the heading: at the top, or centred in the space left. */
+      align: "top" | "center";
+    }
   | { kind: "title"; subtitle: string | null; author: string | null };
 
 export interface LoadedSlide {
@@ -81,6 +85,8 @@ const stepCount = (value: unknown): number | null =>
 const textOf = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
 
+const topAligned: SlideLayout = { kind: "content", align: "top" };
+
 const layoutOf = (module: Record<string, unknown>): SlideLayout =>
   module.layout === "title"
     ? {
@@ -88,7 +94,7 @@ const layoutOf = (module: Record<string, unknown>): SlideLayout =>
         subtitle: textOf(module.subtitle),
         author: textOf(module.author),
       }
-    : { kind: "content" };
+    : { kind: "content", align: module.align === "center" ? "center" : "top" };
 
 export const resolveSlideModule = (
   source: Pick<SlideSource, "id" | "kind">,
@@ -100,7 +106,7 @@ export const resolveSlideModule = (
   const id = named<string>("id") ?? source.id;
   const title = named<string>("title") ?? titleFromId(id);
   const layout: SlideLayout =
-    source.kind === "mdx" ? layoutOf(module) : { kind: "content" };
+    source.kind === "mdx" ? layoutOf(module) : topAligned;
   const notes = toStepNotes(named<SlideNotes>("notes"));
   return {
     id,
