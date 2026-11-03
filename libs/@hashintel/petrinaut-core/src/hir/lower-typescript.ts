@@ -47,6 +47,16 @@ export type LowerTypeScriptResult =
   | { ok: true; fn: HirFunction; diagnostics: HirDiagnostic[] }
   | { ok: false; diagnostics: HirDiagnostic[] };
 
+export type LowerTypeScriptOptions = {
+  /**
+   * The dynamics equation's arity (`HirDynamicsContext.arity`). With it,
+   * the module form declares one parameter per coupled token followed by an
+   * optional `parameters`; the bare-body form is unchanged (`tokens` is the
+   * tuple). Ignored for other surfaces.
+   */
+  arity?: number;
+};
+
 const CONSTRUCTOR_NAMES: Record<DualFormSurfaceKind, string> = {
   dynamics: "Dynamics",
   lambda: "Lambda",
@@ -257,6 +267,7 @@ class Lowering {
   constructor(
     private readonly sourceFile: ts.SourceFile,
     private readonly surface: HirSurfaceKind,
+    private readonly options: LowerTypeScriptOptions = {},
   ) {}
 
   spanOf(node: ts.Node): Span {
@@ -528,20 +539,83 @@ class Lowering {
       );
     }
 
-    if (fnArg.parameters.length > 2) {
+    // An equation with an arity declares one parameter per coupled token
+    // (`Dynamics((a, b, parameters) => …)`); every other function declares
+    // its one input object. Either way the HIR function's first parameter
+    // is the input: for the arity form a tuple the token parameters are
+    // bound from, so the checker, analyses and emitters see one shape.
+    const arity = this.surface === "dynamics" ? this.options.arity : undefined;
+    const tokenParamCount = arity ?? 1;
+    // `(a, parameters)` and `(a, b)` have the same count, so a trailing
+    // parameter named `parameters`, or destructured, is the parameters
+    // object even when the count would let it be a token.
+    const lastParameter = fnArg.parameters.at(-1);
+    const declaresParameters =
+      lastParameter !== undefined &&
+      (fnArg.parameters.length > tokenParamCount ||
+        ts.isObjectBindingPattern(lastParameter.name) ||
+        (ts.isIdentifier(lastParameter.name) &&
+          lastParameter.name.text === "parameters"));
+    const declaredTokenCount =
+      fnArg.parameters.length - (declaresParameters ? 1 : 0);
+    if (declaredTokenCount > tokenParamCount) {
       this.fail(
-        fnArg.parameters[2]!,
+        fnArg.parameters[tokenParamCount + 1]!,
         "hir:too-many-parameters",
-        "User functions take at most two parameters (tokens and parameters).",
+        arity === undefined
+          ? "User functions take at most two parameters (tokens and parameters)."
+          : `An equation over ${arity} token(s) takes ${arity} token parameter(s) and optionally \`parameters\`.`,
       );
+    }
+    if (arity !== undefined && declaredTokenCount < arity) {
+      const start = fnArg.getStart(this.sourceFile);
+      throw new LowerError({
+        code: "hir:dynamics-arity",
+        message: `This equation couples ${arity} tokens, so its function takes ${arity} token parameters (and optionally \`parameters\`), got ${declaredTokenCount}.`,
+        severity: "error",
+        span: {
+          start,
+          length: Math.max(fnArg.body.getStart(this.sourceFile) - start, 1),
+        },
+      });
     }
 
     const params: HirFunction["params"] = [];
+    const tokenBindings: HirLetBinding[] = [];
     const scope = this.newScope();
+    const tokensName = arity === undefined ? null : "__tokens";
+    if (tokensName !== null) {
+      scope.locals.add(tokensName);
+      params.push({ name: tokensName, span: this.spanOf(fnArg) });
+    }
 
     for (const [index, parameter] of fnArg.parameters.entries()) {
-      if (index === 0) {
-        params.push(this.bindInputParameter(parameter, "__input", scope));
+      if (index < tokenParamCount) {
+        if (tokensName === null) {
+          params.push(this.bindInputParameter(parameter, "__input", scope));
+          continue;
+        }
+        const bound = this.bindInputParameter(
+          parameter,
+          `__token${index}`,
+          scope,
+        );
+        tokenBindings.push({
+          name: bound.name,
+          nameSpan: bound.span,
+          value: this.make(parameter, {
+            kind: "indexAccess",
+            target: this.make(parameter, {
+              kind: "localRef",
+              name: tokensName,
+            }),
+            index: this.make(parameter, {
+              kind: "numberLit",
+              value: index,
+              raw: String(index),
+            }),
+          }),
+        });
         continue;
       }
       if (ts.isIdentifier(parameter.name)) {
@@ -577,9 +651,17 @@ class Lowering {
       );
     }
 
-    const body = ts.isBlock(fnArg.body)
+    const lowered = ts.isBlock(fnArg.body)
       ? this.lowerBlock(fnArg.body, scope)
       : this.lowerExpr(fnArg.body, scope);
+    const body =
+      tokenBindings.length === 0
+        ? lowered
+        : this.make(fnArg, {
+            kind: "let",
+            bindings: tokenBindings,
+            body: lowered,
+          });
 
     return {
       hirVersion: 1,
@@ -2181,6 +2263,7 @@ export const lowerStateConstraintToHir = (
 export function lowerTypeScriptToHir(
   code: string,
   surface: HirFunctionSurfaceKind,
+  options: LowerTypeScriptOptions = {},
 ): LowerTypeScriptResult {
   const wrapped = WRAPPED_SURFACES[surface];
   if (wrapped) {
@@ -2219,7 +2302,7 @@ export function lowerTypeScriptToHir(
   }
 
   try {
-    const fn = new Lowering(sourceFile, surface).lowerModule();
+    const fn = new Lowering(sourceFile, surface, options).lowerModule();
     return { ok: true, fn, diagnostics: [] };
   } catch (error) {
     if (error instanceof LowerError) {

@@ -79,7 +79,11 @@ function lowerAndCheck(
   surface: HirFunctionSurfaceKind,
   context: HirFunctionContext | null,
 ): ItemResult {
-  const lowered = lowerTypeScriptToHir(code, surface);
+  const lowered = lowerTypeScriptToHir(
+    code,
+    surface,
+    context?.surface === "dynamics" ? { arity: context.arity } : {},
+  );
   if (!lowered.ok) {
     return { ok: false, diagnostics: lowered.diagnostics };
   }
@@ -162,9 +166,7 @@ export function compileHirArtifacts(
       ) {
         continue;
       }
-      const context = de.colorId
-        ? buildDynamicsContext(sanitized, de.colorId, extensions, net)
-        : null;
+      const context = buildDynamicsContext(sanitized, de, extensions, net);
       const item = lowerAndCheck(de.code, "dynamics", context);
       if (!item.ok) {
         failures.push({
@@ -174,7 +176,7 @@ export function compileHirArtifacts(
         });
         continue;
       }
-      const source = emitBufferDynamicsJs(item.fn, color.elements);
+      const source = emitBufferDynamicsJs(item.fn, color.elements, de.arity);
       if (source === null) {
         failures.push({
           itemId: de.id,
@@ -185,6 +187,7 @@ export function compileHirArtifacts(
       }
       artifacts.dynamics[de.id] = {
         source,
+        ...(de.arity === undefined ? {} : { arity: de.arity }),
         ...(options.includeHir ? { hir: item.fn } : {}),
       };
     }

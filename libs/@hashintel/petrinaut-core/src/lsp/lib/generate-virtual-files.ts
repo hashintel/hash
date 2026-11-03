@@ -318,7 +318,30 @@ export function generateVirtualFiles(
         })
       : null;
 
-    // Type definitions file
+    // Type definitions file. An equation with an arity sees `tokens` as a
+    // tuple of that many tokens and returns one record (arity 1) or a tuple
+    // of records; its module form declares one parameter per token.
+    const tokenType = sanitizedColorId ? `Color_${sanitizedColorId}` : "number";
+    const tuple = (element: string, count: number): string =>
+      `[${Array.from({ length: count }, () => element).join(", ")}]`;
+    const tokensType =
+      de.arity === undefined ? `Array<${tokenType}>` : tuple("Token", de.arity);
+    const derivativesType =
+      de.arity === undefined
+        ? "Derivative[]"
+        : de.arity === 1
+          ? "Derivative"
+          : tuple("Derivative", de.arity);
+    const dynamicsFunctionParameters =
+      de.arity === undefined
+        ? "tokens: Tokens, parameters: Parameters"
+        : [
+            ...Array.from(
+              { length: de.arity },
+              (_, position) => `token${position}: Token`,
+            ),
+            "parameters: Parameters",
+          ].join(", ");
     files.set(deDefsPath, {
       content: [
         `import type { Parameters } from "${parametersDefsPath}";`,
@@ -326,13 +349,13 @@ export function generateVirtualFiles(
           ? `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`
           : "",
         ``,
-        sanitizedColorId
-          ? `export type Tokens = Array<Color_${sanitizedColorId}>;`
-          : `export type Tokens = Array<number>;`,
+        `export type Token = ${tokenType};`,
+        `export type Tokens = ${tokensType};`,
         color
           ? `export type Derivative = ${toDynamicsDerivativeType(color)};`
           : `export type Derivative = Record<string, never>;`,
-        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
+        `export type Derivatives = ${derivativesType};`,
+        `export type Dynamics = (fn: (${dynamicsFunctionParameters}) => Derivatives) => void;`,
       ].join("\n"),
     });
 
@@ -348,10 +371,10 @@ export function generateVirtualFiles(
           `declare const Dynamics: Dynamics;`,
         ],
         bodyImportLines: [
-          `import type { Derivative, Tokens } from "${deDefsPath}";`,
+          `import type { Derivatives, Tokens } from "${deDefsPath}";`,
         ],
         inputType: "Tokens",
-        returnType: "Derivative[]",
+        returnType: "Derivatives",
         parametersDefsPath,
       }),
     );

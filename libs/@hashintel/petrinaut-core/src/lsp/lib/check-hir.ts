@@ -96,6 +96,7 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:typescript-syntax": 99082,
   "hir:visualizer-return": 99083,
   "hir:unknown-element": 99084,
+  "hir:dynamics-arity": 99085,
   "hir:unknown-element-attribute": 99085,
   "hir:unsafe-value": 99086,
   "hir:unknown-style-property": 99087,

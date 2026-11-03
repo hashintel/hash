@@ -309,6 +309,86 @@ describe("checkSDCPN", () => {
     });
   });
 
+  describe("Differential Equations with an arity", () => {
+    const pairwise = (code: string) =>
+      createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" },
+              { name: "v", type: "real" },
+            ],
+          },
+        ],
+        differentialEquations: [{ colorId: "color1", code, arity: 2 }],
+      });
+
+    it("types the ambient tokens as a tuple of the arity", () => {
+      const result = check(
+        pairwise(`const [a, b] = tokens;
+const d = b.x - a.x;
+return [{ v: d }, { v: -d }];`),
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("types the module form's token parameters", () => {
+      const result = check(
+        pairwise(`export default Dynamics((a, b, parameters) => [
+  { v: b.x - a.x },
+  { v: a.x - b.x },
+]);`),
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("rejects an index past the tuple", () => {
+      const result = check(pairwise(`return [{ v: tokens[2].x }, { v: 0 }];`));
+
+      expect(result.isValid).toBe(false);
+      expect(
+        result.itemDiagnostics[0]!.diagnostics.some((diag) =>
+          ts
+            .flattenDiagnosticMessageText(diag.messageText, "\n")
+            .includes("length '2'"),
+        ),
+      ).toBe(true);
+    });
+
+    it("rejects a result with the wrong number of records", () => {
+      const result = check(
+        pairwise(`const [a, b] = tokens;
+return [{ v: b.x - a.x }];`),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]!.diagnostics.length).toBeGreaterThan(0);
+    });
+
+    it("rejects a module form with too few token parameters", () => {
+      const result = check(
+        pairwise(`export default Dynamics((a, parameters) => [
+  { v: 1 },
+  { v: -1 },
+]);`),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(
+        result.itemDiagnostics[0]!.diagnostics.some((diag) =>
+          ts
+            .flattenDiagnosticMessageText(diag.messageText, "\n")
+            .includes("2 token parameters"),
+        ),
+      ).toBe(true);
+    });
+  });
+
   describe("Transition Lambda", () => {
     it("returns valid for Lambda code accessing input tokens", () => {
       // GIVEN

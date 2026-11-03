@@ -682,6 +682,98 @@ return total;`;
     });
   });
 
+  describe("arity dynamics", () => {
+    it("binds the module form's token parameters from the tuple", () => {
+      const result = lowerTypeScriptToHir(
+        `export default Dynamics((a, b, parameters) => [
+  { x: b.x - a.x },
+  { x: a.x - b.x },
+]);`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.fn.params.map((parameter) => parameter.name)).toEqual([
+        "__tokens",
+        "parameters",
+      ]);
+      expect(result.fn.body).toMatchObject({
+        kind: "let",
+        bindings: [
+          {
+            name: "a",
+            value: {
+              kind: "indexAccess",
+              target: { kind: "localRef", name: "__tokens" },
+              index: { kind: "numberLit", value: 0 },
+            },
+          },
+          {
+            name: "b",
+            value: {
+              kind: "indexAccess",
+              target: { kind: "localRef", name: "__tokens" },
+              index: { kind: "numberLit", value: 1 },
+            },
+          },
+        ],
+        body: { kind: "arrayLit" },
+      });
+    });
+
+    it("accepts a module form without a parameters parameter", () => {
+      const result = lowerTypeScriptToHir(
+        `export default Dynamics((token) => ({ x: token.v }));`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.fn.params.map((parameter) => parameter.name)).toEqual([
+        "__tokens",
+      ]);
+    });
+
+    it("rejects a module form with fewer token parameters than the arity", () => {
+      const code = `export default Dynamics((a, parameters) => [{ x: 1 }, { x: 2 }]);`;
+      const result = lowerTypeScriptToHir(code, "dynamics", { arity: 2 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]?.code).toBe("hir:dynamics-arity");
+      expect(result.diagnostics[0]?.message).toContain("2 token parameters");
+      const { start, length } = result.diagnostics[0]!.span;
+      expect(code.slice(start, start + length)).toBe("(a, parameters) => ");
+    });
+
+    it("rejects a module form with more parameters than the arity allows", () => {
+      const result = lowerTypeScriptToHir(
+        `export default Dynamics((a, b, c, parameters) => [{ x: 1 }, { x: 2 }]);`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]!.code).toBe("hir:too-many-parameters");
+    });
+
+    it("leaves the bare-body form to the ambient tuple", () => {
+      const result = lowerTypeScriptToHir(
+        `const [a, b] = tokens;
+return [{ x: b.x - a.x }, { x: a.x - b.x }];`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.fn.params.map((parameter) => parameter.name)).toEqual([
+        "tokens",
+        "parameters",
+      ]);
+      expect(result.fn.body.kind).toBe("let");
+    });
+  });
+
   describe("metric surface", () => {
     it("lowers a metric body with state as the only function parameter", () => {
       const fn = lowerOk(

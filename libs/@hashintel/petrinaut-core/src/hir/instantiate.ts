@@ -125,6 +125,11 @@ export type HirKernelArtifact = {
 
 export type HirDynamicsArtifact = {
   source: string;
+  /**
+   * The equation's arity when it has one: the program sums its result over
+   * every combination of that many tokens. Absent for the whole-place form.
+   */
+  arity?: number;
   /** The lowered HIR the program was emitted from — see `HirLambdaArtifact.hir`. */
   hir?: HirFunction;
 };

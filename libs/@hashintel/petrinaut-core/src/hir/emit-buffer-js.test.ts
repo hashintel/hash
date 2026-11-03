@@ -481,6 +481,71 @@ describe("emitBufferDynamicsJs (token format v2)", () => {
     expect([...fn(views.u8, 2)]).toEqual([-2, 0, 0, 0]);
   });
 
+  it("sums an arity-2 equation over every pair of tokens", () => {
+    const pool = new StringPool();
+    const { views } = makeRegion(pool);
+    const lowered = lowerTypeScriptToHir(
+      `const k = parameters.k;
+const [a, b] = tokens;
+const d = b.x - a.x;
+return [
+  { v: k * d },
+  { v: -k * d },
+];`,
+      "dynamics",
+      { arity: 2 },
+    );
+    if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
+    const source = emitBufferDynamicsJs(lowered.fn, poolElements, 2);
+    expect(source).not.toBeNull();
+    // The parameter read is hoisted out of the pair loops; the difference
+    // is not.
+    expect(source!.indexOf("const k = ")).toBeLessThan(
+      source!.indexOf("for ("),
+    );
+    expect(source!.indexOf("const d = ")).toBeGreaterThan(
+      source!.lastIndexOf("for ("),
+    );
+    const fn = instantiateHirBufferDynamics(source!, { k: 2 }, pool);
+    // One pair (A, B): d = 4 - 1.5 = 2.5, so A gains v' = 5 and B v' = -5;
+    // x has no derivative.
+    expect([...fn(views.u8, 2)]).toEqual([0, 5, 0, -5]);
+    // A single token has no pair, so nothing moves.
+    expect([...fn(views.u8.subarray(0, poolLayout.strideBytes), 1)]).toEqual([
+      0, 0,
+    ]);
+  });
+
+  it("runs an arity-1 equation once per token, like the whole-place form", () => {
+    const pool = new StringPool();
+    const { views } = makeRegion(pool);
+    const lowered = lowerTypeScriptToHir(
+      `export default Dynamics((token, parameters) => ({
+  x: token.v,
+  v: -parameters.g * token.x,
+}));`,
+      "dynamics",
+      { arity: 1 },
+    );
+    if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
+    const source = emitBufferDynamicsJs(lowered.fn, poolElements, 1);
+    expect(source).not.toBeNull();
+    expect(source!.match(/for \(/g)).toHaveLength(1);
+    const fn = instantiateHirBufferDynamics(source!, { g: 2 }, pool);
+    expect([...fn(views.u8, 2)]).toEqual([-2, -3, 8, -8]);
+  });
+
+  it("bails to null when an arity equation's result is not a static record", () => {
+    const lowered = lowerTypeScriptToHir(
+      `const [a, b] = tokens;
+return a.x > b.x ? [{ v: 1 }, { v: -1 }] : [{ v: -1 }, { v: 1 }];`,
+      "dynamics",
+      { arity: 2 },
+    );
+    if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
+    expect(emitBufferDynamicsJs(lowered.fn, poolElements, 2)).toBeNull();
+  });
+
   it("bails to null when the body is not a token map", () => {
     expect(
       emitBufferDynamicsJs(

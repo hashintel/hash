@@ -61,6 +61,24 @@ describe("analyzeHir", () => {
       expect(analysis.dependencies.parameters).toEqual(["g"]);
     });
 
+    it("attributes token reads to the tuple position in an arity equation", () => {
+      const lowered = lowerTypeScriptToHir(
+        `export default Dynamics((a, b, parameters) => [
+  { x: (b.x - a.x) * parameters.k },
+  { x: (a.x - b.x) * parameters.k },
+]);`,
+        "dynamics",
+        { arity: 2 },
+      );
+      if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
+      const analysis = analyzeHir(lowered.fn);
+      expect(analysis.dependencies.tokenReads).toEqual([
+        { place: "self", field: "x", tokenIndex: 1 },
+        { place: "self", field: "x", tokenIndex: 0 },
+      ]);
+      expect(analysis.dependencies.parameters).toEqual(["k"]);
+    });
+
     it("tracks token count reads and Math.random", () => {
       const analysis = analyzeHir(
         lower(

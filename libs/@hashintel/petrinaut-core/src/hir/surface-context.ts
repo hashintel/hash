@@ -40,6 +40,7 @@ import type {
   Color,
   ColorElementType,
   ComponentInstance,
+  DifferentialEquation,
   InputArc,
   OutputArc,
   Parameter,
@@ -108,6 +109,14 @@ export type HirDynamicsContext = {
   parameters: HirParameterInfo[];
   /** Attributes of the color the differential equation is attached to. */
   elements: HirTokenElementInfo[];
+  /**
+   * The equation's arity (`DifferentialEquation.arity`). Absent for the
+   * whole-place form, where `tokens` is every token of the place and the
+   * result one record per token. Present, `tokens` is a tuple of exactly
+   * this many tokens and the result one record (arity 1) or an array of
+   * `arity` records.
+   */
+  arity?: number;
 };
 
 export type HirLambdaContext = {
@@ -376,16 +385,20 @@ function collectColors(
 }
 
 /**
- * Builds the context for a differential equation attached to `color`.
- * Pass `net` when the equation belongs to a subnet (its parameters apply).
+ * Builds the context for a differential equation: its colour's attributes
+ * and its arity. `null` when the equation has no colour or the colour does
+ * not exist. Pass `net` when the equation belongs to a subnet (its
+ * parameters apply).
  */
 export function buildDynamicsContext(
   sdcpn: SDCPN,
-  colorId: string,
+  equation: Pick<DifferentialEquation, "colorId" | "arity">,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
   net: HirNetScope = sdcpn,
 ): HirDynamicsContext | null {
-  const color = collectColors(sdcpn, extensions).get(colorId);
+  const color = equation.colorId
+    ? collectColors(sdcpn, extensions).get(equation.colorId)
+    : undefined;
   if (!color) {
     return null;
   }
@@ -396,6 +409,7 @@ export function buildDynamicsContext(
       name: element.name,
       type: element.type,
     })),
+    ...(equation.arity === undefined ? {} : { arity: equation.arity }),
   };
 }
 
