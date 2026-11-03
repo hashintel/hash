@@ -15,7 +15,6 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
-  Chip,
   Filter,
   type FilterOperator,
   Icon,
@@ -320,17 +319,22 @@ const parseRelative = (key: string): RelativeDate | undefined => {
 const rowStackStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "1",
+  gap: "2",
   alignSelf: "stretch",
   minWidth: "[0]",
 });
 
-/** The joiner column: 64 px on every row, so the chips share one left edge. */
+/**
+ * The joiner column, so the chips share one left edge: 67 px, 56 px inside a group (Figma Filter label). The joiner
+ * keeps its own width and may run past the column, as Figma's does.
+ */
 const joinerColumnStyle = css({
   display: "flex",
   alignItems: "center",
   flexShrink: 0,
-  width: "[64px]",
+  width: "[67px]",
+  "[data-condition-group] &": { width: "[56px]" },
+  "& button": { flexShrink: 0 },
   textStyle: "sm",
   fontWeight: "medium",
   color: "neutral.fg.body",
@@ -1216,15 +1220,12 @@ const footerStyle = css({
  * part of one long filter, not as an input label (26 Oct sync: Ciarán, Dora; uppercase, the team's own logic words).
  * A group is all-and or all-or, so a pick switches the joiner of every row in the group.
  */
-/** The menu's trigger: a plain span around the DS Chip, which takes no trigger props of its own. */
-const joinerTriggerStyle = css({
-  display: "inline-flex",
-  cursor: "pointer",
-  borderRadius: "md",
-  "&:focus-visible": { outline: "[2px solid var(--colors-blue-bd-subtle)]" },
-});
-
 const whereStyle = css({ color: "neutral.fg.muted" });
+
+/** The AND / OR menu is 208 px wide in Figma (J2.10). */
+const joinerMenuStyle = css({
+  "&[class]": { width: "[208px]", minWidth: "[208px]" },
+});
 
 const Joiner = ({
   conjunction,
@@ -1236,6 +1237,7 @@ const Joiner = ({
   <span className={joinerColumnStyle} data-joiner={conjunction ?? "where"}>
     {onPick ? (
       <Menu
+        className={joinerMenuStyle}
         items={(["and", "or"] as const).map((choice) => ({
           id: choice,
           text: choice.toUpperCase(),
@@ -1244,16 +1246,17 @@ const Joiner = ({
           onClick: () => onPick(choice),
         }))}
         trigger={
-          <span
-            role="button"
-            tabIndex={0}
-            className={joinerTriggerStyle}
+          // Figma's Joiner: the DS Button, outline, neutral, sm (28 px), label then chevron. Code Button's outline is
+          // `subtle`, as for Add filter.
+          <Button
+            size="sm"
+            variant="subtle"
+            iconName="chevronDown"
+            iconPosition="right"
             aria-label={`Join with ${conjunction ?? "and"}`}
           >
-            <Chip size="md" suffix={{ iconName: "chevronDown" }}>
-              {(conjunction ?? "and").toUpperCase()}
-            </Chip>
-          </span>
+            {(conjunction ?? "and").toUpperCase()}
+          </Button>
         }
       />
     ) : (
