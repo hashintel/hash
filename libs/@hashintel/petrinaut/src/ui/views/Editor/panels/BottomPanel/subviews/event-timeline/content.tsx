@@ -9,7 +9,8 @@ import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { TimelineLegend } from "../simulation-timeline/legend";
 import { chartAreaStyle, containerStyle } from "../simulation-timeline/styles";
-import { EventTimelineChart, MIN_VIEW_SPAN } from "./chart";
+import { EventTimelineChart } from "./chart";
+import { MIN_VIEW_SPAN } from "./interactions";
 import {
   useEventTimelineData,
   type TimeRange,
@@ -27,6 +28,22 @@ const chartHostStyle = css({
   minHeight: "[0]",
 });
 
+/**
+ * The chart takes focus for its keys: arrows step between events, Home and
+ * End jump to the start and the live edge, Escape drops the selection.
+ */
+const chartFocusStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+  outline: "none",
+  userSelect: "none",
+  _focusVisible: {
+    boxShadow: "[inset 0 0 0 2px rgba(37, 99, 235, 0.35)]",
+  },
+});
+
 const fitButtonStyle = css({
   position: "absolute",
   top: "1",
@@ -42,7 +59,9 @@ const messageStyle = css({
 /**
  * The timeline of an event-driven run: token counts step at the events,
  * metrics follow the interpolated state, and every firing is marked on the
- * time axis. Scroll to zoom, drag to pan, click to view that time.
+ * ruler. Drag the ruler or the playhead to scrub, drag the plot to select a
+ * range, click to view that time, scroll sideways to pan, pinch or wheel to
+ * zoom.
  */
 export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
   showLegend = true,
@@ -54,13 +73,69 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
   const {
     petriNetDefinition: { transitions },
   } = use(SDCPNContext);
-  const { eventCount, coveredTime, time, setTime } = use(EventPlaybackContext);
+  const {
+    eventCount,
+    coveredTime,
+    time,
+    setTime,
+    playbackState,
+    play,
+    pause,
+    stepToEvent,
+  } = use(EventPlaybackContext);
 
   // Null follows the whole run as it grows; a range is where the user
   // zoomed or panned to, and stays put until they fit the run again.
   const [zoomedRange, setZoomedRange] = useState<TimeRange | null>(null);
   const domain = Math.max(coveredTime, MIN_VIEW_SPAN);
   const viewRange = zoomedRange ?? { min: 0, max: domain };
+
+  // A selected range has no effect yet; it is drawn, and Escape or a click
+  // drops it.
+  const [selection, setSelection] = useState<TimeRange | null>(null);
+
+  // Scrubbing pauses playback for the drag and resumes it on release, unless
+  // the drag ended at the live edge of a finished run, where play would
+  // start over.
+  const resumeAfterScrubRef = useRef(false);
+  const onScrubStart = () => {
+    resumeAfterScrubRef.current = playbackState === "Playing";
+    if (resumeAfterScrubRef.current) {
+      pause();
+    }
+  };
+  const onScrubEnd = () => {
+    if (!resumeAfterScrubRef.current) {
+      return;
+    }
+    resumeAfterScrubRef.current = false;
+    if (time < coveredTime) {
+      void play();
+    }
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    switch (event.key) {
+      case "ArrowLeft":
+        stepToEvent(-1);
+        break;
+      case "ArrowRight":
+        stepToEvent(1);
+        break;
+      case "Home":
+        setTime(0);
+        break;
+      case "End":
+        setTime(coveredTime);
+        break;
+      case "Escape":
+        setSelection(null);
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  };
 
   const containerRef = useRef<HTMLDivElement>(null);
   const onScreen = useElementOnScreen(containerRef);
@@ -94,20 +169,36 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
                 Fit to run
               </Button>
             )}
-            <EventTimelineChart
-              className={chartAreaStyle}
-              data={data}
-              firings={firings}
-              references={references}
-              transitionNames={transitionNames}
-              hiddenSeries={hiddenSeries}
-              viewRange={viewRange}
-              onViewRangeChange={setZoomedRange}
-              domain={domain}
-              time={time}
-              onScrub={setTime}
-              paused={!onScreen}
-            />
+            <div
+              className={chartFocusStyle}
+              role="slider"
+              tabIndex={0}
+              aria-label="Timeline"
+              aria-valuemin={0}
+              aria-valuemax={coveredTime}
+              aria-valuenow={time}
+              aria-valuetext={`${time.toFixed(3)} seconds`}
+              onKeyDown={onKeyDown}
+            >
+              <EventTimelineChart
+                className={chartAreaStyle}
+                data={data}
+                firings={firings}
+                references={references}
+                transitionNames={transitionNames}
+                hiddenSeries={hiddenSeries}
+                viewRange={viewRange}
+                onViewRangeChange={setZoomedRange}
+                domain={domain}
+                time={time}
+                onScrub={setTime}
+                onScrubStart={onScrubStart}
+                onScrubEnd={onScrubEnd}
+                selection={selection}
+                onSelectionChange={setSelection}
+                paused={!onScreen}
+              />
+            </div>
           </div>
           {showLegend && data.series.length > 1 && (
             <TimelineLegend

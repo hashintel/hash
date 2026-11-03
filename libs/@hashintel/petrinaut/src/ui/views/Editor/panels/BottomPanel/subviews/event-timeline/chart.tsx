@@ -12,6 +12,14 @@ import {
   tooltipValueStyle,
 } from "../simulation-timeline/styles";
 import {
+  classifyWheel,
+  hitTest,
+  panRange,
+  zoomRange,
+  type HitZone,
+  type PlotBox,
+} from "./interactions";
+import {
   findFiringNear,
   type EventTimelineData,
   type FiringMark,
@@ -20,30 +28,29 @@ import {
 import type { TimeRange } from "./use-event-timeline-data";
 import type { FC, RefObject } from "react";
 
-/** The narrowest span the view zooms to, in seconds. */
-export const MIN_VIEW_SPAN = 0.01;
-
-/** Pixels the pointer may move before a press counts as a pan, not a click. */
+/** Pixels the pointer may move before a press in the plot becomes a selection. */
 const DRAG_THRESHOLD_PX = 3;
 /** Pixels around the pointer within which a firing mark is the hovered one. */
 const FIRING_HOVER_PX = 6;
-/** Height of the firing marks along the bottom of the plot, in CSS pixels. */
-const FIRING_MARK_PX = 10;
+/** Pixels either side of the playhead line that grab it. */
+const PLAYHEAD_GRAB_PX = 6;
+
+/**
+ * The time axis sits above the plot: its labels, then a ruler strip against
+ * the plot edge that carries the event marks and the playhead handle. The
+ * whole axis scrubs when dragged.
+ */
+const AXIS_PX = 42;
+const RULER_PX = 24;
+/** Keeps the labels above the strip: uPlot draws them this far from the plot. */
+const LABEL_GAP_PX = RULER_PX + 2;
+const FIRING_MARK_PX = 9;
 const REFERENCE_MARK_PX = 4;
 
-const formatSeconds = (time: number): string => `${time.toFixed(3)}s`;
+const PLAYHEAD_COLOR = "#1e293b";
+const ACCENT_COLOR = "#2563eb";
 
-const clampRange = (min: number, span: number, domain: number): TimeRange => {
-  const boundedSpan = Math.min(
-    Math.max(span, MIN_VIEW_SPAN),
-    Math.max(domain, MIN_VIEW_SPAN),
-  );
-  const boundedMin = Math.min(
-    Math.max(min, 0),
-    Math.max(0, domain - boundedSpan),
-  );
-  return { min: boundedMin, max: boundedMin + boundedSpan };
-};
+const formatSeconds = (time: number): string => `${time.toFixed(3)}s`;
 
 interface TooltipNodes {
   root: HTMLDivElement;
@@ -82,79 +89,175 @@ type ChartState = {
   viewRange: TimeRange;
   domain: number;
   time: number;
+  selection: TimeRange | null;
   onViewRangeChange: (range: TimeRange) => void;
   onScrub: (time: number) => void;
+  onScrubStart: () => void;
+  onScrubEnd: () => void;
+  onSelectionChange: (range: TimeRange | null) => void;
 };
 
-/**
- * Reference frames as faint ticks on the time axis: a hint that the state
- * there was recorded rather than interpolated. They are not stepped to.
- */
-const drawReferences = (u: uPlot, state: ChartState): void => {
+/** How the playhead is being handled, for its hover and drag feedback. */
+type PlayheadFeel = { hover: boolean; active: boolean };
+
+/** The plot area in CSS pixels, relative to the chart's root. */
+const plotBox = (u: uPlot): PlotBox => {
+  const dpr = devicePixelRatio;
+  return {
+    left: u.bbox.left / dpr,
+    top: u.bbox.top / dpr,
+    width: u.bbox.width / dpr,
+    height: u.bbox.height / dpr,
+  };
+};
+
+const drawRuler = (u: uPlot): void => {
   const { ctx, bbox } = u;
   const dpr = devicePixelRatio;
-  const bottom = bbox.top + bbox.height;
   ctx.save();
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(
+    bbox.left,
+    bbox.top - RULER_PX * dpr,
+    bbox.width,
+    RULER_PX * dpr,
+  );
+  ctx.strokeStyle = "#e2e8f0";
   ctx.lineWidth = dpr;
-  ctx.strokeStyle = "rgba(100, 116, 139, 0.35)";
   ctx.beginPath();
-  for (const time of state.references) {
-    if (time < state.viewRange.min || time > state.viewRange.max) {
+  ctx.moveTo(bbox.left, bbox.top - dpr / 2);
+  ctx.lineTo(bbox.left + bbox.width, bbox.top - dpr / 2);
+  ctx.stroke();
+  ctx.restore();
+};
+
+/** The selected range: a band over the plot and a bar along the ruler. */
+const drawSelection = (u: uPlot, state: ChartState): void => {
+  if (!state.selection) {
+    return;
+  }
+  const min = Math.max(state.selection.min, state.viewRange.min);
+  const max = Math.min(state.selection.max, state.viewRange.max);
+  if (max <= min) {
+    return;
+  }
+  const { ctx, bbox } = u;
+  const dpr = devicePixelRatio;
+  const x0 = u.valToPos(min, "x", true);
+  const x1 = u.valToPos(max, "x", true);
+  ctx.save();
+  ctx.fillStyle = "rgba(37, 99, 235, 0.08)";
+  ctx.fillRect(x0, bbox.top, x1 - x0, bbox.height);
+  ctx.fillStyle = "rgba(37, 99, 235, 0.3)";
+  ctx.fillRect(x0, bbox.top - RULER_PX * dpr, x1 - x0, 3 * dpr);
+  ctx.strokeStyle = "rgba(37, 99, 235, 0.45)";
+  ctx.lineWidth = dpr;
+  ctx.beginPath();
+  for (const edge of [state.selection.min, state.selection.max]) {
+    if (edge >= state.viewRange.min && edge <= state.viewRange.max) {
+      const x = u.valToPos(edge, "x", true);
+      ctx.moveTo(x, bbox.top);
+      ctx.lineTo(x, bbox.top + bbox.height);
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+};
+
+/** Ticks up from the plot edge into the ruler, one per time in view. */
+const drawTicks = (
+  u: uPlot,
+  times: Iterable<number>,
+  range: TimeRange,
+  height: number,
+): void => {
+  const { ctx, bbox } = u;
+  const dpr = devicePixelRatio;
+  ctx.beginPath();
+  for (const time of times) {
+    if (time < range.min || time > range.max) {
       continue;
     }
     const x = u.valToPos(time, "x", true);
-    ctx.moveTo(x, bottom - REFERENCE_MARK_PX * dpr);
-    ctx.lineTo(x, bottom);
+    ctx.moveTo(x, bbox.top - height * dpr);
+    ctx.lineTo(x, bbox.top);
   }
   ctx.stroke();
+};
+
+/**
+ * Reference frames as faint ticks: a hint that the state there was recorded
+ * rather than interpolated. They are not stepped to.
+ */
+const drawReferences = (u: uPlot, state: ChartState): void => {
+  const { ctx } = u;
+  ctx.save();
+  ctx.lineWidth = devicePixelRatio;
+  ctx.strokeStyle = "rgba(100, 116, 139, 0.35)";
+  drawTicks(u, state.references, state.viewRange, REFERENCE_MARK_PX);
   ctx.restore();
 };
 
 const drawFirings = (u: uPlot, state: ChartState): void => {
-  if (state.data.kind === "lanes") {
-    return;
-  }
-  const { ctx, bbox } = u;
-  const dpr = devicePixelRatio;
-  const bottom = bbox.top + bbox.height;
+  const { ctx } = u;
   ctx.save();
-  ctx.lineWidth = 1.5 * dpr;
+  ctx.lineWidth = 1.5 * devicePixelRatio;
   for (const firing of state.firings) {
-    if (
-      firing.time < state.viewRange.min ||
-      firing.time > state.viewRange.max
-    ) {
-      continue;
-    }
-    const x = u.valToPos(firing.time, "x", true);
     ctx.strokeStyle = firing.color;
-    ctx.beginPath();
-    ctx.moveTo(x, bottom - FIRING_MARK_PX * dpr);
-    ctx.lineTo(x, bottom);
-    ctx.stroke();
+    drawTicks(u, [firing.time], state.viewRange, FIRING_MARK_PX);
   }
   ctx.restore();
 };
 
-const drawPlayhead = (u: uPlot, time: number, range: TimeRange): void => {
-  if (time < range.min || time > range.max) {
+/**
+ * The playhead: a line down the plot and a handle in the ruler whose tip sits
+ * on the plot edge at exactly the viewed time. Hovering widens it with a
+ * halo; dragging turns it the accent colour.
+ */
+const drawPlayhead = (
+  u: uPlot,
+  state: ChartState,
+  feel: PlayheadFeel,
+): void => {
+  const { time, viewRange } = state;
+  if (time < viewRange.min || time > viewRange.max) {
     return;
   }
+  const { ctx, bbox } = u;
   const dpr = devicePixelRatio;
   const x = u.valToPos(time, "x", true);
-  const { ctx, bbox } = u;
+  const stripTop = bbox.top - RULER_PX * dpr;
+  const bottom = bbox.top + bbox.height;
+  const raised = feel.hover || feel.active;
+  const color = feel.active ? ACCENT_COLOR : PLAYHEAD_COLOR;
   ctx.save();
-  ctx.strokeStyle = "#1e293b";
-  ctx.lineWidth = 1.5 * dpr;
+  if (raised) {
+    ctx.strokeStyle = feel.active
+      ? "rgba(37, 99, 235, 0.18)"
+      : "rgba(30, 41, 59, 0.12)";
+    ctx.lineWidth = 7 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(x, stripTop);
+    ctx.lineTo(x, bottom);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = (raised ? 2 : 1.5) * dpr;
   ctx.beginPath();
   ctx.moveTo(x, bbox.top);
-  ctx.lineTo(x, bbox.top + bbox.height);
+  ctx.lineTo(x, bottom);
   ctx.stroke();
-  ctx.fillStyle = "#1e293b";
+
+  const half = (raised ? 6 : 5) * dpr;
+  const top = stripTop + 4 * dpr;
+  const shoulder = bbox.top - 6 * dpr;
+  ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(x - 5 * dpr, bbox.top);
-  ctx.lineTo(x + 5 * dpr, bbox.top);
-  ctx.lineTo(x, bbox.top + 6 * dpr);
+  ctx.moveTo(x - half, top);
+  ctx.lineTo(x + half, top);
+  ctx.lineTo(x + half, shoulder);
+  ctx.lineTo(x, bbox.top);
+  ctx.lineTo(x - half, shoulder);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -209,89 +312,187 @@ const updateTooltip = (
   nodes.root.style.top = "4px";
 };
 
+/** A press in progress, from the pointer down until it is released. */
+type Press =
+  /** Dragging the playhead or the ruler; `offset` keeps a grabbed handle under the pointer. */
+  | { kind: "scrub"; offset: number }
+  /** Pressed in the plot, not yet moved far enough to count as a selection. */
+  | { kind: "pending"; x: number; time: number }
+  | { kind: "select"; anchor: number };
+
 /**
- * Zoom with the wheel around the pointer, pan by dragging, and view the time
- * under a click. All three go through the callbacks the chart was given, so
- * the view range is owned by React and the chart only reports.
+ * The gestures, in the grammar of audio and video editors: the ruler and the
+ * playhead scrub, a drag in the plot selects a range, a click views that
+ * time, scrolling pans and pinch or the wheel zooms about the pointer. Every
+ * change goes through the callbacks the chart was given, so the view range,
+ * the selection and the viewed time are owned by React.
  */
 const attachInteractions = (
   u: uPlot,
   stateRef: RefObject<ChartState>,
+  publishFeel: (feel: PlayheadFeel) => void,
 ): (() => void) => {
-  const over = u.over;
-  let press: { x: number; range: TimeRange; moved: boolean } | null = null;
-
-  const timeAt = (clientX: number): number => {
-    const rect = over.getBoundingClientRect();
-    const { min, max } = stateRef.current.viewRange;
-    return min + ((max - min) * (clientX - rect.left)) / rect.width;
+  const root = u.root;
+  let press: Press | null = null;
+  let hoverZone: HitZone = "outside";
+  let feel: PlayheadFeel = { hover: false, active: false };
+  const setFeel = (next: Partial<PlayheadFeel>) => {
+    feel = { ...feel, ...next };
+    publishFeel(feel);
   };
 
-  const onWheel = (event: WheelEvent) => {
-    event.preventDefault();
-    const { viewRange, domain, onViewRangeChange } = stateRef.current;
-    const pivot = timeAt(event.clientX);
-    const factor = Math.exp(event.deltaY * 0.002);
-    const span = viewRange.max - viewRange.min;
-    const next = clampRange(
-      pivot - (pivot - viewRange.min) * factor,
-      span * factor,
-      domain,
-    );
-    onViewRangeChange(next);
+  const pointAt = (event: { clientX: number; clientY: number }) => {
+    const rect = root.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  };
+  const timeAt = (x: number): number => {
+    const time = u.posToVal(x - plotBox(u).left, "x");
+    return Math.min(Math.max(time, 0), stateRef.current.domain);
+  };
+  const zoneAt = (point: { x: number; y: number }): HitZone => {
+    const plot = plotBox(u);
+    return hitTest({
+      ...point,
+      plot,
+      rulerHeight: AXIS_PX,
+      playheadX: plot.left + u.valToPos(stateRef.current.time, "x"),
+      grab: PLAYHEAD_GRAB_PX,
+    });
+  };
+  const cursorFor = (zone: HitZone): string =>
+    zone === "playhead" || zone === "ruler" ? "ew-resize" : "";
+  const settleHover = (point: { x: number; y: number }) => {
+    const zone = zoneAt(point);
+    if (zone === hoverZone) {
+      return;
+    }
+    hoverZone = zone;
+    setFeel({ hover: zone === "playhead" });
+    root.style.cursor = cursorFor(zone);
+    u.redraw(false, false);
   };
 
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0) {
       return;
     }
-    press = {
-      x: event.clientX,
-      range: stateRef.current.viewRange,
-      moved: false,
-    };
-    over.setPointerCapture(event.pointerId);
+    const point = pointAt(event);
+    const zone = zoneAt(point);
+    if (zone === "outside") {
+      return;
+    }
+    root.setPointerCapture(event.pointerId);
+    const time = timeAt(point.x);
+    if (zone === "playhead" || zone === "ruler") {
+      press = {
+        kind: "scrub",
+        offset: zone === "playhead" ? stateRef.current.time - time : 0,
+      };
+      setFeel({ active: true });
+      root.style.cursor = "ew-resize";
+      stateRef.current.onScrubStart();
+      if (zone === "ruler") {
+        stateRef.current.onScrub(time);
+      }
+      u.redraw(false, false);
+      return;
+    }
+    press = { kind: "pending", x: point.x, time };
   };
 
   const onPointerMove = (event: PointerEvent) => {
+    const point = pointAt(event);
     if (!press) {
+      settleHover(point);
+      if (hoverZone === "ruler" || hoverZone === "playhead") {
+        // The ruler lies outside uPlot's own cursor area; drive it so the
+        // tooltip names the firing under the pointer there too.
+        u.setCursor({ left: point.x - plotBox(u).left, top: 0 });
+      }
       return;
     }
-    const dx = event.clientX - press.x;
-    if (!press.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) {
+    const time = timeAt(point.x);
+    if (press.kind === "scrub") {
+      stateRef.current.onScrub(
+        Math.min(Math.max(time + press.offset, 0), stateRef.current.domain),
+      );
       return;
     }
-    press.moved = true;
-    const { domain, onViewRangeChange } = stateRef.current;
-    const span = press.range.max - press.range.min;
-    const shift = (-dx / over.clientWidth) * span;
-    onViewRangeChange(clampRange(press.range.min + shift, span, domain));
+    if (press.kind === "pending") {
+      if (Math.abs(point.x - press.x) < DRAG_THRESHOLD_PX) {
+        return;
+      }
+      press = { kind: "select", anchor: press.time };
+      root.style.cursor = "crosshair";
+    }
+    stateRef.current.onSelectionChange({
+      min: Math.min(press.anchor, time),
+      max: Math.max(press.anchor, time),
+    });
   };
 
   const onPointerUp = (event: PointerEvent) => {
     if (!press) {
       return;
     }
-    if (!press.moved) {
-      stateRef.current.onScrub(timeAt(event.clientX));
+    const point = pointAt(event);
+    if (press.kind === "scrub") {
+      setFeel({ active: false });
+      stateRef.current.onScrubEnd();
+    } else if (press.kind === "pending") {
+      // A click: view that time, and let go of any selection.
+      stateRef.current.onSelectionChange(null);
+      stateRef.current.onScrub(timeAt(point.x));
     }
     press = null;
-    if (over.hasPointerCapture(event.pointerId)) {
-      over.releasePointerCapture(event.pointerId);
+    if (root.hasPointerCapture(event.pointerId)) {
+      root.releasePointerCapture(event.pointerId);
     }
+    hoverZone = "outside";
+    settleHover(point);
+    u.redraw(false, false);
   };
 
-  over.addEventListener("wheel", onWheel, { passive: false });
-  over.addEventListener("pointerdown", onPointerDown);
-  over.addEventListener("pointermove", onPointerMove);
-  over.addEventListener("pointerup", onPointerUp);
-  over.addEventListener("pointercancel", onPointerUp);
+  const onPointerLeave = () => {
+    if (press) {
+      return;
+    }
+    hoverZone = "outside";
+    setFeel({ hover: false });
+    root.style.cursor = "";
+    u.setCursor({ left: -10, top: -10 });
+    u.redraw(false, false);
+  };
+
+  const onWheel = (event: WheelEvent) => {
+    event.preventDefault();
+    const { viewRange, domain, onViewRangeChange } = stateRef.current;
+    const gesture = classifyWheel(event);
+    if (gesture.kind === "zoom") {
+      const pivot = timeAt(pointAt(event).x);
+      onViewRangeChange(zoomRange(viewRange, gesture.factor, pivot, domain));
+      return;
+    }
+    const secondsPerPixel = (viewRange.max - viewRange.min) / plotBox(u).width;
+    onViewRangeChange(
+      panRange(viewRange, gesture.pixels * secondsPerPixel, domain),
+    );
+  };
+
+  root.addEventListener("wheel", onWheel, { passive: false });
+  root.addEventListener("pointerdown", onPointerDown);
+  root.addEventListener("pointermove", onPointerMove);
+  root.addEventListener("pointerup", onPointerUp);
+  root.addEventListener("pointercancel", onPointerUp);
+  root.addEventListener("pointerleave", onPointerLeave);
   return () => {
-    over.removeEventListener("wheel", onWheel);
-    over.removeEventListener("pointerdown", onPointerDown);
-    over.removeEventListener("pointermove", onPointerMove);
-    over.removeEventListener("pointerup", onPointerUp);
-    over.removeEventListener("pointercancel", onPointerUp);
+    root.removeEventListener("wheel", onWheel);
+    root.removeEventListener("pointerdown", onPointerDown);
+    root.removeEventListener("pointermove", onPointerMove);
+    root.removeEventListener("pointerup", onPointerUp);
+    root.removeEventListener("pointercancel", onPointerUp);
+    root.removeEventListener("pointerleave", onPointerLeave);
+    root.style.cursor = "";
   };
 };
 
@@ -331,6 +532,7 @@ const buildOptions = (
   size: { width: number; height: number },
   stateRef: RefObject<ChartState>,
   tooltip: TooltipNodes,
+  getFeel: () => PlayheadFeel,
 ): uPlot.Options => {
   const laneLabels = data.kind === "lanes" ? data.laneLabels : null;
   // The series uPlot focuses under the pointer; it lives with the chart.
@@ -351,11 +553,12 @@ const buildOptions = (
     axes: [
       {
         side: 0,
-        size: 26,
+        size: AXIS_PX,
+        gap: LABEL_GAP_PX,
         font: "10px system-ui",
         stroke: "#475569",
         grid: { stroke: "#f3f4f6", width: 1 },
-        ticks: { stroke: "#cbd5e1", width: 1, size: 6 },
+        ticks: { show: false },
         values: (_u, values) => values.map((value) => formatSeconds(value)),
       },
       laneLabels
@@ -410,9 +613,12 @@ const buildOptions = (
       ],
       draw: [
         (u) => {
-          drawReferences(u, stateRef.current);
-          drawFirings(u, stateRef.current);
-          drawPlayhead(u, stateRef.current.time, stateRef.current.viewRange);
+          const state = stateRef.current;
+          drawRuler(u);
+          drawSelection(u, state);
+          drawReferences(u, state);
+          drawFirings(u, state);
+          drawPlayhead(u, state, getFeel());
         },
       ],
     },
@@ -433,6 +639,12 @@ export const EventTimelineChart: FC<{
   /** The viewed time, drawn as the playhead. */
   time: number;
   onScrub: (time: number) => void;
+  /** Called as a drag of the playhead or the ruler begins and ends. */
+  onScrubStart: () => void;
+  onScrubEnd: () => void;
+  /** The selected range, drawn as a band; null when nothing is selected. */
+  selection: TimeRange | null;
+  onSelectionChange: (range: TimeRange | null) => void;
   className?: string;
   /** Hold the chart as it stands; updates apply together when it resumes. */
   paused?: boolean;
@@ -447,6 +659,10 @@ export const EventTimelineChart: FC<{
   domain,
   time,
   onScrub,
+  onScrubStart,
+  onScrubEnd,
+  selection,
+  onSelectionChange,
   className,
   paused = false,
 }) => {
@@ -465,8 +681,12 @@ export const EventTimelineChart: FC<{
     viewRange,
     domain,
     time,
+    selection,
     onViewRangeChange,
     onScrub,
+    onScrubStart,
+    onScrubEnd,
+    onSelectionChange,
   });
 
   // One chart per data shape and series list; everything else updates it.
@@ -482,19 +702,25 @@ export const EventTimelineChart: FC<{
     }
     const current = stateRef.current.data;
     const tooltip = createTooltip();
+    // How the playhead is being handled; the gestures write it, the draw
+    // hook reads it.
+    let feel: PlayheadFeel = { hover: false, active: false };
     const options = buildOptions(
       current,
       hiddenSeries,
       { width: wrapper.clientWidth, height: wrapper.clientHeight },
       stateRef,
       tooltip,
+      () => feel,
     );
     chartRef.current?.destroy();
     // eslint-disable-next-line new-cap -- uPlot's constructor is lowercase by convention
     const chart = new uPlot(options, current.data, wrapper);
     chartRef.current = chart;
     chart.over.appendChild(tooltip.root);
-    const detach = attachInteractions(chart, stateRef);
+    const detach = attachInteractions(chart, stateRef, (next) => {
+      feel = next;
+    });
     return () => {
       detach();
       chart.destroy();
@@ -519,7 +745,7 @@ export const EventTimelineChart: FC<{
     if (!paused) {
       chartRef.current?.redraw(false, false);
     }
-  }, [time, firings, references, paused]);
+  }, [time, firings, references, selection, paused]);
 
   return <div ref={wrapperRef} className={className} />;
 };
