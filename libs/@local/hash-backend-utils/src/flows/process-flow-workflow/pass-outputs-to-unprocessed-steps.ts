@@ -24,9 +24,6 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 
-/**
- * The for-each step definition whose items a step, given by its definition's id, runs in, if any.
- */
 const getEnclosingForEachStepDefinition = (
   flowDefinition: FlowDefinition,
   stepId: string,
@@ -37,7 +34,6 @@ const getEnclosingForEachStepDefinition = (
       stepDefinition.steps.some((nested) => nested.stepId === stepId),
   );
 
-/** Gives an unprocessed step the outputs it takes from a step that has just completed. */
 const passOutputsToStep = ({
   step,
   flowDefinition,
@@ -46,7 +42,6 @@ const passOutputsToStep = ({
 }: {
   step: FlowStep;
   flowDefinition: FlowDefinition;
-  /** The id of the completed step's definition. */
   producerStepId: string;
   outputs: StepOutput[];
 }) => {
@@ -118,7 +113,7 @@ export const passOutputsToUnprocessedSteps = (params: {
     parseStepRunId(stepId);
 
   if (currentItemIndex === undefined) {
-    /* A step outside every for-each step can feed any step, including those in a for-each step's items. */
+    /* A step outside every for-each step can feed the steps of every item. */
     for (const step of stepsById.values()) {
       if (!processedStepIds.has(step.stepId)) {
         passOutputsToStep({
@@ -142,7 +137,6 @@ export const passOutputsToUnprocessedSteps = (params: {
     return { code: StatusCode.Ok };
   }
 
-  /* A step in a for-each step's item only feeds the steps in the same item. */
   for (const stepDefinition of forEachStepDefinition.steps) {
     const step = stepsById.get(
       generateStepRunId(stepDefinition.stepId, currentItemIndex),

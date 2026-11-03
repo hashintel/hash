@@ -27,10 +27,7 @@ import { StatusCode } from "@local/status";
 
 import { sleep } from "../utils.js";
 import { getActionActivityOptions } from "./action-activity-options.js";
-import {
-  getAllStepsInFlow,
-  getStepsInFlowById,
-} from "./process-flow-workflow/get-all-steps-in-flow.js";
+import { getStepsInFlowById } from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";
 import {
   initializeActionStep,
@@ -567,10 +564,7 @@ const processFlow = async (
     });
   }
 
-  /**
-   * Every step in the run, by id. Steps are only added to a run when a for-each step starts its items, which adds
-   * them here too.
-   */
+  /** Every step in the run, by id, including a for-each step's items once it starts them. */
   const stepsById = getStepsInFlowById(flow);
   const processedStepIds = new Set<string>();
   /** Steps skipped because a value they need is missing (see `getStepReadiness`); also in `processedStepIds`. */
@@ -810,7 +804,7 @@ const processFlow = async (
 
       const context = getReadinessContext();
 
-      for (const step of getAllStepsInFlow(flow)) {
+      for (const step of stepsById.values()) {
         if (
           !processedStepIds.has(step.stepId) &&
           getStepReadiness(step, context) === "skip"
@@ -856,7 +850,7 @@ const processFlow = async (
   const getStepsReadyToProcess = () => {
     const context = getReadinessContext();
 
-    return getAllStepsInFlow(flow).filter(
+    return [...stepsById.values()].filter(
       (step) =>
         !processedStepIds.has(step.stepId) &&
         getStepReadiness(step, context) === "ready",
@@ -871,7 +865,7 @@ const processFlow = async (
 
   if (
     getStepsReadyToProcess().length === 0 &&
-    getAllStepsInFlow(flow).some(({ stepId }) => !processedStepIds.has(stepId))
+    processedStepIds.size < stepsById.size
   ) {
     const errorMessage =
       "No steps have satisfied dependencies when initializing the flow.";
@@ -929,7 +923,7 @@ const processFlow = async (
   );
 
   /** @todo this is not necessarily an error once there are branches */
-  if (processedStepIds.size !== getAllStepsInFlow(flow).length) {
+  if (processedStepIds.size !== stepsById.size) {
     const errorMessage = "Not all steps in the flows were processed.";
     throw ApplicationFailure.create({
       message: errorMessage,
@@ -944,9 +938,7 @@ const processFlow = async (
   }
 
   for (const outputDefinition of flowDefinition.outputs) {
-    const step = getAllStepsInFlow(flow).find(
-      (flowStep) => flowStep.stepId === outputDefinition.stepId,
-    );
+    const step = stepsById.get(outputDefinition.stepId);
 
     const output =
       step?.kind === "action"
