@@ -329,6 +329,7 @@ export type {
   LspTransport,
   LspWorkerFactory,
   MarkupContent,
+  NetAnalysis,
   SignatureHelp,
   TextDocumentIdentifier,
 } from "./lsp";

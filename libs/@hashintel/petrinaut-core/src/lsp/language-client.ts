@@ -28,6 +28,7 @@ import type {
   MetricSessionParams,
   PublishDiagnosticsParams,
   ScenarioSessionParams,
+  NetAnalysis,
 } from "./worker/protocol";
 import type {
   CompletionList,
@@ -60,6 +61,8 @@ export type DiagnosticsSnapshot = {
 export interface LanguageClient {
   /** Per-URI diagnostics pushed from the server, plus a total count. */
   readonly diagnostics: ReadableStore<DiagnosticsSnapshot>;
+  /** What the server learned about the net beyond diagnostics, pushed with them. */
+  readonly netAnalysis: ReadableStore<NetAnalysis>;
 
   // --- Notifications (fire-and-forget) ---
   initialize(
@@ -187,6 +190,16 @@ export type CreateLanguageClientConfig =
   | { createWorker: LspWorkerFactory; transport?: never }
   | { transport: LspTransport; createWorker?: never };
 
+const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {} };
+
+const sameNetAnalysis = (left: NetAnalysis, right: NetAnalysis): boolean => {
+  const leftIds = Object.keys(left.metricShapes);
+  return (
+    leftIds.length === Object.keys(right.metricShapes).length &&
+    leftIds.every((id) => left.metricShapes[id] === right.metricShapes[id])
+  );
+};
+
 const EMPTY_DIAGNOSTICS: DiagnosticsSnapshot = {
   byUri: new Map(),
   total: 0,
@@ -311,6 +324,7 @@ export function createLanguageClient(
 
   const diagnostics =
     createReadableStore<DiagnosticsSnapshot>(EMPTY_DIAGNOSTICS);
+  const netAnalysis = createReadableStore<NetAnalysis>(EMPTY_NET_ANALYSIS);
 
   transport.onMessage((msg) => {
     if ("id" in msg) {
@@ -323,6 +337,10 @@ export function createLanguageClient(
         entry.reject(new Error(msg.error.message));
       } else {
         entry.resolve(msg.result as never);
+      }
+    } else if (msg.method === "sdcpn/netAnalysis") {
+      if (!sameNetAnalysis(netAnalysis.get(), msg.params)) {
+        netAnalysis.set(msg.params);
       }
     } else if ("method" in msg) {
       const previous = diagnostics.get();
@@ -364,6 +382,7 @@ export function createLanguageClient(
 
   return {
     diagnostics,
+    netAnalysis,
 
     initialize(sdcpn, extensions) {
       sendNotification({

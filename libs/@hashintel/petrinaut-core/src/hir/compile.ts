@@ -75,7 +75,7 @@ type ItemResult =
   | { ok: true; fn: HirFunction }
   | { ok: false; diagnostics: HirDiagnostic[] };
 
-function lowerAndCheck(
+export function lowerAndCheck(
   code: string,
   surface: HirFunctionSurfaceKind,
   context: HirFunctionContext | null,

@@ -67,6 +67,7 @@ import type {
   PublishDiagnosticsParams,
   ScenarioSessionParams,
   ServerMessage,
+  NetAnalysis,
 } from "./protocol";
 
 const workerRuntime = createWorkerThreadRuntime<ClientMessage, ServerMessage>();
@@ -228,15 +229,16 @@ let netDiagnosticsCache: {
   sdcpn: SDCPN;
   extensions: PetrinautExtensionSettings;
   params: readonly PublishDiagnosticsParams[];
+  analysis: NetAnalysis;
 } | null = null;
 
-function checkAndSerializeNetDiagnostics(
+function checkNet(
   sdcpn: SDCPN,
   checkingServers: LanguageServers,
   extensions: PetrinautExtensionSettings,
-): PublishDiagnosticsParams[] {
+): { params: PublishDiagnosticsParams[]; analysis: NetAnalysis } {
   const result = checkSDCPN(sdcpn, checkingServers, extensions);
-  return result.itemDiagnostics.map((item) => {
+  const params = result.itemDiagnostics.map((item) => {
     const uri = filePathToUri(item.filePath);
     const userContent =
       languageServerForFile(checkingServers, item.filePath).getUserContent(
@@ -249,21 +251,22 @@ function checkAndSerializeNetDiagnostics(
       ),
     };
   });
+  return { params, analysis: { metricShapes: result.metricShapes } };
 }
 
 function netDiagnostics(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
-): readonly PublishDiagnosticsParams[] {
+): { params: readonly PublishDiagnosticsParams[]; analysis: NetAnalysis } {
   if (
     netDiagnosticsCache?.sdcpn === sdcpn &&
     netDiagnosticsCache.extensions === extensions
   ) {
-    return netDiagnosticsCache.params;
+    return netDiagnosticsCache;
   }
-  const params = checkAndSerializeNetDiagnostics(sdcpn, servers!, extensions);
-  netDiagnosticsCache = { sdcpn, extensions, params };
-  return params;
+  const { params, analysis } = checkNet(sdcpn, servers!, extensions);
+  netDiagnosticsCache = { sdcpn, extensions, params, analysis };
+  return netDiagnosticsCache;
 }
 
 /** Check a captured definition in an isolated language service. */
@@ -274,7 +277,7 @@ function requestedDiagnostics(
   const requestServers = createLanguageServers();
   try {
     syncLanguageServers(requestServers, sdcpn, extensions);
-    return checkAndSerializeNetDiagnostics(sdcpn, requestServers, extensions);
+    return checkNet(sdcpn, requestServers, extensions).params;
   } finally {
     disposeLanguageServers(requestServers);
   }
@@ -289,9 +292,8 @@ function publishAllDiagnostics(
     return;
   }
 
-  const params: PublishDiagnosticsParams[] = [
-    ...netDiagnostics(sdcpn, extensions),
-  ];
+  const net = netDiagnostics(sdcpn, extensions);
+  const params: PublishDiagnosticsParams[] = [...net.params];
 
   const pushSessionDiagnostics = (
     filePaths: string[],
@@ -354,6 +356,12 @@ function publishAllDiagnostics(
     jsonrpc: "2.0",
     method: "textDocument/publishDiagnostics",
     params,
+  } satisfies ServerMessage);
+  // What the check learned about the net beyond its diagnostics.
+  workerRuntime.postMessage({
+    jsonrpc: "2.0",
+    method: "sdcpn/netAnalysis",
+    params: net.analysis,
   } satisfies ServerMessage);
 }
 

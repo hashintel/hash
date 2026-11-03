@@ -111,7 +111,7 @@ export const TimelineViewPicker: React.FC = () => {
   // shape their code gives them, with the not yet compiled ones on their own.
   const metricsOfShape = (shape: MetricShape | null) =>
     metrics
-      .filter((m) => (metricShapes.get(m.id) ?? null) === shape)
+      .filter((m) => (metricShapes[m.id] ?? null) === shape)
       .map((m) => ({ value: m.id, text: m.name }));
   const metricGroups = [
     {

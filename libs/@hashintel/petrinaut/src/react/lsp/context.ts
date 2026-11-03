@@ -21,6 +21,7 @@ import type {
   SDCPN,
   SignatureHelp,
   VisualizerHir,
+  NetAnalysis,
 } from "@hashintel/petrinaut-core";
 import type {
   AdHocSessionParams,
@@ -60,6 +61,11 @@ export interface LanguageClientContextValue {
   ) => Promise<SignatureHelp | null>;
   /** Check a captured net, independently of pushed editor diagnostics. */
   requestDiagnostics: LanguageClient["requestDiagnostics"];
+  /**
+   * What the server learned about the net beyond its diagnostics, pushed
+   * with them on every check: the shape of each metric, for a start.
+   */
+  netAnalysis: LanguageClient["netAnalysis"];
   /**
    * Compile the SDCPN's user code to HIR artifacts (in the language worker).
    * Required before starting simulations/experiments — the engine has no
@@ -132,6 +138,8 @@ export const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
 };
 
 /** The inert default: no worker wired — requests resolve to empty results. */
+const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {} };
+
 export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   diagnostics: EMPTY_DIAGNOSTICS_SNAPSHOT,
   diagnosticsByUri: EMPTY_DIAGNOSTICS_SNAPSHOT.byUri,
@@ -145,6 +153,7 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
     Promise.reject(
       new Error("No language client is wired; diagnostics are unavailable."),
     ),
+  netAnalysis: { get: () => EMPTY_NET_ANALYSIS, subscribe: () => () => {} },
   requestHirArtifacts: () =>
     Promise.resolve({
       artifacts: {
