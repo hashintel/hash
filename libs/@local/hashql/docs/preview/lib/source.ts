@@ -1,10 +1,11 @@
+import { Struct } from "effect";
 import { loader } from "fumadocs-core/source";
 import { defineDocs } from "fumadocs-mdx/macro";
 import { createElement } from "react";
 
-import { loader as reference, withHast } from "../../lib/source.js";
+import * as Source from "../../lib/source.js";
 
-import type { Location } from "../../lib/Location.js";
+import type * as Location from "../../lib/Location.js";
 import type * as PageTree from "fumadocs-core/page-tree";
 import type { ReactNode } from "react";
 
@@ -17,7 +18,7 @@ const docs = defineDocs({ dir: "../content" });
 const dir = "reference";
 
 // No commit names the working tree the preview builds. A declaration links to its line on the main branch.
-const sourceUrl = ({ file, line }: Location): string =>
+const sourceUrl = ({ file, line }: Location.Location): string =>
   `https://github.com/hashintel/hash/blob/main/${file}#L${line}`;
 
 /** A name in the navigation, set in monospace as the reference's code is. */
@@ -26,8 +27,8 @@ const codeName = (name: ReactNode): ReactNode =>
 
 export const source = loader({
   baseUrl: "/docs/hashql",
-  source: await withHast(docs.toFumadocsSource(), [
-    { dir, load: reference({ sourceUrl }) },
+  source: await Source.withHast(docs.toFumadocsSource(), [
+    { dir, load: Source.loader({ sourceUrl }) },
   ]),
   pageTree: {
     transformers: [
@@ -37,7 +38,7 @@ export const source = loader({
             return node;
           }
 
-          return { ...node, name: codeName(node.name) };
+          return Struct.evolve(node, { name: codeName });
         },
         // The reference's own folder keeps its title, and every folder below it is an entrypoint or a module.
         folder(node, path): PageTree.Folder {
@@ -45,7 +46,7 @@ export const source = loader({
             return node;
           }
 
-          return { ...node, name: codeName(node.name) };
+          return Struct.evolve(node, { name: codeName });
         },
       },
     ],

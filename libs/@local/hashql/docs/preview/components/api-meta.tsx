@@ -1,7 +1,7 @@
 import { Facts } from "./facts.js";
 import { Glyph } from "./glyph.js";
 
-import type { MetaProps } from "../../lib/components.js";
+import type * as Components from "../../lib/components.js";
 import type { ReactNode } from "react";
 
 /** The facts under a module's or an entrypoint's title, which start with what it is and how many exports it has. */
@@ -11,7 +11,7 @@ export function ApiMeta({
   since,
   stability,
   source,
-}: MetaProps): ReactNode {
+}: Components.MetaProps): ReactNode {
   return (
     <div className="api-meta not-prose">
       <span className="api-meta-kind">

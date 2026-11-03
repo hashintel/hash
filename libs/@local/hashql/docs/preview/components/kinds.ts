@@ -1,3 +1,5 @@
+import { HashSet } from "effect";
+
 /** The letter a glyph shows for each kind, such as `f` for a function. */
 export const letters: Readonly<Record<string, string>> = {
   function: "f",
@@ -16,12 +18,8 @@ export const letters: Readonly<Record<string, string>> = {
 };
 
 /** The kinds whose heading names a member, which starts with no keyword. */
-const members: ReadonlySet<string> = new Set([
-  "property",
-  "method",
-  "accessor",
-]);
+const members = HashSet.make("property", "method", "accessor");
 
 /** The keyword a declaration of `kind` starts with, for a heading that reads like code. */
 export const keywordOf = (kind: string): string =>
-  members.has(kind) ? "" : kind;
+  HashSet.has(members, kind) ? "" : kind;

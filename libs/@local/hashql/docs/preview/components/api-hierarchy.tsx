@@ -1,6 +1,6 @@
-import { diagramOf } from "./diagram.js";
+import * as Diagram from "./diagram.js";
 
-import type { HierarchyProps } from "../../lib/components.js";
+import type * as Components from "../../lib/components.js";
 import type { ReactNode } from "react";
 
 const label = "Type hierarchy";
@@ -16,11 +16,11 @@ export function ApiHierarchy({
   nodes,
   edges,
   children,
-}: HierarchyProps): ReactNode {
+}: Components.HierarchyProps): ReactNode {
   const popover = `hierarchy-${name.replaceAll(/[^\w-]/gu, "-")}`;
   const current = nodes.find(({ role }) => role === "current")?.label ?? name;
   // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- rendered once, on the server
-  const diagram = { __html: diagramOf(popover, { nodes, edges }) };
+  const diagram = { __html: Diagram.diagramOf(popover, { nodes, edges }) };
 
   return (
     <>
