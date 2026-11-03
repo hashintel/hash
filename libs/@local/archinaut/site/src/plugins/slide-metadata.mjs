@@ -6,7 +6,8 @@
  *
  * - `<Reveal at={n} until={m}>`, whose `at` and `until` are number literals;
  * - `\step{n}{…}` and `\swap{n}{…}{…}` inside a formula;
- * - an `at-<n>` or `until-<n>` class in a d2 block;
+ * - a step class, such as `at-2` or `token-3`, in a d2 block or on an
+ *   element of an SVG drawing the slide inlines;
  * - a key of the frontmatter's `notes.byStep`.
  *
  * A `steps` key in the frontmatter overrides the count, and the compile
@@ -18,6 +19,9 @@
  * Docs pages are left alone: they have no steps.
  */
 
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
 import { visit } from "unist-util-visit";
 
 import { valueExpression } from "./estree-values.mjs";
@@ -25,12 +29,25 @@ import {
   readSlideFrontmatter,
   slideFrontmatterKeys,
 } from "./slide-frontmatter.mjs";
+import { stepClassInText } from "./step-classes.mjs";
 
 const formulaStep = /\\(?:step|swap)\s*\{\s*(\d+)\s*\}/gu;
 
-/** A d2 `class:` value, one name or a list, and the step classes in it. */
-const diagramClass = /\bclass\s*:\s*(\[[^\]]*\]|[^\s;}]+)/gu;
-const diagramStep = /\b(?:at|until)-(\d+)\b/gu;
+/** A d2 `class:` value, one name or a list. */
+const d2Class = /\bclass\s*:\s*(\[[^\]]*\]|[^\s;}]+)/gu;
+/** An SVG `class` attribute's value. */
+const svgClass = /\bclass="([^"]*)"/gu;
+
+/**
+ * The steps the class values in a text name.
+ *
+ * @param {string} text
+ * @param {RegExp} classValue
+ */
+const classSteps = (text, classValue) =>
+  [...text.matchAll(classValue)].flatMap(([, names = ""]) =>
+    [...names.matchAll(stepClassInText)].map((match) => Number(match[1])),
+  );
 
 /**
  * The number an attribute's literal expression holds, `undefined` when the
@@ -117,12 +134,25 @@ const exportsOf = (values) => {
  * @returns {(tree: import("mdast").Root, file: import("vfile").VFile) => void}
  */
 export const remarkSlideMetadata =
-  ({ docsDirectory }) =>
+  ({ docsDirectory, diagramsDirectory }) =>
   (tree, file) => {
     if (typeof file.path === "string" && file.path.startsWith(docsDirectory)) {
       return;
     }
     const path = file.path ?? "slide";
+    /**
+     * The markup of a drawing the slide inlines, as `rehypeInlineDiagrams`
+     * finds it, or null when there is none to read.
+     *
+     * @param {string} url
+     */
+    const drawingAt = (url) => {
+      const location =
+        url.startsWith("@diagrams/") && diagramsDirectory !== undefined
+          ? resolve(diagramsDirectory, url.slice("@diagrams/".length))
+          : resolve(dirname(path), url);
+      return existsSync(location) ? readFileSync(location, "utf8") : null;
+    };
     const where = (node) => `${path}:${node.position?.start.line ?? "?"}`;
     const [first] = tree.children;
     const meta =
@@ -144,10 +174,17 @@ export const remarkSlideMetadata =
         return;
       }
       if (node.type === "code" && node.lang === "d2") {
-        for (const [, names = ""] of node.value.matchAll(diagramClass)) {
-          for (const match of names.matchAll(diagramStep)) {
-            named.push(Number(match[1]));
-          }
+        named.push(...classSteps(node.value, d2Class));
+        return;
+      }
+      if (
+        node.type === "image" &&
+        node.url.endsWith(".svg") &&
+        node.url.includes("diagrams/")
+      ) {
+        const svg = drawingAt(node.url);
+        if (svg !== null) {
+          named.push(...classSteps(svg, svgClass));
         }
         return;
       }

@@ -3,7 +3,8 @@
  * slide compiles, with the renderer, layout and colours the docs' diagrams
  * use, and inlined as SVG, so it follows the theme as they do. The text
  * after `d2` on the fence names the drawing for a screen reader. Parts the
- * source marks `at-<n>` or `until-<n>` step; see `diagram-steps.ts`.
+ * source gives step classes, such as `at-2` or `token-3`, step; see
+ * `step-classes.mjs`.
  *
  * Each source is rendered once per process, so editing one block re-renders
  * only that block. Docs pages are left alone: their diagrams come from the
@@ -14,7 +15,8 @@ import { fromHtml } from "hast-util-from-html";
 import { visit } from "unist-util-visit";
 
 import { findD2, renderD2Source } from "../../../src/bundle/d2.ts";
-import { wrapDiagramParts } from "./diagram-steps.ts";
+import { prepareD2Parts } from "./d2-parts.ts";
+import { wrapSteppedParts } from "./svg-steps.ts";
 
 import type { Element, RootContent as HastContent } from "hast";
 import type { Code, Parent, Root, RootContent } from "mdast";
@@ -94,7 +96,8 @@ export const remarkSlideDiagrams =
           throw new Error(`${path}:${line}: d2 drew no SVG for this block`);
         }
         try {
-          wrapDiagramParts(svg);
+          prepareD2Parts(svg);
+          wrapSteppedParts(svg);
         } catch (error) {
           throw new Error(
             `${path}:${line}: ${error instanceof Error ? error.message : String(error)}`,

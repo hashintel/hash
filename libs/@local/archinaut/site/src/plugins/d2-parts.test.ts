@@ -1,9 +1,9 @@
 import { fromHtml } from "hast-util-from-html";
 import { describe, expect, it } from "vitest";
 
-import { partIdOf, partSteps, wrapDiagramParts } from "./diagram-steps";
+import { partIdOf, partSteps, prepareD2Parts } from "./d2-parts";
 
-import type { Element } from "hast";
+import type { Element, ElementContent } from "hast";
 
 const base64 = (id: string) => Buffer.from(id).toString("base64");
 
@@ -60,35 +60,52 @@ describe("partSteps", () => {
   });
 });
 
-describe("wrapDiagramParts", () => {
-  it("wraps the drawing's stepped parts in RevealGroup and leaves the rest", () => {
+describe("prepareD2Parts", () => {
+  const drawing = (inner: string) => {
     const [svg] = fromHtml(
-      `<svg><svg class="d2-1 d2-svg"><rect/><g class="${base64("core")} core"><g class="shape"/></g><g class="${base64("ui")} ui at-2"><g class="shape"/></g><g class="${base64("(ui -&gt; core)[0]")}"><marker id="arrow"/><path/></g></svg></svg>`,
-      { space: "svg", fragment: true },
+      `<svg><svg class="d2-1 d2-svg">${inner}</svg></svg>`,
+      {
+        space: "svg",
+        fragment: true,
+      },
     ).children as Element[];
-    wrapDiagramParts(svg!);
-    const drawing = svg!.children[0] as Element;
+    return svg!;
+  };
+  const classes = (element: ElementContent | undefined) =>
+    element?.type === "element" ? element.properties.className : undefined;
+
+  it("gives each part the steps it inherits and moves the arrowheads up", () => {
+    const svg = drawing(
+      `<rect/><g class="${base64("core")} core"></g><g class="${base64("ui")} ui draw-2"></g><g class="${base64("(ui -&gt; core)[0]")} token-3"><marker id="arrow"/><path d="M 0 0 L 1 1"/></g>`,
+    );
+    prepareD2Parts(svg);
+    const inner = svg.children[0] as Element;
+    expect(inner.children.map((child) => (child as Element).tagName)).toEqual([
+      "defs",
+      "rect",
+      "g",
+      "g",
+      "g",
+    ]);
+    expect(classes(inner.children[3])).toEqual([
+      base64("ui"),
+      "ui",
+      "draw-2",
+      "at-2",
+    ]);
+    expect(classes(inner.children[4])).toEqual([
+      base64("(ui -&gt; core)[0]"),
+      "token-3",
+      "at-2",
+    ]);
     expect(
-      drawing.children.map((child) =>
-        "name" in child && child.name === "RevealGroup"
-          ? `RevealGroup at=${(child.attributes as { value: { value: string } }[])[0]?.value.value}`
-          : child.type === "element"
-            ? child.tagName
-            : child.type,
-      ),
-    ).toEqual(["defs", "rect", "g", "RevealGroup at=2", "RevealGroup at=2"]);
-    expect(
-      (drawing.children[0] as Element).children.map(
-        (child) => (child as Element).properties.id,
-      ),
-    ).toEqual(["arrow"]);
+      ((inner.children[0] as Element).children[0] as Element).properties.id,
+    ).toBe("arrow");
   });
 
   it("refuses a class list written with commas", () => {
-    const [svg] = fromHtml(
-      `<svg><svg><g class="${base64("ui")} ui, at-2"/></svg></svg>`,
-      { space: "svg", fragment: true },
-    ).children as Element[];
-    expect(() => wrapDiagramParts(svg!)).toThrow(/\[react; at-1\]/u);
+    expect(() =>
+      prepareD2Parts(drawing(`<g class="${base64("ui")} ui, at-2"/>`)),
+    ).toThrow(/\[react; at-1\]/u);
   });
 });

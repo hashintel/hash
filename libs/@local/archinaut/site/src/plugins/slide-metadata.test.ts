@@ -1,3 +1,7 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { remarkSlideMetadata } from "./slide-metadata.mjs";
@@ -88,6 +92,24 @@ describe("remarkSlideMetadata", () => {
     );
     plugin(root, slide);
     expect(exported(root)).toMatch(/export const steps = 9;$/u);
+  });
+
+  it("counts every kind of step class, in a d2 block and in an inlined SVG", () => {
+    const directory = mkdtempSync(join(tmpdir(), "slide-diagrams-"));
+    mkdirSync(join(directory, "diagrams"));
+    writeFileSync(
+      join(directory, "diagrams", "chart.svg"),
+      '<svg><path class="curve draw-2"/><g class="limit token-7"/></svg>',
+    );
+    const root = tree(
+      { type: "code", lang: "d2", value: "a -> b: {class: [flow-3; focus-4]}" },
+      {
+        type: "paragraph",
+        children: [{ type: "image", url: "diagrams/chart.svg" }],
+      },
+    );
+    plugin(root, { path: join(directory, "1-chart.mdx") } as never);
+    expect(exported(root)).toBe("export const steps = 8;");
   });
 
   it("counts the step classes of a d2 block, and nothing else in it", () => {

@@ -85,7 +85,13 @@ export default defineConfig(async () => ({
               docsDirectory: contentPath("docs/"),
             },
           ],
-          [remarkSlideMetadata, { docsDirectory: contentPath("docs/") }],
+          [
+            remarkSlideMetadata,
+            {
+              docsDirectory: contentPath("docs/"),
+              diagramsDirectory: contentPath("diagrams"),
+            },
+          ],
           // After the step count, which reads the d2 source this replaces.
           [
             remarkSlideDiagrams,
@@ -102,7 +108,10 @@ export default defineConfig(async () => ({
           rehypeSlug,
           [
             rehypeInlineDiagrams,
-            { diagramsDirectory: contentPath("diagrams") },
+            {
+              diagramsDirectory: contentPath("diagrams"),
+              docsDirectory: contentPath("docs/"),
+            },
           ],
           // Formulas render here, so a page ships no math runtime; one
           // KaTeX cannot parse stops the build instead of shipping in red.

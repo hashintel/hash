@@ -19,6 +19,8 @@ import { dirname, resolve } from "node:path";
 import { fromHtml } from "hast-util-from-html";
 import { visit } from "unist-util-visit";
 
+import { wrapSteppedParts } from "./svg-steps.ts";
+
 /**
  * Diagrams live beside the pages, under the bundle's own directory.
  *
@@ -31,8 +33,10 @@ const isDiagram = (src) =>
 /**
  * `diagramsDirectory` answers `@diagrams/<name>.svg`, the form a slide uses
  * since it sits outside the bundle and cannot reach a diagram relatively.
+ * On a slide, outside `docsDirectory`, the elements of a drawing that carry
+ * step classes such as `at-2` step; see `step-classes.mjs`.
  *
- * @param {{ diagramsDirectory?: string }} [options]
+ * @param {{ diagramsDirectory?: string, docsDirectory?: string }} [options]
  * @returns {(tree: import("hast").Root, file: import("vfile").VFile) => void}
  */
 export const rehypeInlineDiagrams =
@@ -101,6 +105,19 @@ export const rehypeInlineDiagrams =
         role: "img",
         ...(typeof alt === "string" && alt !== "" ? { "aria-label": alt } : {}),
       };
+
+      const onSlide =
+        options.docsDirectory !== undefined &&
+        !file.path.startsWith(options.docsDirectory);
+      if (onSlide) {
+        try {
+          wrapSteppedParts(svg);
+        } catch (error) {
+          throw new Error(
+            `${file.path}:${node.position?.start.line ?? "?"}: ${src}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
 
       parent.children[index] = svg;
     });

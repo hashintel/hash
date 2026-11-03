@@ -400,6 +400,86 @@ svg.deck-head__logo {
   }
 }
 
+/*
+ * A stepped part of a drawing, `DiagramPart`. Hidden, it keeps its place.
+ * Drawn, its lines run from start to end and the arrowhead lands last; the
+ * animation fills backwards only, so a dashed line gets its dashes back
+ * when it ends. A flow runs dashes along its lines; a focus fades every
+ * other part of the drawing, but not what the focused part sits in or
+ * holds; a token travels a line once and stops at its end.
+ */
+.deck-part {
+  transition: opacity 250ms ease;
+}
+
+.deck-part[data-visible="false"] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.deck-part[data-drawing="true"]
+  :is(path, line, polyline, polygon, rect, circle, ellipse):not(.deck-token) {
+  animation: deck-draw 700ms ease-out backwards;
+}
+
+@keyframes deck-draw {
+  from {
+    stroke-dasharray: var(--deck-length) var(--deck-length);
+    stroke-dashoffset: var(--deck-length);
+    marker-end: none;
+  }
+  99% {
+    stroke-dasharray: var(--deck-length) var(--deck-length);
+    stroke-dashoffset: 0;
+    marker-end: none;
+  }
+  to {
+    stroke-dasharray: var(--deck-length) var(--deck-length);
+    stroke-dashoffset: 0;
+  }
+}
+
+.deck-part[data-flowing="true"] :is(path, line, polyline):not(.deck-token) {
+  stroke-dasharray: 7 5;
+  animation: deck-flow 600ms linear infinite;
+}
+
+@keyframes deck-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.pnd-diagram:has(.deck-part[data-focused="true"])
+  .deck-part:not(
+    [data-focused="true"],
+    [data-focused="true"] *,
+    :has([data-focused="true"])
+  ) {
+  opacity: 0.15;
+}
+
+.deck-token {
+  fill: var(--text-primary);
+  offset-rotate: 0deg;
+  offset-distance: 100%;
+  animation: deck-token 900ms ease-in-out backwards;
+}
+
+@keyframes deck-token {
+  from {
+    offset-distance: 0%;
+  }
+}
+
+@media print, (prefers-reduced-motion: reduce) {
+  .deck-part,
+  .deck-part * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* `SlideFrame`, the frame for a TSX slide. */
 .deck-frame {
   align-items: stretch;

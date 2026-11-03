@@ -1,19 +1,17 @@
 /**
- * Which step each part of a rendered d2 drawing appears on, and the parts
- * wrapped so they do.
- *
- * d2 draws every shape and connection as a group whose first class is its
- * id in base64, `website` or `(website -> core)[0]`, followed by the d2
- * classes the source gave it. A class `at-<n>` shows the part from step n,
- * and `until-<n>` hides it again from step n, as a `Reveal` does. A
- * connection waits for both its ends and a shape for its container, so
- * marking a shape brings its connections with it.
+ * Readies a rendered d2 drawing for stepping. d2 draws every shape and
+ * connection as a group whose first class is its id in base64, `website` or
+ * `(website -> core)[0]`, followed by the d2 classes the source gave it.
+ * Here each part learns the steps of what it hangs on: a connection waits
+ * for both its ends and a shape for its container, so marking a shape
+ * brings its connections with it. `svg-steps.ts` then wraps the parts.
  */
 
-import { numberAttribute } from "./mdx-jsx.mjs";
+import { classesOf, planOf } from "./svg-steps.ts";
 
 import type { Element, ElementContent } from "hast";
 
+/** When a part is first and last shown: its own steps and those of what it hangs on. */
 export interface PartSteps {
   at: number;
   until: number | null;
@@ -41,24 +39,12 @@ export const partIdOf = (token: string): string | null =>
         )
     : null;
 
-const ownSteps = (classes: readonly string[]): PartSteps =>
-  classes.reduce<PartSteps>(
-    (steps, name) => {
-      const match = /^(at|until)-(\d+)$/u.exec(name);
-      const step = Number(match?.[2]);
-      if (match?.[1] === "at") {
-        return { ...steps, at: Math.max(steps.at, step) };
-      }
-      if (match?.[1] === "until") {
-        return {
-          ...steps,
-          until: steps.until === null ? step : Math.min(steps.until, step),
-        };
-      }
-      return steps;
-    },
-    { at: 0, until: null },
-  );
+const ownSteps = (classes: readonly string[]): PartSteps => {
+  const plan = planOf(classes);
+  return plan === null
+    ? { at: 0, until: null }
+    : { at: Math.max(plan.at, plan.draw ?? 0), until: plan.until };
+};
 
 /** A part is shown only while everything it hangs on is. */
 const within = (own: PartSteps, others: readonly PartSteps[]): PartSteps =>
@@ -106,23 +92,6 @@ export const partSteps = (
 const isElement = (node: ElementContent): node is Element =>
   node.type === "element";
 
-/**
- * The classes hast read off a part. d2 separates a class list with `;`; a
- * list written with commas is one class d2 does not know, which silently
- * drops the styles of every name in it, so it fails here instead.
- */
-const classesOf = (element: Element): string[] => {
-  const { className } = element.properties;
-  const names = Array.isArray(className) ? className.map(String) : [];
-  const listed = names.find((name) => name.endsWith(","));
-  if (listed !== undefined) {
-    throw new Error(
-      `a d2 class list separates its names with ";", as in [react; at-1], not with commas: "${names.slice(1).join(" ")}"`,
-    );
-  }
-  return names;
-};
-
 /** Every `marker` inside an element, taken out of it. */
 const takeMarkers = (element: Element): Element[] => {
   const markers = element.children.filter(
@@ -138,14 +107,14 @@ const takeMarkers = (element: Element): Element[] => {
 };
 
 /**
- * Wraps each part of a d2 drawing that a step shows or hides in a
- * `RevealGroup`. The parts are the groups directly inside the drawing's
- * inner `svg`; anything else d2 draws is left as it is. d2 defines each
- * arrowhead inside the first connection that draws it, so the arrowheads
- * move to the top of the drawing first: hiding that connection would hide
- * every arrow drawn with them.
+ * Gives each part of a d2 drawing the step classes it inherits, and moves
+ * the arrowheads to the top of the drawing: d2 defines each one inside the
+ * first connection that draws it, and hiding that connection would hide
+ * every arrow drawn with it. A class list written with commas fails: d2
+ * separates a list with `;`, and reads a comma list as one class it does
+ * not know, silently dropping the styles of every name in it.
  */
-export const wrapDiagramParts = (svg: Element): void => {
+export const prepareD2Parts = (svg: Element): void => {
   const drawing =
     svg.children.filter(isElement).find((child) => child.tagName === "svg") ??
     svg;
@@ -153,13 +122,30 @@ export const wrapDiagramParts = (svg: Element): void => {
   for (const child of drawing.children.filter(isElement)) {
     const [first = "", ...classes] = classesOf(child);
     const id = child.tagName === "g" ? partIdOf(first) : null;
-    if (id !== null) {
-      parts.set(child, { id, classes });
+    if (id === null) {
+      continue;
     }
+    if (classes.some((name) => name.endsWith(","))) {
+      throw new Error(
+        `a d2 class list separates its names with ";", as in [react; at-1], not with commas: "${classes.join(" ")}"`,
+      );
+    }
+    parts.set(child, { id, classes });
   }
   const steps = partSteps(
     new Map([...parts.values()].map(({ id, classes }) => [id, classes])),
   );
+  for (const [element, { id }] of parts) {
+    const inherited = steps.get(id);
+    if (inherited === undefined) {
+      continue;
+    }
+    element.properties.className = [
+      ...classesOf(element),
+      ...(inherited.at > 0 ? [`at-${inherited.at}`] : []),
+      ...(inherited.until === null ? [] : [`until-${inherited.until}`]),
+    ];
+  }
   const markers = [...parts.keys()].flatMap(takeMarkers);
   if (markers.length > 0) {
     drawing.children.unshift({
@@ -169,22 +155,4 @@ export const wrapDiagramParts = (svg: Element): void => {
       children: markers,
     });
   }
-  drawing.children = drawing.children.map((child) => {
-    const part = isElement(child) ? parts.get(child) : undefined;
-    const shown = part === undefined ? undefined : steps.get(part.id);
-    if (shown === undefined || (shown.at === 0 && shown.until === null)) {
-      return child;
-    }
-    return {
-      type: "mdxJsxFlowElement",
-      name: "RevealGroup",
-      attributes: [
-        ...(shown.at === 0 ? [] : [numberAttribute("at", shown.at)]),
-        ...(shown.until === null
-          ? []
-          : [numberAttribute("until", shown.until)]),
-      ],
-      children: [child],
-    } as unknown as ElementContent;
-  });
 };
