@@ -1181,7 +1181,8 @@ const groupStyle = css({
   gap: "2",
   flex: "1",
   minWidth: "[0]",
-  padding: "2",
+  // 12 px on every side, 8 between the header and the rows (Figma, 3 Nov).
+  padding: "3",
   borderRadius: "lg",
   borderWidth: "thin",
   borderStyle: "solid",
@@ -1189,8 +1190,15 @@ const groupStyle = css({
   backgroundColor: "neutral.bgSolid.surface.active",
 });
 
-/** The group's caption: "Any of the following are true…". */
+/** The group's header: "Any of the following are true…", 28 px tall over a hairline (Figma Group header). */
 const groupCaptionStyle = css({
+  display: "flex",
+  alignItems: "center",
+  alignSelf: "stretch",
+  height: "[28px]",
+  borderBottomWidth: "thin",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.bd.subtle",
   textStyle: "sm",
   color: "neutral.fg.subtle",
 });
