@@ -154,12 +154,55 @@
   font-size: 0.9em;
 }
 
+/*
+ * The corner above every slide: the deck's logo and the slide's label, in
+ * the room a slide leaves at its top. The label's box keeps one size from
+ * slide to slide, so its transition slides it without stretching the text.
+ */
+.deck-head {
+  position: absolute;
+  top: 2.25rem;
+  right: 4rem;
+  left: 4rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  pointer-events: none;
+}
+
+.deck-head__logo {
+  flex: none;
+  width: auto;
+  height: 0.95rem;
+}
+
+/* The HASH wordmark takes the slide's ink; a deck's own image keeps its colours. */
+svg.deck-head__logo {
+  color: var(--text-primary);
+  opacity: 0.7;
+}
+
+.deck-head__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--pnd-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  view-transition-name: deck-label;
+}
+
 /* An MDX slide: prose, left-aligned, the docs' diagrams and formulas at slide size. */
 .deck-mdx {
   align-items: flex-start;
   justify-content: flex-start;
   gap: 1.25rem;
-  padding: 3rem 4rem 4rem;
+  padding: 5rem 4rem 4rem;
   font-size: clamp(1rem, 1.6cqw, 1.5rem);
   line-height: 1.4;
 }
@@ -250,6 +293,57 @@
   font-size: 1.4em;
 }
 
+/*
+ * A title slide: the talk's name large at the foot of the slide, the
+ * subtitle under it, the author on a rule below. Its rules outrank the
+ * prose rules above, which the slide's own body keeps.
+ */
+.deck-mdx.deck-title {
+  justify-content: flex-end;
+  gap: 0;
+  padding-bottom: 3.5rem;
+}
+
+.deck .deck-title .deck-title__title {
+  max-width: 13ch;
+  font-size: clamp(3rem, 8.5cqw, 9rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.deck .deck-title .deck-title__subtitle {
+  max-width: 34ch;
+  margin-top: 1.75rem;
+  font-size: clamp(1.25rem, 2.2cqw, 2.1rem);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  text-wrap: pretty;
+}
+
+.deck-title__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.deck-title__body:empty {
+  display: none;
+}
+
+.deck .deck-title .deck-title__author {
+  align-self: stretch;
+  max-width: none;
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--chip-border);
+  font-size: clamp(0.95rem, 1.25cqw, 1.2rem);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
 .deck-reveal {
   transition: opacity 250ms ease;
 }
@@ -294,7 +388,7 @@
   align-items: stretch;
   justify-content: flex-start;
   gap: 1.25rem;
-  padding: 3rem 4rem 4rem;
+  padding: 5rem 4rem 4rem;
 }
 
 .deck .deck-frame__kicker {

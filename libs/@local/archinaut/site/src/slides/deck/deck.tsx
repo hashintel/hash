@@ -1,7 +1,7 @@
 /**
  * A deck on screen: the current slide at its step inside the slide context,
- * drawn on a canvas that fills the window or keeps the viewer's chosen shape,
- * and the chrome around it. The shape is a data attribute; everything it
+ * under the deck's logo and the slide's label, drawn on a canvas that fills
+ * the window or keeps the viewer's chosen shape, and the chrome around it. The shape is a data attribute; everything it
  * changes is in CSS.
  */
 
@@ -21,6 +21,7 @@ import { Progress, SlideCounter } from "./chrome/progress";
 import { Settings, SettingsSelect, SettingsSwitch } from "./chrome/settings";
 import { slideShapeOptions, useDisplayOptions } from "./display-options";
 import { SlideContent } from "./slide-content";
+import { SlideHead } from "./slide-head";
 import { useDeck } from "./use-deck";
 import { useSlideOverflow } from "./use-slide-overflow";
 
@@ -81,6 +82,7 @@ export const Deck = ({
                 completeStep,
               }}
             >
+              <SlideHead logo={deck.logo} label={slide.label} />
               <SlideContent key={slide.id} slide={slide} />
             </SlideStepContext>
           </MDXProvider>

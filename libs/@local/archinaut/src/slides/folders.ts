@@ -1,7 +1,7 @@
 /** Reading the slides directory: which decks, which slides, in what order. */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 
 import type { ArchinautConfig } from "../config";
 
@@ -13,10 +13,21 @@ export interface DeckSlideFile {
   file: string;
 }
 
+/**
+ * The mark in each slide's top-left corner: HASH's unless `deck.json` names
+ * an image in the deck folder (`"logo": "partner.svg"`) or none
+ * (`"logo": false`).
+ */
+export type DeckFolderLogo =
+  | { kind: "hash" }
+  | { kind: "none" }
+  | { kind: "file"; file: string };
+
 export interface DeckFolder {
   id: string;
   title: string;
   description: string;
+  logo: DeckFolderLogo;
   /** Absolute path of the deck's folder. */
   directory: string;
   /** `deck.css` in the folder, loaded with the deck: fonts, tokens, anything every slide shares. */
@@ -36,19 +47,44 @@ const slidePattern = /^(\d+[a-z]*)-([^.]+)\.(tsx|mdx)$/u;
 const compareSlideFiles = (left: string, right: string): number =>
   left.localeCompare(right, "en", { numeric: true });
 
+const logoOf = (
+  directory: string,
+  id: string,
+  logo: unknown,
+): DeckFolderLogo => {
+  if (logo === undefined) {
+    return { kind: "hash" };
+  }
+  if (logo === false) {
+    return { kind: "none" };
+  }
+  const file = typeof logo === "string" ? resolve(directory, logo) : null;
+  if (
+    file === null ||
+    !file.startsWith(`${directory}${sep}`) ||
+    !existsSync(file)
+  ) {
+    throw new Error(
+      `deck "${id}": "logo" must be false or the path of an image in the deck folder, not ${JSON.stringify(logo)}`,
+    );
+  }
+  return { kind: "file", file };
+};
+
 const readDeckMeta = (
   directory: string,
   id: string,
-): Pick<DeckFolder, "title" | "description"> => {
+): Pick<DeckFolder, "title" | "description" | "logo"> => {
   const metaPath = join(directory, "deck.json");
   const meta = existsSync(metaPath)
     ? (JSON.parse(readFileSync(metaPath, "utf8")) as Partial<
-        Record<"title" | "description", string>
+        Record<"title" | "description", string> & { logo: unknown }
       >)
     : {};
   return {
     title: meta.title ?? id,
     description: meta.description ?? "",
+    logo: logoOf(directory, id, meta.logo),
   };
 };
 

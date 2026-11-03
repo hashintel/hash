@@ -12,10 +12,17 @@ import {
   type SlideSource,
 } from "./slide-module";
 
+/** The mark in each slide's top-left corner, as `deck.json` names it. */
+export type DeckLogo =
+  | { kind: "hash" }
+  | { kind: "none" }
+  | { kind: "image"; src: string };
+
 export interface DeckSummary {
   id: string;
   title: string;
   description: string;
+  logo: DeckLogo;
   /** The deck folder's `deck.css`, when it has one. */
   loadStyle: (() => Promise<unknown>) | null;
   slides: SlideSource[];

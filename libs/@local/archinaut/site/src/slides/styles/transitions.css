@@ -39,9 +39,11 @@
  * A step change that morphs: the slide holds still and each named part moves
  * and resizes from its old place to its new one, cross-fading if its content
  * changed. A part hidden in a reveal carries no name, and on a slide change
- * the parts travel with their slide.
+ * the parts travel with their slide. The corner's label, the same on every
+ * step, stays out of it.
  */
 :root[data-transition-scope="step"] .slide,
+:root[data-transition-scope="step"] .deck-head__label,
 :root[data-transition-scope="slide"] .deck-morph,
 .deck-reveal[data-visible="false"] .deck-morph {
   view-transition-name: none !important;
@@ -54,20 +56,27 @@
   animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1);
 }
 
-/* A slide change: cross-fade with a short horizontal slide. */
-:root[data-transition-direction]::view-transition-old(slide) {
+/*
+ * A slide change: cross-fade with a short horizontal slide. The slide's
+ * label in the corner moves with it; the logo, unchanged, holds still.
+ */
+:root[data-transition-direction]::view-transition-old(slide),
+:root[data-transition-direction]::view-transition-old(deck-label) {
   animation: 0.3s ease-out both deck-slide-out;
 }
 
-:root[data-transition-direction]::view-transition-new(slide) {
+:root[data-transition-direction]::view-transition-new(slide),
+:root[data-transition-direction]::view-transition-new(deck-label) {
   animation: 0.3s ease-out both deck-slide-in;
 }
 
-:root[data-transition-direction="backward"]::view-transition-old(slide) {
+:root[data-transition-direction="backward"]::view-transition-old(slide),
+:root[data-transition-direction="backward"]::view-transition-old(deck-label) {
   animation-name: deck-slide-out-reverse;
 }
 
-:root[data-transition-direction="backward"]::view-transition-new(slide) {
+:root[data-transition-direction="backward"]::view-transition-new(slide),
+:root[data-transition-direction="backward"]::view-transition-new(deck-label) {
   animation-name: deck-slide-in-reverse;
 }
 

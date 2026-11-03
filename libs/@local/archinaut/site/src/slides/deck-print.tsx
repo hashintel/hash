@@ -9,6 +9,7 @@ import { useEffect } from "react";
 
 import "./styles/print.css";
 import { SlideContent } from "./deck/slide-content";
+import { SlideHead } from "./deck/slide-head";
 import { slideMdxComponents } from "./mdx-components";
 import { noteFor, type LoadedSlide } from "./slide-module";
 import { SlideStepContext } from "./step-context";
@@ -57,6 +58,7 @@ export const DeckPrint = ({
                   completeStep: ignore,
                 }}
               >
+                <SlideHead logo={deck.logo} label={slide.label} />
                 <SlideContent slide={slide} />
               </SlideStepContext>
             </div>

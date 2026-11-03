@@ -19,6 +19,8 @@ export type SlideDefinition = ComponentType & {
   /** The URL hash; the file name supplies one when absent. */
   id?: string;
   title?: string;
+  /** What the top-left corner names the slide, when not its title. */
+  label?: string;
   notes?: SlideNotes;
   /** Steps declared up front; a slide calling `useSlideStepper` declares them as it renders. */
   steps?: number;

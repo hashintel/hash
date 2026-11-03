@@ -55,6 +55,56 @@ describe("resolveSlideModule", () => {
   });
 });
 
+describe("labels and layouts", () => {
+  const mdx = (module: Record<string, unknown>) =>
+    resolveSlideModule(
+      { id: "title", kind: "mdx" },
+      { default: Component, ...module },
+    );
+
+  it("names a slide in the corner by its label, else its title", () => {
+    expect(mdx({ title: "Metrics" }).label).toBe("Metrics");
+    expect(mdx({ title: "Metrics", label: "02 · Metrics" }).label).toBe(
+      "02 · Metrics",
+    );
+  });
+
+  it("lays out a title slide from its exports", () => {
+    const slide = mdx({
+      layout: "title",
+      title: "A sample talk",
+      subtitle: "One sentence on what the talk shows.",
+      author: "Sam Speaker",
+    });
+    expect(slide.layout).toEqual({
+      kind: "title",
+      subtitle: "One sentence on what the talk shows.",
+      author: "Sam Speaker",
+    });
+    expect(slide.label).toBeNull();
+    expect(mdx({ layout: "title", label: "Sample · 2026" }).label).toBe(
+      "Sample · 2026",
+    );
+  });
+
+  it("refuses a subtitle off a title slide, and unknown layouts", () => {
+    expect(() => mdx({ subtitle: "Lost" })).toThrow(/only a title slide/u);
+    expect(() => mdx({ layout: "cover" })).toThrow(/`layout` must be/u);
+    expect(() => mdx({ layout: "title", author: ["Two"] })).toThrow(
+      /`author` must be a string/u,
+    );
+  });
+
+  it("leaves a TSX slide's layout to the slide", () => {
+    const slide = resolveSlideModule(
+      { id: "title", kind: "tsx" },
+      { default: Component, layout: "title", title: "Petrinaut" },
+    );
+    expect(slide.layout).toEqual({ kind: "content" });
+    expect(slide.label).toBe("Petrinaut");
+  });
+});
+
 describe("notes", () => {
   it("falls back to the default note on a step without one", () => {
     expect(noteFor({ default: "base", byStep: { 1: "one" } }, 2)).toBe("base");

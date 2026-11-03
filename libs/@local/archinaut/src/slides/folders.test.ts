@@ -46,6 +46,26 @@ describe("listDecks", () => {
     ).toEqual([["tour", "Tour", "A walk"]]);
   });
 
+  it("shows HASH's logo unless the deck names another or none", () => {
+    const root = fixture();
+    const deck = join(root, "tour");
+    const logoOf = (meta: Record<string, unknown>) => {
+      writeFileSync(join(deck, "deck.json"), JSON.stringify(meta));
+      return listDecks(root)[0]?.logo;
+    };
+    writeFileSync(join(deck, "partner.svg"), "<svg/>");
+    expect(logoOf({})).toEqual({ kind: "hash" });
+    expect(logoOf({ logo: false })).toEqual({ kind: "none" });
+    expect(logoOf({ logo: "partner.svg" })).toEqual({
+      kind: "file",
+      file: join(deck, "partner.svg"),
+    });
+    expect(() => logoOf({ logo: "missing.svg" })).toThrow(/"logo" must be/u);
+    expect(() => logoOf({ logo: "../tour/partner.svg" })).not.toThrow();
+    expect(() => logoOf({ logo: "../elsewhere.svg" })).toThrow(/"logo"/u);
+    expect(() => logoOf({ logo: true })).toThrow(/"logo"/u);
+  });
+
   it("has no decks without a slides directory", () => {
     expect(listDecks(null)).toEqual([]);
     expect(listDecks(join(tmpdir(), "archinaut-no-such-folder"))).toEqual([]);

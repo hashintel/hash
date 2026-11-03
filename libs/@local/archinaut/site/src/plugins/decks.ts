@@ -8,11 +8,12 @@
  * added in `load` is recorded as an import of the module, and a directory
  * cannot be resolved as one. A slide or deck added or removed re-lists the
  * decks and reloads the page; `deck.json` is watched for the same reason.
+ * A deck's logo, when it names one, is imported as a URL.
  */
 
 import { relative } from "node:path";
 
-import { listDecks } from "../../../src/slides/folders.ts";
+import { listDecks, type DeckFolderLogo } from "../../../src/slides/folders.ts";
 
 import type { Plugin } from "vite";
 
@@ -22,6 +23,16 @@ const resolvedId = `\0${moduleId}`;
 const sourceOf = (root: string | null): string => {
   const specifier = (file: string): string =>
     JSON.stringify(`@decks/${relative(root ?? "", file)}`);
+  // A deck's own logo is an asset import, so Vite serves and fingerprints it.
+  const logoImports: string[] = [];
+  const logoOf = (logo: DeckFolderLogo): string => {
+    if (logo.kind !== "file") {
+      return JSON.stringify(logo);
+    }
+    const name = `logo${logoImports.length}`;
+    logoImports.push(`import ${name} from ${specifier(`${logo.file}?url`)};`);
+    return `{ kind: "image", src: ${name} }`;
+  };
   const decks = listDecks(root).map((deck) => {
     const slides = deck.slides.map(
       (slide) =>
@@ -31,9 +42,9 @@ const sourceOf = (root: string | null): string => {
       deck.stylesheet === null
         ? "null"
         : `() => import(${specifier(deck.stylesheet)})`;
-    return `{ id: ${JSON.stringify(deck.id)}, title: ${JSON.stringify(deck.title)}, description: ${JSON.stringify(deck.description)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
+    return `{ id: ${JSON.stringify(deck.id)}, title: ${JSON.stringify(deck.title)}, description: ${JSON.stringify(deck.description)}, logo: ${logoOf(deck.logo)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
   });
-  return `export default [${decks.join(", ")}];`;
+  return `${logoImports.join("\n")}\nexport default [${decks.join(", ")}];`;
 };
 
 export const decksPlugin = (root: string | null): Plugin => ({
