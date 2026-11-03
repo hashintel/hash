@@ -1284,20 +1284,6 @@ const AddCondition = ({
   />
 );
 
-/** "Use a variable": the same picker as "@", for the field it sits under. A DS ghost Button with the [x] glyph. */
-export const UseVariable = ({
-  onClick,
-  open,
-}: {
-  onClick: () => void;
-  /** Pressed while its picker is open. */
-  open?: boolean;
-}) => (
-  <Button size="xs" variant="ghost" pressed={open} onClick={onClick}>
-    <VariableRow />
-  </Button>
-);
-
 export const ConditionBuilder = ({
   step,
   input,

@@ -5,7 +5,9 @@ import {
   Button,
   Chip,
   Icon,
+  type ItemOrGroup,
   Menu,
+  type MenuItem,
   Select,
   Tooltip,
 } from "@hashintel/ds-components";
@@ -16,7 +18,7 @@ import {
   collapsePath,
   ConditionBuilder,
   tokenPath,
-  UseVariable,
+  VariableIcon,
 } from "./condition-builder";
 import {
   type DraftActionStep,
@@ -54,8 +56,8 @@ import {
   TemplatePreview,
 } from "./inline-chips";
 import { OpenMenu } from "./open-menu";
-import { describeSource, getSourceShape } from "./shapes";
-import { entityChoices, SourceMenu } from "./source-menu";
+import { describeSource, getSourceShape, sourceOptions } from "./shapes";
+import { entityChoices, SearchHeader, SourceMenu } from "./source-menu";
 import {
   errorTextStyle,
   firstAndMore,
@@ -1309,7 +1311,33 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
  * Query builder (Journey 3): UI only, never SQL (ledger, 20 Oct). The rows live in `condition-builder.tsx`.
  * ------------------------------------------------------------------------------------------------------------- */
 
-/** Entity type with the same source menu: a fixed type, an earlier step, a flow input, or the graph (Journey 3, B2). */
+/** The Entity type menu's width in Figma (J2.13): 268 px, its right edge on the select's. */
+const entityTypeMenuStyle = css({
+  "&[class]": { width: "[268px]", minWidth: "[268px]", maxWidth: "[268px]" },
+  // Any has no icon: its label lines up with the group title, as Figma draws it.
+  "& [role=menuitem] > span[aria-hidden=true]:empty": { display: "none" },
+});
+
+/** An earlier-step row: the [x] glyph, then the value's name over where it comes from (Figma J2.13). */
+const earlierRowStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[14px 1fr]",
+  columnGap: "2",
+  alignItems: "center",
+  "& svg": { color: "neutral.fg.muted" },
+});
+
+const earlierRowSubStyle = css({
+  gridColumn: "2",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+});
+
+/**
+ * Entity type (Figma J2.13, 2 Nov): one dropdown with a search on top. The types first (Any, then each type with
+ * its cube), then "From earlier steps": the flow inputs and earlier outputs that give a type. A picked one reads
+ * "Flow inputs › Entity type" (J2.13a).
+ */
 const EntityTypeField = ({
   step,
   entry,
@@ -1323,16 +1351,19 @@ const EntityTypeField = ({
 }) => {
   const { document, ui, setUi } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState("");
   const open =
     ui.openField?.stepId === step.stepId &&
     ui.openField.inputName === "entityType";
-  const setOpen = (next: boolean) =>
+  const setOpen = (next: boolean) => {
+    setSearch("");
     setUi((current) => ({
       ...current,
       openField: next
         ? { stepId: step.stepId, inputName: "entityType", mode: "menu" }
         : null,
     }));
+  };
   const typeInput: InputView = {
     name: "entityType",
     label: "Entity type",
@@ -1343,9 +1374,102 @@ const EntityTypeField = ({
     sources: ["HASH graph @lookup", "Previous step"],
   };
   const selected = findEntityType(draft.entityTypeBaseUrl);
-  const sourceLook = draft.entityTypeSource
-    ? describeSource(document, draft.entityTypeSource, step.stepId)
+  const source = draft.entityTypeSource;
+  const sourceLook = source
+    ? describeSource(document, source, step.stepId)
     : null;
+  // A flow input is named after Start's "Flow inputs", as the steps list and Start's card call it.
+  const sourceOwner =
+    source?.kind === "flow-input" ? "Flow inputs" : sourceLook?.owner;
+
+  const text = search.trim().toLowerCase();
+  const matches = (label: string) => !text || label.toLowerCase().includes(text);
+  const pickType = (baseUrl: string | undefined) => {
+    update({
+      entityTypeBaseUrl: baseUrl,
+      entityTypeSource: undefined,
+      conditions: baseUrl === draft.entityTypeBaseUrl ? draft.conditions : [],
+    });
+    setOpen(false);
+  };
+  const typeItems: MenuItem[] = [
+    ...(matches("Any")
+      ? [
+          {
+            id: "type:any",
+            text: "Any",
+            selected: !source && !selected,
+            selectedStyle: "highlight" as const,
+            onClick: () => pickType(undefined),
+          },
+        ]
+      : []),
+    ...mockEntityTypes
+      .filter((type) => matches(type.title))
+      .map((type) => ({
+        id: `type:${type.baseUrl}`,
+        text: type.title,
+        icon: "cube" as const,
+        selected: !source && type.baseUrl === draft.entityTypeBaseUrl,
+        selectedStyle: "highlight" as const,
+        onClick: () => pickType(type.baseUrl),
+      })),
+  ];
+  const earlierItems: MenuItem[] = sourceOptions(
+    document,
+    step.stepId,
+    typeInput,
+    entry,
+  )
+    .filter(
+      (option) => matches(option.label) || matches(option.ownerLabel),
+    )
+    .map((option) => {
+      const from =
+        option.group === "Flow inputs"
+          ? `Flow inputs · ${option.ownerLabel}`
+          : option.ownerLabel;
+      return {
+        id: `earlier:${JSON.stringify(option.source)}`,
+        text: (
+          <span className={earlierRowStyle}>
+            <VariableIcon size={14} />
+            <span>{option.label}</span>
+            <span className={earlierRowSubStyle}>{from}</span>
+          </span>
+        ),
+        selected: JSON.stringify(option.source) === JSON.stringify(source),
+        selectedStyle: "highlight" as const,
+        onClick: () => {
+          update({ ...draft, entityTypeSource: option.source });
+          setOpen(false);
+        },
+      };
+    });
+  const items: Array<ItemOrGroup<MenuItem>> = [
+    ...(typeItems.length > 0
+      ? [{ id: "types", label: "", items: typeItems }]
+      : []),
+    ...(earlierItems.length > 0
+      ? [{ id: "earlier", label: "From earlier steps", items: earlierItems }]
+      : []),
+    ...(typeItems.length + earlierItems.length === 0
+      ? [
+          {
+            id: "nothing",
+            label: "",
+            items: [
+              {
+                id: "nothing",
+                text: `Nothing matches “${search}”`,
+                disabled: true,
+                onClick: () => {},
+              },
+            ],
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div ref={anchorRef}>
@@ -1363,60 +1487,27 @@ const EntityTypeField = ({
         >
           {!sourceLook && selected ? <Icon name="cube" size="xs" /> : null}
           {sourceLook
-            ? `${sourceLook.owner} › ${sourceLook.label}`
+            ? `${sourceOwner} › ${sourceLook.label}`
             : // J2.2: the type defaults to Any.
               (selected?.title ?? "Any")}
         </span>
         <Icon name="chevronDown" size="sm" />
       </button>
-      {ui.plainQuery ? null : (
-        <div
-          className={css({
-            display: "flex",
-            justifyContent: "flex-end",
-            marginTop: "1.5",
-          })}
-        >
-          <UseVariable onClick={() => setOpen(true)} />
-        </div>
-      )}
       {open ? (
-        <SourceMenu
+        <OpenMenu
           anchor={anchorRef}
-          stepId={step.stepId}
-          input={typeInput}
-          entry={entry}
-          typedGroupLabel="Entity types"
-          typedChoices={mockEntityTypes.map((type) => ({
-            label: type.title,
-            hint: type.description,
-            selected:
-              !draft.entityTypeSource &&
-              type.baseUrl === draft.entityTypeBaseUrl,
-            source: {
-              kind: "constant",
-              payload: { kind: "VersionedUrl", value: type.entityTypeId },
-            },
-          }))}
+          position="bottom-end"
+          label="Choose Entity type"
+          className={entityTypeMenuStyle}
           onClose={() => setOpen(false)}
-          onPick={(source) => {
-            if (source.kind === "constant") {
-              const type = mockEntityTypes.find(
-                (candidate) => candidate.entityTypeId === source.payload.value,
-              );
-              update({
-                entityTypeBaseUrl: type?.baseUrl,
-                entityTypeSource: undefined,
-                conditions:
-                  type?.baseUrl === draft.entityTypeBaseUrl
-                    ? draft.conditions
-                    : [],
-              });
-            } else {
-              update({ ...draft, entityTypeSource: source });
-            }
-            setOpen(false);
-          }}
+          header={
+            <SearchHeader
+              value={search}
+              onChange={setSearch}
+              placeholder="Search values"
+            />
+          }
+          items={items}
         />
       ) : null}
     </div>

@@ -117,6 +117,45 @@ const firstStep = () =>
     after: { stepId: START_ID, port: "next" },
   });
 
+/** J2.13 and J2.13a: a new Find entities after a Start that takes an entity type as a flow input. */
+const typeFromStart = (picked: boolean) => {
+  const { document, stepId } = addStep(
+    {
+      ...emptyDocument(),
+      inputs: [
+        {
+          name: "entityType",
+          label: "Entity type",
+          payloadKind: "VersionedUrl",
+          array: false,
+          required: true,
+        },
+      ],
+    },
+    "queryEntities",
+    { after: { stepId: START_ID, port: "next" } },
+  );
+  return {
+    stepId,
+    document: picked
+      ? {
+          ...document,
+          queries: {
+            ...document.queries,
+            [fieldKey(stepId, "query")]: {
+              ...document.queries[fieldKey(stepId, "query")],
+              conditions: [],
+              entityTypeSource: {
+                kind: "flow-input" as const,
+                inputName: "entityType",
+              },
+            },
+          },
+        }
+      : document,
+  };
+};
+
 /** J1.4's frame draws its cards at 90% and labels that 100%. */
 const ninetyPercent: Partial<EditorUi> = {
   viewport: { left: 40, top: 346, zoom: 0.9 },
@@ -356,6 +395,18 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
       selectedId: SHIPMENTS,
       showPortAddOn: SHIPMENTS,
     }),
+  // J2.13: the Entity type menu open, with Start's Entity type under "From earlier steps".
+  "J2.13": () => {
+    const { document, stepId } = typeFromStart(false);
+    return editor(document, {
+      selectedId: stepId,
+      openField: { stepId, inputName: "entityType", mode: "menu" },
+    });
+  },
+  "J2.13a": () => {
+    const { document, stepId } = typeFromStart(true);
+    return editor(document, { selectedId: stepId });
+  },
   // J2.6 keeps the whole query under the popover: Received date, Purity, and the Or group of suppliers.
   "J2.6": () =>
     editor(findScreenState("j3-a1")!.create().document, {

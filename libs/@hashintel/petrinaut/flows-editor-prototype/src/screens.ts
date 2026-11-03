@@ -301,11 +301,17 @@ export const figmaScreens: FigmaScreen[] = [
   },
   {
     id: "J2.13",
-    name: "Use a variable, menu open · flow: Untitled flow",
-    nodeId: "806:65614",
+    name: "Entity type menu, from earlier steps · flow: Untitled flow",
+    nodeId: "955:23195",
     section: "J2b · Pick a value for an input",
-    tag: "Ready after fix",
-    why: "first 3–4 values, then Show more",
+    tag: "Ready",
+  },
+  {
+    id: "J2.13a",
+    name: "Earlier-step value picked · flow: Untitled flow",
+    nodeId: "955:23337",
+    section: "J2b · Pick a value for an input",
+    tag: "Ready",
   },
   {
     id: "J2.16",
