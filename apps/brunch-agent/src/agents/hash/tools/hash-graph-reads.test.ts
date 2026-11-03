@@ -393,6 +393,56 @@ test("entity types render one block each, with each property by its short name a
   );
 });
 
+test("a long entity type description is cut short on one line; a short one is shown whole", () => {
+  const long = "A supplier\n\tof goods. ".repeat(10_000);
+  const collapsed = long.replace(/\s+/g, " ");
+  const text = hashEntityTypeReadForModel({
+    entityTypes: [
+      {
+        entityTypeId: "https://hash.ai/@acme/types/entity-type/supplier/v/1",
+        title: "Supplier",
+        description: long,
+        properties: [],
+        links: [],
+      },
+      {
+        entityTypeId: "https://hash.ai/@acme/types/entity-type/order/v/1",
+        title: "Order",
+        description: "An order\n  for goods.",
+        properties: [],
+        links: [],
+      },
+    ],
+  });
+  expect(text.split("\n")).toEqual([
+    "entity types: 2",
+    "- Supplier: https://hash.ai/@acme/types/entity-type/supplier/v/1",
+    `  description: ${collapsed.slice(0, 300)}…`,
+    "- Order: https://hash.ai/@acme/types/entity-type/order/v/1",
+    "  description: An order for goods.",
+  ]);
+});
+
+test("a long property description is cut short in the legend; a short one is shown whole", () => {
+  const long = "The planned lead time,\nin days. ".repeat(10_000);
+  const collapsed = long.replace(/\s+/g, " ");
+  const text = hashEntityReadForModel({
+    ...read([person]),
+    propertyTypes: [
+      { baseUrl: property("email"), title: "Email", description: long },
+      {
+        baseUrl: displayName,
+        title: "Display Name",
+        description: "A name\n\tto show.",
+      },
+    ],
+  });
+  expect(text).toContain(
+    `\n  email: Email — ${collapsed.slice(0, 160)}…\n  display_name: Display Name — A name to show.\n`,
+  );
+  expect(text.length).toBeLessThan(1_000);
+});
+
 test("properties of entity types sharing a slug are told apart", () => {
   const text = hashEntityTypeReadForModel({
     entityTypes: [

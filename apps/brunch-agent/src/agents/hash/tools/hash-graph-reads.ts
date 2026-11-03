@@ -116,16 +116,30 @@ const renderInline = (value: unknown, nameOf: PropertyNamer): string => {
 /** Prose on one line. */
 const oneLine = (text: string) => text.replace(/\s+/g, " ");
 
+/** `text`, cut short with `…` when longer than `maxLength` characters. */
+const cutShort = (text: string, maxLength: number) =>
+  text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+
 /** A label longer than this is cut short in an entity's heading. */
 const labelPreviewLength = 200;
 
+/**
+ * An entity type's description longer than this is cut short in a type read:
+ * room for a few sentences, the length of a typical description, while one
+ * pasted document can't fill the model's context.
+ */
+const typeDescriptionPreviewLength = 300;
+
+/**
+ * A property's description longer than this is cut short in an entity read's
+ * legend. Tighter than a type's, since the legend has one line per property
+ * the read carries; it still holds a sentence and its unit.
+ */
+const legendDescriptionPreviewLength = 160;
+
 /** An entity's label, JSON-quoted, cut short with `…` when long. */
 const renderLabel = (label: string) =>
-  JSON.stringify(
-    label.length > labelPreviewLength
-      ? `${label.slice(0, labelPreviewLength)}…`
-      : label,
-  );
+  JSON.stringify(cutShort(label, labelPreviewLength));
 
 /** The kind, size and top-level shape of a value too large to show. */
 const summarise = (
@@ -179,7 +193,7 @@ const renderValue = (
 const legendLine = (title: string, description: string | undefined) =>
   description === undefined || description === ""
     ? oneLine(title)
-    : `${oneLine(title)} — ${oneLine(description)}`;
+    : `${oneLine(title)} — ${cutShort(oneLine(description), legendDescriptionPreviewLength)}`;
 
 /** Issues one read to HASH's page and shows the model what it settled with. */
 const runHashRead = async (
@@ -202,7 +216,7 @@ const runHashRead = async (
   };
 };
 
-export const hashEntityReadDescription = `Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles (each with its entityTypeId when two types in the read share that title), its name (cut short when long), and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (\`<webId>~<uuid>\`, with \`~<draftId>\` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A property's short name, here and in nested values, comes from its base URL, unless two properties in the read would share one: then both show by their full base URL, so a name holds within one read only. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most ${formattedQueryLimit} matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with ${brunchTools.hashQueryWebs} first, for the web ids to filter by; then read the types of the entities found with ${brunchTools.hashQueryEntityTypes}, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.`;
+export const hashEntityReadDescription = `Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description; cut short when long), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles (each with its entityTypeId when two types in the read share that title), its name (cut short when long), and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (\`<webId>~<uuid>\`, with \`~<draftId>\` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A property's short name, here and in nested values, comes from its base URL, unless two properties in the read would share one: then both show by their full base URL, so a name holds within one read only. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most ${formattedQueryLimit} matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with ${brunchTools.hashQueryWebs} first, for the web ids to filter by; then read the types of the entities found with ${brunchTools.hashQueryEntityTypes}, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.`;
 
 export const hashEntityReadEmptyNote =
   "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, or filed under another type title or web.";
@@ -338,7 +352,7 @@ export const createHashEntityReadTool = (execute: BrowserToolExecutor) =>
       ),
   });
 
-export const hashEntityTypeReadDescription = `List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns compact text: each type headed by its title and entityTypeId (a versioned URL), then its description, its properties (inherited ones included), each by its short name and its title, and its links, each by its title and linkEntityTypeId, with the entity types it may point to (any, when not limited). A type's title or entityTypeId can filter an entity read. The graph returns at most ${formattedQueryLimit} types at once; when it stopped there, the text says more may match than shown. A read that failed returns { error }. Read it after ${brunchTools.hashQueryWebs} and ${brunchTools.hashQueryEntities}, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.`;
+export const hashEntityTypeReadDescription = `List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns compact text: each type headed by its title and entityTypeId (a versioned URL), then its description (cut short when long), its properties (inherited ones included), each by its short name and its title, and its links, each by its title and linkEntityTypeId, with the entity types it may point to (any, when not limited). A type's title or entityTypeId can filter an entity read. The graph returns at most ${formattedQueryLimit} types at once; when it stopped there, the text says more may match than shown. A read that failed returns { error }. Read it after ${brunchTools.hashQueryWebs} and ${brunchTools.hashQueryEntities}, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.`;
 
 const hashEntityTypeReadEmptyNote =
   "No entity types matched that the signed-in user can see.";
@@ -368,7 +382,9 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
         `- ${oneLine(type.title)}: ${type.entityTypeId}`,
         ...(type.description === undefined || type.description === ""
           ? []
-          : [`  description: ${oneLine(type.description)}`]),
+          : [
+              `  description: ${cutShort(oneLine(type.description), typeDescriptionPreviewLength)}`,
+            ]),
         ...(type.properties.length === 0
           ? []
           : [
