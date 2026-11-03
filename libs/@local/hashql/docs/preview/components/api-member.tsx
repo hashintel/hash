@@ -11,6 +11,8 @@ export function ApiMember({
   kind,
   since,
   stability,
+  internal,
+  deprecated,
   children,
 }: Components.MemberProps): ReactNode {
   return (
@@ -18,9 +20,14 @@ export function ApiMember({
       <div className="api-member-header">
         <a className="api-member-name" href={`#${name}`}>
           <Glyph kind={kind} />
-          {title}
+          <span
+            className="api-name"
+            data-deprecated={deprecated === true ? "" : undefined}
+          >
+            {title}
+          </span>
         </a>
-        <Facts since={since} stability={stability} />
+        <Facts since={since} stability={stability} internal={internal} />
       </div>
       <div className="api-member-body">{children}</div>
     </div>
