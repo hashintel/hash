@@ -41,8 +41,9 @@ type EditorOptions = Parameters<typeof useAutosavedFlowEditor>[0];
 const renderEditor = ({
   saveFlowDefinition,
   reloadFlow = vi.fn(),
+  onLeftUnsaved,
 }: Pick<EditorOptions, "saveFlowDefinition"> &
-  Partial<Pick<EditorOptions, "reloadFlow">>) => {
+  Partial<Pick<EditorOptions, "reloadFlow" | "onLeftUnsaved">>) => {
   const { result, unmount } = renderHook(() =>
     useAutosavedFlowEditor({
       flow: {
@@ -52,6 +53,7 @@ const renderEditor = ({
       },
       saveFlowDefinition,
       reloadFlow,
+      onLeftUnsaved,
     }),
   );
 
@@ -153,7 +155,7 @@ describe("useAutosavedFlowEditor", () => {
     expect(saveFlowDefinition.mock.calls[2]![1]).toBe("edition-9");
   });
 
-  it("shows a failed save, reports it from flush even when dropping refused edits, and tries it again with the next edit against the same edition", async () => {
+  it("shows a failed save, reports it from flush even when accepting refused edits, and tries it again with the next edit against the same edition", async () => {
     const saveFlowDefinition = vi
       .fn()
       .mockRejectedValueOnce(new Error("Network error"))
@@ -168,7 +170,7 @@ describe("useAutosavedFlowEditor", () => {
 
     let flushed: boolean | undefined;
     await act(async () => {
-      flushed = await result.current.flush({ dropRefusedEdits: true });
+      flushed = await result.current.flush({ acceptRefusedEdits: true });
     });
     expect(flushed).toBe(false);
 
@@ -207,24 +209,56 @@ describe("useAutosavedFlowEditor", () => {
     expect(result.current.saveRefusedReason).toBeNull();
   });
 
-  it("drops edits the API refused when flushing with dropRefusedEdits, and doesn't send them again", async () => {
+  it("counts refused edits as saved when flushing with acceptRefusedEdits, still retries them, and stops once they're discarded", async () => {
     const saveFlowDefinition = vi
       .fn()
       .mockRejectedValue(new FlowSaveRefusedError("Refused"));
-    const { result, addStep, unmount } = renderEditor({ saveFlowDefinition });
+    const onLeftUnsaved = vi.fn();
+    const { result, addStep, unmount } = renderEditor({
+      saveFlowDefinition,
+      onLeftUnsaved,
+    });
 
     addStep("first");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
 
     let flushed: boolean | undefined;
     await act(async () => {
-      flushed = await result.current.flush({ dropRefusedEdits: true });
+      flushed = await result.current.flush({ acceptRefusedEdits: true });
     });
     expect(flushed).toBe(true);
     expect(saveFlowDefinition).toHaveBeenCalledTimes(2);
 
+    /* E.g. archiving failed after the flush: trying again still sends them. */
+    await act(async () => {
+      flushed = await result.current.flush();
+    });
+    expect(flushed).toBe(false);
+    expect(saveFlowDefinition).toHaveBeenCalledTimes(3);
+
+    act(() => result.current.discardUnsavedEdits());
+    unmount();
+    await act(() => vi.runAllTimersAsync());
+    expect(saveFlowDefinition).toHaveBeenCalledTimes(3);
+    expect(onLeftUnsaved).not.toHaveBeenCalled();
+  });
+
+  it("tries to save edits on leaving, and says when they still couldn't be saved", async () => {
+    const saveFlowDefinition = vi
+      .fn()
+      .mockRejectedValue(new Error("Network error"));
+    const onLeftUnsaved = vi.fn();
+    const { addStep, unmount } = renderEditor({
+      saveFlowDefinition,
+      onLeftUnsaved,
+    });
+
+    addStep("first");
+    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
+
     unmount();
     await act(() => vi.runAllTimersAsync());
     expect(saveFlowDefinition).toHaveBeenCalledTimes(2);
+    expect(onLeftUnsaved).toHaveBeenCalledTimes(1);
   });
 });

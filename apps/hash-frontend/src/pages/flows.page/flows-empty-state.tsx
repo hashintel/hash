@@ -4,6 +4,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { DsComponentsScope } from "../shared/ds-components-scope";
 import { NewFlowButton } from "./new-flow-button";
 
+import type { CreateFlow } from "./use-create-flow";
+
 const emptyState = css({
   display: "flex",
   flexDirection: "column",
@@ -37,7 +39,7 @@ const heading = css({ textStyle: "base", fontWeight: "semibold" });
 const description = css({ textStyle: "sm", color: "fg.muted" });
 
 /** Shown on the flows page when there are no flows yet. */
-export const FlowsEmptyState = () => (
+export const FlowsEmptyState = ({ createFlow }: { createFlow: CreateFlow }) => (
   <DsComponentsScope>
     <div className={emptyState}>
       <div className={iconCircle}>
@@ -50,7 +52,7 @@ export const FlowsEmptyState = () => (
           data changes.
         </p>
       </div>
-      <NewFlowButton />
+      <NewFlowButton {...createFlow} />
     </div>
   </DsComponentsScope>
 );

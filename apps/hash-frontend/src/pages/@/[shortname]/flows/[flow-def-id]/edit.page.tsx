@@ -6,6 +6,7 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import {
   archiveFlowDefinitionMutation,
   updateFlowDefinitionMutation,
@@ -15,7 +16,10 @@ import { HEADER_HEIGHT } from "../../../../../shared/layout/layout-with-header/p
 import { useSidebarContext } from "../../../../../shared/layout/layout-with-sidebar/page-sidebar";
 import { DsComponentsScope } from "../../../../shared/ds-components-scope";
 import { NotFound } from "../../../../shared/not-found";
-import { useFlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
+import {
+  flowDefinitionsQuery,
+  useFlowDefinitionToEdit,
+} from "../../../../shared/use-flow-definitions";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
@@ -98,6 +102,7 @@ const FlowEditor = ({
   reloadFlow: () => Promise<FlowDefinitionToEdit | null>;
 }) => {
   const router = useRouter();
+  const { triggerSnackbar } = useSnackbar();
 
   const [updateFlowDefinition] = useMutation<
     UpdateFlowDefinitionMutation,
@@ -116,6 +121,7 @@ const FlowEditor = ({
     changedElsewhere,
     dismissChangedElsewhere,
     flush,
+    discardUnsavedEdits,
   } = useAutosavedFlowEditor({
     flow,
     saveFlowDefinition: async (flowDefinition, expectedEditionId) => {
@@ -147,6 +153,11 @@ const FlowEditor = ({
       }
     },
     reloadFlow,
+    onLeftUnsaved: () => {
+      triggerSnackbar.error(
+        `Your latest edits to “${editor.getState().flowDefinition.name}” couldn't be saved`,
+      );
+    },
   });
 
   const { flowDefinition } = useSyncExternalStore(
@@ -157,14 +168,24 @@ const FlowEditor = ({
   const archiveFlow = async () => {
     /*
      * Saving first, so that no save is made after the flow is archived, which would be refused. Edits the API refused
-     * can't be saved as they are, so they're dropped rather than keeping the flow from being archived.
+     * can't be saved as they are, so they don't keep the flow from being archived, and are dropped once it is.
      */
-    if (!(await flush({ dropRefusedEdits: true }))) {
+    if (!(await flush({ acceptRefusedEdits: true }))) {
       throw new Error("Its latest edits couldn't be saved");
     }
 
-    await archiveFlowDefinition({ variables: { flowDefinitionEntityId } });
+    await archiveFlowDefinition({
+      variables: { flowDefinitionEntityId },
+      refetchQueries: [flowDefinitionsQuery],
+      awaitRefetchQueries: true,
+    });
+    discardUnsavedEdits();
     await router.push("/flows");
+  };
+
+  const leave = () => {
+    discardUnsavedEdits();
+    void router.push("/flows");
   };
 
   return (
@@ -179,6 +200,7 @@ const FlowEditor = ({
           void flush();
         }}
         onArchive={archiveFlow}
+        onLeave={leave}
       />
       <div className={editorBody}>
         <LeftPanel steps={flowDefinition.steps} />

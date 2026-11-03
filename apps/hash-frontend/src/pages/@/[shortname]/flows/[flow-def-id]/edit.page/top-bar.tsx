@@ -1,4 +1,3 @@
-import { useRouter } from "next/router";
 import { useState } from "react";
 
 import {
@@ -132,6 +131,35 @@ const ArchiveFlowDialog = ({
   );
 };
 
+const LeaveFlowDialog = ({
+  onLeave,
+  onClose,
+}: {
+  onLeave: () => void;
+  onClose: () => void;
+}) => (
+  <Dialog size="xs" onClose={onClose}>
+    <Dialog.Header title="Leave without saving?" />
+    <Dialog.Body>
+      <p className={dialogText}>
+        Your latest edits couldn't be saved, so they'll be lost.
+      </p>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <>
+          <Button variant="subtle" onClick={onClose}>
+            Stay
+          </Button>
+          <Button tone="error" onClick={onLeave}>
+            Leave
+          </Button>
+        </>
+      }
+    />
+  </Dialog>
+);
+
 /**
  * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, and its menu.
  */
@@ -141,6 +169,7 @@ export const TopBar = ({
   editsRefused,
   onRetrySave,
   onArchive,
+  onLeave,
 }: {
   name: string;
   saveStatus: FlowSaveStatus;
@@ -149,9 +178,11 @@ export const TopBar = ({
   onRetrySave: () => void;
   /** Archives the flow and leaves the editor. */
   onArchive: () => Promise<void>;
+  /** Leaves the editor for the flows page, dropping any edits not saved yet. */
+  onLeave: () => void;
 }) => {
-  const router = useRouter();
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
   return (
     <div className={topBar}>
@@ -163,7 +194,11 @@ export const TopBar = ({
           iconName="arrowLeft"
           tooltip="Back to flows"
           onClick={() => {
-            void router.push("/flows");
+            if (saveStatus === "failed") {
+              setLeaveDialogOpen(true);
+            } else {
+              onLeave();
+            }
           }}
         />
         <BreadCrumbs>
@@ -191,6 +226,12 @@ export const TopBar = ({
           onArchive={onArchive}
           onClose={() => setArchiveDialogOpen(false)}
           editsRefused={editsRefused}
+        />
+      )}
+      {leaveDialogOpen && (
+        <LeaveFlowDialog
+          onLeave={onLeave}
+          onClose={() => setLeaveDialogOpen(false)}
         />
       )}
     </div>

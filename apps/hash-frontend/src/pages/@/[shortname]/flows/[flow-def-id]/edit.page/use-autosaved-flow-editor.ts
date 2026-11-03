@@ -34,6 +34,7 @@ export const useAutosavedFlowEditor = ({
   flow,
   saveFlowDefinition,
   reloadFlow,
+  onLeftUnsaved,
 }: {
   /** The flow as loaded. */
   flow: FlowDefinitionToEdit;
@@ -48,6 +49,8 @@ export const useAutosavedFlowEditor = ({
   ) => Promise<EntityEditionId>;
   /** Loads the flow as it is now. */
   reloadFlow: () => Promise<FlowDefinitionToEdit | null>;
+  /** Called when edits still couldn't be saved after the page was left within the app. */
+  onLeftUnsaved?: () => void;
 }): {
   editor: FlowEditor;
   status: FlowSaveStatus;
@@ -57,9 +60,11 @@ export const useAutosavedFlowEditor = ({
   dismissChangedElsewhere: () => void;
   /**
    * Saves any edits not saved yet, after the save in flight, if any. Resolves to whether every edit is saved. With
-   * `dropRefusedEdits`, edits the API refuses count as saved and aren't sent again.
+   * `acceptRefusedEdits`, edits the API refuses count as saved, though they're still sent with the next save.
    */
-  flush: (options?: { dropRefusedEdits?: boolean }) => Promise<boolean>;
+  flush: (options?: { acceptRefusedEdits?: boolean }) => Promise<boolean>;
+  /** Stops edits not saved yet from being sent, e.g. once the flow is archived. */
+  discardUnsavedEdits: () => void;
 } => {
   const [editor, setEditor] = useState(() =>
     createFlowEditor(flow.flowDefinition),
@@ -81,8 +86,10 @@ export const useAutosavedFlowEditor = ({
 
   const saveFlowDefinitionRef = useRef(saveFlowDefinition);
   const reloadFlowRef = useRef(reloadFlow);
+  const onLeftUnsavedRef = useRef(onLeftUnsaved);
   saveFlowDefinitionRef.current = saveFlowDefinition;
   reloadFlowRef.current = reloadFlow;
+  onLeftUnsavedRef.current = onLeftUnsaved;
 
   const save = useCallback(async () => {
     unsavedRef.current = false;
@@ -132,7 +139,7 @@ export const useAutosavedFlowEditor = ({
   }, []);
 
   const flush = useCallback(
-    async ({ dropRefusedEdits = false } = {}) => {
+    async ({ acceptRefusedEdits = false } = {}) => {
       clearTimeout(timerRef.current);
 
       while (saveInFlightRef.current) {
@@ -152,14 +159,16 @@ export const useAutosavedFlowEditor = ({
         saveInFlightRef.current = null;
       }
 
-      if (dropRefusedEdits && refusedRef.current) {
-        unsavedRef.current = false;
-      }
-
-      return !unsavedRef.current;
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a failed save sets it again
+      return !unsavedRef.current || (acceptRefusedEdits && refusedRef.current);
     },
     [save],
   );
+
+  const discardUnsavedEdits = useCallback(() => {
+    clearTimeout(timerRef.current);
+    unsavedRef.current = false;
+  }, []);
 
   useEffect(
     () =>
@@ -179,7 +188,11 @@ export const useAutosavedFlowEditor = ({
   useEffect(
     () => () => {
       if (unsavedRef.current) {
-        void flush();
+        void flush().then((saved) => {
+          if (!saved) {
+            onLeftUnsavedRef.current?.();
+          }
+        });
       }
     },
     [flush],
@@ -209,5 +222,6 @@ export const useAutosavedFlowEditor = ({
     changedElsewhere,
     dismissChangedElsewhere,
     flush,
+    discardUnsavedEdits,
   };
 };

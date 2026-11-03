@@ -98,6 +98,18 @@ const getFlowDefinitionsFromQueryResult = (
 };
 
 /**
+ * The query for every flow definition the user can view. Creating or archiving a flow refetches it, so that the flows
+ * list doesn't first show the cached list from before.
+ */
+export const flowDefinitionsQuery = {
+  query: queryEntitySubgraphQuery,
+  variables: flowDefinitionsQueryVariables(
+    { all: [] },
+    currentTimeInstantTemporalAxes,
+  ),
+};
+
+/**
  * The current edition of every flow definition the user can view.
  */
 export const useFlowDefinitions = (): {
@@ -107,11 +119,8 @@ export const useFlowDefinitions = (): {
   const { data, loading } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    variables: flowDefinitionsQueryVariables(
-      { all: [] },
-      currentTimeInstantTemporalAxes,
-    ),
+  >(flowDefinitionsQuery.query, {
+    variables: flowDefinitionsQuery.variables,
     fetchPolicy: "cache-and-network",
   });
 

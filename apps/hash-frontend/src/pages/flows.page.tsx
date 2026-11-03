@@ -17,6 +17,7 @@ import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
 import { FlowsEmptyState } from "./flows.page/flows-empty-state";
 import { NewFlowButton } from "./flows.page/new-flow-button";
+import { useCreateFlow } from "./flows.page/use-create-flow";
 import { DsComponentsScope } from "./shared/ds-components-scope";
 import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
 import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-context-provider";
@@ -197,6 +198,8 @@ const FlowsPageContent = () => {
 
   const getOwner = useGetOwnerForEntity();
 
+  const createFlow = useCreateFlow();
+
   const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
     const rowData: VirtualizedTableRow<FlowSummary>[] = allFlowDefinitions
       .filter(
@@ -275,11 +278,11 @@ const FlowsPageContent = () => {
         ]}
         title={{ text: "Flows", Icon: InfinityLightIcon }}
         subtitle="Processes that workers can monitor and manage"
-        endElement={<NewFlowButton />}
+        endElement={<NewFlowButton {...createFlow} />}
       />
       {!loading && flowDefinitionRows.length === 0 ? (
         <Container sx={{ my: 4, px: 4 }}>
-          <FlowsEmptyState />
+          <FlowsEmptyState createFlow={createFlow} />
         </Container>
       ) : (
         <Container sx={{ my: 4, px: 4, height: tableHeight }}>
