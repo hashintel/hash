@@ -47,6 +47,7 @@ import {
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
 
+import { hashPetrinautPrimaryOperation } from "../../hash/petrinaut-tools";
 import { browserToolFacts } from "../../petrinaut/browser-executed-tools";
 import { useTemporaryEditRefusal } from "../temporary-editor-compat";
 import {
@@ -994,6 +995,24 @@ const ConversationAiAssistantPanel = ({
         }
         const abortController = new AbortController();
         automaticToolAbortsRef.current.add(abortController);
+        // One of HASH's experiment tools holds its call open while the run
+        // lasts, as `createExperiment`'s does, so the composer shows it.
+        const runsExperiment =
+          hashPetrinautPrimaryOperation(toolCall.toolName) ===
+          createExperimentToolName;
+        if (runsExperiment) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: { active: true },
+          }));
+        }
+        const endExperiment = () => {
+          if (!runsExperiment) return;
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: { active: false },
+          }));
+        };
         let output: unknown;
         try {
           const toolInput = automaticTool.inputParser.parse(toolCall.input);
@@ -1011,8 +1030,10 @@ const ConversationAiAssistantPanel = ({
           );
         } catch (error) {
           automaticToolAbortsRef.current.delete(abortController);
+          endExperiment();
           throw error;
         }
+        endExperiment();
         automaticToolAbortsRef.current.delete(abortController);
         if (abortController.signal.aborted) {
           pendingAutomaticToolCallExecutionsRef.current.delete(

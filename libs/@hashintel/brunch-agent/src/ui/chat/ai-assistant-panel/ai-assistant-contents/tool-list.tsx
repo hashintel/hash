@@ -1,4 +1,5 @@
 import {
+  createExperimentToolName,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   petrinautAiMutationTools,
@@ -7,11 +8,18 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
+import {
+  hashPetrinautPrimaryOperation,
+  hashPetrinautTools,
+  type HashPetrinautToolName,
+  isHashPetrinautToolName,
+} from "../../../../hash/petrinaut-tools";
 import { userGuidePageUrl } from "../../docs/user-guide-url";
 import { getInteractiveTool } from "../interactive-tools/registry";
 import {
   type AiToolTarget,
   type AiToolSummary,
+  type AiToolSummaryContext,
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
 import { BrunchToolList } from "./tool-list/brunch-tool-list";
@@ -153,10 +161,92 @@ const isNotAppliedResult = (part: RenderableToolPart): boolean =>
   "applied" in part.output &&
   part.output.applied === false;
 
+/**
+ * The tool a row presents as: for one of HASH's Petrinaut tools, the canonical
+ * operation it runs (the first, for a merged update); otherwise itself.
+ */
+const presentedToolName = (toolName: string): string =>
+  hashPetrinautPrimaryOperation(toolName) ?? toolName;
+
+/** A canonical operation's name as a sentence, such as "Add place". */
+const operationTitle = (operation: string): string =>
+  operation
+    .replace(/([A-Z])/gu, " $1")
+    .toLowerCase()
+    .replace(/^./u, (char) => char.toUpperCase());
+
+/** A row for a call of one of HASH's Petrinaut tools before its input is complete. */
+const hashPetrinautToolTitle = (toolName: HashPetrinautToolName): string =>
+  operationTitle(hashPetrinautTools[toolName].operations[0]);
+
+const experimentSummary = (input: unknown, output: unknown): AiToolSummary => {
+  const name =
+    typeof input === "object" &&
+    input !== null &&
+    typeof (input as { name?: unknown }).name === "string"
+      ? (input as { name: string }).name
+      : undefined;
+  const label = name === undefined ? "experiment" : `experiment ${name}`;
+  const result =
+    typeof output === "object" && output !== null
+      ? (output as { status?: unknown; message?: unknown })
+      : undefined;
+  const message =
+    typeof result?.message === "string" ? result.message : undefined;
+  switch (result?.status) {
+    case "complete":
+      return { title: `Ran ${label}`, detail: message };
+    case "cancelled":
+      return { title: `Cancelled ${label}`, detail: message };
+    case "error":
+      return { title: `Could not run ${label}`, detail: message };
+    default:
+      return { title: `Running ${label}` };
+  }
+};
+
+/**
+ * A call of one of HASH's Petrinaut tools, as the canonical calls it makes
+ * present: one call's summary, or, for a merged update making several, their
+ * titles together, as the page's output for it reads, in `context`'s wording.
+ */
+const summarizeHashPetrinautCall = (
+  toolName: HashPetrinautToolName,
+  part: RenderableToolPart,
+  context: AiToolSummaryContext,
+): AiToolSummary => {
+  const operation = hashPetrinautTools[toolName].operations[0];
+  if (operation === createExperimentToolName) {
+    return experimentSummary(part.input, part.output);
+  }
+  if (operation === "applyAutoLayout") {
+    return summarizePetrinautAiToolCall(
+      { toolName: "applyAutoLayout", input: { askUserFirst: false } },
+      context,
+    );
+  }
+  try {
+    const summaries = hashPetrinautTools[toolName]
+      .parseCall(part.input)
+      .calls.map((call) => summarizePetrinautAiToolCall(call, context));
+    const [first] = summaries;
+    if (first === undefined || summaries.length === 1) {
+      return first ?? { title: hashPetrinautToolTitle(toolName) };
+    }
+    return {
+      title: summaries.map(({ title }) => title).join("; "),
+      target: summaries.find(({ target }) => target !== undefined)?.target,
+    };
+  } catch {
+    return { title: hashPetrinautToolTitle(toolName) };
+  }
+};
+
 export const getToolSummaryFromPart = (
   part: RenderableToolPart,
 ): AiToolSummary => {
-  const toolName = getToolName(part);
+  const partToolName = getToolName(part);
+  const toolName = presentedToolName(partToolName);
   // Until a successful result exists, a row names the requested action: an
   // unanswered or failed call may or may not have run.
   const succeeded =
@@ -239,6 +329,11 @@ export const getToolSummaryFromPart = (
     }
   }
 
+  if (isHashPetrinautToolName(partToolName)) {
+    return summarizeHashPetrinautCall(partToolName, part, {
+      wording: succeeded ? "result" : "action",
+    });
+  }
   if (!(toolName in petrinautAiMutationTools)) {
     return { title: toolName };
   }
@@ -305,7 +400,11 @@ export const toToolRenderItem = (
     (state === "input-streaming" || state === "input-available");
   const defaultSummary: AiToolSummary =
     state === "input-streaming"
-      ? { title: toolName }
+      ? {
+          title: isHashPetrinautToolName(toolName)
+            ? hashPetrinautToolTitle(toolName)
+            : toolName,
+        }
       : getToolSummaryFromPart(part);
   const notApplied = isNotAppliedResult(part);
   const errorText =
@@ -371,7 +470,12 @@ export const toToolRenderItem = (
     tone: noResult
       ? "neutral"
       : (presentation?.tone ??
-        getToolTone({ state, summary, toolName, notApplied })),
+        getToolTone({
+          state,
+          summary,
+          toolName: presentedToolName(toolName),
+          notApplied,
+        })),
     toolName,
     notApplied,
     noResult,

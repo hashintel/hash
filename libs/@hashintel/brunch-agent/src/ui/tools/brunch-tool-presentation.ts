@@ -22,6 +22,10 @@ export const visibleOrdinaryBrunchToolNames = [
   brunchTools.queryBasis,
   brunchTools.ledgerQueryBasis,
   brunchTools.ping,
+  brunchTools.hashQueryEntities,
+  brunchTools.hashQueryEntityTypes,
+  brunchTools.hashQueryWebs,
+  brunchTools.appSaveNet,
   netReaderToolNames.outline,
   netReaderToolNames.structure,
 ] as const;
@@ -88,6 +92,26 @@ const lifecycleTitles = {
     pending: "Check connection to the AI assistant",
     success: "Checked connection to the AI assistant",
     error: "Could not reach the AI assistant",
+  },
+  [brunchTools.hashQueryEntities]: {
+    pending: "Look up entities in HASH",
+    success: "Looked up entities in HASH",
+    error: "Could not look up entities in HASH",
+  },
+  [brunchTools.hashQueryEntityTypes]: {
+    pending: "Look up entity types in HASH",
+    success: "Looked up entity types in HASH",
+    error: "Could not look up entity types in HASH",
+  },
+  [brunchTools.hashQueryWebs]: {
+    pending: "List your HASH webs",
+    success: "Listed your HASH webs",
+    error: "Could not list your HASH webs",
+  },
+  [brunchTools.appSaveNet]: {
+    pending: "Save the net",
+    success: "Saved the net",
+    error: "Could not save the net",
   },
 } satisfies Record<VisibleOrdinaryBrunchToolName, LifecycleTitles>;
 
@@ -162,6 +186,26 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
         tone: "neutral",
         items: [context.output.message],
       };
+    }
+
+    if (toolName === brunchTools.appSaveNet) {
+      // A save the page refused, or the person declined, saved nothing; one
+      // whose result never came back may or may not have saved.
+      const status = stringProperty(context.output, "status");
+      if (status === "not-started") {
+        return {
+          title: "Did not save the net",
+          detail: stringProperty(context.output, "reason"),
+          tone: "neutral",
+        };
+      }
+      if (status === "unconfirmed") {
+        return {
+          title: "Could not confirm the save",
+          detail: stringProperty(context.output, "error"),
+          tone: "danger",
+        };
+      }
     }
 
     if (toolName === brunchTools.task) {

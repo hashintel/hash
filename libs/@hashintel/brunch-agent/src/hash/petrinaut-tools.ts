@@ -407,3 +407,20 @@ export const hashPetrinautTools = {
 } as const satisfies Record<string, HashPetrinautTool>;
 
 export type HashPetrinautToolName = keyof typeof hashPetrinautTools;
+
+export const isHashPetrinautToolName = (
+  toolName: string,
+): toolName is HashPetrinautToolName =>
+  Object.hasOwn(hashPetrinautTools, toolName);
+
+/**
+ * The canonical operation one of HASH's Petrinaut tools presents as: the one
+ * it runs, or, for a merged update, the first of the mutations it may run.
+ * `undefined` for any other name.
+ */
+export const hashPetrinautPrimaryOperation = (
+  toolName: string,
+): PetrinautAiToolName | undefined =>
+  isHashPetrinautToolName(toolName)
+    ? hashPetrinautTools[toolName].operations[0]
+    : undefined;
