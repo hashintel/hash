@@ -6,13 +6,16 @@ import type {
 const getSourceStepIds = (source: StepInputSource) =>
   source.kind === "step-output" ? [source.stepId] : [];
 
-const getDataSourceStepIds = (step: StepDefinition<string>): string[] =>
-  step.kind === "action"
+/** The steps `step` or any step inside it runs after, by connection or data link. */
+const getDependencyStepIds = (step: StepDefinition<string>): string[] => [
+  ...(step.runAfter ?? []).map(({ stepId }) => stepId),
+  ...(step.kind === "action"
     ? Object.values(step.inputs).flatMap(getSourceStepIds)
     : [
         ...getSourceStepIds(step.over),
-        ...step.steps.flatMap(getDataSourceStepIds),
-      ];
+        ...step.steps.flatMap(getDependencyStepIds),
+      ]),
+];
 
 /** For each of `steps`, the others in `steps` it runs after, by connection or data link. */
 export const getStepsBefore = (
@@ -23,12 +26,9 @@ export const getStepsBefore = (
   return new Map(
     steps.map((step) => [
       step.stepId,
-      [
-        ...new Set([
-          ...(step.runAfter ?? []).map(({ stepId }) => stepId),
-          ...getDataSourceStepIds(step),
-        ]),
-      ].filter((stepId) => stepId !== step.stepId && stepIds.has(stepId)),
+      [...new Set(getDependencyStepIds(step))].filter(
+        (stepId) => stepId !== step.stepId && stepIds.has(stepId),
+      ),
     ]),
   );
 };

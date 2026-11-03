@@ -136,6 +136,30 @@ describe("getFlowGraph", () => {
     ]);
   });
 
+  it("draws a step inside a box running after a step outside it, and so no line from Start to the box", () => {
+    const graph = graphOf([
+      actionStep("first", { position: { x: 0, y: 0 } }),
+      {
+        kind: "for-each",
+        stepId: "forEach",
+        description: "For each supplier",
+        position: { x: 300, y: 0 },
+        over: { kind: "flow-input", inputName: "suppliers" },
+        steps: [actionStep("inner", { runAfter: [{ stepId: "first" }] })],
+        collect: { stepId: "inner", outputName: "entities", as: "results" },
+      },
+    ]);
+
+    expect(linesOf(graph)).toEqual([
+      {
+        source: getStepNodeId("first"),
+        target: getStepNodeId("inner"),
+        kind: "inner",
+      },
+      { source: startNodeId, target: getStepNodeId("first"), kind: "start" },
+    ]);
+  });
+
   it("puts Start a gap to the left of the leftmost step with nothing before it", () => {
     const graph = graphOf([
       actionStep("later", { position: { x: 500, y: 300 } }),

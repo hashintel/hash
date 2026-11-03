@@ -102,9 +102,17 @@ export const getFlowGraph = ({
 
   const addSteps = (
     steps: StepDefinition<string>[],
-    parent?: { stepId: string; layout: ForEachLayout | undefined },
+    parent?: {
+      stepId: string;
+      layout: ForEachLayout | undefined;
+      /** Steps inside a box can also run after the steps around it. */
+      stepIdsInScope: Set<string>;
+    },
   ) => {
-    const stepIds = new Set(steps.map(({ stepId }) => stepId));
+    const stepIdsInScope = new Set([
+      ...(parent?.stepIdsInScope ?? []),
+      ...steps.map(({ stepId }) => stepId),
+    ]);
 
     for (const step of steps) {
       const id = getStepNodeId(step.stepId);
@@ -143,12 +151,16 @@ export const getFlowGraph = ({
         });
 
         if (!collapsed) {
-          addSteps(step.steps, { stepId: step.stepId, layout });
+          addSteps(step.steps, {
+            stepId: step.stepId,
+            layout,
+            stepIdsInScope,
+          });
         }
       }
 
       for (const { stepId: from } of step.runAfter ?? []) {
-        if (!stepIds.has(from)) {
+        if (!stepIdsInScope.has(from)) {
           continue;
         }
 

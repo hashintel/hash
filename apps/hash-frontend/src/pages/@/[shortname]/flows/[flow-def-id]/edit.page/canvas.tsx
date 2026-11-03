@@ -165,14 +165,24 @@ const FlowCanvas = ({
     }
   }, [nodesInitialized, fitView]);
 
+  /* A step picked in the Steps tab replaces any selected connections. */
+  const [lastFocusRequest, setLastFocusRequest] = useState(focusRequest);
+  if (focusRequest !== lastFocusRequest) {
+    setLastFocusRequest(focusRequest);
+    setSelectedEdgeIds(new Set());
+  }
+
+  /* Retried as nodes appear, until the requested step can be brought into view. */
+  const focusedRequestRef = useRef<typeof focusRequest>(null);
   useEffect(() => {
-    if (!focusRequest) {
+    if (!focusRequest || focusedRequestRef.current === focusRequest) {
       return;
     }
 
     const node = getInternalNode(getStepNodeId(focusRequest.stepId));
 
     if (node) {
+      focusedRequestRef.current = focusRequest;
       const { x, y } = node.internals.positionAbsolute;
 
       void setCenter(
@@ -181,7 +191,7 @@ const FlowCanvas = ({
         { zoom: getZoom(), duration: 300 },
       );
     }
-  }, [focusRequest, getInternalNode, getZoom, setCenter]);
+  }, [focusRequest, nodesInitialized, getInternalNode, getZoom, setCenter]);
 
   const graph = useMemo(
     () =>
@@ -427,9 +437,12 @@ const FlowCanvas = ({
     }
 
     const fromOutput = fromHandle.type === "source";
-    const position = cardBeside(
-      screenToFlowPosition({ x: point.clientX, y: point.clientY }),
-      fromOutput ? "right" : "left",
+    const position = getFreePosition(
+      cardBeside(
+        screenToFlowPosition({ x: point.clientX, y: point.clientY }),
+        fromOutput ? "right" : "left",
+      ),
+      getTakenPlaces(),
     );
 
     setAddMenu({
@@ -484,10 +497,16 @@ const FlowCanvas = ({
   };
 
   const organize = async () => {
+    const { flowDefinition: laidOut } = editor.getState();
     const { positions, forEachLayouts: layouts } = await layOutFlow(
-      editor.getState().flowDefinition,
+      laidOut,
       collapsedStepIds,
     );
+
+    /* An edit made while laying out would be overwritten, or name a deleted step. */
+    if (editor.getState().flowDefinition !== laidOut) {
+      return;
+    }
 
     for (const [stepId, position] of positions) {
       editor.moveStep(stepId, position);
