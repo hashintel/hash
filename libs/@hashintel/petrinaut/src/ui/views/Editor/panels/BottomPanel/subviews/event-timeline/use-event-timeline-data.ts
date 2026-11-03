@@ -1,47 +1,103 @@
-import { use } from "react";
+import { use, useEffect, useState, useSyncExternalStore } from "react";
 
-import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "../simulation-timeline/series-config";
 import { useTimelineMetric } from "../simulation-timeline/use-streaming-data";
 import {
-  buildLaneData,
-  buildSampledData,
-  buildStepData,
-  collectFirings,
-  collectReferenceTimes,
-  type EventTimelineData,
-  type FiringMark,
-} from "./series";
+  createTimelineSeriesStore,
+  type TimelineSeriesSnapshot,
+  type TimelineSeriesSource,
+  type TimelineSeriesStore,
+  type TimelineSeriesView,
+} from "./series-store";
+
+import type { EventTimelineData, FiringMark } from "./series";
 
 export type TimeRange = { min: number; max: number };
 
+const EMPTY_SNAPSHOT: TimelineSeriesSnapshot = {
+  data: null,
+  firings: [],
+  references: [],
+};
+const subscribeToNothing = () => () => {};
+const getEmptySnapshot = () => EMPTY_SNAPSHOT;
+
+const sameView = (
+  left: TimelineSeriesView | null,
+  right: TimelineSeriesView | null,
+): boolean => {
+  if (left === null || right === null) {
+    return left === right;
+  }
+  if (left.kind !== right.kind) {
+    return false;
+  }
+  if (left.kind === "lanes" && right.kind === "lanes") {
+    return left.transitions === right.transitions;
+  }
+  if (left.kind !== "lanes" && right.kind !== "lanes") {
+    return (
+      left.series === right.series &&
+      left.extract === right.extract &&
+      (left.kind !== "sampled" ||
+        right.kind !== "sampled" ||
+        left.sampleCount === right.sampleCount)
+    );
+  }
+  return false;
+};
+
 /**
- * The event timeline's data for the active timeline view, rebuilt from the
- * trace as events arrive. Token counts per place or type are stepped at the
- * events; a user metric is sampled over the visible range, since it may read
- * attributes that evolve between events; transition firings are lanes.
+ * One series store per run and view. A new run or a changed view starts a
+ * new store; the previous one is left to the garbage collector once its
+ * subscription effect has cleaned up.
+ */
+const useTimelineSeriesStore = (
+  source: TimelineSeriesSource | null,
+  view: TimelineSeriesView | null,
+): TimelineSeriesStore | null => {
+  const create = () =>
+    source && view ? createTimelineSeriesStore(source, view) : null;
+  const [current, setCurrent] = useState(() => ({
+    source,
+    view,
+    store: create(),
+  }));
+  if (current.source !== source || !sameView(current.view, view)) {
+    const next = { source, view, store: create() };
+    setCurrent(next);
+    return next.store;
+  }
+  return current.store;
+};
+
+/**
+ * The event timeline's data for the active timeline view, kept by a store
+ * that extends its columns as events arrive. Token counts per place or type
+ * are stepped at the events; a user metric is sampled over the visible
+ * range, since it may read attributes that evolve between events;
+ * transition firings are lanes.
  */
 export function useEventTimelineData({
   viewMin,
   viewMax,
   sampleCount,
 }: {
-  /** The visible range as two numbers, so a rebuild follows a change of value, not of object. */
+  /** The visible range as two numbers, so a resample follows a change of value, not of object. */
   viewMin: number;
   viewMax: number;
   sampleCount: number;
 }): {
   data: EventTimelineData | null;
-  firings: FiringMark[];
+  firings: readonly FiringMark[];
   /** Times of the reference frames recorded between firings. */
-  references: number[];
+  references: readonly number[];
   metricError: string | null;
 } {
   const { eventSimulation } = use(SimulationContext);
-  const { eventCount, coveredTime } = use(EventPlaybackContext);
   const { timelineView } = use(EditorContext);
   const {
     extensions,
@@ -66,61 +122,36 @@ export function useEventTimelineData({
     evaluateMetric: timelineMetric.evaluate,
   });
 
-  if (!eventSimulation || eventCount === 0) {
-    return {
-      data: null,
-      firings: [],
-      references: [],
-      metricError: timelineMetric.error,
-    };
-  }
-
-  const firings = collectFirings(eventSimulation, eventCount);
-  const references = collectReferenceTimes(eventSimulation, eventCount);
-
-  switch (timelineView.kind) {
-    case "per-transition":
-      return {
-        data: buildLaneData(eventSimulation, eventCount, transitions),
-        firings,
-        references,
-        metricError: null,
-      };
-    case "metric":
-      return {
-        data: {
-          kind: "sampled",
-          series: seriesConfig.series,
-          data: buildSampledData(
-            eventSimulation,
-            viewMin,
-            Math.min(viewMax, coveredTime),
+  const view: TimelineSeriesView =
+    timelineView.kind === "per-transition"
+      ? { kind: "lanes", transitions }
+      : timelineView.kind === "metric"
+        ? {
+            kind: "sampled",
+            series: seriesConfig.series,
+            extract: seriesConfig.extract,
             sampleCount,
-            seriesConfig.series,
-            seriesConfig.extract,
-          ),
-        },
-        firings,
-        references,
-        metricError: timelineMetric.error,
-      };
-    case "per-place":
-    case "per-type":
-      return {
-        data: {
-          kind: "steps",
-          series: seriesConfig.series,
-          data: buildStepData(
-            eventSimulation,
-            eventCount,
-            coveredTime,
-            seriesConfig.series,
-            seriesConfig.extract,
-          ),
-        },
-        firings,
-        references,
-        metricError: null,
-      };
-  }
+          }
+        : {
+            kind: "steps",
+            series: seriesConfig.series,
+            extract: seriesConfig.extract,
+          };
+
+  const store = useTimelineSeriesStore(eventSimulation, view);
+  useEffect(() => store?.attach(), [store]);
+  useEffect(() => {
+    store?.setViewRange(viewMin, viewMax);
+  }, [store, viewMin, viewMax]);
+  const snapshot = useSyncExternalStore(
+    store?.subscribe ?? subscribeToNothing,
+    store?.getSnapshot ?? getEmptySnapshot,
+  );
+
+  return {
+    data: timelineMetric.error ? null : snapshot.data,
+    firings: snapshot.firings,
+    references: snapshot.references,
+    metricError: timelineMetric.error,
+  };
 }

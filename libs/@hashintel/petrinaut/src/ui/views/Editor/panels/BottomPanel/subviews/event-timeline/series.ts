@@ -1,6 +1,6 @@
 /**
- * The columns the event timeline draws, built from the trace rather than
- * streamed frame by frame.
+ * The columns the event timeline draws, built from the trace by the series
+ * store rather than streamed frame by frame.
  *
  * Three shapes, by what the view tracks:
  *
@@ -12,11 +12,8 @@
  * - `lanes`: one lane per transition with a mark at every event it fired at.
  */
 
-import type {
-  TimelineSeriesExtractor,
-  TimelineSeriesMeta,
-} from "../simulation-timeline/types";
-import type { EventSimulation, Transition } from "@hashintel/petrinaut-core";
+import type { TimelineSeriesMeta } from "../simulation-timeline/types";
+import type { EventSimulation } from "@hashintel/petrinaut-core";
 import type uPlot from "uplot";
 
 /** What the timeline reads from a run. */
@@ -46,147 +43,6 @@ export type EventTimelineData =
       /** The transition name of each lane, bottom lane first. */
       laneLabels: string[];
     };
-
-/**
- * One row per event: its time and each series' value at the state it
- * recorded, plus a last row holding the final values to `coveredTime`, so
- * the step function reaches the end of what is computed.
- */
-export const buildStepData = (
-  trace: TraceReader,
-  eventCount: number,
-  coveredTime: number,
-  series: readonly TimelineSeriesMeta[],
-  extract: TimelineSeriesExtractor,
-): uPlot.AlignedData => {
-  const times: number[] = [];
-  const columns = series.map((): (number | null)[] => []);
-  for (let index = 0; index < eventCount; index++) {
-    const event = trace.getEvent(index);
-    const reader = trace.getEventState(index);
-    if (!event || !reader) {
-      continue;
-    }
-    times.push(event.time);
-    for (const [seriesIndex, column] of columns.entries()) {
-      column.push(extract(reader, seriesIndex, event.time));
-    }
-  }
-  const lastTime = times[times.length - 1];
-  if (lastTime !== undefined && coveredTime > lastTime) {
-    times.push(coveredTime);
-    for (const column of columns) {
-      column.push(column[column.length - 1] ?? null);
-    }
-  }
-  return [times, ...columns] as uPlot.AlignedData;
-};
-
-/**
- * `count` samples of each series over `[from, to]`, read from the state the
- * trace interpolates at each sample time.
- */
-export const buildSampledData = (
-  trace: TraceReader,
-  from: number,
-  to: number,
-  count: number,
-  series: readonly TimelineSeriesMeta[],
-  extract: TimelineSeriesExtractor,
-): uPlot.AlignedData => {
-  const times: number[] = [];
-  const columns = series.map((): (number | null)[] => []);
-  const samples = Math.max(2, count);
-  for (let sample = 0; sample < samples; sample++) {
-    const time = from + ((to - from) * sample) / (samples - 1);
-    const reader = trace.getStateAt(time);
-    if (!reader) {
-      continue;
-    }
-    times.push(time);
-    for (const [seriesIndex, column] of columns.entries()) {
-      column.push(extract(reader, seriesIndex, time));
-    }
-  }
-  return [times, ...columns] as uPlot.AlignedData;
-};
-
-/**
- * One lane per transition, the first transition on top: a point at the lane's
- * height for every event the transition fired at, and a gap elsewhere.
- */
-export const buildLaneData = (
-  trace: TraceReader,
-  eventCount: number,
-  transitions: readonly Transition[],
-): Extract<EventTimelineData, { kind: "lanes" }> => {
-  const laneOf = new Map(
-    transitions.map((transition, index) => [
-      transition.id,
-      transitions.length - 1 - index,
-    ]),
-  );
-  const times: number[] = [];
-  const columns = transitions.map((): (number | null)[] => []);
-  for (let index = 0; index < eventCount; index++) {
-    const event = trace.getEvent(index);
-    if (!event || event.firedTransitionIds.length === 0) {
-      continue;
-    }
-    times.push(event.time);
-    const fired = new Set(event.firedTransitionIds);
-    for (const [transitionIndex, transition] of transitions.entries()) {
-      columns[transitionIndex]!.push(
-        fired.has(transition.id) ? laneOf.get(transition.id)! : null,
-      );
-    }
-  }
-  return {
-    kind: "lanes",
-    series: transitions.map((transition) => ({
-      seriesId: `transition__${transition.id}`,
-      seriesName: transition.name,
-      color: FIRING_COLOR,
-    })),
-    data: [times, ...columns] as uPlot.AlignedData,
-    laneLabels: [...transitions].reverse().map((transition) => transition.name),
-  };
-};
-
-/** Every firing in the trace, in time order. */
-export const collectFirings = (
-  trace: TraceReader,
-  eventCount: number,
-): FiringMark[] => {
-  const firings: FiringMark[] = [];
-  for (let index = 0; index < eventCount; index++) {
-    const event = trace.getEvent(index);
-    if (!event || event.firedTransitionIds.length === 0) {
-      continue;
-    }
-    firings.push({
-      time: event.time,
-      transitionIds: event.firedTransitionIds,
-    });
-  }
-  return firings;
-};
-
-/** The firing nearest to `time`, when one lies within `tolerance` of it. */
-/** Times of the reference frames: states recorded between firings. */
-export const collectReferenceTimes = (
-  trace: TraceReader,
-  eventCount: number,
-): number[] => {
-  const times: number[] = [];
-  for (let index = 0; index < eventCount; index++) {
-    const event = trace.getEvent(index);
-    if (event?.kind === "reference") {
-      times.push(event.time);
-    }
-  }
-  return times;
-};
 
 export const findFiringNear = (
   firings: readonly FiringMark[],
