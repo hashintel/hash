@@ -3,6 +3,7 @@
  *
  * {@link make} checks a decoded object whose `path` is a path object rather than path source text. It requires at least one segment and checks every identifier and generic argument in the path. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -11,7 +12,10 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
-/** @category Schemas */
+/**
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.Reference = Defs.Reference;
 
 /**
@@ -20,6 +24,7 @@ export const Schema: typeof Defs.Reference = Defs.Reference;
  * `JExpr.type` and `JExpr.newtype` also accept a reference as a declaration name. There its generic list declares parameters: a bare name such as `T` is an unbounded parameter and `T: Integer` a bounded one.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Reference extends Defs.ReferenceType {}
 
@@ -35,19 +40,26 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Reference =
   Overflow.make(Schema);
 
-/** @category Constructors */
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Reference, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
-/** @category Constructors */
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

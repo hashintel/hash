@@ -10,6 +10,7 @@ import type * as Defs from "./schema.js";
  * The `_` placeholder, which asks the HashQL compiler to infer a type in a {@link fn} signature.
  *
  * @category Closures
+ * @since 0.1.0
  */
 const inferred = "_" as const;
 
@@ -19,6 +20,7 @@ export { inferred as infer };
  * An explicit type or {@link inferred | infer}, accepted by {@link fn} for parameter and return types.
  *
  * @category Closures
+ * @since 0.1.0
  */
 export type TypeArgument = Type.Type | typeof inferred;
 
@@ -34,6 +36,7 @@ const compileType = (type: TypeArgument): Defs.ExpressionType => {
  * A closure's signature and body, accepted by {@link fn}.
  *
  * @category Closures
+ * @since 0.1.0
  */
 export interface FnOptions {
   /**
@@ -91,6 +94,7 @@ const compileGenerics = (
  * ```
  *
  * @category Closures
+ * @since 0.1.0
  */
 export const fn = (options: FnOptions): Defs.CallType => [
   "::kernel::special_form::fn",

@@ -25,6 +25,7 @@
  * );
  * ```
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -51,6 +52,7 @@ export type * as Context from "./Context.js";
  * It takes an input schema and a callback, and returns the root expression or a construction failure. The result requires every schema entry. {@link program} documents the callback's timing and failure contract, which every constructor from {@link withPrelude} shares.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Draft<S extends Scope.Scope.Any> = <
   const I extends Body.Inputs,
@@ -145,6 +147,7 @@ const fromScope =
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 export const withPrelude = <const D extends Scope.Definition.Any>(
   prelude: D & Namespace.Rebindable<D>,
@@ -205,6 +208,7 @@ export const withPrelude = <const D extends Scope.Definition.Any>(
  * ```
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the schema and callback construct a new program
 export const program: Draft<Prelude.Builtin> = fromScope(Prelude.builtin);

@@ -213,6 +213,7 @@ export const compileResult = (
  * ```
  *
  * @category Compiling
+ * @since 0.1.0
  */
 export const compile = (expression: Expression): string =>
   Result.getOrThrowWith(

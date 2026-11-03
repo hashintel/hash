@@ -8,6 +8,7 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
  * Schema for {@link Float} values.
  *
  * @category Schemas
+ * @since 0.1.0
  */
 export const Schema: typeof Defs.Float = Defs.Float;
 
@@ -17,6 +18,7 @@ export const Schema: typeof Defs.Float = Defs.Float;
  * `value` uses JSON number syntax, such as `"1.0"` or `"1e3"`. Keeping the text preserves the distinction between an integer and an integral float.
  *
  * @category Models
+ * @since 0.1.0
  */
 export interface Float extends Defs.FloatType {}
 
@@ -36,6 +38,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Float =
@@ -45,6 +48,7 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Float =
  * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
@@ -56,6 +60,7 @@ export const makeEffect: (
  * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
  *
  * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (

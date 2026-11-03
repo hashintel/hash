@@ -3,6 +3,7 @@
  *
  * A query is syntax like any other expression and reads no graph. It starts from an expression of type {@link Graph}: {@link entities}, or a call to another declared graph function. Each step wraps that expression in a call to the matching `::graph` function, and the vertex type travels through every step.
  *
+ * @since 0.1.0
  * @module
  */
 import { Function, Result, pipe } from "effect";
@@ -22,6 +23,7 @@ import type * as Input from "./Inputs.js";
  * HashQL's graph of vertices of type `V`, which graph functions return and query steps take.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Graph<V extends Type.Any> = Type.Opaque<
   "::graph::Graph",
@@ -48,6 +50,7 @@ export declare namespace Graph {
  * The SDK does not describe its alternatives, so an expression has this type when it comes from an input declared with it, or from `Expression.assume`.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type QueryTemporalAxes = Type.Opaque<
   "::graph::temporal::QueryTemporalAxes",
@@ -60,6 +63,7 @@ export type QueryTemporalAxes = Type.Opaque<
  * The SDK does not describe its fields, so a predicate can project from an entity only with `$projectUnsafe`.
  *
  * @category Models
+ * @since 0.1.0
  */
 export type Entity = Type.Opaque<
   "::graph::types::knowledge::entity::Entity",
@@ -70,6 +74,7 @@ export type Entity = Type.Opaque<
  * The query {@link filter} returns: the graph it received, requiring the graph's inputs and the predicate's.
  *
  * @category Utility Types
+ * @since 0.1.0
  */
 export type Filtered<
   G extends Expression.Expression.Any,
@@ -83,6 +88,7 @@ export type Filtered<
  * The list {@link collect} returns: the graph's vertices, requiring the graph's inputs.
  *
  * @category Utility Types
+ * @since 0.1.0
  */
 export type Collected<G extends Expression.Expression.Any> =
   Expression.Expression<Type.List<Graph.Vertex<G>>, Expression.Value.Inputs<G>>;
@@ -113,6 +119,7 @@ const inferred = new TAST.Syntax(JExpr.Type.infer());
  * ```
  *
  * @category Queries
+ * @since 0.1.0
  */
 export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
   axis: A,
@@ -157,6 +164,7 @@ export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
  * ```
  *
  * @category Queries
+ * @since 0.1.0
  */
 export const filter: {
   <
@@ -234,6 +242,7 @@ export const filter: {
  * Ends a query, emitting `::graph::tail::collect`, as a list of the graph's vertices. See {@link filter} for an example.
  *
  * @category Queries
+ * @since 0.1.0
  */
 export const collect = <const G extends Expression.Expression.Any>(
   graph: G & Graph.Check<G>,

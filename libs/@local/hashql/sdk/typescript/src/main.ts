@@ -5,6 +5,7 @@
  *
  * {@link JExpr} builds and checks syntax trees, then encodes them as J-Expr JSON. {@link Program.TypeExpression} annotates type syntax with trusted semantic descriptors from {@link Type}, retaining construction failures from {@link Program.ProgramError}. The HashQL compiler owns name resolution and type checking. This package constructs programs without executing them.
  *
+ * @since 0.1.0
  * @module
  */
 export * as JExpr from "./JExpr/index.js";

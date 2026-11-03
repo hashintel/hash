@@ -29,6 +29,7 @@ import type {
  * The input nests deeper than the call stack lets the parser follow. Its offset is 0, because the parser cannot tell where the stack ran out.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export interface NestingTooDeep {
   readonly _tag: "NestingTooDeep";
@@ -41,6 +42,7 @@ export const NestingTooDeep: Data.TaggedEnum.Constructor<NestingTooDeep>["Nestin
  * A struct type names the same field twice. Its offset is the end of the struct, because the parser compares names after it reads every field.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export interface DuplicateStructField {
   readonly _tag: "DuplicateStructField";
@@ -54,6 +56,7 @@ export const DuplicateStructField: Data.TaggedEnum.Constructor<DuplicateStructFi
  * All syntax and semantic reasons this recursive grammar can report.
  *
  * @category Reasons
+ * @since 0.1.0
  */
 export type TypeReason =
   | IdentReason
