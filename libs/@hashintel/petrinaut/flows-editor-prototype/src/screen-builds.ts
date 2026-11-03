@@ -162,9 +162,9 @@ const ninetyPercent: Partial<EditorUi> = {
   zoomBase: 0.9,
 };
 
-/** J1.7–J1.19 draw the four-step flow at 62%, Start 42 px into the canvas. */
+/** J1.7–J1.19 draw the four-step flow at 62%, Start 17 px into the canvas so the For each clears the panel (3 Nov). */
 const sixtyTwoPercent: Partial<EditorUi> = {
-  viewport: { left: 42, top: 364, zoom: 0.62 },
+  viewport: { left: 17, top: 364, zoom: 0.62 },
 };
 
 /** J2.4–J2.8's flow: Start, then "Shipments this month" with one Received date row, after Sep 30, 2026. */
@@ -237,14 +237,12 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
   "J0.3": () => editor(emptyDocument()),
   "J0.4": () => ({
     ...editor(emptyDocument("Monthly supplier review")),
-    act: () => {
+    act: async () => {
+      click('[aria-label="Rename flow"]');
+      await pause(50);
       const title =
         globalThis.document.querySelector<HTMLInputElement>("[data-flow-name]");
       title?.focus();
-      // Marks the field as being edited even when the window itself is not focused.
-      if (title) {
-        title.dataset.editing = "";
-      }
       title?.setSelectionRange(title.value.length, title.value.length);
     },
   }),

@@ -23,6 +23,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Icon,
   type IconName,
+  type ItemOrGroup,
   type MenuItem,
   RightClickMenu,
   Tooltip,
@@ -909,13 +910,13 @@ const touching =
     ids.includes(wire.source) || ids.includes(wire.target);
 
 /**
- * The canvas's right-click menus (2 Nov: no Delete in any of them; a step is deleted with Delete or Backspace).
- * J1.16 a step: Disconnect from previous, Disconnect all. A box selection: Disconnect all. J1.20 a connection:
- * Disconnect, Insert step here. J1.21 a port: Disconnect, Disconnect all.
+ * The canvas's right-click menus. J1.16 a step: Disconnect from previous, Disconnect all, then Delete step (⌫), as
+ * Backspace does (3 Nov). A box selection: Disconnect all. J1.20 a connection: Disconnect, Insert step here. J1.21 a
+ * port: Disconnect, Disconnect all. Connections and ports have no Delete (2 Nov).
  */
 const useCanvasMenuItems = (
   menu: CanvasMenu | null | undefined,
-): MenuItem[] => {
+): Array<ItemOrGroup<MenuItem>> => {
   const { document, setDocument, setUi } = useEditor();
   const dropWires = (
     keep: (wire: (typeof document.wires)[number]) => boolean,
@@ -944,7 +945,7 @@ const useCanvasMenuItems = (
         (wire) => wire.target === menu.stepId,
       );
       const any = document.wires.some(touching([menu.stepId]));
-      return [
+      const connections: MenuItem[] = [
         {
           id: "previous",
           text: "Disconnect from previous",
@@ -958,6 +959,38 @@ const useCanvasMenuItems = (
           icon: "close",
           disabled: !any,
           onClick: () => dropWires((wire) => !touching([menu.stepId])(wire)),
+        },
+      ];
+      if (menu.stepId === START_ID) {
+        return connections;
+      }
+      return [
+        { id: "connections", label: "", items: connections },
+        {
+          id: "delete",
+          label: "",
+          items: [
+            {
+              id: "delete",
+              text: "Delete step",
+              icon: "trash",
+              suffix: "⌫",
+              onClick: () => {
+                setDocument((current) => removeStep(current, menu.stepId));
+                setUi((current) => ({
+                  ...current,
+                  canvasMenu: null,
+                  selectedId:
+                    current.selectedId === menu.stepId
+                      ? null
+                      : current.selectedId,
+                  selectedIds: (current.selectedIds ?? []).filter(
+                    (id) => id !== menu.stepId,
+                  ),
+                }));
+              },
+            },
+          ],
         },
       ];
     }
@@ -1094,6 +1127,8 @@ export const FlowCanvas = ({
   const droppedAt = useRef(0);
   // On first load, wait for the initial fit to finish before panning to the selection.
   const loaded = useRef(false);
+  // A screen opened at a set viewport (a Figma frame) stays where it opened; it does not pan to its selection.
+  const placed = useRef(!!ui.viewport);
 
   // A step added for the user flashes for a moment, then the highlight clears.
   useEffect(() => {
@@ -1111,8 +1146,9 @@ export const FlowCanvas = ({
   const focusId = ui.flashId ?? ui.selectedId;
   useEffect(() => {
     const delay = loaded.current ? 150 : 600;
+    const firstLoad = !loaded.current;
     loaded.current = true;
-    if (!focusId) {
+    if (!focusId || (firstLoad && placed.current)) {
       return;
     }
     const timer = setTimeout(() => {
@@ -1409,7 +1445,7 @@ export const FlowCanvas = ({
             canvasMenu: null,
           }));
         }}
-        // Delete / Backspace is the only way to delete steps (2 Nov: no Delete in any menu).
+        // Delete / Backspace deletes the selected steps; a step's right-click menu has Delete step too.
         onNodesDelete={(deleted) => {
           const ids = deleted.map((node) => node.id);
           setDocument((current) =>

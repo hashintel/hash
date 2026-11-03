@@ -11,7 +11,7 @@ import {
   Select,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
@@ -55,6 +55,7 @@ import {
   refStatus,
   TemplatePreview,
 } from "./inline-chips";
+import { tileMenu, type TiledItem, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { describeSource, getSourceShape, sourceOptions } from "./shapes";
 import { entityChoices, SearchHeader, SourceMenu } from "./source-menu";
@@ -641,7 +642,8 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        gap: "1",
+        // 8 px from the box to Preview (Figma Send email, 3 Nov).
+        gap: "2",
       })}
       onMouseLeave={() => setHovered(null)}
     >
@@ -1230,7 +1232,8 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           <span className={css({ marginLeft: "auto" })}>{addButton}</span>
         </div>
       )}
-      {items.length === 1 && items[0]!.kind !== "constant" ? (
+      {/* The "Skips this step when missing" line under To is parked (Aakarsh, 3 Nov). */}
+      {mode !== "email" && items.length === 1 && items[0]!.kind !== "constant" ? (
         <SourceLine source={items[0]!} />
       ) : null}
       {items.some(badEmail) ? (
@@ -1314,23 +1317,6 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 /** The Entity type menu's width in Figma (J2.13): 268 px, its right edge on the select's. */
 const entityTypeMenuStyle = css({
   "&[class]": { width: "[268px]", minWidth: "[268px]", maxWidth: "[268px]" },
-  // Any has no icon: its label lines up with the group title, as Figma draws it.
-  "& [role=menuitem] > span[aria-hidden=true]:empty": { display: "none" },
-});
-
-/** An earlier-step row: the [x] glyph, then the value's name over where it comes from (Figma J2.13). */
-const earlierRowStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[14px 1fr]",
-  columnGap: "2",
-  alignItems: "center",
-  "& svg": { color: "neutral.fg.muted" },
-});
-
-const earlierRowSubStyle = css({
-  gridColumn: "2",
-  textStyle: "xs",
-  color: "neutral.fg.subtle",
 });
 
 /**
@@ -1415,7 +1401,7 @@ const EntityTypeField = ({
         onClick: () => pickType(type.baseUrl),
       })),
   ];
-  const earlierItems: MenuItem[] = sourceOptions(
+  const earlierItems: TiledItem[] = sourceOptions(
     document,
     step.stepId,
     typeInput,
@@ -1431,13 +1417,9 @@ const EntityTypeField = ({
           : option.ownerLabel;
       return {
         id: `earlier:${JSON.stringify(option.source)}`,
-        text: (
-          <span className={earlierRowStyle}>
-            <VariableIcon size={14} />
-            <span>{option.label}</span>
-            <span className={earlierRowSubStyle}>{from}</span>
-          </span>
-        ),
+        text: option.label,
+        description: from,
+        glyph: <VariableIcon size={16} />,
         selected: JSON.stringify(option.source) === JSON.stringify(source),
         selectedStyle: "highlight" as const,
         onClick: () => {
@@ -1446,7 +1428,7 @@ const EntityTypeField = ({
         },
       };
     });
-  const items: Array<ItemOrGroup<MenuItem>> = [
+  const items: Array<ItemOrGroup<TiledItem>> = [
     ...(typeItems.length > 0
       ? [{ id: "types", label: "", items: typeItems }]
       : []),
@@ -1498,7 +1480,7 @@ const EntityTypeField = ({
           anchor={anchorRef}
           position="bottom-end"
           label="Choose Entity type"
-          className={entityTypeMenuStyle}
+          className={cx(entityTypeMenuStyle, tiledRowsStyle)}
           onClose={() => setOpen(false)}
           header={
             <SearchHeader
@@ -1507,7 +1489,7 @@ const EntityTypeField = ({
               placeholder="Search values"
             />
           }
-          items={items}
+          items={tileMenu(items)}
         />
       ) : null}
     </div>

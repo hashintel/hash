@@ -35,6 +35,7 @@ export const OpenMenu = ({
   label,
   alignToPanel = false,
   keepInCanvasWidth,
+  besideWhenFits = false,
 }: {
   /** The menu's name: the DS Menu content is labelled by its trigger. */
   label: string;
@@ -50,11 +51,17 @@ export const OpenMenu = ({
   alignToPanel?: boolean;
   /** The menu's width: it opens no closer to the canvas's right edge than fits it, so it never covers the panel. */
   keepInCanvasWidth?: number;
+  /**
+   * Open to the right of the anchor when the menu (`keepInCanvasWidth` wide) fits there inside the canvas, else at
+   * `position` (Figma J0.10 opens beside a port's +; J1.4, near the panel, opens below it).
+   */
+  besideWhenFits?: boolean;
 }) => {
   const triggerRef = useRef<HTMLSpanElement>(null);
   // The anchor's place when the menu opened; the menu stays where it opened, as a DS Menu does. Read after mount:
   // an anchor rendered in the same commit has no element during render.
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [placement, setPlacement] = useState<Position>(position);
   // Callers may pass a fresh ref object each render; the first one names the anchor.
   const firstAnchor = useRef(anchor);
 
@@ -67,6 +74,18 @@ export const OpenMenu = ({
       const box = element?.getBoundingClientRect() ?? null;
       const panel = element?.closest("aside");
       const canvas = element?.closest(".react-flow");
+      const beside =
+        besideWhenFits &&
+        !!box &&
+        !!canvas &&
+        !!keepInCanvasWidth &&
+        box.right + keepInCanvasWidth <=
+          canvas.getBoundingClientRect().right - canvasInset;
+      if (beside) {
+        setPlacement("right-start");
+        setRect(box);
+        return;
+      }
       setRect(
         box && panel && alignToPanel
           ? new DOMRect(
@@ -92,7 +111,7 @@ export const OpenMenu = ({
     }, 40);
     return () => clearTimeout(timer);
     // The anchor names the place once, as the first anchor does.
-  }, [alignToPanel, keepInCanvasWidth]);
+  }, [alignToPanel, keepInCanvasWidth, besideWhenFits]);
 
   useEffect(() => {
     if (rect) {
@@ -104,7 +123,7 @@ export const OpenMenu = ({
     <Menu
       // The DS Menu renders only its trigger when it has no items; there is always at least one row here.
       items={items}
-      position={position}
+      position={placement}
       header={header}
       footer={footer}
       className={className}

@@ -6,7 +6,7 @@ import {
   type IconName,
   TextInput,
 } from "@hashintel/ds-components";
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import {
@@ -73,6 +73,7 @@ const rowStyle = css({
     backgroundColor: "neutral.bg.surface.active",
     outline: "none",
   },
+  // Every row, groups and the selected one too, keeps the DS Sidebar Item's Medium (Figma, 3 Nov).
   "&[aria-current=true]": { color: "neutral.fg.heading" },
 });
 
@@ -217,7 +218,7 @@ const FlowList = () => {
               <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
             </span>
             <Tile icon={look.icon} tone={look.tone} />
-            <span className={cx(labelStyle, css({ fontWeight: "semibold" }))}>
+            <span className={labelStyle}>
               {stepLabel(step)}
             </span>
             <span className={countStyle}>
@@ -301,7 +302,7 @@ const FlowList = () => {
             <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
           </span>
           <Tile icon="diagramNested" tone="neutral" />
-          <span className={cx(labelStyle, css({ fontWeight: "semibold" }))}>
+          <span className={labelStyle}>
             In parallel
           </span>
           <span className={countStyle}>{together.length} steps</span>

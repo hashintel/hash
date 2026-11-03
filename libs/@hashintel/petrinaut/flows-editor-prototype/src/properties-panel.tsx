@@ -223,6 +223,9 @@ const StepSettings = ({
   </Section>
 );
 
+/** Send email's Inputs (Figma, 3 Nov): 16 px between To, Subject and Body; 8 px from a label to its box. */
+const sendEmailGridStyle = css({ rowGap: "4" });
+
 /** Fields and sections the Figma panels leave out; `?full` brings them back. */
 const trimmedInputs: Record<string, string[]> = {
   sendEmail: ["cc", "senderAddress", "attachments"],
@@ -462,7 +465,12 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         description={step.description}
       />
       {visibleInputs.length > 0 ? (
-        <Section title="Inputs">
+        <Section
+          title="Inputs"
+          gridClassName={
+            step.actionDefinitionId === "sendEmail" ? sendEmailGridStyle : undefined
+          }
+        >
           {visibleInputs.map((input) => {
             const kinds = acceptedKinds(document, step.stepId, input, entry);
             // Query builders stack: key above, builder below (Journey 3).
@@ -490,12 +498,16 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
                 <div
                   key={input.name}
                   data-row
-                  className={css({
-                    gridColumn: "1 / -1",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1.5",
-                  })}
+                  className={cx(
+                    css({
+                      gridColumn: "1 / -1",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.5",
+                    }),
+                    step.actionDefinitionId === "sendEmail" &&
+                      css({ gap: "2" }),
+                  )}
                 >
                   <Tooltip
                     content={`${label} · ${inputHover(input, kinds)}`}

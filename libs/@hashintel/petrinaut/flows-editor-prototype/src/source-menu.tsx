@@ -9,7 +9,7 @@ import {
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import {
@@ -32,6 +32,7 @@ import {
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
 import { findEntityType, mockEntities } from "./mock-graph";
+import { MenuRow, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { kindLabel } from "./ui";
@@ -67,6 +68,22 @@ export const menuRowStyle = css({
   _hover: { backgroundColor: "neutral.a35" },
   _focusVisible: { backgroundColor: "neutral.a35", outline: "none" },
   "&[data-active], &[data-selected]": { backgroundColor: "neutral.a35" },
+});
+
+/** An "@" popover row when the menu has two-line rows: the tile layout of `menu-rows.tsx`, 4 px apart. */
+const tiledPopoverRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[100%]",
+  padding: "[6px]",
+  borderRadius: "lg",
+  textAlign: "left",
+  cursor: "pointer",
+  fontWeight: "[450]",
+  "&:has([data-menu-row=two])": { paddingY: "[8px]" },
+  "& + &": { marginTop: "[4px]" },
+  _hover: { backgroundColor: "neutral.a35" },
+  _focusVisible: { backgroundColor: "neutral.a35", outline: "none" },
 });
 
 /** A group of rows, 4 px in, with a hairline between groups. */
@@ -293,22 +310,9 @@ const sourceMenuWidthStyle = css({
     { display: "none" },
 });
 
-/** The For each list menu is as wide as its select (Figma J2 · C1); the DS positioner's `--reference-width` is the anchor's. */
-const referenceWidthStyle = css({
-  "&[class]": {
-    width: "[var(--reference-width)]",
-    minWidth: "[0]",
-    maxWidth: "[var(--reference-width)]",
-  },
-  // A long step name stays on one line and is clipped, as Figma draws it.
-  // ...unless the group has a ticked row: then every row keeps the tick's column, as the DS Menu draws it.
-  "& [role=group]:not(:has([data-selected])) [role=menuitem] > span[aria-hidden=true]:empty":
-    { display: "none" },
-  "& [role=menuitem] span": {
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
+/** The For each list menu: 268 px, its right edge on the select's (Figma J1.7, 3 Nov). A long name is clipped. */
+const listMenuWidthStyle = css({
+  "&[class]": { width: "[268px]", minWidth: "[268px]", maxWidth: "[268px]" },
 });
 
 /** A DS Menu's search: the DS TextInput at sm with a search icon, pinned above the items. */
@@ -705,16 +709,23 @@ export const SourceMenu = ({
         alignToPanel={alignToPanel}
         onClose={onClose}
         label={`Choose ${input.label}`}
-        className={listsOnly ? referenceWidthStyle : sourceMenuWidthStyle}
+        className={cx(
+          listsOnly ? listMenuWidthStyle : sourceMenuWidthStyle,
+          tiledRowsStyle,
+        )}
         header={
           hideSearch || !longList ? undefined : (
             <SearchHeader value={search} onChange={setSearch} />
           )
         }
-        items={toMenuItems(groupsModel)}
+        items={tileMenu(toMenuItems(groupsModel))}
       />
     );
   }
+
+  const tiledPopover = groupsModel.some((group) =>
+    group.items.some((item) => !!item.description),
+  );
 
   // "@" typed in a field: the field keeps focus while the list filters, which the DS Menu cannot do (it takes focus
   // and closes when focus leaves it). DS gap: no mention input (audit section 3 item 6). Same rows, DS Menu look.
@@ -747,12 +758,24 @@ export const SourceMenu = ({
                   <button
                     key={item.id}
                     type="button"
-                    className={menuRowStyle}
+                    className={
+                      tiledPopover ? tiledPopoverRowStyle : menuRowStyle
+                    }
                     title={item.hint}
                     onClick={item.onPick}
                   >
-                    {item.icon ? <Icon name={item.icon} size="xs" /> : null}
-                    <span className={rowTextStyle}>{item.text}</span>
+                    {tiledPopover ? (
+                      <MenuRow
+                        icon={item.icon}
+                        title={item.text}
+                        description={item.description}
+                      />
+                    ) : (
+                      <>
+                        {item.icon ? <Icon name={item.icon} size="xs" /> : null}
+                        <span className={rowTextStyle}>{item.text}</span>
+                      </>
+                    )}
                     {item.suffix}
                   </button>
                 ),

@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   type CatalogEntry,
@@ -18,6 +18,7 @@ import {
   flattenSteps,
 } from "./document";
 import { showDebug, useEditor } from "./editor-context";
+import { tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { SearchHeader } from "./source-menu";
 import { OriginMark } from "./ui";
@@ -39,12 +40,33 @@ const originSuffix = (entry: CatalogEntry) =>
     <OriginMark label="mock" hover={entry.origin.why} />
   ) : undefined;
 
-/** The Figma picker's width, on the DS Menu. */
+/** Each step row's second line (Figma, 3 Nov), from the engine's action definitions. */
+const stepLines: Record<string, string> = {
+  queryEntities: "Search one entity type, with conditions",
+  createEntity: "Add a new entity to the graph",
+  updateEntity: "Change properties on an existing entity",
+  requestReview: "Ask someone to approve or reject",
+  sendEmail: "Send an email; drafting is a separate step",
+  getFileFromUrl: "Download a file from a URL into HASH",
+  if: "Send a value to Yes or No by a condition",
+  forEach: "Run steps once per item of a list",
+  filterList: "Split a list into matching and other items",
+};
+
+/** A step Figma gives no line: the first sentence of its definition's description. */
+const stepLine = (entry: CatalogEntry) =>
+  stepLines[entry.id] ?? entry.description.split(/(?<=\.)\s/)[0]?.replace(/\.$/, "");
+
+/** The Figma picker's width, on the DS Menu: 240 px, or 288 px for a menu with step rows (3 Nov). */
 const pickerWidthStyle = css({
   width: "[240px]",
+  "&:has([data-menu-row=two])": { width: "[288px]" },
   // A group's chevron sits at the right edge, as in Figma.
   "& [role=menuitem] > svg:last-child": { marginLeft: "auto" },
 });
+
+/** A submenu of steps: 288 px (Figma J0.6). */
+const stepSubmenuStyle = css({ width: "[288px]" });
 
 /**
  * An anchor found when the menu reads it, after mount: a picker opened with the screen has no port in the DOM yet.
@@ -211,6 +233,7 @@ export const AddNodePicker = ({
   ): MenuItem => ({
     id: `${key}:${entry.id}`,
     text: entry.title,
+    description: stepLine(entry),
     icon: entry.icon,
     suffix: originSuffix(entry) ?? side,
     onClick: () => pick(entry),
@@ -221,6 +244,7 @@ export const AddNodePicker = ({
       id: `group:${group.name}`,
       text: group.name,
       icon: group.icon,
+      menuClassName: cx(stepSubmenuStyle, tiledRowsStyle),
       subItems:
         groupSteps.length > 0
           ? groupSteps.map((entry) => entryItem(entry, "browse"))
@@ -283,8 +307,16 @@ export const AddNodePicker = ({
       anchor={anchor}
       label="Add node"
       position={picker.anchor === "toolbar" ? "top" : "bottom-start"}
-      className={pickerWidthStyle}
-      keepInCanvasWidth={picker.anchor === "toolbar" ? undefined : 240}
+      // From a port it opens beside the + when there is room (J0.10), else below it (J1.4).
+      besideWhenFits={picker.anchor === "port"}
+      className={cx(pickerWidthStyle, tiledRowsStyle)}
+      keepInCanvasWidth={
+        picker.anchor === "toolbar"
+          ? undefined
+          : query || recent.length > 0 || document.steps.length === 0
+            ? 288
+            : 240
+      }
       onClose={close}
       header={
         <SearchHeader
@@ -294,7 +326,7 @@ export const AddNodePicker = ({
           focusOnOpen
         />
       }
-      items={items}
+      items={tileMenu(items)}
     />
   );
 };

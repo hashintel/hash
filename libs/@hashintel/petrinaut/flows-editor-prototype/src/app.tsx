@@ -67,29 +67,114 @@ const backStyle = css({
 });
 
 /** The flow name, as the breadcrumb's text (14 px medium), editable in place. */
+/**
+ * The flow title as Figma's DS ToggleableTextInput (3 Nov): the name with a pen right after it, 8 px after the back
+ * button. Hover adds the pale fill; the name or the pen opens it for editing in place.
+ *
+ * DS gap: ds-components has no ToggleableTextInput. This is the smallest equivalent: the DS ghost xs Button for the
+ * pen, and a plain input for the edit state.
+ */
+const titleBoxStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "[2px]",
+  height: "[28px]",
+  paddingLeft: "2",
+  paddingRight: "[2px]",
+  // The bar's gap is 12 px; the box starts 8 px after the back button.
+  marginLeft: "[-4px]",
+  borderRadius: "lg",
+  minWidth: "[0]",
+  cursor: "text",
+  _hover: { backgroundColor: "neutral.bgSolid.surface.active" },
+});
+
+/** Figma's pen: the DS ghost IconButton at xs, 24 px square. */
+const penStyle = css({
+  "&[class]": {
+    width: "[24px]",
+    height: "[24px]",
+    minWidth: "[24px]",
+    padding: "[0]",
+    justifyContent: "center",
+  },
+});
+
+const titleTextStyle = css({
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: "[480px]",
+});
+
+/** J0.4: while renamed, the name sits in a 301 px pale field with the caret, no ring. */
 const titleInputStyle = css({
   textStyle: "sm",
   fontWeight: "medium",
   color: "neutral.fg.heading",
-  backgroundColor: "[transparent]",
+  height: "[28px]",
+  backgroundColor: "neutral.bgSolid.surface.active",
   borderWidth: "[0]",
-  borderRadius: "sm",
-  paddingY: "1",
-  paddingRight: "1.5",
-  paddingLeft: "1.5",
-  // The breadcrumb puts 6 px after the back button (the bar's own gap is 12); the field's 6 px padding sits in it.
-  marginLeft: "[-12px]",
+  borderRadius: "lg",
+  paddingX: "2",
+  marginLeft: "[-4px]",
   fieldSizing: "content",
-  minWidth: "[40px]",
+  minWidth: "[301px]",
   maxWidth: "[480px]",
   outline: "none",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
-  // J0.4: while renamed, the name sits in a 298 px grey field, with no ring.
-  "&:focus, &[data-editing]": {
-    backgroundColor: "neutral.bg.surface.active",
-    minWidth: "[298px]",
-  },
 });
+
+const FlowTitle = ({
+  name,
+  onRename,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+}) => {
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <input
+        className={titleInputStyle}
+        value={name}
+        aria-label="Flow name"
+        data-flow-name
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- the user asked to rename; the caret goes to the name
+        autoFocus
+        onFocus={(event) =>
+          event.currentTarget.setSelectionRange(name.length, name.length)
+        }
+        onBlur={() => setEditing(false)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === "Escape") {
+            event.currentTarget.blur();
+          }
+        }}
+        onChange={(event) => onRename(event.target.value)}
+      />
+    );
+  }
+  return (
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the pen is the keyboard way in
+    <span className={titleBoxStyle} onClick={() => setEditing(true)}>
+      <span className={titleTextStyle}>{name}</span>
+      <Button
+        size="xs"
+        variant="ghost"
+        iconName="pencil"
+        className={penStyle}
+        aria-label="Rename flow"
+        onClick={(event) => {
+          event.stopPropagation();
+          setEditing(true);
+        }}
+      />
+    </span>
+  );
+};
 
 /** The top bar's 32 px bordered buttons (Run and ⋮), as the DS IconButton draws them. */
 const barButtonStyle = css({
@@ -307,18 +392,11 @@ export const Editor = ({
                 disabled={!onBack}
                 onClick={() => onBack?.(document)}
               />
-              <input
-                className={titleInputStyle}
-                value={document.name}
-                aria-label="Flow name"
-                data-flow-name
-                onBlur={(event) => {
-                  event.currentTarget.removeAttribute("data-editing");
-                }}
-                onChange={(event) => {
-                  const name = event.target.value;
-                  setDocumentState((current) => ({ ...current, name }));
-                }}
+              <FlowTitle
+                name={document.name}
+                onRename={(name) =>
+                  setDocumentState((current) => ({ ...current, name }))
+                }
               />
             </div>
             <div

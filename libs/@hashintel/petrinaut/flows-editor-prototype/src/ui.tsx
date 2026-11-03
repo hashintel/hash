@@ -109,10 +109,13 @@ export const Section = ({
   title,
   children,
   action,
+  gridClassName,
 }: {
   title?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
+  /** Spacing a panel sets for its own rows (Send email's 16 px between fields). */
+  gridClassName?: string;
 }) => (
   <section
     className={css({ display: "flex", flexDirection: "column", gap: "2" })}
@@ -129,7 +132,7 @@ export const Section = ({
         {action}
       </div>
     ) : null}
-    <div className={sectionGridStyle}>{children}</div>
+    <div className={cx(sectionGridStyle, gridClassName)}>{children}</div>
   </section>
 );
 
