@@ -1,9 +1,139 @@
 /* The preview loads fumadocs' prebuilt stylesheet and no Tailwind, so the
    generated pages' own elements are styled here with its variables. */
 
+:root {
+  --api-mono: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  --api-kind-function: #8b5cf6;
+  --api-kind-const: #0ea5e9;
+  --api-kind-interface: #10b981;
+  --api-kind-type: #f59e0b;
+  --api-kind-class: #f43f5e;
+  --api-kind-enum: #f97316;
+  --api-kind-member: #64748b;
+  --api-kind-module: #06b6d4;
+  --api-kind-trait: #14b8a6;
+}
+
+/* A kind is coloured the same wherever it is drawn: a glyph, a heading's keyword. */
+
+.api-glyph,
+.api-keyword {
+  --api-kind: var(--api-kind-member);
+}
+
+:is(.api-glyph, .api-keyword):is([data-kind="function"], [data-kind="method"]) {
+  --api-kind: var(--api-kind-function);
+}
+:is(.api-glyph, .api-keyword)[data-kind="const"] {
+  --api-kind: var(--api-kind-const);
+}
+:is(.api-glyph, .api-keyword)[data-kind="interface"] {
+  --api-kind: var(--api-kind-interface);
+}
+:is(.api-glyph, .api-keyword)[data-kind="type"] {
+  --api-kind: var(--api-kind-type);
+}
+:is(.api-glyph, .api-keyword)[data-kind="class"] {
+  --api-kind: var(--api-kind-class);
+}
+:is(.api-glyph, .api-keyword)[data-kind="enum"] {
+  --api-kind: var(--api-kind-enum);
+}
+:is(.api-glyph, .api-keyword):is(
+  [data-kind="module"],
+  [data-kind="entrypoint"],
+  [data-kind="namespace"]
+) {
+  --api-kind: var(--api-kind-module);
+}
+:is(.api-glyph, .api-keyword)[data-kind="trait"] {
+  --api-kind: var(--api-kind-trait);
+}
+
+/* A glyph is a letter in a small square. */
+
+.api-glyph {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.25em;
+  height: 1.25em;
+  margin-inline-end: 0.5em;
+  border: 1px solid color-mix(in srgb, var(--api-kind) 45%, transparent);
+  border-radius: 0.25em;
+  background: color-mix(in srgb, var(--api-kind) 12%, transparent);
+  color: var(--api-kind);
+  font-family: var(--api-mono);
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: 0.1em;
+}
+
+/* Facts: stability, version and source, at the end of a header. */
+
+.api-facts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--api-mono);
+  font-size: 0.75rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-since {
+  font-family: var(--api-mono);
+  font-size: 0.75rem;
+  color: var(--color-fd-muted-foreground);
+  white-space: nowrap;
+}
+
+.api-stability {
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-family: var(--api-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, #f59e0b 15%, transparent);
+  color: #d97706;
+  white-space: nowrap;
+}
+
+.api-stability:is([data-stability="unstable"], [data-stability="deprecated"]) {
+  background: color-mix(in srgb, #f43f5e 15%, transparent);
+  color: #e11d48;
+}
+
+.prose .api-source,
+.api-source {
+  display: inline-flex;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-source[data-labelled] {
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.api-source svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.prose .api-source:hover,
+.api-source:hover {
+  color: var(--color-fd-foreground);
+}
+
+/* An entry, headed like code: the keyword, then the namespaces it is in, then its name. */
+
 .api-export {
+  container-type: inline-size;
   border-top: 1px solid var(--color-fd-border);
-  padding-block: 1.5rem;
+  padding-block: 1.75rem;
+  scroll-margin-top: 5rem;
 }
 
 .api-export-header {
@@ -13,39 +143,120 @@
   gap: 0.5rem 0.75rem;
 }
 
-.prose .api-export-header h3 {
-  margin: 0;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 1.125rem;
-}
-
-.api-kind {
-  border: 1px solid var(--color-fd-border);
-  border-radius: 0.375rem;
-  padding: 0.125rem 0.375rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.75rem;
-  color: var(--color-fd-muted-foreground);
-}
-
-.prose .api-source {
+.prose .api-export-header > :is(h3, h4) {
   display: inline-flex;
-  margin-inline-start: auto;
+  align-items: center;
+  margin: 0;
+  font-family: var(--api-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.prose .api-export:not([data-depth="0"]) > .api-export-header > h4 {
+  font-size: 1.0625rem;
+}
+
+.api-keyword {
+  color: var(--api-kind);
+  font-weight: 500;
+}
+
+.api-owner {
   color: var(--color-fd-muted-foreground);
+  font-weight: 400;
 }
 
-.api-source svg {
-  width: 1rem;
-  height: 1rem;
+.api-export-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-inline-start: auto;
 }
 
-.prose .api-source:hover {
-  color: var(--color-fd-foreground);
+/* An entry is one grid. A wide entry puts its description beside its declaration, and every other part across both columns, so neither column runs on alone. A narrow one is one column in the parts' order. */
+
+.api-export-body:has(> .api-part) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem 2.5rem;
+  margin-top: 1rem;
+}
+
+.api-export-body > .api-part {
+  grid-column: 1 / -1;
+}
+
+/* Prose keeps a readable measure on a full-width page. */
+
+#nd-page[data-full="true"] .prose > p,
+.api-part[data-part="description"] {
+  max-width: 50rem;
+}
+
+@container (min-width: 64rem) {
+  .api-export-body:has(> .api-part) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  }
+
+  .api-export-body
+    > .api-part[data-part="description"]:has(
+      + .api-part[data-part="declaration"]
+    ) {
+    grid-column: 1;
+  }
+
+  .api-export-body
+    > .api-part[data-part="description"]
+    + .api-part[data-part="declaration"] {
+    grid-column: 2;
+  }
+}
+
+.prose .api-part > :first-child,
+.prose .api-part > .api-section:first-child .api-section-header,
+.prose .api-part > .api-section:first-child .api-section-title,
+.prose .api-part > .api-members:first-child .api-section-title {
+  margin-top: 0;
+}
+
+.prose .api-part > :last-child {
+  margin-bottom: 0;
+}
+
+/* The groups of an entry's relations share its columns, the first under its description and the second under its declaration. */
+
+.api-part[data-part="references"] {
+  display: grid;
+  grid-template-columns: subgrid;
+  row-gap: 1rem;
+}
+
+.api-part[data-part="references"] > :not(.api-relations) {
+  grid-column: 1 / -1;
+}
+
+.api-part[data-part="references"] > .api-relations {
+  display: contents;
+}
+
+/* A labelled part of an entry. */
+
+.api-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block: 1.25rem 0.5rem;
+}
+
+.prose .api-section-header .api-section-title {
+  margin: 0;
 }
 
 .prose .api-section-title {
   margin-block: 1.25rem 0.5rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--api-mono);
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.05em;
@@ -53,11 +264,529 @@
   color: var(--color-fd-muted-foreground);
 }
 
+/* A namespace's exports follow their owner under its name, which sits on a rule, indented, and a rule starts each of them after the first. */
+
+.api-part[data-part="namespace"] {
+  margin-top: 1rem;
+}
+
+.api-part[data-part="namespace"] > .api-section > .api-section-header {
+  justify-content: flex-start;
+}
+
+.api-part[data-part="namespace"] > .api-section > .api-section-header::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-fd-border);
+}
+
+.prose .api-part[data-part="namespace"] > .api-section > .api-section-header {
+  margin-bottom: 0;
+}
+
+.prose
+  .api-part[data-part="namespace"]
+  > .api-section
+  > .api-section-header
+  .api-section-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-fd-foreground);
+}
+
+.api-part[data-part="namespace"] > .api-section > .api-export {
+  margin-left: 1.25rem;
+  border-top: none;
+  padding: 1.5rem 0;
+}
+
+.api-part[data-part="namespace"] > .api-section > .api-export + .api-export {
+  border-top: 1px solid var(--color-fd-border);
+}
+
+.api-part[data-part="namespace"] > .api-section > .api-export:last-child {
+  padding-bottom: 0.25rem;
+}
+
+/* Members: a bordered table of name and declaration, which stacks each name over its declaration when it is narrow. */
+
+.api-members {
+  container-type: inline-size;
+}
+
+.api-members-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.api-member {
+  display: grid;
+  grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+  gap: 0 1rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--color-fd-border);
+  scroll-margin-top: 5rem;
+}
+
+.api-member:first-child {
+  border-top: none;
+}
+
+.api-member:target {
+  background: color-mix(in srgb, var(--color-fd-primary) 8%, transparent);
+}
+
+.api-member-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.prose .api-member-name {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--api-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-fd-foreground);
+  overflow-wrap: anywhere;
+}
+
+.prose .api-member-body > :first-child {
+  margin-top: 0;
+}
+
+.prose .api-member-body > :last-child {
+  margin-bottom: 0;
+}
+
+.prose .api-member-body p {
+  margin-block: 0.375rem;
+  font-size: 0.9375rem;
+}
+
+/* A member's declaration is a line of code, not a block of its own. */
+
+.api-member-body figure {
+  margin-block: 0 0.25rem;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.8125rem;
+  overflow: visible;
+}
+
+.api-member-body figure pre {
+  width: auto !important;
+}
+
+.api-member-body figure :is(pre, code, .line) {
+  padding: 0;
+  overflow: visible;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+}
+
+.api-member-body figure > div {
+  overflow: visible;
+}
+
+.api-member-body figure button {
+  display: none;
+}
+
+@container (max-width: 40rem) {
+  .api-member {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+
+  .api-member-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* An index: groups of rows, each a glyph, a name and its first sentence. */
+
+.api-index {
+  margin-block: 0.75rem 1.25rem;
+}
+
+.api-index-title {
+  margin: 0 0 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-index-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.api-index-row {
+  margin: 0;
+  padding: 0;
+  line-height: 1.35;
+}
+
+.api-index-row a {
+  display: grid;
+  grid-template-columns: auto 15rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--color-fd-foreground);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+.api-index-row a:hover {
+  background: var(--color-fd-accent);
+}
+
+.api-index-row .api-glyph {
+  margin-inline-end: 0;
+}
+
+.api-index-name {
+  overflow: hidden;
+  font-family: var(--api-mono);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* A name takes the colour its theme gives that kind of name in code. */
+
+.api-index-name[data-coloured] {
+  color: var(--api-link-light);
+}
+
+.dark .api-index-name[data-coloured] {
+  color: var(--api-link-dark);
+}
+
+.api-index-summary {
+  color: var(--color-fd-muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.api-index-row[data-depth="1"] a {
+  grid-template-columns: auto 13.5rem minmax(0, 1fr);
+  margin-inline-start: 1.5rem;
+}
+
+.api-index-row[data-depth="2"] a {
+  grid-template-columns: auto 12rem minmax(0, 1fr);
+  margin-inline-start: 3rem;
+}
+
+.api-index-row:not([data-depth="0"]) .api-index-name {
+  font-weight: 400;
+}
+
+.prose > .api-contents > .api-index {
+  border-top: 1px solid var(--color-fd-border);
+  padding-top: 0.75rem;
+}
+
+/* Relations: groups of rows under a title, at the end of an entry and under its hierarchy. */
+
+.api-relations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-block: 1.25rem 0.5rem;
+}
+
+.api-relations .api-index {
+  margin: 0;
+}
+
+.api-relations .api-index-title {
+  margin-bottom: 0.25rem;
+  font-family: var(--api-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.api-relations .api-index-row a {
+  grid-template-columns: auto 13rem minmax(0, 1fr);
+}
+
+.prose .api-part > .api-relations:first-child {
+  margin-top: 0.5rem;
+}
+
+/* The rail: the page's index beside it, in place of the outline, with its filter. It names in the text colour, since a coloured name there reads as a visited link, and marks the row the reader is at. */
+
+.api-rail {
+  gap: 0.5rem;
+}
+
+.api-rail-filter {
+  width: 100%;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--color-fd-background);
+  color: var(--color-fd-foreground);
+  font-size: 0.8125rem;
+}
+
+.api-rail-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 2rem;
+}
+
+.api-rail-list .api-index {
+  margin-block: 0 0.75rem;
+}
+
+.api-rail-list .api-index-row > a {
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-block: 0.125rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-rail-list .api-index-row[data-current] > a {
+  background: var(--color-fd-accent);
+  color: var(--color-fd-foreground);
+}
+
+.api-rail-list .api-index-name[data-coloured],
+.dark .api-rail-list .api-index-name[data-coloured] {
+  color: inherit;
+}
+
+.api-rail-list .api-index-summary {
+  display: none;
+}
+
+.api-rail-list .api-index-row[data-depth="1"] a {
+  margin-inline-start: 1rem;
+}
+
+.api-rail-list .api-index-row[data-depth="2"] a {
+  margin-inline-start: 2rem;
+}
+
+/* A page with the rail gives its entries the window's width, past fumadocs' layout width, so they reach two columns on a wide window. */
+
+:root:has(#nd-page[data-full="true"]) {
+  --fd-layout-width: 160rem;
+}
+
+#nd-page[data-full="true"] {
+  max-width: 84rem;
+}
+
+/* The facts under a page's title. */
+
+.api-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 1.25rem;
+  margin-block: 0.5rem 1.5rem;
+  font-family: var(--api-mono);
+  font-size: 0.8125rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-meta-kind,
+.api-meta-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.api-meta-kind .api-glyph {
+  margin-inline-end: 0;
+}
+
+/* Links inside code take the colour their theme gives that kind of name. */
+
 .api-code-link {
   text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
   text-underline-offset: 3px;
 }
 
 .api-code-link:hover {
   text-decoration-style: solid;
+}
+
+.shiki a.api-code-link[style],
+.shiki a.api-code-link[style] span {
+  color: var(--api-link-light) !important;
+}
+
+.dark .shiki a.api-code-link[style],
+.dark .shiki a.api-code-link[style] span {
+  color: var(--api-link-dark) !important;
+}
+
+/* The outline and the navigation name exports in monospace. */
+
+.api-toc-entry {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--api-mono);
+  font-size: 0.8125rem;
+}
+
+.api-toc-entry .api-glyph {
+  font-size: 0.6875rem;
+}
+
+.api-toc-group {
+  font-weight: 600;
+  color: var(--color-fd-foreground);
+}
+
+.api-nav-name {
+  font-family: var(--api-mono);
+  font-size: 0.8125rem;
+}
+
+/* The button that opens an entry's hierarchy and its relations, on its signature's title line or in its header. */
+
+.api-hierarchy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  border: none;
+  padding: 0;
+  background: none;
+  color: var(--color-fd-muted-foreground);
+  font-family: var(--api-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.api-hierarchy-button:hover {
+  color: var(--color-fd-foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.api-hierarchy-button svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.api-hierarchy-popover {
+  margin: auto;
+  max-width: min(92vw, 72rem);
+  max-height: 85vh;
+  overflow: auto;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--color-fd-card);
+  color: var(--color-fd-foreground);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.2);
+}
+
+.api-hierarchy-popover::backdrop {
+  background: rgb(0 0 0 / 0.25);
+}
+
+.api-hierarchy-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.api-hierarchy-title code {
+  font-family: var(--api-mono);
+}
+
+.api-hierarchy-title span {
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+.api-hierarchy-popover .api-relations {
+  margin-block: 1.25rem 0;
+  border-top: 1px solid var(--color-fd-border);
+  padding-top: 1rem;
+}
+
+.api-hierarchy-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+
+/* The renderer measures its boxes in Inter, so a sans face of its width fits them. */
+
+.api-hierarchy-diagram svg text {
+  font-family:
+    Inter, var(--font-sans, ui-sans-serif), system-ui, sans-serif !important;
+}
+
+.api-hierarchy-diagram g.class-node > rect {
+  rx: 6px;
+}
+
+.api-hierarchy-diagram g[data-role="current"] > rect {
+  stroke: var(--color-fd-primary);
+  stroke-width: 2;
+}
+
+.api-hierarchy-diagram g[data-role="current"] > rect:nth-of-type(2) {
+  stroke: none;
+  fill: color-mix(in srgb, var(--color-fd-primary) 18%, transparent);
+}
+
+.api-hierarchy-diagram g[data-role="trait"] > rect:nth-of-type(2) {
+  fill: color-mix(in srgb, var(--api-kind-trait) 18%, transparent);
+}
+
+.api-hierarchy-diagram g[data-role="external"] > rect {
+  stroke-dasharray: 4 3;
+}
+
+.api-hierarchy-link:hover rect {
+  stroke: var(--color-fd-primary);
+}
+
+.api-hierarchy-link,
+.prose .api-hierarchy-link {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.api-hierarchy-diagram polyline.class-relationship {
+  stroke-width: 1.25;
 }
