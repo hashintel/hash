@@ -1,7 +1,7 @@
-import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { Button, SegmentedControl } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { getGroupIds, getStepsTree } from "./left-panel/steps-tree";
 import {
@@ -20,6 +20,77 @@ import type { ReactNode } from "react";
 type LeftPanelTab = "steps" | "add";
 
 const indentPerDepth = 16;
+
+const panel = css({
+  display: "flex",
+  flexDirection: "column",
+  flexShrink: "0",
+  width: "[248px]",
+  borderRightWidth: "1px",
+  borderRightStyle: "solid",
+  borderRightColor: "bd.subtle",
+});
+const tabs = css({ p: "2" });
+const stepsSection = css({
+  display: "flex",
+  flexDirection: "column",
+  p: "2",
+  overflowY: "auto",
+});
+const stepsHeader = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  pl: "1",
+  pb: "1",
+});
+const stepCount = css({ textStyle: "xs", color: "fg.subtle" });
+const addPlaceholder = css({
+  textStyle: "sm",
+  color: "fg.muted",
+  px: "3",
+  py: "2",
+});
+
+const row = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  height: "8",
+  pr: "2",
+});
+const expanderSlot = css({ display: "flex", flexShrink: "0", width: "4" });
+const rowLabel = css({
+  flex: "1",
+  justifyContent: "flex-start",
+  textAlign: "left",
+  "& > span:last-child": {
+    minWidth: "0",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+});
+const groupRowLabel = css({
+  "& > span:last-child": { fontWeight: "semibold" },
+});
+const startRowLabel = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  flex: "1",
+  minWidth: "0",
+  px: "[9px]",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.s120",
+});
+const startRowText = css({ truncate: true });
+const groupCount = css({
+  flexShrink: "0",
+  textStyle: "xs",
+  color: "fg.subtle",
+});
 
 /** The DS has no tree item (logged as a gap), so rows are drawn here. */
 const TreeRow = ({
@@ -41,57 +112,27 @@ const TreeRow = ({
   suffix?: ReactNode;
   onClick?: () => void;
 }) => (
-  <Box
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      gap: 0.5,
-      height: 32,
-      pl: `${4 + depth * indentPerDepth}px`,
-      pr: 1,
-      borderRadius: "6px",
-    }}
-  >
-    <Box sx={{ display: "flex", flexShrink: 0, width: 16 }}>{expander}</Box>
-    <Box
-      component={onClick ? "button" : "span"}
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 0.75,
-        flex: 1,
-        minWidth: 0,
-        height: "100%",
-        p: 0,
-        border: "none",
-        background: "none",
-        textAlign: "left",
-        cursor: onClick ? "pointer" : undefined,
-      }}
-    >
-      <StepIconTile icon={icon} tone={tone} size="small" />
-      <Box
-        component="span"
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          fontSize: 14,
-          fontWeight: expander ? 600 : 500,
-          color: selected
-            ? "var(--colors-neutral-fg-heading)"
-            : "var(--colors-neutral-fg-body)",
-        }}
+  <div className={row} style={{ paddingLeft: depth * indentPerDepth }}>
+    <span className={expanderSlot}>{expander}</span>
+    {onClick ? (
+      <Button
+        variant="ghost"
+        size="sm"
+        prefix={<StepIconTile icon={icon} tone={tone} size="small" />}
+        pressed={selected}
+        className={cx(rowLabel, expander ? groupRowLabel : undefined)}
+        onClick={onClick}
       >
         {label}
-      </Box>
-    </Box>
+      </Button>
+    ) : (
+      <span className={startRowLabel}>
+        <StepIconTile icon={icon} tone={tone} size="small" />
+        <span className={startRowText}>{label}</span>
+      </span>
+    )}
     {suffix}
-  </Box>
+  </div>
 );
 
 const StepsTree = ({
@@ -114,7 +155,7 @@ const StepsTree = ({
     const collapsed = collapsedGroupIds.has(step.stepId);
 
     return (
-      <Box key={step.stepId}>
+      <div key={step.stepId}>
         <TreeRow
           depth={depth}
           icon={icon}
@@ -136,16 +177,7 @@ const StepsTree = ({
           }
           suffix={
             children && (
-              <Typography
-                component="span"
-                sx={{
-                  flexShrink: 0,
-                  fontSize: 12,
-                  color: "var(--colors-neutral-fg-subtle)",
-                }}
-              >
-                {countSteps(children.length)}
-              </Typography>
+              <span className={groupCount}>{countSteps(children.length)}</span>
             )
           }
         />
@@ -159,7 +191,7 @@ const StepsTree = ({
             onStepClick={onStepClick}
           />
         )}
-      </Box>
+      </div>
     );
   });
 
@@ -189,14 +221,8 @@ export const LeftPanel = ({
   const groupIds = getGroupIds(tree);
 
   return (
-    <Stack
-      sx={{
-        flexShrink: 0,
-        width: 248,
-        borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-      }}
-    >
-      <Box sx={{ p: 1 }}>
+    <div className={panel}>
+      <div className={tabs}>
         <SegmentedControl
           size="md"
           aria-label="Left panel"
@@ -207,21 +233,14 @@ export const LeftPanel = ({
             { value: "add", label: "Add" },
           ]}
         />
-      </Box>
+      </div>
       {tab === "steps" ? (
-        <Stack sx={{ px: 1, py: 1, overflowY: "auto" }}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ pl: 0.5, pb: 0.5 }}
-          >
-            <Typography
-              sx={{ fontSize: 12, color: ({ palette }) => palette.gray[50] }}
-            >
+        <div className={stepsSection}>
+          <div className={stepsHeader}>
+            <p className={stepCount}>
               {/* Start counts as a step, as the design shows. */}
               {countSteps(steps.length + 1)}
-            </Typography>
+            </p>
             <Button
               variant="ghost"
               size="xs"
@@ -232,7 +251,7 @@ export const LeftPanel = ({
               )}
               onClick={() => onCollapseAll(groupIds)}
             />
-          </Stack>
+          </div>
           <TreeRow
             depth={0}
             icon={startDisplay.icon}
@@ -247,19 +266,12 @@ export const LeftPanel = ({
             onToggleGroup={onToggleGroup}
             onStepClick={onStepClick}
           />
-        </Stack>
+        </div>
       ) : (
-        <Typography
-          sx={{
-            px: 1.5,
-            py: 1,
-            fontSize: 14,
-            color: ({ palette }) => palette.gray[60],
-          }}
-        >
+        <p className={addPlaceholder}>
           Actions you can add will be listed here.
-        </Typography>
+        </p>
       )}
-    </Stack>
+    </div>
   );
 };

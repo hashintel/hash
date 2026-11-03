@@ -1,9 +1,22 @@
-import { Box } from "@mui/material";
-
 import { Icon } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import type { StepTone } from "./step-display";
 import type { IconName } from "@hashintel/ds-components";
+
+const tile = css({
+  display: "flex",
+  flexShrink: "0",
+  alignItems: "center",
+  justifyContent: "center",
+});
+const largeTile = css({ width: "6", height: "6", borderRadius: "sm" });
+const smallTile = css({
+  width: "[14px]",
+  height: "[14px]",
+  borderRadius: "[3px]",
+  bg: "bg.shaded.hover",
+});
 
 /**
  * Large on canvas cards, tinted by the step's tone; small in the Steps tab, on a neutral tile. Figma's icons are 14px
@@ -18,23 +31,14 @@ export const StepIconTile = ({
   tone: StepTone;
   size: "small" | "large";
 }) => (
-  <Box
-    component="span"
-    sx={{
-      display: "flex",
-      flexShrink: 0,
-      alignItems: "center",
-      justifyContent: "center",
-      width: size === "large" ? 24 : 14,
-      height: size === "large" ? 24 : 14,
-      borderRadius: size === "large" ? "4px" : "3px",
+  <span
+    className={cx(tile, size === "large" ? largeTile : smallTile)}
+    style={{
       background:
-        size === "large"
-          ? `var(--colors-${tone}-bg-subtle)`
-          : "var(--colors-neutral-bg-shaded-hover)",
+        size === "large" ? `var(--colors-${tone}-bg-subtle)` : undefined,
       color: `var(--colors-${tone}-fg-muted)`,
     }}
   >
     <Icon name={icon} size={size === "large" ? "xs" : "xxs"} />
-  </Box>
+  </span>
 );

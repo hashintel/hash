@@ -1,8 +1,8 @@
-import { Box } from "@mui/material";
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useCanvasActions } from "./canvas-actions";
 
@@ -11,6 +11,8 @@ import type { EdgeProps } from "@xyflow/react";
 
 /** Keeps × up long enough for the pointer to reach it. */
 const hideDelayMs = 150;
+
+const disconnect = css({ position: "absolute", pointerEvents: "all" });
 
 export const ConnectionEdge = ({
   id,
@@ -73,13 +75,11 @@ export const ConnectionEdge = ({
       </g>
       {connection && hovered && (
         <EdgeLabelRenderer>
-          <Box
-            className="nodrag nopan"
+          <div
+            className={cx(disconnect, "nodrag nopan")}
             {...hover}
-            sx={{
-              position: "absolute",
+            style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              pointerEvents: "all",
             }}
           >
             <Button
@@ -91,7 +91,7 @@ export const ConnectionEdge = ({
               aria-label="Disconnect"
               onClick={() => removeConnection(connection)}
             />
-          </Box>
+          </div>
         </EdgeLabelRenderer>
       )}
     </>

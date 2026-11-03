@@ -1,4 +1,3 @@
-import { Box } from "@mui/material";
 import {
   Background,
   BackgroundVariant,
@@ -19,6 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { RightClickMenu } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { AddStepMenu } from "./canvas/add-step-menu";
 import { CanvasActionsContext } from "./canvas/canvas-actions";
@@ -65,6 +65,8 @@ const nodeTypes = {
 };
 
 const edgeTypes = { connection: ConnectionEdge };
+
+const canvas = css({ width: "full", height: "full" });
 
 const getNodeStepId = (node: FlowNode) =>
   node.type === "start" ? null : node.data.step.stepId;
@@ -633,7 +635,7 @@ const FlowCanvas = ({
 
   return (
     <CanvasActionsContext value={canvasActions}>
-      <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
+      <div ref={containerRef} className={canvas}>
         <RightClickMenu items={getContextMenuItems()}>
           <ReactFlow<FlowNode, ConnectionEdgeType>
             nodes={nodes}
@@ -745,7 +747,7 @@ const FlowCanvas = ({
             onClose={() => setAddMenu(null)}
           />
         )}
-      </Box>
+      </div>
     </CanvasActionsContext>
   );
 };

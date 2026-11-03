@@ -1,7 +1,7 @@
-import { Box } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
 
 import { Button, Icon, Tooltip } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
@@ -19,29 +19,46 @@ import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-
 import type { NodeProps } from "@xyflow/react";
 import type { ReactNode } from "react";
 
-const getBorderColor = (selected: boolean) =>
-  selected ? "var(--colors-blue-bd-strong)" : "var(--colors-neutral-bd-subtle)";
-
-const portStyles = {
+const ports = css({
   "& .react-flow__handle": {
-    width: 7,
-    height: 7,
-    minWidth: 0,
-    minHeight: 0,
-    background: "var(--colors-neutral-s00)",
-    border: "1px solid var(--colors-neutral-bd-strong)",
+    width: "[7px]",
+    height: "[7px]",
+    minWidth: "0",
+    minHeight: "0",
+    bg: "neutral.s00",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "bd.strong",
   },
   "& .react-flow__handle.connectingto.valid": {
-    borderColor: "var(--colors-blue-bd-strong)",
+    borderColor: "blue.bd.strong",
   },
-  "& .react-flow__handle:hover .port-add": { opacity: 1 },
-};
+  "& .react-flow__handle:hover .port-add": { opacity: "1" },
+});
 
-const getSelectedOutline = (selected: boolean) => ({
-  border: `1px solid ${getBorderColor(selected)}`,
-  boxShadow: selected
-    ? "inset 0 0 0 0.5px var(--colors-blue-bd-strong)"
-    : undefined,
+const outline = css({ borderWidth: "1px", borderStyle: "solid" });
+const unselectedOutline = css({ borderColor: "bd.subtle" });
+const selectedOutline = css({
+  borderColor: "blue.bd.strong",
+  boxShadow: "[inset 0 0 0 0.5px {colors.blue.bd.strong}]",
+});
+
+const getOutline = (selected: boolean) =>
+  cx(outline, selected ? selectedOutline : unselectedOutline);
+
+const portAdd = css({
+  position: "absolute",
+  left: "[50%]",
+  top: "[50%]",
+  transform: "translate(-50%, -50%)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "5",
+  height: "5",
+  padding: "0",
+  cursor: "pointer",
+  opacity: "0",
 });
 
 /** Shown on port hover. It sits inside the handle, so dragging from it still draws a connection. */
@@ -49,28 +66,13 @@ const PortAdd = ({ stepId }: { stepId: string | null }) => {
   const { openAddMenuAfter } = useCanvasActions();
 
   return (
-    <Box
-      component="button"
+    <button
       type="button"
-      className="port-add nodrag nopan"
+      className={cx(portAdd, "port-add nodrag nopan")}
       aria-label={`Add a ${stepNoun.singular} after this`}
       onClick={(event) => {
         event.stopPropagation();
         openAddMenuAfter(event.currentTarget, stepId);
-      }}
-      sx={{
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 20,
-        height: 20,
-        padding: 0,
-        cursor: "pointer",
-        opacity: 0,
       }}
       /* Inline, as the design system's reset of buttons in its scope outranks classes. */
       style={{
@@ -81,9 +83,14 @@ const PortAdd = ({ stepId }: { stepId: string | null }) => {
       }}
     >
       <Icon name="plus" size="xs" />
-    </Box>
+    </button>
   );
 };
+
+const problemsList = css({ m: "0", pl: "4" });
+const problemsMarker = css({ display: "flex" });
+const errorsMarker = css({ color: "red.fg.muted" });
+const warningsMarker = css({ color: "orange.fg.muted" });
 
 const ProblemsMarker = ({
   problems,
@@ -100,41 +107,61 @@ const ProblemsMarker = ({
     <Tooltip
       position="top"
       content={
-        <Box component="ul" sx={{ m: 0, pl: 2 }}>
+        <ul className={problemsList}>
           {problems.map((problem, index) => (
             // eslint-disable-next-line react/no-array-index-key -- two problems may have the same message
-            <Box component="li" key={index}>
-              {problem.message}
-            </Box>
+            <li key={index}>{problem.message}</li>
           ))}
-        </Box>
+        </ul>
       }
     >
-      <Box
-        component="span"
+      <span
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable so the problems can be read from the keyboard
         tabIndex={0}
-        sx={{
-          display: "flex",
-          color: hasErrors
-            ? "var(--colors-red-fg-muted)"
-            : "var(--colors-orange-fg-muted)",
-        }}
+        className={cx(
+          problemsMarker,
+          hasErrors ? errorsMarker : warningsMarker,
+        )}
       >
         <Icon
           name="warning"
           size="xs"
           alt={`${problems.length} ${problems.length === 1 ? "problem" : "problems"}`}
         />
-      </Box>
+      </span>
     </Tooltip>
   );
 };
 
-const oneLine = {
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-} as const;
+const card = css({
+  display: "flex",
+  gap: "2",
+  alignItems: "flex-start",
+  boxSizing: "border-box",
+  padding: "3",
+  borderRadius: "lg",
+  bg: "neutral.s00",
+});
+const cardText = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
+  minWidth: "0",
+  flex: "1",
+});
+const cardTitleRow = css({ display: "flex", alignItems: "center", gap: "1" });
+const cardTitle = css({
+  truncate: true,
+  flex: "1",
+  fontSize: "[13px]",
+  fontWeight: "medium",
+  color: "fg.heading",
+});
+const cardDescription = css({
+  truncate: true,
+  fontSize: "xs",
+  color: "fg.subtle",
+});
 
 const Card = ({
   title,
@@ -153,59 +180,19 @@ const Card = ({
   problems: FlowDefinitionDiagnosticWithStepId[];
   children: ReactNode;
 }) => (
-  <Box
-    sx={{
-      ...portStyles,
-      display: "flex",
-      gap: 1,
-      alignItems: "flex-start",
-      boxSizing: "border-box",
-      width: stepCardSize.width,
-      height: stepCardSize.height,
-      padding: "12px",
-      borderRadius: "8px",
-      ...getSelectedOutline(selected),
-      background: "var(--colors-neutral-s00)",
-    }}
-  >
+  <div className={cx(ports, card, getOutline(selected))} style={stepCardSize}>
     <StepIconTile icon={icon} tone={tone} size="large" />
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "2px",
-        minWidth: 0,
-        flex: 1,
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-        <Box
-          component="span"
-          sx={{
-            ...oneLine,
-            flex: 1,
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--colors-neutral-fg-heading)",
-          }}
-        >
-          {title}
-        </Box>
+    <div className={cardText}>
+      <div className={cardTitleRow}>
+        <span className={cardTitle}>{title}</span>
         <ProblemsMarker problems={problems} />
-      </Box>
-      <Box
-        component="span"
-        sx={{
-          ...oneLine,
-          fontSize: 12,
-          color: "var(--colors-neutral-fg-subtle)",
-        }}
-      >
+      </div>
+      <span className={cardDescription}>
         {description || "Add a description…"}
-      </Box>
-    </Box>
+      </span>
+    </div>
     {children}
-  </Box>
+  </div>
 );
 
 export const StartNode = (_props: NodeProps<StartNodeType>) => (
@@ -228,6 +215,28 @@ export const StepNode = ({
   </Card>
 );
 
+const forEachBox = css({
+  boxSizing: "border-box",
+  width: "full",
+  height: "full",
+  borderRadius: "xl",
+  bg: "bgSolid.surface",
+});
+const forEachHeader = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  px: "2",
+});
+const forEachChevron = css({ display: "flex" });
+const forEachTitle = css({
+  truncate: true,
+  flex: "1",
+  fontSize: "[13px]",
+  fontWeight: "medium",
+  color: "fg.body",
+});
+
 /** Collapsed, the box is a one-line card; its chevron and the Steps tab's group collapse together. */
 export const ForEachNode = ({
   data: { step, problems, inner, collapsed },
@@ -237,28 +246,13 @@ export const ForEachNode = ({
   const { title, description } = getStepDisplay(step);
 
   return (
-    <Box
-      sx={{
-        ...portStyles,
-        boxSizing: "border-box",
-        width: "100%",
-        height: "100%",
-        borderRadius: "12px",
-        ...getSelectedOutline(selected),
-        background: "var(--colors-neutral-bg-solid-surface)",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          height: collapsed ? "100%" : forEachBoxPadding.header,
-          px: 1,
-        }}
+    <div className={cx(ports, forEachBox, getOutline(selected))}>
+      <div
+        className={forEachHeader}
+        style={{ height: collapsed ? "100%" : forEachBoxPadding.header }}
       >
         {!inner && (
-          <Box className="nodrag" sx={{ display: "flex" }}>
+          <div className={cx(forEachChevron, "nodrag")}>
             <Button
               variant="ghost"
               size="xxs"
@@ -267,26 +261,15 @@ export const ForEachNode = ({
               aria-expanded={!collapsed}
               onClick={() => toggleCollapsed(step.stepId)}
             />
-          </Box>
+          </div>
         )}
-        <Box
-          component="span"
-          sx={{
-            ...oneLine,
-            flex: 1,
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--colors-neutral-fg-body)",
-          }}
-        >
-          {description || title}
-        </Box>
+        <span className={forEachTitle}>{description || title}</span>
         <ProblemsMarker problems={problems} />
-      </Box>
+      </div>
       <Handle type="target" position={Position.Left} isConnectable={!inner} />
       <Handle type="source" position={Position.Right} isConnectable={!inner}>
         {selected && !inner && <PortAdd stepId={step.stepId} />}
       </Handle>
-    </Box>
+    </div>
   );
 };
