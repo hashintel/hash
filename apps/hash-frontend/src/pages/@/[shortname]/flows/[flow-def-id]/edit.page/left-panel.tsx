@@ -197,7 +197,6 @@ export const LeftPanel = ({
       }}
     >
       <Box sx={{ p: 1 }}>
-        {/* The design system has no tabs yet (a gap logged in Notion), so a segmented control stands in for them. */}
         <SegmentedControl
           size="md"
           aria-label="Left panel"

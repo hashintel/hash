@@ -1,11 +1,26 @@
-import { Box } from "@mui/material";
 import { useReactFlow, useViewport } from "@xyflow/react";
 
 import { Button, ButtonGroup, Icon, Menu } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { getAddStepMenuItems } from "../shared/step-display";
 
 export type CanvasTool = "hand" | "select";
+
+const toolbar = css({
+  p: "1",
+  borderRadius: "lg",
+  bg: "bgSolid.min",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  boxShadow: "sm",
+});
+const toolbarDivider = css({
+  width: "[1px]",
+  height: "5",
+  bg: "neutral.bd.solid",
+});
 
 export const CanvasToolbar = ({
   tool,
@@ -25,15 +40,7 @@ export const CanvasToolbar = ({
   const zoomPercent = `${Math.round(zoom * 100)}%`;
 
   return (
-    <Box
-      sx={{
-        p: 0.5,
-        borderRadius: 2,
-        background: ({ palette }) => palette.common.white,
-        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        boxShadow: ({ boxShadows }) => boxShadows.sm,
-      }}
-    >
+    <div className={toolbar}>
       <ButtonGroup spacing="xxs" noWrap>
         <Menu
           position="top-start"
@@ -86,7 +93,7 @@ export const CanvasToolbar = ({
                 {
                   id: "zoom-to-100",
                   text: "Zoom to 100%",
-                  icon: "oneHundred",
+                  icon: "search",
                   onClick: () => {
                     void zoomTo(1);
                   },
@@ -113,13 +120,7 @@ export const CanvasToolbar = ({
           aria-pressed={tool === "select"}
           onClick={() => onToolChange("select")}
         />
-        <Box
-          sx={{
-            width: "1px",
-            height: 20,
-            background: "var(--colors-neutral-bd-solid)",
-          }}
-        />
+        <div className={toolbarDivider} />
         <Menu
           position="top-start"
           trigger={
@@ -141,6 +142,6 @@ export const CanvasToolbar = ({
           onClick={onOrganize}
         />
       </ButtonGroup>
-    </Box>
+    </div>
   );
 };
