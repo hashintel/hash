@@ -104,7 +104,6 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   if (
     !presentation.showCustomVisualizers ||
     !place ||
-    !placeType?.elements.length ||
     place.visualizerCode === undefined ||
     !node
   )
@@ -148,12 +147,21 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
         }}
       >
         <Suspense fallback={<VisualizerLoading />}>
-          <PlaceStateVisualization place={place} placeType={placeType} />
+          <PlaceStateVisualization
+            place={place}
+            placeType={placeType ?? null}
+          />
         </Suspense>
       </VisualizerWindow>
     );
   }
-  if (hoveredItem?.id !== nodeId || node.dragging) return null;
+  if (
+    !placeType?.elements.length ||
+    !place.visualizerCode ||
+    hoveredItem?.id !== nodeId ||
+    node.dragging
+  )
+    return null;
 
   const below =
     node.internals.positionAbsolute.y * viewport.zoom + viewport.y < 94;
