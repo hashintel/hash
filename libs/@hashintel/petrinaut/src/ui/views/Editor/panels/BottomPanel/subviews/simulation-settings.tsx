@@ -15,6 +15,7 @@ import {
   classicScenarioRunState,
   compileScenario,
   createUserKeyedRecord,
+  DEFAULT_SOLVER_TOLERANCE,
   EMPTY_AD_HOC_STATE,
   initialMarkingToAdHocPlaces,
 } from "@hashintel/petrinaut-core";
@@ -266,6 +267,8 @@ const SimulationSettingsContent: React.FC = () => {
     setDt,
     engine,
     setEngine,
+    eventSolver,
+    setEventSolver,
     selectedScenarioId: contextScenarioId,
     setSelectedScenarioId: setContextScenarioId,
     scenarioParameterValues,
@@ -556,6 +559,60 @@ const SimulationSettingsContent: React.FC = () => {
     </div>
   );
 
+  // The event-driven engine chooses how it advances between events; the
+  // adaptive solver also takes the local error it may incur per step.
+  const solverControls = (
+    <>
+      <div className={inlineControlStyle}>
+        <span className={labelStyle}>
+          <span>Solver</span>
+          <PointerHelpTooltip content="Fixed step advances the run at a small fixed step. Adaptive integrates each place's dynamics with an error-controlled solver, choosing its own steps, and samples firing times from the transitions' rates." />
+        </span>
+        <SegmentedControl
+          size="xs"
+          aria-label="Event solver"
+          value={eventSolver.kind}
+          items={[
+            { value: "fixed-step", label: "Fixed step" },
+            { value: "adaptive", label: "Adaptive" },
+          ]}
+          onChange={(kind) =>
+            setEventSolver(
+              kind === "adaptive"
+                ? { kind, tolerance: DEFAULT_SOLVER_TOLERANCE }
+                : { kind: "fixed-step" },
+            )
+          }
+          disabled={isSimulationActive}
+        />
+      </div>
+      {eventSolver.kind === "adaptive" ? (
+        <div className={inlineControlStyle}>
+          <label htmlFor="solver-tolerance-input" className={labelStyle}>
+            <span>Max error</span>
+            <PointerHelpTooltip content="The largest error the solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. The run records the error accumulated per place at every event." />
+          </label>
+          <NumberInput
+            htmlForId="solver-tolerance-input"
+            size="xs"
+            width="xs"
+            min={1e-12}
+            max={1}
+            step="any"
+            hideStepper
+            value={eventSolver.tolerance}
+            onChange={(tolerance) => {
+              if (tolerance !== null && tolerance > 0) {
+                setEventSolver({ kind: "adaptive", tolerance });
+              }
+            }}
+            disabled={isSimulationActive}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+
   // The event-driven engine records a frame per firing rather than per step,
   // so the Time Step only applies to the fixed-step engine.
   const runSettingsControls = (
@@ -577,7 +634,7 @@ const SimulationSettingsContent: React.FC = () => {
           disabled={isSimulationActive}
         />
       </div>
-      {engine === "fixed-step" ? timeStepControl : null}
+      {engine === "fixed-step" ? timeStepControl : solverControls}
     </div>
   );
 
