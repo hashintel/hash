@@ -1,7 +1,7 @@
 import { Children, isValidElement } from "react";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 import type { IconName } from "../Icon/icon";
 import type { MenuItem } from "../Menu/menu";
 import type { Tooltip } from "../Tooltip/tooltip";

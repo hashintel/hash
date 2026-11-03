@@ -25,8 +25,8 @@ import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { getItemId } from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list";
+import { getItemId } from "../../primitives/SelectableList/selectable-list-util";
 import { Icon } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
 import { Select } from "../Select/select";

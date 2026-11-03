@@ -7,7 +7,7 @@ import { MultipleDemo } from "./multi-select.story";
 import { Select } from "./select";
 
 import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 import type { SelectItem } from "./select";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

@@ -8,8 +8,8 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { hasCaretModifier } from "../keyboard";
-import { useIsomorphicLayoutEffect } from "../use-isomorphic-layout-effect";
+import { hasCaretModifier } from "../../util/keyboard";
+import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effect";
 import { styles } from "./overflow-row.recipe";
 
 import type { ExclusifyUnion } from "type-fest";
