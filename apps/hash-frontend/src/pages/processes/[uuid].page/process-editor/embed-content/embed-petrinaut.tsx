@@ -1,6 +1,7 @@
 import {
   memo,
   use,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -9,9 +10,10 @@ import {
 
 import { brunchRoutes } from "@hashintel/brunch-agent";
 import {
-  type BrunchAssistant,
   BrunchAssistantContext,
   type BrunchOpenDocument,
+  brunchPlugin,
+  type PetrinautAiAssistant,
   useBrunchAssistant,
 } from "@hashintel/brunch-agent/ui";
 import {
@@ -27,6 +29,7 @@ import { embedChromePlugin } from "./embed-chrome-plugin";
 import type { EntityId, UserId } from "@blockprotocol/type-system";
 
 const embedPlugins = [embedChromePlugin];
+const embedPluginsWithBrunch = [embedChromePlugin, brunchPlugin];
 
 /** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
 const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
@@ -111,13 +114,11 @@ const useBrunchOwnerKey = (): string | null => {
     : null;
 };
 
-type BrunchSessionOutput = Pick<BrunchAssistant, "assistant" | "plugins">;
-
 /**
  * Brunch's assistant for one saved net, mounted only while it is offered, so
  * the hook never runs without an owner key. Renders nothing: it hands the
- * assistant and plugins to its parent, which keeps `<Petrinaut>` mounted
- * whether or not Brunch is offered. Unmounting withdraws them.
+ * assistant to its parent, which keeps `<Petrinaut>` mounted whether or not
+ * Brunch is offered. Unmounting withdraws it.
  *
  * Memoised, and its props must stay stable: the hook returns a new assistant
  * on every render, so if the parent's update re-rendered this component, each
@@ -127,28 +128,30 @@ const BrunchSession = memo(
   ({
     ownerKey,
     openDocument,
+    shown,
     onChange,
   }: {
     ownerKey: string;
     openDocument: BrunchOpenDocument;
-    onChange: (output: BrunchSessionOutput | null) => void;
+    /** The editor shows Brunch's assistant. */
+    shown: boolean;
+    onChange: (assistant: PetrinautAiAssistant | null) => void;
   }) => {
-    const { assistant, plugins } = useBrunchAssistant({
+    const { assistant } = useBrunchAssistant({
       ownerKey,
       chatEndpoint: brunchChatEndpoint,
       fetch: brunchFetch,
-      selected: true,
+      selected: shown,
       openDocument,
       voice: brunchVoice,
       interviewBudget: brunchInterviewBudget,
       words: brunchWords,
-      plugins: embedPlugins,
     });
 
     useLayoutEffect(() => {
-      onChange({ assistant, plugins });
+      onChange(assistant);
       return () => onChange(null);
-    }, [assistant, plugins, onChange]);
+    }, [assistant, onChange]);
 
     return null;
   },
@@ -179,7 +182,20 @@ export const EmbedPetrinaut = ({
   title: string;
 }) => {
   const ownerKey = useBrunchOwnerKey();
-  const [brunch, setBrunch] = useState<BrunchSessionOutput | null>(null);
+  const [brunchAssistant, setBrunchAssistant] =
+    useState<PetrinautAiAssistant | null>(null);
+  // Brunch's panel content marks Brunch as shown while the editor mounts it.
+  // A load replaces the handle, and the old content's unmark runs before the
+  // new content's mark in the same commit, so Brunch stays shown across it.
+  const [brunchShown, setBrunchShown] = useState(false);
+  const showBrunch = useCallback(() => {
+    setBrunchShown(true);
+    return () => setBrunchShown(false);
+  }, []);
+  const brunchHost = useMemo(
+    () => ({ assistant: brunchAssistant, show: showBrunch }),
+    [brunchAssistant, showBrunch],
+  );
 
   const editor = useMemo(() => ({ handle, readTitle }), [handle, readTitle]);
   // Brunch edits and saves the net, so it is offered only on saved nets the
@@ -198,11 +214,12 @@ export const EmbedPetrinaut = ({
         <BrunchSession
           ownerKey={ownerKey}
           openDocument={openDocument}
-          onChange={setBrunch}
+          shown={brunchShown}
+          onChange={setBrunchAssistant}
         />
       )}
       {/* Brunch's plugin renders its chat from this, inside the editor. */}
-      <BrunchAssistantContext value={brunch?.assistant ?? null}>
+      <BrunchAssistantContext value={brunchHost}>
         {/* The title is the breadcrumbs' final crumb, so the editor's own
             title field stays hidden. */}
         <Petrinaut
@@ -211,7 +228,11 @@ export const EmbedPetrinaut = ({
           existingNets={[]}
           hideNetManagementControls="all"
           loadPetriNet={noNetSwitchingError}
-          plugins={brunch?.plugins ?? embedPlugins}
+          plugins={
+            ownerKey !== null && openDocument !== null
+              ? embedPluginsWithBrunch
+              : embedPlugins
+          }
           readonly={readonly}
           setTitle={setTitle}
           title={title}

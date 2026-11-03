@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render, waitFor } from "@testing-library/react";
-import { createContext, useEffect } from "react";
+import { createContext, use, useEffect, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { ErrorTrackerContext } from "@hashintel/petrinaut";
@@ -10,8 +10,11 @@ import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { EmbedPetrinaut } from "./embed-petrinaut";
 
 import type { EntityId } from "@blockprotocol/type-system";
-import type { useBrunchAssistant } from "@hashintel/brunch-agent/ui";
-import type { ErrorTracker } from "@hashintel/petrinaut";
+import type {
+  BrunchAssistantHost,
+  useBrunchAssistant,
+} from "@hashintel/brunch-agent/ui";
+import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
 
 const observed = vi.hoisted(() => ({
   /** The plugins each editor render got. */
@@ -22,28 +25,44 @@ const observed = vi.hoisted(() => ({
 
 const brunchPluginMarker = vi.hoisted(() => ({ id: "brunch" }));
 const embedChromePluginMarker = vi.hoisted(() => ({ id: "embed-chrome" }));
+const brunchHostContext = await vi.hoisted(async () => {
+  const { createContext: createHostContext } = await import("react");
+  return createHostContext<BrunchAssistantHost | null>(null);
+});
 
 vi.mock("@hashintel/petrinaut", () => ({
   ErrorTrackerContext: createContext<ErrorTracker>({
     captureException: () => {},
   }),
-  Petrinaut: ({ plugins }: { plugins: unknown[] }) => {
+  Petrinaut: ({
+    handle: editorHandle,
+    plugins,
+  }: {
+    handle: PetrinautDocHandle;
+    plugins: unknown[];
+  }) => {
     observed.petrinautPlugins.push(plugins);
     useEffect(() => {
       observed.petrinautMounts += 1;
     }, []);
+    // Brunch is the only assistant, so the editor shows it, mounting its
+    // content, which marks it as shown, while its plugin is listed.
+    const show = use(brunchHostContext)?.show;
+    const brunchListed = plugins.includes(brunchPluginMarker);
+    useLayoutEffect(
+      () => (brunchListed ? show?.(editorHandle.id) : undefined),
+      [brunchListed, show, editorHandle.id],
+    );
     return null;
   },
 }));
 
 vi.mock("@hashintel/brunch-agent/ui", () => ({
-  BrunchAssistantContext: createContext(null),
+  BrunchAssistantContext: brunchHostContext,
+  brunchPlugin: brunchPluginMarker,
   useBrunchAssistant: (input: Parameters<typeof useBrunchAssistant>[0]) => {
     observed.brunchInputs.push(input);
-    return {
-      assistant: { presentation: "brunch" },
-      plugins: [...input.plugins, brunchPluginMarker],
-    };
+    return { assistant: { presentation: "brunch" }, openAIVoiceConfig: null };
   },
 }));
 
@@ -142,11 +161,12 @@ test("Brunch is offered on an editable saved net only once the owner key is know
       brunchPluginMarker,
     ]),
   );
-  expect(observed.brunchInputs.length).toBeGreaterThan(0);
+  await waitFor(() =>
+    expect(observed.brunchInputs.at(-1)).toMatchObject({ selected: true }),
+  );
   for (const input of observed.brunchInputs) {
     expect(input).toMatchObject({
       ownerKey: "hash:alice-account",
-      selected: true,
       openDocument: { documentId: savedEntityId, editor: { handle } },
     });
   }
