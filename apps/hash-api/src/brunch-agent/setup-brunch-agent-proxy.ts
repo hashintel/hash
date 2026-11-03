@@ -1,9 +1,14 @@
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+import express from "express";
+import { rateLimit } from "express-rate-limit";
+
+import { getActorIdFromRequest } from "../auth/get-actor-id";
+
 import type { UserId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { Express, Request, Response } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 
 /**
@@ -28,6 +33,24 @@ const brunchHeaders = {
   ownerKey: "x-brunch-principal",
 };
 const brunchAgentsRoute = "/agents";
+const brunchHashAgentRoute = "hash";
+
+/**
+ * The only agent this hop serves: HASH's process page talks to the HASH agent
+ * alone, so Brunch's other agents stay unreachable from HASH sessions.
+ */
+const hashAgentPrefix = `${brunchAgentsRoute}/${brunchHashAgentRoute}/`;
+
+/**
+ * Turn submissions each signed-in user may make per minute. Every submission
+ * starts a model turn, so this bounds the model spend one account can cause.
+ * A person typing messages or answering the agent stays far below it; a
+ * runaway script or loop does not.
+ */
+const turnSubmissionsPerMinute = 30;
+
+/** As the app-wide JSON body parser in `index.ts`. */
+const jsonBodyLimit = "16mb";
 
 const notConfiguredError = { error: "Brunch agent is not configured" };
 
@@ -75,8 +98,34 @@ const hasRequestBody = (request: Request) =>
     Number(request.headers["content-length"] ?? 0) > 0);
 
 /**
- * The body to forward, or `null` when it cannot be forwarded. The app-wide
- * JSON body parser has already consumed a JSON stream, so the parsed value is
+ * The Brunch URL a request forwards to, or `null` when it falls outside the
+ * HASH agent. Checks the URL that is forwarded, not the request path: URL
+ * parsing resolves `..`, `%2e%2e` and `\`, which would otherwise reach other
+ * Brunch routes.
+ */
+const hashAgentUrl = (request: Request, origin: URL): URL | null => {
+  const upstreamUrl = new URL(
+    request.originalUrl.slice(brunchAgentProxyPath.length),
+    origin,
+  );
+  return upstreamUrl.origin === origin.origin &&
+    upstreamUrl.pathname.startsWith(hashAgentPrefix)
+    ? upstreamUrl
+    : null;
+};
+
+/**
+ * Whether a request submits a turn: Flue's `send` is a `POST` to the
+ * conversation's instance URL itself. Its sub-routes (`abort`, browser-call
+ * claims, leases and settlements) and every `GET` start no turn.
+ */
+const isTurnSubmission = (request: Request, upstreamUrl: URL) =>
+  request.method === "POST" &&
+  /^[^/]+\/?$/u.test(upstreamUrl.pathname.slice(hashAgentPrefix.length));
+
+/**
+ * The body to forward, or `null` when it cannot be forwarded. The hop's JSON
+ * body parser has already consumed a JSON stream, so the parsed value is
  * re-serialised: Brunch reads the JSON value, not its exact text. Any other
  * body was left unread and is refused rather than dropped.
  */
@@ -103,8 +152,6 @@ export const setupBrunchAgentProxy = (
     logger: Pick<Logger, "warn">;
   },
 ) => {
-  const agentsPrefix = `${brunchAgentsRoute}/`;
-
   /**
    * The signed-in user's Brunch owner key, which is also how the frontend
    * learns whether to offer Brunch at all: 401 without a session, and 503 with
@@ -123,28 +170,52 @@ export const setupBrunchAgentProxy = (
     response.json({ ownerKey: brunchOwnerKey(request.user.accountId) });
   });
 
+  const admitRequest = (
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ) => {
+    if (!request.user) {
+      response.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    if (!origin) {
+      response.status(503).json(notConfiguredError);
+      return;
+    }
+    if (!hashAgentUrl(request, origin)) {
+      response.status(404).json({ error: "Not found" });
+      return;
+    }
+    next();
+  };
+
+  /** Counts turn submissions per signed-in account; admitted requests only. */
+  const turnSubmissionRateLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: turnSubmissionsPerMinute,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (request) => getActorIdFromRequest(request),
+    skip: (request) => {
+      const upstreamUrl = origin ? hashAgentUrl(request, origin) : null;
+      return !upstreamUrl || !isTurnSubmission(request, upstreamUrl);
+    },
+    message: { error: "Too many Brunch agent turns, try again later" },
+  });
+
   app.use(
     brunchAgentProxyPath,
+    admitRequest,
+    turnSubmissionRateLimiter,
+    // The body is re-serialised below, so this hop parses it itself rather
+    // than rely on the app mounting a JSON parser first. A body an earlier
+    // parser already read is left as that parser set it.
+    express.json({ limit: jsonBodyLimit }),
     async (request: Request, response: Response) => {
-      if (!request.user) {
-        response.status(401).json({ error: "Authentication required" });
-        return;
-      }
-      if (!origin) {
-        response.status(503).json(notConfiguredError);
-        return;
-      }
-      // Check the URL that is forwarded, not the request path: URL parsing
-      // resolves `..`, `%2e%2e` and `\`, which would otherwise reach Brunch
-      // routes outside its agents.
-      const upstreamUrl = new URL(
-        request.originalUrl.slice(brunchAgentProxyPath.length),
-        origin,
-      );
-      if (
-        upstreamUrl.origin !== origin.origin ||
-        !upstreamUrl.pathname.startsWith(agentsPrefix)
-      ) {
+      const upstreamUrl = origin ? hashAgentUrl(request, origin) : null;
+      if (!request.user || !origin || !upstreamUrl) {
+        // `admitRequest` has already answered anything this would refuse.
         response.status(404).json({ error: "Not found" });
         return;
       }
@@ -196,8 +267,8 @@ export const setupBrunchAgentProxy = (
         // Flue builds `streamUrl` and `Location` from the URL it was reached
         // at, which names Brunch's internal origin. Point both back through
         // this hop.
-        const internalBase = `${origin.origin}${agentsPrefix}`;
-        const publicBase = `${publicOrigin}${brunchAgentProxyPath}${agentsPrefix}`;
+        const internalBase = `${origin.origin}${brunchAgentsRoute}/`;
+        const publicBase = `${publicOrigin}${brunchAgentProxyPath}${brunchAgentsRoute}/`;
         for (const [name, value] of upstream.headers) {
           if (
             !droppedResponseHeaders.has(name) &&
