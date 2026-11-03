@@ -21,6 +21,7 @@ import {
 } from "./interactions";
 import {
   findFiringNear,
+  FIRING_COLOR,
   type EventTimelineData,
   type FiringMark,
 } from "./series";
@@ -202,10 +203,13 @@ const drawFirings = (u: uPlot, state: ChartState): void => {
   const { ctx } = u;
   ctx.save();
   ctx.lineWidth = 1.5 * devicePixelRatio;
-  for (const firing of state.firings) {
-    ctx.strokeStyle = firing.color;
-    drawTicks(u, [firing.time], state.viewRange, FIRING_MARK_PX);
-  }
+  ctx.strokeStyle = FIRING_COLOR;
+  drawTicks(
+    u,
+    state.firings.map((firing) => firing.time),
+    state.viewRange,
+    FIRING_MARK_PX,
+  );
   ctx.restore();
 };
 
@@ -303,7 +307,6 @@ const updateTooltip = (
         .map((id) => state.transitionNames.get(id) ?? id)
         .join(", ")} fired at ${formatSeconds(firing.time)}`
     : "";
-  nodes.firing.style.color = firing?.color ?? "";
 
   nodes.root.style.display = "block";
   const width = nodes.root.offsetWidth;

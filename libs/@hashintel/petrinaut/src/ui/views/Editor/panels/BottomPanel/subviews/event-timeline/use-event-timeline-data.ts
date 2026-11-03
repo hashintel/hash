@@ -12,7 +12,6 @@ import {
   buildStepData,
   collectFirings,
   collectReferenceTimes,
-  transitionColors,
   type EventTimelineData,
   type FiringMark,
 } from "./series";
@@ -73,11 +72,7 @@ export function useEventTimelineData({
     };
   }
 
-  const firings = collectFirings(
-    eventSimulation,
-    eventCount,
-    transitionColors(transitions),
-  );
+  const firings = collectFirings(eventSimulation, eventCount);
   const references = collectReferenceTimes(eventSimulation, eventCount);
 
   switch (timelineView.kind) {
