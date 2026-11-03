@@ -112,6 +112,16 @@ export function hirFromArtifacts(
       });
       continue;
     }
+    if (artifact.arity !== undefined || (place.dynamics?.length ?? 0) > 0) {
+      // Eligibility refuses these nets before emission; this keeps a
+      // tuple-shaped HIR out of the whole-place emitter regardless.
+      skipped.push({
+        itemId: place.id,
+        reason:
+          "its dynamics couple tokens or compose several equations, which the shader does not integrate",
+      });
+      continue;
+    }
     dynamics.set(place.id, artifact.hir);
   }
 

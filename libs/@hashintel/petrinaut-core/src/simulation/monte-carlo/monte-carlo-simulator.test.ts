@@ -271,6 +271,95 @@ describe("MonteCarloSimulator", () => {
     );
   });
 
+  it("integrates a place's composed dynamics through the summed derivative", () => {
+    // The same bodies as the engine test: `drift` moves every body by one
+    // unit per time unit and `attraction` pulls every pair together by a
+    // tenth of its separation, so after one unit step the bodies at 0 and
+    // 10 sit at 2 and 10.
+    const bodiesNet: SDCPN = {
+      types: [
+        {
+          id: "body",
+          name: "Body",
+          iconSlug: "circle",
+          displayColor: "#000000",
+          elements: [{ elementId: "x", name: "x", type: "real" }],
+        },
+      ],
+      differentialEquations: [
+        {
+          id: "attraction",
+          name: "Attraction",
+          colorId: "body",
+          arity: 2,
+          code: `const [a, b] = tokens;
+const pull = 0.1 * (b.x - a.x);
+return [{ x: pull }, { x: -pull }];`,
+        },
+        {
+          id: "drift",
+          name: "Drift",
+          colorId: "body",
+          arity: 1,
+          code: `return { x: 1 };`,
+        },
+      ],
+      parameters: [],
+      places: [
+        {
+          id: "space",
+          name: "Space",
+          colorId: "body",
+          dynamicsEnabled: true,
+          differentialEquationId: "drift",
+          dynamics: [{ differentialEquationId: "attraction" }],
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "never",
+          name: "Never",
+          inputArcs: [{ placeId: "space", weight: 1, type: "standard" }],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => false);",
+          transitionKernelCode: "",
+          x: 0,
+          y: 0,
+        },
+      ],
+    };
+    const positions = createMonteCarloUserDefinedMetric({
+      id: "positions",
+      label: "Positions",
+      sampleRuns: "all",
+      aggregateRuns: "last",
+      aggregateTime: "none",
+      measure: ({ frame }) => {
+        const [first, second] = frame.getPlaceTokens(bodiesNet.places[0]!);
+        return Number(first?.x) * 100 + Number(second?.x);
+      },
+    });
+
+    const simulator = createMonteCarloSimulator({
+      sdcpn: bodiesNet,
+      runCount: 1,
+      initialMarking: { space: [{ x: 0 }, { x: 10 }] },
+      seed: 7,
+      dt: 1,
+      maxTime: 1,
+      metrics: [positions],
+    });
+
+    const result = simulator.runUntilComplete({ maxBatches: 10 });
+
+    expect(result.allFinished).toBe(true);
+    expect(simulator.getRunSnapshot(0).status).toBe("complete");
+    expect(positions.getLatestFrame()).toMatchObject({ value: 210 });
+  });
+
   it("does not consume tokens read by read arcs", () => {
     const productQualityMetric = createMonteCarloUserDefinedMetric({
       id: "product-quality",
