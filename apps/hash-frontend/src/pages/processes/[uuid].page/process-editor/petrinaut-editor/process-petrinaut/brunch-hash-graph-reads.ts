@@ -101,11 +101,33 @@ const traversalPathsTo = (depth: number): EntityTraversalPath[] => {
   ];
 };
 
+const namedDraftIds = (input: HashEntityReadInput): Set<EntityId> =>
+  new Set(
+    (input.entityIds ?? [])
+      .map((entityId) => entityId as EntityId)
+      .filter((entityId) => extractDraftIdFromEntityId(entityId) !== undefined),
+  );
+
+/**
+ * The only drafts a read returns, when it reads drafts just because its entity
+ * ids name some: the request then includes drafts query-wide, so following
+ * links could reach other drafts, which the read leaves out. `undefined` when
+ * drafts were asked for, or none were named, and the read keeps what the
+ * graph returns.
+ */
+export const hashEntityReadOnlyDrafts = (
+  input: HashEntityReadInput,
+): ReadonlySet<EntityId> | undefined => {
+  const named = namedDraftIds(input);
+  return input.includeDrafts === true || named.size === 0 ? undefined : named;
+};
+
 /**
  * The `queryEntitySubgraph` request for one read: every given filter must
  * match. An entity id that names a draft reads that draft, whether or not
  * drafts were asked for; unless they were, an id without a draft part reads
- * only the live entity.
+ * only the live entity, and of the drafts the graph returns the read keeps
+ * only those named (`hashEntityReadOnlyDrafts`).
  */
 export const hashEntityReadRequest = (
   input: HashEntityReadInput,
@@ -113,9 +135,7 @@ export const hashEntityReadRequest = (
   const entityIds = (input.entityIds ?? []).map(
     (entityId) => entityId as EntityId,
   );
-  const namesDraft = entityIds.some(
-    (entityId) => extractDraftIdFromEntityId(entityId) !== undefined,
-  );
+  const namesDraft = namedDraftIds(input).size > 0;
   const entityIdFilter = (entityId: EntityId): Filter =>
     input.includeDrafts === true
       ? generateEntityIdFilter({ entityId, includeArchived: true })
@@ -184,9 +204,12 @@ const closedTypeIn = (
  * property they carry, and the title of each type. An entity archived through
  * its `archived` property, as pages are, is left out: the request's filter
  * applies only to the matches, not to the entities reached by following links.
+ * Given `onlyDrafts`, a draft not among them is left out too. A link to an
+ * entity left out stays, naming it by id, as a link past the traversal does.
  */
 export const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
+  onlyDrafts?: ReadonlySet<EntityId>,
 ): HashEntityReadResult => {
   const { subgraph, closedMultiEntityTypes, definitions, cursor } =
     deserializeQueryEntitySubgraphResponse(response.queryEntitySubgraph);
@@ -195,6 +218,14 @@ export const hashEntityReadResult = (
   );
   const entities = getEntities(subgraph, false)
     .filter((entity) => entity.properties[archivedBaseUrl] !== true)
+    .filter(({ metadata: { recordId } }) => {
+      const { entityId } = recordId;
+      return (
+        onlyDrafts === undefined ||
+        extractDraftIdFromEntityId(entityId) === undefined ||
+        onlyDrafts.has(entityId)
+      );
+    })
     .map((entity) => ({
       entity,
       closedType: closedTypeIn(
@@ -317,9 +348,13 @@ export const createHashEntityReadTool = (
   inputParser: { parse: parseHashEntityReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
-    const request = hashEntityReadRequest(parseHashEntityReadInput(input));
+    const readInput = parseHashEntityReadInput(input);
+    const request = hashEntityReadRequest(readInput);
     return settlingQueryFailure(signal, async () =>
-      hashEntityReadResult(await queryEntitySubgraph(request, signal)),
+      hashEntityReadResult(
+        await queryEntitySubgraph(request, signal),
+        hashEntityReadOnlyDrafts(readInput),
+      ),
     );
   },
 });
