@@ -185,6 +185,21 @@ export const collectFirings = (
 };
 
 /** The firing nearest to `time`, when one lies within `tolerance` of it. */
+/** Times of the reference frames: states recorded between firings. */
+export const collectReferenceTimes = (
+  trace: TraceReader,
+  eventCount: number,
+): number[] => {
+  const times: number[] = [];
+  for (let index = 0; index < eventCount; index++) {
+    const event = trace.getEvent(index);
+    if (event?.kind === "reference") {
+      times.push(event.time);
+    }
+  }
+  return times;
+};
+
 export const findFiringNear = (
   firings: readonly FiringMark[],
   time: number,

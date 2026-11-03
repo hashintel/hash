@@ -21,6 +21,10 @@ export type EventPlaybackContextValue = {
   eventCount: number;
   /** Index of the last event at or before the viewed time, or -1 before the first. */
   currentEventIndex: number;
+  /** True when a firing or the initial state lies before the viewed time. */
+  hasPreviousEvent: boolean;
+  /** True when a firing lies after the viewed time. */
+  hasNextEvent: boolean;
   /** The state at the viewed time, interpolated between events. */
   currentFrameReader: SimulationFrameReader | null;
 
@@ -34,7 +38,10 @@ export type EventPlaybackContextValue = {
 
   /** Views `time`, clamped to what the trace covers. */
   setTime: (time: number) => void;
-  /** Views the previous or next event's time. */
+  /**
+   * Views the previous or next firing's time, or the initial state. The
+   * reference frames the trace keeps between firings are stepped over.
+   */
   stepToEvent: (direction: -1 | 1) => void;
   /** Starts playback, initializing and starting the run when none exists. */
   play: () => Promise<void>;
@@ -50,6 +57,8 @@ const DEFAULT_CONTEXT_VALUE: EventPlaybackContextValue = {
   coveredTime: 0,
   eventCount: 0,
   currentEventIndex: -1,
+  hasPreviousEvent: false,
+  hasNextEvent: false,
   currentFrameReader: null,
   playbackState: "Stopped",
   playbackSpeed: 1,

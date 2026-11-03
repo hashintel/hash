@@ -29,6 +29,7 @@ const DRAG_THRESHOLD_PX = 3;
 const FIRING_HOVER_PX = 6;
 /** Height of the firing marks along the bottom of the plot, in CSS pixels. */
 const FIRING_MARK_PX = 10;
+const REFERENCE_MARK_PX = 4;
 
 const formatSeconds = (time: number): string => `${time.toFixed(3)}s`;
 
@@ -76,12 +77,37 @@ const createTooltip = (): TooltipNodes => {
 type ChartState = {
   data: EventTimelineData;
   firings: FiringMark[];
+  references: readonly number[];
   transitionNames: ReadonlyMap<string, string>;
   viewRange: TimeRange;
   domain: number;
   time: number;
   onViewRangeChange: (range: TimeRange) => void;
   onScrub: (time: number) => void;
+};
+
+/**
+ * Reference frames as faint ticks on the time axis: a hint that the state
+ * there was recorded rather than interpolated. They are not stepped to.
+ */
+const drawReferences = (u: uPlot, state: ChartState): void => {
+  const { ctx, bbox } = u;
+  const dpr = devicePixelRatio;
+  const bottom = bbox.top + bbox.height;
+  ctx.save();
+  ctx.lineWidth = dpr;
+  ctx.strokeStyle = "rgba(100, 116, 139, 0.35)";
+  ctx.beginPath();
+  for (const time of state.references) {
+    if (time < state.viewRange.min || time > state.viewRange.max) {
+      continue;
+    }
+    const x = u.valToPos(time, "x", true);
+    ctx.moveTo(x, bottom - REFERENCE_MARK_PX * dpr);
+    ctx.lineTo(x, bottom);
+  }
+  ctx.stroke();
+  ctx.restore();
 };
 
 const drawFirings = (u: uPlot, state: ChartState): void => {
@@ -384,6 +410,7 @@ const buildOptions = (
       ],
       draw: [
         (u) => {
+          drawReferences(u, stateRef.current);
           drawFirings(u, stateRef.current);
           drawPlayhead(u, stateRef.current.time, stateRef.current.viewRange);
         },
@@ -395,6 +422,8 @@ const buildOptions = (
 export const EventTimelineChart: FC<{
   data: EventTimelineData;
   firings: FiringMark[];
+  /** Times of the reference frames recorded between firings. */
+  references: readonly number[];
   transitionNames: ReadonlyMap<string, string>;
   hiddenSeries: Set<string>;
   viewRange: TimeRange;
@@ -410,6 +439,7 @@ export const EventTimelineChart: FC<{
 }> = ({
   data,
   firings,
+  references,
   transitionNames,
   hiddenSeries,
   viewRange,
@@ -430,6 +460,7 @@ export const EventTimelineChart: FC<{
   const stateRef = useLatest<ChartState>({
     data,
     firings,
+    references,
     transitionNames,
     viewRange,
     domain,
@@ -488,7 +519,7 @@ export const EventTimelineChart: FC<{
     if (!paused) {
       chartRef.current?.redraw(false, false);
     }
-  }, [time, firings, paused]);
+  }, [time, firings, references, paused]);
 
   return <div ref={wrapperRef} className={className} />;
 };

@@ -10,7 +10,7 @@ import {
 } from "./trace-store";
 
 import type { SDCPN } from "../../types/sdcpn";
-import type { TraceEvent } from "./trace";
+import type { TraceEvent, TraceEventKind } from "./trace";
 
 const sdcpn: SDCPN = {
   places: [
@@ -45,10 +45,11 @@ const eventAt = (
   time: number,
   value: number,
   slope: number,
+  kind: TraceEventKind = index === 0 ? "initial" : "reference",
 ): TraceEvent => ({
   index,
   time,
-  kind: index === 0 ? "initial" : "reference",
+  kind,
   firedTransitionIds: [],
   touchedPlaceIndices: new Uint32Array(),
   frame: createEngineFrame(layout, {
@@ -94,6 +95,32 @@ describe("createInMemoryEventTraceStore", () => {
     expect(level(store, 3)).toBe(8);
     expect(store.getStateAt(1)?.number).toBe(0);
     expect(store.getStateAt(1)?.time).toBe(1);
+  });
+
+  it("finds the discrete events around an index, skipping reference frames", () => {
+    const store = createInMemoryEventTraceStore(sdcpn);
+    store.append([
+      eventAt(0, 0, 0, 0),
+      eventAt(1, 0.1, 0, 0),
+      eventAt(2, 0.15, 0, 0, "firing"),
+      eventAt(3, 0.25, 0, 0),
+      eventAt(4, 0.35, 0, 0),
+      eventAt(5, 0.4, 0, 0, "firing"),
+      eventAt(6, 0.5, 0, 0),
+    ]);
+
+    expect(store.findDiscreteEventAtOrBefore(6)).toBe(5);
+    expect(store.findDiscreteEventAtOrBefore(4)).toBe(2);
+    expect(store.findDiscreteEventAtOrBefore(2)).toBe(2);
+    expect(store.findDiscreteEventAtOrBefore(1)).toBe(0);
+    expect(store.findDiscreteEventAtOrBefore(-1)).toBeNull();
+    expect(store.findDiscreteEventAtOrBefore(99)).toBe(5);
+
+    expect(store.findDiscreteEventAfter(-1)).toBe(0);
+    expect(store.findDiscreteEventAfter(0)).toBe(2);
+    expect(store.findDiscreteEventAfter(2)).toBe(5);
+    expect(store.findDiscreteEventAfter(5)).toBeNull();
+    expect(store.findDiscreteEventAfter(6)).toBeNull();
   });
 
   it("refuses events out of order", () => {

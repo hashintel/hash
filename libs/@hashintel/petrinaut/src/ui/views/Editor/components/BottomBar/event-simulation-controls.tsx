@@ -124,8 +124,8 @@ export const EventSimulationControls: React.FC<
   const {
     time,
     coveredTime,
-    eventCount,
-    currentEventIndex,
+    hasPreviousEvent,
+    hasNextEvent,
     playbackState,
     setTime,
     stepToEvent,
@@ -204,7 +204,7 @@ export const EventSimulationControls: React.FC<
             <ToolbarButton
               tooltip="Previous event"
               onClick={() => stepToEvent(-1)}
-              disabled={disabled || currentEventIndex <= 0}
+              disabled={disabled || !hasPreviousEvent}
               ariaLabel="Go to the previous event"
             >
               <Icon name="chevronLeft" size="sm" />
@@ -212,7 +212,7 @@ export const EventSimulationControls: React.FC<
             <ToolbarButton
               tooltip="Next event"
               onClick={() => stepToEvent(1)}
-              disabled={disabled || currentEventIndex >= eventCount - 1}
+              disabled={disabled || !hasNextEvent}
               ariaLabel="Go to the next event"
             >
               <Icon name="chevronRight" size="sm" />
