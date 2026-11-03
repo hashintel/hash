@@ -119,8 +119,11 @@ const FlowEditor = ({
   );
 
   const archiveFlow = async () => {
-    /* Saving first, so that no save is made after the flow is archived, which would be refused. */
-    if (!(await flush())) {
+    /*
+     * Saving first, so that no save is made after the flow is archived, which would be refused. Edits the API refused
+     * can't be saved as they are, so they're dropped rather than keeping the flow from being archived.
+     */
+    if (!(await flush({ dropRefusedEdits: true }))) {
       throw new Error("Its latest edits couldn't be saved");
     }
 
@@ -135,6 +138,7 @@ const FlowEditor = ({
       <TopBar
         name={flowDefinition.name}
         saveStatus={status}
+        editsRefused={saveRefusedReason !== null}
         onRetrySave={() => {
           void flush();
         }}

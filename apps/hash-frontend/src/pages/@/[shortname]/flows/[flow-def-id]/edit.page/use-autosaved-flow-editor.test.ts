@@ -43,7 +43,7 @@ const renderEditor = ({
   reloadFlow = vi.fn(),
 }: Pick<EditorOptions, "saveFlowDefinition"> &
   Partial<Pick<EditorOptions, "reloadFlow">>) => {
-  const { result } = renderHook(() =>
+  const { result, unmount } = renderHook(() =>
     useAutosavedFlowEditor({
       flow: {
         flowDefinition: emptyFlow("Flow"),
@@ -60,7 +60,7 @@ const renderEditor = ({
       result.current.editor.addStep(stepId, { position: { x: 0, y: 0 } });
     });
 
-  return { result, addStep };
+  return { result, addStep, unmount };
 };
 
 /** Whether leaving the page now would make the browser ask first. */
@@ -153,7 +153,7 @@ describe("useAutosavedFlowEditor", () => {
     expect(saveFlowDefinition.mock.calls[2]![1]).toBe("edition-9");
   });
 
-  it("shows a failed save, reports it from flush, and tries it again with the next edit against the same edition", async () => {
+  it("shows a failed save, reports it from flush even when dropping refused edits, and tries it again with the next edit against the same edition", async () => {
     const saveFlowDefinition = vi
       .fn()
       .mockRejectedValueOnce(new Error("Network error"))
@@ -168,7 +168,7 @@ describe("useAutosavedFlowEditor", () => {
 
     let flushed: boolean | undefined;
     await act(async () => {
-      flushed = await result.current.flush();
+      flushed = await result.current.flush({ dropRefusedEdits: true });
     });
     expect(flushed).toBe(false);
 
@@ -205,5 +205,26 @@ describe("useAutosavedFlowEditor", () => {
     ]);
     expect(result.current.status).toBe("saved");
     expect(result.current.saveRefusedReason).toBeNull();
+  });
+
+  it("drops edits the API refused when flushing with dropRefusedEdits, and doesn't send them again", async () => {
+    const saveFlowDefinition = vi
+      .fn()
+      .mockRejectedValue(new FlowSaveRefusedError("Refused"));
+    const { result, addStep, unmount } = renderEditor({ saveFlowDefinition });
+
+    addStep("first");
+    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
+
+    let flushed: boolean | undefined;
+    await act(async () => {
+      flushed = await result.current.flush({ dropRefusedEdits: true });
+    });
+    expect(flushed).toBe(true);
+    expect(saveFlowDefinition).toHaveBeenCalledTimes(2);
+
+    unmount();
+    await act(() => vi.runAllTimersAsync());
+    expect(saveFlowDefinition).toHaveBeenCalledTimes(2);
   });
 });

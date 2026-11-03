@@ -55,8 +55,11 @@ export const useAutosavedFlowEditor = ({
   saveRefusedReason: string | null;
   changedElsewhere: boolean;
   dismissChangedElsewhere: () => void;
-  /** Saves any edits not saved yet, after the save in flight, if any. Resolves to whether every edit is saved. */
-  flush: () => Promise<boolean>;
+  /**
+   * Saves any edits not saved yet, after the save in flight, if any. Resolves to whether every edit is saved. With
+   * `dropRefusedEdits`, edits the API refuses count as saved and aren't sent again.
+   */
+  flush: (options?: { dropRefusedEdits?: boolean }) => Promise<boolean>;
 } => {
   const [editor, setEditor] = useState(() =>
     createFlowEditor(flow.flowDefinition),
@@ -71,6 +74,8 @@ export const useAutosavedFlowEditor = ({
   const editionIdRef = useRef(flow.editionId);
   /** Whether there are edits no save has sent yet. */
   const unsavedRef = useRef(false);
+  /** Whether the API refused the last save. */
+  const refusedRef = useRef(false);
   const saveInFlightRef = useRef<Promise<void> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -81,6 +86,7 @@ export const useAutosavedFlowEditor = ({
 
   const save = useCallback(async () => {
     unsavedRef.current = false;
+    refusedRef.current = false;
     setStatus("saving");
 
     try {
@@ -95,6 +101,7 @@ export const useAutosavedFlowEditor = ({
     } catch (error) {
       if (!(error instanceof FlowChangedElsewhereError)) {
         unsavedRef.current = true;
+        refusedRef.current = error instanceof FlowSaveRefusedError;
         setStatus("failed");
         setSaveRefusedReason(
           error instanceof FlowSaveRefusedError ? error.message : null,
@@ -124,28 +131,35 @@ export const useAutosavedFlowEditor = ({
     }
   }, []);
 
-  const flush = useCallback(async () => {
-    clearTimeout(timerRef.current);
+  const flush = useCallback(
+    async ({ dropRefusedEdits = false } = {}) => {
+      clearTimeout(timerRef.current);
 
-    while (saveInFlightRef.current) {
-      await saveInFlightRef.current;
-    }
+      while (saveInFlightRef.current) {
+        await saveInFlightRef.current;
+      }
 
-    if (!unsavedRef.current) {
-      return true;
-    }
+      if (!unsavedRef.current) {
+        return true;
+      }
 
-    const saveInFlight = save();
-    saveInFlightRef.current = saveInFlight;
+      const saveInFlight = save();
+      saveInFlightRef.current = saveInFlight;
 
-    try {
-      await saveInFlight;
-    } finally {
-      saveInFlightRef.current = null;
-    }
+      try {
+        await saveInFlight;
+      } finally {
+        saveInFlightRef.current = null;
+      }
 
-    return !unsavedRef.current;
-  }, [save]);
+      if (dropRefusedEdits && refusedRef.current) {
+        unsavedRef.current = false;
+      }
+
+      return !unsavedRef.current;
+    },
+    [save],
+  );
 
   useEffect(
     () =>

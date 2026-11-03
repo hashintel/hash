@@ -53,10 +53,12 @@ const ArchiveFlowDialog = ({
   name,
   onArchive,
   onClose,
+  editsRefused,
 }: {
   name: string;
   onArchive: () => Promise<void>;
   onClose: () => void;
+  editsRefused: boolean;
 }) => {
   const { triggerSnackbar } = useSnackbar();
   const [archiving, setArchiving] = useState(false);
@@ -83,6 +85,8 @@ const ArchiveFlowDialog = ({
         <Typography sx={{ fontSize: 14 }}>
           “{name}” will no longer be listed, and its schedules will be paused.
           Its past runs stay readable.
+          {editsRefused &&
+            " Its latest edits can't be saved, so they'll be dropped."}
         </Typography>
       </Dialog.Body>
       <Dialog.Footer
@@ -113,11 +117,14 @@ const ArchiveFlowDialog = ({
 export const TopBar = ({
   name,
   saveStatus,
+  editsRefused,
   onRetrySave,
   onArchive,
 }: {
   name: string;
   saveStatus: FlowSaveStatus;
+  /** Whether the API refused the latest edits. */
+  editsRefused: boolean;
   onRetrySave: () => void;
   /** Archives the flow and leaves the editor. */
   onArchive: () => Promise<void>;
@@ -173,6 +180,7 @@ export const TopBar = ({
           name={name}
           onArchive={onArchive}
           onClose={() => setArchiveDialogOpen(false)}
+          editsRefused={editsRefused}
         />
       )}
     </Stack>
