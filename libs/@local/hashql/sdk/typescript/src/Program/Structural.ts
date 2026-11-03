@@ -418,7 +418,7 @@ type Annotated<V extends Value.Any, A extends Annotation> = A extends readonly [
  *
  * Nested records and arrays follow {@link value}. Invalid field names, two keys that decode to the same name and nested construction failures remain in the returned expression.
  *
- * Pass `type`, a type expression or structural shorthand as {@link "type"} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with `Expression.assume`, and the HashQL compiler does.
+ * Pass `type`, a type expression or structural shorthand as {@link "type"} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with {@link Expression.assume}, and the HashQL compiler does.
  *
  * @example <caption>Infer a record's fields and project one of them.</caption>
  * ```ts

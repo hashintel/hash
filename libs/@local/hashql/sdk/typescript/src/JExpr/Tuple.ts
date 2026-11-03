@@ -4,7 +4,7 @@ import * as Defs from "./schema.js";
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
 /**
- * Schema for `Tuple` values.
+ * Schema for {@link Tuple} values.
  *
  * @category Schemas
  * @since 0.1.0
@@ -22,7 +22,7 @@ export const Schema: typeof Defs.Tuple = Defs.Tuple;
 export interface Tuple extends Defs.TupleType {}
 
 export declare namespace Tuple {
-  /** The schema-encoded representation of `Tuple`. */
+  /** The schema-encoded representation of {@link Tuple}. */
   export interface Encoded extends Defs.TupleEncoded {}
 }
 

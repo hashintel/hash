@@ -76,7 +76,7 @@ const compileGenerics = (
 /**
  * Defines a closure with named parameters.
  *
- * The result is the call `["::kernel::special_form::fn", generics, params, returns, body]`. Parameter names are in scope in the body, and their record order determines the argument order. The return type defaults to {@link inferred | infer}. Types use constructor syntax, as in `JExpr.as`. The builder checks neither the body nor its use of the parameters. Call the closure with `JExpr.call` or bind it with `JExpr.let`.
+ * The result is the call `["::kernel::special_form::fn", generics, params, returns, body]`. Parameter names are in scope in the body, and their record order determines the argument order. The return type defaults to {@link inferred | infer}. Types use constructor syntax, as in {@link JExpr.as}. The builder checks neither the body nor its use of the parameters. Call the closure with {@link JExpr.call} or bind it with {@link JExpr.let}.
  *
  * @example <caption>Define a predicate with an inferred parameter type.</caption>
  * ```ts

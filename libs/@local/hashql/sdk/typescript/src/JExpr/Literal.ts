@@ -15,7 +15,7 @@ export const Schema: typeof Defs.Literal = Defs.Literal;
 /**
  * A primitive value in a `#literal` constructor.
  *
- * A numeric value is a `JExpr.Integer` or `JExpr.Float` object that preserves its source text. Strings, booleans and `null` appear directly under `#literal`, and a string here is a string value rather than a name. `#type` holds optional annotation text.
+ * A numeric value is a {@link JExpr.Integer} or {@link JExpr.Float} object that preserves its source text. Strings, booleans and `null` appear directly under `#literal`, and a string here is a string value rather than a name. `#type` holds optional annotation text.
  *
  * @category Models
  * @since 0.1.0

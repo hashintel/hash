@@ -15,7 +15,7 @@ export const Schema: typeof Defs.Integer = Defs.Integer;
 /**
  * An arbitrary-precision integer's decimal source text, stored in a literal's `#literal` field.
  *
- * `value` uses JSON integer syntax, such as `"-42"`. It has no fraction or exponent. Keeping the text avoids JavaScript's numeric precision limit. A `number` beyond `Number.MAX_SAFE_INTEGER` has already lost precision when `JExpr.integer` reads it. Pass a `bigint` for those integers.
+ * `value` uses JSON integer syntax, such as `"-42"`. It has no fraction or exponent. Keeping the text avoids JavaScript's numeric precision limit. A `number` beyond `Number.MAX_SAFE_INTEGER` has already lost precision when {@link JExpr.integer} reads it. Pass a `bigint` for those integers.
  *
  * @example <caption>Keep an integer beyond JavaScript's safe range.</caption>
  * ```ts

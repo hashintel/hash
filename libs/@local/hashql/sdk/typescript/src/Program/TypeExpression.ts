@@ -79,7 +79,7 @@ export declare namespace TypeExpression {
 /**
  * A named generic type, specialized by supplying typed type expressions.
  *
- * The argument tuple carries semantic types, and `Arguments` maps each position to its handle. TypeScript infers the tuple from ordinary calls. A generic caller can also supply it explicitly without extracting and re-inferring types from already-normalized handles.
+ * The argument tuple carries semantic types, and {@link Constructor.Arguments | `Arguments`} maps each position to its handle. TypeScript infers the tuple from ordinary calls. A generic caller can also supply it explicitly without extracting and re-inferring types from already-normalized handles.
  *
  * A call emits a reference to the constructor's path with one generic argument per supplied type. The result's descriptor is `Type.TypeLambda.Apply<F, A>`. TypeScript rejects a call with the wrong number of arguments. At runtime, such a call returns a type expression holding a `TypeArgumentCountMismatch` failure. An argument's construction failure becomes the result's failure.
  *
