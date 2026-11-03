@@ -4,6 +4,7 @@ import {
   type AdHocScenarioState,
   type CompiledScenarioResult,
   type EventSimulation,
+  type EventSolverConfig,
   type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
@@ -100,6 +101,11 @@ export type SimulationContextValue = {
    */
   engine: SimulationEngine;
   /**
+   * How the event-driven engine advances between events. Changing it
+   * discards the current run; the fixed-step engine ignores it.
+   */
+  eventSolver: EventSolverConfig;
+  /**
    * The event-driven run's handle while `engine` is `event-driven` and a run
    * exists; null otherwise. Playback over events reads the trace through it.
    */
@@ -192,6 +198,7 @@ export type SimulationContextValue = {
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
   setEngine: (engine: SimulationEngine) => void;
+  setEventSolver: (solver: EventSolverConfig) => void;
   /**
    * Set the maximum simulation time in seconds.
    * Pass null to disable the time limit.
@@ -248,6 +255,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   maxTime: null,
   totalFramesStore: { get: () => 0, subscribe: () => () => {} },
   engine: "fixed-step",
+  eventSolver: { kind: "fixed-step" },
   eventSimulation: null,
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
@@ -259,6 +267,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setParameterValue: () => {},
   setDt: () => {},
   setEngine: () => {},
+  setEventSolver: () => {},
   setMaxTime: () => {},
   initialize: () => Promise.resolve(),
   run: () => {},

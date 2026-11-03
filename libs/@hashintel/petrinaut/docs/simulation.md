@@ -43,6 +43,11 @@ The **Engine** switch beside the scenario picker chooses how the next run is com
 
 The switch is locked while a simulation exists; reset to change it. The Time Step input applies to the fixed-step engine only.
 
+With the event-driven engine, a **Solver** switch takes its place:
+
+- **Fixed step** advances the run at a small fixed step and records the steps where something fired.
+- **Adaptive** integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates, so nothing is quantised to a step. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. The **Max error** input sets the largest error the solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. Every recorded frame carries the error accumulated so far per place.
+
 ### Time step (dt)
 
 Set the time step in seconds per frame using the **Time Step** input beside the scenario picker in Simulation Settings. It controls the resolution of ODE integration and how frequently transitions are evaluated. Hover the info icon beside its label for a short explanation.

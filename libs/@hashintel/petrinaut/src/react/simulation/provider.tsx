@@ -13,6 +13,8 @@ import {
   type AdHocScenarioState,
   type AdHocSynthesisContext,
   type EventSimulation,
+  type CompileHirArtifactsOptions,
+  type EventSolverConfig,
   type HirCompileResult,
   type PetrinautExtensionSettings,
   type ReadableStore,
@@ -72,6 +74,7 @@ type SimulationStateValues = {
   dt: number;
   maxTime: number | null;
   engine: SimulationEngine;
+  eventSolver: EventSolverConfig;
 };
 
 function getScenarioParameterDefaults(
@@ -105,6 +108,7 @@ function createInitialStateValues(options?: {
     dt: options?.dt ?? 0.01,
     maxTime: options?.maxTime ?? null,
     engine: options?.engine ?? "fixed-step",
+    eventSolver: { kind: "fixed-step" },
   };
 }
 
@@ -199,6 +203,7 @@ export type SimulationCompiler = {
   requestHirArtifacts: (
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    options?: CompileHirArtifactsOptions,
   ) => Promise<HirCompileResult>;
   requestScenarioHir: (
     scenario: ScenarioLoweringInput,
@@ -552,6 +557,22 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues((prev) => ({ ...prev, engine }));
   };
 
+  const setEventSolver: SimulationContextValue["setEventSolver"] = (
+    eventSolver,
+  ) => {
+    const current = stateValuesRef.current.eventSolver;
+    if (
+      current.kind !== eventSolver.kind ||
+      (current.kind === "adaptive" &&
+        eventSolver.kind === "adaptive" &&
+        current.tolerance !== eventSolver.tolerance)
+    ) {
+      invalidateSimulationForConfigurationChange();
+    }
+
+    setStateValues((prev) => ({ ...prev, eventSolver }));
+  };
+
   const initialize: SimulationContextValue["initialize"] = async ({
     seed,
     dt,
@@ -636,10 +657,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       }
 
       // Compile the net's user code to HIR artifacts in the language worker —
-      // the simulation engine has no compiler of its own.
+      // the simulation engine has no compiler of its own. The adaptive solver
+      // classifies each place's dynamics from their HIR, so it gets the tree.
       const { artifacts } = await requestHirArtifacts(
         simulationSdcpn,
         simulationExtensions,
+        currentState.engine === "event-driven" &&
+          currentState.eventSolver.kind === "adaptive"
+          ? { includeHir: true }
+          : undefined,
       );
       if (initializationGenerationRef.current !== generation) {
         return;
@@ -656,6 +682,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           parameterValues,
           seed,
           maxTime: currentState.maxTime,
+          solver: currentState.eventSolver,
           createWorker: eventWorkerFactoryRef.current,
         });
       } else {
@@ -1014,6 +1041,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxTime: stateValues.maxTime,
     totalFramesStore,
     engine: stateValues.engine,
+    eventSolver: stateValues.eventSolver,
     eventSimulation,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
@@ -1025,6 +1053,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),
     setEngine: useStableCallback(setEngine),
+    setEventSolver: useStableCallback(setEventSolver),
     setMaxTime: useStableCallback(setMaxTime),
     initialize: useStableCallback(initialize),
     run: useStableCallback(run),
