@@ -1,10 +1,10 @@
 import { ApolloError, useMutation } from "@apollo/client";
-import { Box, Stack } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import { isFlowDefinedInCode } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import {
@@ -43,6 +43,21 @@ import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 
 const editorHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
+
+const editorBody = css({ display: "flex", flex: "1", minHeight: "0" });
+const canvasArea = css({ position: "relative", flex: "1" });
+const notices = css({
+  position: "absolute",
+  zIndex: "docked",
+  top: "4",
+  left: "4",
+  right: "4",
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  maxWidth: "[560px]",
+  mx: "auto",
+});
 
 /**
  * Collapses the app sidebar while the editor is open, and opens it again on leaving if it was open before. The
@@ -169,22 +184,11 @@ const FlowEditor = ({
         }}
         onArchive={archiveFlow}
       />
-      <Stack direction="row" sx={{ flex: 1, minHeight: 0 }}>
+      <div className={editorBody}>
         <LeftPanel steps={flowDefinition.steps} />
-        <Box sx={{ position: "relative", flex: 1 }}>
+        <div className={canvasArea}>
           {(saveRefusedReason !== null || changedElsewhere) && (
-            <Stack
-              gap={1}
-              sx={{
-                position: "absolute",
-                zIndex: 10,
-                top: 16,
-                left: 16,
-                right: 16,
-                maxWidth: 560,
-                mx: "auto",
-              }}
-            >
+            <div className={notices}>
               {saveRefusedReason !== null && (
                 <Banner tone="error">
                   <Banner.Title>Your latest edits can't be saved</Banner.Title>
@@ -207,11 +211,11 @@ const FlowEditor = ({
                   </Banner.Description>
                 </Banner>
               )}
-            </Stack>
+            </div>
           )}
           <Canvas />
-        </Box>
-      </Stack>
+        </div>
+      </div>
     </DsComponentsScope>
   );
 };

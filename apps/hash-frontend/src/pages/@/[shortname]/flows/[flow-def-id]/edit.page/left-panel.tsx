@@ -1,11 +1,42 @@
-import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { Button, SegmentedControl } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 type LeftPanelTab = "steps" | "add";
+
+const panel = css({
+  display: "flex",
+  flexDirection: "column",
+  flexShrink: "0",
+  width: "[248px]",
+  borderRightWidth: "1px",
+  borderRightStyle: "solid",
+  borderRightColor: "bd.subtle",
+});
+const tabs = css({ p: "2" });
+const stepsSection = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  px: "3",
+  py: "2",
+});
+const stepsHeader = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+});
+const stepCount = css({ textStyle: "xs", color: "fg.subtle" });
+const placeholder = css({ textStyle: "sm", color: "fg.muted" });
+const addPlaceholder = css({
+  textStyle: "sm",
+  color: "fg.muted",
+  px: "3",
+  py: "2",
+});
 
 /**
  * The flow editor's left panel: the flow's steps, and the steps that can be added to it. Both lists come in later
@@ -15,14 +46,8 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
   const [tab, setTab] = useState<LeftPanelTab>("steps");
 
   return (
-    <Stack
-      sx={{
-        flexShrink: 0,
-        width: 248,
-        borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-      }}
-    >
-      <Box sx={{ p: 1 }}>
+    <div className={panel}>
+      <div className={tabs}>
         {/* The design system has no tabs yet (a gap logged in Notion), so a segmented control stands in for them. */}
         <SegmentedControl
           size="md"
@@ -34,19 +59,13 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
             { value: "add", label: "Add" },
           ]}
         />
-      </Box>
+      </div>
       {tab === "steps" ? (
-        <Stack gap={1} sx={{ px: 1.5, py: 1 }}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <Typography
-              sx={{ fontSize: 12, color: ({ palette }) => palette.gray[50] }}
-            >
+        <div className={stepsSection}>
+          <div className={stepsHeader}>
+            <p className={stepCount}>
               {steps.length} {steps.length === 1 ? "step" : "steps"}
-            </Typography>
+            </p>
             <Button
               variant="ghost"
               size="xs"
@@ -54,27 +73,16 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
               tooltip="Collapse all"
               disabled
             />
-          </Stack>
+          </div>
           {steps.length === 0 && (
-            <Typography
-              sx={{ fontSize: 14, color: ({ palette }) => palette.gray[60] }}
-            >
-              Steps you add appear here.
-            </Typography>
+            <p className={placeholder}>Steps you add appear here.</p>
           )}
-        </Stack>
+        </div>
       ) : (
-        <Typography
-          sx={{
-            px: 1.5,
-            py: 1,
-            fontSize: 14,
-            color: ({ palette }) => palette.gray[60],
-          }}
-        >
+        <p className={addPlaceholder}>
           Actions you can add will be listed here.
-        </Typography>
+        </p>
       )}
-    </Stack>
+    </div>
   );
 };

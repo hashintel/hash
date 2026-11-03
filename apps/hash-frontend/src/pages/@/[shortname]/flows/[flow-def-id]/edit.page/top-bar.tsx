@@ -1,4 +1,3 @@
-import { Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
 
@@ -9,10 +8,32 @@ import {
   Dialog,
   EllipsisMenu,
 } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
+
+const topBar = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "4",
+  flexShrink: "0",
+  height: "16",
+  px: "4",
+  borderBottomWidth: "1px",
+  borderBottomStyle: "solid",
+  borderBottomColor: "bd.subtle",
+});
+const barGroup = css({ display: "flex", alignItems: "center", gap: "2" });
+const titleGroup = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minWidth: "0",
+});
+const dialogText = css({ textStyle: "sm" });
 
 const SaveStatus = ({
   status,
@@ -82,12 +103,12 @@ const ArchiveFlowDialog = ({
     >
       <Dialog.Header title="Archive flow" />
       <Dialog.Body>
-        <Typography sx={{ fontSize: 14 }}>
+        <p className={dialogText}>
           “{name}” will no longer be listed, and its schedules will be paused.
           Its past runs stay readable.
           {editsRefused &&
             " Its latest edits can't be saved, so they'll be dropped."}
-        </Typography>
+        </p>
       </Dialog.Body>
       <Dialog.Footer
         actions={
@@ -133,19 +154,8 @@ export const TopBar = ({
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   return (
-    <Stack
-      direction="row"
-      alignItems="center"
-      justifyContent="space-between"
-      gap={2}
-      sx={{
-        flexShrink: 0,
-        height: 64,
-        px: 2,
-        borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-      }}
-    >
-      <Stack direction="row" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
+    <div className={topBar}>
+      <div className={titleGroup}>
         {/* BreadCrumbs has no back button of its own yet (a design system gap logged in Notion), so it sits beside it. */}
         <Button
           variant="subtle"
@@ -159,8 +169,8 @@ export const TopBar = ({
         <BreadCrumbs>
           <BreadCrumbs.Item>{name}</BreadCrumbs.Item>
         </BreadCrumbs>
-      </Stack>
-      <Stack direction="row" alignItems="center" gap={1}>
+      </div>
+      <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
         <EllipsisMenu
           iconName="ellipsisVertical"
@@ -174,7 +184,7 @@ export const TopBar = ({
             },
           ]}
         />
-      </Stack>
+      </div>
       {archiveDialogOpen && (
         <ArchiveFlowDialog
           name={name}
@@ -183,6 +193,6 @@ export const TopBar = ({
           editsRefused={editsRefused}
         />
       )}
-    </Stack>
+    </div>
   );
 };

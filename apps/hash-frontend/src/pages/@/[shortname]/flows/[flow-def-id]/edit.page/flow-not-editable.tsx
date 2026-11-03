@@ -1,10 +1,13 @@
-import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 
 import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { HEADER_HEIGHT } from "../../../../../../shared/layout/layout-with-header/page-header";
 import { DsComponentsScope } from "../../../../../shared/ds-components-scope";
+
+const title = css({ textStyle: "base", fontWeight: "semibold" });
+const reason = css({ textStyle: "sm", color: "fg.muted" });
 
 /**
  * Shown in place of the editor for a flow the user can't edit.
@@ -30,16 +33,12 @@ export const FlowNotEditable = ({
         textAlign: "center",
       }}
     >
-      <Typography sx={{ fontSize: 16, fontWeight: 600 }}>
-        This flow can't be edited
-      </Typography>
-      <Typography
-        sx={{ fontSize: 14, color: ({ palette }) => palette.gray[60] }}
-      >
+      <h2 className={title}>This flow can't be edited</h2>
+      <p className={reason}>
         {definedInCode
           ? "It's built into HASH, so it's changed in code rather than here."
           : "It's in a web you can't change."}
-      </Typography>
+      </p>
       <Button
         variant="solid"
         size="md"
