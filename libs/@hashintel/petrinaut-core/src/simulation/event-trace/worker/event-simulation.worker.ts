@@ -4,6 +4,7 @@
  */
 
 import { createWorkerThreadRuntime } from "../../../environment";
+import { createAdaptiveStepper } from "./adaptive-stepper";
 import { FLUSH_EVENTS, FLUSH_STEPS, shouldFlush } from "./flush-policy";
 import {
   createTraceStepper,
@@ -132,7 +133,7 @@ runtime.onMessage((message) => {
   switch (message.type) {
     case "init": {
       try {
-        stepper = createTraceStepper({
+        const common = {
           sdcpn: message.sdcpn,
           ...(message.extensions === undefined
             ? {}
@@ -144,10 +145,19 @@ runtime.onMessage((message) => {
           parameterValues: message.parameterValues,
           seed: message.seed,
           maxTime: message.maxTime,
-          stepDt: message.stepDt ?? DEFAULT_EVENT_STEP_DT,
           referenceInterval:
             message.referenceInterval ?? DEFAULT_REFERENCE_INTERVAL,
-        });
+        };
+        stepper =
+          message.solver?.kind === "adaptive"
+            ? createAdaptiveStepper({
+                ...common,
+                tolerance: message.solver.tolerance,
+              })
+            : createTraceStepper({
+                ...common,
+                stepDt: message.stepDt ?? DEFAULT_EVENT_STEP_DT,
+              });
         status = "ready";
         isRunning = false;
         demandedTime = 0;

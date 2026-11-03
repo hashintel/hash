@@ -296,6 +296,47 @@ Tau-leaping and a fast-slow partition are the usual escape for stiff
 stochastic regimes and are kept for experiments (next section), not for the
 interactive trace.
 
+### Prototype: the adaptive solver
+
+The `adaptive` solver of the event-driven engine
+(`event-trace/worker/adaptive-stepper.ts`, behind **Solver** in Simulation
+Settings) is the first cut of the flow regime, built to measure before the
+hazard integration above lands. One step spans at most the reference
+interval and ends at a firing or at the span's end:
+
+- **Firing times are sampled, not stepped.** At the span start every enabled
+  token combination is a mode with its rate; the waiting time is exponential
+  in the total rate and the firing mode is drawn in proportion. Rates are
+  held at their span-start value, which is exact when no rate reads a
+  moving attribute and a first-order approximation otherwise. A predicate
+  that holds at the span start fires at once; one that starts to hold
+  inside the span fires at the instant it does, located by bisection that
+  re-integrates from the span start rather than by dense output.
+- **Each place integrates by the class of its equation**, read off the
+  dynamics HIR (`solver/classify-dynamics.ts`): a callback that reads only
+  its own token is _independent_ and every token takes the steps its own
+  dynamics need; one whose derivatives are affine in the token's real
+  attributes with run-constant coefficients is _affine_ and advances exactly
+  through the propagator `exp([[A, b], [0, 0]] h)`; anything else, the token
+  index included, is _coupled_ and the place integrates as one system.
+  Without the HIR every place is coupled.
+- **Dormand-Prince 5(4)** with proportional step control (`solver/rk45.ts`)
+  does the integrating, the user's **Max error** serving as both the
+  relative and the absolute tolerance. Steps forced through at the smallest
+  step the control allows, a discontinuous derivative's signature, are
+  accepted and counted rather than failing the run.
+- **Every event carries the accumulated local error per place**
+  (`TraceEvent.solverError`): the sum over accepted steps of the largest
+  error estimate of any token's attribute, in attribute units. It is a
+  running bound on what the steps themselves contributed, not the global
+  error, which propagation through the dynamics can grow or shrink.
+
+What the target design adds on top: hazards integrated with the state so
+rates that read moving attributes stay exact, dense output for event
+location, keyframes in place of full frames, and the stiffness report. The
+buffer compiler accepts no dynamics that read another token today, so the
+coupled class is reached only through the index parameter.
+
 ### Randomness
 
 One counter-based generator (Philox, from Salmon et al. 2011, with 32-bit
