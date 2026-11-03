@@ -199,12 +199,32 @@ export const isHostToEditorMessage = (
   return hostToEditorMessageKinds.has(record.kind);
 };
 
+const editorToHostMessageKinds: ReadonlySet<string> = new Set<
+  EditorToHostMessage["kind"]
+>([
+  "ready",
+  "dirtyChanged",
+  "titleChanged",
+  "requestSave",
+  "requestNavigateBack",
+  "requestRevision",
+  "reportError",
+]);
+
 export const isEditorToHostMessage = (
   data: unknown,
-): data is EditorToHostMessage =>
-  typeof data === "object" &&
-  data !== null &&
-  typeof (data as { kind?: unknown }).kind === "string";
+): data is EditorToHostMessage => {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+
+  const record = data as Record<string, unknown>;
+  if (typeof record.kind !== "string") {
+    return false;
+  }
+
+  return editorToHostMessageKinds.has(record.kind);
+};
 
 let requestIdCounter = 0;
 
