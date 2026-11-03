@@ -14,8 +14,10 @@
  * it, in the same place. Both expand to KaTeX's `\htmlData`, the one HTML
  * extension trusted, and each tagged span becomes an inline reveal. A
  * `\step` part keeps its space while hidden, so the formula never shifts; a
- * swap reflows once, at its step. On a docs page neither is defined, and
- * using one fails the compile.
+ * swap reflows once, at its step. `\morph{name}{…}` marks a part that keeps
+ * its identity across steps: where a step moves it, it glides to its new
+ * place. On a docs page none of these is defined, and using one fails the
+ * compile.
  */
 
 import { fromHtml } from "hast-util-from-html";
@@ -44,14 +46,15 @@ const formulaOf = (element) => {
 };
 
 /**
- * KaTeX settings for a slide: `\step`, `\swap` and the one HTML extension
- * they need. A function, because KaTeX writes a formula's own definitions
+ * KaTeX settings for a slide: `\step`, `\swap`, `\morph` and the one HTML
+ * extension they need. A function, because KaTeX writes a formula's own definitions
  * into `macros`, and one formula's must not reach the next.
  */
 const slideOptions = () => ({
   macros: {
     "\\step": "\\htmlData{at=#1}{#2}",
     "\\swap": "\\htmlData{until=#1, swap=1}{#2}\\htmlData{at=#1, swap=1}{#3}",
+    "\\morph": "\\htmlData{morph=#1}{#2}",
   },
   trust: (/** @type {{ command: string }} */ context) =>
     context.command === "\\htmlData",
@@ -98,22 +101,32 @@ const stepOf = (value) => {
 };
 
 /**
- * Wraps every span `\step` or `\swap` tagged, innermost last so a step
- * nested in another is wrapped too. A `\step` part becomes a
+ * Wraps every span `\step`, `\swap` or `\morph` tagged, innermost last so
+ * a part nested in another is wrapped too. A `\step` part becomes a
  * `RevealInline`, which keeps its space while hidden; each side of a
- * `\swap` becomes an `OnlyInline`, which does not, so the two share a place.
+ * `\swap` becomes an `OnlyInline`, which does not, so the two share a place;
+ * a `\morph` part becomes a `Morph`.
  *
  * @param {import("hast").Root} fragment
  */
-const revealSteps = (fragment) => {
+const wrapSlideParts = (fragment) => {
   visit(fragment, "element", (element, index, parent) => {
+    if (parent === undefined || index === undefined) {
+      return;
+    }
+    const morph = element.properties.dataMorph;
+    if (typeof morph === "string" && morph !== "") {
+      parent.children[index] = /** @type {never} */ ({
+        type: "mdxJsxTextElement",
+        name: "Morph",
+        attributes: [{ type: "mdxJsxAttribute", name: "name", value: morph }],
+        children: [element],
+      });
+      return;
+    }
     const at = stepOf(element.properties.dataAt);
     const until = stepOf(element.properties.dataUntil);
-    if (
-      (at === undefined && until === undefined) ||
-      parent === undefined ||
-      index === undefined
-    ) {
+    if (at === undefined && until === undefined) {
       return;
     }
     const swapped = element.properties.dataSwap !== undefined;
@@ -162,7 +175,7 @@ export const rehypeFormulas =
       }
       const fragment = fromHtml(html, { fragment: true });
       if (slide) {
-        revealSteps(fragment);
+        wrapSlideParts(fragment);
       }
       const rendered = fragment.children;
       parent.children.splice(index, 1, ...rendered);

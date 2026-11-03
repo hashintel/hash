@@ -1,14 +1,24 @@
 /*
- * The deck's slide transition. Every rule is scoped to a transition the
- * deck started, which marks the root with its direction, so nothing here
- * touches the docs pages.
+ * The deck's transitions: a slide change, and a step change on a slide whose
+ * parts morph. Every rule is scoped to a transition the deck started, which
+ * marks the root with its scope and direction, so nothing here touches the
+ * docs pages.
  */
 
-/* Only the slide animates; the rest of the page swaps in place. */
-:root[data-transition-direction]::view-transition-old(root),
-:root[data-transition-direction]::view-transition-new(root) {
+/* On a slide change only the slide animates; the rest swaps in place. */
+:root[data-transition-scope="slide"]::view-transition-old(root),
+:root[data-transition-scope="slide"]::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+/*
+ * On a morph, what carries no name cross-fades in the browser's own way, so
+ * an operator that changes fades while what stays the same holds still.
+ */
+:root[data-transition-scope="step"]::view-transition-old(root),
+:root[data-transition-scope="step"]::view-transition-new(root) {
+  animation-duration: 0.45s;
 }
 
 /* The progress bar stays put. */
@@ -23,6 +33,25 @@
 
 :root[data-transition-direction]::view-transition-old(deck-progress) {
   display: none;
+}
+
+/*
+ * A step change that morphs: the slide holds still and each named part moves
+ * and resizes from its old place to its new one, cross-fading if its content
+ * changed. A part hidden in a reveal carries no name, and on a slide change
+ * the parts travel with their slide.
+ */
+:root[data-transition-scope="step"] .slide,
+:root[data-transition-scope="slide"] .deck-morph,
+.deck-reveal[data-visible="false"] .deck-morph {
+  view-transition-name: none !important;
+}
+
+::view-transition-group(*.deck-morph),
+::view-transition-old(*.deck-morph),
+::view-transition-new(*.deck-morph) {
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 /* A slide change: cross-fade with a short horizontal slide. */

@@ -1,7 +1,7 @@
 /**
  * The deck's state held in React: moves from the keyboard and the hash go
- * through the pure transitions in `deck-state.ts`, and a slide change runs
- * as a view transition. Slides report
+ * through the pure transitions in `deck-state.ts`. A slide change runs as a
+ * view transition, and so does a step change on a slide whose parts morph. Slides report
  * their step counts and completed animations through the two callbacks.
  */
 
@@ -15,10 +15,11 @@ import {
   nextState,
   previousState,
   registerSteps,
-  slideChange,
+  transitionOf,
   type DeckState,
 } from "../deck-state";
 import { runViewTransition } from "../view-transition";
+import { slideMorphs } from "./morph-names";
 
 import type { LoadedSlide } from "../slide-module";
 import type { SlideStepContextValue } from "../step-context";
@@ -71,14 +72,18 @@ export const useDeck = (slides: readonly LoadedSlide[]): DeckControls => {
     if (next === from) {
       return;
     }
-    const direction = slideChange(from, next);
-    if (direction === null) {
+    const transition = transitionOf(
+      from,
+      next,
+      from.index === next.index && slideMorphs(document),
+    );
+    if (transition === null) {
       inFlight.current = null;
       setState(next);
       return;
     }
     inFlight.current = next;
-    runViewTransition(direction, () => {
+    runViewTransition(transition, () => {
       // A newer move owns the state now; this one was overtaken.
       if (inFlight.current === next) {
         inFlight.current = null;

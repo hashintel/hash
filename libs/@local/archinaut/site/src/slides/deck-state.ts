@@ -1,7 +1,7 @@
 /**
  * Where a deck is: which slide, which step, and what it has learned about
  * each slide's steps. Plain data and pure transitions; the deck component
- * holds the state and animates slide changes.
+ * holds the state and decides which moves animate.
  *
  * A slide's step count is either declared up front (MDX `steps`, a static
  * `steps`) or registered when the slide renders and calls
@@ -134,16 +134,36 @@ export const completeStep = (
     ? { ...state, step: step + 1 }
     : state;
 
-/** The direction a move changes slide in, or null when it stays on the slide. */
-export const slideChange = (
+export type TransitionScope = "slide" | "step";
+
+export interface DeckTransition {
+  scope: TransitionScope;
+  direction: Direction;
+}
+
+/**
+ * How a move animates: a slide change always, a step change only when the
+ * slide has parts that morph between steps.
+ */
+export const transitionOf = (
   from: DeckState,
   to: DeckState,
-): Direction | null =>
-  from.index === to.index
-    ? null
-    : to.index > from.index
-      ? "forward"
-      : "backward";
+  slideMorphs: boolean,
+): DeckTransition | null => {
+  if (from.index !== to.index) {
+    return {
+      scope: "slide",
+      direction: to.index > from.index ? "forward" : "backward",
+    };
+  }
+  if (from.step !== to.step && slideMorphs) {
+    return {
+      scope: "step",
+      direction: to.step > from.step ? "forward" : "backward",
+    };
+  }
+  return null;
+};
 
 export const indexOfSlide = (
   slides: readonly DeckSlideRef[],

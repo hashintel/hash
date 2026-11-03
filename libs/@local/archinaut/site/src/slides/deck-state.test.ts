@@ -7,7 +7,7 @@ import {
   nextState,
   previousState,
   registerSteps,
-  slideChange,
+  transitionOf,
   type DeckSlideRef,
 } from "./deck-state";
 
@@ -83,12 +83,22 @@ describe("completeStep", () => {
   });
 });
 
-describe("slideChange", () => {
-  it("names the direction of a slide change and ignores a step change", () => {
+describe("transitionOf", () => {
+  it("animates a slide change, and a step change only when the slide morphs", () => {
     const start = initialDeckState(slides);
-    expect(slideChange(start, goToSlide(start, slides, 2))).toBe("forward");
+    expect(transitionOf(start, goToSlide(start, slides, 2), false)).toEqual({
+      scope: "slide",
+      direction: "forward",
+    });
     const end = goToSlide(start, slides, 2);
-    expect(slideChange(end, previousState(end, slides))).toBe("backward");
-    expect(slideChange(start, nextState(start, slides))).toBeNull();
+    expect(transitionOf(end, previousState(end, slides), false)).toEqual({
+      scope: "slide",
+      direction: "backward",
+    });
+    expect(transitionOf(start, nextState(start, slides), false)).toBeNull();
+    expect(transitionOf(start, nextState(start, slides), true)).toEqual({
+      scope: "step",
+      direction: "forward",
+    });
   });
 });

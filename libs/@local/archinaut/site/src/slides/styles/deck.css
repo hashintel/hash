@@ -259,6 +259,15 @@
   opacity: 0;
 }
 
+/*
+ * A part that morphs between steps. A view transition captures one box, so
+ * the part is never split across lines; its animation is in transitions.css.
+ */
+.deck-morph {
+  display: inline-block;
+  view-transition-class: deck-morph;
+}
+
 /* One side of a swap: no space while hidden, a short fade when it arrives. */
 .deck-only[data-visible="false"] {
   display: none;

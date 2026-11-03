@@ -30,7 +30,7 @@ const inlineMath = (tex: string): Root => ({
 interface JsxNode {
   type: string;
   name?: string;
-  attributes?: { name: string; value: { value: string } }[];
+  attributes?: { name: string; value: string | { value: string } }[];
   children?: JsxNode[];
 }
 
@@ -40,7 +40,10 @@ const revealsIn = (root: Root): string[] => {
   const walk = (node: JsxNode): void => {
     if (node.type === "mdxJsxTextElement") {
       const range = (node.attributes ?? [])
-        .map((attribute) => `${attribute.name}=${attribute.value.value}`)
+        .map(
+          (attribute) =>
+            `${attribute.name}=${typeof attribute.value === "string" ? attribute.value : attribute.value.value}`,
+        )
         .join(" ");
       found.push(`${node.name} ${range}`);
     }
@@ -91,7 +94,20 @@ describe("rehypeFormulas", () => {
     ]);
   });
 
-  it("does not define \\step or \\swap on a docs page", () => {
+  it("turns a \\morph into a part that keeps its name across steps", () => {
+    const root = inlineMath(
+      String.raw`\swap{1}{\morph{H}{H_T} + 1}{1 + \morph{H}{H_T}}`,
+    );
+    plugin(root, slide);
+    expect(revealsIn(root)).toEqual([
+      "OnlyInline until=1",
+      "Morph name=H",
+      "OnlyInline at=1",
+      "Morph name=H",
+    ]);
+  });
+
+  it("does not define \\step, \\swap or \\morph on a docs page", () => {
     const docsPage = { path: "/site/content/docs/a.mdx" } as never;
     expect(() =>
       plugin(inlineMath(String.raw`a \step{1}{b}`), docsPage),
@@ -101,5 +117,8 @@ describe("rehypeFormulas", () => {
     expect(() =>
       plugin(inlineMath(String.raw`\swap{1}{a}{b}`), docsPage),
     ).toThrow(/Undefined control sequence: \\swap/u);
+    expect(() =>
+      plugin(inlineMath(String.raw`\morph{a}{b}`), docsPage),
+    ).toThrow(/Undefined control sequence: \\morph/u);
   });
 });

@@ -1,17 +1,19 @@
 /**
- * Runs a slide change inside `document.startViewTransition`, marking the
- * document with its direction so the transition styles pick the animation. A newer move skips the running one; reduced
+ * Runs a move inside `document.startViewTransition`, marking the document
+ * with its scope and direction so the transition styles pick the animation:
+ * a slide change slides the slide, a step change morphs the slide's named
+ * parts. A newer move skips the running one; reduced
  * motion and browsers without the API apply the move directly.
  */
 
 import { flushSync } from "react-dom";
 
-import type { Direction } from "./deck-state";
+import type { DeckTransition } from "./deck-state";
 
 let active: ViewTransition | null = null;
 
 export const runViewTransition = (
-  direction: Direction,
+  { scope, direction }: DeckTransition,
   apply: () => void,
 ): void => {
   const reduceMotion = window.matchMedia(
@@ -24,6 +26,7 @@ export const runViewTransition = (
   active?.skipTransition();
   const root = document.documentElement;
   root.dataset.transitionDirection = direction;
+  root.dataset.transitionScope = scope;
   const transition = document.startViewTransition(() => {
     flushSync(apply);
   });
@@ -34,6 +37,7 @@ export const runViewTransition = (
     }
     active = null;
     delete root.dataset.transitionDirection;
+    delete root.dataset.transitionScope;
   };
   // A newer move skips this transition, which rejects `ready` with an
   // AbortError; that is the expected way for it to end. `finished` settles
