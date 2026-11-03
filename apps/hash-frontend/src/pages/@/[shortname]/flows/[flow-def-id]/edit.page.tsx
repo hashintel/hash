@@ -1,7 +1,7 @@
 import { ApolloError, useMutation } from "@apollo/client";
 import { Box, Stack } from "@mui/material";
 import { useRouter } from "next/router";
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
@@ -11,7 +11,9 @@ import {
   archiveFlowDefinitionMutation,
   updateFlowDefinitionMutation,
 } from "../../../../../graphql/queries/knowledge/flow.queries";
-import { getPlainLayout } from "../../../../../shared/layout";
+import { getLayoutWithSidebar } from "../../../../../shared/layout";
+import { HEADER_HEIGHT } from "../../../../../shared/layout/layout-with-header/page-header";
+import { useSidebarContext } from "../../../../../shared/layout/layout-with-sidebar/page-sidebar";
 import { DsComponentsScope } from "../../../../shared/ds-components-scope";
 import { NotFound } from "../../../../shared/not-found";
 import {
@@ -39,6 +41,29 @@ import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+
+const editorHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
+
+/**
+ * Collapses the app sidebar while the editor is open, and opens it again on leaving if it was open before. The
+ * sidebar's state outlives the page, and its open and close functions change whenever it does.
+ */
+const useCollapsedSidebar = () => {
+  const sidebar = useSidebarContext();
+  const sidebarRef = useRef(sidebar);
+  sidebarRef.current = sidebar;
+
+  useEffect(() => {
+    const wasOpen = sidebarRef.current.sidebarOpen;
+    sidebarRef.current.closeSidebar();
+
+    return () => {
+      if (wasOpen) {
+        sidebarRef.current.openSidebar();
+      }
+    };
+  }, []);
+};
 
 const isConflictError = (error: unknown) =>
   error instanceof ApolloError &&
@@ -133,7 +158,7 @@ const FlowEditor = ({
 
   return (
     <DsComponentsScope
-      sx={{ display: "flex", flexDirection: "column", height: "100vh" }}
+      sx={{ display: "flex", flexDirection: "column", height: editorHeight }}
     >
       <TopBar
         name={flowDefinition.name}
@@ -197,7 +222,7 @@ const EditorLoading = () => (
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      height: "100vh",
+      height: editorHeight,
     }}
   >
     <LoadingSpinner size="lg" />
@@ -244,6 +269,8 @@ const FlowEditorLoader = ({
 const FlowEditorPage: NextPageWithLayout = () => {
   const { query } = useRouter();
 
+  useCollapsedSidebar();
+
   /* The path has the uuid of the definition's entity, and its shortname names the web the definition is in. */
   const { loading, routeNamespace } = useRouteNamespace();
 
@@ -264,6 +291,7 @@ const FlowEditorPage: NextPageWithLayout = () => {
   );
 };
 
-FlowEditorPage.getLayout = getPlainLayout;
+FlowEditorPage.getLayout = (page) =>
+  getLayoutWithSidebar(page, { fullWidth: true });
 
 export default FlowEditorPage;

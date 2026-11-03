@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 
 import { Button } from "@hashintel/ds-components";
 
+import { HEADER_HEIGHT } from "../../../../../../shared/layout/layout-with-header/page-header";
 import { DsComponentsScope } from "../../../../../shared/ds-components-scope";
 
 /**
@@ -24,7 +25,7 @@ export const FlowNotEditable = ({
         alignItems: "center",
         justifyContent: "center",
         gap: 2,
-        height: "100vh",
+        height: `calc(100vh - ${HEADER_HEIGHT}px)`,
         px: 2,
         textAlign: "center",
       }}
