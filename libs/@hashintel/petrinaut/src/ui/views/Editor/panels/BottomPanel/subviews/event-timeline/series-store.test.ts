@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createTimelineSeriesStore, niceStep } from "./series-store";
+import {
+  createTimelineSeriesStore,
+  niceStep,
+  TRACE_UPDATE_INTERVAL_MS,
+} from "./series-store";
 
 import type { TimelineSeriesSource } from "./series-store";
 import type {
@@ -57,6 +61,7 @@ const createSource = (initial: Fake[]) => {
     events.push(...more);
     coveredTime = covered;
     for (const listener of listeners) listener(summary());
+    vi.advanceTimersByTime(TRACE_UPDATE_INTERVAL_MS);
   };
   return { source, append };
 };
@@ -75,6 +80,37 @@ const series = [
 ];
 
 describe("createTimelineSeriesStore", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("takes the trace's updates at most once per interval", () => {
+    const { source, append } = createSource([
+      { time: 0, kind: "initial", fired: [] },
+    ]);
+    const store = createTimelineSeriesStore(source, {
+      kind: "steps",
+      series,
+      extract,
+    });
+    let notified = 0;
+    store.subscribe(() => {
+      notified += 1;
+    });
+    store.attach();
+    expect(notified).toBe(1);
+    // Two updates inside one interval reach the chart as one.
+    const before = store.getSnapshot();
+    source.trace.get();
+    append([{ time: 0.1, kind: "firing", fired: ["t1"] }], 0.1);
+    expect(notified).toBe(2);
+    expect(store.getSnapshot()).not.toBe(before);
+    expect(store.getSnapshot().data?.data[0]).toEqual([0, 0.1]);
+  });
+
   it("builds step rows once per event and carries them to the covered time", () => {
     const { source, append } = createSource([
       { time: 0, kind: "initial", fired: [] },

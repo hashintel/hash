@@ -89,7 +89,7 @@ function createMockSimulationContext(
     setAdHocScenario: () => {},
     dt: 0.01,
     maxTime: null,
-    totalFrames: frameCount,
+    totalFramesStore: { get: () => frameCount, subscribe: () => () => {} },
     getFrame: frameAccessors.getFrame,
     getAllFrames: frameAccessors.getAllFrames,
     getFramesInRange: frameAccessors.getFramesInRange,

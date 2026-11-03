@@ -18,6 +18,7 @@ import { PlaybackContext } from "../playback/context";
 import { SimulationContext } from "../simulation/context";
 import { EditorContext } from "../state/editor-context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { useStore } from "../use-store";
 import {
   emptyExecutionFrameSource,
   ExecutionFrameSourceContext,
@@ -30,7 +31,8 @@ import type { SimulationFrameReader } from "@hashintel/petrinaut-core";
  * Adapter exposing local simulation playback as an {@link ExecutionFrameSource}.
  */
 export const useSimulationExecutionFrameSource = (): ExecutionFrameSource => {
-  const { dt, getFramesInRange, totalFrames } = use(SimulationContext);
+  const { dt, getFramesInRange, totalFramesStore } = use(SimulationContext);
+  const totalFrames = useStore(totalFramesStore);
   const {
     currentFrameIndex,
     currentFrameReader,
@@ -60,8 +62,9 @@ export const useSimulationExecutionFrameSource = (): ExecutionFrameSource => {
  * event's time.
  */
 export const useEventExecutionFrameSource = (): ExecutionFrameSource => {
-  const { eventSimulation, getFramesInRange, totalFrames } =
+  const { eventSimulation, getFramesInRange, totalFramesStore } =
     use(SimulationContext);
+  const totalFrames = useStore(totalFramesStore);
   const { setTime } = use(EventPlaybackContext);
   const { currentEventIndex, currentFrameReader } = useEventPlaybackFrame();
 

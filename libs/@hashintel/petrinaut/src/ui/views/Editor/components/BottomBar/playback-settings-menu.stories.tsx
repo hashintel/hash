@@ -61,7 +61,10 @@ const PlaybackSettingsMenuStory = ({
         setAdHocScenario: () => {},
         dt: 0.01,
         maxTime,
-        totalFrames: simulationState === "NotRun" ? 0 : 100,
+        totalFramesStore: {
+          get: () => (simulationState === "NotRun" ? 0 : 100),
+          subscribe: () => () => {},
+        },
         getFrame: () => Promise.resolve(null),
         getAllFrames: () => Promise.resolve([]),
         getFramesInRange: () => Promise.resolve([]),

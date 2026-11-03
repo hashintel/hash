@@ -10,6 +10,7 @@ import {
   type ScenarioCompilationError,
   type SimulationFrameReader,
   type SimulationFrameState,
+  type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
 /**
@@ -88,7 +89,12 @@ export type SimulationContextValue = {
    * Total number of computed frames available. On the event-driven engine,
    * the number of recorded events.
    */
-  totalFrames: number;
+  /**
+   * Frames recorded so far, or events for the event-driven engine. A store
+   * rather than a number, so the context value holds still while a run
+   * streams and only what shows the count renders on each batch.
+   */
+  totalFramesStore: ReadableStore<number>;
   /**
    * The runtime the next run uses. Changing it discards the current run.
    */
@@ -240,7 +246,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   adHocNetParameters: [],
   dt: 0.01,
   maxTime: null,
-  totalFrames: 0,
+  totalFramesStore: { get: () => 0, subscribe: () => () => {} },
   engine: "fixed-step",
   eventSimulation: null,
   getFrame: () => Promise.resolve(null),

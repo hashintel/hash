@@ -141,7 +141,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
             setAdHocScenario: () => {},
             dt: 0.01,
             maxTime: null,
-            totalFrames: 0,
+            totalFramesStore: { get: () => 0, subscribe: () => () => {} },
             getFrame: () => Promise.resolve(null),
             getAllFrames: () => Promise.resolve([]),
             getFramesInRange: () => Promise.resolve([]),

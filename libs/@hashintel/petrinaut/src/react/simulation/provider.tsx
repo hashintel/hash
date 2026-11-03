@@ -13,7 +13,6 @@ import {
   type AdHocScenarioState,
   type AdHocSynthesisContext,
   type EventSimulation,
-  type EventTraceSummary,
   type HirCompileResult,
   type PetrinautExtensionSettings,
   type ReadableStore,
@@ -38,7 +37,7 @@ import { usePetrinautNavigation } from "../navigation";
 import { resolveNavigatedId } from "../navigation/resolve-navigated-ids";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
-import { useStore } from "../use-store";
+import { constantStore, selectStore, useStore } from "../use-store";
 import {
   type InitialMarking,
   SimulationContext,
@@ -157,6 +156,8 @@ export function getEffectiveSelectedScenarioId(
   return resolvedScenarioId ?? scenarios?.[0]?.id ?? null;
 }
 
+const ZERO_FRAMES_STORE = constantStore(0);
+
 const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
   get: () => "Initializing",
   subscribe: () => () => {},
@@ -167,27 +168,6 @@ const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
  * is critical for `useSyncExternalStore` — returning a fresh object on each
  * read triggers an infinite re-render loop.
  */
-const EMPTY_FRAME_SUMMARY: {
-  count: number;
-  latest: SimulationFrameReader | null;
-} = { count: 0, latest: null };
-
-const EMPTY_FRAMES_STORE: ReadableStore<typeof EMPTY_FRAME_SUMMARY> = {
-  get: () => EMPTY_FRAME_SUMMARY,
-  subscribe: () => () => {},
-};
-
-const EMPTY_TRACE_SUMMARY: EventTraceSummary = {
-  eventCount: 0,
-  coveredTime: 0,
-  latest: null,
-};
-
-const EMPTY_TRACE_STORE: ReadableStore<EventTraceSummary> = {
-  get: () => EMPTY_TRACE_SUMMARY,
-  subscribe: () => () => {},
-};
-
 /**
  * Map a core {@link CoreSimulationState} to the legacy
  * {@link SimulationState} shape consumed by the editor UI.
@@ -345,8 +325,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const coreStatus = useStore(
     simulation?.status ?? eventSimulation?.status ?? EMPTY_STATUS_STORE,
   );
-  const frameSummary = useStore(simulation?.frames ?? EMPTY_FRAMES_STORE);
-  const traceSummary = useStore(eventSimulation?.trace ?? EMPTY_TRACE_STORE);
 
   // When the simulation changes, subscribe to its events stream for errors and
   // completion notifications.
@@ -814,7 +792,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const simulationState = mapCoreState(
     simulation || eventSimulation ? coreStatus : null,
   );
-  const totalFrames = simulation ? frameSummary.count : traceSummary.eventCount;
+  // The frame count is handed out as a store, so this provider and the
+  // consumers of its context are not rendered on every batch the worker posts.
+  const totalFramesStore: ReadableStore<number> = simulation
+    ? selectStore(simulation.frames, (summary) => summary.count)
+    : eventSimulation
+      ? selectStore(eventSimulation.trace, (summary) => summary.eventCount)
+      : ZERO_FRAMES_STORE;
   useEffect(() => {
     if (
       shouldNormalizeScenarioSelection({
@@ -1028,7 +1012,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     adHocNetParameters,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
-    totalFrames,
+    totalFramesStore,
     engine: stateValues.engine,
     eventSimulation,
     getFrame: useStableCallback(getFrame),
