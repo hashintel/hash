@@ -13,6 +13,7 @@ import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { ErrorTrackerContext } from "@hashintel/petrinaut/react";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
+import { fixedBrunchAssistant } from "../chat/testing/fixed-brunch-assistant";
 import { brunchPlugin, BrunchAssistantContext } from "../editor-api-plugin";
 import {
   InProcessLspWorker,
@@ -123,7 +124,7 @@ const openDraftPanel = async ({
   };
   render(
     <ErrorTrackerContext value={{ captureException: vi.fn() }}>
-      <BrunchAssistantContext value={aiAssistant}>
+      <BrunchAssistantContext value={fixedBrunchAssistant(aiAssistant)}>
         <Petrinaut handle={handle} plugins={[brunchPlugin]} />
       </BrunchAssistantContext>
     </ErrorTrackerContext>,
