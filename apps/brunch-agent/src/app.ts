@@ -1,6 +1,7 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
 import "./server/telemetry-bootstrap.ts";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
@@ -132,10 +133,21 @@ const modelStreamCancellationTimeoutMs = modelStreamTimeout(
   modelStreamTimeoutEnv.cancellationMs,
   modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
+// The model call a provider stream belongs to, so its timeout line can be
+// joined to the submission's chronology line.
+const modelCallScope = new AsyncLocalStorage<{
+  readonly turnId: string;
+  readonly submissionId: string | undefined;
+}>();
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
   interceptor(operation, context, next) {
+    if (operation.type === "model")
+      return modelCallScope.run(
+        { turnId: operation.turnId, submissionId: context.submissionId },
+        next,
+      );
     if (operation.type === "agent" && context.agentName !== undefined)
       return admissionScope.run(
         mountedAgentNames.has(context.agentName)
@@ -197,6 +209,11 @@ const registerAdmittedProvider = (provider: Provider) => {
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
         reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,
+        onIdleTimeout: (timeout) =>
+          diagnostics.note("provider.timeout", {
+            ...modelCallScope.getStore(),
+            ...timeout,
+          }),
       },
     ),
   );

@@ -26,6 +26,7 @@ type DiagnosticStage =
   | "why.explain"
   | "http.admission-body"
   | "provider.accounting"
+  | "provider.timeout"
   | "database.configuration"
   | "database.operation";
 
@@ -172,7 +173,9 @@ const observedFailure = (
               ...fields,
               turnId: observation.turnId,
               purpose: observation.purpose,
+              provider: observation.request.providerId,
               requestedModel: observation.request.requestedModel,
+              responseModel: observation.response.responseModel,
               finishReason: observation.response.finishReason,
               durationMs: observation.durationMs,
             },
