@@ -110,6 +110,7 @@ export const LanguageClientProvider: React.FC<{
     requestHover: client.requestHover,
     requestSignatureHelp: client.requestSignatureHelp,
     requestDiagnostics: client.requestDiagnostics,
+    netAnalysis: client.netAnalysis,
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,
