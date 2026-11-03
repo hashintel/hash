@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Make pinned Canvas visualizers draggable and resizable with a fixed aspect ratio, stable positions, a size independent of Canvas zoom, and a line connecting each visualizer to its place.
+Keep pinned Canvas visualizers visible while panning and zooming, with dragging from anywhere, resizing at a fixed aspect ratio, Alt-resizing from the center, and a line connecting each visualizer to its place.

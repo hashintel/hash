@@ -125,7 +125,7 @@ Opening it belongs to that hover: move the pointer away and it closes, and point
 
 A pinned visualizer chooses an initial position near its place, then stays where you put it. Drag anywhere on the picture to move it. The cursor changes from an open hand to a closed hand while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings; the visualizer keeps its original aspect ratio. Hold Alt while resizing to keep the center fixed.
 
-A thin line connects the visualizer to its place. Moving the place updates the line while the visualizer stays put. The visualizer follows the canvas as you pan and keeps the same size on screen as you zoom. Focus the drag strip or bottom-right resize handle to use the arrow keys, with Shift for larger steps. Position and size last while the visualizer remains pinned in the current Canvas view.
+A thin line connects the visualizer to its place. Moving the place, panning, or zooming the canvas updates the line while the visualizer stays in the same position and at the same size on screen. Dragging and resizing stop at the edges of the visible area, keeping clear of Canvas controls and open side and bottom panels. If the available area shrinks, the visualizer moves or scales down to fit, keeping its aspect ratio. Focus the drag strip or bottom-right resize handle to use the arrow keys, with Shift for larger steps. Position and size last while the visualizer remains pinned in the current Canvas view.
 
 <img width="474" height="385" alt="visauliser-preview" src="https://github.com/user-attachments/assets/303f51f3-0a53-480b-9639-52c4b77aa6e0" />
 

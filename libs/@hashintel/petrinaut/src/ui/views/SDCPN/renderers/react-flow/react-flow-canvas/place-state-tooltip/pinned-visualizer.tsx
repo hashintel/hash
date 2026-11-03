@@ -1,9 +1,5 @@
-import {
-  useInternalNode,
-  useStore,
-  useViewport,
-  ViewportPortal,
-} from "@xyflow/react";
+import { useInternalNode, useStore, useViewport } from "@xyflow/react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -11,12 +7,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { PinIcon } from "../../../../../../components/pin-icon";
 import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
-import { getViewportRect } from "../../../../canvas-viewport";
 import { useVisualizerLayout } from "./pinned-visualizer/use-visualizer-layout";
-import {
-  getVisualizerBounds,
-  getVisualizerConnector,
-} from "./pinned-visualizer/visualizer-layout";
+import { getVisualizerConnector } from "./pinned-visualizer/visualizer-layout";
 
 import type { Size } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
@@ -31,7 +23,6 @@ const panelStyle = css({
   borderRadius: "[14px]",
   boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.16)]",
   pointerEvents: "auto",
-  transformOrigin: "top left",
   cursor: "grab",
   touchAction: "none",
   userSelect: "none",
@@ -118,32 +109,39 @@ export const PinnedVisualizer = ({
 }) => {
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
+  const container = useStore((state) =>
+    state.domNode?.querySelector(".react-flow__renderer"),
+  );
   const canvasWidth = useStore((state) => state.width);
   const canvasHeight = useStore((state) => state.height);
   const insets = useCanvasInsets();
   const nodeBounds = {
-    x: node?.internals.positionAbsolute.x ?? 0,
-    y: node?.internals.positionAbsolute.y ?? 0,
-    width: node?.measured.width ?? 1,
-    height: node?.measured.height ?? 1,
+    x: (node?.internals.positionAbsolute.x ?? 0) * viewport.zoom + viewport.x,
+    y: (node?.internals.positionAbsolute.y ?? 0) * viewport.zoom + viewport.y,
+    width: (node?.measured.width ?? 1) * viewport.zoom,
+    height: (node?.measured.height ?? 1) * viewport.zoom,
   };
+  const left = Math.min(insets.left, Math.max(0, canvasWidth - 1));
+  const top = Math.min(72, Math.max(0, canvasHeight - 1));
   const { layout, getHandleProps } = useVisualizerLayout(
     nodeBounds,
     initialSize,
-    getViewportRect({ width: canvasWidth, height: canvasHeight }, viewport, {
-      ...insets,
-      top: 72,
-      bottom: Math.max(insets.bottom, 64),
-    }),
+    {
+      x: left,
+      y: top,
+      width: Math.max(1, canvasWidth - left - insets.right - 48),
+      height: Math.max(1, canvasHeight - top - insets.bottom - 64),
+    },
   );
-  const connector = getVisualizerConnector(
-    nodeBounds,
-    getVisualizerBounds(layout, viewport.zoom),
-    viewport.zoom,
-  );
+  const connector = getVisualizerConnector(nodeBounds, {
+    ...layout.position,
+    ...layout.size,
+  });
 
-  return (
-    <ViewportPortal>
+  if (!container) return null;
+
+  return createPortal(
+    <>
       {connector && (
         <svg className={connectorStyle} width={1} height={1} aria-hidden="true">
           <line
@@ -153,12 +151,11 @@ export const PinnedVisualizer = ({
             y2={connector.end.y}
             stroke="currentColor"
             strokeWidth={1.5}
-            vectorEffect="non-scaling-stroke"
           />
           <circle
             cx={connector.start.x}
             cy={connector.start.y}
-            r={3 / viewport.zoom}
+            r={3}
             fill="currentColor"
           />
         </svg>
@@ -171,7 +168,6 @@ export const PinnedVisualizer = ({
           top: layout.position.y,
           width: layout.size.width,
           height: layout.size.height,
-          transform: `scale(${1 / viewport.zoom})`,
         }}
         role="group"
         aria-label={`${name} state visualizer`}
@@ -214,6 +210,7 @@ export const PinnedVisualizer = ({
           })}
         />
       </div>
-    </ViewportPortal>
+    </>,
+    container,
   );
 };

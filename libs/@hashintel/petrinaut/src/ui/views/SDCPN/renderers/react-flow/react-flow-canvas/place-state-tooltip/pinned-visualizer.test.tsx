@@ -4,25 +4,25 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { PinnedVisualizer } from "./pinned-visualizer";
 
-import type { ReactNode } from "react";
-
 const canvas = vi.hoisted(() => ({
   node: {
     internals: { positionAbsolute: { x: 500, y: 400 } },
     measured: { width: 100, height: 80 },
   },
   viewport: { x: 0, y: 0, zoom: 1 },
+  width: 1200,
+  height: 800,
+  insets: { left: 200, right: 0, bottom: 0 },
+  domNode: null as HTMLElement | null,
 }));
 
 vi.mock("@xyflow/react", () => ({
   useInternalNode: () => canvas.node,
   useViewport: () => canvas.viewport,
-  useStore: (selector: (state: { width: number; height: number }) => unknown) =>
-    selector({ width: 1200, height: 800 }),
-  ViewportPortal: ({ children }: { children: ReactNode }) => children,
+  useStore: (selector: (state: typeof canvas) => unknown) => selector(canvas),
 }));
 vi.mock("../../../../../../hooks/use-canvas-insets", () => ({
-  useCanvasInsets: () => ({ left: 200, right: 0, bottom: 0 }),
+  useCanvasInsets: () => canvas.insets,
 }));
 vi.mock("@hashintel/ds-components", () => ({
   Button: ({ onClick }: { onClick: () => void }) => (
@@ -72,11 +72,22 @@ const mockPointerCapture = (handle: HTMLElement) => {
 beforeEach(() => {
   canvas.node.internals.positionAbsolute = { x: 500, y: 400 };
   canvas.viewport = { x: 0, y: 0, zoom: 1 };
+  canvas.width = 1200;
+  canvas.height = 800;
+  canvas.insets = { left: 200, right: 0, bottom: 0 };
+  canvas.domNode = document.createElement("div");
+  const renderer = document.createElement("div");
+  renderer.className = "react-flow__renderer";
+  canvas.domNode.appendChild(renderer);
+  document.body.appendChild(canvas.domNode);
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  canvas.domNode?.remove();
+});
 
-it("keeps its Canvas position and screen size when the place or viewport moves, while updating the connector", () => {
-  const { rerender, container } = render(panel());
+it("keeps its screen position and size when the place or viewport moves, while updating the connector", () => {
+  const { rerender } = render(panel());
   const visualizer = screen.getByRole("group", {
     name: "Space state visualizer",
   });
@@ -86,7 +97,9 @@ it("keeps its Canvas position and screen size when the place or viewport moves, 
     visualizer.style.width,
     visualizer.style.height,
   ];
-  const initialConnector = container.querySelector("line")?.outerHTML;
+  expect(visualizer.parentElement?.className).toBe("react-flow__renderer");
+  const initialConnector = canvas.domNode?.querySelector("line")?.outerHTML;
+  expect(initialConnector).toBeDefined();
 
   canvas.node.internals.positionAbsolute = { x: 750, y: 600 };
   canvas.viewport = { x: -100, y: 50, zoom: 0.5 };
@@ -98,8 +111,37 @@ it("keeps its Canvas position and screen size when the place or viewport moves, 
     visualizer.style.width,
     visualizer.style.height,
   ]).toEqual(initialBounds);
-  expect(visualizer.style.transform).toBe("scale(2)");
-  expect(container.querySelector("line")?.outerHTML).not.toBe(initialConnector);
+  expect(visualizer.style.transform).toBe("");
+  expect(canvas.domNode?.querySelector("line")?.outerHTML).not.toBe(
+    initialConnector,
+  );
+});
+
+it("keeps the window visible when the container shrinks or panels open, restoring its preferred layout when space returns", () => {
+  const { rerender } = render(panel());
+  const visualizer = screen.getByRole("group", {
+    name: "Space state visualizer",
+  });
+  const initialStyle = visualizer.getAttribute("style");
+  canvas.width = 600;
+  canvas.height = 500;
+  canvas.insets = { left: 200, right: 140, bottom: 200 };
+  rerender(panel());
+  const left = parseFloat(visualizer.style.left);
+  const top = parseFloat(visualizer.style.top);
+  const width = parseFloat(visualizer.style.width);
+  const height = parseFloat(visualizer.style.height);
+  expect(left).toBeGreaterThanOrEqual(200);
+  expect(top).toBeGreaterThanOrEqual(72);
+  expect(left + width).toBeLessThanOrEqual(412);
+  expect(top + height).toBeLessThanOrEqual(236);
+  expect(width / height).toBeCloseTo(4 / 3);
+
+  canvas.width = 1200;
+  canvas.height = 800;
+  canvas.insets = { left: 200, right: 0, bottom: 0 };
+  rerender(panel());
+  expect(visualizer.getAttribute("style")).toBe(initialStyle);
 });
 
 it("places the panel within the available canvas when the place is near the top edge", () => {
@@ -117,6 +159,7 @@ it.each([0.5, 1, 2])(
   "moves and resizes in screen pixels at zoom %s without moving the attached place",
   (zoom) => {
     canvas.viewport.zoom = zoom;
+    canvas.node.internals.positionAbsolute = { x: 500 / zoom, y: 400 / zoom };
     render(panel());
     const visualizer = screen.getByRole("group", {
       name: "Space state visualizer",
@@ -135,14 +178,17 @@ it.each([0.5, 1, 2])(
       { key: "ArrowRight" },
     );
 
-    expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 20 / zoom);
+    expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 20);
     expect(parseFloat(visualizer.style.width)).toBe(initialWidth + 5);
     expect(
       parseFloat(visualizer.style.width) / parseFloat(visualizer.style.height),
     ).toBeCloseTo(4 / 3);
     expect(initialWidth).toBe(320);
-    expect(visualizer.style.transform).toBe(`scale(${1 / zoom})`);
-    expect(canvas.node.internals.positionAbsolute).toEqual({ x: 500, y: 400 });
+    expect(visualizer.style.transform).toBe("");
+    expect(canvas.node.internals.positionAbsolute).toEqual({
+      x: 500 / zoom,
+      y: 400 / zoom,
+    });
   },
 );
 
@@ -185,6 +231,23 @@ it("drags from the picture without turning the pin into a drag handle", () => {
   fireEvent.click(pin);
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
   expect(unpin).toHaveBeenCalledOnce();
+});
+
+it("stops dragging before the Canvas controls at the right and bottom edges", () => {
+  render(panel());
+  const visualizer = screen.getByRole("group", {
+    name: "Space state visualizer",
+  });
+  mockPointerCapture(visualizer);
+  pointerEvent(visualizer, "pointerdown");
+  pointerEvent(visualizer, "pointermove", { clientX: 2000, clientY: 2000 });
+  pointerEvent(visualizer, "pointerup");
+  expect(
+    parseFloat(visualizer.style.left) + parseFloat(visualizer.style.width),
+  ).toBe(1152);
+  expect(
+    parseFloat(visualizer.style.top) + parseFloat(visualizer.style.height),
+  ).toBe(736);
 });
 
 it("switches to resizing from the center while Alt is held", () => {
@@ -241,11 +304,11 @@ it.each(["pointerup", "pointercancel", "lostpointercapture"])(
     pointerEvent(handle, "pointerdown");
     pointerEvent(handle, endEvent, { pointerId: 2 });
     pointerEvent(handle, "pointermove", { clientX: 30 });
-    expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 60);
+    expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 30);
 
     pointerEvent(handle, endEvent);
     pointerEvent(handle, "pointermove", { clientX: 50 });
-    expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 60);
+    expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 30);
     expect(release).toHaveBeenCalledWith(1);
   },
 );

@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 
 import {
+  constrainVisualizerLayout,
   createVisualizerLayout,
   updateVisualizerLayout,
 } from "./visualizer-layout";
 
-import type { VisibleSceneRect } from "../../../../../canvas-viewport";
 import type { VisualizerAction, VisualizerLayout } from "./visualizer-layout";
 import type { Rect, Size } from "@hashintel/petrinaut-core";
 import type { HTMLAttributes, PointerEvent } from "react";
@@ -13,11 +13,12 @@ import type { HTMLAttributes, PointerEvent } from "react";
 export const useVisualizerLayout = (
   node: Rect,
   initialSize: Size | null,
-  viewport: VisibleSceneRect,
+  viewport: Rect,
 ) => {
-  const [layout, setLayout] = useState(() =>
+  const [preferredLayout, setLayout] = useState(() =>
     createVisualizerLayout(node, initialSize, viewport),
   );
+  const layout = constrainVisualizerLayout(preferredLayout, viewport);
   const gesture = useRef<{
     pointerId: number;
     x: number;
@@ -65,7 +66,7 @@ export const useVisualizerLayout = (
             x: event.clientX - current.x,
             y: event.clientY - current.y,
           },
-          viewport.zoom,
+          viewport,
           event.altKey,
         ),
       );
@@ -87,10 +88,10 @@ export const useVisualizerLayout = (
       event.preventDefault();
       setLayout((previous) =>
         updateVisualizerLayout(
-          previous,
+          constrainVisualizerLayout(previous, viewport),
           action,
           delta,
-          viewport.zoom,
+          viewport,
           event.altKey,
         ),
       );
