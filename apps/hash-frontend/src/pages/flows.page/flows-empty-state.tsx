@@ -35,8 +35,12 @@ const copy = css({
   alignItems: "center",
   gap: "1",
 });
-const heading = css({ textStyle: "base", fontWeight: "semibold" });
-const description = css({ textStyle: "sm", color: "fg.muted" });
+const heading = css({
+  textStyle: "base",
+  fontWeight: "semibold",
+  color: "fg.max",
+});
+const description = css({ textStyle: "sm", color: "fg.subtle" });
 
 /** Shown on the flows page when there are no flows yet. */
 export const FlowsEmptyState = ({ createFlow }: { createFlow: CreateFlow }) => (

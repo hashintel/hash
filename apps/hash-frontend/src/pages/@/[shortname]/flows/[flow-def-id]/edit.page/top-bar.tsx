@@ -219,7 +219,7 @@ export const TopBar = ({
             void leave();
           }}
         />
-        <BreadCrumbs>
+        <BreadCrumbs size="sm">
           <BreadCrumbs.Item>{name}</BreadCrumbs.Item>
         </BreadCrumbs>
       </div>
