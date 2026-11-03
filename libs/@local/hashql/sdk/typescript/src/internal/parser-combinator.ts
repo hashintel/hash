@@ -42,7 +42,7 @@ export const cut = <T, R extends Reason>(
 /**
  * Reads zero or more items.
  *
- * An item that succeeds without consuming input stops the repetition with a committed {@link ExpectedProgress} failure instead of looping. {@link Parser.optional | optional} and {@link Parser.choice | choice} pass it on instead of backtracking.
+ * An item that succeeds without consuming input stops the repetition with a committed {@link ExpectedProgress} failure instead of looping. {@link Parser.optional | `optional`} and {@link Parser.choice | `choice`} pass it on instead of backtracking.
  */
 export const repeat = <T, R extends Reason>(
   self: Parser.Parser<T, R>,

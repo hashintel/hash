@@ -113,7 +113,7 @@ export { typeAlias as type };
 /**
  * Introduces a distinct type and its constructor in `body`.
  *
- * The constructor has the same name as the type. `name` accepts generic parameters as described by {@link typeAlias | type}.
+ * The constructor has the same name as the type. `name` accepts generic parameters as described by {@link typeAlias | `type`}.
  *
  * @category Bindings
  * @since 0.1.0

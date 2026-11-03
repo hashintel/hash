@@ -7,7 +7,7 @@
  *
  * Builders such as {@link literal}, {@link struct} and {@link call} assemble syntax without validating it, and nothing in this module executes a query. {@link make} checks a finished tree against {@link Schema} and throws on failure. {@link makeEffect} keeps the issue in an Effect, and {@link makeOption} returns `None`. The schema checks structure, identifier-named fields and labels, and numeric spelling. It does not parse string expressions or `#type` annotations, resolve names or check types. The HashQL compiler does that when it receives the program.
  *
- * Builders that take a type, such as {@link input} and {@link typed}, accept the tagged syntax built by {@link Type}. {@link Ident} and {@link Path} decode and print single identifiers and paths. Each constructor also has a namespace, such as `Literal` or `Call`, holding its schema, value type and checked `make` functions.
+ * Builders that take a type, such as {@link input} and {@link typed}, accept the tagged syntax built by {@link Type}. {@link Ident} and {@link Path} decode and print single identifiers and paths. Each constructor also has a namespace, such as {@link Literal} or {@link Call}, holding its schema, value type and checked `make` functions.
  *
  * @example <caption>Bind a value, check the tree and serialize it.</caption>
  * ```ts
@@ -154,7 +154,7 @@ export type Annotatable =
 /**
  * Creates an integer literal from a value's exact decimal digits.
  *
- * A `bigint` keeps every digit. A `number` contributes the digits of its double value. An integer beyond `Number.MAX_SAFE_INTEGER` may therefore have lost precision before this call. `-0` becomes `0`. A non-integral or non-finite number keeps its JavaScript text without an error. {@link make} rejects that literal, while {@link compile} emits the text, such as `1.5` or `NaN`. See `JExpr.Integer.Integer` for a precision example.
+ * A `bigint` keeps every digit. A `number` contributes the digits of its double value. An integer beyond `Number.MAX_SAFE_INTEGER` may therefore have lost precision before this call. `-0` becomes `0`. A non-integral or non-finite number keeps its JavaScript text without an error. {@link make} rejects that literal, while {@link compile} emits the text, such as `1.5` or `NaN`. See {@link JExpr.Integer.Integer} for a precision example.
  *
  * @category Literals
  * @since 0.1.0
@@ -252,7 +252,7 @@ export const struct = (
 /**
  * Creates a dictionary from string keys or key expressions.
  *
- * Record keys are literal strings, even when they look like paths. JavaScript puts integer-like record keys first in ascending order, and {@link compile} keeps that order. Use `[key, value]` pairs to compute keys from expressions or to control their order. The tree holds the given record or array rather than a copy. See `JExpr.Dict.Dict` for examples of both key forms.
+ * Record keys are literal strings, even when they look like paths. JavaScript puts integer-like record keys first in ascending order, and {@link compile} keeps that order. Use `[key, value]` pairs to compute keys from expressions or to control their order. The tree holds the given record or array rather than a copy. See {@link JExpr.Dict.Dict} for examples of both key forms.
  *
  * @category Data
  * @since 0.1.0
@@ -266,7 +266,7 @@ export const dict = (
 /**
  * Sets a data constructor's type annotation.
  *
- * Returns a shallow copy with `#type` set. The new annotation replaces any existing one. The annotation is the type's annotation text, such as `(name: String)`, which HashQL parses and checks. Calls and paths cannot carry this field. Use {@link asType | as} to assert their types. Call it data-first as `typed(self, type)` or data-last in a pipeline.
+ * Returns a shallow copy with `#type` set. The new annotation replaces any existing one. The annotation is the type's annotation text, such as `(name: String)`, which HashQL parses and checks. Calls and paths cannot carry this field. Use {@link asType | `as`} to assert their types. Call it data-first as `typed(self, type)` or data-last in a pipeline.
  *
  * @example <caption>Annotate a literal with type syntax.</caption>
  * ```ts

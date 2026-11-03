@@ -117,7 +117,7 @@ export const Schema: $Schema.decodeTo<
 /**
  * The decoded form of an identifier, with its kind in `_tag` and its value without backticks.
  *
- * A `Lexical` value follows Unicode XID rules, with `_` permitted before one or more continuation characters. A `Symbol` contains ASCII operator characters or non-ASCII punctuation and symbols. Lexical and symbol values retain their Unicode spelling, because normalizing can produce text HashQL does not parse, such as U+1FEF becoming a backtick. HashQL compares identifiers by their {@link name} instead. Character membership follows the JavaScript runtime's Unicode tables. A `BaseUrl` retains the source spelling of a validated HTTP(S) URL ending in `/`. An object literal remains unchecked until {@link make} validates it.
+ * A {@link Ident.Lexical | `Lexical`} value follows Unicode XID rules, with `_` permitted before one or more continuation characters. A {@link Ident.Symbol | `Symbol`} contains ASCII operator characters or non-ASCII punctuation and symbols. Lexical and symbol values retain their Unicode spelling, because normalizing can produce text HashQL does not parse, such as U+1FEF becoming a backtick. HashQL compares identifiers by their {@link name} instead. Character membership follows the JavaScript runtime's Unicode tables. A {@link Ident.BaseUrl | `BaseUrl`} retains the source spelling of a validated HTTP(S) URL ending in `/`. An object literal remains unchecked until {@link make} validates it.
  *
  * @category Models
  * @since 0.1.0

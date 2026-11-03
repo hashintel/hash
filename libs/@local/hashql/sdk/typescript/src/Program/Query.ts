@@ -47,7 +47,7 @@ export declare namespace Graph {
 /**
  * HashQL's `QueryTemporalAxes`, the time axes a query reads the graph at, known by its name alone.
  *
- * The SDK does not describe its alternatives, so an expression has this type when it comes from an input declared with it, or from `Expression.assume`.
+ * The SDK does not describe its alternatives, so an expression has this type when it comes from an input declared with it, or from {@link Expression.assume}.
  *
  * @category Models
  * @since 0.1.0

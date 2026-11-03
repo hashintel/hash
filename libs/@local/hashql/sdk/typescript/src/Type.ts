@@ -114,7 +114,7 @@ export declare namespace Intersection {
 /**
  * A nominal type distinguished by its name and underlying type.
  *
- * TypeScript accepts an opaque descriptor only where both the name and the underlying type match. A parameter of type `Type.PrimitiveInteger` or `Type.Opaque<"PostId", Type.PrimitiveInteger>` rejects `Type.Opaque<"UserId", Type.PrimitiveInteger>`. The underlying descriptor remains available through `type`.
+ * TypeScript accepts an opaque descriptor only where both the name and the underlying type match. A parameter of type {@link PrimitiveInteger | `Type.PrimitiveInteger`} or `Type.Opaque<"PostId", Type.PrimitiveInteger>` rejects `Type.Opaque<"UserId", Type.PrimitiveInteger>`. The underlying descriptor remains available through {@link Opaque."type" | `type`}.
  *
  * The name exists only in TypeScript. Emitted syntax names the declaration that introduced the type, such as `::core::uuid::Uuid`, rather than this name. Declarations that share a name and an underlying type are therefore interchangeable to TypeScript even when they emit different HashQL types.
  *
@@ -254,7 +254,7 @@ export declare namespace Function {
 /**
  * A type-level operation whose input is a tuple of semantic types.
  *
- * An implementation reads its arguments from `this["Target"]` and computes the descriptor in `type`. This is Effect's `HKT.TypeLambda` encoding with the result constrained to a descriptor. {@link TypeConstructor} and {@link FunctionSignature} are the two kinds the SDK applies.
+ * An implementation reads its arguments from `this["Target"]` and computes the descriptor in {@link TypeLambda."type" | `type`}. This is Effect's `HKT.TypeLambda` encoding with the result constrained to a descriptor. {@link TypeConstructor} and {@link FunctionSignature} are the two kinds the SDK applies.
  *
  * @category Generics
  * @since 0.1.0
@@ -278,7 +278,7 @@ export declare namespace TypeLambda {
 /**
  * A generic type declaration with a fixed number of positional type arguments.
  *
- * Declare `arity` as a numeric literal. TypeScript checks that the arity argument to `TypeExpression.constructor` equals that literal. A constructor call must supply exactly that many type arguments. The `type` member maps the argument descriptors in `this["Target"]` to the resulting type.
+ * Declare {@link TypeConstructor.arity | `arity`} as a numeric literal. TypeScript checks that the arity argument to {@link @local/hashql#Program.TypeExpression."constructor" | `TypeExpression.constructor`} equals that literal. A constructor call must supply exactly that many type arguments. The `type` member maps the argument descriptors in `this["Target"]` to the resulting type.
  *
  * @example <caption>Type-only: declare the result of a two-argument generic type.</caption>
  * ```ts

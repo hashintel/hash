@@ -21,7 +21,7 @@ export const Schema: typeof Defs.Reference = Defs.Reference;
 /**
  * Type syntax naming a type by its decoded path, with ordered generic entries on each segment.
  *
- * `JExpr.type` and `JExpr.newtype` also accept a reference as a declaration name. There its generic list declares parameters: a bare name such as `T` is an unbounded parameter and `T: Integer` a bounded one.
+ * {@link JExpr."type"} and {@link JExpr.newtype} also accept a reference as a declaration name. There its generic list declares parameters: a bare name such as `T` is an unbounded parameter and `T: Integer` a bounded one.
  *
  * @category Models
  * @since 0.1.0

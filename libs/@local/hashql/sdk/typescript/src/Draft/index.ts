@@ -1,7 +1,7 @@
 /**
  * Synchronous program construction with an explicit input schema.
  *
- * {@link program} runs one callback that receives a construction context `$` and typed handles for the inputs its schema declares. Draft emits the declarations made through `$`, such as `$.let`, `$.type`, `$.newtype` and `$.import`, around the callback's returned expression in call order, including declarations that nothing refers to. Every emitted initializer and nested body must fit the schema, and {@link Body.Requirements} gives the inputs the result requires. `$.query` starts a graph query from any graph expression, and `$.query.entities(axis)` from every entity, then builds it with the query's `filter` and `collect`.
+ * {@link program} runs one callback that receives a construction context `$` and typed handles for the inputs its schema declares. Draft emits the declarations made through `$`, such as {@link Context.Context.let | `$.let`}, {@link Context.Context."type" | `$.type`}, {@link Context.Context.newtype | `$.newtype`} and {@link Context.Context.import | `$.import`}, around the callback's returned expression in call order, including declarations that nothing refers to. Every emitted initializer and nested body must fit the schema, and {@link Body.Requirements} gives the inputs the result requires. {@link Context.Context.query | `$.query`} starts a graph query from any graph expression, and `$.query.entities(axis)` from every entity, then builds it with the query's {@link Context.Query.filter | `filter`} and {@link Context.Query.collect | `collect`}.
  *
  * Each declaration returns a handle that HashQL resolves by name, so the handle is valid only where its name still means that declaration. Using it where a later declaration or a filter's parameter of the same name shadows it, outside the branch that declared it, or in another program fails the program with the `StaleReference` reason. Draft assumes that every module record matches HashQL's module. With a malformed record, a program Draft admits may fail to compile, or one of its names may resolve to a different binding than its handle. Apart from `$.import`, a declaration whose name, value or definition is invalid does not interrupt the callback, but Draft records the failure and the program fails.
  *
@@ -11,7 +11,7 @@
  * ```ts
  * import assert from "node:assert/strict";
  * import { Program } from "@local/hashql";
- * import { program } from "@local/hashql/draft";
+ * import { program } from "@local/hashql/Draft";
  * import { Result } from "effect";
  *
  * const atLimit = program({ count: BigInt }, ($, { count }) => {
@@ -114,7 +114,7 @@ const fromScope =
 /**
  * Creates a program constructor whose callbacks see a custom prelude instead of the built-in one.
  *
- * The prelude's optional `modules`, `types` and `values` records replace `Prelude.builtin` entirely, without widening the supplied export tables. A callback reaches them through `$.prelude()`, which joins same-named exports into one handle, and `$.modules()`. A module from `Module.define` is a valid prelude. Seeding emits no HashQL, because each export already refers to its declaration.
+ * The prelude's optional `modules`, `types` and `values` records replace {@link Prelude.builtin} entirely, without widening the supplied export tables. A callback reaches them through {@link Context.Context.prelude | `$.prelude()`}, which joins same-named exports into one handle, and {@link Context.Context.modules | `$.modules()`}. A module from {@link @local/hashql#Program.Module.define | `Module.define`} is a valid prelude. Seeding emits no HashQL, because each export already refers to its declaration.
  *
  * `withPrelude` copies the records' enumerable own string-keyed exports when you call it. Later changes to the records do not reach the returned constructor. The parameter type requires each export to be a rebindable SDK producer, such as a module, type expression or expression handle, under a string key.
  *
@@ -123,7 +123,7 @@ const fromScope =
  * import assert from "node:assert/strict";
  * import { Program } from "@local/hashql";
  * import type { Type } from "@local/hashql";
- * import { withPrelude } from "@local/hashql/draft";
+ * import { withPrelude } from "@local/hashql/Draft";
  * import { Result } from "effect";
  *
  * type Add = Type.Function<
@@ -179,7 +179,7 @@ export const withPrelude = <const D extends Scope.Definition.Any>(
  * ```ts
  * import assert from "node:assert/strict";
  * import { Program } from "@local/hashql";
- * import { program } from "@local/hashql/draft";
+ * import { program } from "@local/hashql/Draft";
  * import { Result } from "effect";
  *
  * let calls = 0;
@@ -197,7 +197,7 @@ export const withPrelude = <const D extends Scope.Definition.Any>(
  * @example <caption>Inspect a callback failure.</caption>
  * ```ts
  * import assert from "node:assert/strict";
- * import { program } from "@local/hashql/draft";
+ * import { program } from "@local/hashql/Draft";
  * import { Result } from "effect";
  *
  * const result = program({}, () => {

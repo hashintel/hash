@@ -1,7 +1,7 @@
 /**
  * The names an import binds, with the module and selection that produced them.
  *
- * An import selects module, type and value exports from one module under local names. Its bindings keep each selected export's type. The type of their marker records the source module and the selection. {@link @local/hashql#Program.Namespace.Flatten | Namespace.Flatten} reads that type to keep capabilities that arrive together under one source name. No runtime code reads the marker.
+ * An import selects module, type and value exports from one module under local names. Its bindings keep each selected export's type. The type of their marker records the source module and the selection. {@link @local/hashql#Program.Namespace.Flatten | `Namespace.Flatten`} reads that type to keep capabilities that arrive together under one source name. No runtime code reads the marker.
  *
  * @since 0.1.0
  * @module
