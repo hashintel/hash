@@ -24,8 +24,6 @@
     "lint:eslint": "eslint --report-unused-disable-directives ."
   },
   "dependencies": {
-    "@babel/core": "7.29.6",
-    "@babel/eslint-parser": "7.28.4",
     "@eslint/eslintrc": "3.3.3",
     "@typescript-eslint/eslint-plugin": "8.71.0",
     "@typescript-eslint/parser": "8.71.0",
@@ -43,7 +41,7 @@
     "eslint-plugin-react-refresh": "0.5.4",
     "eslint-plugin-react-x": "1.17.2",
     "eslint-plugin-storybook": "10.3.1",
-    "eslint-unicorn": "55.0.0",
+    "eslint-plugin-unicorn": "63.0.0",
     "globals": "16.4.0",
     "type-fest": "5.3.1",
     "typescript": "catalog:typescript6"
@@ -51,7 +49,6 @@
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
-    "@types/babel__core": "^7.20.5",
     "@types/node": "catalog:",
     "rimraf": "6.1.3"
   },
