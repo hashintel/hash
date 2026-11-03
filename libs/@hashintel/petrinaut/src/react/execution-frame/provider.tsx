@@ -13,6 +13,7 @@ import {
 
 import { ActualModeContext } from "../actual-mode-context";
 import { EventPlaybackContext } from "../event-playback/context";
+import { useEventPlaybackFrame } from "../event-playback/use-event-playback-frame";
 import { PlaybackContext } from "../playback/context";
 import { SimulationContext } from "../simulation/context";
 import { EditorContext } from "../state/editor-context";
@@ -61,8 +62,8 @@ export const useSimulationExecutionFrameSource = (): ExecutionFrameSource => {
 export const useEventExecutionFrameSource = (): ExecutionFrameSource => {
   const { eventSimulation, getFramesInRange, totalFrames } =
     use(SimulationContext);
-  const { currentEventIndex, currentFrameReader, setTime } =
-    use(EventPlaybackContext);
+  const { setTime } = use(EventPlaybackContext);
+  const { currentEventIndex, currentFrameReader } = useEventPlaybackFrame();
 
   return {
     sourceId: `event-trace:${eventSimulation === null ? "none" : "run"}`,

@@ -28,22 +28,6 @@ const chartHostStyle = css({
   minHeight: "[0]",
 });
 
-/**
- * The chart takes focus for its keys: arrows step between events, Home and
- * End jump to the start and the live edge, Escape drops the selection.
- */
-const chartFocusStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-  outline: "none",
-  userSelect: "none",
-  _focusVisible: {
-    boxShadow: "[inset 0 0 0 2px rgba(37, 99, 235, 0.35)]",
-  },
-});
-
 const fitButtonStyle = css({
   position: "absolute",
   top: "1",
@@ -76,7 +60,7 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
   const {
     eventCount,
     coveredTime,
-    time,
+    playbackStore,
     setTime,
     playbackState,
     play,
@@ -109,39 +93,17 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
       return;
     }
     resumeAfterScrubRef.current = false;
-    if (time < coveredTime) {
+    if (playbackStore.get().time < coveredTime) {
       void play();
     }
-  };
-
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    switch (event.key) {
-      case "ArrowLeft":
-        stepToEvent(-1);
-        break;
-      case "ArrowRight":
-        stepToEvent(1);
-        break;
-      case "Home":
-        setTime(0);
-        break;
-      case "End":
-        setTime(coveredTime);
-        break;
-      case "Escape":
-        setSelection(null);
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
   };
 
   const containerRef = useRef<HTMLDivElement>(null);
   const onScreen = useElementOnScreen(containerRef);
 
   const { data, firings, references, metricError } = useEventTimelineData({
-    viewRange,
+    viewMin: viewRange.min,
+    viewMax: viewRange.max,
     sampleCount: SAMPLE_COUNT,
   });
   const transitionNames = new Map(
@@ -169,36 +131,26 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
                 Fit to run
               </Button>
             )}
-            <div
-              className={chartFocusStyle}
-              role="slider"
-              tabIndex={0}
-              aria-label="Timeline"
-              aria-valuemin={0}
-              aria-valuemax={coveredTime}
-              aria-valuenow={time}
-              aria-valuetext={`${time.toFixed(3)} seconds`}
-              onKeyDown={onKeyDown}
-            >
-              <EventTimelineChart
-                className={chartAreaStyle}
-                data={data}
-                firings={firings}
-                references={references}
-                transitionNames={transitionNames}
-                hiddenSeries={hiddenSeries}
-                viewRange={viewRange}
-                onViewRangeChange={setZoomedRange}
-                domain={domain}
-                time={time}
-                onScrub={setTime}
-                onScrubStart={onScrubStart}
-                onScrubEnd={onScrubEnd}
-                selection={selection}
-                onSelectionChange={setSelection}
-                paused={!onScreen}
-              />
-            </div>
+            <EventTimelineChart
+              className={chartAreaStyle}
+              data={data}
+              firings={firings}
+              references={references}
+              transitionNames={transitionNames}
+              hiddenSeries={hiddenSeries}
+              viewRange={viewRange}
+              onViewRangeChange={setZoomedRange}
+              domain={domain}
+              timeSource={playbackStore}
+              onScrub={setTime}
+              onScrubStart={onScrubStart}
+              onScrubEnd={onScrubEnd}
+              onStepEvent={stepToEvent}
+              onJump={(edge) => setTime(edge === "start" ? 0 : coveredTime)}
+              selection={selection}
+              onSelectionChange={setSelection}
+              paused={!onScreen}
+            />
           </div>
           {showLegend && data.kind !== "lanes" && data.series.length > 1 && (
             <TimelineLegend

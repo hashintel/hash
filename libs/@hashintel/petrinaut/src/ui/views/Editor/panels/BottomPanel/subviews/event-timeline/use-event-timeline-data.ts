@@ -25,10 +25,13 @@ export type TimeRange = { min: number; max: number };
  * attributes that evolve between events; transition firings are lanes.
  */
 export function useEventTimelineData({
-  viewRange,
+  viewMin,
+  viewMax,
   sampleCount,
 }: {
-  viewRange: TimeRange;
+  /** The visible range as two numbers, so a rebuild follows a change of value, not of object. */
+  viewMin: number;
+  viewMax: number;
   sampleCount: number;
 }): {
   data: EventTimelineData | null;
@@ -90,8 +93,8 @@ export function useEventTimelineData({
           series: seriesConfig.series,
           data: buildSampledData(
             eventSimulation,
-            viewRange.min,
-            Math.min(viewRange.max, coveredTime),
+            viewMin,
+            Math.min(viewMax, coveredTime),
             sampleCount,
             seriesConfig.series,
             seriesConfig.extract,

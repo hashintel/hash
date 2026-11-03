@@ -20,12 +20,15 @@ import {
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { SimulationContext } from "../simulation/context";
-import { useStore } from "../use-store";
+import { useStore, useStoreSelector } from "../use-store";
 import {
   EventPlaybackContext,
   type EventPlaybackContextValue,
 } from "./context";
 import { findStepTargetIndex } from "./step-target";
+
+/** Simulated seconds the demand must move by before the worker hears of it. */
+const DEMAND_STEP = 1 / 60;
 
 const EMPTY_TRACE: EventTraceSummary = {
   eventCount: 0,
@@ -72,8 +75,17 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
       initialSpeed === undefined ? {} : { speed: initialSpeed },
     ),
   );
-  const snapshot = useStore(playback.state);
-  const { playState, time, speed, mode: requestedMode } = snapshot;
+  // The viewed time stays in the store: subscribing to it here would render
+  // this provider, and through it every consumer, on every frame.
+  const playState = useStoreSelector(
+    playback.state,
+    (snapshot) => snapshot.playState,
+  );
+  const speed = useStoreSelector(playback.state, (snapshot) => snapshot.speed);
+  const requestedMode = useStoreSelector(
+    playback.state,
+    (snapshot) => snapshot.mode,
+  );
 
   const trace = useStore(eventSimulation?.trace ?? EMPTY_TRACE_STORE);
   const coreStatus = useStore(eventSimulation?.status ?? EMPTY_STATUS_STORE);
@@ -93,19 +105,29 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
 
   const simulationDoneRef = useLatest(simulationDone);
   const coveredTimeRef = useLatest(coveredTime);
-  const snapshotRef = useLatest(snapshot);
   const eventSimulationRef = useLatest(eventSimulation);
   const modeRef = useLatest(mode);
 
   // The run computes ahead of the viewed time by the mode's lead, and not at
   // all in view-only mode. Re-issued as the viewed time moves, since a
-  // demand only ever raises the worker's target.
+  // demand only ever raises the worker's target; a demand that moved by less
+  // than a frame's worth of simulated time is not worth a message.
   useEffect(() => {
     if (!isActive || !eventSimulation || mode === "viewOnly") {
       return;
     }
-    eventSimulation.demand(time + EVENT_PLAY_MODE_LEAD[mode]);
-  }, [eventSimulation, isActive, mode, time]);
+    const lead = EVENT_PLAY_MODE_LEAD[mode];
+    let demanded = Number.NEGATIVE_INFINITY;
+    const demand = (snapshot: { time: number }) => {
+      const target = snapshot.time + lead;
+      if (target >= demanded + DEMAND_STEP) {
+        demanded = target;
+        eventSimulation.demand(target);
+      }
+    };
+    demand(playback.state.get());
+    return playback.state.subscribe(demand);
+  }, [eventSimulation, isActive, mode, playback]);
 
   // Discarding the run returns playback to the start. A run is only ever
   // replaced through a discard, so this also covers a new run; starting one
@@ -128,7 +150,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
         coveredTime: coveredTimeRef.current,
         simulationDone: simulationDoneRef.current,
       });
-      if (snapshotRef.current.playState === "Playing") {
+      if (playback.state.get().playState === "Playing") {
         frame = requestAnimationFrame(loop);
       }
     };
@@ -139,23 +161,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
         cancelAnimationFrame(frame);
       }
     };
-  }, [
-    coveredTimeRef,
-    isActive,
-    playState,
-    playback,
-    simulationDoneRef,
-    snapshotRef,
-  ]);
-
-  const currentEventIndex = eventSimulation?.findEventIndexAt(time) ?? -1;
-  const hasPreviousEvent =
-    eventSimulation !== null &&
-    findStepTargetIndex(eventSimulation, time, -1) !== null;
-  const hasNextEvent =
-    eventSimulation !== null &&
-    findStepTargetIndex(eventSimulation, time, 1) !== null;
-  const currentFrameReader = eventSimulation?.getStateAt(time) ?? null;
+  }, [coveredTimeRef, isActive, playState, playback, simulationDoneRef]);
 
   const setTime = (next: number) => {
     playback.setTime(next, coveredTimeRef.current);
@@ -168,7 +174,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     }
     const targetIndex = findStepTargetIndex(
       simulation,
-      snapshotRef.current.time,
+      playback.state.get().time,
       direction,
     );
     const target =
@@ -191,7 +197,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     // At the end of a finished run, play again from the start.
     if (
       simulationDoneRef.current &&
-      snapshotRef.current.time >= coveredTimeRef.current
+      playback.state.get().time >= coveredTimeRef.current
     ) {
       playback.setTime(0, coveredTimeRef.current);
     }
@@ -221,20 +227,16 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     }
     if (next === "viewOnly") {
       pauseSimulation();
-    } else if (snapshotRef.current.playState === "Playing") {
+    } else if (playback.state.get().playState === "Playing") {
       runSimulation();
     }
     playback.setMode(next);
   };
 
   const value: EventPlaybackContextValue = {
-    time,
     coveredTime,
     eventCount,
-    currentEventIndex,
-    hasPreviousEvent,
-    hasNextEvent,
-    currentFrameReader,
+    playbackStore: playback.state,
     playbackState: playState,
     playbackSpeed: speed,
     playMode: mode,

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 
+import { css } from "@hashintel/ds-helpers/css";
+
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
 import "uplot/dist/uPlot.min.css";
 
@@ -27,6 +29,7 @@ import {
 } from "./series";
 
 import type { TimeRange } from "./use-event-timeline-data";
+import type { ReadableStore } from "@hashintel/petrinaut-core";
 import type { FC, RefObject } from "react";
 
 /** Pixels the pointer may move before a press in the plot becomes a selection. */
@@ -89,8 +92,10 @@ type ChartState = {
   transitionNames: ReadonlyMap<string, string>;
   viewRange: TimeRange;
   domain: number;
-  time: number;
+  /** The viewed time, read on every draw rather than rendered. */
+  timeSource: ReadableStore<{ time: number }>;
   selection: TimeRange | null;
+  paused: boolean;
   onViewRangeChange: (range: TimeRange) => void;
   onScrub: (time: number) => void;
   onScrubStart: () => void;
@@ -133,7 +138,11 @@ const drawRuler = (u: uPlot): void => {
 };
 
 /** The selected range: a band over the plot and a bar along the ruler. */
-const drawSelection = (u: uPlot, state: ChartState): void => {
+const drawSelection = (
+  u: uPlot,
+  ctx: CanvasRenderingContext2D,
+  state: ChartState,
+): void => {
   if (!state.selection) {
     return;
   }
@@ -142,27 +151,28 @@ const drawSelection = (u: uPlot, state: ChartState): void => {
   if (max <= min) {
     return;
   }
-  const { ctx, bbox } = u;
+  const { bbox } = u;
   const dpr = devicePixelRatio;
   const x0 = u.valToPos(min, "x", true);
   const x1 = u.valToPos(max, "x", true);
-  ctx.save();
-  ctx.fillStyle = "rgba(37, 99, 235, 0.08)";
-  ctx.fillRect(x0, bbox.top, x1 - x0, bbox.height);
-  ctx.fillStyle = "rgba(37, 99, 235, 0.3)";
-  ctx.fillRect(x0, bbox.top - RULER_PX * dpr, x1 - x0, 3 * dpr);
-  ctx.strokeStyle = "rgba(37, 99, 235, 0.45)";
-  ctx.lineWidth = dpr;
-  ctx.beginPath();
+  const paint = ctx;
+  paint.save();
+  paint.fillStyle = "rgba(37, 99, 235, 0.08)";
+  paint.fillRect(x0, bbox.top, x1 - x0, bbox.height);
+  paint.fillStyle = "rgba(37, 99, 235, 0.3)";
+  paint.fillRect(x0, bbox.top - RULER_PX * dpr, x1 - x0, 3 * dpr);
+  paint.strokeStyle = "rgba(37, 99, 235, 0.45)";
+  paint.lineWidth = dpr;
+  paint.beginPath();
   for (const edge of [state.selection.min, state.selection.max]) {
     if (edge >= state.viewRange.min && edge <= state.viewRange.max) {
       const x = u.valToPos(edge, "x", true);
-      ctx.moveTo(x, bbox.top);
-      ctx.lineTo(x, bbox.top + bbox.height);
+      paint.moveTo(x, bbox.top);
+      paint.lineTo(x, bbox.top + bbox.height);
     }
   }
-  ctx.stroke();
-  ctx.restore();
+  paint.stroke();
+  paint.restore();
 };
 
 /** Ticks up from the plot edge into the ruler, one per time in view. */
@@ -220,51 +230,109 @@ const drawFirings = (u: uPlot, state: ChartState): void => {
  */
 const drawPlayhead = (
   u: uPlot,
+  ctx: CanvasRenderingContext2D,
   state: ChartState,
+  time: number,
   feel: PlayheadFeel,
 ): void => {
-  const { time, viewRange } = state;
+  const { viewRange } = state;
   if (time < viewRange.min || time > viewRange.max) {
     return;
   }
-  const { ctx, bbox } = u;
+  const { bbox } = u;
   const dpr = devicePixelRatio;
   const x = u.valToPos(time, "x", true);
+  const paint = ctx;
   const stripTop = bbox.top - RULER_PX * dpr;
   const bottom = bbox.top + bbox.height;
   const raised = feel.hover || feel.active;
   const color = feel.active ? ACCENT_COLOR : PLAYHEAD_COLOR;
-  ctx.save();
+  paint.save();
   if (raised) {
-    ctx.strokeStyle = feel.active
+    paint.strokeStyle = feel.active
       ? "rgba(37, 99, 235, 0.18)"
       : "rgba(30, 41, 59, 0.12)";
-    ctx.lineWidth = 7 * dpr;
-    ctx.beginPath();
-    ctx.moveTo(x, stripTop);
-    ctx.lineTo(x, bottom);
-    ctx.stroke();
+    paint.lineWidth = 7 * dpr;
+    paint.beginPath();
+    paint.moveTo(x, stripTop);
+    paint.lineTo(x, bottom);
+    paint.stroke();
   }
-  ctx.strokeStyle = color;
-  ctx.lineWidth = (raised ? 2 : 1.5) * dpr;
-  ctx.beginPath();
-  ctx.moveTo(x, bbox.top);
-  ctx.lineTo(x, bottom);
-  ctx.stroke();
+  paint.strokeStyle = color;
+  paint.lineWidth = (raised ? 2 : 1.5) * dpr;
+  paint.beginPath();
+  paint.moveTo(x, bbox.top);
+  paint.lineTo(x, bottom);
+  paint.stroke();
 
   const half = (raised ? 6 : 5) * dpr;
   const top = stripTop + 4 * dpr;
   const shoulder = bbox.top - 6 * dpr;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x - half, top);
-  ctx.lineTo(x + half, top);
-  ctx.lineTo(x + half, shoulder);
-  ctx.lineTo(x, bbox.top);
-  ctx.lineTo(x - half, shoulder);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+  paint.fillStyle = color;
+  paint.beginPath();
+  paint.moveTo(x - half, top);
+  paint.lineTo(x + half, top);
+  paint.lineTo(x + half, shoulder);
+  paint.lineTo(x, bbox.top);
+  paint.lineTo(x - half, shoulder);
+  paint.closePath();
+  paint.fill();
+  paint.restore();
+};
+
+type Overlay = {
+  draw: () => void;
+  resize: () => void;
+  dispose: () => void;
+};
+
+const overlayStyle = css({
+  position: "absolute",
+  top: "[0]",
+  left: "[0]",
+  pointerEvents: "none",
+});
+
+/**
+ * A second canvas over uPlot's for what moves without the data moving: the
+ * playhead and the selection. The viewed time drives it through a store
+ * subscription, so a frame of playback costs a clear and a few strokes, with
+ * no React render and no redraw of the series. It also keeps the host's
+ * slider value current for assistive technology.
+ */
+const createOverlay = (
+  u: uPlot,
+  stateRef: RefObject<ChartState>,
+  getFeel: () => PlayheadFeel,
+  host: HTMLElement | null,
+): Overlay => {
+  const wrap = u.over.parentElement ?? u.root;
+  const canvas = document.createElement("canvas");
+  canvas.className = overlayStyle;
+  // Under uPlot's own overlay, so the cursor and the tooltip stay on top.
+  wrap.insertBefore(canvas, u.over);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("The timeline overlay could not get a 2D context");
+  }
+  const resize = () => {
+    const dpr = devicePixelRatio;
+    canvas.width = Math.round(u.width * dpr);
+    canvas.height = Math.round(u.height * dpr);
+    canvas.style.width = `${u.width}px`;
+    canvas.style.height = `${u.height}px`;
+  };
+  const draw = () => {
+    const state = stateRef.current;
+    const time = state.timeSource.get().time;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawSelection(u, ctx, state);
+    drawPlayhead(u, ctx, state, time, getFeel());
+    host?.setAttribute("aria-valuenow", String(time));
+    host?.setAttribute("aria-valuetext", `${time.toFixed(3)} seconds`);
+  };
+  resize();
+  return { draw, resize, dispose: () => canvas.remove() };
 };
 
 const updateTooltip = (
@@ -334,6 +402,7 @@ const attachInteractions = (
   u: uPlot,
   stateRef: RefObject<ChartState>,
   publishFeel: (feel: PlayheadFeel) => void,
+  drawOverlay: () => void,
 ): (() => void) => {
   const root = u.root;
   let press: Press | null = null;
@@ -358,7 +427,8 @@ const attachInteractions = (
       ...point,
       plot,
       rulerHeight: AXIS_PX,
-      playheadX: plot.left + u.valToPos(stateRef.current.time, "x"),
+      playheadX:
+        plot.left + u.valToPos(stateRef.current.timeSource.get().time, "x"),
       grab: PLAYHEAD_GRAB_PX,
     });
   };
@@ -372,7 +442,7 @@ const attachInteractions = (
     hoverZone = zone;
     setFeel({ hover: zone === "playhead" });
     root.style.cursor = cursorFor(zone);
-    u.redraw(false, false);
+    drawOverlay();
   };
 
   const onPointerDown = (event: PointerEvent) => {
@@ -389,7 +459,10 @@ const attachInteractions = (
     if (zone === "playhead" || zone === "ruler") {
       press = {
         kind: "scrub",
-        offset: zone === "playhead" ? stateRef.current.time - time : 0,
+        offset:
+          zone === "playhead"
+            ? stateRef.current.timeSource.get().time - time
+            : 0,
       };
       setFeel({ active: true });
       root.style.cursor = "ew-resize";
@@ -397,7 +470,7 @@ const attachInteractions = (
       if (zone === "ruler") {
         stateRef.current.onScrub(time);
       }
-      u.redraw(false, false);
+      drawOverlay();
       return;
     }
     press = { kind: "pending", x: point.x, time };
@@ -453,7 +526,7 @@ const attachInteractions = (
     }
     hoverZone = "outside";
     settleHover(point);
-    u.redraw(false, false);
+    drawOverlay();
   };
 
   const onPointerLeave = () => {
@@ -464,7 +537,7 @@ const attachInteractions = (
     setFeel({ hover: false });
     root.style.cursor = "";
     u.setCursor({ left: -10, top: -10 });
-    u.redraw(false, false);
+    drawOverlay();
   };
 
   const onWheel = (event: WheelEvent) => {
@@ -535,7 +608,7 @@ const buildOptions = (
   size: { width: number; height: number },
   stateRef: RefObject<ChartState>,
   tooltip: TooltipNodes,
-  getFeel: () => PlayheadFeel,
+  getOverlay: () => Overlay | null,
 ): uPlot.Options => {
   const laneLabels = data.kind === "lanes" ? data.laneLabels : null;
   // The series uPlot focuses under the pointer; it lives with the chart.
@@ -614,19 +687,32 @@ const buildOptions = (
       setCursor: [
         (u) => updateTooltip(u, tooltip, stateRef.current, focusedSeries),
       ],
+      setSize: [() => getOverlay()?.resize()],
       draw: [
         (u) => {
           const state = stateRef.current;
           drawRuler(u);
-          drawSelection(u, state);
           drawReferences(u, state);
           drawFirings(u, state);
-          drawPlayhead(u, state, getFeel());
+          // The series moved under the overlay: zoom, pan or new data.
+          getOverlay()?.draw();
         },
       ],
     },
   };
 };
+
+const hostStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+  outline: "none",
+  userSelect: "none",
+  _focusVisible: {
+    boxShadow: "[inset 0 0 0 2px rgba(37, 99, 235, 0.35)]",
+  },
+});
 
 export const EventTimelineChart: FC<{
   data: EventTimelineData;
@@ -639,12 +725,19 @@ export const EventTimelineChart: FC<{
   onViewRangeChange: (range: TimeRange) => void;
   /** The time the run covers: the view never pans past it. */
   domain: number;
-  /** The viewed time, drawn as the playhead. */
-  time: number;
+  /**
+   * The viewed time. The chart subscribes to it and moves the playhead on
+   * an overlay canvas, so a frame of playback never renders this component.
+   */
+  timeSource: ReadableStore<{ time: number }>;
   onScrub: (time: number) => void;
   /** Called as a drag of the playhead or the ruler begins and ends. */
   onScrubStart: () => void;
   onScrubEnd: () => void;
+  /** Arrow keys step between firings while the chart has focus. */
+  onStepEvent: (direction: -1 | 1) => void;
+  /** Home and End jump to the start and to the live edge. */
+  onJump: (edge: "start" | "end") => void;
   /** The selected range, drawn as a band; null when nothing is selected. */
   selection: TimeRange | null;
   onSelectionChange: (range: TimeRange | null) => void;
@@ -660,10 +753,12 @@ export const EventTimelineChart: FC<{
   viewRange,
   onViewRangeChange,
   domain,
-  time,
+  timeSource,
   onScrub,
   onScrubStart,
   onScrubEnd,
+  onStepEvent,
+  onJump,
   selection,
   onSelectionChange,
   className,
@@ -671,8 +766,10 @@ export const EventTimelineChart: FC<{
 }) => {
   "use no memo"; // uPlot is driven imperatively through refs
 
+  const hostRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<uPlot | null>(null);
+  const overlayRef = useRef<Overlay | null>(null);
   const size = useElementSize(wrapperRef);
   const hasSize = size != null;
 
@@ -683,14 +780,38 @@ export const EventTimelineChart: FC<{
     transitionNames,
     viewRange,
     domain,
-    time,
+    timeSource,
     selection,
+    paused,
     onViewRangeChange,
     onScrub,
     onScrubStart,
     onScrubEnd,
     onSelectionChange,
   });
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    switch (event.key) {
+      case "ArrowLeft":
+        onStepEvent(-1);
+        break;
+      case "ArrowRight":
+        onStepEvent(1);
+        break;
+      case "Home":
+        onJump("start");
+        break;
+      case "End":
+        onJump("end");
+        break;
+      case "Escape":
+        onSelectionChange(null);
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  };
 
   // One chart per data shape and series list; everything else updates it.
   // The data it starts from is read through the ref, which holds the render's
@@ -705,31 +826,56 @@ export const EventTimelineChart: FC<{
     }
     const current = stateRef.current.data;
     const tooltip = createTooltip();
-    // How the playhead is being handled; the gestures write it, the draw
-    // hook reads it.
+    // How the playhead is being handled; the gestures write it, the overlay
+    // reads it.
     let feel: PlayheadFeel = { hover: false, active: false };
+    // The chart's hooks reach the overlay through this holder: it exists
+    // only once the chart does.
+    const overlayHolder: { current: Overlay | null } = { current: null };
     const options = buildOptions(
       current,
       hiddenSeries,
       { width: wrapper.clientWidth, height: wrapper.clientHeight },
       stateRef,
       tooltip,
-      () => feel,
+      () => overlayHolder.current,
     );
     chartRef.current?.destroy();
     // eslint-disable-next-line new-cap -- uPlot's constructor is lowercase by convention
     const chart = new uPlot(options, current.data, wrapper);
     chartRef.current = chart;
     chart.over.appendChild(tooltip.root);
-    const detach = attachInteractions(chart, stateRef, (next) => {
-      feel = next;
-    });
+    const overlay = createOverlay(chart, stateRef, () => feel, hostRef.current);
+    overlayHolder.current = overlay;
+    overlayRef.current = overlay;
+    overlay.draw();
+    const detach = attachInteractions(
+      chart,
+      stateRef,
+      (next) => {
+        feel = next;
+      },
+      () => overlay.draw(),
+    );
     return () => {
       detach();
+      overlay.dispose();
+      overlayRef.current = null;
       chart.destroy();
       chartRef.current = null;
     };
   }, [dataKind, dataSeries, hiddenSeries, hasSize, stateRef]);
+
+  // The playhead follows the viewed time through the store, not a render.
+  useEffect(
+    () =>
+      timeSource.subscribe(() => {
+        if (!stateRef.current.paused) {
+          overlayRef.current?.draw();
+        }
+      }),
+    [stateRef, timeSource],
+  );
 
   useEffect(() => {
     if (chartRef.current && size && size.width > 0 && size.height > 0) {
@@ -748,7 +894,27 @@ export const EventTimelineChart: FC<{
     if (!paused) {
       chartRef.current?.redraw(false, false);
     }
-  }, [time, firings, references, selection, paused]);
+  }, [firings, references, paused]);
 
-  return <div ref={wrapperRef} className={className} />;
+  useEffect(() => {
+    if (!paused) {
+      overlayRef.current?.draw();
+    }
+  }, [selection, paused]);
+
+  return (
+    <div
+      ref={hostRef}
+      className={hostStyle}
+      role="slider"
+      tabIndex={0}
+      aria-label="Timeline"
+      aria-valuemin={0}
+      aria-valuemax={domain}
+      aria-valuenow={timeSource.get().time}
+      onKeyDown={onKeyDown}
+    >
+      <div ref={wrapperRef} className={className} />
+    </div>
+  );
 };
