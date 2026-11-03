@@ -58,12 +58,12 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   const { activeNet } = use(ActiveNetContext);
   const { showAnimations } = use(UserSettingsContext);
   const {
-    pinnedVisualizerPlaceIds,
+    keptOpenVisualizerPlaceIds,
     openVisualizerPlaceId,
     focusedVisualizerPlaceId,
-    toggleVisualizerPin,
+    keepPlaceVisualizerOpen,
+    closePlaceVisualizer,
     openPlaceVisualizer,
-    setVisualizerEditorFocus,
     hoveredItem,
     setHoveredItem,
     clearHoveredItem,
@@ -71,24 +71,26 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   const codeNavigation = useCodeNavigation();
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
-  const pinned = pinnedVisualizerPlaceIds.has(nodeId);
+  const keptOpen = keptOpenVisualizerPlaceIds.has(nodeId);
   const editing = focusedVisualizerPlaceId === nodeId;
   const opened = openVisualizerPlaceId === nodeId;
   const [eyeHovered, setEyeHovered] = useState(false);
+  const [eyeFocused, setEyeFocused] = useState(false);
   const openingEditor =
     codeNavigation.focusRequest?.path ===
     getDocumentUri("place-visualizer", nodeId);
 
   useEffect(() => {
-    if (!eyeHovered || pinned) return;
+    if ((!eyeHovered && !eyeFocused) || keptOpen) return;
     const timeout = setTimeout(() => openPlaceVisualizer(nodeId), 15);
     return () => clearTimeout(timeout);
-  }, [eyeHovered, pinned, nodeId, openPlaceVisualizer]);
+  }, [eyeHovered, eyeFocused, keptOpen, nodeId, openPlaceVisualizer]);
 
   useEffect(() => {
     if (
       !opened ||
-      pinned ||
+      keptOpen ||
+      eyeFocused ||
       editing ||
       openingEditor ||
       hoveredItem?.id === nodeId
@@ -99,7 +101,8 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
     return () => clearTimeout(timeout);
   }, [
     opened,
-    pinned,
+    keptOpen,
+    eyeFocused,
     editing,
     openingEditor,
     hoveredItem?.id,
@@ -130,28 +133,32 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   };
 
   const showTrigger =
-    !pinned &&
+    !keptOpen &&
     !!placeType?.elements.length &&
     !!place.visualizerCode &&
-    hoveredItem?.id === nodeId &&
+    (hoveredItem?.id === nodeId || node.selected) &&
     !node.dragging;
   const below =
     node.internals.positionAbsolute.y * viewport.zoom + viewport.y < 94;
 
   return (
     <>
-      {(pinned || opened || editing) && (
+      {(keptOpen || opened || editing) && (
         <VisualizerWindow
           nodeId={nodeId}
           name={place.name}
           editing={editing}
           dimmed={focusedVisualizerPlaceId !== null && !editing}
           animated={showAnimations}
+          onKeepOpen={() => {
+            setEyeFocused(false);
+            setEyeHovered(false);
+            keepPlaceVisualizerOpen(nodeId);
+          }}
           onClose={() => {
             setEyeHovered(false);
-            if (pinned) toggleVisualizerPin(nodeId);
-            openPlaceVisualizer(null);
-            setVisualizerEditorFocus(nodeId, false);
+            setEyeFocused(false);
+            closePlaceVisualizer(nodeId);
           }}
           onEdit={
             codeNavigation.enabled
@@ -185,6 +192,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
         >
           <div
             className={triggerStyle}
+            title="Click to keep open"
             data-animated={showAnimations}
             {...keepHovered}
             onPointerEnter={() => {
@@ -208,12 +216,23 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
               shape="round"
               iconName="eye"
               aria-label="Show state visualizer"
-              tooltip="Click to keep open"
+              onFocus={() => setEyeFocused(true)}
+              onBlur={() => setEyeFocused(false)}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  setEyeHovered(false);
+                  setEyeFocused(false);
+                  closePlaceVisualizer(nodeId);
+                }
+              }}
               onMouseDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
                 setEyeHovered(false);
-                toggleVisualizerPin(nodeId);
+                setEyeFocused(false);
+                keepPlaceVisualizerOpen(nodeId);
                 openPlaceVisualizer(nodeId);
               }}
             />

@@ -27,15 +27,20 @@ vi.mock("./place-state-tooltip/visualizer-window", () => ({
   VisualizerWindow: ({
     children,
     onClose,
+    onKeepOpen,
     editing,
   }: {
     children: ReactNode;
     onClose: () => void;
+    onKeepOpen: () => void;
     editing: boolean;
   }) => (
     <div role="group" data-editing={editing}>
       <button type="button" onClick={onClose}>
         Close
+      </button>
+      <button type="button" onClick={onKeepOpen}>
+        Move
       </button>
       {children}
     </div>
@@ -49,14 +54,14 @@ vi.mock("../../../../shared/place-state-visualization", () => ({
 
 const Harness = ({
   focused = false,
-  pinned = false,
+  keptOpen = false,
   typed = false,
   hovered = false,
   code = "export default Visualization(() => <svg />);",
 }) => {
   const editor = use(EditorContext);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [pinnedByClick, setPinnedByClick] = useState(false);
+  const [keptOpenByClick, setKeptOpenByClick] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<typeof editor.hoveredItem>(
     hovered ? { type: "place", id: "place" } : null,
   );
@@ -98,17 +103,24 @@ const Harness = ({
           ...editor,
           openVisualizerPlaceId: openId,
           openPlaceVisualizer: setOpenId,
-          toggleVisualizerPin: () => setPinnedByClick((previous) => !previous),
+          keepPlaceVisualizerOpen: () => setKeptOpenByClick(true),
+          closePlaceVisualizer: () => {
+            setKeptOpenByClick(false);
+            setOpenId(null);
+            setHoveredItem(null);
+          },
           hoveredItem,
           setHoveredItem,
           clearHoveredItem: () => setHoveredItem(null),
           focusedVisualizerPlaceId: focused ? "place" : null,
-          pinnedVisualizerPlaceIds: new Set(
-            pinned || pinnedByClick ? ["place"] : [],
+          keptOpenVisualizerPlaceIds: new Set(
+            keptOpen || keptOpenByClick ? ["place"] : [],
           ),
         }}
       >
-        <output aria-label="Pinned">{String(pinned || pinnedByClick)}</output>
+        <output aria-label="Kept open">
+          {String(keptOpen || keptOpenByClick)}
+        </output>
         <PlaceStateTooltip nodeId="place" />
       </EditorContext>
     </ActiveNetContext>
@@ -121,7 +133,7 @@ afterEach(() => {
 });
 
 it.each(["", "export default Visualization(() => <svg />);"])(
-  "opens an unpinned preview while editing a place without a type: %s",
+  "opens a temporary preview while editing a place without a type: %s",
   async (code) => {
     const { rerender } = render(<Harness focused code={code} />);
     await screen.findByText("Place has no type set");
@@ -133,18 +145,18 @@ it.each(["", "export default Visualization(() => <svg />);"])(
   },
 );
 
-it("preserves the same preview through pinning, focus and blur", async () => {
+it("preserves the same preview when kept open through focus and blur", async () => {
   const { rerender } = render(<Harness focused />);
   await screen.findByText("Place has no type set");
   const preview = screen.getByRole("group");
-  rerender(<Harness focused pinned />);
+  rerender(<Harness focused keptOpen />);
   expect(screen.getByRole("group")).toBe(preview);
-  rerender(<Harness pinned />);
+  rerender(<Harness keptOpen />);
   expect(screen.getByRole("group")).toBe(preview);
   expect(preview.dataset).toMatchObject({ editing: "false" });
 });
 
-it("previews after 15 ms, keeps the eye clickable, pins in place and closes", async () => {
+it("previews after 15 ms, keeps the eye clickable, keeps the window open and closes", async () => {
   vi.useFakeTimers();
   render(<Harness typed hovered />);
   const eye = screen.getByRole("button", { name: "Show state visualizer" });
@@ -153,21 +165,21 @@ it("previews after 15 ms, keeps the eye clickable, pins in place and closes", as
   expect(screen.queryByRole("group")).toBeNull();
   await act(() => vi.advanceTimersByTimeAsync(1));
   const preview = screen.getByRole("group");
-  expect(screen.getByLabelText("Pinned").textContent).toBe("false");
+  expect(screen.getByLabelText("Kept open").textContent).toBe("false");
   expect(screen.getByRole("button", { name: "Show state visualizer" })).toBe(
     eye,
   );
   fireEvent.click(eye);
   expect(screen.getByRole("group")).toBe(preview);
-  expect(screen.getByLabelText("Pinned").textContent).toBe("true");
+  expect(screen.getByLabelText("Kept open").textContent).toBe("true");
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(screen.queryByRole("group")).toBeNull();
-  expect(screen.getByLabelText("Pinned").textContent).toBe("false");
+  expect(screen.getByLabelText("Kept open").textContent).toBe("false");
   await act(() => vi.advanceTimersByTimeAsync(20));
   expect(screen.queryByRole("group")).toBeNull();
 });
 
-it("cancels a brief hover and closes an unpinned preview after leaving", async () => {
+it("cancels a brief hover and closes a temporary preview after leaving", async () => {
   vi.useFakeTimers();
   render(<Harness typed hovered />);
   const eye = screen.getByRole("button", { name: "Show state visualizer" });
@@ -187,5 +199,34 @@ it("cancels a brief hover and closes an unpinned preview after leaving", async (
     screen.getByRole("button", { name: "Show state visualizer" }),
   );
   await act(() => vi.advanceTimersByTimeAsync(200));
+  expect(screen.queryByRole("group")).toBeNull();
+});
+
+it("keeps a temporary preview open after interacting with it", async () => {
+  vi.useFakeTimers();
+  render(<Harness typed hovered />);
+  fireEvent.pointerEnter(
+    screen.getByRole("button", { name: "Show state visualizer" }),
+  );
+  await act(() => vi.advanceTimersByTimeAsync(15));
+  fireEvent.click(screen.getByRole("button", { name: "Move" }));
+  await act(() => vi.advanceTimersByTimeAsync(250));
+  expect(screen.getByRole("group")).toBeDefined();
+  expect(screen.getByLabelText("Kept open").textContent).toBe("true");
+  expect(
+    screen.queryByRole("button", { name: "Show state visualizer" }),
+  ).toBeNull();
+});
+
+it("previews from keyboard focus and dismisses with Escape", async () => {
+  vi.useFakeTimers();
+  render(<Harness typed hovered />);
+  const eye = screen.getByRole("button", { name: "Show state visualizer" });
+  fireEvent.focus(eye);
+  await act(() => vi.advanceTimersByTimeAsync(15));
+  expect(screen.getByRole("group")).toBeDefined();
+  expect(screen.getByLabelText("Kept open").textContent).toBe("false");
+  fireEvent.keyDown(eye, { key: "Escape" });
+  await act(() => vi.advanceTimersByTimeAsync(250));
   expect(screen.queryByRole("group")).toBeNull();
 });

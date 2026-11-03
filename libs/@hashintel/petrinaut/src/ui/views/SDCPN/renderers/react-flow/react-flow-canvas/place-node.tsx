@@ -55,7 +55,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const tokenCount = usePlaceTokenCount(id);
 
   const showStateTooltip =
-    data.hasVisualizer && (data.visualizerPinned || data.visualizerActive);
+    data.hasVisualizer &&
+    (data.visualizerKeptOpen || data.visualizerActive || selected);
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.

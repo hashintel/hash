@@ -6,7 +6,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { Suspense, use } from "react";
+import { Suspense, use, type ComponentProps } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { VisualizerWindow } from "./visualizer-window";
@@ -32,14 +32,23 @@ vi.mock("../../../../../../hooks/use-canvas-insets", () => ({
   useCanvasInsets: () => canvas.insets,
 }));
 vi.mock("@hashintel/ds-components", () => ({
-  Button: ({ onClick }: { onClick: () => void }) => (
-    <button type="button" onClick={onClick}>
-      Close state visualizer
+  Button: ({
+    onClick,
+    "aria-label": label,
+    "aria-pressed": pressed,
+  }: ComponentProps<"button">) => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={pressed}
+      aria-label={label}
+    >
+      {label}
     </button>
   ),
 }));
 
-const panel = (onClose = () => {}) => (
+const panel = (onClose = () => {}, onKeepOpen = () => {}) => (
   <VisualizerWindow
     nodeId="place"
     name="Space"
@@ -47,6 +56,7 @@ const panel = (onClose = () => {}) => (
     dimmed={false}
     animated
     onClose={onClose}
+    onKeepOpen={onKeepOpen}
   >
     <svg viewBox="0 0 320 240" />
   </VisualizerWindow>
@@ -95,8 +105,111 @@ afterEach(() => {
   canvas.domNode?.remove();
 });
 
-it("keeps its screen position and size when the place or viewport moves, while updating the connector", () => {
+it.each([
+  {
+    name: "place movement",
+    node: { x: 560, y: 440 },
+    viewport: { x: 0, y: 0, zoom: 1 },
+    delta: { x: 60, y: 40 },
+  },
+  {
+    name: "Canvas panning",
+    node: { x: 500, y: 400 },
+    viewport: { x: 40, y: 30, zoom: 1 },
+    delta: { x: 40, y: 30 },
+  },
+  {
+    name: "Canvas zoom",
+    node: { x: 500, y: 400 },
+    viewport: { x: 300, y: 250, zoom: 0.5 },
+    delta: { x: 25, y: 30 },
+  },
+])(
+  "follows $name without changing its screen size",
+  ({ node, viewport, delta }) => {
+    const { rerender } = render(panel());
+    const visualizer = screen.getByRole("group");
+    const initialLeft = parseFloat(visualizer.style.left);
+    const initialTop = parseFloat(visualizer.style.top);
+    canvas.node.internals.positionAbsolute = node;
+    canvas.viewport = viewport;
+    rerender(panel());
+    expect(parseFloat(visualizer.style.left)).toBe(initialLeft + delta.x);
+    expect(parseFloat(visualizer.style.top)).toBe(initialTop + delta.y);
+    expect(visualizer.style.width).toBe("360px");
+    expect(visualizer.style.height).toBe("240px");
+    expect(visualizer.dataset.fixed).toBe("false");
+  },
+);
+
+it("switches between following and fixed positions without jumping", () => {
+  const keepOpen = vi.fn();
+  const { rerender } = render(panel(undefined, keepOpen));
+  const visualizer = screen.getByRole("group");
+  const pin = screen.getByRole("button", { name: "Fix position on screen" });
+  const initialStyle = visualizer.getAttribute("style");
+  fireEvent.click(pin);
+  expect(keepOpen).toHaveBeenCalledOnce();
+  expect(pin.getAttribute("aria-pressed")).toBe("true");
+  expect(visualizer.getAttribute("style")).toBe(initialStyle);
+  canvas.node.internals.positionAbsolute = { x: 600, y: 500 };
+  rerender(panel(undefined, keepOpen));
+  expect(visualizer.getAttribute("style")).toBe(initialStyle);
+  fireEvent.click(pin);
+  expect(pin.getAttribute("aria-pressed")).toBe("false");
+  expect(visualizer.getAttribute("style")).toBe(initialStyle);
+  const previousLeft = parseFloat(visualizer.style.left);
+  canvas.node.internals.positionAbsolute.x += 30;
+  rerender(panel(undefined, keepOpen));
+  expect(parseFloat(visualizer.style.left)).toBe(previousLeft + 30);
+});
+
+it("remembers the dragged offset when following and restores it after the place returns from offscreen", () => {
+  const keepOpen = vi.fn();
+  const { rerender } = render(panel(undefined, keepOpen));
+  const visualizer = screen.getByRole("group");
+  mockPointerCapture(visualizer);
+  pointerEvent(visualizer, "pointerdown");
+  pointerEvent(visualizer, "pointermove", { clientX: 40, clientY: 20 });
+  pointerEvent(visualizer, "pointerup");
+  expect(keepOpen).toHaveBeenCalled();
+  const initialLeft = parseFloat(visualizer.style.left);
+  const initialTop = parseFloat(visualizer.style.top);
+  canvas.node.internals.positionAbsolute.x += 50;
+  rerender(panel(undefined, keepOpen));
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 50);
+  canvas.node.internals.positionAbsolute = { x: -2000, y: -2000 };
+  rerender(panel(undefined, keepOpen));
+  expect(visualizer.style.left).toBe("200px");
+  expect(visualizer.style.top).toBe("72px");
+  canvas.node.internals.positionAbsolute = { x: 500, y: 400 };
+  rerender(panel(undefined, keepOpen));
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft);
+  expect(parseFloat(visualizer.style.top)).toBe(initialTop);
+});
+
+it("keeps keyboard manipulation open and closes with Escape, returning focus to its place", () => {
+  const close = vi.fn();
+  const keepOpen = vi.fn();
+  const source = document.createElement("div");
+  source.className = "react-flow__node";
+  source.dataset.id = "place";
+  source.tabIndex = 0;
+  canvas.domNode!.querySelector(".react-flow__renderer")!.appendChild(source);
+  render(panel(close, keepOpen));
+  const handle = screen.getByRole("button", { name: "Move Space visualizer" });
+  act(() => handle.focus());
+  expect(keepOpen).toHaveBeenCalledOnce();
+  fireEvent.keyDown(handle, { key: "Escape" });
+  expect(close).toHaveBeenCalledOnce();
+  expect(document.activeElement).toBe(source);
+});
+
+it("keeps its screen position when explicitly fixed, while updating the connector", () => {
   const { rerender } = render(panel());
+  fireEvent.click(
+    screen.getByRole("button", { name: "Fix position on screen" }),
+  );
   const visualizer = screen.getByRole("group", {
     name: "Space state visualizer",
   });
@@ -234,6 +347,9 @@ it("drags from the picture without turning the close button into a drag handle",
   expect(visualizer.dataset.dragging).toBe("false");
   expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
 
+  fireEvent.keyDown(visualizer, { key: "ArrowRight" });
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 45);
+
   const closeButton = screen.getByRole("button", {
     name: "Close state visualizer",
   });
@@ -241,7 +357,8 @@ it("drags from the picture without turning the close button into a drag handle",
   pointerEvent(visualizer, "pointermove", { clientX: 80 });
   pointerEvent(closeButton, "pointerup");
   fireEvent.click(closeButton);
-  expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 40);
+  fireEvent.keyDown(closeButton, { key: "ArrowRight" });
+  expect(parseFloat(visualizer.style.left)).toBe(initialLeft + 45);
   expect(close).toHaveBeenCalledOnce();
 });
 
@@ -325,17 +442,18 @@ it.each(["pointerup", "pointercancel", "lostpointercapture"])(
   },
 );
 
-it("keeps its dragged layout when pinning and while content loads", async () => {
+it("keeps its dragged layout when leaving the editor and while content loads", async () => {
   const pending = new Promise<never>(() => {});
   const PendingPicture = () => use(pending);
-  const content = (pinned: boolean, loading: boolean) => (
+  const content = (keptOpen: boolean, loading: boolean) => (
     <VisualizerWindow
       nodeId="place"
       name="Space"
-      editing={!pinned}
+      editing={!keptOpen}
       dimmed={false}
       animated
       onClose={() => {}}
+      onKeepOpen={() => {}}
     >
       <Suspense fallback={<div role="status">Loading visualizer</div>}>
         {loading ? <PendingPicture /> : <svg />}

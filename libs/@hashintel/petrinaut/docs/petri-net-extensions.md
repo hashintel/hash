@@ -119,11 +119,13 @@ Visualizer code is JavaScript: the types are inferred, and a type annotation or 
 
 Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
 
-Point at a place, then hover **Show state visualizer** to open its Canvas preview after 15 milliseconds. It chooses an initial position near the place and stays there when pinned. Before a run it draws the initial marking; during a run it draws the displayed simulation frame.
+Point at or select a place, then hover or focus **Show state visualizer** to open its Canvas preview after 15 milliseconds. It chooses an initial position near the place. Before a run it draws the initial marking; during a run it draws the displayed simulation frame.
 
-Move the pointer away to close an unpinned preview. Click the eye button to pin it without changing its position or size. Hover the window to reveal its **Close state visualizer** and **Edit visualizer code** buttons in the top-right corner. Close dismisses the window and removes its pin. You can pin several places to watch them together while scrubbing the [timeline](simulation.md#timeline). Pins last until the page is reloaded.
+Move the pointer or keyboard focus away to close a temporary preview. Click the eye button to keep it open without changing its position or size. Moving or resizing a preview also keeps it open. You can keep several windows open while scrubbing the [timeline](simulation.md#timeline), until you close them or reload the page.
 
-Drag anywhere on the picture to move it. The cursor changes from an open hand to a closed hand, and the window lifts slightly while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings. Width and height change independently; hold Alt to keep the center fixed. Focus the invisible drag area along the top or the bottom-right resize handle to use the arrow keys, with Shift for larger steps.
+By default, a window follows its place when you move the place, pan, or zoom. Its size stays constant on screen. Hover or focus the window to reveal its controls in the top-right corner; touch devices always show them. Use the pin button, **Fix position on screen**, to hold the window in place while navigating the Canvas. The pin turns blue when fixed. Click it again, **Follow place**, to resume following from the current position without a jump. **Close state visualizer** or Escape dismisses the window. Escape also returns keyboard focus to its place.
+
+Drag anywhere on the picture to move it. A following window remembers its new distance from the place; dragging does not change whether it follows or stays fixed. The cursor changes from an open hand to a closed hand, and the window lifts slightly while dragging. Resize from any edge or corner with the same handles as the AI panel and User Settings. Width and height change independently; hold Alt to keep the center fixed. Focus the invisible drag area along the top or the bottom-right resize handle to use the arrow keys, with Shift for larger steps.
 
 A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary.
 
@@ -131,9 +133,9 @@ The SVG element fills the window regardless of its authored width and height. It
 
 While new code compiles, the previous drawing stays visible with a small loading indicator in the bottom-right corner. The window keeps its size throughout loading and compilation.
 
-A thin line connects the preview to its place. Moving the place, panning, or zooming updates the line while the window stays in the same position and at the same size on screen. Dragging and resizing stop at the edges of the visible area, keeping clear of Canvas controls and open panels. If the available area shrinks, the window moves or shrinks to fit. Position and size last while the preview remains open in the current Canvas view.
+A thin line connects the preview to its place. Windows stay within the visible area, keeping clear of Canvas controls and open panels. If a place goes offscreen or the available area shrinks, its window moves or shrinks to fit, then restores its preferred layout when space returns. Position, size, and following or fixed mode last while the preview remains open in the current Canvas view.
 
-Click **Edit visualizer code** on the preview to select its place and expand the Visualizer section to fill the Properties Panel. This section shows only code. Focusing its editor opens a temporary Canvas preview with a blue ring and dims other previews. Leaving the editor closes this temporary preview unless you pinned it or are pointing at it. Editing keeps an existing pin intact.
+Click **Edit visualizer code** on the preview to select its place and expand the Visualizer section to fill the Properties Panel. This section shows only code. Focusing its editor opens a temporary Canvas preview with a blue ring and dims other previews. Leaving the editor closes this temporary preview unless you kept it open or are pointing at it. Editing preserves an open window's position mode.
 
 Visualizer code can be edited while a simulation runs, pauses, or displays a completed run. These edits update the picture without changing or resetting the simulation. Documents opened as read-only remain read-only.
 

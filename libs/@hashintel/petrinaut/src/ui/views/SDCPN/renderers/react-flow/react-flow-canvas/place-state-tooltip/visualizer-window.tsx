@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { PinIcon } from "../../../../../../components/pin-icon";
 import { useCanvasInsets } from "../../../../../../hooks/use-canvas-insets";
 import { FloatingResizeHandles } from "../../../../../shared/floating-resize-handles";
 import { useVisualizerLayout } from "./visualizer-window/use-visualizer-layout";
@@ -50,6 +51,9 @@ const panelStyle = css({
       opacity: "[1]",
       pointerEvents: "auto",
     },
+  "@media (hover: none)": {
+    "& [data-visualizer-control]": { opacity: "[1]", pointerEvents: "auto" },
+  },
 });
 
 const controlsStyle = css({
@@ -117,6 +121,7 @@ export const VisualizerWindow = ({
   editing,
   dimmed,
   animated,
+  onKeepOpen,
   onClose,
   onEdit,
   onPointerEnter,
@@ -128,6 +133,7 @@ export const VisualizerWindow = ({
   editing: boolean;
   dimmed: boolean;
   animated: boolean;
+  onKeepOpen: () => void;
   onClose: () => void;
   onEdit?: () => void;
   onPointerEnter?: PointerEventHandler<HTMLDivElement>;
@@ -150,12 +156,17 @@ export const VisualizerWindow = ({
   };
   const left = Math.min(insets.left, Math.max(0, canvasWidth - 1));
   const top = Math.min(72, Math.max(0, canvasHeight - 1));
-  const { layout, dragging, getHandleProps } = useVisualizerLayout(nodeBounds, {
-    x: left,
-    y: top,
-    width: Math.max(1, canvasWidth - left - insets.right - 48),
-    height: Math.max(1, canvasHeight - top - insets.bottom - 64),
-  });
+  const { layout, dragging, fixed, toggleFixed, getHandleProps } =
+    useVisualizerLayout(
+      nodeBounds,
+      {
+        x: left,
+        y: top,
+        width: Math.max(1, canvasWidth - left - insets.right - 48),
+        height: Math.max(1, canvasHeight - top - insets.bottom - 64),
+      },
+      onKeepOpen,
+    );
   const connector = getVisualizerConnector(nodeBounds, {
     ...layout.position,
     ...layout.size,
@@ -196,14 +207,25 @@ export const VisualizerWindow = ({
         data-dimmed={dimmed}
         data-dragging={dragging}
         data-animated={animated}
+        data-fixed={fixed}
         role="group"
+        tabIndex={-1}
         aria-label={`${name} state visualizer`}
         {...getHandleProps("move")}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
+        onKeyDown={getHandleProps("move").onKeyDown}
+        onKeyDownCapture={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+          [...container.querySelectorAll<HTMLElement>(".react-flow__node")]
+            .find((element) => element.dataset.id === nodeId)
+            ?.focus({ preventScroll: true });
+        }}
       >
         <button
           type="button"
@@ -214,6 +236,21 @@ export const VisualizerWindow = ({
           {...getHandleProps("move")}
         />
         <div className={controlsStyle} data-visualizer-control>
+          <Button
+            size="xxs"
+            variant="ghost"
+            prefix={<PinIcon />}
+            aria-label="Fix position on screen"
+            aria-pressed={fixed}
+            tooltip={fixed ? "Follow place" : "Fix position on screen"}
+            className={css({
+              "&[aria-pressed='true']": {
+                color: "blue.s80",
+                backgroundColor: "blue.s20",
+              },
+            })}
+            onClick={toggleFixed}
+          />
           {onEdit && (
             <Button
               size="xxs"

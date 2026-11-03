@@ -455,10 +455,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({
         ...prev,
         hoveredItem: item,
-        openVisualizerPlaceId:
-          prev.openVisualizerPlaceId === item.id
-            ? prev.openVisualizerPlaceId
-            : null,
       })),
     clearHoveredItem: () =>
       setState((prev) => ({
@@ -476,13 +472,35 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
             ? null
             : previous.focusedVisualizerPlaceId,
       })),
-    toggleVisualizerPin: (placeId: string) =>
-      setState((prev) => {
-        const pinnedVisualizerPlaceIds = new Set(prev.pinnedVisualizerPlaceIds);
-        if (!pinnedVisualizerPlaceIds.delete(placeId)) {
-          pinnedVisualizerPlaceIds.add(placeId);
-        }
-        return { ...prev, pinnedVisualizerPlaceIds };
+    keepPlaceVisualizerOpen: (placeId: string) =>
+      setState((previous) => {
+        if (previous.keptOpenVisualizerPlaceIds.has(placeId)) return previous;
+        const keptOpenVisualizerPlaceIds = new Set(
+          previous.keptOpenVisualizerPlaceIds,
+        );
+        keptOpenVisualizerPlaceIds.add(placeId);
+        return { ...previous, keptOpenVisualizerPlaceIds };
+      }),
+    closePlaceVisualizer: (placeId: string) =>
+      setState((previous) => {
+        const keptOpenVisualizerPlaceIds = new Set(
+          previous.keptOpenVisualizerPlaceIds,
+        );
+        keptOpenVisualizerPlaceIds.delete(placeId);
+        return {
+          ...previous,
+          keptOpenVisualizerPlaceIds,
+          openVisualizerPlaceId:
+            previous.openVisualizerPlaceId === placeId
+              ? null
+              : previous.openVisualizerPlaceId,
+          focusedVisualizerPlaceId:
+            previous.focusedVisualizerPlaceId === placeId
+              ? null
+              : previous.focusedVisualizerPlaceId,
+          hoveredItem:
+            previous.hoveredItem?.id === placeId ? null : previous.hoveredItem,
+        };
       }),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),

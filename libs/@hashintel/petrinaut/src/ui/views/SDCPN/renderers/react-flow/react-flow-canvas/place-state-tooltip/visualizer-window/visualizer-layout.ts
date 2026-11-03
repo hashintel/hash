@@ -7,6 +7,39 @@ import type { XYPosition } from "@xyflow/react";
 /** Position and size are in pixels relative to the Canvas container. */
 export type VisualizerLayout = { position: XYPosition; size: Size };
 export type VisualizerAction = "move" | FloatingResizeDirection;
+export type VisualizerPlacement =
+  | { mode: "follow"; offset: XYPosition; size: Size }
+  | { mode: "fixed"; layout: VisualizerLayout };
+
+export const createVisualizerPlacement = (
+  layout: VisualizerLayout,
+  node: Rect,
+  mode: VisualizerPlacement["mode"],
+): VisualizerPlacement =>
+  mode === "fixed"
+    ? { mode, layout }
+    : {
+        mode,
+        offset: {
+          x: layout.position.x - node.x - node.width / 2,
+          y: layout.position.y - node.y - node.height / 2,
+        },
+        size: layout.size,
+      };
+
+export const resolveVisualizerLayout = (
+  placement: VisualizerPlacement,
+  node: Rect,
+): VisualizerLayout =>
+  placement.mode === "fixed"
+    ? placement.layout
+    : {
+        position: {
+          x: node.x + node.width / 2 + placement.offset.x,
+          y: node.y + node.height / 2 + placement.offset.y,
+        },
+        size: placement.size,
+      };
 
 const defaultSize = { width: 360, height: 240 };
 const minimumSize = { width: 180, height: 120 };

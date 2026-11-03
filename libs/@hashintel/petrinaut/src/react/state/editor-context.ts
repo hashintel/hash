@@ -96,18 +96,9 @@ export type EditorState = {
   hasSelection: boolean;
   /** The item currently being hovered, if any. */
   hoveredItem: SelectionItem | null;
-  /**
-   * Places whose state visualizer is pinned open on the canvas. A pinned
-   * visualizer stays up when the pointer leaves the place, so it can be
-   * watched while the timeline is scrubbed or the initial state edited.
-   */
-  pinnedVisualizerPlaceIds: Set<string>;
-  /**
-   * The place whose state visualizer has been opened from the button that
-   * pointing at a place offers. It belongs to that hover: moving the pointer
-   * to another place, or off the canvas, closes it again. Pinning is what
-   * outlasts a hover.
-   */
+  /** Windows explicitly kept open, independently of their positioning mode. */
+  keptOpenVisualizerPlaceIds: Set<string>;
+  /** The temporary hover or keyboard preview. */
   openVisualizerPlaceId: string | null;
   focusedVisualizerPlaceId: string | null;
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -170,9 +161,9 @@ export type EditorActions = {
   clearSelection: () => void;
   setHoveredItem: (item: SelectionItem) => void;
   clearHoveredItem: () => void;
-  /** Pin a place's state visualizer open, or release it. */
-  toggleVisualizerPin: (placeId: string) => void;
-  /** Open a place's state visualizer for the hover it is part of. */
+  keepPlaceVisualizerOpen: (placeId: string) => void;
+  closePlaceVisualizer: (placeId: string) => void;
+  /** Show or dismiss a temporary preview. */
   openPlaceVisualizer: (placeId: string | null) => void;
   setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
@@ -217,7 +208,7 @@ export const initialEditorState: EditorState = {
   selection: new Map(),
   hasSelection: false,
   hoveredItem: null,
-  pinnedVisualizerPlaceIds: new Set<string>(),
+  keptOpenVisualizerPlaceIds: new Set<string>(),
   openVisualizerPlaceId: null,
   focusedVisualizerPlaceId: null,
   draggingStateByNodeId: {},
@@ -259,7 +250,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
-  toggleVisualizerPin: () => {},
+  keepPlaceVisualizerOpen: () => {},
+  closePlaceVisualizer: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
   setDraggingStateByNodeId: () => {},

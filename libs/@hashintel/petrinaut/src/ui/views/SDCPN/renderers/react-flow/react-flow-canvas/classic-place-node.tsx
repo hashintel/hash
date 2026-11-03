@@ -74,7 +74,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const tokenCount = usePlaceTokenCount(id);
 
   const showStateTooltip =
-    data.hasVisualizer && (data.visualizerPinned || data.visualizerActive);
+    data.hasVisualizer &&
+    (data.visualizerKeptOpen || data.visualizerActive || selected);
 
   // Wrap points let a long name break inside the box instead of clipping.
   const label = withLabelWrapPoints(data.label);

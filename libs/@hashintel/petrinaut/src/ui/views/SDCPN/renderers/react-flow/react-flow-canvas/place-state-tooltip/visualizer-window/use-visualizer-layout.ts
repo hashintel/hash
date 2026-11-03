@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import {
   constrainVisualizerLayout,
   createVisualizerLayout,
+  createVisualizerPlacement,
+  resolveVisualizerLayout,
   updateVisualizerLayout,
 } from "./visualizer-layout";
 
@@ -10,11 +12,23 @@ import type { VisualizerAction, VisualizerLayout } from "./visualizer-layout";
 import type { Rect } from "@hashintel/petrinaut-core";
 import type { HTMLAttributes, PointerEvent } from "react";
 
-export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
-  const [preferredLayout, setLayout] = useState(() =>
-    createVisualizerLayout(node, viewport),
+export const useVisualizerLayout = (
+  node: Rect,
+  viewport: Rect,
+  onKeepOpen: () => void,
+) => {
+  const [placement, setPlacement] = useState(() =>
+    createVisualizerPlacement(
+      createVisualizerLayout(node, viewport),
+      node,
+      "follow",
+    ),
   );
-  const layout = constrainVisualizerLayout(preferredLayout, viewport);
+  const layout = constrainVisualizerLayout(
+    resolveVisualizerLayout(placement, node),
+    viewport,
+  );
+  const fixed = placement.mode === "fixed";
   const [dragging, setDragging] = useState(false);
   const gesture = useRef<{
     pointerId: number;
@@ -22,6 +36,13 @@ export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
     y: number;
     layout: VisualizerLayout;
   } | null>(null);
+
+  const toggleFixed = () => {
+    onKeepOpen();
+    setPlacement(
+      createVisualizerPlacement(layout, node, fixed ? "follow" : "fixed"),
+    );
+  };
 
   const endGesture = (event: PointerEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -36,6 +57,9 @@ export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
   const getHandleProps = (
     action: VisualizerAction,
   ): HTMLAttributes<HTMLElement> => ({
+    onFocus: (event) => {
+      if (event.target === event.currentTarget) onKeepOpen();
+    },
     onPointerDown: (event) => {
       event.stopPropagation();
       if (event.button !== 0 || gesture.current) return;
@@ -43,6 +67,7 @@ export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
         event.target instanceof Element ? event.target.closest("button") : null;
       if (button && button !== event.currentTarget) return;
       event.preventDefault();
+      onKeepOpen();
       event.currentTarget.focus();
       event.currentTarget.setPointerCapture(event.pointerId);
       setDragging(action === "move");
@@ -57,16 +82,20 @@ export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
       event.stopPropagation();
       const current = gesture.current;
       if (!current || current.pointerId !== event.pointerId) return;
-      setLayout(
-        updateVisualizerLayout(
-          current.layout,
-          action,
-          {
-            x: event.clientX - current.x,
-            y: event.clientY - current.y,
-          },
-          viewport,
-          event.altKey,
+      setPlacement(
+        createVisualizerPlacement(
+          updateVisualizerLayout(
+            current.layout,
+            action,
+            {
+              x: event.clientX - current.x,
+              y: event.clientY - current.y,
+            },
+            viewport,
+            event.altKey,
+          ),
+          node,
+          placement.mode,
         ),
       );
     },
@@ -75,6 +104,7 @@ export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
     onLostPointerCapture: endGesture,
     onKeyDown: (event) => {
       event.stopPropagation();
+      if (event.target !== event.currentTarget) return;
       const step = event.shiftKey ? 20 : 5;
       const deltas: Record<string, { x: number; y: number }> = {
         ArrowLeft: { x: -step, y: 0 },
@@ -85,17 +115,25 @@ export const useVisualizerLayout = (node: Rect, viewport: Rect) => {
       const delta = deltas[event.key];
       if (!delta) return;
       event.preventDefault();
-      setLayout((previous) =>
-        updateVisualizerLayout(
-          constrainVisualizerLayout(previous, viewport),
-          action,
-          delta,
-          viewport,
-          event.altKey,
+      onKeepOpen();
+      setPlacement((previous) =>
+        createVisualizerPlacement(
+          updateVisualizerLayout(
+            constrainVisualizerLayout(
+              resolveVisualizerLayout(previous, node),
+              viewport,
+            ),
+            action,
+            delta,
+            viewport,
+            event.altKey,
+          ),
+          node,
+          previous.mode,
         ),
       );
     },
   });
 
-  return { layout, dragging, getHandleProps };
+  return { layout, dragging, fixed, toggleFixed, getHandleProps };
 };
