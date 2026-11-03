@@ -21,6 +21,7 @@ import type { EventTimelineData, FiringMark, TraceReader } from "./series";
 import type {
   EventTraceSummary,
   ReadableStore,
+  TraceEvent,
   Transition,
 } from "@hashintel/petrinaut-core";
 import type uPlot from "uplot";
@@ -36,11 +37,20 @@ export type TimelineSeriesSource = TraceReader & {
   trace: ReadableStore<EventTraceSummary>;
 };
 
+/** Reads a series' value off an event's own record rather than its state. */
+export type TimelineEventExtractor = (
+  event: TraceEvent,
+  seriesIndex: number,
+) => number;
+
 export type TimelineSeriesView =
   | {
       kind: "steps";
       series: readonly TimelineSeriesMeta[];
       extract: TimelineSeriesExtractor;
+      /** When set, the rows are read from the events and `extract` is unused. */
+      extractEvent?: TimelineEventExtractor;
+      axisMinimum?: number;
     }
   | {
       kind: "sampled";
@@ -87,6 +97,8 @@ type ColumnBuilder = {
 const createStepBuilder = ({
   series,
   extract,
+  extractEvent,
+  axisMinimum,
 }: Extract<TimelineSeriesView, { kind: "steps" }>): ColumnBuilder => {
   const times: number[] = [];
   const columns = series.map((): number[] => []);
@@ -102,8 +114,18 @@ const createStepBuilder = ({
       }
       for (let index = from; index < to; index++) {
         const event = source.getEvent(index);
+        if (!event) {
+          continue;
+        }
+        if (extractEvent) {
+          times.push(event.time);
+          for (const [seriesIndex, column] of columns.entries()) {
+            column.push(extractEvent(event, seriesIndex));
+          }
+          continue;
+        }
         const reader = source.getEventState(index);
-        if (!event || !reader) {
+        if (!reader) {
           continue;
         }
         times.push(event.time);
@@ -123,6 +145,7 @@ const createStepBuilder = ({
         kind: "steps",
         series: series as TimelineSeriesMeta[],
         data: [times, ...columns] as uPlot.AlignedData,
+        ...(axisMinimum === undefined ? {} : { axisMinimum }),
       };
     },
   };

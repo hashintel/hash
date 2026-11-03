@@ -12,7 +12,12 @@ import type {
   TraceEvent,
 } from "@hashintel/petrinaut-core";
 
-type Fake = { time: number; kind: TraceEvent["kind"]; fired: string[] };
+type Fake = {
+  time: number;
+  kind: TraceEvent["kind"];
+  fired: string[];
+  solverError?: number[];
+};
 
 /**
  * A trace whose "state" is the time it was read at, with a flag for reads
@@ -40,9 +45,16 @@ const createSource = (initial: Fake[]) => {
             time: event.time,
             kind: event.kind,
             firedTransitionIds: event.fired,
+            ...(event.solverError
+              ? { solverError: Float64Array.from(event.solverError) }
+              : {}),
           } as unknown as TraceEvent)
         : null;
     },
+    placeIndexById: new Map([
+      ["a", 0],
+      ["b", 1],
+    ]),
     getEventState: (index) =>
       events[index] ? reader(events[index]!.time, false) : null,
     getStateAt: (time) => {
@@ -109,6 +121,33 @@ describe("createTimelineSeriesStore", () => {
     expect(notified).toBe(2);
     expect(store.getSnapshot()).not.toBe(before);
     expect(store.getSnapshot().data?.data[0]).toEqual([0, 0.1]);
+  });
+
+  it("reads step rows off the events themselves when given an event extractor", () => {
+    const { source, append } = createSource([
+      { time: 0, kind: "initial", fired: [], solverError: [0, 0] },
+      { time: 0.1, kind: "reference", fired: [], solverError: [1e-7, 0] },
+    ]);
+    const store = createTimelineSeriesStore(source, {
+      kind: "steps",
+      series,
+      extract,
+      extractEvent: (event, seriesIndex) =>
+        event.solverError?.[seriesIndex] ?? 0,
+      axisMinimum: 1e-12,
+    });
+    const detach = store.attach();
+    let snapshot = store.getSnapshot();
+    expect(snapshot.data).toMatchObject({ kind: "steps", axisMinimum: 1e-12 });
+    expect(snapshot.data?.data[1]).toEqual([0, 1e-7]);
+    expect(snapshot.data?.data[2]).toEqual([0, 0]);
+
+    append([{ time: 0.2, kind: "firing", fired: ["t1"] }], 0.25);
+    snapshot = store.getSnapshot();
+    // An event without a record reads as zero; the tail carries the last value.
+    expect(snapshot.data?.data[0]).toEqual([0, 0.1, 0.2, 0.25]);
+    expect(snapshot.data?.data[1]).toEqual([0, 1e-7, 0, 0]);
+    detach();
   });
 
   it("builds step rows once per event and carries them to the covered time", () => {

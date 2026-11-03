@@ -8,6 +8,8 @@ import type { SimulationFrameReader } from "../api";
 import type { TraceEvent } from "./trace";
 
 export interface EventTraceStore {
+  /** Frame place index by place id: the order of an event's per-place arrays. */
+  readonly placeIndexById: ReadonlyMap<string, number>;
   append(events: readonly TraceEvent[]): void;
   clear(): void;
   count(): number;
@@ -88,6 +90,7 @@ export function createInMemoryEventTraceStore(
   };
 
   return {
+    placeIndexById: layout.placeIndexById,
     append(batch) {
       for (const event of batch) {
         push(event);

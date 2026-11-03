@@ -19,7 +19,7 @@ import type uPlot from "uplot";
 /** What the timeline reads from a run. */
 export type TraceReader = Pick<
   EventSimulation,
-  "getEvent" | "getEventState" | "getStateAt"
+  "getEvent" | "getEventState" | "getStateAt" | "placeIndexById"
 >;
 
 /**
@@ -34,7 +34,16 @@ export type FiringMark = {
 };
 
 export type EventTimelineData =
-  | { kind: "steps"; series: TimelineSeriesMeta[]; data: uPlot.AlignedData }
+  | {
+      kind: "steps";
+      series: TimelineSeriesMeta[];
+      data: uPlot.AlignedData;
+      /**
+       * The value the chart's y axis reaches at least, so a flat series is
+       * not drawn across the whole height. Counts take the default of 1.
+       */
+      axisMinimum?: number;
+    }
   | { kind: "sampled"; series: TimelineSeriesMeta[]; data: uPlot.AlignedData }
   | {
       kind: "lanes";
