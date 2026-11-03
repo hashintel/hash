@@ -120,7 +120,8 @@ const hashEntityReadOnlyDrafts = (
  * The `queryEntitySubgraph` request for one read: every given filter must
  * match. An entity id that names a draft reads that draft, whether or not
  * drafts were asked for; unless they were, an id without a draft part reads
- * only the live entity.
+ * only the live entity, and of the drafts the graph returns the read keeps
+ * only those named (`hashEntityReadOnlyDrafts`).
  */
 export const hashEntityReadRequest = (
   input: HashEntityReadInput,
