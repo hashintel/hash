@@ -3,8 +3,8 @@
  * names that packages, apps and the website share. Environment variable names
  * live in the app that reads them.
  *
- * This module imports nothing, so the browser, plain Node and Flue builds can
- * all load it.
+ * This module imports nothing but `@local/brunch-configs`, which imports
+ * nothing, so the browser, plain Node and Flue builds can all load it.
  */
 
 /**
@@ -70,28 +70,14 @@ export const brunchSignals = {
 export const brunchOwnerKeyStorageKey = "brunch-principal-v1";
 
 /**
- * Request headers that carry conversation identity. The owner key's header
- * name predates its rename from "principal" and is a wire name: changing it
- * needs a coordinated deploy of every client and server.
+ * The wire facts of reaching Brunch over HTTP, owned by `@local/brunch-configs`
+ * so hash-api can share them without depending on this package.
  */
-export const brunchHeaders = {
-  conversation: "x-brunch-conversation",
-  ownerKey: "x-brunch-principal",
-} as const;
-
-/** Server routes and route segments. */
-export const brunchRoutes = {
-  /** Where agents mount; each serves under `<agents>/<route>`. */
-  agents: "/agents",
-  /** The Petrinaut agent's route; conversation identity remains its pinned `agentName`. */
-  petrinautAgent: "petrinaut",
-  /** The HASH agent's route, which HASH's process page talks to. */
-  hashAgent: "hash",
-  /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
-  browserCalls: "browser-calls",
-  /** Cheap process-liveness probe; dependency readiness is established before listen. */
-  health: "/health",
-} as const;
+export {
+  brunchExposedResponseHeaders,
+  brunchHeaders,
+  brunchRoutes,
+} from "@local/brunch-configs/wire";
 
 /** Owner key for the stock Flue UI at `/`. Not a second ownership rule. */
 export const localUiOwnerKey = "local";

@@ -6,6 +6,7 @@
     "@hashintel/ds-icons",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
+    "@local/brunch-configs",
     "@local/flue-aisdk-transport",
     "@local/tsconfig"
   ],
@@ -17,6 +18,7 @@
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-configs#build",
         "@local/flue-aisdk-transport#build"
       ],
       "affectedBy": [
@@ -30,6 +32,7 @@
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-configs#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build"
       ],
@@ -44,6 +47,7 @@
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-configs#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build"
       ],
@@ -61,6 +65,7 @@
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-configs#build",
         "@local/flue-aisdk-transport#build"
       ],
       "affectedBy": [
@@ -74,6 +79,7 @@
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-configs#build",
         "@local/flue-aisdk-transport#build"
       ],
       "env": [

@@ -4,6 +4,12 @@ import { pipeline } from "node:stream/promises";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
 
+import {
+  brunchExposedResponseHeaders,
+  brunchHeaders,
+  brunchRoutes,
+} from "@local/brunch-configs/wire";
+
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 
 import type { UserId } from "@blockprotocol/type-system";
@@ -23,23 +29,10 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 const brunchAgentProxyPath = "/api/brunch";
 
 /**
- * Brunch's wire names, as `brunchHeaders` and `brunchRoutes` in
- * `@hashintel/brunch-agent` define them. Written out rather than imported, so
- * hash-api doesn't build that package; Brunch pins the headers as names that
- * must not change.
- */
-const brunchHeaders = {
-  conversation: "x-brunch-conversation",
-  ownerKey: "x-brunch-principal",
-};
-const brunchAgentsRoute = "/agents";
-const brunchHashAgentRoute = "hash";
-
-/**
  * The only agent this hop serves: HASH's process page talks to the HASH agent
  * alone, so Brunch's other agents stay unreachable from HASH sessions.
  */
-const hashAgentPrefix = `${brunchAgentsRoute}/${brunchHashAgentRoute}/`;
+const hashAgentPrefix = `${brunchRoutes.agents}/${brunchRoutes.hashAgent}/`;
 
 /**
  * Turn submissions each signed-in user may make per minute. Every submission
@@ -258,17 +251,16 @@ export const setupBrunchAgentProxy = (
         response.status(upstream.status);
         // The durable-streams client reads its next offset, cursor and
         // up-to-date state from these headers; cross-origin JS cannot see
-        // them unless they are exposed. Mirrors Brunch's CORS expose list in
-        // `apps/brunch-agent/src/server/http/cors.ts` by hand.
+        // them unless they are exposed.
         response.setHeader(
           "access-control-expose-headers",
-          "location, stream-next-offset, stream-cursor, stream-up-to-date, stream-closed, stream-sse-data-encoding, flue-error-ref",
+          brunchExposedResponseHeaders.join(", "),
         );
         // Flue builds `streamUrl` and `Location` from the URL it was reached
         // at, which names Brunch's internal origin. Point both back through
         // this hop.
-        const internalBase = `${origin.origin}${brunchAgentsRoute}/`;
-        const publicBase = `${publicOrigin}${brunchAgentProxyPath}${brunchAgentsRoute}/`;
+        const internalBase = `${origin.origin}${brunchRoutes.agents}/`;
+        const publicBase = `${publicOrigin}${brunchAgentProxyPath}${brunchRoutes.agents}/`;
         for (const [name, value] of upstream.headers) {
           if (
             !droppedResponseHeaders.has(name) &&
