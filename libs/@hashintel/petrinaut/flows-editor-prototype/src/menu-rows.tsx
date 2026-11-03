@@ -1,6 +1,7 @@
 /**
  * Menu rows with a second line (Figma, 3 Nov): a 32 px icon tile centred across title and description, 12 px to the
- * text. In the same menu, a one-line row keeps its 14 px icon centred in a 32 px slot, so every row's text lines up.
+ * text. In the same menu, a one-line row draws a 24 px tile with its 14 px icon, centred in a 32 px slot, so every
+ * row's text lines up (J2.13 option B).
  *
  * DS gap G77: the DS Menu item's icon is an `IconName` drawn at the item size (14 px), so it cannot hold the tile.
  * The rows stay DS Menu items (keyboard, submenus, highlight) and carry this content as their `text`.
@@ -8,7 +9,7 @@
 import { Icon, type IconName, type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-/** A row with a second line: 8 px above and below, 6 px in; a one-line row: 6 px all round; 4 px between rows. */
+/** A row with a second line: 8 px above and below, 6 px in; a one-line row: 6 px all round (36 px); 4 px between rows. */
 export const tiledRowsStyle = css({
   "& [role=menuitem]:has([data-menu-row])": {
     "--selectable-list-item-padding-x": "6px",
@@ -22,7 +23,7 @@ export const tiledRowsStyle = css({
   "& [role=menuitem]:has([data-menu-row]) + [role=menuitem]": {
     marginTop: "[4px]",
   },
-  // The DS text column and its custom-text wrapper hug the row, so a one-line row is 20 px inside (32 px in all).
+  // The DS text column and its custom-text wrapper hug the row, so a one-line row is its 24 px slot inside (36 px in all).
   "& [role=menuitem]:has([data-menu-row]) > span:has(> span > [data-menu-row])": {
     display: "flex",
     flex: "1",
@@ -44,14 +45,25 @@ const rowStyle = css({
   "&[data-menu-row=two]": { alignItems: "flex-start" },
 });
 
-/** The 32 px slot of a one-line row: the 14 px icon centred, or nothing (Any). */
+/** The 32 x 24 px slot of a one-line row: the 24 px tile centred, or nothing (Any), so the label still lines up. */
 const slotStyle = css({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
   width: "[32px]",
-  height: "[20px]",
+  height: "[24px]",
+});
+
+/** A one-line row's tile: 24 px, 6 px corners, the two-line tile's grey, a 14 px icon. */
+const smallTileStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[24px]",
+  height: "[24px]",
+  borderRadius: "md",
+  backgroundColor: "neutral.a25",
   color: "neutral.fg.muted",
   "& svg": { width: "[14px]", height: "[14px]", "--icon-size": "14px" },
 });
@@ -164,7 +176,7 @@ export const MenuRow = ({
         </span>
       ) : (
         <span className={slotStyle} aria-hidden="true">
-          {glyph}
+          {glyph ? <span className={smallTileStyle}>{glyph}</span> : null}
         </span>
       )}
       <span className={textStyle}>
