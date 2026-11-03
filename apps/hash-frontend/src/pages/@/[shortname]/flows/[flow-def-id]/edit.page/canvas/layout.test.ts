@@ -1,33 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { actionStep, flowWith } from "../shared/step-fixtures";
 import { getStartPosition, stepCardSize } from "./flow-graph";
 import { getFreePosition, layOutFlow } from "./layout";
-
-import type {
-  ActionStepDefinition,
-  FlowDefinition,
-  StepDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
-
-const actionStep = (
-  stepId: string,
-  options: Partial<ActionStepDefinition<string>> = {},
-): ActionStepDefinition<string> => ({
-  kind: "action",
-  stepId,
-  actionDefinitionId: "queryEntities",
-  description: "",
-  inputs: {},
-  ...options,
-});
-
-const flowWith = (steps: StepDefinition<string>[]): FlowDefinition<string> => ({
-  name: "Flow",
-  description: "",
-  inputs: [],
-  steps,
-  outputs: [],
-});
 
 describe("layOutFlow", () => {
   it("puts each step after the steps it runs after, counting data links, and keeps Start where it is", async () => {

@@ -4,6 +4,7 @@ import { Button, SegmentedControl } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { getGroupIds, getStepsTree } from "./left-panel/steps-tree";
+import { CollapseButton } from "./shared/collapse-button";
 import {
   countSteps,
   getStepDisplay,
@@ -92,7 +93,6 @@ const groupCount = css({
   color: "fg.subtle",
 });
 
-/** The DS has no tree item (logged as a gap), so rows are drawn here. */
 const TreeRow = ({
   depth,
   icon,
@@ -145,7 +145,7 @@ const StepsTree = ({
 }: {
   tree: StepsTreeItem[];
   depth: number;
-  selectedStepIds: string[];
+  selectedStepIds: Set<string>;
   collapsedGroupIds: Set<string>;
   onToggleGroup: (stepId: string) => void;
   onStepClick: (stepId: string) => void;
@@ -161,17 +161,13 @@ const StepsTree = ({
           icon={icon}
           tone={tone}
           label={description || title}
-          selected={selectedStepIds.includes(step.stepId)}
+          selected={selectedStepIds.has(step.stepId)}
           onClick={() => onStepClick(step.stepId)}
           expander={
             children && (
-              <Button
-                variant="ghost"
-                size="xxs"
-                iconName={collapsed ? "chevronRight" : "chevronDown"}
-                aria-label={collapsed ? "Expand" : "Collapse"}
-                aria-expanded={!collapsed}
-                onClick={() => onToggleGroup(step.stepId)}
+              <CollapseButton
+                collapsed={collapsed}
+                onToggle={() => onToggleGroup(step.stepId)}
               />
             )
           }
@@ -195,10 +191,7 @@ const StepsTree = ({
     );
   });
 
-/**
- * The flow editor's left panel: the flow's steps, and the steps that can be added to it. The Add tab's list comes in a
- * later issue; until then, it says what it will hold.
- */
+/** The flow editor's left panel: the flow's steps, and the steps that can be added to it. */
 export const LeftPanel = ({
   steps,
   selectedStepIds,
@@ -261,13 +254,14 @@ export const LeftPanel = ({
           <StepsTree
             tree={tree}
             depth={0}
-            selectedStepIds={selectedStepIds}
+            selectedStepIds={new Set(selectedStepIds)}
             collapsedGroupIds={collapsedGroupIds}
             onToggleGroup={onToggleGroup}
             onStepClick={onStepClick}
           />
         </div>
       ) : (
+        // TODO(FE-2125): list the actions that can be added, from their action definitions
         <p className={addPlaceholder}>
           Actions you can add will be listed here.
         </p>

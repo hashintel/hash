@@ -1,8 +1,9 @@
 import { Handle, Position } from "@xyflow/react";
 
-import { Button, Icon, Tooltip } from "@hashintel/ds-components";
+import { Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { CollapseButton } from "../shared/collapse-button";
 import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
 import { useCanvasActions } from "./canvas-actions";
@@ -253,13 +254,9 @@ export const ForEachNode = ({
       >
         {!inner && (
           <div className={cx(forEachChevron, "nodrag")}>
-            <Button
-              variant="ghost"
-              size="xxs"
-              iconName={collapsed ? "chevronRight" : "chevronDown"}
-              aria-label={collapsed ? "Expand" : "Collapse"}
-              aria-expanded={!collapsed}
-              onClick={() => toggleCollapsed(step.stepId)}
+            <CollapseButton
+              collapsed={collapsed}
+              onToggle={() => toggleCollapsed(step.stepId)}
             />
           </div>
         )}

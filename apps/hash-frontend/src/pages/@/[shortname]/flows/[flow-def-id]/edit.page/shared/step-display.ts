@@ -6,7 +6,6 @@ import type {
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-/** "Steps" vs "nodes" is still open, so labels build on this. */
 export const stepNoun = { singular: "step", plural: "steps" } as const;
 
 export const countSteps = (count: number) =>
@@ -14,7 +13,7 @@ export const countSteps = (count: number) =>
 
 export type StepTone = "green" | "orange" | "neutral";
 
-/** What the "+" list offers until the Add picker replaces it. `if` waits on the branching design. */
+// TODO(FE-2125): offer every action, from their action definitions
 export const addableActions: {
   actionDefinitionId: FlowActionDefinitionId;
   label: string;

@@ -133,7 +133,9 @@ const FlowCanvas = ({
   const [dragPositions, setDragPositions] = useState(
     () => new Map<string, XYPosition>(),
   );
-  const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([]);
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState(
+    () => new Set<string>(),
+  );
   const [contextTarget, setContextTarget] = useState<ContextTarget | null>(
     null,
   );
@@ -209,6 +211,10 @@ const FlowCanvas = ({
         : { nodes: [], edges: [] },
     [flowDefinition, problemsByStepId, forEachLayouts, collapsedStepIds],
   );
+  const graphNodesById = useMemo(
+    () => new Map(graph.nodes.map((node) => [node.id, node])),
+    [graph.nodes],
+  );
 
   const selectedStepIdSet = new Set(selectedStepIds);
   const nodes = graph.nodes.map((node): FlowNode => {
@@ -223,23 +229,29 @@ const FlowCanvas = ({
   });
   const edges = graph.edges.map((edge) => ({
     ...edge,
-    selected: selectedEdgeIds.includes(edge.id),
+    selected: selectedEdgeIds.has(edge.id),
   }));
 
-  const topLevelStepIds = new Set(
-    flowDefinition.steps.map(({ stepId }) => stepId),
+  const topLevelSteps = new Map(
+    flowDefinition.steps.map((step) => [step.stepId, step]),
   );
   /** `null` for Start and inner steps. */
   const getTopLevelStepId = (nodeId: string) => {
-    const node = graph.nodes.find(({ id }) => id === nodeId);
+    const node = graphNodesById.get(nodeId);
     const stepId = node ? getNodeStepId(node) : null;
 
-    return stepId !== null && topLevelStepIds.has(stepId) ? stepId : null;
+    return stepId !== null && topLevelSteps.has(stepId) ? stepId : null;
   };
+  const getTopLevelStepIds = (stepNodes: FlowNode[]) =>
+    stepNodes.flatMap((node) => {
+      const stepId = getTopLevelStepId(node.id);
+
+      return stepId === null ? [] : [stepId];
+    });
 
   const selectStep = (stepId: string) => {
     onSelectedStepIdsChange([stepId]);
-    setSelectedEdgeIds([]);
+    setSelectedEdgeIds(new Set());
   };
 
   const getTakenPlaces = () =>
@@ -357,10 +369,9 @@ const FlowCanvas = ({
     };
 
     const getConnections = (stepId: string) => ({
-      incoming: (
-        flowDefinition.steps.find((step) => step.stepId === stepId)?.runAfter ??
-        []
-      ).map(({ stepId: from }) => ({ from, to: stepId })),
+      incoming: (topLevelSteps.get(stepId)?.runAfter ?? []).map(
+        ({ stepId: from }) => ({ from, to: stepId }),
+      ),
       outgoing: flowDefinition.steps
         .filter(({ runAfter }) =>
           runAfter?.some(({ stepId: from }) => from === stepId),
@@ -459,7 +470,7 @@ const FlowCanvas = ({
       ) {
         nextDragPositions.set(change.id, change.position);
       } else if (change.type === "select") {
-        const node = graph.nodes.find(({ id }) => id === change.id);
+        const node = graphNodesById.get(change.id);
         const stepId = node ? getNodeStepId(node) : null;
 
         if (stepId !== null) {
@@ -495,7 +506,7 @@ const FlowCanvas = ({
       }
     }
 
-    setSelectedEdgeIds([...nextSelected]);
+    setSelectedEdgeIds(nextSelected);
   };
 
   const savePositions = (draggedNodes: FlowNode[]) => {
@@ -524,9 +535,7 @@ const FlowCanvas = ({
       from !== null &&
       to !== null &&
       from !== to &&
-      !flowDefinition.steps
-        .find(({ stepId }) => stepId === to)
-        ?.runAfter?.some(({ stepId }) => stepId === from)
+      !topLevelSteps.get(to)?.runAfter?.some(({ stepId }) => stepId === from)
     );
   };
 
@@ -583,13 +592,7 @@ const FlowCanvas = ({
     nodes: deletedNodes,
     edges: deletedEdges,
   }) => {
-    const removedStepIds = new Set(
-      deletedNodes.flatMap((node) => {
-        const stepId = getTopLevelStepId(node.id);
-
-        return stepId === null ? [] : [stepId];
-      }),
-    );
+    const removedStepIds = new Set(getTopLevelStepIds(deletedNodes));
 
     for (const { data } of deletedEdges) {
       if (
@@ -608,7 +611,7 @@ const FlowCanvas = ({
     onSelectedStepIdsChange(
       selectedStepIds.filter((stepId) => !removedStepIds.has(stepId)),
     );
-    setSelectedEdgeIds([]);
+    setSelectedEdgeIds(new Set());
 
     return Promise.resolve(false);
   };
@@ -713,11 +716,7 @@ const FlowCanvas = ({
               rememberContextPoint(event);
               setContextTarget({
                 kind: "selection",
-                stepIds: selectedNodes.flatMap((node) => {
-                  const stepId = getTopLevelStepId(node.id);
-
-                  return stepId === null ? [] : [stepId];
-                }),
+                stepIds: getTopLevelStepIds(selectedNodes),
               });
             }}
             onPaneContextMenu={refuseContextMenu}

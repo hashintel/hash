@@ -1,24 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { actionStep } from "../shared/step-fixtures";
 import { getStepsTree } from "./steps-tree";
 
 import type { StepsTreeItem } from "./steps-tree";
-import type {
-  ActionStepDefinition,
-  StepDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
-
-const actionStep = (
-  stepId: string,
-  options: Partial<ActionStepDefinition<string>> = {},
-): ActionStepDefinition<string> => ({
-  kind: "action",
-  stepId,
-  actionDefinitionId: "queryEntities",
-  description: "",
-  inputs: {},
-  ...options,
-});
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 const outline = (tree: StepsTreeItem[]): unknown[] =>
   tree.map(({ step, children }) =>

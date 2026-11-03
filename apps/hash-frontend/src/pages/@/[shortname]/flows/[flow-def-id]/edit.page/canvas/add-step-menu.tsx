@@ -5,8 +5,8 @@ import { Menu } from "@hashintel/ds-components";
 import { getAddStepMenuItems, stepNoun } from "../shared/step-display";
 
 /**
- * The "+" list, open while mounted. The DS `Menu` only opens from its own trigger (logged as a gap), so this clicks an
- * invisible trigger laid over `anchor`.
+ * The "+" list, open while mounted. The DS `Menu` only opens from its own trigger, so this clicks an invisible trigger
+ * laid over `anchor`.
  */
 export const AddStepMenu = ({
   anchor,
