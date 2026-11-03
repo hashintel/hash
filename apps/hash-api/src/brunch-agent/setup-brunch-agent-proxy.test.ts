@@ -180,7 +180,15 @@ test("forwards an agents request with the account's owner key and points its URL
   expect(response.status).toBe(202);
   expect(
     response.headers["access-control-expose-headers"]?.split(", "),
-  ).toContain("stream-sse-data-encoding");
+  ).toEqual([
+    "location",
+    "stream-next-offset",
+    "stream-cursor",
+    "stream-up-to-date",
+    "stream-closed",
+    "stream-sse-data-encoding",
+    "flue-error-ref",
+  ]);
   expect(response.headers.location).toBe(
     "https://app-api.example/api/brunch/agents/petrinaut/instance",
   );

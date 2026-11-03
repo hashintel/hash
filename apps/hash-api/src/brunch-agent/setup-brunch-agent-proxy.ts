@@ -15,7 +15,7 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
  * Off unless `HASH_BRUNCH_AGENT_ORIGIN` is set. Brunch's identity headers are
  * only authentication when Brunch is reachable through this hop alone.
  */
-const BRUNCH_AGENT_PROXY_PATH = "/api/brunch";
+const brunchAgentProxyPath = "/api/brunch";
 
 /**
  * Brunch's wire names, as `brunchHeaders` and `brunchRoutes` in
@@ -111,7 +111,7 @@ export const setupBrunchAgentProxy = (
    * the agent routes' "not configured" body when `HASH_BRUNCH_AGENT_ORIGIN` is
    * unset, so Brunch stays off unless it is configured.
    */
-  app.get(`${BRUNCH_AGENT_PROXY_PATH}/identity`, (request, response) => {
+  app.get(`${brunchAgentProxyPath}/identity`, (request, response) => {
     if (!request.user) {
       response.status(401).json({ error: "Authentication required" });
       return;
@@ -124,7 +124,7 @@ export const setupBrunchAgentProxy = (
   });
 
   app.use(
-    BRUNCH_AGENT_PROXY_PATH,
+    brunchAgentProxyPath,
     async (request: Request, response: Response) => {
       if (!request.user) {
         response.status(401).json({ error: "Authentication required" });
@@ -138,7 +138,7 @@ export const setupBrunchAgentProxy = (
       // resolves `..`, `%2e%2e` and `\`, which would otherwise reach Brunch
       // routes outside its agents.
       const upstreamUrl = new URL(
-        request.originalUrl.slice(BRUNCH_AGENT_PROXY_PATH.length),
+        request.originalUrl.slice(brunchAgentProxyPath.length),
         origin,
       );
       if (
@@ -197,7 +197,7 @@ export const setupBrunchAgentProxy = (
         // at, which names Brunch's internal origin. Point both back through
         // this hop.
         const internalBase = `${origin.origin}${agentsPrefix}`;
-        const publicBase = `${publicOrigin}${BRUNCH_AGENT_PROXY_PATH}${agentsPrefix}`;
+        const publicBase = `${publicOrigin}${brunchAgentProxyPath}${agentsPrefix}`;
         for (const [name, value] of upstream.headers) {
           if (
             !droppedResponseHeaders.has(name) &&
