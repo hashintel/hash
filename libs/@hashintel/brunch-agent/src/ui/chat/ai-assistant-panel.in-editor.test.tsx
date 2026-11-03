@@ -28,6 +28,7 @@ import {
   preloadLanguageServer,
 } from "../testing/petrinaut-jsdom";
 import { AiAssistantPanel } from "./ai-assistant-panel";
+import { fixedBrunchAssistant } from "./testing/fixed-brunch-assistant";
 
 import type {
   PetrinautAiMessage,
@@ -513,11 +514,13 @@ test("a call claimed in one editor never runs in a replacement with identical co
   const firstTransport = transportOf([toolCall("add", "addPlace", place)]);
   const { rerender } = render(
     <BrunchAssistantContext
-      value={assistantFor(firstHandle, {
-        transport: firstTransport,
-        messages: [],
-        waitForAdmission: true,
-      })}
+      value={fixedBrunchAssistant(
+        assistantFor(firstHandle, {
+          transport: firstTransport,
+          messages: [],
+          waitForAdmission: true,
+        }),
+      )}
     >
       <Petrinaut handle={firstHandle} plugins={[brunchPlugin]} />
     </BrunchAssistantContext>,
@@ -538,26 +541,28 @@ test("a call claimed in one editor never runs in a replacement with identical co
   const secondTransport = transportOf([]);
   rerender(
     <BrunchAssistantContext
-      value={assistantFor(secondHandle, {
-        transport: secondTransport,
-        messages: [
-          ...(firstTransport.requests[0] ?? []),
-          {
-            id: "turn",
-            role: "assistant",
-            parts: [
-              {
-                type: "dynamic-tool",
-                toolName: "addPlace",
-                toolCallId: "add",
-                state: "input-available",
-                input: place,
-              },
-            ],
-          },
-        ],
-        waitForAdmission: false,
-      })}
+      value={fixedBrunchAssistant(
+        assistantFor(secondHandle, {
+          transport: secondTransport,
+          messages: [
+            ...(firstTransport.requests[0] ?? []),
+            {
+              id: "turn",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "addPlace",
+                  toolCallId: "add",
+                  state: "input-available",
+                  input: place,
+                },
+              ],
+            },
+          ],
+          waitForAdmission: false,
+        }),
+      )}
     >
       <Petrinaut handle={secondHandle} plugins={[brunchPlugin]} />
     </BrunchAssistantContext>,
