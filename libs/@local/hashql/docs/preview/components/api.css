@@ -514,7 +514,7 @@
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: none !important;
+  background: none;
   border: none !important;
   padding: 0 !important;
 }
@@ -866,4 +866,40 @@
 
 .api-hierarchy-diagram polyline.class-relationship {
   stroke-width: 1.25;
+}
+
+/* A name in an example opens its quick info, the type an editor shows on hover, in a tooltip below it. */
+
+.api-quick-info-name {
+  border-radius: 0.125rem;
+}
+
+.api-quick-info-name:hover,
+.api-quick-info-name[data-popup-open] {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.api-quick-info {
+  max-width: min(40rem, 92vw);
+  max-height: 50vh;
+  overflow: auto;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--color-fd-popover);
+  color: var(--color-fd-popover-foreground);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+/* The selector outranks the one fumadocs pads a code block's lines by. */
+.api-quick-info pre.shiki {
+  --padding-left: 0;
+  --padding-right: 0;
+  margin: 0;
+  background: none;
+  font-family: var(--api-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
