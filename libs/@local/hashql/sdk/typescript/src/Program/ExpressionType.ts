@@ -434,7 +434,11 @@ export type Callable<T extends Type.Any, Inputs> =
           FunctionMembers<T, Inputs>
       : EmptyAccessors;
 
-/** The normalized union of two conditional branch descriptors, retaining a single descriptor when both are equal. */
+/**
+ * The normalized union of two conditional branch descriptors, retaining a single descriptor when both are equal.
+ *
+ * @category Utility Types
+ */
 export type Conditional<Then extends Type.Any, Else extends Type.Any> = Join<
   Normalize<Then>,
   Normalize<Else>

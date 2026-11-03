@@ -29,15 +29,27 @@ import type { Types } from "effect";
 
 export type { Relocatable } from "../internal/relocation.js";
 
-/** The string key that marks a type expression, which {@link isTypeExpression} and {@link isExport} check. */
+/**
+ * The string key that marks a type expression, which {@link isTypeExpression} and {@link isExport} check.
+ *
+ * @category Type IDs
+ */
 export type TypeId = "~hashql/TypeExpression";
 const TypeId: TypeId = "~hashql/TypeExpression";
 
-/** The string key that marks a generic type constructor, which {@link isConstructor} and {@link isExport} check. */
+/**
+ * The string key that marks a generic type constructor, which {@link isConstructor} and {@link isExport} check.
+ *
+ * @category Type IDs
+ */
 export type ConstructorId = "~hashql/TypeConstructor";
 const ConstructorId: ConstructorId = "~hashql/TypeConstructor";
 
-/** Type syntax or its construction failure, annotated with its semantic type. */
+/**
+ * Type syntax or its construction failure, annotated with its semantic type.
+ *
+ * @category Models
+ */
 export interface TypeExpression<T extends Type.Any> extends TypeExpression.Any {
   readonly [TypeId]: Types.Covariant<T>;
   readonly [Relocate]: Relocatable<TypeExpression<T>>[typeof Relocate];
@@ -65,6 +77,8 @@ export declare namespace TypeExpression {
  * The argument tuple carries semantic types, and `Arguments` maps each position to its handle. TypeScript infers the tuple from ordinary calls. A generic caller can also supply it explicitly without extracting and re-inferring types from already-normalized handles.
  *
  * A call emits a reference to the constructor's path with one generic argument per supplied type. The result's descriptor is `Type.TypeLambda.Apply<F, A>`. TypeScript rejects a call with the wrong number of arguments. At runtime, such a call returns a type expression holding a `TypeArgumentCountMismatch` failure. An argument's construction failure becomes the result's failure.
+ *
+ * @category Models
  */
 export interface Constructor<F extends Type.TypeConstructor>
   extends Constructor.Any {
@@ -90,25 +104,39 @@ export declare namespace Constructor {
   }
 }
 
-/** An entry of a type namespace: a concrete type expression or a generic type constructor. */
+/**
+ * An entry of a type namespace: a concrete type expression or a generic type constructor.
+ *
+ * @category Models
+ */
 export type Export = TypeExpression.Any | Constructor.Any;
 
 /**
  * Recognizes concrete type expressions and generic type constructors.
  *
  * The guard checks for the SDK's marker properties and does not check a semantic descriptor. A joined namespace name that includes a type also passes.
+ *
+ * @category Guards
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isExport = (value: unknown): value is Export =>
   Predicate.hasProperty(value, TypeId) ||
   Predicate.hasProperty(value, ConstructorId);
 
-/** Recognizes concrete type expressions by their marker property, without checking the stored syntax or the semantic descriptor. */
+/**
+ * Recognizes concrete type expressions by their marker property, without checking the stored syntax or the semantic descriptor.
+ *
+ * @category Guards
+ */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
 export const isTypeExpression = (value: unknown): value is TypeExpression.Any =>
   Predicate.hasProperty(value, TypeId);
 
-/** Recognizes generic type constructors by their marker property, including combined namespace handles. */
+/**
+ * Recognizes generic type constructors by their marker property, including combined namespace handles.
+ *
+ * @category Guards
+ */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
 export const isConstructor = (value: unknown): value is Constructor.Any =>
   Predicate.hasProperty(value, ConstructorId);
@@ -117,6 +145,8 @@ export const isConstructor = (value: unknown): value is Constructor.Any =>
  * Reads the number of type arguments a generic type constructor takes.
  *
  * An adapted constructor reports the arity of the constructor it adapts, whatever its own signature takes.
+ *
+ * @category Getters
  */
 export const arity = (constructor: Constructor.Any): number =>
   constructor[ConstructorId].arity;
@@ -125,6 +155,8 @@ export const arity = (constructor: Constructor.Any): number =>
  * Annotates a type node, or a construction failure, with a trusted semantic descriptor.
  *
  * The caller must ensure that the node's syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
+ *
+ * @category Conversions
  */
 export const fromNode = <T extends Type.Any>(
   node: Result.Result<TAST.TypeNode.Any, ProgramError.Construction>,
@@ -151,6 +183,8 @@ export const fromNode = <T extends Type.Any>(
  * Annotates type syntax, or a construction failure, with a trusted semantic descriptor.
  *
  * The caller must ensure that successful syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
+ *
+ * @category Conversions
  */
 export const fromResult = <T extends Type.Any>(
   syntax: Result.Result<Syntax.Type, ProgramError.Construction>,
@@ -161,7 +195,11 @@ export const fromResult = <T extends Type.Any>(
     fromNode<T>,
   );
 
-/** Reads the type syntax a type expression emits, or its construction failure. */
+/**
+ * Reads the type syntax a type expression emits, or its construction failure.
+ *
+ * @category Conversions
+ */
 export const toType = (
   type: TypeExpression.Any,
 ): Result.Result<Syntax.Type, ProgramError.Construction> => type.syntax;
@@ -170,6 +208,8 @@ export const toType = (
  * Annotates syntax supplied by a trusted type declaration.
  *
  * The caller must ensure that `syntax` denotes `T`, because the annotation performs no runtime type check.
+ *
+ * @category Conversions
  */
 export const fromType = <T extends Type.Any>(
   syntax: Syntax.Type,
@@ -179,6 +219,8 @@ export const fromType = <T extends Type.Any>(
  * Binds a trusted semantic declaration to a named type reference.
  *
  * The result emits `path` as a type reference and carries the descriptor `T`. Nothing checks that the path exists or has that meaning.
+ *
+ * @category Constructors
  */
 export const reference = <T extends Type.Any>(
   path: JExpr.Path.Path,
@@ -265,6 +307,8 @@ const constructorAt = <F extends Type.TypeConstructor>(
  * assert.ok(Result.isFailure(invalid));
  * assert.equal(invalid.failure.reason._tag, "InvalidTypeArity");
  * ```
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the path names the reference under construction
 export const constructor = <F extends Type.TypeConstructor>(
@@ -313,6 +357,8 @@ export const constructor = <F extends Type.TypeConstructor>(
  *   "::kernel::type::String",
  * );
  * ```
+ *
+ * @category Combinators
  */
 export const relocate: {
   (
@@ -330,6 +376,8 @@ export const relocate: {
  * A constructor adapted by {@link adaptConstructor}, callable with the callback's call signatures.
  *
  * It keeps the constructor's marker. Relocating it runs the callback again at the new path.
+ *
+ * @category Utility Types
  */
 export type Adapted<C> = C &
   Constructor.Any & {
@@ -391,6 +439,8 @@ export type Adapted<C> = C &
  *   "::collections::Pair<::kernel::type::String, ::kernel::type::Integer>",
  * );
  * ```
+ *
+ * @category Combinators
  */
 export const adaptConstructor: {
   <

@@ -12,10 +12,15 @@ import type * as Module from "../Module.js";
 import type * as Scope from "../Scope.js";
 import type { Types } from "effect";
 
+/** @category Type IDs */
 export type TypeId = "~hashql/Bindings";
 const TypeId: TypeId = "~hashql/Bindings";
 
-/** Filters and renames a table, requiring only names present in every selection alternative. */
+/**
+ * Filters and renames a table, requiring only names present in every selection alternative.
+ *
+ * @category Utility Types
+ */
 export type Selected<E, I> = Selected.Merge<Selected.Branch<E, I>>;
 
 declare namespace Selected {
@@ -95,6 +100,8 @@ declare namespace Selected {
  * Flattening keeps the capabilities that one source name supplies together, without treating independently optional exports as required. A destination with more than one possible source name keeps the independent view, as does a scope without the marker.
  *
  * The flattened type trusts the marker. A copy that keeps the marker while replacing a table flattens as an import's result, as does a record written with the marker by hand. Its flattened type can then claim a capability the object lacks. The import freezes the bindings and their tables.
+ *
+ * @category Models
  */
 export interface Bindings<M extends Module.Module.Any, I> {
   readonly [TypeId]: Bindings.Variance<M, I>;
@@ -184,6 +191,8 @@ class BindingsImpl<M extends Module.Module.Any, I> implements Bindings<M, I> {
  * Marks tables selected together from one module as that module's bindings.
  *
  * The package exports only this module's types, so the import is the only caller. It passes tables it selected with one plan.
+ *
+ * @category Constructors
  */
 export const make = <M extends Module.Module.Any, I>(
   tables: Tables<M, I>,

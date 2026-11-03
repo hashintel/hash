@@ -6,12 +6,20 @@ import * as Type from "./Type/index.js";
 
 import type * as Defs from "./schema.js";
 
-/** The `_` placeholder, which asks the HashQL compiler to infer a type in a {@link fn} signature. */
+/**
+ * The `_` placeholder, which asks the HashQL compiler to infer a type in a {@link fn} signature.
+ *
+ * @category Closures
+ */
 const inferred = "_" as const;
 
 export { inferred as infer };
 
-/** An explicit type or {@link inferred | infer}, accepted by {@link fn} for parameter and return types. */
+/**
+ * An explicit type or {@link inferred | infer}, accepted by {@link fn} for parameter and return types.
+ *
+ * @category Closures
+ */
 export type TypeArgument = Type.Type | typeof inferred;
 
 const compileType = (type: TypeArgument): Defs.ExpressionType => {
@@ -22,7 +30,11 @@ const compileType = (type: TypeArgument): Defs.ExpressionType => {
   return Type.toExpression(type);
 };
 
-/** A closure's signature and body, accepted by {@link fn}. */
+/**
+ * A closure's signature and body, accepted by {@link fn}.
+ *
+ * @category Closures
+ */
 export interface FnOptions {
   /**
    * Type parameter names, or a record mapping each name to its bound.
@@ -77,6 +89,8 @@ const compileGenerics = (
  *   '["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"entity":"_"}},"_",["==","entity.draft_id",{"#literal":null}]]',
  * );
  * ```
+ *
+ * @category Closures
  */
 export const fn = (options: FnOptions): Defs.CallType => [
   "::kernel::special_form::fn",

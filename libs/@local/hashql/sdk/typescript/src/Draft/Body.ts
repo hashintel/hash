@@ -18,6 +18,8 @@ import type { ReadonlyRecord } from "effect/Record";
  * An input schema maps each program input's name to its type, as a type expression or structural shorthand.
  *
  * `BigInt`, `Number`, `String` and `Boolean` denote the primitive types, and records and arrays of definitions denote structs and tuples, as in `$.type`. Every enumerable own string key becomes an input handle. A symbol key cannot name an input, so TypeScript rejects one.
+ *
+ * @category Inputs
  */
 export type Inputs = ReadonlyRecord<string, Structural.Definition>;
 
@@ -56,10 +58,16 @@ type TypeInputs<I extends Inputs> = {
  *   return $.literal(true);
  * });
  * ```
+ *
+ * @category Inputs
  */
 export type Requirements<I extends Inputs> = Input.Conservative<TypeInputs<I>>;
 
-/** The input handle for the schema key `K` with the definition `D`, which references that input and requires `K`. */
+/**
+ * The input handle for the schema key `K` with the definition `D`, which references that input and requires `K`.
+ *
+ * @category Inputs
+ */
 export type Handle<
   K extends PropertyKey,
   D extends Structural.Definition,
@@ -72,6 +80,8 @@ export type Handle<
  * The frozen record a program callback receives as its second argument, holding one input handle per schema key.
  *
  * Each handle emits an input reference without a default at every use.
+ *
+ * @category Inputs
  */
 export type Handles<I extends Inputs> = {
   readonly [K in keyof I]: Handle<K, I[K]>;
@@ -95,6 +105,8 @@ type Mismatches<S, I> = I extends unknown
  * Accepts input requirements when the schema record `S` declares each of them with the same semantic type.
  *
  * It evaluates to `unknown`, which leaves an intersection unchanged, when every host-side alternative of the requirements fits. Otherwise it evaluates to `never`, which rejects the value it constrains. An input used with a default still needs a declaration. Erased requirements, such as those of `Expression.Expression.Any` or `Expression.Value.Any`, never fit, because they cannot show which inputs they need.
+ *
+ * @category Inputs
  */
 export type Check<S, I> = [I] extends [never]
   ? never
@@ -106,7 +118,11 @@ export type Check<S, I> = [I] extends [never]
 /** Checks the inputs the expression `E` requires against the schema record `I`, as {@link Check} does. */
 type Accept<I, E> = Check<I, Expression.Value.Inputs<E>>;
 
-/** A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | Context.Query}. */
+/**
+ * A graph query in a program callback, whose predicates must fit the program's schema `I`. Otherwise it is {@link Construction.Query | Context.Query}.
+ *
+ * @category Queries
+ */
 export interface Query<
   S extends Scope.Scope.Any,
   I,
@@ -126,7 +142,11 @@ export interface Query<
   readonly collect: () => Expression.Expression<Type.List<V>, R>;
 }
 
-/** `$.query` in a program callback, whose graph or axes must fit the schema `I` and whose queries take restricted predicates. Otherwise it is {@link Construction.Queries | Context.Queries}. */
+/**
+ * `$.query` in a program callback, whose graph or axes must fit the schema `I` and whose queries take restricted predicates. Otherwise it is {@link Construction.Queries | Context.Queries}.
+ *
+ * @category Queries
+ */
 export interface Queries<S extends Scope.Scope.Any, I> {
   <const G extends Expression.Expression.Any>(
     graph: G & Graph.Check<G> & Accept<I, G>,
@@ -142,6 +162,8 @@ export interface Queries<S extends Scope.Scope.Any, I> {
  * The `$` argument of a program callback, which restricts the construction context to the program's input schema.
  *
  * `let`, `if` and `query` accept only values whose input requirements fit the schema, and branch and filter callbacks receive the same restricted view. The other members are the unrestricted Draft {@link Construction.Context | Context.Context} operations. The unrestricted constructor implements this view, but the view is not assignable to {@link Construction.Context | Context.Context}, so a helper typed with the unrestricted context cannot receive a program's `$`.
+ *
+ * @category Models
  */
 export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   Construction.Context<S>,
@@ -256,6 +278,8 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
  * The callback a Draft program runs with the restricted context and the input handles to obtain the root expression.
  *
  * The returned expression's input requirements must fit the schema. Returning anything other than an expression handle fails construction with `InvalidBodyResult`. The type rejects an asynchronous callback, and at runtime its promise fails construction the same way.
+ *
+ * @category Models
  */
 export type Body<
   S extends Scope.Scope.Any,
@@ -266,7 +290,11 @@ export type Body<
   inputs: Handles<I>,
 ) => O & Check<NoInfer<Requirements<I>>, Expression.Value.Inputs<O>>;
 
-/** A {@link Body} with its input handles already supplied. */
+/**
+ * A {@link Body} with its input handles already supplied.
+ *
+ * @category Models
+ */
 export type WithoutInputs<
   S extends Scope.Scope.Any,
   I extends Inputs,

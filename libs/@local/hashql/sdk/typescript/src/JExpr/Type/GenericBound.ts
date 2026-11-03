@@ -11,8 +11,10 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
+/** @category Schemas */
 export const Schema: typeof Defs.GenericBound = Defs.GenericBound;
 
+/** @category Models */
 export interface GenericBound extends Defs.GenericBoundType {}
 
 export declare namespace GenericBound {
@@ -25,6 +27,8 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * Checks a decoded generic bound object and returns it.
  *
  * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
@@ -32,6 +36,7 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => GenericBound = Overflow.make(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -39,6 +44,7 @@ export const makeEffect: (
 ) => Effect.Effect<GenericBound, SchemaIssue.Issue> =
   Overflow.makeEffect(Schema);
 
+/** @category Constructors */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
