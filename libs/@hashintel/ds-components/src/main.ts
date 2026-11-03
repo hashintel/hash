@@ -99,7 +99,10 @@ export { Toggle } from "./components/Toggle/toggle";
 export { BaseTooltip, type Position } from "./components/Tooltip/base-tooltip";
 export { Tooltip } from "./components/Tooltip/tooltip";
 export { CharacterCount } from "./primitives/CharacterCount/character-count";
-export type { Item, ItemOrGroup } from "./primitives/SelectableList/selectable-list";
+export type {
+  Item,
+  ItemOrGroup,
+} from "./primitives/SelectableList/selectable-list";
 export { SelectableListSearch } from "./primitives/SelectableList/selectable-list-search";
 export { brandmarkScale } from "./util/color-scales";
 export {

@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ResizeExample } from "../../../docs/blocks/resize-example";
 import { InlineHighlight, type InlineHighlightColor } from "./inline-highlight";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -17,14 +18,8 @@ const caption = css({
   marginBottom: "[4px]",
 });
 
-// Drag-resizable via the bottom-right handle to watch the outline re-wrap.
-const box = css({
-  border: "[1px solid #d4d4d8]",
-  borderRadius: "[6px]",
-  padding: "[12px]",
-  resize: "horizontal",
-  overflow: "hidden",
-  minWidth: "[120px]",
+// Body-like text so the wrapping demos break lines like running prose.
+const text = css({
   fontSize: "[14px]",
   lineHeight: "[1.5]",
 });
@@ -51,9 +46,9 @@ const Example = ({
 }) => (
   <div>
     <div className={caption}>{label}</div>
-    <div className={box} style={{ width }}>
-      {children}
-    </div>
+    <ResizeExample width={width} minWidth={120}>
+      <div className={text}>{children}</div>
+    </ResizeExample>
   </div>
 );
 
