@@ -89,21 +89,68 @@
   white-space: nowrap;
 }
 
+/* The stability is a word beside the version, coloured by how far a reader can rely on the export: sky for beta, amber for experimental, and rose for unstable and for internal, which promises nothing. */
+
 .api-stability {
-  border-radius: 999px;
-  padding: 0.125rem 0.5rem;
-  font-family: var(--api-mono);
-  font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  background: color-mix(in srgb, #f59e0b 15%, transparent);
-  color: #d97706;
   white-space: nowrap;
 }
 
-.api-stability:is([data-stability="unstable"], [data-stability="deprecated"]) {
-  background: color-mix(in srgb, #f43f5e 15%, transparent);
+.api-stability[data-stability="beta"] {
+  color: #0284c7;
+}
+
+.api-stability[data-stability="experimental"] {
+  color: #b45309;
+}
+
+.api-stability:is([data-stability="unstable"], [data-stability="internal"]) {
   color: #e11d48;
+}
+
+.dark .api-stability[data-stability="beta"] {
+  color: #38bdf8;
+}
+
+.dark .api-stability[data-stability="experimental"] {
+  color: #fbbf24;
+}
+
+.dark
+  .api-stability:is([data-stability="unstable"], [data-stability="internal"]) {
+  color: #fb7185;
+}
+
+/* A deprecated export's name is struck through wherever it is named, and its description starts with a notice of what to use instead. */
+
+[data-deprecated] {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, currentColor 60%, transparent);
+}
+
+.api-deprecation {
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: color-mix(in srgb, #f43f5e 8%, transparent);
+}
+
+.api-deprecation-label {
+  margin-right: 0.5rem;
+  font-weight: 600;
+  color: #e11d48;
+}
+
+.dark .api-deprecation-label {
+  color: #fb7185;
+}
+
+.api-deprecation > p {
+  margin: 0.5rem 0 0;
+}
+
+.api-deprecation-label + p {
+  display: inline;
 }
 
 .prose .api-source,

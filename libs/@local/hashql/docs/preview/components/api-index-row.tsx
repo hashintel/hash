@@ -11,6 +11,7 @@ export function ApiIndexRow({
   depth,
   title,
   summary,
+  deprecated,
 }: Components.IndexRowProps): ReactNode {
   const colours = Colours.coloursOf(kind);
 
@@ -26,6 +27,7 @@ export function ApiIndexRow({
         <code
           className="api-index-name"
           data-coloured={colours === undefined ? undefined : ""}
+          data-deprecated={deprecated === true ? "" : undefined}
           style={colours}
         >
           {title}
