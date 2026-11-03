@@ -186,6 +186,21 @@ const FlowEditor = ({
   const setSelectedStepIds = (stepIds: string[]) =>
     setSession((current) => ({ ...current, selectedStepIds: stepIds }));
 
+  /* For-each steps collapsed in the Steps tab and on the canvas. */
+  const [collapsedStepIds, setCollapsedStepIds] = useState(
+    () => new Set<string>(),
+  );
+  const toggleCollapsed = (stepId: string) =>
+    setCollapsedStepIds((collapsed) => {
+      const next = new Set(collapsed);
+
+      if (!next.delete(stepId)) {
+        next.add(stepId);
+      }
+
+      return next;
+    });
+
   const archiveFlow = async () => {
     /*
      * Saving first, so that no save is made after the flow is archived, which would be refused. Edits the API refused
@@ -244,6 +259,9 @@ const FlowEditor = ({
               focusRequest: { stepId },
             }))
           }
+          collapsedGroupIds={collapsedStepIds}
+          onToggleGroup={toggleCollapsed}
+          onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
         />
         <div className={canvasArea}>
           {(saveRefusedReason !== null || changedElsewhere) && (
@@ -278,6 +296,8 @@ const FlowEditor = ({
             selectedStepIds={selectedStepIds}
             onSelectedStepIdsChange={setSelectedStepIds}
             focusRequest={focusRequest}
+            collapsedStepIds={collapsedStepIds}
+            onToggleCollapsed={toggleCollapsed}
           />
         </div>
       </div>

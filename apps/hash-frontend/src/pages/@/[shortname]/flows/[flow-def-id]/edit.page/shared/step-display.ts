@@ -12,7 +12,7 @@ export const stepNoun = { singular: "step", plural: "steps" } as const;
 export const countSteps = (count: number) =>
   `${count} ${count === 1 ? stepNoun.singular : stepNoun.plural}`;
 
-export type StepTone = "blue" | "green" | "orange" | "neutral";
+export type StepTone = "green" | "orange" | "neutral";
 
 /** What the "+" list offers until the Add picker replaces it. `if` waits on the branching design. */
 export const addableActions: {
@@ -67,7 +67,7 @@ export const startDisplay = {
   title: "Start",
   description: "Flow inputs",
   icon: "play",
-  tone: "blue",
+  tone: "neutral",
 } as const satisfies {
   title: string;
   description: string;

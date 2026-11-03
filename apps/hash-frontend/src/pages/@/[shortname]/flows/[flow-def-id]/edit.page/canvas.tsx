@@ -97,6 +97,8 @@ type CanvasProps = {
   onSelectedStepIdsChange: (stepIds: string[]) => void;
   /** A new object each time, so the same step can be focused twice. */
   focusRequest: { stepId: string } | null;
+  collapsedStepIds: Set<string>;
+  onToggleCollapsed: (stepId: string) => void;
 };
 
 const FlowCanvas = ({
@@ -104,6 +106,8 @@ const FlowCanvas = ({
   selectedStepIds,
   onSelectedStepIdsChange,
   focusRequest,
+  collapsedStepIds,
+  onToggleCollapsed,
 }: CanvasProps) => {
   const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
@@ -194,9 +198,14 @@ const FlowCanvas = ({
   const graph = useMemo(
     () =>
       forEachLayouts
-        ? getFlowGraph({ flowDefinition, problemsByStepId, forEachLayouts })
+        ? getFlowGraph({
+            flowDefinition,
+            problemsByStepId,
+            forEachLayouts,
+            collapsedStepIds,
+          })
         : { nodes: [], edges: [] },
-    [flowDefinition, problemsByStepId, forEachLayouts],
+    [flowDefinition, problemsByStepId, forEachLayouts, collapsedStepIds],
   );
 
   const selectedStepIdSet = new Set(selectedStepIds);
@@ -298,6 +307,7 @@ const FlowCanvas = ({
       });
     },
     removeConnection: editor.removeConnection,
+    toggleCollapsed: onToggleCollapsed,
   };
 
   const openAddMenuAtContextPoint = (
@@ -604,13 +614,14 @@ const FlowCanvas = ({
   const organize = async () => {
     const { positions, forEachLayouts: layouts } = await layOutFlow(
       editor.getState().flowDefinition,
+      collapsedStepIds,
     );
 
     for (const [stepId, position] of positions) {
       editor.moveStep(stepId, position);
     }
 
-    setForEachLayouts(layouts);
+    setForEachLayouts((current) => new Map([...(current ?? []), ...layouts]));
     requestAnimationFrame(() => {
       void fitView({ maxZoom: 1, duration: 300 });
     });
@@ -648,6 +659,7 @@ const FlowCanvas = ({
             }}
             onConnectEnd={onConnectEnd}
             connectOnClick={false}
+            connectionLineStyle={{ stroke: "var(--colors-blue-bd-strong)" }}
             onBeforeDelete={onBeforeDelete}
             deleteKeyCode={["Backspace", "Delete"]}
             onNodeContextMenu={(event, node) => {

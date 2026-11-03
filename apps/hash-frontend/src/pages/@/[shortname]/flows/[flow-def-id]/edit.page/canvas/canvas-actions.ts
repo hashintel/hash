@@ -6,6 +6,7 @@ export type CanvasActions = {
   /** `null` adds after Start. */
   openAddMenuAfter: (anchor: Element, stepId: string | null) => void;
   removeConnection: (connection: FlowConnection) => void;
+  toggleCollapsed: (stepId: string) => void;
 };
 
 export const CanvasActionsContext = createContext<CanvasActions | null>(null);

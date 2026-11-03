@@ -50,7 +50,6 @@ const TreeRow = ({
       pl: `${4 + depth * indentPerDepth}px`,
       pr: 1,
       borderRadius: "6px",
-      background: selected ? "var(--colors-neutral-bg-subtle)" : undefined,
     }}
   >
     <Box sx={{ display: "flex", flexShrink: 0, width: 16 }}>{expander}</Box>
@@ -172,15 +171,19 @@ export const LeftPanel = ({
   steps,
   selectedStepIds,
   onStepClick,
+  collapsedGroupIds,
+  onToggleGroup,
+  onCollapseAll,
 }: {
   steps: StepDefinition<string>[];
   selectedStepIds: string[];
   onStepClick: (stepId: string) => void;
+  /** Shared with the canvas, which collapses the same for-each boxes. */
+  collapsedGroupIds: Set<string>;
+  onToggleGroup: (stepId: string) => void;
+  onCollapseAll: (stepIds: string[]) => void;
 }) => {
   const [tab, setTab] = useState<LeftPanelTab>("steps");
-  const [collapsedGroupIds, setCollapsedGroupIds] = useState(
-    () => new Set<string>(),
-  );
 
   const tree = getStepsTree(steps);
   const groupIds = getGroupIds(tree);
@@ -228,7 +231,7 @@ export const LeftPanel = ({
               disabled={groupIds.every((stepId) =>
                 collapsedGroupIds.has(stepId),
               )}
-              onClick={() => setCollapsedGroupIds(new Set(groupIds))}
+              onClick={() => onCollapseAll(groupIds)}
             />
           </Stack>
           <TreeRow
@@ -242,17 +245,7 @@ export const LeftPanel = ({
             depth={0}
             selectedStepIds={selectedStepIds}
             collapsedGroupIds={collapsedGroupIds}
-            onToggleGroup={(stepId) =>
-              setCollapsedGroupIds((collapsed) => {
-                const next = new Set(collapsed);
-
-                if (!next.delete(stepId)) {
-                  next.add(stepId);
-                }
-
-                return next;
-              })
-            }
+            onToggleGroup={onToggleGroup}
             onStepClick={onStepClick}
           />
         </Stack>

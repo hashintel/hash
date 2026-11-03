@@ -16,6 +16,7 @@ import type { Edge, Node } from "@xyflow/react";
 export const stepCardSize = { width: 200, height: 59 };
 export const stepGap = 64;
 export const forEachBoxPadding = { header: 40, side: 16 };
+export const collapsedForEachSize = { width: 240, height: stepCardSize.height };
 
 export type ForEachLayout = {
   size: { width: number; height: number };
@@ -41,7 +42,10 @@ export type ActionStepNode = Node<
 >;
 
 export type ForEachStepNode = Node<
-  StepNodeDataBase & { step: ForEachStepDefinition<string> },
+  StepNodeDataBase & {
+    step: ForEachStepDefinition<string>;
+    collapsed: boolean;
+  },
   "forEach"
 >;
 
@@ -74,13 +78,18 @@ export const getStartPosition = (
     : { x: 0, y: 0 };
 };
 
-/** A for-each step's inner steps go where `forEachLayouts` puts them; unsaved positions are drawn at the origin. */
+/**
+ * A for-each step's inner steps go where `forEachLayouts` puts them; unsaved positions are drawn at the origin. A
+ * top-level for-each step in `collapsedStepIds` is drawn without its steps.
+ */
 export const getFlowGraph = ({
   flowDefinition,
   problemsByStepId,
   forEachLayouts,
+  collapsedStepIds,
 }: Pick<FlowEditorState, "flowDefinition" | "problemsByStepId"> & {
   forEachLayouts: Map<string, ForEachLayout>;
+  collapsedStepIds: Set<string>;
 }): { nodes: FlowNode[]; edges: ConnectionEdge[] } => {
   const nodes: FlowNode[] = [
     {
@@ -127,18 +136,19 @@ export const getFlowGraph = ({
         nodes.push({ ...placement, type: "step", data: { ...data, step } });
       } else {
         const layout = forEachLayouts.get(step.stepId);
+        const collapsed = !inner && collapsedStepIds.has(step.stepId);
+        const size = collapsed ? collapsedForEachSize : layout?.size;
 
         nodes.push({
           ...placement,
           type: "forEach",
-          data: { ...data, step },
-          ...(layout && {
-            width: layout.size.width,
-            height: layout.size.height,
-          }),
+          data: { ...data, step, collapsed },
+          ...size,
         });
 
-        addSteps(step.steps, { stepId: step.stepId, layout });
+        if (!collapsed) {
+          addSteps(step.steps, { stepId: step.stepId, layout });
+        }
       }
 
       for (const { stepId: from } of step.runAfter ?? []) {

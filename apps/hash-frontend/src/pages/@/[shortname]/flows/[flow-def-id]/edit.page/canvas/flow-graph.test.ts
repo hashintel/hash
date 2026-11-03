@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { getFlowGraph, getStepNodeId, startNodeId } from "./flow-graph";
+import {
+  collapsedForEachSize,
+  getFlowGraph,
+  getStepNodeId,
+  startNodeId,
+} from "./flow-graph";
 
 import type { ForEachLayout } from "./flow-graph";
 import type {
@@ -32,11 +37,13 @@ const flowWith = (steps: StepDefinition<string>[]): FlowDefinition<string> => ({
 const graphOf = (
   steps: StepDefinition<string>[],
   forEachLayouts = new Map<string, ForEachLayout>(),
+  collapsedStepIds = new Set<string>(),
 ) =>
   getFlowGraph({
     flowDefinition: flowWith(steps),
     problemsByStepId: new Map(),
     forEachLayouts,
+    collapsedStepIds,
   });
 
 const linesOf = (graph: ReturnType<typeof graphOf>) =>
@@ -139,6 +146,19 @@ describe("getFlowGraph", () => {
         kind: "inner",
       },
       /* The for-each step takes its list from `list`, so runs after it, and no line from Start goes to it. */
+      { source: startNodeId, target: getStepNodeId("list"), kind: "start" },
+    ]);
+
+    /* Collapsed, the box is drawn alone at its collapsed size. */
+    const collapsed = graphOf(steps, layouts, new Set(["forEach"]));
+
+    expect(collapsed.nodes.map(({ id }) => id)).toEqual([
+      startNodeId,
+      getStepNodeId("list"),
+      getStepNodeId("forEach"),
+    ]);
+    expect(collapsed.nodes[2]).toMatchObject(collapsedForEachSize);
+    expect(linesOf(collapsed)).toEqual([
       { source: startNodeId, target: getStepNodeId("list"), kind: "start" },
     ]);
   });

@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
 
-import { Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Icon, Tooltip } from "@hashintel/ds-components";
 
 import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
@@ -31,8 +31,18 @@ const portStyles = {
     background: "var(--colors-neutral-s00)",
     border: "1px solid var(--colors-neutral-bd-strong)",
   },
+  "& .react-flow__handle.connectingto.valid": {
+    borderColor: "var(--colors-blue-bd-strong)",
+  },
   "& .react-flow__handle:hover .port-add": { opacity: 1 },
 };
+
+const getSelectedOutline = (selected: boolean) => ({
+  border: `1px solid ${getBorderColor(selected)}`,
+  boxShadow: selected
+    ? "inset 0 0 0 0.5px var(--colors-blue-bd-strong)"
+    : undefined,
+});
 
 /** Shown on port hover. It sits inside the handle, so dragging from it still draws a connection. */
 const PortAdd = ({ stepId }: { stepId: string | null }) => {
@@ -154,10 +164,7 @@ const Card = ({
       height: stepCardSize.height,
       padding: "12px",
       borderRadius: "8px",
-      border: `1px solid ${getBorderColor(selected)}`,
-      boxShadow: selected
-        ? "inset 0 0 0 0.5px var(--colors-blue-bd-strong)"
-        : undefined,
+      ...getSelectedOutline(selected),
       background: "var(--colors-neutral-s00)",
     }}
   >
@@ -191,9 +198,7 @@ const Card = ({
         sx={{
           ...oneLine,
           fontSize: 12,
-          color: description
-            ? "var(--colors-neutral-fg-muted)"
-            : "var(--colors-neutral-fg-subtle)",
+          color: "var(--colors-neutral-fg-subtle)",
         }}
       >
         {description || "Add a description…"}
@@ -223,11 +228,13 @@ export const StepNode = ({
   </Card>
 );
 
+/** Collapsed, the box is a one-line card; its chevron and the Steps tab's group collapse together. */
 export const ForEachNode = ({
-  data: { step, problems, inner },
+  data: { step, problems, inner, collapsed },
   selected,
 }: NodeProps<ForEachStepNode>) => {
-  const { title, description, icon, tone } = getStepDisplay(step);
+  const { toggleCollapsed } = useCanvasActions();
+  const { title, description } = getStepDisplay(step);
 
   return (
     <Box
@@ -236,11 +243,8 @@ export const ForEachNode = ({
         boxSizing: "border-box",
         width: "100%",
         height: "100%",
-        borderRadius: "8px",
-        border: `1px solid ${getBorderColor(selected)}`,
-        boxShadow: selected
-          ? "inset 0 0 0 0.5px var(--colors-blue-bd-strong)"
-          : undefined,
+        borderRadius: "12px",
+        ...getSelectedOutline(selected),
         background: "var(--colors-neutral-bg-solid-surface)",
       }}
     >
@@ -248,20 +252,31 @@ export const ForEachNode = ({
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 0.75,
-          height: forEachBoxPadding.header,
-          px: `${forEachBoxPadding.side}px`,
+          gap: 0.5,
+          height: collapsed ? "100%" : forEachBoxPadding.header,
+          px: 1,
         }}
       >
-        <StepIconTile icon={icon} tone={tone} size="small" />
+        {!inner && (
+          <Box className="nodrag" sx={{ display: "flex" }}>
+            <Button
+              variant="ghost"
+              size="xxs"
+              iconName={collapsed ? "chevronRight" : "chevronDown"}
+              aria-label={collapsed ? "Expand" : "Collapse"}
+              aria-expanded={!collapsed}
+              onClick={() => toggleCollapsed(step.stepId)}
+            />
+          </Box>
+        )}
         <Box
           component="span"
           sx={{
             ...oneLine,
             flex: 1,
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 500,
-            color: "var(--colors-neutral-fg-heading)",
+            color: "var(--colors-neutral-fg-body)",
           }}
         >
           {description || title}

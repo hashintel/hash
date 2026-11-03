@@ -2,6 +2,7 @@ import ELK from "elkjs/lib/elk.bundled.js";
 
 import { getStepsBefore } from "../shared/step-order";
 import {
+  collapsedForEachSize,
   forEachBoxPadding,
   getStartPosition,
   startNodeId,
@@ -52,21 +53,26 @@ const getElkEdges = (
       targets: [getStepElkId(to)],
     }));
 
-const getElkNodes = (steps: StepDefinition<string>[]): ElkNode[] =>
+const getElkNodes = (
+  steps: StepDefinition<string>[],
+  collapsedStepIds: Set<string>,
+): ElkNode[] =>
   steps.map((step) =>
     step.kind === "action"
       ? { id: getStepElkId(step.stepId), ...stepCardSize }
-      : {
-          id: getStepElkId(step.stepId),
-          children: getElkNodes(step.steps),
-          edges: getElkEdges(step.steps, false),
-          layoutOptions: {
-            ...layoutOptions,
-            "elk.padding": `[top=${forEachBoxPadding.header},left=${forEachBoxPadding.side},bottom=${forEachBoxPadding.side},right=${forEachBoxPadding.side}]`,
-            "elk.nodeSize.constraints": "MINIMUM_SIZE",
-            "elk.nodeSize.minimum": `(${stepCardSize.width}, ${stepCardSize.height + forEachBoxPadding.header})`,
+      : collapsedStepIds.has(step.stepId)
+        ? { id: getStepElkId(step.stepId), ...collapsedForEachSize }
+        : {
+            id: getStepElkId(step.stepId),
+            children: getElkNodes(step.steps, new Set()),
+            edges: getElkEdges(step.steps, false),
+            layoutOptions: {
+              ...layoutOptions,
+              "elk.padding": `[top=${forEachBoxPadding.header},left=${forEachBoxPadding.side},bottom=${forEachBoxPadding.side},right=${forEachBoxPadding.side}]`,
+              "elk.nodeSize.constraints": "MINIMUM_SIZE",
+              "elk.nodeSize.minimum": `(${stepCardSize.width}, ${stepCardSize.height + forEachBoxPadding.header})`,
+            },
           },
-        },
   );
 
 const readLayout = (
@@ -82,17 +88,14 @@ const readLayout = (
 
     positions.set(step.stepId, { x: elkNode?.x ?? 0, y: elkNode?.y ?? 0 });
 
-    if (step.kind === "for-each") {
+    /* A collapsed for-each step has no children here, and keeps the layout it had. */
+    if (step.kind === "for-each" && elkNode?.children) {
       forEachLayouts.set(step.stepId, {
         size: {
-          width: elkNode?.width ?? stepCardSize.width,
-          height: elkNode?.height ?? stepCardSize.height,
+          width: elkNode.width ?? stepCardSize.width,
+          height: elkNode.height ?? stepCardSize.height,
         },
-        positions: readLayout(
-          step.steps,
-          elkNode?.children ?? [],
-          forEachLayouts,
-        ),
+        positions: readLayout(step.steps, elkNode.children, forEachLayouts),
       });
     }
   }
@@ -128,10 +131,12 @@ export const getFreePosition = (
 
 /**
  * Lays a flow out left to right, counting data links as well as connections, keeping Start where it is. Inner steps'
- * places are returned in `forEachLayouts` and never saved.
+ * places are returned in `forEachLayouts` and never saved, except for the top-level for-each steps in
+ * `collapsedStepIds`, which are laid out at their collapsed size.
  */
 export const layOutFlow = async (
   flowDefinition: FlowDefinition<string>,
+  collapsedStepIds = new Set<string>(),
 ): Promise<{
   positions: Map<string, StepPosition>;
   forEachLayouts: Map<string, ForEachLayout>;
@@ -141,7 +146,10 @@ export const layOutFlow = async (
   const graph = await elk.layout({
     id: "root",
     layoutOptions,
-    children: [{ id: startElkId, ...stepCardSize }, ...getElkNodes(steps)],
+    children: [
+      { id: startElkId, ...stepCardSize },
+      ...getElkNodes(steps, collapsedStepIds),
+    ],
     edges: getElkEdges(steps, true),
   });
 
