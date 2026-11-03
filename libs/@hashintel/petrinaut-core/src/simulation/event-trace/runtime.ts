@@ -25,6 +25,7 @@ import type {
   SimulationTransport,
   WorkerFactory,
 } from "../api";
+import type { EventSolverConfig } from "./solver/solver-config";
 import type {
   EventSimulationErrorEvent,
   EventSimulationEvent,
@@ -51,6 +52,8 @@ export type EventSimulationConfig = {
   stepDt?: number;
   /** Longest stretch of simulated time between two recorded frames. */
   referenceInterval?: number;
+  /** How the run advances between events; the fixed-step stepper when absent. */
+  solver?: EventSolverConfig;
   /** Optional cancellation. Aborting tears down the simulation. */
   signal?: AbortSignalLike;
 };
@@ -273,6 +276,7 @@ export function createEventSimulation(
       hirArtifacts: config.hirArtifacts,
       stepDt: config.stepDt,
       referenceInterval: config.referenceInterval,
+      solver: config.solver,
     });
   });
 }

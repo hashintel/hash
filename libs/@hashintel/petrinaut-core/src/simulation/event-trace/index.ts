@@ -31,3 +31,5 @@ export {
   DEFAULT_EVENT_STEP_DT,
   DEFAULT_REFERENCE_INTERVAL,
 } from "./worker/trace-stepper";
+export { DEFAULT_SOLVER_TOLERANCE } from "./solver/solver-config";
+export type { EventSolverConfig } from "./solver/solver-config";

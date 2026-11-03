@@ -350,12 +350,14 @@ export {
   createEventSimulation,
   DEFAULT_EVENT_STEP_DT,
   DEFAULT_REFERENCE_INTERVAL,
+  DEFAULT_SOLVER_TOLERANCE,
 } from "./simulation/event-trace";
 export type {
   CreateEventSimulationConfig,
   EventSimulation,
   EventSimulationConfig,
   EventSimulationEvent,
+  EventSolverConfig,
   EventTraceSummary,
   TraceEvent,
   TraceEventKind,

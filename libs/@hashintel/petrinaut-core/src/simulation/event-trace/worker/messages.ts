@@ -11,6 +11,7 @@ import type { HirArtifacts } from "../../../hir-runtime";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";
 import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
+import type { EventSolverConfig } from "../solver/solver-config";
 import type { TraceEvent } from "../trace";
 
 //
@@ -31,6 +32,8 @@ export type EventSimulationInitMessage = {
   stepDt?: number;
   /** Longest stretch of simulated time between two recorded frames. */
   referenceInterval?: number;
+  /** How the run advances between events; the fixed-step stepper when absent. */
+  solver?: EventSolverConfig;
 };
 
 export type EventSimulationStartMessage = { type: "start" };
