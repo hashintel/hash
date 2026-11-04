@@ -573,12 +573,16 @@ const renameInputStyle = css({
   maxWidth: "[480px]",
 });
 
-/** The card line: a step card's description. The padding and the negative margin cancel, so the text never moves. */
+/**
+ * The card line: a step card's description. The side padding and negative margin cancel, so the text never moves;
+ * the field starts 2 px below the title line, so the two never touch (Aakarsh, 4 Nov: "too crowded").
+ */
 const compactTextStyle = css({
   display: "block",
   minWidth: "[0]",
   marginX: "[-6px]",
-  marginY: "[-2px]",
+  marginTop: "[2px]",
+  marginBottom: "[-2px]",
   paddingX: "[6px]",
   paddingY: "[2px]",
   borderRadius: "[8px]",
@@ -602,7 +606,8 @@ const compactInputStyle = css({
   display: "block",
   width: "[calc(100% + 12px)]",
   marginX: "[-6px]",
-  marginY: "[-2px]",
+  marginTop: "[2px]",
+  marginBottom: "[-2px]",
   paddingX: "[6px]",
   paddingY: "[2px]",
   borderRadius: "[8px]",
@@ -610,9 +615,21 @@ const compactInputStyle = css({
   textStyle: "xs",
   lineHeight: "tight",
   color: "neutral.fg.heading",
-  backgroundColor: "neutral.bg.surface.hover",
+  // The lightest step, whatever ?hover says: editing is never darker than hovering.
+  backgroundColor: "neutral.s20",
   outline: "none",
 });
+
+/** The character offset under a click in the shown text, or the end when the click missed it (or it is a placeholder). */
+const caretOffset = (event: React.MouseEvent<HTMLElement>, value: string) => {
+  const position = event.currentTarget.ownerDocument.caretPositionFromPoint(
+    event.clientX,
+    event.clientY,
+  );
+  return position && value && event.currentTarget.contains(position.offsetNode)
+    ? Math.min(position.offset, value.length)
+    : value.length;
+};
 
 /**
  * Anything renamable (Aakarsh, 4 Nov, Attio's pattern): a subtle fill on hover, an input on click, Enter or blur
@@ -635,6 +652,8 @@ export const InlineRename = ({
   compact?: boolean;
 }) => {
   const [draft, setDraft] = useState<string | null>(null);
+  // Where the caret goes when the field opens: where the click landed in the text, else the end (Attio: no select-all).
+  const [caretAt, setCaretAt] = useState<number | null>(null);
   if (draft !== null) {
     const save = () => {
       const next = draft.trim();
@@ -659,7 +678,10 @@ export const InlineRename = ({
         data-rename-input
         // oxlint-disable-next-line jsx-a11y/no-autofocus -- the user asked to rename; the caret goes to the name
         autoFocus
-        onFocus={(event) => event.currentTarget.select()}
+        onFocus={(event) => {
+          const at = caretAt ?? event.currentTarget.value.length;
+          event.currentTarget.setSelectionRange(at, at);
+        }}
         onBlur={save}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
@@ -678,17 +700,20 @@ export const InlineRename = ({
       role="button"
       tabIndex={0}
       aria-label={`${label}: ${value || placeholder || ""}. Rename`}
-      title="Rename"
       className={cx(
         compact ? compactTextStyle : cx(inlineFieldStyle, renameTextStyle),
         className,
       )}
       data-rename
       data-empty={value ? undefined : true}
-      onClick={() => setDraft(value)}
+      onClick={(event) => {
+        setCaretAt(caretOffset(event, value));
+        setDraft(value);
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
+          setCaretAt(null);
           setDraft(value);
         }
       }}

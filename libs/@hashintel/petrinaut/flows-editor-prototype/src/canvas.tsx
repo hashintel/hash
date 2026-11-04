@@ -547,7 +547,16 @@ const CardText = ({
       flex: "1",
     })}
   >
-    <span className={oneLineStyle({ tone: "title" })}>{title}</span>
+    <span
+      className={oneLineStyle({ tone: "title" })}
+      // The full title on hover only when it is cut off.
+      onMouseEnter={(event) => {
+        const element = event.currentTarget;
+        element.title = element.scrollWidth > element.clientWidth ? title : "";
+      }}
+    >
+      {title}
+    </span>
     {onDescription ? (
       <InlineRename
         compact
@@ -592,8 +601,8 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         className={handleStyle}
         style={{ top: STEP_HEIGHT / 2 }}
       />
-      <Tooltip content={entry?.title ?? step.actionDefinitionId} position="top">
-        <div className={cardHeadStyle}>
+      {/* No tooltip over the card: the title shows its full text on hover only when it is cut off. */}
+      <div className={cardHeadStyle}>
           <CardTile
             icon={entry?.icon ?? "cube"}
             tone={entry?.tone ?? "green"}
@@ -619,7 +628,6 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             }
           />
         </div>
-      </Tooltip>
       {ports ? (
         <div
           className={css({
