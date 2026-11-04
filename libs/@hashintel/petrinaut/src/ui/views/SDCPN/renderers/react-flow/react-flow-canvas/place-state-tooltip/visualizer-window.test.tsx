@@ -57,7 +57,7 @@ const panel = (
     nodeId="place"
     name="Space"
     editing={false}
-    dimmed={false}
+    muted={false}
     animated
     stackIndex={0}
     onActivate={onActivate}
@@ -483,7 +483,7 @@ it("keeps its dragged layout when leaving the editor and while content loads", a
       nodeId="place"
       name="Space"
       editing={!keptOpen}
-      dimmed={false}
+      muted={false}
       animated
       stackIndex={0}
       onActivate={() => {}}

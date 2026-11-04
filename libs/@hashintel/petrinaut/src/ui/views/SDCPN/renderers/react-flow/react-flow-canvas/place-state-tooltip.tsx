@@ -150,7 +150,7 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
           nodeId={nodeId}
           name={place.name}
           editing={editing}
-          dimmed={focusedVisualizerPlaceId !== null && !editing}
+          muted={focusedVisualizerPlaceId !== null && !editing}
           animated={showAnimations}
           stackIndex={visualizerStack.indexOf(nodeId) + 1}
           onActivate={() => bringVisualizerToFront(nodeId)}

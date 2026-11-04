@@ -24,20 +24,20 @@ const panelStyle = css({
   cursor: "grab",
   touchAction: "none",
   userSelect: "none",
-  transition: "[box-shadow 140ms ease, opacity 140ms ease]",
+  transition: "[box-shadow 140ms ease, filter 140ms ease]",
   _hover: { boxShadow: "[0 9px 26px rgba(0, 0, 0, 0.18)]" },
   "&[data-editing='true']": {
     outline: "[2px solid {colors.blue.s80}]",
     outlineOffset: "[3px]",
   },
-  "&[data-dimmed='true']:not(:hover)": { opacity: "[0.55]" },
+  "&[data-muted='true']:not(:hover)": { filter: "[grayscale(0.35)]" },
   "&[data-dragging='true']": {
     cursor: "grabbing",
     boxShadow: "[0 11px 28px rgba(0, 0, 0, 0.2)]",
   },
   "&[data-animated='true']": {
     transition:
-      "[transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease]",
+      "[transform 140ms ease, box-shadow 140ms ease, filter 140ms ease]",
     _hover: { transform: "[scale(1.003)]" },
     "&[data-dragging='true']": { transform: "[translateY(-1px) scale(1.006)]" },
     "@media (prefers-reduced-motion: reduce)": {
@@ -118,7 +118,7 @@ export const VisualizerWindow = ({
   nodeId,
   name,
   editing,
-  dimmed,
+  muted,
   animated,
   stackIndex,
   onActivate,
@@ -132,7 +132,7 @@ export const VisualizerWindow = ({
   nodeId: string;
   name: string;
   editing: boolean;
-  dimmed: boolean;
+  muted: boolean;
   animated: boolean;
   stackIndex: number;
   onActivate: () => void;
@@ -208,7 +208,7 @@ export const VisualizerWindow = ({
           height: layout.size.height,
         }}
         data-editing={editing}
-        data-dimmed={dimmed}
+        data-muted={muted}
         data-dragging={dragging}
         data-animated={animated}
         data-fixed={fixed}

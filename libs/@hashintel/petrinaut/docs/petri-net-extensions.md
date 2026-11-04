@@ -137,7 +137,7 @@ While new code compiles, the previous drawing stays visible with a small loading
 
 A thin line connects the preview to its place. Windows stay within the visible area, keeping clear of Canvas controls and open panels. If a place goes offscreen or the available area shrinks, its window moves or shrinks to fit, then restores its preferred layout when space returns. Position, size, and following or fixed mode last while the preview remains open in the current Canvas view.
 
-Click **Edit visualizer code** on the preview to select its place and expand the Visualizer section to fill the Properties Panel. This section shows only code. Focusing its editor opens a temporary Canvas preview with a blue ring and dims other previews. Leaving the editor closes this temporary preview unless you kept it open or are pointing at it. Editing preserves an open window's position mode.
+Click **Edit visualizer code** on the preview to select its place and expand the Visualizer section to fill the Properties Panel. This section shows only code. Focusing its editor opens a temporary Canvas preview with a blue ring and slightly desaturates other previews without changing their opacity. Hovering a preview restores its full color. Leaving the editor closes this temporary preview unless you kept it open or are pointing at it. Editing preserves an open window's position mode.
 
 Visualizer code can be edited while a simulation runs, pauses, or displays a completed run. These edits update the picture without changing or resetting the simulation. Documents opened as read-only remain read-only.
 
