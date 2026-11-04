@@ -263,7 +263,7 @@
 .prose .api-part > :first-child,
 .prose .api-part > .api-section:first-child .api-section-header,
 .prose .api-part > .api-section:first-child .api-section-title,
-.prose .api-part > .api-members:first-child .api-section-title {
+.prose .api-part > .api-list:first-child .api-section-title {
   margin-top: 0;
 }
 
@@ -358,72 +358,118 @@
   padding-bottom: 0.25rem;
 }
 
-/* Members: a bordered table of name and declaration, which stacks each name over its declaration when it is narrow. */
+/* Lists: an export's parameters, what it returns and throws, and its members. Each item is a line of code over its description, with no table and no rules. */
 
-.api-members {
-  container-type: inline-size;
+.api-list {
+  margin-top: 1.5rem;
 }
 
-.api-members-list {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--color-fd-border);
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.api-member {
-  display: grid;
-  grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
-  gap: 0 1rem;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid var(--color-fd-border);
+.api-item {
   scroll-margin-top: 5rem;
+  border-radius: 0.375rem;
 }
 
-.api-member:first-child {
-  border-top: none;
+.api-item + .api-item {
+  margin-top: 1.25rem;
 }
 
-.api-member:target {
+.api-item:target {
   background: color-mix(in srgb, var(--color-fd-primary) 8%, transparent);
+  box-shadow: 0 0 0 0.375rem
+    color-mix(in srgb, var(--color-fd-primary) 8%, transparent);
 }
 
-.api-member-header {
+.api-item-term {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.25rem;
-}
-
-.prose .api-member-name {
-  display: inline-flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
   font-family: var(--api-mono);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-  color: var(--color-fd-foreground);
-  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+  line-height: 1.6;
 }
 
-.prose .api-member-body > :first-child {
+.api-item-term[data-whole] {
+  column-gap: 0;
+}
+
+.api-item-name {
+  font-weight: 600;
+  white-space: pre;
+  color: var(--color-fd-foreground);
+}
+
+.api-term {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.prose .api-type code {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: inherit;
+}
+
+.api-item-description,
+.api-note-body {
+  max-width: 68ch;
+}
+
+.prose :is(.api-item-description, .api-note-body, .api-member) > p {
+  margin-block: 0.125rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.prose :is(.api-item-description, .api-note-body, .api-member) > p + p {
+  margin-top: 0.5rem;
+}
+
+/* Notes share one column for their overload numbers, so that their text starts at one edge. */
+
+.api-item-description:has(> .api-note) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.125rem 0.5rem;
+}
+
+.api-note {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+}
+
+.prose .api-note-body > :first-child {
   margin-top: 0;
 }
 
-.prose .api-member-body > :last-child {
-  margin-bottom: 0;
+/* A member's line of code is its declaration, and the facts about it sit at the line's end. */
+
+.api-member {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
 }
 
-.prose .api-member-body p {
-  margin-block: 0.375rem;
-  font-size: 0.9375rem;
+.api-member > * {
+  grid-column: 1;
 }
 
-/* A member's declaration is a line of code, not a block of its own. */
+.api-member > .api-facts {
+  grid-column: 2;
+  grid-row: 1;
+}
 
-.api-member-body figure {
-  margin-block: 0 0.25rem;
+/* The variables are fumadocs' own, which pad every line of a `.shiki` code block. */
+.prose .api-member > figure.shiki {
+  --padding-left: 0;
+  --padding-right: 0;
+  margin: 0;
   border: none;
   background: transparent;
   box-shadow: none;
@@ -431,36 +477,51 @@
   overflow: visible;
 }
 
-.api-member-body figure pre {
+.api-member > figure pre {
   width: auto !important;
 }
 
-.api-member-body figure :is(pre, code, .line) {
+.api-member > figure :is(pre, code, .line) {
   padding: 0;
   overflow: visible;
+  line-height: 1.6;
   white-space: pre-wrap !important;
   overflow-wrap: anywhere;
 }
 
-.api-member-body figure > div {
+.api-member > figure > div {
+  padding-block: 0;
   overflow: visible;
 }
 
-.api-member-body figure button {
+.api-member > figure button {
   display: none;
 }
 
-@container (max-width: 40rem) {
-  .api-member {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.25rem;
-  }
+.api-member[data-deprecated] > figure code {
+  text-decoration: line-through;
+}
 
-  .api-member-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+/* An overload number: the same small square beside each signature and before each type or note that holds in that overload alone. */
+
+.api-overloads {
+  display: inline-flex;
+  gap: 0.1875rem;
+}
+
+.api-overload {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.1875rem;
+  box-sizing: border-box;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.25rem;
+  background: var(--color-fd-background);
+  font: 500 0.625rem/1 var(--api-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fd-muted-foreground);
 }
 
 /* An index: groups of rows, each a glyph, a name and its first sentence. */
@@ -902,4 +963,40 @@
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* Overloads: one panel with a rule between overloads, each numbered in its margin. */
+
+.api-signatures {
+  display: flex;
+  flex-direction: column;
+  margin-block: 1rem 0;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--color-fd-card);
+}
+
+.api-signature {
+  position: relative;
+}
+
+.api-signature + .api-signature {
+  border-top: 1px solid var(--color-fd-border);
+}
+
+.api-signature > .api-overloads {
+  position: absolute;
+  top: 0.875rem;
+  left: 1rem;
+  z-index: 1;
+}
+
+/* The variable is fumadocs' own, which it sets on every `.shiki` code block. */
+.api-signature > figure.shiki {
+  --padding-left: 2.75rem;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }

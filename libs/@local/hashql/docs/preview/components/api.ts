@@ -9,13 +9,17 @@ import { ApiExport } from "./api-export.js";
 import { ApiHierarchy } from "./api-hierarchy.js";
 import { ApiIndexRow } from "./api-index-row.js";
 import { ApiIndex } from "./api-index.js";
+import { ApiItem } from "./api-item.js";
 import { ApiLink } from "./api-link.js";
+import { ApiList } from "./api-list.js";
 import { ApiMember } from "./api-member.js";
-import { ApiMembers } from "./api-members.js";
 import { ApiMeta } from "./api-meta.js";
+import { ApiNote } from "./api-note.js";
 import { ApiPart } from "./api-part.js";
 import { ApiRelations } from "./api-relations.js";
 import { ApiSection } from "./api-section.js";
+import { ApiSignatures } from "./api-signatures.js";
+import { ApiTerm } from "./api-term.js";
 
 import type * as Components from "../../lib/components.js";
 
@@ -27,7 +31,11 @@ export const components: Components.Components = {
   Contents: ApiContents,
   Section: ApiSection,
   Code: ApiCode,
-  Members: ApiMembers,
+  Signatures: ApiSignatures,
+  List: ApiList,
+  Item: ApiItem,
+  Term: ApiTerm,
+  Note: ApiNote,
   Member: ApiMember,
   Index: ApiIndex,
   IndexRow: ApiIndexRow,

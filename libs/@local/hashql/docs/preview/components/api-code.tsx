@@ -1,4 +1,5 @@
 import { ServerCodeBlock } from "@fumadocs/base-ui/components/codeblock.rsc";
+import { highlight } from "fumadocs-core/highlight";
 
 import { ApiQuickInfo } from "./api-quick-info.js";
 import * as Colours from "./colours.js";
@@ -74,17 +75,53 @@ const decorationsOf = ({
 
 const components = { "api-quick-info": ApiQuickInfo };
 
-export function ApiCode({
+/** What the highlighter reads before code that is part of something else, and does not show, so that it highlights the code as it reads there. */
+const contexts = { type: "let _: ", member: "interface _ {\n" } as const;
+
+/** A code block, or a type on a line of text, highlighted with the themes the code blocks use. */
+export async function ApiCode({
   lang,
   code,
   links,
   quickInfo,
   title,
-}: Components.CodeProps): ReactNode {
+  context,
+}: Components.CodeProps): Promise<ReactNode> {
   // Shiki wraps each name in an element, across the tokens it splits the name into.
   const decorations = decorationsOf({ links, quickInfo });
+  if (context === "type") {
+    const highlighted = await highlight(code, {
+      lang,
+      themes: Colours.themes,
+      defaultColor: false,
+      structure: "inline",
+      grammarContextCode: contexts.type,
+      decorations,
+      components,
+    });
+
+    return (
+      <span className="shiki api-type">
+        <code>{highlighted}</code>
+      </span>
+    );
+  }
+
   // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- rendered once, on the server
   const codeblock = { title };
+  if (context === "member") {
+    return (
+      <ServerCodeBlock
+        code={code}
+        lang={lang}
+        themes={Colours.themes}
+        decorations={decorations}
+        grammarContextCode={contexts.member}
+        codeblock={codeblock}
+        components={components}
+      />
+    );
+  }
 
   return (
     <ServerCodeBlock
