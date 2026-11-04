@@ -169,12 +169,15 @@
   align-items: center;
   gap: 2.5rem;
   pointer-events: none;
+  /* The logo's height. The HASH wordmark's capitals are 31.5 of its 46 units. */
+  --deck-head-logo: 1.05rem;
+  --deck-head-caps: calc(var(--deck-head-logo) * 31.5 / 46);
 }
 
 .deck-head__logo {
   flex: none;
   width: auto;
-  height: 0.95rem;
+  height: var(--deck-head-logo);
 }
 
 /* The HASH wordmark takes the slide's ink; a deck's own image keeps its colours. */
@@ -187,14 +190,24 @@ svg.deck-head__logo {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  /* JetBrains Mono's capitals are 0.73 em, so these match the wordmark's. */
   font-family: var(--pnd-font-mono);
-  font-size: 0.75rem;
+  font-size: calc(var(--deck-head-caps) / 0.73);
+  line-height: 1;
   letter-spacing: 0.08em;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--text-secondary);
   view-transition-name: deck-label;
+  /*
+   * The box is the capitals alone, so centring it centres them on the
+   * wordmark's. The padding, taken back by the margin, keeps an accent or a
+   * bracket that rises past them out of the overflow clip.
+   */
+  text-box: trim-both cap alphabetic;
+  padding-block: 0.25em;
+  margin-block: -0.25em;
 }
 
 /* An MDX slide: prose, left-aligned, the docs' diagrams and formulas at slide size. */
