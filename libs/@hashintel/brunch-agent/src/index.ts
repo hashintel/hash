@@ -7,6 +7,7 @@
 
 export {
   brunchActorKeyStorageKey,
+  brunchCallerAuthorization,
   brunchExposedResponseHeaders,
   brunchHeaders,
   brunchRoutes,

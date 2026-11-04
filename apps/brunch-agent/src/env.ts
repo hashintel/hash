@@ -20,6 +20,11 @@ export const brunchEnv = {
   corsAllowedOrigins: "BRUNCH_CORS_ALLOWED_ORIGINS",
   dbKind: "BRUNCH_DB_KIND",
   devDbPath: "BRUNCH_DEV_DB_PATH",
+  /**
+   * The secret hash-api presents on the HASH agent's route. Unset or empty,
+   * every request on that route is refused.
+   */
+  hashServiceSecret: "BRUNCH_HASH_SERVICE_SECRET",
   panelPort: "BRUNCH_PANEL_PORT",
   /** The dedicated Postgres fields; the SQLite store rejects every one of them. */
   postgres: {

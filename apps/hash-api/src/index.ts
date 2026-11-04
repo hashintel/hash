@@ -74,6 +74,7 @@ import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import {
   getBrunchAgentOrigin,
+  getBrunchAgentSecret,
   setupBrunchAgentProxy,
 } from "./brunch-agent/setup-brunch-agent-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
@@ -813,6 +814,7 @@ const main = async () => {
   setupBrunchAgentProxy(app, {
     logger,
     origin: getBrunchAgentOrigin(),
+    secret: getBrunchAgentSecret(),
     publicOrigin: apiOrigin,
   });
 

@@ -5,6 +5,7 @@ import express from "express";
 import { rateLimit } from "express-rate-limit";
 
 import {
+  brunchCallerAuthorization,
   brunchExposedResponseHeaders,
   brunchHeaders,
   brunchRoutes,
@@ -23,8 +24,10 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
  * Brunch keeps its own ownership check, which derives the instance id from
  * that actor key plus the conversation id.
  *
- * Off unless `HASH_BRUNCH_AGENT_ORIGIN` is set. Brunch's identity headers are
- * only authentication when Brunch is reachable through this hop alone.
+ * Off unless `HASH_BRUNCH_AGENT_ORIGIN` and `HASH_BRUNCH_AGENT_SECRET` are
+ * both set. Brunch admits only requests that present that secret, which this
+ * hop alone holds, on its HASH agent's route; it trusts the identity headers
+ * they carry.
  */
 const brunchAgentProxyPath = "/api/brunch";
 
@@ -81,6 +84,11 @@ export const getBrunchAgentOrigin = (
   return value ? new URL(value) : null;
 };
 
+/** The secret this hop presents to Brunch; never sent to a browser. */
+export const getBrunchAgentSecret = (
+  environment: NodeJS.ProcessEnv = process.env,
+): string | null => environment.HASH_BRUNCH_AGENT_SECRET ?? null;
+
 /** Brunch actor key for a HASH account: set by NodeAPI, never by the browser. */
 const brunchActorKey = (accountId: UserId) => `hash:${accountId}`;
 
@@ -132,11 +140,14 @@ const requestBody = (request: Request): string | undefined | null => {
 export const setupBrunchAgentProxy = (
   app: Express,
   {
-    origin,
+    origin: configuredOrigin,
+    secret,
     publicOrigin,
     logger,
   }: {
     origin: URL | null;
+    /** Without it, the hop is off as if no origin were set. */
+    secret: string | null;
     /**
      * Where browsers reach this API, as a bare origin with no path or trailing
      * slash (the shape of `apiOrigin`); the hop's public URLs are built from it.
@@ -146,10 +157,20 @@ export const setupBrunchAgentProxy = (
   },
 ) => {
   /**
+   * How this hop authenticates to Brunch. Without a secret Brunch would refuse
+   * every request, so the hop is not configured at all.
+   */
+  const authorization = secret
+    ? `${brunchCallerAuthorization.hashScheme} ${secret}`
+    : null;
+  const origin = authorization ? configuredOrigin : null;
+
+  /**
    * The signed-in user's Brunch actor key, which is also how the frontend
    * learns whether to offer Brunch at all: 401 without a session, and 503 with
-   * the agent routes' "not configured" body when `HASH_BRUNCH_AGENT_ORIGIN` is
-   * unset, so Brunch stays off unless it is configured.
+   * the agent routes' "not configured" body when `HASH_BRUNCH_AGENT_ORIGIN` or
+   * `HASH_BRUNCH_AGENT_SECRET` is unset, so Brunch stays off unless it is
+   * configured.
    */
   app.get(`${brunchAgentProxyPath}/identity`, (request, response) => {
     if (!request.user) {
@@ -207,7 +228,7 @@ export const setupBrunchAgentProxy = (
     express.json({ limit: jsonBodyLimit }),
     async (request: Request, response: Response) => {
       const upstreamUrl = origin ? hashAgentUrl(request, origin) : null;
-      if (!request.user || !origin || !upstreamUrl) {
+      if (!request.user || !origin || !authorization || !upstreamUrl) {
         // `admitRequest` has already answered anything this would refuse.
         response.status(404).json({ error: "Not found" });
         return;
@@ -228,6 +249,8 @@ export const setupBrunchAgentProxy = (
       // Overwrites anything the browser sent under this name; the actor
       // header's former name is never forwarded.
       headers.set(brunchHeaders.actor, brunchActorKey(request.user.accountId));
+      // The browser's own `authorization` was never copied above.
+      headers.set(brunchCallerAuthorization.header, authorization);
 
       const abort = new AbortController();
       response.on("close", () => {

@@ -6,12 +6,15 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   agentOwnershipHeaders,
+  brunchCallerAuthorization,
+  brunchHeaders,
   brunchRoutes,
   brunchTools,
   hashProcessEditorId,
   petrinautContextualUserMessageBody,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
+import { liveToolRouteSegment } from "@local/flue-aisdk-transport/server";
 
 import { brunchEnv } from "../../env.ts";
 import { flueConversationId } from "../../shared/conversation/identity.ts";
@@ -136,11 +139,18 @@ const systemPrompt = async () =>
   ).trim();
 /** The system prompt's opening of its paragraph on the HASH graph. */
 const hashGraphParagraph = "You work inside HASH. The _user_'s HASH graph";
+/** The secret Brunch is configured to require from hash-api in these tests. */
+const hashSecret = "hash-caller-test-secret";
+const hashCredential = (
+  secret = hashSecret,
+  scheme: string = brunchCallerAuthorization.hashScheme,
+) => ({ [brunchCallerAuthorization.header]: `${scheme} ${secret}` });
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("NODE_ENV", "test");
+  vi.stubEnv(brunchEnv.hashServiceSecret, hashSecret);
   mounted.initialData = undefined;
   mounted.body = "Four agents";
   mounted.contextProjections = 0;
@@ -443,6 +453,9 @@ test("the HASH agent keeps its own conversation storage", async () => {
 });
 
 const identity = { actorKey: "owner", conversationId: "conversation" };
+/** What hash-api adds on the HASH route, as its hop does; nothing elsewhere. */
+const callerHeaders = (segment: string) =>
+  segment === brunchRoutes.hashAgent ? hashCredential() : {};
 /** The status and body the app gives an owned instance under one agent route segment. */
 const served = async (
   segment: string,
@@ -452,7 +465,7 @@ const served = async (
   const response = await app.fetch(
     new Request(
       `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
-      { headers },
+      { headers: { ...callerHeaders(segment), ...headers } },
     ),
   );
   return { status: response.status, body: await response.text() };
@@ -538,22 +551,28 @@ test("a production app doesn't mount the HASH agent and still serves the Petrina
 const browserCall = async (
   segment: string,
   toolCallId: string,
-  request: { readonly suffix?: string; readonly body?: object } = {},
+  request: {
+    readonly suffix?: string;
+    readonly body?: object;
+    /** In place of the credential hash-api would add. */
+    readonly headers?: Record<string, string>;
+  } = {},
 ) => {
   const { default: app } = await import("../../app.ts");
   const binding = encodeURIComponent(browserCallBinding);
   const url = `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}/${brunchRoutes.browserCalls}/${toolCallId}${request.suffix ?? ""}`;
+  const headers = {
+    ...agentOwnershipHeaders(identity),
+    ...(request.headers ?? callerHeaders(segment)),
+  };
   const response = await app.fetch(
     new Request(
       request.body === undefined ? `${url}?binding=${binding}` : url,
       request.body === undefined
-        ? { headers: agentOwnershipHeaders(identity) }
+        ? { headers }
         : {
             method: "POST",
-            headers: {
-              ...agentOwnershipHeaders(identity),
-              "content-type": "application/json",
-            },
+            headers: { ...headers, "content-type": "application/json" },
             body: JSON.stringify(request.body),
           },
     ),
@@ -569,6 +588,7 @@ const everyOperation = async (
   segment: string,
   toolCallId: string,
   capability: string,
+  headers?: Record<string, string>,
 ) => {
   const lease = { capability, binding: browserCallBinding };
   const result = {
@@ -577,17 +597,20 @@ const everyOperation = async (
     canonicalInput: {},
   };
   return {
-    claim: await browserCall(segment, toolCallId),
+    claim: await browserCall(segment, toolCallId, { headers }),
     renew: await browserCall(segment, toolCallId, {
       suffix: "/lease",
       body: lease,
+      headers,
     }),
     fail: await browserCall(segment, toolCallId, {
       suffix: "/fail",
       body: { ...result, disposition: "failed" },
+      headers,
     }),
     settle: await browserCall(segment, toolCallId, {
       body: { ...result, output: {} },
+      headers,
     }),
   };
 };
@@ -696,4 +719,243 @@ test("a browser call issued by one agent is unknown on another agent's routes an
   await expect(petrinautCall.result).resolves.toMatchObject({
     output: { applied: true },
   });
+});
+
+/** Credentials that are not hash-api's secret under its scheme. */
+const wrongCredentials = {
+  none: {},
+  "a wrong secret": hashCredential("wrong-secret"),
+  "a prefix of the secret": hashCredential(hashSecret.slice(0, -1)),
+  "the secret and more": hashCredential(`${hashSecret} more`),
+  "the secret under another scheme": hashCredential(hashSecret, "Bearer"),
+} satisfies Record<string, Record<string, string>>;
+/** Every kind of request the HASH route serves, on the owned instance and an issued call. */
+const hashRouteRequests = (toolCallId: string) => {
+  const instance = `${brunchRoutes.agents}/${brunchRoutes.hashAgent}/${flueConversationId(identity)}`;
+  const call = `${instance}/${brunchRoutes.browserCalls}/${toolCallId}`;
+  const lease = { capability: "capability", binding: browserCallBinding };
+  const result = { ...lease, toolName: "addPlace", canonicalInput: {} };
+  return {
+    history: { path: instance },
+    streaming: { path: `${instance}?live=sse` },
+    turn: { path: instance, body: { kind: "user", body: "Four agents" } },
+    abort: { path: `${instance}/abort`, body: {} },
+    attachment: { path: `${instance}/attachments/attachment` },
+    "live tools": { path: `${instance}/${liveToolRouteSegment}` },
+    "browser-call claim": {
+      path: `${call}?binding=${encodeURIComponent(browserCallBinding)}`,
+    },
+    "browser-call lease": { path: `${call}/lease`, body: lease },
+    "browser-call result": { path: call, body: { ...result, output: {} } },
+    "browser-call failure": {
+      path: `${call}/fail`,
+      body: { ...result, disposition: "failed" },
+    },
+  } satisfies Record<string, { path: string; body?: object }>;
+};
+/** The app's answer to each HASH route request with `headers` beside the owner's identity. */
+const answers = async (toolCallId: string, headers: Record<string, string>) => {
+  const { default: app } = await import("../../app.ts");
+  return Object.fromEntries(
+    await Promise.all(
+      Object.entries(hashRouteRequests(toolCallId)).map(
+        async ([name, request]) => {
+          const response = await app.fetch(
+            new Request(`http://brunch.test${request.path}`, {
+              headers: {
+                ...agentOwnershipHeaders(identity),
+                ...headers,
+                ...("body" in request
+                  ? { "content-type": "application/json" }
+                  : {}),
+              },
+              ...("body" in request
+                ? { method: "POST", body: JSON.stringify(request.body) }
+                : {}),
+            }),
+          );
+          return [
+            name,
+            { status: response.status, body: await response.text() },
+          ] as const;
+        },
+      ),
+    ),
+  );
+};
+const everyRequest = (answer: { status: number; body: string }) =>
+  Object.fromEntries(
+    Object.keys(hashRouteRequests("call")).map((name) => [name, answer]),
+  );
+const unauthorized = { status: 401, body: '{"error":"unauthorized"}' };
+/** `answer` for each wrong credential. */
+const forEachWrongCredential = <Answer>(answer: Answer) =>
+  Object.fromEntries(
+    Object.keys(wrongCredentials).map((credential) => [credential, answer]),
+  );
+
+test("the HASH route refuses every request without hash-api's secret before any of its handlers runs", async () => {
+  const { HashAgent } = await import("./agent.ts");
+  const hashCall = await issue(HashAgent.agentName);
+  expect(
+    Object.fromEntries(
+      await Promise.all(
+        Object.entries(wrongCredentials).map(
+          async ([credential, headers]) =>
+            [credential, await answers(hashCall.toolCallId, headers)] as const,
+        ),
+      ),
+    ),
+  ).toEqual(forEachWrongCredential(everyRequest(unauthorized)));
+  // Nothing refused touched the call (a failure or settlement would have
+  // ended it): hash-api's secret still claims it, and serves the actor.
+  expect(
+    await browserCall(brunchRoutes.hashAgent, hashCall.toolCallId),
+  ).toMatchObject({ status: 200, body: { toolName: "addPlace" } });
+  expect(await served(brunchRoutes.hashAgent)).toEqual({
+    status: 200,
+    body: HashAgent.agentName,
+  });
+
+  // Unset or empty in Brunch, the secret admits nothing, even the one hash-api would send.
+  for (const configured of [undefined, ""]) {
+    vi.stubEnv(brunchEnv.hashServiceSecret, configured);
+    vi.resetModules();
+    expect(
+      await Promise.all(
+        [hashCredential(), hashCredential("")].map((headers) =>
+          answers(hashCall.toolCallId, headers),
+        ),
+      ),
+      String(configured),
+    ).toEqual([everyRequest(unauthorized), everyRequest(unauthorized)]);
+  }
+});
+
+test("with hash-api's secret the HASH route still serves only the actor's own conversation", async () => {
+  const statuses = await Promise.all(
+    [
+      agentOwnershipHeaders({ ...identity, actorKey: "another" }),
+      agentOwnershipHeaders({ ...identity, conversationId: "another" }),
+      { [brunchHeaders.conversation]: identity.conversationId },
+    ].map(
+      async (headers) => (await served(brunchRoutes.hashAgent, headers)).status,
+    ),
+  );
+  expect(statuses).toEqual([403, 403, 401]);
+});
+
+test("the Petrinaut agent's routes refuse HASH's secret and stay open to the website without it", async () => {
+  const { PetrinautAgent } = await import("../petrinaut/agent.ts");
+  const { HashAgent } = await import("./agent.ts");
+  const hashCall = await issue(HashAgent.agentName);
+  const petrinautCall = await issue(PetrinautAgent.agentName);
+  const forbidden = { status: 403, body: { error: "forbidden" } };
+  const segments = [brunchRoutes.petrinautAgent, "chat"];
+  const withHeaders = (headers: Record<string, string>) =>
+    Promise.all(
+      segments.map((segment) =>
+        served(segment, { ...agentOwnershipHeaders(identity), ...headers }),
+      ),
+    );
+  // The website sends no credential; any other `Authorization` is not HASH's.
+  const open = { status: 200, body: PetrinautAgent.agentName };
+  expect(await withHeaders({})).toEqual([open, open]);
+  expect(await withHeaders(hashCredential("wrong-secret"))).toEqual([
+    open,
+    open,
+  ]);
+  const refused = { status: 403, body: '{"error":"forbidden"}' };
+  expect(await withHeaders(hashCredential())).toEqual([refused, refused]);
+  const everyOperationRefused = {
+    claim: forbidden,
+    renew: forbidden,
+    fail: forbidden,
+    settle: forbidden,
+  };
+  expect(
+    await Promise.all(
+      segments.flatMap((segment) =>
+        [hashCall, petrinautCall].map((call) =>
+          everyOperation(
+            segment,
+            call.toolCallId,
+            "capability",
+            hashCredential(),
+          ),
+        ),
+      ),
+    ),
+  ).toEqual(Array.from({ length: 4 }, () => everyOperationRefused));
+  // HASH's call is still HASH's alone: unknown on the aliases without the secret.
+  expect(await browserCall("chat", hashCall.toolCallId)).toEqual({
+    status: 404,
+    body: { error: "not-issued" },
+  });
+  expect(
+    (await browserCall(brunchRoutes.hashAgent, hashCall.toolCallId)).status,
+  ).toBe(200);
+});
+
+test("a browser can't send a caller's secret: no agent route allows the header cross-origin", async () => {
+  const origin = "https://app.example.com";
+  vi.stubEnv(brunchEnv.corsAllowedOrigins, origin);
+  const { default: app } = await import("../../app.ts");
+  const preflights = await Promise.all(
+    [brunchRoutes.hashAgent, brunchRoutes.petrinautAgent, "chat"].map(
+      async (segment) =>
+        app.fetch(
+          new Request(
+            `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
+            {
+              method: "OPTIONS",
+              headers: {
+                Origin: origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": `content-type,${brunchCallerAuthorization.header}`,
+              },
+            },
+          ),
+        ),
+    ),
+  );
+  for (const preflight of preflights) {
+    expect(preflight.status).toBe(204);
+    expect(
+      preflight.headers
+        .get("access-control-allow-headers")
+        ?.toLowerCase()
+        .split(","),
+    ).not.toContain(brunchCallerAuthorization.header);
+  }
+});
+
+test("an encoded or doubled route segment does not reach the HASH agent without the secret", async () => {
+  const { default: app } = await import("../../app.ts");
+  const instance = flueConversationId(identity);
+  const paths = [
+    `/agents/%68ash/${instance}`,
+    `/agents/HASH/${instance}`,
+    `/agents//hash/${instance}`,
+    `/agents/hash//${instance}`,
+    `/agents/./hash/${instance}`,
+    `/agents/petrinaut/../hash/${instance}`,
+  ];
+  const statuses = await Promise.all(
+    paths.map(
+      async (path) =>
+        [
+          path,
+          (
+            await app.fetch(
+              new Request(`http://brunch.test${path}`, {
+                headers: agentOwnershipHeaders(identity),
+              }),
+            )
+          ).status,
+        ] as const,
+    ),
+  );
+  for (const [path, status] of statuses)
+    expect([401, 404], path).toContain(status);
 });
