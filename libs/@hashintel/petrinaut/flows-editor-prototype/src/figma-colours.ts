@@ -13,13 +13,11 @@
  * takes Figma's "subtle - hover" step (between body and subtle), `muted.hover` takes body. Pink has no Figma
  * semantic set and keeps the code's. `bgSolid.*` keeps the code's structure on Figma's core steps.
  *
- * Compare: ?ds=code shows `ds-components` as it is; ?ds=figma (the default) this layer. Remembered in localStorage.
+ * Compare: ?ds=code shows `ds-components` as it is; ?ds=figma (the default) this layer. From the URL only.
  */
 import { figmaCore, figmaSemantic } from "./figma-colour-values";
 
 export type DsColours = "figma" | "code";
-
-const storageKey = "flows-proto:ds:v1";
 
 const isDsColours = (value: string | null): value is DsColours =>
   value === "figma" || value === "code";
@@ -167,23 +165,10 @@ export const applyDsColours = (mode: DsColours) => {
       ? `${selector} { ${declarations} } ${componentCss}`
       : "";
   document.documentElement.dataset.dsColours = mode;
-  try {
-    globalThis.localStorage.setItem(storageKey, mode);
-  } catch {
-    // Blocked storage: the pick lasts for this page.
-  }
 };
 
-/** At start: ?ds= wins, then the remembered pick, then Figma. */
+/** At start: Figma, unless the URL asks for ?ds=code. Not remembered, so a comparison never sticks (drift, 4 Nov). */
 export const initDsColours = () => {
   const fromQuery = new URLSearchParams(globalThis.location.search).get("ds");
-  let stored: string | null = null;
-  try {
-    stored = globalThis.localStorage.getItem(storageKey);
-  } catch {
-    // Blocked storage.
-  }
-  applyDsColours(
-    isDsColours(fromQuery) ? fromQuery : isDsColours(stored) ? stored : "figma",
-  );
+  applyDsColours(isDsColours(fromQuery) ? fromQuery : "figma");
 };

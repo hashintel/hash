@@ -82,36 +82,22 @@ export const glyphTooltip = (
  *   cross in one 5 px box). Partly done is a progress arc that closes into done.
  * - `filled`: `new`, with the filled done disc and pie from icons/status/alt-filled.
  *
- * Pick: ?glyphs=bare (F3, the default)|old|new|filled. Remembered in localStorage.
+ * Pick: ?glyphs=bare (F3, the default)|old|new|filled, from the URL only.
  */
 export type GlyphSet = "bare" | "old" | "new" | "filled";
-
-const glyphStorageKey = "flows-proto:glyphs:v2";
 
 const isGlyphSet = (value: string | null): value is GlyphSet =>
   value === "bare" || value === "old" || value === "new" || value === "filled";
 
+/**
+ * F3 (`bare`) unless the URL asks for another set. Not remembered: a comparison must never stick, or screens keep
+ * showing a superseded set after the pick (drift, 4 Nov).
+ */
 const readGlyphSet = (): GlyphSet => {
   const fromQuery = new URLSearchParams(globalThis.location.search).get(
     "glyphs",
   );
-  if (isGlyphSet(fromQuery)) {
-    try {
-      globalThis.localStorage.setItem(glyphStorageKey, fromQuery);
-    } catch {
-      // Blocked storage: the pick lasts for this page.
-    }
-    return fromQuery;
-  }
-  try {
-    const stored = globalThis.localStorage.getItem(glyphStorageKey);
-    if (isGlyphSet(stored)) {
-      return stored;
-    }
-  } catch {
-    // Blocked storage.
-  }
-  return "bare";
+  return isGlyphSet(fromQuery) ? fromQuery : "bare";
 };
 
 export const glyphSet: GlyphSet = readGlyphSet();
