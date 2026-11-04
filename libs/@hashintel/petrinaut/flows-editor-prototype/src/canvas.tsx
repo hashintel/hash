@@ -1846,8 +1846,10 @@ export const FlowCanvas = ({
       fitView={!startViewport}
       fitViewOptions={readOnly ? wholeFlowFit : fitOptions}
       defaultViewport={startViewport}
-      // A run has nothing to select, so a drag pans; right-click stays free for the browser's menu.
-      panOnDrag={readOnly || mode === "hand" ? true : [1, 2]}
+      // A run has nothing to select, so a drag pans. The editor pans with the middle button, space or the hand, never
+      // the right one: React Flow swallows every right-click on the pane when the right button pans, which hid the
+      // browser's own menu on empty canvas.
+      panOnDrag={readOnly || mode === "hand" ? true : [1]}
       selectionOnDrag={mode === "select"}
       minZoom={0.2}
       maxZoom={2}
