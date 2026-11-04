@@ -71,6 +71,7 @@ import {
 import { describeSource } from "./shapes";
 import {
   failedOutlineColor,
+  glassColor,
   quietBarColor,
   strongBarColor,
   tileColor,
@@ -516,7 +517,7 @@ const RunDot = ({ stepId }: { stepId: string }) => {
  * How a run-view card shows its status, as four takes for Aakarsh to compare (4 Nov: the faint bar was "a bit too
  * hard to read, especially since we aren't doing icons of status on the node itself"). Read from ?nodestatus= only,
  * never remembered; take 1 is the default.
- * 1. The 2 px bar at about s80 for every state.
+ * 1. The 2 px bar two steps above the palette's own bar for every state (today: about s80; O2 and O4: s70).
  * 2. Run marks B: a 12 px F3 glyph at the top right of a step that runs once; the s80 bar on a step that repeats.
  * 3. Colour only where attention is needed: a 3 px bar for failed, running and needs review; done stays faint.
  * 4. Attio: a small pill above the card for every state but done, and a faint red outline round a step card with
@@ -530,6 +531,118 @@ const nodeStatusTake: NodeStatusTake = (() => {
   );
   return take === 2 || take === 3 || take === 4 ? take : 1;
 })();
+
+/**
+ * Soft glow on run-view cards, as four takes (4 Nov: "a soft diffuse glow ... maybe a glassy version, a reflective
+ * version, because yeah, the solid bar ... doesn't look good"). Read from ?nodeglow= only; with none, cards stay flat.
+ * Research and which take draws on which reference: ops/projects/flows-editor/references/node-glow-1104/README.md.
+ * 1. Fuser's running halo, toned down: a soft blurred shadow under the card in its state's colour; done barely.
+ * 2. Glass (Fuser's hero nodes and `.inset-shadow`): a faint top-to-bottom shade, a 1 px inner light edge and a tiny
+ *    neutral drop shadow; the state stays in the bar.
+ * 3. A reflective bar: each segment fades up from the edge and casts a faint reflection of itself up the card.
+ * 4. A halo on the card's edge (Fuser's selected ring): the border tinted by the state, with a 3 px wash outside.
+ */
+type NodeGlowTake = 0 | 1 | 2 | 3 | 4;
+
+const nodeGlowTake: NodeGlowTake = (() => {
+  const take = Number(
+    new URLSearchParams(globalThis.location.search).get("nodeglow"),
+  );
+  return take === 1 || take === 2 || take === 3 || take === 4 ? take : 0;
+})();
+
+type GlowTone = "done" | "failed" | "running" | "review";
+
+const glowToneOf = (mark: StepRun): GlowTone | null => {
+  switch (mark.state) {
+    case "failed":
+      return "failed";
+    case "doneWithFailures":
+      return (mark.progress?.failed ?? 0) > 0 ? "failed" : "done";
+    case "running":
+      return "running";
+    case "needsReview":
+      return "review";
+    case "done":
+      return "done";
+    default:
+      return null;
+  }
+};
+
+/** `color` at `percent` opacity. */
+const tint = (color: string, percent: number) =>
+  `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+
+const glowShadow = (take: NodeGlowTake, tone: GlowTone | null) => {
+  const color = tone ? strongBarColor[tone] : undefined;
+  const done = tone === "done";
+  switch (take) {
+    case 1:
+      if (!color) {
+        return undefined;
+      }
+      return done
+        ? `0 8px 20px -12px ${tint(color, 35)}`
+        : `0 10px 28px -10px ${tint(color, 55)}, 0 2px 8px -3px ${tint(color, 28)}`;
+    case 2:
+      return [
+        `inset 0 1px 0 0 ${glassColor.highlight}`,
+        `inset 0 0 0 1px ${tint(glassColor.highlight, 70)}`,
+        `0 1px 2px 0 ${glassColor.shade}`,
+        `0 6px 16px -10px ${glassColor.drop}`,
+      ].join(", ");
+    case 4:
+      if (!color) {
+        return undefined;
+      }
+      return done
+        ? `inset 0 0 0 1px ${tint(color, 18)}`
+        : `inset 0 0 0 1px ${tint(color, 55)}, 0 0 0 3px ${tint(color, 12)}`;
+    default:
+      return undefined;
+  }
+};
+
+const glowLayerStyle = css({
+  position: "absolute",
+  borderRadius: "[inherit]",
+  pointerEvents: "none",
+});
+
+/** The ?nodeglow= layer over a run card: its shadows, and the glassy take's shade. */
+const RunGlow = ({ mark, radius }: { mark: StepRun; radius: "lg" | "xl" }) => {
+  if (nodeGlowTake === 0 || nodeGlowTake === 3) {
+    return null;
+  }
+  const boxShadow = glowShadow(nodeGlowTake, glowToneOf(mark));
+  if (!boxShadow) {
+    return null;
+  }
+  const glass = nodeGlowTake === 2;
+  return (
+    <span
+      aria-hidden
+      data-run-glow={nodeGlowTake}
+      className={glowLayerStyle}
+      style={
+        nodeGlowTake === 4
+          ? // Over the card's 1 px border, so the tint recolours the border itself.
+            { inset: -1, boxShadow }
+          : {
+              inset: 0,
+              borderRadius: `calc(var(--radii-${radius}) - 1px)`,
+              boxShadow,
+              // The For each box keeps its own fill; only cards take the shade.
+              background:
+                glass && radius === "lg"
+                  ? `linear-gradient(to bottom, transparent 35%, ${glassColor.shade} 100%)`
+                  : undefined,
+            }
+      }
+    />
+  );
+};
 
 const attentionStates = new Set(["failed", "running", "review"]);
 
@@ -575,11 +688,45 @@ const RunMark = ({ mark, group }: { mark?: StepRun; group?: boolean }) => {
   if (!mark || !segments) {
     return null;
   }
+  const radius = group ? "xl" : "lg";
+  const finish = nodeGlowTake === 3 ? "reflect" : "solid";
+  return (
+    <>
+      <RunGlow mark={mark} radius={radius} />
+      <RunMarkTake
+        mark={mark}
+        segments={segments}
+        group={group}
+        radius={radius}
+        finish={finish}
+      />
+    </>
+  );
+};
+
+const RunMarkTake = ({
+  mark,
+  segments,
+  group,
+  radius,
+  finish,
+}: {
+  mark: StepRun;
+  segments: NonNullable<ReturnType<typeof barOf>>;
+  group?: boolean;
+  radius: "lg" | "xl";
+  finish: "solid" | "reflect";
+}) => {
   // A step repeats when it runs per item: its bar is split by item.
   const repeats = Boolean(mark.bar && mark.bar.length > 0);
   if (nodeStatusTake === 2) {
     return repeats ? (
-      <RunBar segments={segments} colors={strongBarColor} />
+      <RunBar
+        segments={segments}
+        colors={strongBarColor}
+        radius={radius}
+        finish={finish}
+      />
     ) : (
       <span
         data-corner-glyph
@@ -591,13 +738,17 @@ const RunMark = ({ mark, group }: { mark?: StepRun; group?: boolean }) => {
     );
   }
   if (nodeStatusTake === 3) {
-    const loud = segments.some((segment) =>
-      attentionStates.has(segment.state),
-    );
+    const loud = segments.some((segment) => attentionStates.has(segment.state));
     // Not reached draws no track: only what ran shows.
     const shown = segments.filter((segment) => segment.state !== "rest");
     return shown.length > 0 ? (
-      <RunBar segments={shown} colors={quietBarColor} height={loud ? 3 : 2} />
+      <RunBar
+        segments={shown}
+        colors={quietBarColor}
+        height={loud ? 3 : 2}
+        radius={radius}
+        finish={finish}
+      />
     ) : null;
   }
   if (nodeStatusTake === 4) {
@@ -641,11 +792,20 @@ const RunMark = ({ mark, group }: { mark?: StepRun; group?: boolean }) => {
           />
         ) : null}
         {/* Only a step that repeats keeps a bar, its items in the faint colours. */}
-        {repeats ? <RunBar segments={segments} /> : null}
+        {repeats ? (
+          <RunBar segments={segments} radius={radius} finish={finish} />
+        ) : null}
       </>
     );
   }
-  return <RunBar segments={segments} colors={strongBarColor} />;
+  return (
+    <RunBar
+      segments={segments}
+      colors={strongBarColor}
+      radius={radius}
+      finish={finish}
+    />
+  );
 };
 
 const ProblemDot = ({ stepId }: { stepId: string }) => {
@@ -818,31 +978,28 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
       />
       {/* No tooltip over the card: the title shows its full text on hover only when it is cut off. */}
       <div className={cardHeadStyle}>
-          <CardTile
-            icon={entry?.icon ?? "cube"}
-            tone={entry?.tone ?? "green"}
-          />
-          <CardText
-            title={entry?.title ?? step.actionDefinitionId}
-            description={
-              step.description && step.description !== entry?.title
-                ? step.description
-                : undefined
-            }
-            // The same description the panel header edits, so the two stay in step.
-            onDescription={
-              editable
-                ? (value) =>
-                    setDocument((current) =>
-                      updateStep(current, id, (candidate) => ({
-                        ...candidate,
-                        description: value,
-                      })),
-                    )
-                : undefined
-            }
-          />
-        </div>
+        <CardTile icon={entry?.icon ?? "cube"} tone={entry?.tone ?? "green"} />
+        <CardText
+          title={entry?.title ?? step.actionDefinitionId}
+          description={
+            step.description && step.description !== entry?.title
+              ? step.description
+              : undefined
+          }
+          // The same description the panel header edits, so the two stay in step.
+          onDescription={
+            editable
+              ? (value) =>
+                  setDocument((current) =>
+                    updateStep(current, id, (candidate) => ({
+                      ...candidate,
+                      description: value,
+                    })),
+                  )
+              : undefined
+          }
+        />
+      </div>
       {ports ? (
         <div
           className={css({

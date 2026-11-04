@@ -50,7 +50,12 @@ type Palette = {
 
 /**
  * The run-view card status takes (?nodestatus=1..4, 4 Nov: the subtle bar was "a bit too hard to read"): a stronger
- * bar at about s80, a quiet done bar for take 3, and the faint red outline round a failed card for take 4.
+ * bar, a quiet done bar for take 3, and the faint red outline round a failed card for take 4. Each palette has its own:
+ * the stronger bar is two steps above that palette's own bar, so O2 and O4 stay pale (4 Nov: "is the green on this
+ * page the updated green?").
+ *
+ * The ?nodeglow= takes tint with the stronger bar colours too, through `color-mix`; `glassShade` (the
+ * gradient's foot), `glassDrop` (its soft drop shadow) and `highlight` (the inner light edge) are the glassy take's neutral steps.
  */
 type NodeStatusRoles = {
   doneBar: string;
@@ -61,8 +66,18 @@ type NodeStatusRoles = {
   restBar: string;
   quietDoneBar: string;
   failedOutline: string;
+  glassShade: string;
+  glassDrop: string;
+  highlight: string;
 };
 
+const glassRoles = {
+  glassShade: "neutral.a05",
+  glassDrop: "neutral.a15",
+  highlight: "neutral.s00",
+};
+
+/** Today: its saturated state colours, at about s80. */
 const nodeStatusRoles: NodeStatusRoles = {
   doneBar: "green.s80",
   // Red one step deeper, as the glyphs have it, so it reads apart from orange.
@@ -73,6 +88,20 @@ const nodeStatusRoles: NodeStatusRoles = {
   restBar: "neutral.s30",
   quietDoneBar: "neutral.a10",
   failedOutline: "red.s60",
+  ...glassRoles,
+};
+
+/** O2 and O4: two steps above their s50 bars (red s75 over its s60 bar, one step deeper as the glyphs have it). */
+const subtleNodeRoles: NodeStatusRoles = {
+  doneBar: "green.s70",
+  failedBar: "red.s75",
+  runningBar: "blue.s70",
+  reviewBar: "orange.s70",
+  skippedBar: "neutral.s60",
+  restBar: "neutral.s30",
+  quietDoneBar: "neutral.a10",
+  failedOutline: "red.s60",
+  ...glassRoles,
 };
 
 /** Shared by O2 and O4. */
@@ -275,7 +304,7 @@ export const palettes: Record<PaletteId, Palette> = {
       "neutral.s100",
     ),
     ghost: neutralGhost,
-    node: nodeStatusRoles,
+    node: subtleNodeRoles,
   },
   o4: {
     states: subtleStates,
@@ -292,7 +321,7 @@ export const palettes: Record<PaletteId, Palette> = {
       "neutral.s100",
     ),
     ghost: neutralGhost,
-    node: nodeStatusRoles,
+    node: subtleNodeRoles,
   },
 };
 
@@ -425,7 +454,7 @@ export const barColor = {
   rest: flowsVar("notRun-bar"),
 } as const;
 
-/** Take 1 and 2's card bar: each state at about s80. */
+/** Take 1 and 2's card bar: each state two steps above the palette's own bar (today: about s80). */
 export const strongBarColor = {
   done: flowsVar("node-doneBar"),
   failed: flowsVar("node-failedBar"),
@@ -433,6 +462,13 @@ export const strongBarColor = {
   review: flowsVar("node-reviewBar"),
   skipped: flowsVar("node-skippedBar"),
   rest: flowsVar("node-restBar"),
+} as const;
+
+/** The ?nodeglow= takes: the glassy card's gradient steps and its inner light edge. */
+export const glassColor = {
+  shade: flowsVar("node-glassShade"),
+  drop: flowsVar("node-glassDrop"),
+  highlight: flowsVar("node-highlight"),
 } as const;
 
 /** Take 3's card bar: colour only where attention is needed; done stays a faint neutral. */

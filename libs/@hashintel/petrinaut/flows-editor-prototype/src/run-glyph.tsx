@@ -213,7 +213,9 @@ const OutlineGlyph = ({
     case "doneWithFailures": {
       const { done, failed, total } = progress;
       if (done >= total) {
-        return <OutlineGlyph state="done" progress={progress} filled={filled} />;
+        return (
+          <OutlineGlyph state="done" progress={progress} filled={filled} />
+        );
       }
       if (filled) {
         const common = {
@@ -246,7 +248,9 @@ const OutlineGlyph = ({
       }
       const doneEnd = (360 * done) / total;
       const failEnd = (360 * (done + failed)) / total;
-      const failStart = failed ? Math.min(doneEnd, failEnd - minFailDeg) : doneEnd;
+      const failStart = failed
+        ? Math.min(doneEnd, failEnd - minFailDeg)
+        : doneEnd;
       const arcEnd = failed ? failStart - segGapDeg : doneEnd;
       return (
         <>
@@ -313,7 +317,9 @@ const BareGlyph = ({
     case "done":
       return <path d="M5.125 9 L7.5 11.375 L11.375 5.125" />;
     case "failed":
-      return <path d="M4.875 4.875 L11.125 11.125 M11.125 4.875 L4.875 11.125" />;
+      return (
+        <path d="M4.875 4.875 L11.125 11.125 M11.125 4.875 L4.875 11.125" />
+      );
     case "needsReview":
       return (
         <>
@@ -333,7 +339,9 @@ const BareGlyph = ({
       }
       const doneEnd = (360 * done) / total;
       const failEnd = (360 * (done + failed)) / total;
-      const failStart = failed ? Math.min(doneEnd, failEnd - bareMinFail) : doneEnd;
+      const failStart = failed
+        ? Math.min(doneEnd, failEnd - bareMinFail)
+        : doneEnd;
       const arcEnd = failed ? failStart - bareGap : doneEnd;
       return (
         <>
@@ -437,11 +445,7 @@ export const RunGlyph = ({
       </svg>
     );
   return tooltip ? (
-    <Tooltip
-      content={label}
-      openDelay="fast"
-      className={tooltipTriggerStyle}
-    >
+    <Tooltip content={label} openDelay="fast" className={tooltipTriggerStyle}>
       {mark}
     </Tooltip>
   ) : (
@@ -557,67 +561,87 @@ const OldRunGlyph = ({
 const pulseStyle = css({ animation: "pulse" });
 
 /**
- * A card's run bar: 2 px, faint (a "faint idea", 4 Nov), inside the card's bottom edge and clipped to its corners, in neutral greys for now
- * (`barColor`). A step that runs once fills it; a step that runs per item gets one segment per item with 2 px gaps,
- * or proportional groups when the items would not fit. A running segment pulses.
+ * A card's run bar, inside its bottom edge. A clip box the size of the card (radius = the card's less its 1 px border,
+ * `overflow: hidden`) holds it, so the bar follows the card's curve at both corners rather than running straight.
+ *
+ * Items in the same state merge into one segment; a 1.5 px gap appears only where the state changes, so 18 done and
+ * 2 failed is two segments (4 Nov: "I don't think we need a gap between each successful state"). A running segment
+ * pulses.
+ *
+ * `finish="reflect"` (?nodeglow=3): each segment fades from its colour at the edge to clear, and casts a faint
+ * reflection of itself up the card.
  */
 export const RunBar = ({
   segments,
   height = 2,
-  gap = 2,
+  gap = 1.5,
   colors = barColor,
+  radius = "lg",
+  finish = "solid",
 }: {
   segments: BarSegment[];
   height?: number;
   gap?: number;
   colors?: Record<BarSegment["state"], string>;
+  /** The card's corner token: `lg` for a step card, `xl` for a For each box. */
+  radius?: "lg" | "xl";
+  finish?: "solid" | "reflect";
 }) => {
-  const items = segments.reduce((sum, segment) => sum + segment.count, 0);
-  // One segment per item while each stays at least 4 px on a 200 px card.
-  const perItem = items > 1 && items <= 40;
-  const parts = perItem
-    ? segments.flatMap((segment) =>
-        Array.from({ length: segment.count }, (_, index) => ({
-          key: `${segment.state}-${index}`,
-          state: segment.state,
-          grow: 1,
-        })),
-      )
-    : segments.map((segment) => ({
-        key: segment.state,
-        state: segment.state,
-        grow: segment.count,
-      }));
+  const parts: { state: BarSegment["state"]; count: number }[] = [];
+  for (const segment of segments) {
+    const last = parts.at(-1);
+    if (last && last.state === segment.state) {
+      last.count += segment.count;
+    } else if (segment.count > 0) {
+      parts.push({ state: segment.state, count: segment.count });
+    }
+  }
+  const reflect = finish === "reflect";
+  const reflection = 10;
   return (
     <span
       aria-hidden
-      data-run-bar
-      style={{ height, gap }}
+      data-run-clip
+      style={{ borderRadius: `calc(var(--radii-${radius}) - 1px)` }}
       className={css({
         position: "absolute",
-        left: "[0]",
-        right: "[0]",
-        bottom: "[0]",
-        display: "flex",
+        inset: "[0]",
         overflow: "hidden",
-        // The card's corner less its 1 px border, so the bar follows the inside of the curve.
-        borderBottomRadius: "[calc(var(--radii-lg) - 1px)]",
         pointerEvents: "none",
       })}
     >
-      {parts.map((part) => (
-        <span
-          key={part.key}
-          data-segment={part.state}
-          style={{
-            flexGrow: part.grow,
-            flexBasis: 0,
-            minWidth: 2,
-            backgroundColor: colors[part.state],
-          }}
-          className={part.state === "running" ? pulseStyle : undefined}
-        />
-      ))}
+      <span
+        data-run-bar
+        style={{ height: reflect ? height + reflection : height, gap }}
+        className={css({
+          position: "absolute",
+          left: "[0]",
+          right: "[0]",
+          bottom: "[0]",
+          display: "flex",
+        })}
+      >
+        {parts.map((part, index) => {
+          const color = colors[part.state];
+          return (
+            <span
+              // eslint-disable-next-line react/no-array-index-key -- runs of one state, in order
+              key={`${part.state}-${index}`}
+              data-segment={part.state}
+              data-count={part.count}
+              style={{
+                flexGrow: part.count,
+                flexBasis: 0,
+                minWidth: 2,
+                background: reflect
+                  ? `linear-gradient(to top, ${color} 0px, color-mix(in srgb, ${color} 45%, transparent) ${height}px, color-mix(in srgb, ${color} 14%, transparent) ${height}px, transparent 100%)`
+                  : color,
+              }}
+              className={part.state === "running" ? pulseStyle : undefined}
+            />
+          );
+        })}
+      </span>
     </span>
   );
 };
