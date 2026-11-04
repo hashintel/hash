@@ -79,7 +79,8 @@ export const readSlideFrontmatter = (source, where) => {
     data = load(source, { schema: CORE_SCHEMA }) ?? {};
   } catch (error) {
     throw new Error(
-      `${where}: the frontmatter is not YAML: ${error instanceof Error ? error.message : String(error)}`,
+      `${where}: the frontmatter is not YAML: ${error instanceof Error ? error.message : String(error)}\n` +
+        'A value that holds ": " needs quotes, or a block scalar: `notes: >-` with the text indented on the lines below.',
     );
   }
   const result = slideFrontmatterSchema.safeParse(data);

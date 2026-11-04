@@ -61,4 +61,23 @@ describe("readSlideFrontmatter", () => {
       /tour\/0-title\.mdx: the frontmatter is not YAML/u,
     );
   });
+
+  it("points a value holding a colon at a block scalar", () => {
+    expect(() =>
+      read("title: Monte Carlo\nnotes: Integration: a constraint kind\n"),
+    ).toThrow(/needs quotes, or a block scalar/u);
+    expect(
+      read(
+        [
+          "title: Monte Carlo",
+          "notes: >-",
+          "  Integration: a constraint kind",
+          "  over sampled runs.",
+        ].join("\n"),
+      ),
+    ).toEqual({
+      title: "Monte Carlo",
+      notes: "Integration: a constraint kind over sampled runs.",
+    });
+  });
 });

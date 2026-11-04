@@ -15,7 +15,8 @@ layout: title
 title: ${JSON.stringify(title)}
 subtitle: One sentence on what this deck shows.
 author: Your name
-notes: Say what the talk is about, and what the audience leaves with.
+notes: >-
+  Say what the talk is about, and what the audience leaves with.
 ---
 `;
 
