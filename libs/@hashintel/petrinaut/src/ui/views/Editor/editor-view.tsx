@@ -17,6 +17,7 @@ import {
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
   satellitesWithAttraction,
@@ -465,6 +466,14 @@ const EditorViewContent = ({
                 text: "Satellites with Attraction",
                 onClick: () => {
                   createNewNet(satellitesWithAttraction);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-planets-and-satellites",
+                text: "Planets and Satellites",
+                onClick: () => {
+                  createNewNet(planetsAndSatellites);
                   clearSelection();
                 },
               },

@@ -15,6 +15,7 @@ export const exampleSlugs = [
   "gases-3-cpn",
   "gases-4-dcpn",
   "inventory-purchasing",
+  "planets-and-satellites",
   "probabilistic-satellite-launcher",
   "production-with-machine-failure",
   "satellites-with-attraction",
@@ -136,6 +137,12 @@ const catalog = [
       topup_qty: { min: 50, max: 2000, step: 50 },
       topup_threshold: { min: 0, max: 3000, step: 50 },
     },
+  },
+  {
+    slug: "planets-and-satellites",
+    title: "Planets and Satellites",
+    source: coreExample("planetsAndSatellites"),
+    parameterBounds: {},
   },
   {
     slug: "probabilistic-satellite-launcher",

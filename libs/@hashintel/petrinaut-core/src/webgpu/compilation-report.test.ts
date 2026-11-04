@@ -111,6 +111,8 @@ describe("analyzeCompilation", () => {
       // Composes a two-token attraction: the shader integrates one
       // whole-place equation per place, so this one stays on the CPU.
       satellitesWithAttraction: false,
+      // Its gravity equation couples two tokens, so it stays on the CPU too.
+      planetsAndSatellites: false,
       sirModel: true,
       sirMassActionModel: true,
       cafeQueue: true,
@@ -338,6 +340,11 @@ describe("analyzeCompilation", () => {
         metric__debris: "not-attempted",
         metric__average_orbital_radius: "not-attempted",
         metric__average_orbital_speed: "not-attempted",
+      },
+      planetsAndSatellites: {
+        metric__bodies: "not-attempted",
+        metric__total_mass: "not-attempted",
+        metric__heaviest_body: "not-attempted",
       },
       sirModel: { metric__infected_fraction: "gpu-ready" },
       sirMassActionModel: {
