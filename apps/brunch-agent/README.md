@@ -23,14 +23,14 @@ The launcher opens a dedicated Chrome window, pauses for recording readiness, th
 
 By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
-The mounted Flue URL `/agents/petrinaut/:instanceId` requires the owner key and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
+The mounted Flue URL `/agents/petrinaut/:instanceId` requires the actor key and logical conversation identity in `x-brunch-actor` and `x-brunch-conversation`. Until the Petrinaut website sends `x-brunch-actor` from its own server-side hop, Brunch also reads the actor key from `x-brunch-principal`, the header's former name, when `x-brunch-actor` is absent (when both arrive, `x-brunch-actor` decides), and allows both in CORS. The path id is the hash of those values, not a bearer token or trusted authentication.
 
 Provider admission bounds a dispatch with no model event at 60 seconds and bounds both newly opened and active reasoning silence at 120 seconds. These phase-specific limits tolerate supported reasoning models that legitimately pause for tens of seconds: an observed valid continuation exceeded the former 15-second first-reasoning-delta limit, then its sole retry exceeded the former 10-second between-delta limit. On expiry Brunch cancels the invocation, requires cancellation acknowledgement within two seconds, and permits at most one retry only before any tool call completed; completed tool work is never replayed. Tests may shorten these bounds with `BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS`, and `BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS`; non-test deployments always use the production policy.
 
 Print a human-readable transcript of one conversation from that same Flue history (server already running):
 
 ```sh
-yarn workspace @apps/brunch-agent transcript -- --owner-key <key> --id <conversationId>
+yarn workspace @apps/brunch-agent transcript -- --actor-key <key> --id <conversationId>
 ```
 
 Read the provider telemetry back with `diagnose`. For each model request it shows the provider and model, the time until the response started, retries, failures and idle timeouts, and the request's span with the HTTP requests under it. It shows metadata only, never prompts or output. It reads Loki and Tempo through Grafana, by default the local stack's at `http://localhost:3001`. Locally, the server exports only when started with `HASH_OTLP_ENDPOINT=http://localhost:4317 yarn dev:brunch`. Another Grafana takes `--grafana <url>` with a token in `GRAFANA_TOKEN`; the token is only sent over HTTPS or to `localhost`. To read a saved server log or piped output instead, pass `--log <file>` or `--log -`; that has no spans. Unreadable lines, and reads cut off at Loki's or Tempo's limit, are reported on stderr so a short count is not taken for a complete one.
@@ -171,7 +171,7 @@ registered agent route fits. Keep `GET /health` as a process-local /
 load-balancer-private probe, not a public hostname path. Deny `/` and `/assets/*`. Stock
 Petrinaut `/api/chat` stays on the website; the accepted later website path is `/api/brunch/:id`.
 Releasing `/agents/*` to production browser ingress requires separate authentication,
-authorization, ingress, and rate/spend gates. CORS, caller-supplied owner keys, and conversation
+authorization, ingress, and rate/spend gates. CORS, caller-supplied actor keys, and conversation
 hashes are not authentication. Desired count remains one until same-conversation ownership
 across replicas is separately proven. The direct browser-result handoff is ephemeral in that single owner: its one-use issued-call capability and existing conversation ownership headers do not authenticate a user or route callbacks across replicas. A lost result after a possible document effect is unknown; Stop aborts an active wait, while silent browser disappearance is detected only after the renewable 25-second lease expires. Production release still requires the external ingress authentication, authorization, routing and spend gates described above.
 
@@ -201,7 +201,7 @@ Voice is a second input modality over the panel's conversation. It is not a Voic
 |               |                                                                                                                                   |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | URL           | `/agents/petrinaut/:instanceId`, called through the public Flue browser client and the same-origin local proxy                    |
-| Identity      | `x-brunch-principal` plus `x-brunch-conversation`; the server verifies that their hash matches the mounted instance id            |
+| Identity      | `x-brunch-actor` (or, until removed, `x-brunch-principal`) plus `x-brunch-conversation`; their hash must match the instance id    |
 | Initial turn  | One `FlueClient.send()` carrying `{ kind: "user", body }`                                                                         |
 | Browser tools | A document-bound conversation awaits browser results over HTTP within the server tool call; no follow-up submission is sent       |
 | Response      | `FlueClient.wait()` chunks projected into one finite AI SDK UI-message stream; observation/history provides canonical rehydration |

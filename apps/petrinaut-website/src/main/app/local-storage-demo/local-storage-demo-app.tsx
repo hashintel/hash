@@ -19,7 +19,7 @@ import { demoPlugins } from "../plugins/demo-plugins";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import { readAssistantSelection } from "./assistant-selection";
-import { getOrCreateBrunchOwnerKey } from "./brunch-owner-key";
+import { getOrCreateBrunchActorKey } from "./brunch-actor-key";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
@@ -36,8 +36,8 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-/** This browser's Brunch owner key, kept in local storage. */
-const brunchOwnerKey = getOrCreateBrunchOwnerKey();
+/** This browser's Brunch actor key, kept in local storage. */
+const brunchActorKey = getOrCreateBrunchActorKey();
 
 /**
  * The editor's plugins, with Petrinaut AI and, once configured, Brunch.
@@ -203,7 +203,11 @@ export const LocalStorageDemoApp = ({
     [currentNetId, brunchEditor],
   );
   const brunch = useBrunchAssistant({
-    ownerKey: brunchOwnerKey,
+    actorKey: brunchActorKey,
+    // The website calls Brunch from the browser, which may reach a Brunch
+    // that predates the actor header. Temporary: drop once the website sends
+    // the actor from its own server-side hop.
+    legacyActorHeader: true,
     chatEndpoint: brunchPreviewConfig.chatEndpoint,
     selected: brunchShown,
     openDocument: brunchOpenDocument,

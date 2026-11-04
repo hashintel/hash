@@ -209,7 +209,7 @@ beforeEach(() => {
         url: url instanceof Request ? url.url : url.toString(),
         credentials: init?.credentials,
       });
-      return Promise.resolve(Response.json({ ownerKey: "hash:alice-account" }));
+      return Promise.resolve(Response.json({ actorKey: "hash:alice-account" }));
     }),
   );
 });
@@ -256,7 +256,7 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
   expect(firstHandle).toBeDefined();
   expect(lastEditorHandle()).toBe(firstHandle);
   expect(lastBrunchInput()).toMatchObject({
-    ownerKey: "hash:alice-account",
+    actorKey: "hash:alice-account",
     chatEndpoint: "http://localhost:5001/api/brunch/agents/hash",
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },

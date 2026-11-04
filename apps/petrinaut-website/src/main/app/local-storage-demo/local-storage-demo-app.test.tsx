@@ -112,8 +112,8 @@ const editorProps = vi.hoisted(() => ({
   } | null,
 }));
 
-vi.mock("./brunch-owner-key", () => ({
-  getOrCreateBrunchOwnerKey: () => "test-owner",
+vi.mock("./brunch-actor-key", () => ({
+  getOrCreateBrunchActorKey: () => "test-actor",
 }));
 vi.mock("../plugins/petrinaut-ai/plugin", () => ({
   petrinautAiPlugin: {
@@ -1025,6 +1025,15 @@ describe("local storage demo Brunch controls", () => {
     // Brunch reaches the editor through context, not its built-in assistant prop.
     expect(editorProps.current).not.toHaveProperty("aiAssistant");
     expect(aiAssistant.documentHandle).toBe(editorProps.current?.handle);
+    // The website still names its actor under the header's former name, so
+    // it keeps working against a Brunch that predates the actor header.
+    const { headers } = flueClientOptions.current as {
+      headers: () => Record<string, string>;
+    };
+    expect(headers()).toEqual({
+      "x-brunch-principal": "test-actor",
+      "x-brunch-conversation": aiAssistant.conversationId,
+    });
   });
 });
 

@@ -3,16 +3,28 @@ import { brunchHeaders } from "@hashintel/brunch-agent";
 
 import { ownsFlueInstance } from "../../shared/conversation/identity.ts";
 
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
+
+/**
+ * The actor a request names: the actor header, else its former name. When
+ * both arrive the actor header decides, even if they differ.
+ * Temporary: read only `brunchHeaders.actor` once the Petrinaut website sends
+ * it from its own server-side hop.
+ */
+const requestActorKey = (context: Context): string | undefined =>
+  (
+    context.req.header(brunchHeaders.actor) ??
+    context.req.header(brunchHeaders.legacyPrincipal)
+  )?.trim();
 
 export const agentOwnershipGuard =
   (mountPrefix: string, _agentName: string): MiddlewareHandler =>
   async (context, next) => {
-    const ownerKey = context.req.header(brunchHeaders.ownerKey)?.trim();
+    const actorKey = requestActorKey(context);
     const conversationId = context.req
       .header(brunchHeaders.conversation)
       ?.trim();
-    if (!ownerKey || !conversationId)
+    if (!actorKey || !conversationId)
       return context.json({ error: "unauthorized" }, 401);
     const instanceId = context.req.path
       .slice(mountPrefix.length)
@@ -20,7 +32,7 @@ export const agentOwnershipGuard =
       .find((segment) => segment.length > 0);
     if (
       !instanceId ||
-      !ownsFlueInstance({ ownerKey, conversationId }, instanceId)
+      !ownsFlueInstance({ actorKey, conversationId }, instanceId)
     )
       return context.json({ error: "forbidden" }, 403);
     if (

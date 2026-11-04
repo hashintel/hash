@@ -8,10 +8,10 @@ import {
 
 export type ConversationWord = VoiceWord & { readonly id: string };
 export const conversationWordsKey = (
-  ownerKey: string,
+  actorKey: string,
   conversation: string,
 ): string =>
-  `petrinaut-website:words:v1:${encodeURIComponent(ownerKey)}:${encodeURIComponent(conversation)}`;
+  `petrinaut-website:words:v1:${encodeURIComponent(actorKey)}:${encodeURIComponent(conversation)}`;
 
 const unavailable = "Available in this tab; browser storage is unavailable.";
 
@@ -80,11 +80,11 @@ const loadConversationWords = (key: string | null): ConversationWordsState => {
 
 /** Unlike general preferences, this store reports failed persistence and never exposes the previous binding. */
 export const useConversationWords = (
-  ownerKey: string,
+  actorKey: string,
   conversation: string | null,
 ) => {
   const key =
-    conversation === null ? null : conversationWordsKey(ownerKey, conversation);
+    conversation === null ? null : conversationWordsKey(actorKey, conversation);
   const [stored, setState] = useState(() => loadConversationWords(key));
   // Loaded during render: Voice can start from a child layout effect, which
   // runs before this component's effects.

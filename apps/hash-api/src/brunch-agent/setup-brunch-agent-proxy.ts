@@ -19,9 +19,9 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 
 /**
  * The authenticated hop from a signed-in HASH user to the Brunch agent server.
- * NodeAPI authenticates the session and sets Brunch's owner key from it;
+ * NodeAPI authenticates the session and sets Brunch's actor key from it;
  * Brunch keeps its own ownership check, which derives the instance id from
- * that owner key plus the conversation id.
+ * that actor key plus the conversation id.
  *
  * Off unless `HASH_BRUNCH_AGENT_ORIGIN` is set. Brunch's identity headers are
  * only authentication when Brunch is reachable through this hop alone.
@@ -81,8 +81,8 @@ export const getBrunchAgentOrigin = (
   return value ? new URL(value) : null;
 };
 
-/** Brunch owner key for a HASH account: set by NodeAPI, never by the browser. */
-const brunchOwnerKey = (accountId: UserId) => `hash:${accountId}`;
+/** Brunch actor key for a HASH account: set by NodeAPI, never by the browser. */
+const brunchActorKey = (accountId: UserId) => `hash:${accountId}`;
 
 const hasRequestBody = (request: Request) =>
   request.method !== "GET" &&
@@ -146,7 +146,7 @@ export const setupBrunchAgentProxy = (
   },
 ) => {
   /**
-   * The signed-in user's Brunch owner key, which is also how the frontend
+   * The signed-in user's Brunch actor key, which is also how the frontend
    * learns whether to offer Brunch at all: 401 without a session, and 503 with
    * the agent routes' "not configured" body when `HASH_BRUNCH_AGENT_ORIGIN` is
    * unset, so Brunch stays off unless it is configured.
@@ -160,7 +160,7 @@ export const setupBrunchAgentProxy = (
       response.status(503).json(notConfiguredError);
       return;
     }
-    response.json({ ownerKey: brunchOwnerKey(request.user.accountId) });
+    response.json({ actorKey: brunchActorKey(request.user.accountId) });
   });
 
   const admitRequest = (
@@ -225,11 +225,9 @@ export const setupBrunchAgentProxy = (
           headers.set(name, value);
         }
       }
-      // Overwrites anything the browser sent under this name.
-      headers.set(
-        brunchHeaders.ownerKey,
-        brunchOwnerKey(request.user.accountId),
-      );
+      // Overwrites anything the browser sent under this name; the actor
+      // header's former name is never forwarded.
+      headers.set(brunchHeaders.actor, brunchActorKey(request.user.accountId));
 
       const abort = new AbortController();
       response.on("close", () => {

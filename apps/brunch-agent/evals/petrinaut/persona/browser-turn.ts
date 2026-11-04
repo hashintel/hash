@@ -161,12 +161,15 @@ export const submitPersonaBrowserTurn = async (
         request.kind === "user",
       "Persona utterance must be a user submission",
     );
-    const ownerKey = headers[brunchHeaders.ownerKey];
+    // The website names the actor under the header's former name until it
+    // sends the actor header from its own server-side hop.
+    const actorKey =
+      headers[brunchHeaders.actor] ?? headers[brunchHeaders.legacyPrincipal];
     const conversationId = headers[brunchHeaders.conversation];
-    assert(ownerKey && conversationId && admission.uid);
+    assert(actorKey && conversationId && admission.uid);
     const session: PersonaBrowserSession = {
       url: first.url(),
-      ownerKey,
+      actorKey,
       conversationId,
       uid: admission.uid,
       initialData:
@@ -175,7 +178,7 @@ export const submitPersonaBrowserTurn = async (
           : options.session?.initialData,
     };
     if (options.session) {
-      for (const key of ["url", "ownerKey", "conversationId", "uid"] as const)
+      for (const key of ["url", "actorKey", "conversationId", "uid"] as const)
         assert.equal(
           session[key],
           options.session[key],
