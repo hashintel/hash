@@ -20,6 +20,7 @@ mod capture;
 mod entity_id;
 mod pipeline;
 mod progress;
+mod sources;
 mod sql;
 mod variant_name;
 mod workspace;
@@ -33,6 +34,7 @@ pub use self::{
         TableAssertions,
     },
     progress::{Progress, ProgressSnapshot},
+    sources::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue, SourceError},
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,
