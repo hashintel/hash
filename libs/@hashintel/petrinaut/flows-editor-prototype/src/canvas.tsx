@@ -55,8 +55,8 @@ import {
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
-import { RunBar, RunGlyph } from "./run-glyph";
-import { type StepRun, runTriggerId, triggerLabel } from "./run-history";
+import { RunBar } from "./run-glyph";
+import { barOf, type StepRun, runTriggerId, triggerLabel } from "./run-history";
 import { describeSource } from "./shapes";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
@@ -440,27 +440,16 @@ const RunDot = ({ stepId }: { stepId: string }) => {
  * Run marks B (4 Nov): a step that runs once shows its state glyph at the card's top-right; a step inside a For each
  * shows the segmented bar along its bottom edge. Sizes are in canvas units: about 12 px and 4 px at J6's 45%.
  */
-const RunMark = ({ mark, inset = 8 }: { mark?: StepRun; inset?: number }) =>
-  !mark ? null : mark.bar ? (
-    <RunBar segments={mark.bar} height={8} gap={3} />
-  ) : (
-    <span
-      className={css({ position: "absolute", pointerEvents: "none" })}
-      style={{ top: inset, right: inset }}
-    >
-      <RunGlyph state={mark.state} size={22} />
-    </span>
-  );
+/** A card's run mark: the bar along its bottom edge, never a glyph (Aakarsh, 4 Nov). */
+const RunMark = ({ mark }: { mark?: StepRun }) => {
+  const segments = barOf(mark);
+  return segments ? <RunBar segments={segments} /> : null;
+};
 
-/** In a run: steps not reached or skipped at 50%, the running step with a blue border, a waiting one orange. */
+/** In a run: steps not reached or skipped at 50%. The bar along the bottom is the only other mark. */
 const runStateStyle = css({
   "&[data-run-state=notReached], &[data-run-state=skipped]": {
     opacity: "[0.5]",
-  },
-  "&[data-run-state=running]": { borderColor: "blue.bd.solid" },
-  "&[data-run-state=needsReview]": {
-    borderColor: "orange.bd.strong",
-    boxShadow: "[inset 0 0 0 0.5px var(--colors-orange-bd-strong)]",
   },
 });
 
@@ -982,7 +971,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
       </PortHandle>
       <ProblemDot stepId={id} />
       <RunDot stepId={id} />
-      <RunMark mark={mark} inset={14} />
+      <RunMark mark={mark} />
     </div>
   );
 };

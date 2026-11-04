@@ -8,14 +8,16 @@
  */
 import { css } from "@hashintel/ds-helpers/css";
 
+import { statusColor } from "./status-colors";
+
 import type { BarSegment, StepState } from "./run-history";
 
-const green = "var(--colors-green-bg-solid)";
-const red = "var(--colors-red-s110)";
-const blue = "var(--colors-blue-bg-solid)";
-const orange = "var(--colors-orange-bg-solid)";
-const grey = "var(--colors-neutral-fg-subtle)";
-const white = "var(--colors-neutral-bg-solid-min)";
+const green = statusColor.done;
+const red = statusColor.failed;
+const blue = statusColor.running;
+const orange = statusColor.review;
+const grey = statusColor.quiet;
+const white = statusColor.onSolid;
 
 const Tick = () => (
   <path
@@ -142,18 +144,25 @@ export const RunGlyph = ({
   </svg>
 );
 
+const pulseStyle = css({ animation: "pulse" });
+
 const segmentColour: Record<BarSegment["state"], string> = {
   done: green,
   failed: red,
   running: blue,
-  skipped: "var(--colors-neutral-bg-solid-subtle-hover)",
-  rest: "var(--colors-neutral-bg-solid-subtle-hover)",
+  review: orange,
+  skipped: statusColor.track,
+  rest: statusColor.track,
 };
 
-/** The For each bar: one segment per state, in proportion to its items, 1.5 px white gaps between. */
+/**
+ * A card's run bar, flush with its bottom edge and clipped by its corners: one segment per state, in proportion to
+ * the items, with hairline gaps. 5 px on a 59 px card (about 8%): Figma J6.4 measured 13%, which Aakarsh found "a bit
+ * too big" on screen. A running segment pulses.
+ */
 export const RunBar = ({
   segments,
-  height = 4,
+  height = 5,
   gap = 1.5,
 }: {
   segments: BarSegment[];
@@ -171,7 +180,8 @@ export const RunBar = ({
       bottom: "[0]",
       display: "flex",
       overflow: "hidden",
-      borderBottomRadius: "lg",
+      // The card's corner less its 1 px border, so the bar follows the inside of the curve.
+      borderBottomRadius: "[calc(var(--radii-lg) - 1px)]",
       pointerEvents: "none",
     })}
   >
@@ -185,6 +195,7 @@ export const RunBar = ({
           minWidth: 3,
           backgroundColor: segmentColour[segment.state],
         }}
+        className={segment.state === "running" ? pulseStyle : undefined}
       />
     ))}
   </span>

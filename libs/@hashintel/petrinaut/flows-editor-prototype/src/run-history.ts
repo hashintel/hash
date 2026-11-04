@@ -21,7 +21,7 @@ export type StepState =
 
 /** A run mark bar segment: one per state, in proportion to its item count. */
 export type BarSegment = {
-  state: "done" | "failed" | "skipped" | "running" | "rest";
+  state: "done" | "failed" | "skipped" | "running" | "review" | "rest";
   count: number;
 };
 
@@ -284,19 +284,46 @@ export const stepRuns = (facts: RunFacts): Record<string, StepRun> => {
   });
   const finished = facts.processed[3];
   const failed = facts.failures.length;
+  const throughFailed = failedBefore(facts, finished);
+  const failedItems = failedBefore(facts, facts.processed[1]!);
+  const doneItems = finished - throughFailed;
+  const runningItems = facts.abandoned
+    ? 0
+    : Math.max(
+        0,
+        facts.processed[0]! - finished - (failedItems - throughFailed),
+      );
+  const forEachBar: BarSegment[] = [
+    { state: "done" as const, count: doneItems },
+    { state: "failed" as const, count: failedItems },
+    { state: "running" as const, count: runningItems },
+    {
+      state: "rest" as const,
+      count: Math.max(0, n - doneItems - failedItems - runningItems),
+    },
+  ].filter((segment) => segment.count > 0);
   runs[forEachId] =
     facts.find !== "done"
       ? { state: "notReached" }
       : facts.abandoned
-        ? { state: "abandoned", count: `${finished} of ${n}` }
+        ? {
+            state: "abandoned",
+            count: `${finished} of ${n}`,
+            bar: forEachBar,
+          }
         : finished < n
-          ? { state: "running", count: `${facts.processed[0]} of ${n}` }
+          ? {
+              state: "running",
+              count: `${facts.processed[0]} of ${n}`,
+              bar: forEachBar,
+            }
           : failed > 0
             ? {
                 state: "doneWithFailures",
                 count: `${n - failed} ✓ · ${failed} ×`,
+                bar: forEachBar,
               }
-            : { state: "done", count: `${n} of ${n}` };
+            : { state: "done", count: `${n} of ${n}`, bar: forEachBar };
   runs[signOffId] =
     facts.signOff === "waiting"
       ? facts.abandoned
@@ -595,3 +622,30 @@ export const anyTicking = (runs: RunRecord[]) =>
   runs.some(
     (run) => run.kind === "live" && run.pinnedAt === undefined && !run.stopped,
   );
+
+/**
+ * The bar along a card's bottom edge (Aakarsh, 4 Nov: "the bottom bar on everything", no tick glyphs on cards). A
+ * step inside a For each, and the For each itself, split it by item; a step that runs once fills it with its state.
+ * A step not reached has none.
+ */
+export const barOf = (mark: StepRun | undefined): BarSegment[] | null => {
+  if (!mark || mark.state === "notReached") {
+    return mark?.bar && mark.bar.length > 0 ? mark.bar : null;
+  }
+  if (mark.bar && mark.bar.length > 0) {
+    return mark.bar;
+  }
+  const single: Record<
+    Exclude<StepState, "notReached">,
+    BarSegment["state"]
+  > = {
+    done: "done",
+    doneWithFailures: "done",
+    failed: "failed",
+    running: "running",
+    needsReview: "review",
+    skipped: "skipped",
+    abandoned: "rest",
+  };
+  return [{ state: single[mark.state], count: 1 }];
+};
