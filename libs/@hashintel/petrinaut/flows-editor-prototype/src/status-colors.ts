@@ -27,6 +27,7 @@ type RunState =
   | "done"
   | "failed"
   | "running"
+  | "needsReview"
   | "waiting"
   | "notRun"
   | "skipped";
@@ -71,6 +72,16 @@ const subtleStates: Palette["states"] = {
     text: "blue.s110",
     badgeBg: "blue.s20",
     badgeFg: "blue.s110",
+  },
+  // Needs review (waiting for a person) is pale orange in every palette (4 Nov call: orange means needs review,
+  // blue means in progress). Waiting for a timer or schedule stays neutral.
+  needsReview: {
+    mark: "orange.s80",
+    bar: "orange.s50",
+    chart: "orange.s60",
+    text: "orange.s110",
+    badgeBg: "orange.s20",
+    badgeFg: "orange.s110",
   },
   waiting: {
     mark: "neutral.s80",
@@ -155,6 +166,16 @@ export const palettes: Record<PaletteId, Palette> = {
         text: "blue.s90",
         badgeBg: "blue.s20",
         badgeFg: "blue.s100",
+      },
+      // Needs review (waiting for a person) is pale orange in every palette (4 Nov call: orange means needs review,
+      // blue means in progress). Waiting for a timer or schedule stays neutral.
+      needsReview: {
+        mark: "orange.s80",
+        bar: "orange.s50",
+        chart: "orange.s60",
+        text: "orange.s110",
+        badgeBg: "orange.s20",
+        badgeFg: "orange.s110",
       },
       waiting: {
         mark: "neutral.s80",
@@ -324,12 +345,12 @@ export const initPalette = () => {
   );
 };
 
-/** Run-state glyph colours. Needs review is a waiting state (no orange in any palette). */
+/** Run-state glyph colours. */
 export const statusColor = {
   done: flowsVar("done-mark"),
   failed: flowsVar("failed-mark"),
   running: flowsVar("running-mark"),
-  review: flowsVar("waiting-mark"),
+  review: flowsVar("needsReview-mark"),
   /** Skipped, abandoned. */
   quiet: flowsVar("skipped-mark"),
   notReached: flowsVar("notRun-mark"),
@@ -343,6 +364,7 @@ export const statusText = {
   done: flowsVar("done-text"),
   failed: flowsVar("failed-text"),
   running: flowsVar("running-text"),
+  needsReview: flowsVar("needsReview-text"),
   waiting: flowsVar("waiting-text"),
 } as const;
 
@@ -351,7 +373,7 @@ export const chartColor = {
   done: flowsVar("done-chart"),
   failed: flowsVar("failed-chart"),
   running: flowsVar("running-chart"),
-  review: flowsVar("waiting-chart"),
+  review: flowsVar("needsReview-chart"),
   quiet: flowsVar("skipped-chart"),
 } as const;
 
@@ -360,7 +382,7 @@ export const barColor = {
   done: flowsVar("done-bar"),
   failed: flowsVar("failed-bar"),
   running: flowsVar("running-bar"),
-  review: flowsVar("waiting-bar"),
+  review: flowsVar("needsReview-bar"),
   skipped: flowsVar("skipped-bar"),
   rest: flowsVar("notRun-bar"),
 } as const;
