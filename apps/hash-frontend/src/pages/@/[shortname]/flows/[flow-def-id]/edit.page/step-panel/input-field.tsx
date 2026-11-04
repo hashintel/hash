@@ -6,6 +6,7 @@ import {
   Form,
   Icon,
   Menu,
+  NumberInput,
   SelectableListSearch,
   TextInput,
   Tooltip,
@@ -306,47 +307,51 @@ export const InputField = ({
     typedConstant?.kind ?? (typing ? typedKind : null);
 
   if (typedInKind !== null) {
+    /* Typing keeps the field until it's left, even while what's typed isn't a value yet, such as "-". */
+    const setTypedValue = (value: string | number | null) => {
+      setTyping(true);
+      setSource(
+        value === null || value === ""
+          ? null
+          : { kind: "constant", payload: { kind: typedInKind, value } },
+      );
+    };
+    const fieldProps = {
+      readonly: readOnly,
+      invalid: errors.length > 0,
+      autoFocus: typing,
+      clearable: !readOnly && {
+        onClear: () => {
+          setTyping(false);
+          setSource(null);
+        },
+      },
+      onBlur: () => setTyping(false),
+    };
+
     return (
       <Form.Field
         layout="inline"
         label={label}
         errors={errors.length > 0 ? errors : undefined}
       >
-        <TextInput
-          type={
-            typedInKind === "Number"
-              ? "number"
-              : typedInKind === "Date"
-                ? "date"
-                : "text"
-          }
-          value={typedConstant?.text ?? ""}
-          readonly={readOnly}
-          invalid={errors.length > 0}
-          autoFocus={typing}
-          clearable={
-            !readOnly && {
-              onClear: () => {
-                setTyping(false);
-                setSource(null);
-              },
-            }
-          }
-          onChange={(text) =>
-            setSource(
-              text === ""
-                ? null
-                : {
-                    kind: "constant",
-                    payload: {
-                      kind: typedInKind,
-                      value: typedInKind === "Number" ? Number(text) : text,
-                    },
-                  },
-            )
-          }
-          onBlur={() => setTyping(false)}
-        />
+        {typedInKind === "Number" ? (
+          <NumberInput
+            {...fieldProps}
+            value={typedConstant ? Number(typedConstant.text) : null}
+            min={-Number.MAX_VALUE}
+            max={Number.MAX_VALUE}
+            step="any"
+            onChange={setTypedValue}
+          />
+        ) : (
+          <TextInput
+            {...fieldProps}
+            type={typedInKind === "Date" ? "date" : "text"}
+            value={typedConstant?.text ?? ""}
+            onChange={setTypedValue}
+          />
+        )}
       </Form.Field>
     );
   }
