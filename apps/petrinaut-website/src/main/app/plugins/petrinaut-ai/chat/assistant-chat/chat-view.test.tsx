@@ -42,7 +42,6 @@ const render = (ui: ReactElement) =>
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
   vi.useRealTimers();
 });
 

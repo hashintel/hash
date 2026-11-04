@@ -34,7 +34,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
   Reflect.deleteProperty(HTMLElement.prototype, "animate");
 });
 

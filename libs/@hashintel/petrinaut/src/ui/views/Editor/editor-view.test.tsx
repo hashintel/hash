@@ -156,7 +156,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
   vi.unstubAllGlobals();
 });
 

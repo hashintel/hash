@@ -52,7 +52,6 @@ afterEach(() => {
   act(() => root.unmount());
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
   supports.mockReturnValue(true);
 });
 

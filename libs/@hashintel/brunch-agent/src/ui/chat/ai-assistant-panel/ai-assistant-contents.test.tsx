@@ -106,7 +106,6 @@ beforeAll(() => {
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
   vi.useRealTimers();
   if (initialClipboardDescriptor === undefined) {
     Reflect.deleteProperty(navigator, "clipboard");

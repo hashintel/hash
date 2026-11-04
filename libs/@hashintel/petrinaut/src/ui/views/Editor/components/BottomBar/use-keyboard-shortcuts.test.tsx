@@ -38,7 +38,6 @@ afterEach(() => {
   actions.readOnly = true;
   actions.reason = "host-readonly";
   cleanup();
-  vi.clearAllMocks();
 });
 
 const Shortcuts = () => {

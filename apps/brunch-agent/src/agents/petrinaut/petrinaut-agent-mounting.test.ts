@@ -76,7 +76,6 @@ const systemPrompt = async () =>
   ).trim();
 beforeEach(() => {
   vi.resetModules();
-  vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("NODE_ENV", "test");
   mounted.initialData = undefined;
