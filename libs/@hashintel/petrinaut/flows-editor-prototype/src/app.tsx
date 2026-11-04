@@ -2,7 +2,6 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
 import {
-  Avatar,
   Button,
   Menu,
   PortalContainerContext,
@@ -13,7 +12,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { AddNodePicker } from "./add-node-picker";
 import { AllRuns } from "./all-runs";
 import { updateDocument, useAppState } from "./app-store";
-import workspaceAvatar from "./assets/workspace-avatar.png";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
@@ -24,6 +22,7 @@ import {
   useHistory,
   useRunKeys,
 } from "./history-view";
+import { HashShellStrip } from "./hash-shell";
 import { LeftPanel } from "./left-panel";
 import { mockRuns, runStatus } from "./mock-runs";
 import { PropertiesPanel } from "./properties-panel";
@@ -61,45 +60,6 @@ const workspaceStyle = css({
   flex: "1",
   minWidth: "[0]",
 });
-
-/**
- * The HASH app's sidebar, closed (3 Nov layout; hash-frontend): a 42 px white strip down the whole left edge with a
- * hairline on its right, the workspace avatar 16 px down, and the open-sidebar arrow 12 px under it.
- */
-const hashStripStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "3",
-  flexShrink: 0,
-  width: "[42px]",
-  height: "[100%]",
-  paddingTop: "4",
-  backgroundColor: "neutral.bgSolid.min",
-  borderRightWidth: "thin",
-  borderRightStyle: "solid",
-  borderRightColor: "neutral.bd.subtle",
-});
-
-const HashSidebarStrip = () => (
-  <nav className={hashStripStyle} aria-label="HASH">
-    <Avatar
-      size="xs"
-      shape="square"
-      src={workspaceAvatar}
-      alt="Workspace"
-      placeholder={{ initials: "AT" }}
-    />
-    {/* The prototype has no HASH sidebar to open. */}
-    <Button
-      size="sm"
-      variant="ghost"
-      tone="neutral"
-      iconName="arrowRight"
-      aria-label="Open sidebar"
-    />
-  </nav>
-);
 
 /** The DS topBar on ↳ Current: 64 px, 16 px in, near-white, a faint hairline under it. */
 const topBarStyle = css({
@@ -438,7 +398,7 @@ export const Editor = ({
       <EditorContext value={context}>
         <HistoryContext value={history}>
           <div ref={portalRef} className={`${rootStyle} petrinaut-root`}>
-            <HashSidebarStrip />
+            <HashShellStrip />
             <div className={workspaceStyle}>
               <header className={topBarStyle}>
                 {openRun && history ? (

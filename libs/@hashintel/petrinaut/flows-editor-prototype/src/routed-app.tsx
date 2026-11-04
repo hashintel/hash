@@ -9,6 +9,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { Editor } from "./app";
 import { archiveFlow, createFlow, runsOf, useAppState } from "./app-store";
 import { type EditorUi, initialUi } from "./editor-context";
+import { HashShell } from "./hash-shell";
 import { Home } from "./home";
 import { navigate, routePath, useLocation } from "./router";
 import { outcomeOf, outcomeState } from "./run-history";
@@ -71,7 +72,6 @@ const NewFlow = () => {
 };
 
 const pageStyle = css({
-  minHeight: "[100vh]",
   padding: "12",
   fontFamily: "body",
   textStyle: "sm",
@@ -83,6 +83,7 @@ const pageStyle = css({
 });
 
 const linkStyle = css({
+  alignSelf: "flex-start",
   color: "blue.fg.link",
   cursor: "pointer",
   textDecoration: "underline",
@@ -90,25 +91,27 @@ const linkStyle = css({
 
 /** A page that is not built yet: says so, and links back to the flows. */
 const Stub = ({ title, note }: { title: string; note: string }) => (
-  <div className={`${pageStyle} petrinaut-root`}>
-    <span
-      className={css({
-        textStyle: "lg",
-        fontWeight: "semibold",
-        color: "neutral.fg.heading",
-      })}
-    >
-      {title}
-    </span>
-    <span>{note}</span>
-    <button
-      type="button"
-      className={linkStyle}
-      onClick={() => navigate("/flows")}
-    >
-      Back to flows
-    </button>
-  </div>
+  <HashShell>
+    <div className={pageStyle}>
+      <span
+        className={css({
+          textStyle: "lg",
+          fontWeight: "semibold",
+          color: "neutral.fg.heading",
+        })}
+      >
+        {title}
+      </span>
+      <span>{note}</span>
+      <button
+        type="button"
+        className={linkStyle}
+        onClick={() => navigate("/flows")}
+      >
+        Back to flows
+      </button>
+    </div>
+  </HashShell>
 );
 
 export const RoutedApp = () => {

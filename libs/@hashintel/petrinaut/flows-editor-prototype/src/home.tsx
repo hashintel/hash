@@ -1,7 +1,7 @@
-import { Avatar, Button, Icon, TextInput } from "@hashintel/ds-components";
+import { Button, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import hashLockup from "./assets/hash-lockup.svg";
+import { HashShell } from "./hash-shell";
 import { RunGlyph } from "./run-glyph";
 
 import type { EditorDocument } from "./document";
@@ -18,28 +18,6 @@ export type FlowListEntry = {
   lastRun?: { state: StepState; label: string };
   runCount?: number;
 };
-
-/** The HASH app header on J0.1: 56 px, the lockup, and the search box (here it searches flows). */
-const headerStyle = css({
-  position: "relative",
-  display: "flex",
-  alignItems: "center",
-  height: "[56px]",
-  paddingLeft: "5",
-  backgroundColor: "neutral.bgSolid.min",
-  borderBottomWidth: "thin",
-  borderBottomStyle: "solid",
-  borderBottomColor: "neutral.bd.subtle",
-});
-
-/** Where J0.1 places the search: 180 px in, 380 px wide, centred in the 56 px header. */
-const searchSlotStyle = css({
-  position: "absolute",
-  left: "[180px]",
-  top: "[50%]",
-  transform: "[translateY(-50%)]",
-  width: "[380px]",
-});
 
 /** J0.1's empty state and J0.2's table share this frame: 1200 wide, 12 px corners, a hairline. */
 const boxStyle = css({
@@ -104,7 +82,7 @@ export const Home = ({
   );
   const newFlow = (
     <Button
-      size="md"
+      size="sm"
       variant="solid"
       tone="neutral"
       iconName="plus"
@@ -114,42 +92,14 @@ export const Home = ({
     </Button>
   );
   return (
-    <div
-      className={`${css({
-        minHeight: "[100vh]",
-        backgroundColor: "neutral.bgSolid.min",
-        fontFamily: "body",
-        color: "neutral.fg.heading",
-      })} petrinaut-root`}
-    >
-      <header className={headerStyle}>
-        <img src={hashLockup} alt="HASH" width={100} height={18} />
-        {/* Figma J0.1: `input_string` md with _showIconLeft (no suffix shown). */}
-        <div className={searchSlotStyle}>
-          <TextInput
-            size="md"
-            value={search}
-            placeholder="Search for anything"
-            aria-label="Search flows"
-            prefix={{ iconName: "search", variant: "subtle" }}
-            onChange={(next) => onSearch(next)}
-          />
-        </div>
-        <Avatar
-          className={css({ marginLeft: "auto", marginRight: "5" })}
-          alt="Your account"
-          size="md"
-          shape="circle"
-          placeholder={{ initials: "AS" }}
-        />
-      </header>
+    <HashShell>
       <main
         className={css({
           display: "flex",
           flexDirection: "column",
           gap: "8",
           paddingTop: "12",
-          paddingX: "[120px]",
+          paddingX: "12",
           paddingBottom: "12",
         })}
       >
@@ -186,7 +136,26 @@ export const Home = ({
             </span>
           </div>
           {flows.length > 0 ? (
-            <div className={css({ marginTop: "3" })}>{newFlow}</div>
+            <div
+              className={css({
+                display: "flex",
+                alignItems: "center",
+                gap: "2",
+                marginTop: "1",
+              })}
+            >
+              <div className={css({ width: "[240px]" })}>
+                <TextInput
+                  size="sm"
+                  value={search}
+                  placeholder="Search flows"
+                  aria-label="Search flows"
+                  prefix={{ iconName: "search", variant: "subtle" }}
+                  onChange={(next) => onSearch(next)}
+                />
+              </div>
+              {newFlow}
+            </div>
           ) : null}
         </div>
         {visible.length === 0 ? (
@@ -326,6 +295,6 @@ export const Home = ({
           </div>
         )}
       </main>
-    </div>
+    </HashShell>
   );
 };
