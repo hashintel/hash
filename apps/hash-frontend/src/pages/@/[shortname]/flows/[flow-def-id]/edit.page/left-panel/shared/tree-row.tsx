@@ -63,7 +63,7 @@ export const TreeRow = ({
   emphasized = false,
   expander,
   stepCount,
-  ioOf,
+  actionDefinitionId,
   onClick,
 }: {
   depth: number;
@@ -75,14 +75,14 @@ export const TreeRow = ({
   expander?: ReactNode;
   /** Shown at the end of a group's row. */
   stepCount?: number;
-  /** An action whose inputs and outputs show on hover. */
-  ioOf?: FlowActionDefinitionId;
+  /** An action whose inputs and outputs show while the row is hovered. */
+  actionDefinitionId?: FlowActionDefinitionId;
   onClick?: () => void;
 }) => {
   const iconTile = icon && (
     <StepIconTile icon={icon} tone={tone} size="small" />
   );
-  const button = onClick && (
+  const labelElement = onClick ? (
     <Button
       variant="ghost"
       size="sm"
@@ -93,22 +93,25 @@ export const TreeRow = ({
     >
       {label}
     </Button>
+  ) : (
+    <span className={staticRowLabel}>
+      {iconTile}
+      <span className={staticRowText}>{label}</span>
+    </span>
   );
 
   return (
     <div className={row} style={{ paddingLeft: depth * indentPerDepth }}>
       <span className={expanderSlot}>{expander}</span>
-      {button && ioOf ? (
-        <ActionIoTooltip actionDefinitionId={ioOf} className={labelSlot}>
-          {button}
+      {actionDefinitionId ? (
+        <ActionIoTooltip
+          actionDefinitionId={actionDefinitionId}
+          className={labelSlot}
+        >
+          {labelElement}
         </ActionIoTooltip>
       ) : (
-        (button ?? (
-          <span className={staticRowLabel}>
-            {iconTile}
-            <span className={staticRowText}>{label}</span>
-          </span>
-        ))
+        labelElement
       )}
       {stepCount !== undefined && (
         <span className={stepCountLabel}>{countSteps(stepCount)}</span>

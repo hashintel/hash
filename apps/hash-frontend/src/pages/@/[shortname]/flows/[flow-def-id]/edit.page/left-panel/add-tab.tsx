@@ -57,7 +57,7 @@ export const AddTab = ({
       depth={depth}
       icon={action.icon}
       label={action.label}
-      ioOf={action.actionDefinitionId}
+      actionDefinitionId={action.actionDefinitionId}
       onClick={() => {
         recordAddedAction(action.actionDefinitionId);
         onAddStep(action.actionDefinitionId);
