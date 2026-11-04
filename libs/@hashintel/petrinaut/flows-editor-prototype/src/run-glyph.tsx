@@ -8,7 +8,7 @@
  */
 import { css } from "@hashintel/ds-helpers/css";
 
-import { statusColor } from "./status-colors";
+import { barColor, statusColor } from "./status-colors";
 
 import type { BarSegment, StepState } from "./run-history";
 
@@ -146,57 +146,66 @@ export const RunGlyph = ({
 
 const pulseStyle = css({ animation: "pulse" });
 
-const segmentColour: Record<BarSegment["state"], string> = {
-  done: green,
-  failed: red,
-  running: blue,
-  review: orange,
-  skipped: statusColor.track,
-  rest: statusColor.track,
-};
-
 /**
- * A card's run bar, flush with its bottom edge and clipped by its corners: one segment per state, in proportion to
- * the items, with hairline gaps. 5 px on a 59 px card (about 8%): Figma J6.4 measured 13%, which Aakarsh found "a bit
- * too big" on screen. A running segment pulses.
+ * A card's run bar: 3 px (2 px all but vanished at the run view's 45% zoom), inside the card's bottom edge and clipped to its corners, in neutral greys for now
+ * (`barColor`). A step that runs once fills it; a step that runs per item gets one segment per item with 2 px gaps,
+ * or proportional groups when the items would not fit. A running segment pulses.
  */
 export const RunBar = ({
   segments,
-  height = 5,
-  gap = 1.5,
+  height = 3,
+  gap = 2,
 }: {
   segments: BarSegment[];
   height?: number;
   gap?: number;
-}) => (
-  <span
-    aria-hidden
-    data-run-bar
-    style={{ height, gap }}
-    className={css({
-      position: "absolute",
-      left: "[0]",
-      right: "[0]",
-      bottom: "[0]",
-      display: "flex",
-      overflow: "hidden",
-      // The card's corner less its 1 px border, so the bar follows the inside of the curve.
-      borderBottomRadius: "[calc(var(--radii-lg) - 1px)]",
-      pointerEvents: "none",
-    })}
-  >
-    {segments.map((segment) => (
-      <span
-        key={segment.state}
-        data-segment={segment.state}
-        style={{
-          flexGrow: segment.count,
-          flexBasis: 0,
-          minWidth: 3,
-          backgroundColor: segmentColour[segment.state],
-        }}
-        className={segment.state === "running" ? pulseStyle : undefined}
-      />
-    ))}
-  </span>
-);
+}) => {
+  const items = segments.reduce((sum, segment) => sum + segment.count, 0);
+  // One segment per item while each stays at least 4 px on a 200 px card.
+  const perItem = items > 1 && items <= 40;
+  const parts = perItem
+    ? segments.flatMap((segment) =>
+        Array.from({ length: segment.count }, (_, index) => ({
+          key: `${segment.state}-${index}`,
+          state: segment.state,
+          grow: 1,
+        })),
+      )
+    : segments.map((segment) => ({
+        key: segment.state,
+        state: segment.state,
+        grow: segment.count,
+      }));
+  return (
+    <span
+      aria-hidden
+      data-run-bar
+      style={{ height, gap }}
+      className={css({
+        position: "absolute",
+        left: "[0]",
+        right: "[0]",
+        bottom: "[0]",
+        display: "flex",
+        overflow: "hidden",
+        // The card's corner less its 1 px border, so the bar follows the inside of the curve.
+        borderBottomRadius: "[calc(var(--radii-lg) - 1px)]",
+        pointerEvents: "none",
+      })}
+    >
+      {parts.map((part) => (
+        <span
+          key={part.key}
+          data-segment={part.state}
+          style={{
+            flexGrow: part.grow,
+            flexBasis: 0,
+            minWidth: 2,
+            backgroundColor: barColor[part.state],
+          }}
+          className={part.state === "running" ? pulseStyle : undefined}
+        />
+      ))}
+    </span>
+  );
+};

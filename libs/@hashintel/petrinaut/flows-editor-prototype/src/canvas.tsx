@@ -199,6 +199,8 @@ const cardStyle = cva({
     borderRadius: "lg",
     transition: "[border-color 0.15s ease, box-shadow 0.3s ease]",
     "&:hover [data-port-add]": { opacity: "[1]" },
+    // Read-only in a run: nothing to add from a port.
+    "&[data-read-only] [data-port-add]": { display: "none" },
     // A reference to this step is hovered in the panel: the soft ring a new step glows with, and the +, as on hover.
     "&[data-source-hover]": {
       boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
@@ -446,18 +448,6 @@ const RunMark = ({ mark }: { mark?: StepRun }) => {
   return segments ? <RunBar segments={segments} /> : null;
 };
 
-/** In a run: steps not reached or skipped at 50%. The bar along the bottom is the only other mark. */
-const runStateStyle = css({
-  "&[data-run-state=notReached], &[data-run-state=skipped]": {
-    opacity: "[0.5]",
-  },
-});
-
-/** A For each box in a run only fades when not reached; its border stays grey while it runs. */
-const runFadeStyle = css({
-  "&[data-run-state=notReached]": { opacity: "[0.5]" },
-});
-
 const ProblemDot = ({ stepId }: { stepId: string }) => {
   const { validation } = useEditor();
   const problems = [
@@ -556,13 +546,14 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
     return null;
   }
   const entry = getCatalogEntry(step.actionDefinitionId);
-  // A run draws every step as the one-line card: its branches are not ports to wire from.
-  const ports = runView ? null : portRows(step);
+  // A run draws the editor's own card (Aakarsh, 4 Nov): same size, rows and type; only the bar is added.
+  const ports = portRows(step);
   const mark = runView?.steps?.[id];
   return (
     <div
-      className={cx(cardStyle({ selected }), runStateStyle)}
+      className={cardStyle({ selected })}
       data-run-state={mark?.state}
+      data-read-only={runView ? true : undefined}
       data-flash={ui.flashId === id || undefined}
       data-source-hover={ui.hoverSourceId === id || undefined}
     >
@@ -844,7 +835,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const mark = runView?.steps?.[id];
   return (
     <div
-      className={cx(groupStyle({ selected }), runFadeStyle)}
+      className={groupStyle({ selected })}
       data-run-state={mark?.state}
       data-source-hover={ui.hoverSourceId === id || undefined}
     >
@@ -1718,7 +1709,12 @@ export const FlowCanvas = ({
             ),
           }))
         }
-        onInit={(instance) =>
+        onInit={(instance) => {
+          // Dev: headless checks centre the canvas on a step (`__flowsCanvas.setCenter`).
+          if (import.meta.env.DEV) {
+            (globalThis as { __flowsCanvas?: unknown }).__flowsCanvas =
+              instance;
+          }
           onInit(
             () => {
               instance.fitView(fitOptions).catch(() => undefined);
@@ -1726,8 +1722,8 @@ export const FlowCanvas = ({
             (by) => {
               instance.zoomTo(instance.getZoom() * by).catch(() => undefined);
             },
-          )
-        }
+          );
+        }}
         data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
         // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
         connectOnClick={false}

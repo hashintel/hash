@@ -626,11 +626,17 @@ export const anyTicking = (runs: RunRecord[]) =>
 /**
  * The bar along a card's bottom edge (Aakarsh, 4 Nov: "the bottom bar on everything", no tick glyphs on cards). A
  * step inside a For each, and the For each itself, split it by item; a step that runs once fills it with its state.
- * A step not reached has none.
+ * A step not reached shows the empty track.
  */
 export const barOf = (mark: StepRun | undefined): BarSegment[] | null => {
-  if (!mark || mark.state === "notReached") {
-    return mark?.bar && mark.bar.length > 0 ? mark.bar : null;
+  if (!mark) {
+    return null;
+  }
+  // Not reached: the bar's empty track, so every card in a run carries one.
+  if (mark.state === "notReached") {
+    return mark.bar && mark.bar.length > 0
+      ? mark.bar
+      : [{ state: "rest", count: 1 }];
   }
   if (mark.bar && mark.bar.length > 0) {
     return mark.bar;
