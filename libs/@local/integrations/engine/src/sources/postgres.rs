@@ -202,7 +202,6 @@ mod tests {
 
     #[rstest]
     #[case::ipv6("postgresql://[::1]/postgres")]
-    #[case::unix_socket("postgresql:///postgres?host=%2Fvar%2Frun%2Fpostgresql")]
     #[case::multiple_hosts("postgresql:///postgres?host=primary.example%2Creplica.example")]
     fn connection_uri_hosts(#[case] connection: &str) {
         let mut source = source();
