@@ -1,8 +1,8 @@
 /**
- * Lowers a visualizer module, JavaScript with JSX, to the view HIR.
+ * Lowers a visualizer function body, JavaScript with JSX, to the view HIR.
  *
- * The module shape is `export default Visualization(({ tokens, parameters })
- * => …)`. JSX, and the `?:`, `&&` and `.map(...)` that choose or repeat
+ * The legacy `export default Visualization(...)` wrapper is also accepted.
+ * JSX, and the `?:`, `&&` and `.map(...)` that choose or repeat
  * elements, lower to view nodes here; every other expression is handed to
  * the expression HIR's lowering under the `visualizer` surface, which owns
  * scopes, bindings and the accepted expression subset. The element and
@@ -18,6 +18,7 @@ import {
   lowerWithExpressions,
   parseErrorDiagnostics,
 } from "../hir/lower-typescript";
+import { detectUserCodeForm } from "../hir/user-code-form";
 import { rejectTypeScriptSyntax } from "./reject-typescript-syntax";
 import { VIEW_ELEMENT_ATTRIBUTES, VIEW_ELEMENT_TAGS } from "./view-elements";
 import { VIEW_FRAGMENT_TAG } from "./view-hir";
@@ -106,6 +107,20 @@ class ViewLowering {
     private readonly sourceFile: ts.SourceFile,
     private readonly expressions: HirExpressionLowering,
   ) {}
+
+  lowerBody(): ViewHir {
+    const scope = this.expressions.newScope();
+    scope.locals.add(PROPS_PARAMETER_NAME);
+    for (const name of ["tokens", "parameters"]) {
+      scope.destructuredFields.set(name, PROPS_PARAMETER_NAME);
+    }
+    return {
+      viewVersion: 1,
+      props: { name: PROPS_PARAMETER_NAME, span: { start: 0, length: 0 } },
+      body: this.expressions.lowerBlockAs(this.sourceFile, scope, this.builder),
+      span: this.expressions.spanOf(this.sourceFile),
+    };
+  }
 
   lowerModule(): ViewHir {
     let exportAssignment: ts.ExportAssignment | undefined;
@@ -446,7 +461,7 @@ class ViewLowering {
 }
 
 /**
- * Lowers a visualizer module to the view HIR. The source is parsed as TSX
+ * Lowers visualizer code to the view HIR. The source is parsed as TSX
  * for the JSX grammar, and every TypeScript-only construct is rejected
  * before lowering: a visualizer is JavaScript. Returns the first diagnostic
  * that stops the lowering, positioned in the source.
@@ -467,7 +482,10 @@ export function lowerViewHir(code: string): LowerViewResult {
     rejectTypeScriptSyntax(sourceFile, (node, diagnosticCode, message) =>
       lowering.fail(node, diagnosticCode, message),
     );
-    return new ViewLowering(sourceFile, lowering).lowerModule();
+    const view = new ViewLowering(sourceFile, lowering);
+    return detectUserCodeForm(code, ts.ScriptKind.TSX) === "module"
+      ? view.lowerModule()
+      : view.lowerBody();
   });
   return lowered.ok
     ? { ok: true, view: lowered.value }

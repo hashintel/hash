@@ -1690,13 +1690,13 @@ return true;`;
 
     it("passes a visualizer that draws the place's tokens with its parameters", () => {
       const result = check(
-        withVisualizer(`export default Visualization(({ tokens, parameters }) => (
+        withVisualizer(`return (
           <svg viewBox="0 0 10 10">
             {tokens.map((token, index) => (
               <circle key={index} cx={token.x} cy={token.y} r={parameters.radius} />
             ))}
           </svg>
-        ));`),
+        );`),
       );
 
       expect(result.isValid).toBe(true);
@@ -1705,9 +1705,9 @@ return true;`;
 
     it("reports a visualizer's type errors under the place without invalidating the net", () => {
       const result = check(
-        withVisualizer(`export default Visualization(({ tokens }) => (
+        withVisualizer(`return (
           <svg>{tokens.map((token) => <circle cx={token.z} />)}</svg>
-        ));`),
+        );`),
       );
 
       // A broken picture never stops a run.
@@ -1726,12 +1726,10 @@ return true;`;
     });
 
     it("skips visualizers when the colours extension is off", () => {
-      const result = check(
-        withVisualizer(
-          `export default Visualization(() => <svg>{fetch("x")}</svg>);`,
-        ),
-        { ...DEFAULT_PETRINAUT_EXTENSIONS, colors: false },
-      );
+      const result = check(withVisualizer(`return <svg>{fetch("x")}</svg>;`), {
+        ...DEFAULT_PETRINAUT_EXTENSIONS,
+        colors: false,
+      });
 
       expect(result.isValid).toBe(true);
       expect(result.itemDiagnostics).toHaveLength(0);

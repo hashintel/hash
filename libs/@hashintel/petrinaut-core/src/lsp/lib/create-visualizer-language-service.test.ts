@@ -109,11 +109,9 @@ describe("VisualizerLanguageServer diagnostics", () => {
 
   it("reports host globals as unknown names, positioned in the user's code", () => {
     const code = [
-      `export default Visualization(({ tokens }) => {`,
-      `  const data = fetch("https://example.com");`,
-      `  const width = window.innerWidth;`,
-      `  return <svg>{tokens.length}</svg>;`,
-      `});`,
+      `const data = fetch("https://example.com");`,
+      `const width = window.innerWidth;`,
+      `return <svg>{tokens.length}</svg>;`,
     ].join("\n");
     const diagnostics = diagnosticsFor(
       createServer(withVisualizer(code)),
@@ -184,6 +182,33 @@ describe("VisualizerLanguageServer diagnostics", () => {
     expect(describeDiagnostics(diagnostics)).toEqual([]);
   });
 
+  it("keeps diagnostics positioned when switching between bodies and legacy modules", () => {
+    const server = createServer(withVisualizer("return <svg />;"));
+    for (const code of [
+      "return <svg><text>export default</text>{tokens[0].missing}</svg>;",
+      "return <svg>{tokens[0].missing}</svg>;",
+      "export default Visualization(({ tokens }) => <svg>{tokens[0].missing}</svg>);",
+      "return <svg>{parameters.missing}</svg>;",
+    ]) {
+      server.updateDocumentContent(codePath("p1"), code);
+      expect(diagnosticsFor(server, "p1")).toMatchObject([
+        { code: 2339, start: code.indexOf("missing"), length: 7 },
+      ]);
+    }
+  });
+
+  it.each(["<div />", '<svg onClick="handler" />', '<svg href="#target" />'])(
+    "rejects unsupported drawing options: %s",
+    (element) => {
+      expect(
+        diagnosticsFor(
+          createServer(withVisualizer(`return ${element};`)),
+          "p1",
+        ),
+      ).not.toEqual([]);
+    },
+  );
+
   it("checks nothing when the colours extension is off", () => {
     const server = new VisualizerLanguageServer();
     server.syncFiles(
@@ -216,33 +241,38 @@ describe("VisualizerLanguageServer completions and hover", () => {
   }
 
   it("completes SVG attributes", () => {
-    const names = completionNames(
-      `export default Visualization(() => <svg viewB${CURSOR} />);`,
-    );
+    const names = completionNames(`return <svg viewB${CURSOR} />;`);
 
     expect(names).toContain("viewBox");
     expect(names).toContain("strokeWidth");
+    expect(names).not.toContain("onClick");
+    expect(names).not.toContain("href");
+    expect(names).not.toContain("ref");
+  });
+
+  it("completes drawing styles without window layout styles", () => {
+    const names = completionNames(`return <svg style={{ ${CURSOR} }} />;`);
+    expect(names).toContain("backgroundColor");
+    expect(names).toContain("fill");
+    expect(names).not.toContain("width");
+    expect(names).not.toContain("borderRadius");
   });
 
   it("completes the net's parameters", () => {
-    const names = completionNames(
-      `export default Visualization(({ parameters }) => <svg>{parameters.${CURSOR}}</svg>);`,
-    );
+    const names = completionNames(`return <svg>{parameters.${CURSOR}}</svg>;`);
 
     expect(names).toEqual(["planet_radius", "show_labels"]);
   });
 
   it("completes a token's attributes", () => {
-    const names = completionNames(
-      `export default Visualization(({ tokens }) => <svg>{tokens[0].${CURSOR}}</svg>);`,
-    );
+    const names = completionNames(`return <svg>{tokens[0].${CURSOR}}</svg>;`);
 
     expect(names).toEqual(["id", "x", "y"]);
   });
 
   it("shows the token type on hover, with the span in the user's code", () => {
     const { offset, code } = parseCursor(
-      `export default Visualization(({ tok${CURSOR}ens }) => <svg>{tokens.length}</svg>);`,
+      `return <svg>{tok${CURSOR}ens.length}</svg>;`,
     );
     const server = createServer(withVisualizer(code));
     const info = server.getQuickInfoAtPosition(codePath("p1"), offset);

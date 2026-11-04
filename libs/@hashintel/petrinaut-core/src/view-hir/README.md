@@ -5,8 +5,9 @@ role: Lowers place visualizers (JavaScript with JSX) to a view tree over HIR exp
 
 # Petrinaut view HIR
 
-A place visualizer is a component written in JavaScript with JSX. It lowers
-to the view HIR: a tree of elements, and of the conditionals and
+A place visualizer is a JavaScript function body with JSX and ambient
+`tokens` and `parameters`. Legacy `Visualization(...)` modules also work.
+Both forms lower to the view HIR: a tree of elements, and of the conditionals and
 comprehensions that choose or repeat them, whose every value is an
 expression of the expression HIR (`../hir`) under the `visualizer` surface.
 Nothing from a net runs as JavaScript; the editor interprets the tree for
@@ -18,7 +19,7 @@ visualizer code (JSX)
                           every other expression -> ../hir/lower-typescript.ts
   -> view-hir.ts
   -> check-view.ts        allowlists, attribute and child types, the root is
-                          an element; expressions -> ../hir/typecheck.ts
+                          one SVG; expressions -> ../hir/typecheck.ts
   -> interpret-view.ts    element values; expressions -> ../hir/interpret.ts
   -> the editor's renderer
 ```
@@ -54,14 +55,14 @@ expression lowering, checker and interpreter, and apply to no other surface.
 | `let`     | `const` bindings of a block body                         |
 
 The root is `ViewHir`: the props parameter (`({ tokens, parameters })`) and
-the body. `check-view.ts` requires the body to draw an element or nothing on
-every branch.
+the body. Bare bodies bind the same props without a source wrapper, keeping
+diagnostic spans in the original code. `check-view.ts` requires every return
+path to produce a single SVG element.
 
 ## What a visualizer may draw
 
 `view-elements.ts` holds the allowlists: SVG drawing, container, text and
-paint-server elements plus a few HTML containers; their geometry, paint and
-text attributes, `key`, and a `style` object of common properties. Images,
+paint-server elements; their geometry, paint and text attributes, `key`, and a `style` object of common properties. Images,
 links, scripts, embedded content, event handlers and namespaced attributes
 are refused by the lowering, and `url(...)` in a value is accepted only as a
 fragment reference, `url(#marker)`. The renderer applies the same sets again

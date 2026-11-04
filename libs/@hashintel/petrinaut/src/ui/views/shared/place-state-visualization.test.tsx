@@ -31,7 +31,7 @@ const place: Place = {
   differentialEquationId: null,
 };
 const source = (label: string) =>
-  `export default Visualization(() => <svg viewBox="0 0 400 200"><text>${label}</text></svg>);`;
+  `return <svg viewBox="0 0 400 200"><text>${label}</text></svg>;`;
 
 const setup = () => {
   const compilations = new Map<string, (result: VisualizerHir) => void>();

@@ -57,7 +57,7 @@ const Harness = ({
   keptOpen = false,
   typed = false,
   hovered = false,
-  code = "export default Visualization(() => <svg />);",
+  code = "return <svg />;",
 }) => {
   const editor = use(EditorContext);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -132,7 +132,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it.each(["", "export default Visualization(() => <svg />);"])(
+it.each(["", "return <svg />;"])(
   "opens a temporary preview while editing a place without a type: %s",
   async (code) => {
     const { rerender } = render(<Harness focused code={code} />);

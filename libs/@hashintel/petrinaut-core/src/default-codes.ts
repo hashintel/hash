@@ -10,27 +10,20 @@ export function generateDefaultVisualizerCode(type: Color): string {
   return `// This function defines how to visualize the tokens in the place of type "${
     type.name
   }".
-// It receives the current tokens and parameters.
-export default Visualization(({ tokens, parameters }) => {
-  return <svg viewBox="0 0 800 600">
-    {tokens.map(({ ${type.elements
-      .map((el) => el.name)
-      .join(", ")} }, index) => (
-      // Example: simple circle for each token
-      <circle />
-    ))}
-  </svg>
-});`;
+// \`tokens\` holds this place's tokens; \`parameters\` holds the net's parameters.
+return <svg viewBox="0 0 800 600">
+  {tokens.map(({ ${type.elements.map((el) => el.name).join(", ")} }, index) => (
+    // Example: simple circle for each token
+    <circle />
+  ))}
+</svg>;`;
 }
 
 export const DEFAULT_VISUALIZER_CODE = `// This function defines how to visualize the tokens in the place.
-// It receives the current tokens and parameters.
-export default Visualization(({ tokens, parameters }) => {
-  // Example: simple console log visualization
-  return <svg>
-    <circle cx="50" cy="50" r="40" stroke="black" strokeWidth="3" fill="red" />
-  </svg>
-});`;
+// \`tokens\` holds this place's tokens; \`parameters\` holds the net's parameters.
+return <svg viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="40" stroke="black" strokeWidth="3" fill="red" />
+</svg>;`;
 
 export function generateDefaultDifferentialEquationCode(type: Color): string {
   const realElements = type.elements.filter(

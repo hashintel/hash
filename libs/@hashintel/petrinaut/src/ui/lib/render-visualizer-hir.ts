@@ -6,6 +6,7 @@ import {
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
   VIEW_FRAGMENT_TAG,
+  VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
   ViewElementValue,
   type HirValue,
@@ -37,6 +38,7 @@ const toStyle = (
   }
   const style: Record<string, string | number> = {};
   for (const [property, raw] of Object.entries(value)) {
+    if (VIEW_LEGACY_STYLE_PROPERTIES.has(property)) continue;
     if (!VIEW_STYLE_PROPERTIES.has(property)) {
       throw new Error(
         `\`${property}\` is not a style property a visualizer can set.`,
@@ -104,13 +106,17 @@ const elementToReactNode = (
   } else if (typeof key === "bigint") {
     props.key = String(key);
   }
-  if (fitViewport && tag === "svg") props.preserveAspectRatio = "xMidYMid meet";
+  if (fitViewport) {
+    props.width = "100%";
+    props.height = "100%";
+    props.preserveAspectRatio = "xMidYMid meet";
+  }
   return createElement(
     tag === VIEW_FRAGMENT_TAG ? Fragment : tag,
     props,
     ...element.children.map((child) =>
       // eslint-disable-next-line no-use-before-define -- mutual recursion
-      toReactNode(child, fitViewport && tag === VIEW_FRAGMENT_TAG),
+      toReactNode(child, false),
     ),
   );
 };
@@ -152,5 +158,12 @@ export const renderVisualizerHir = (
   tokens: VisualizerTokens,
   parameters: VisualizerParameters,
   { fitViewport = false }: { fitViewport?: boolean } = {},
-): ReactNode =>
-  toReactNode(interpretViewHir(view, { tokens, parameters }), fitViewport);
+): ReactNode => {
+  const picture = interpretViewHir(view, { tokens, parameters });
+  if (!(picture instanceof ViewElementValue) || picture.tag !== "svg") {
+    throw new Error(
+      "A visualizer must return a single `<svg>…</svg>` element.",
+    );
+  }
+  return toReactNode(picture, fitViewport);
+};

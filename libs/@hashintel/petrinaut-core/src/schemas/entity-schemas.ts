@@ -226,7 +226,7 @@ export const placeSchema = z
     }),
     visualizerCode: z.string().optional().meta({
       description:
-        "Optional module: `export default Visualization(({ tokens, parameters }) => <JSX/>)`. JSX is compiled with React's CLASSIC runtime — do NOT `import React`, do NOT use `<>…</>` fragments (use `<g>` or explicit elements), and do NOT use hooks; treat it as a pure render. `tokens` is this place's current tokens (only meaningful for coloured places; empty for uncoloured). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.crash_threshold`). Convention is to return a sized `<svg viewBox=\"0 0 800 600\">…</svg>`.",
+        'Optional JavaScript function body with JSX returning one `<svg viewBox="0 0 800 600">…</svg>`. `tokens` holds this place\'s current tokens; `parameters` is keyed by each parameter\'s `variableName`. No function wrapper or export is needed. Use `style={{ backgroundColor: "#eff6ff" }}` for the background; Petrinaut controls the SVG size and window corners. SVG elements only; no imports, hooks or event handlers. Legacy `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported.',
     }),
     showAsInitialState: z.boolean().optional().meta({
       description:

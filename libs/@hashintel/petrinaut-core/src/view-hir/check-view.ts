@@ -17,6 +17,7 @@ import {
   isSafeViewValue,
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
+  VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
 } from "./view-elements";
 import { VIEW_FRAGMENT_TAG } from "./view-hir";
@@ -198,14 +199,17 @@ class ViewChecker {
       this.expressions.report(
         value.span,
         "hir:element-attribute-value",
-        `\`style\` takes an object like \`{{ width: "100%" }}\`, got ${formatHirType(valueType)}.`,
+        `\`style\` takes an object like \`{{ backgroundColor: "white" }}\`, got ${formatHirType(valueType)}.`,
       );
       return;
     }
     const entries = value.kind === "recordLit" ? value.entries : [];
     for (const field of valueType.fields) {
       const entry = entries.find((candidate) => candidate.key === field.name);
-      if (!VIEW_STYLE_PROPERTIES.has(field.name)) {
+      if (
+        !VIEW_STYLE_PROPERTIES.has(field.name) &&
+        !VIEW_LEGACY_STYLE_PROPERTIES.has(field.name)
+      ) {
         this.expressions.report(
           entry?.keySpan ?? value.span,
           "hir:unknown-style-property",
@@ -237,14 +241,13 @@ class ViewChecker {
     }
   }
 
-  /** The picture must be an element (or nothing), whichever branch draws. */
+  /** Every return path must produce a single SVG viewport. */
   checkRoot(node: ViewNode): void {
     switch (node.kind) {
       case "element":
-      case "empty":
-        return;
+        if (node.tag === "svg") return;
+        break;
       case "let":
-      case "and":
         this.checkRoot(node.body);
         return;
       case "cond":
@@ -254,12 +257,15 @@ class ViewChecker {
       case "text":
       case "expr":
       case "map":
-        this.expressions.report(
-          node.span,
-          "hir:visualizer-return",
-          "A visualizer must return an element such as `<svg>…</svg>`.",
-        );
+      case "and":
+      case "empty":
+        break;
     }
+    this.expressions.report(
+      node.span,
+      "hir:visualizer-return",
+      "A visualizer must return a single `<svg>…</svg>` element.",
+    );
   }
 }
 

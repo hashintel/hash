@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Use SVG background colors in example visualizers so their backgrounds fill resizable windows without stretching the drawings.
+Write visualizers as function bodies returning SVG, with tokens and parameters already available. Simplify the drawing options and examples while preserving legacy function wrappers and filling resizable windows with SVG background colors.

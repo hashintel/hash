@@ -91,23 +91,21 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 
 ## Visualizer
 
-A visualizer renders a custom view of a place's tokens during simulation. It is a function written in JavaScript with JSX that returns SVG elements.
+A visualizer renders a custom view of a place's tokens during simulation. Write a JavaScript function body with JSX that returns one `<svg>` element.
 
 **To enable:** select a place, then turn on the **Visualizer** switch in its properties. Click the **Visualizer** header to expand its code editor.
 
-```tsx
-export default Visualization(({ tokens, parameters }) => {
-  return (
-    <svg viewBox="0 0 800 600" style={{ backgroundColor: "#eff6ff" }}>
-      {tokens.map(({ x, y }, i) => (
-        <circle key={i} cx={x} cy={y} r={5} fill="red" />
-      ))}
-    </svg>
-  );
-});
+```jsx
+return (
+  <svg viewBox="0 0 800 600" style={{ backgroundColor: "#eff6ff" }}>
+    {tokens.map(({ x, y }, index) => (
+      <circle key={index} cx={x} cy={y} r={5} fill="red" />
+    ))}
+  </svg>
+);
 ```
 
-The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in a floating Canvas window. During simulation, it updates live as token state changes.
+`tokens` (this place's token objects) and `parameters` (global parameter values) are already in scope. No function declaration or export is needed. Existing `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported; their return value must also be one `<svg>`. The preview renders in a floating Canvas window and updates live as token state changes.
 
 The code editor checks a visualizer as you type. `tokens` is typed from the place's type and `parameters` from the net's parameters, so completion and hover show the attributes and values available, and a misspelt SVG attribute, an attribute the type does not have, or a name such as `window` or `fetch` that visualizers cannot use is underlined in the editor and listed in the [Diagnostics](#diagnostics) tab under the place. Visualizer errors never block a simulation: a visualizer with errors draws nothing while the rest of the net runs.
 
@@ -115,7 +113,7 @@ Visualizer code is JavaScript: the types are inferred, and a type annotation or 
 
 - `const` bindings, destructuring, ternaries, `&&` and `||`, arithmetic, comparisons, `Math.*`, template literals and string concatenation.
 - `.map`, `.filter`, `.slice` and `.reduce` over tokens, `.length`, and `.toFixed` for numbers.
-- SVG elements such as `svg`, `g`, `rect`, `circle`, `line`, `path`, `polygon`, `text`, `defs`, `marker` and gradients, with their geometry, paint and text attributes, `key`, and a `style` object of common properties. `div`, `span` and `p` are available for labels.
+- SVG elements such as `svg`, `g`, `rect`, `circle`, `line`, `path`, `polygon`, `text`, `defs`, `marker` and gradients, with their geometry, paint and text attributes, `key`, and a `style` object of common properties. Use `<text>` and `<tspan>` for labels. Fragments are allowed inside the SVG, but cannot replace its root.
 
 Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
 
@@ -131,7 +129,11 @@ Drag anywhere on the picture to move it. A following window remembers its new di
 
 A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary.
 
-The SVG element fills the window regardless of its authored width and height. Its `viewBox` stays centered and scales proportionally, so shapes and text keep their proportions. Set `style={{ backgroundColor: "#eff6ff" }}` on the root SVG to color the whole window, including the space around the drawing. A background rectangle only colors the drawing area; replace it with the SVG background style in existing visualizer code.
+Set `viewBox` to define the drawing's coordinates. The drawing stays centered and scales proportionally, so shapes and text keep their proportions. Petrinaut controls the root SVG's width, height and window corners; leave those out of your code. Geometry attributes such as a rectangle's `width` and `height` still control its shape.
+
+Set `style={{ backgroundColor: "#eff6ff" }}` on the root SVG to color the whole window, including the space around the drawing. SVG has no background-color attribute, so keep this CSS style. A background rectangle only colors the drawing area; replace it with the SVG background style in existing visualizer code.
+
+Old CSS layout and interaction styles, including `width`, `height`, `borderRadius`, `margin`, `padding` and `cursor`, are accepted but ignored.
 
 While new code compiles, the previous drawing stays visible with a small loading indicator in the bottom-right corner. The window keeps its size throughout loading and compilation.
 

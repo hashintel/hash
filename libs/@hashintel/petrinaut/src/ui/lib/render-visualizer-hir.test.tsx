@@ -40,7 +40,7 @@ const render = (
 describe("renderVisualizerHir", () => {
   it("fits the root viewBox without overriding nested SVG aspect ratios", () => {
     const lowered = lowerVisualizerToHir(
-      `export default Visualization(() => <><svg viewBox="0 0 400 200" style={{ backgroundColor: "#eff6ff" }} preserveAspectRatio="none"><svg preserveAspectRatio="xMinYMin meet" /></svg></>);`,
+      `export default Visualization(() => <svg width={400} height={200} viewBox="0 0 400 200" style={{ width: "400px", height: "200px", borderRadius: "6px", backgroundColor: "#eff6ff" }} preserveAspectRatio="none"><svg width={100} height={50} preserveAspectRatio="xMinYMin meet" /></svg>);`,
       context,
     );
     if (!lowered.ok) throw new Error("The test visualizer must compile");
@@ -49,7 +49,7 @@ describe("renderVisualizerHir", () => {
         renderVisualizerHir(lowered.view, [], {}, { fitViewport: true }),
       ),
     ).toBe(
-      '<svg viewBox="0 0 400 200" style="background-color:#eff6ff" preserveAspectRatio="xMidYMid meet"><svg preserveAspectRatio="xMinYMin meet"></svg></svg>',
+      '<svg width="100%" height="100%" viewBox="0 0 400 200" style="background-color:#eff6ff" preserveAspectRatio="xMidYMid meet"><svg width="100" height="50" preserveAspectRatio="xMinYMin meet"></svg></svg>',
     );
   });
   describe("draws every example visualizer", () => {
@@ -83,27 +83,23 @@ describe("renderVisualizerHir", () => {
   it("renders fragments, keys, booleans and nested arrays as React does", () => {
     expect(
       render(
-        `export default Visualization(({ tokens }) => (
-  <>
+        `return <svg><>
     {tokens.map((token, index) => <circle key={index} cx={token.x} />)}
     {false}
     {null}
     <text>{tokens.length}{" "}items</text>
-  </>
-));`,
+  </></svg>;`,
         [{ x: 1 }, { x: 2 }],
       ),
     ).toBe(
-      '<circle cx="1"></circle><circle cx="2"></circle><text>2 items</text>',
+      '<svg><circle cx="1"></circle><circle cx="2"></circle><text>2 items</text></svg>',
     );
   });
 
   it("refuses a remote url computed at run time", () => {
     expect(() =>
       render(
-        `export default Visualization(({ tokens }) => (
-  <rect fill={"url(https://x.test/?" + tokens.length + ")"} />
-));`,
+        `return <svg><rect fill={"url(https://x.test/?" + tokens.length + ")"} /></svg>;`,
       ),
     ).toThrow(/url\(#id\)/u);
   });
@@ -111,10 +107,8 @@ describe("renderVisualizerHir", () => {
   it("leaves a null attribute unset", () => {
     expect(
       render(
-        `export default Visualization(({ tokens }) => (
-  <rect fill={tokens.length > 5 ? "red" : null} width={1} />
-));`,
+        `return <svg><rect fill={tokens.length > 5 ? "red" : null} width={1} /></svg>;`,
       ),
-    ).toBe('<rect width="1"></rect>');
+    ).toBe('<svg><rect width="1"></rect></svg>');
   });
 });

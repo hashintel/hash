@@ -1,3 +1,5 @@
+import ts from "@typescript/typescript6";
+
 import { getArcEndpoint } from "../../arc-endpoints";
 import {
   createArcPlaceResolver,
@@ -532,7 +534,7 @@ export function generateVirtualFiles(
  * Generates the virtual files of the visualizer language service: the
  * parameters and colour types the SDCPN service also has, and for every
  * root-net place with a visualizer a `defs.d.ts` declaring `Visualization`
- * over the place's token type and a `code.jsx` holding the user's module.
+ * over the place's token type and a `code.jsx` holding the user's code.
  *
  * The user file is JavaScript: TypeScript checks it with `checkJs`, so the
  * types are inferred and any annotation is an error, and the injected
@@ -581,7 +583,7 @@ export function generateVisualizerVirtualFiles(
         ``,
         `export type Tokens = readonly ${sanitizedColorId ? `Color_${sanitizedColorId}` : "never"}[];`,
         `export type VisualizerProps = { tokens: Tokens; parameters: Parameters };`,
-        `export type VisualizerComponent = (props: VisualizerProps) => ReactElement | null;`,
+        `export type VisualizerComponent = (props: VisualizerProps) => ReactElement;`,
         `export type Visualization = (component: VisualizerComponent) => VisualizerComponent;`,
       ].join("\n"),
     });
@@ -591,16 +593,34 @@ export function generateVisualizerVirtualFiles(
     // or export-less file a module, so its `Visualization` binding never
     // collides with another place's in the script scope.
     const defsModule = defsPath.replace(/\.d\.ts$/u, "");
-    files.set(getItemFilePath("place-visualizer-code", { placeId: place.id }), {
-      prefix: [
-        `export {};`,
-        `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
-        `  /** @type {unknown} */ (undefined)`,
-        `);`,
-        ``,
-      ].join("\n"),
-      content: place.visualizerCode,
-    });
+    files.set(
+      getItemFilePath("place-visualizer-code", { placeId: place.id }),
+      applyFormWrapper({
+        content: place.visualizerCode,
+        formWrappers: {
+          scriptKind: ts.ScriptKind.TSX,
+          module: {
+            suffix: "",
+            prefix: [
+              `export {};`,
+              `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
+              `  /** @type {unknown} */ (undefined)`,
+              `);`,
+              ``,
+            ].join("\n"),
+          },
+          body: {
+            prefix: [
+              `export {};`,
+              `/** @type {import("${defsModule}").VisualizerComponent} */`,
+              `const __visualizer = ({ tokens, parameters }) => {`,
+              ``,
+            ].join("\n"),
+            suffix: `\nreturn /** @type {never} */ (undefined);\n};`,
+          },
+        },
+      }),
+    );
   }
 
   return files;

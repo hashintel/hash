@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_VISUALIZER_CODE,
+  generateDefaultVisualizerCode,
+} from "../default-codes";
+import {
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
   supplyChainProfit,
@@ -62,6 +66,17 @@ const asElement = (value: ViewValue): ViewElementValue => {
 };
 
 describe("the view HIR", () => {
+  it("compiles both default templates as function bodies", () => {
+    for (const code of [
+      DEFAULT_VISUALIZER_CODE,
+      generateDefaultVisualizerCode(
+        probabilisticSatellitesSDCPN.petriNetDefinition.types[0]!,
+      ),
+    ]) {
+      expect(code).not.toContain("export default");
+      expect(lowerOk(code).body.kind).toBe("element");
+    }
+  });
   describe.each(
     [
       probabilisticSatellitesSDCPN,
@@ -200,12 +215,10 @@ describe("the view HIR", () => {
     expect(svg.children[1]).toBe(0);
   });
 
-  it("lowers fragments", () => {
-    const view = lowerOk(
-      `export default Visualization(() => <><circle /><rect /></>);`,
-    );
-    expect(view.props).toBeNull();
-    expect(view.body.kind === "element" && view.body.tag).toBe(
+  it("lowers fragments inside an SVG", () => {
+    const view = lowerOk(`return <svg><><circle /><rect /></></svg>;`);
+    const fragment = view.body.kind === "element" && view.body.children[0];
+    expect(fragment && fragment.kind === "element" && fragment.tag).toBe(
       VIEW_FRAGMENT_TAG,
     );
   });
@@ -214,12 +227,12 @@ describe("the view HIR", () => {
     const text = asElement(
       draw(
         `export default Visualization(({ tokens, parameters }) => (
-  <text>{parameters.label + ": " + tokens.length}</text>
+  <svg><text>{parameters.label + ": " + tokens.length}</text></svg>
 ));`,
         [{ x: 1, y: 1, id: 1n }],
       ),
     );
-    expect(text.children).toEqual(["L: 1"]);
+    expect(asElement(text.children[0]!).children).toEqual(["L: 1"]);
   });
 
   describe("what a visualizer cannot do", () => {
@@ -305,9 +318,8 @@ describe("the view HIR", () => {
         )[0],
       ).toMatchObject({ code: "hir:unknown-style-property" });
       expect(
-        lowerOk(
-          `export default Visualization(() => <line markerEnd="url(#arrow)" />);`,
-        ).body.kind,
+        lowerOk(`return <svg><line markerEnd="url(#arrow)" /></svg>;`).body
+          .kind,
       ).toBe("element");
     });
 
@@ -346,9 +358,45 @@ describe("the view HIR", () => {
     });
   });
 
-  it("is a module, not a bare body", () => {
-    expect(lowerErr(`return <svg />;`)[0]).toMatchObject({
-      code: "hir:unsupported-statement",
+  it.for([[], [{ x: 2, y: 3, id: 1n }]])(
+    "draws the same picture from a body and a legacy module with tokens %s",
+    (tokens) => {
+      const body = `const first = tokens[0];
+if (!first) return <svg><text>Empty</text></svg>;
+return <svg><circle cx={first.x} r={parameters.radius} /></svg>;`;
+      expect(draw(body, tokens)).toEqual(
+        draw(
+          `export default Visualization(({ tokens, parameters }) => {\n${body}\n});`,
+          tokens,
+        ),
+      );
+    },
+  );
+
+  it.each([
+    "<g />",
+    "<><svg /></>",
+    "null",
+    "tokens.length && <svg />",
+    "tokens.length ? <svg /> : null",
+  ])("rejects a root other than a single SVG: %s", (root) => {
+    expect(lowerErr(`return ${root};`)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "hir:visualizer-return" }),
+      ]),
+    );
+  });
+
+  it("reports errors at their positions in a bare body", () => {
+    const code = `const first = tokens[0];\nreturn <svg>{first.missing}</svg>;`;
+    expect(lowerErr(code)[0]).toMatchObject({
+      code: "hir:unknown-field",
+      span: { start: code.indexOf("missing"), length: 7 },
     });
+  });
+
+  it("does not mistake comments or JSX text for a module export", () => {
+    const code = `// export default Visualization is optional\nreturn <svg><text>export default Visualization</text></svg>;`;
+    expect(asElement(draw(code, [])).tag).toBe("svg");
   });
 });
