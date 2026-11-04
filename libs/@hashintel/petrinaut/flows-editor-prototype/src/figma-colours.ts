@@ -34,6 +34,14 @@ const solidSurface: Record<string, string> = {
 };
 
 /**
+ * The DS Button's subtle variant borders on core steps (`neutral.a60`, hover `neutral.a80`), not on `neutral.bd.*`.
+ * Figma's alpha steps are far darker than the code's (a60 is 40% black, the code's is 15%), so on the layer the border
+ * went dark. Figma's Button (outline, neutral) strokes with `neutral/bd/solid` (a30, 15%) and hovers to
+ * `neutral/bd/solid/hover` (a40, 20%), so inside those buttons the two steps point there.
+ */
+const buttonBorders = `button[class~="bd-c_neutral.a60"] { --colors-neutral-a60: var(--colors-neutral-bd-solid); --colors-neutral-a80: var(--colors-neutral-bd-solid-hover); }`;
+
+/**
  * ?hover=s20|s25|s30|s35 sets every neutral hover background to that solid step, to compare darker hovers live
  * (Aakarsh, 4 Nov). Without it, each hover is Figma's own step (s20 for surface, subtle and min; s25 for shaded).
  */
@@ -72,7 +80,10 @@ export const applyDsColours = (mode: DsColours) => {
   })
     .map(([name, value]) => `${name}: ${value};`)
     .join(" ");
-  sheet.textContent = mode === "figma" ? `${selector} { ${declarations} }` : "";
+  sheet.textContent =
+    mode === "figma"
+      ? `${selector} { ${declarations} } ${selector} ${buttonBorders}`
+      : "";
   document.documentElement.dataset.dsColours = mode;
   try {
     globalThis.localStorage.setItem(storageKey, mode);
