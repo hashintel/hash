@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import { Form, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -11,7 +11,7 @@ import { getActionDefinition } from "./step-panel/input-sources";
 import { findStep } from "./step-panel/shared/find-step";
 import { getNameLabel } from "./step-panel/shared/value-display";
 import { UsedByField } from "./step-panel/used-by-field";
-import { getStepsUsingValue } from "./step-panel/value-uses";
+import { indexValueUses } from "./step-panel/value-uses";
 
 import type { IconName } from "@hashintel/ds-components";
 import type {
@@ -23,6 +23,8 @@ import type {
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
+
+type StepsUsing = ReturnType<typeof indexValueUses>;
 
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
@@ -93,39 +95,56 @@ const PanelSection = ({
 
 const StartPanel = ({
   flowDefinition,
+  stepsUsing,
 }: {
   flowDefinition: FlowDefinition<string>;
-}) => (
-  <aside className={panel} aria-label="Start">
-    <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
-      <span className={fixedDescription}>{startDisplay.description}</span>
-    </PanelHeader>
-    <PanelSection title="Inputs">
-      {flowDefinition.inputs.length === 0 ? (
-        <span className={empty}>No inputs yet</span>
-      ) : (
-        <Form.Section>
-          {flowDefinition.inputs.map(({ name, label, payloadKind, array }) => (
-            <UsedByField
-              key={name}
-              name={label ?? getNameLabel(name)}
-              shape={{ payloadKind, array }}
-              usedBy={getStepsUsingValue(flowDefinition.steps, {
-                kind: "flow-input",
-                inputName: name,
-              })}
-            />
-          ))}
-        </Form.Section>
-      )}
-    </PanelSection>
-  </aside>
-);
+  stepsUsing: StepsUsing;
+}) => {
+  /* Names should be unique, but a loaded flow may repeat one (reported as `duplicateInputName`), so a repeat is
+   * keyed by how many times its name came before. */
+  const timesSeen = new Map<string, number>();
+  const inputs = flowDefinition.inputs.map((input) => {
+    const repeat = timesSeen.get(input.name) ?? 0;
+    timesSeen.set(input.name, repeat + 1);
+
+    return {
+      input,
+      key: repeat === 0 ? input.name : `${input.name}-${repeat}`,
+    };
+  });
+
+  return (
+    <aside className={panel} aria-label="Start">
+      <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
+        <span className={fixedDescription}>{startDisplay.description}</span>
+      </PanelHeader>
+      <PanelSection title="Inputs">
+        {inputs.length === 0 ? (
+          <span className={empty}>No inputs yet</span>
+        ) : (
+          <Form.Section>
+            {inputs.map(
+              ({ input: { name, label, payloadKind, array }, key }) => (
+                <UsedByField
+                  key={key}
+                  name={label ?? getNameLabel(name)}
+                  shape={{ payloadKind, array }}
+                  usedBy={stepsUsing({ kind: "flow-input", inputName: name })}
+                />
+              ),
+            )}
+          </Form.Section>
+        )}
+      </PanelSection>
+    </aside>
+  );
+};
 
 const SelectedStepPanel = ({
   editor,
   flowDefinition,
   problemsByStepId,
+  stepsUsing,
   step,
   inner,
   onSelectStart,
@@ -133,6 +152,7 @@ const SelectedStepPanel = ({
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
   problemsByStepId: FlowEditorState["problemsByStepId"];
+  stepsUsing: StepsUsing;
   step: StepDefinition<string>;
   /** Inside a for-each step, so read-only (FE-1915). */
   inner: boolean;
@@ -204,7 +224,7 @@ const SelectedStepPanel = ({
                 key={outputName}
                 name={getNameLabel(outputName)}
                 shape={shapes.getStepOutputShape(step.stepId, outputName)}
-                usedBy={getStepsUsingValue(flowDefinition.steps, {
+                usedBy={stepsUsing({
                   kind: "step-output",
                   stepId: step.stepId,
                   outputName,
@@ -232,9 +252,15 @@ export const StepPanel = ({
     editor.subscribe,
     editor.getState,
   );
+  const stepsUsing = useMemo(
+    () => indexValueUses(flowDefinition.steps),
+    [flowDefinition.steps],
+  );
 
   if ("start" in subject) {
-    return <StartPanel flowDefinition={flowDefinition} />;
+    return (
+      <StartPanel flowDefinition={flowDefinition} stepsUsing={stepsUsing} />
+    );
   }
 
   const found = findStep(flowDefinition.steps, subject.stepId);
@@ -246,6 +272,7 @@ export const StepPanel = ({
       editor={editor}
       flowDefinition={flowDefinition}
       problemsByStepId={problemsByStepId}
+      stepsUsing={stepsUsing}
       step={found.step}
       inner={found.inner}
       onSelectStart={onSelectStart}
