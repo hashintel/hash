@@ -7,6 +7,7 @@ import {
 import type {
   ActionStepDefinition,
   FlowDefinition,
+  FlowInputDefinition,
   StepDefinition,
   StepInputSource,
 } from "./types.js";
@@ -173,16 +174,21 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
   let state = checkFlowDefinition(flowDefinition);
   const listeners = new Set<(change: FlowEditorChange) => void>();
 
-  const setSteps = (
-    steps: StepDefinition<string>[],
+  const setFlowDefinition = (
+    updated: FlowDefinition<string>,
     change: FlowEditorChange = { edited: true },
   ) => {
-    state = checkFlowDefinition({ ...state.flowDefinition, steps });
+    state = checkFlowDefinition(updated);
 
     for (const listener of listeners) {
       listener(change);
     }
   };
+
+  const setSteps = (
+    steps: StepDefinition<string>[],
+    change: FlowEditorChange = { edited: true },
+  ) => setFlowDefinition({ ...state.flowDefinition, steps }, change);
 
   const getStep = (stepId: string) => {
     const step = state.flowDefinition.steps.find(
@@ -246,6 +252,23 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       setSteps([...steps, setRunAfter(step, runAfter)]);
 
       return stepId;
+    },
+
+    setStepDescription: (stepId: string, description: string) => {
+      setSteps(
+        replaceStep(state.flowDefinition.steps, {
+          ...getStep(stepId),
+          description,
+        }),
+      );
+    },
+
+    /** Adds an input to the flow, which whatever starts a run supplies. A name already taken is listed as a problem. */
+    addFlowInput: (input: FlowInputDefinition) => {
+      setFlowDefinition({
+        ...state.flowDefinition,
+        inputs: [...state.flowDefinition.inputs, input],
+      });
     },
 
     moveStep: (stepId: string, position: StepPosition) => {
