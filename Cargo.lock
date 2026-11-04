@@ -4486,9 +4486,9 @@ checksum = "7454e41ff9012c00d53cf7f475c5e3afa3b91b7c90568495495e8d9bf47a1055"
 
 [[package]]
 name = "duckdb"
-version = "1.20000.0"
+version = "1.20000.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54411716279c39d685e0f3f10346ff503def53fd9b8aa8fbf4ea1db4499c312a"
+checksum = "d807ca47d4fa206f102ff568046e018fb84518eb0a0b5e65a165a2eb7bd4a7c2"
 dependencies = [
  "arrow",
  "cast",
@@ -7044,6 +7044,7 @@ dependencies = [
  "derive_more",
  "error-stack",
  "insta",
+ "percent-encoding",
  "proptest",
  "proptest-derive",
  "serde",
@@ -7079,10 +7080,13 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "tempfile",
+ "testcontainers",
+ "testcontainers-modules",
  "time",
  "tokio",
  "tracing",
  "type-system",
+ "url",
  "uuid",
 ]
 
@@ -8738,14 +8742,15 @@ checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libduckdb-sys"
-version = "1.20000.0"
+version = "1.20000.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac1dcdcfde48e11bbd46112ed3b0423acd8c644413b3891e7be8104edce7fdda"
+checksum = "0140448c472968ee5cf5ba697435deebe558b366ef1e5c080d24d9696b600725"
 dependencies = [
  "cc",
  "flate2",
  "serde",
  "serde_json",
+ "sha2 0.11.0",
  "tar",
 ]
 
