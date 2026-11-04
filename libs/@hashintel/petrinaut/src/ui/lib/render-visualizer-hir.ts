@@ -9,10 +9,16 @@ import {
   VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
   ViewElementValue,
+  visualizerSvgTag,
+  parseVisualizerSvgOptions,
   type HirValue,
   type ViewHir,
   type ViewValue,
 } from "@hashintel/petrinaut-core";
+
+import { VisualizerSvg } from "./render-visualizer-hir/visualizer-svg";
+
+export type VisualizerSize = { width: number; height: number };
 
 export type VisualizerTokens = readonly Readonly<
   Record<string, number | boolean | bigint | string>
@@ -82,10 +88,7 @@ const toAttributeValue = (
   }
 };
 
-const elementToReactNode = (
-  element: ViewElementValue,
-  fitViewport: boolean,
-): ReactNode => {
+const elementToReactNode = (element: ViewElementValue): ReactNode => {
   const { tag } = element;
   if (tag !== VIEW_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(tag)) {
     throw new Error(`\`<${tag}>\` cannot be drawn by a visualizer.`);
@@ -106,22 +109,17 @@ const elementToReactNode = (
   } else if (typeof key === "bigint") {
     props.key = String(key);
   }
-  if (fitViewport) {
-    props.width = "100%";
-    props.height = "100%";
-    props.preserveAspectRatio = "xMidYMid meet";
-  }
   return createElement(
     tag === VIEW_FRAGMENT_TAG ? Fragment : tag,
     props,
     ...element.children.map((child) =>
       // eslint-disable-next-line no-use-before-define -- mutual recursion
-      toReactNode(child, false),
+      toReactNode(child),
     ),
   );
 };
 
-const toReactNode = (value: ViewValue, fitViewport: boolean): ReactNode => {
+const toReactNode = (value: ViewValue): ReactNode => {
   if (value === null || typeof value === "boolean") {
     return null;
   }
@@ -132,12 +130,10 @@ const toReactNode = (value: ViewValue, fitViewport: boolean): ReactNode => {
     return String(value);
   }
   if (Array.isArray(value)) {
-    return (value as readonly ViewValue[]).map((child) =>
-      toReactNode(child, fitViewport),
-    );
+    return (value as readonly ViewValue[]).map((child) => toReactNode(child));
   }
   if (value instanceof ViewElementValue) {
-    return elementToReactNode(value, fitViewport);
+    return elementToReactNode(value);
   }
   return null;
 };
@@ -157,13 +153,22 @@ export const renderVisualizerHir = (
   view: ViewHir,
   tokens: VisualizerTokens,
   parameters: VisualizerParameters,
-  { fitViewport = false }: { fitViewport?: boolean } = {},
+  size: VisualizerSize,
 ): ReactNode => {
-  const picture = interpretViewHir(view, { tokens, parameters });
-  if (!(picture instanceof ViewElementValue) || picture.tag !== "svg") {
+  const picture = interpretViewHir(view, { tokens, parameters, ...size });
+  if (
+    !(picture instanceof ViewElementValue) ||
+    picture.tag !== visualizerSvgTag
+  ) {
     throw new Error(
-      "A visualizer must return a single `<svg>…</svg>` element.",
+      "A visualizer must return a single `<Visualizer.Svg>…</Visualizer.Svg>` element.",
     );
   }
-  return toReactNode(picture, fitViewport);
+  const parsed = parseVisualizerSvgOptions(picture.attributes);
+  if (!parsed.ok) throw new Error(parsed.message);
+  return createElement(
+    VisualizerSvg,
+    { key: parsed.options.navigation, options: parsed.options, size },
+    ...picture.children.map(toReactNode),
+  );
 };

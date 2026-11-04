@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Write visualizers as function bodies returning SVG, with tokens and parameters already available. Simplify the drawing options and examples while preserving legacy function wrappers and filling resizable windows with SVG background colors.
+Write visualizers as function bodies returning Visualizer.Svg, with tokens, parameters, and viewport dimensions available. Add explicit background, coordinate, and navigation options; migrate the examples and preserve legacy function wrappers.

@@ -582,7 +582,8 @@ export function generateVisualizerVirtualFiles(
           : "",
         ``,
         `export type Tokens = readonly ${sanitizedColorId ? `Color_${sanitizedColorId}` : "never"}[];`,
-        `export type VisualizerProps = { tokens: Tokens; parameters: Parameters };`,
+        `export type Visualizer = { Svg: (props: import("${VISUALIZER_JSX_PACKAGE}/jsx-runtime").VisualizerSvgProps) => ReactElement };`,
+        `export type VisualizerProps = { tokens: Tokens; parameters: Parameters; width: number; height: number };`,
         `export type VisualizerComponent = (props: VisualizerProps) => ReactElement;`,
         `export type Visualization = (component: VisualizerComponent) => VisualizerComponent;`,
       ].join("\n"),
@@ -593,6 +594,11 @@ export function generateVisualizerVirtualFiles(
     // or export-less file a module, so its `Visualization` binding never
     // collides with another place's in the script scope.
     const defsModule = defsPath.replace(/\.d\.ts$/u, "");
+    const ambientPrefix = [
+      `const Visualizer = /** @type {import("${defsModule}").Visualizer} */ (/** @type {unknown} */ (undefined));`,
+      `/** @type {number} */ const width = 0;`,
+      `/** @type {number} */ const height = 0;`,
+    ];
     files.set(
       getItemFilePath("place-visualizer-code", { placeId: place.id }),
       applyFormWrapper({
@@ -603,6 +609,7 @@ export function generateVisualizerVirtualFiles(
             suffix: "",
             prefix: [
               `export {};`,
+              ...ambientPrefix,
               `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
               `  /** @type {unknown} */ (undefined)`,
               `);`,
@@ -612,6 +619,7 @@ export function generateVisualizerVirtualFiles(
           body: {
             prefix: [
               `export {};`,
+              ...ambientPrefix,
               `/** @type {import("${defsModule}").VisualizerComponent} */`,
               `const __visualizer = ({ tokens, parameters }) => {`,
               ``,

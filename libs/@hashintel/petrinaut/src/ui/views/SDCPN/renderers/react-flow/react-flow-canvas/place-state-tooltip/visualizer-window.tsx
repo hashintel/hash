@@ -97,11 +97,6 @@ const contentStyle = css({
   minHeight: "[0]",
   overflow: "auto",
   borderRadius: "[inherit]",
-  "& > svg": {
-    width: "[100% !important]",
-    height: "[100% !important]",
-    display: "block",
-  },
 });
 
 const connectorStyle = css({
@@ -141,7 +136,9 @@ export const VisualizerWindow = ({
   onEdit?: () => void;
   onPointerEnter?: PointerEventHandler<HTMLDivElement>;
   onPointerLeave?: PointerEventHandler<HTMLDivElement>;
-  children: ReactNode;
+  children:
+    | ReactNode
+    | ((size: { width: number; height: number }) => ReactNode);
 }) => {
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
@@ -218,14 +215,22 @@ export const VisualizerWindow = ({
         {...getHandleProps("move")}
         onFocusCapture={onActivate}
         onPointerDownCapture={(event) => {
-          if (event.button === 0) onActivate();
+          if (event.button === 0) {
+            onActivate();
+            if (
+              event.target instanceof Element &&
+              event.target.closest("[data-visualizer-content]")
+            )
+              onKeepOpen();
+          }
         }}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
-        onKeyDown={getHandleProps("move").onKeyDown}
-        onKeyDownCapture={(event) => {
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          getHandleProps("move").onKeyDown?.(event);
           if (event.key !== "Escape") return;
           event.preventDefault();
           event.stopPropagation();
@@ -278,7 +283,14 @@ export const VisualizerWindow = ({
             onClick={onClose}
           />
         </div>
-        <div className={contentStyle}>{children}</div>
+        <div className={contentStyle} data-visualizer-content>
+          {typeof children === "function"
+            ? children({
+                width: Math.max(1, layout.size.width - 2),
+                height: Math.max(1, layout.size.height - 2),
+              })
+            : children}
+        </div>
         <FloatingResizeHandles
           label={`${name} visualizer`}
           getHandleProps={(direction) => ({

@@ -43,7 +43,7 @@ const width = 380;
 const height = 170;
 const visible = tokens.slice(0, 20);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#eff6ff" }}>
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#eff6ff">
     <text x="18" y="28" fill="#1e3a8a" fontSize="18" fontWeight="700">Release queue</text>
     <text x="18" y="50" fill="#2563eb" fontSize="13">{tokens.length} waiting; hotter cards are riskier</text>
     {visible.map((deployment, index) => {
@@ -59,7 +59,7 @@ return (
         </g>
       );
     })}
-  </svg>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
       },
@@ -80,7 +80,7 @@ const width = 380;
 const height = 170;
 const visible = tokens.slice(0, 10);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#fff1f2" }}>
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#fff1f2">
     <text x="18" y="30" fill="#991b1b" fontSize="18" fontWeight="700">Incident bridge</text>
     <text x="18" y="52" fill="#dc2626" fontSize="13">Inhibits new deployments while any card is present</text>
     {visible.length === 0 && <text x="18" y="98" fill="#16a34a" fontSize="18">No active incident — deploy gate open</text>}
@@ -96,7 +96,7 @@ return (
         </g>
       );
     })}
-  </svg>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
       },
@@ -121,7 +121,7 @@ const age = deployment ? deployment.age : 0;
 const size = deployment ? deployment.size : 0;
 const progress = deployment ? Math.max(0.08, Math.min(1, age / Math.max(1, size * 6))) : 0;
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#ecfeff" }}>
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#ecfeff">
     <text x="18" y="30" fill="#155e75" fontSize="18" fontWeight="700">Deployment lane</text>
     {!deployment && <text x="18" y="88" fill="#0891b2" fontSize="18">Idle — ready for next safe release</text>}
     {deployment && (
@@ -133,7 +133,7 @@ return (
         <text x="24" y="130" fill="#155e75" fontSize="14">size {size.toFixed(2)} · risk {Math.round(risk * 100)}% · age {age.toFixed(1)}s</text>
       </g>
     )}
-  </svg>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
       },
@@ -153,7 +153,7 @@ const width = 360;
 const height = 160;
 const visible = tokens.slice(-24);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#f0fdf4" }}>
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#f0fdf4">
     <text x="18" y="30" fill="#166534" fontSize="18" fontWeight="700">Successful releases</text>
     <text x="18" y="54" fill="#16a34a" fontSize="13">{tokens.length} completed deployments</text>
     {visible.map((deployment, index) => {
@@ -166,7 +166,7 @@ return (
         </g>
       );
     })}
-  </svg>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
       },
@@ -185,7 +185,7 @@ const width = 340;
 const height = 150;
 const visible = tokens.slice(-18);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#f8fafc" }}>
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#f8fafc">
     <text x="18" y="30" fill="#334155" fontSize="18" fontWeight="700">Closed incidents</text>
     <text x="18" y="52" fill="#64748b" fontSize="13">{tokens.length} resolved tickets</text>
     {visible.map((incident, index) => {
@@ -198,7 +198,7 @@ return (
         </g>
       );
     })}
-  </svg>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
       },
@@ -217,7 +217,7 @@ const width = 360;
 const height = 160;
 const visible = tokens.slice(-18);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#1f2937" }}>
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#1f2937">
     <text x="18" y="30" fill="#fecaca" fontSize="18" fontWeight="700">Failed releases</text>
     <text x="18" y="54" fill="#fca5a5" fontSize="13">{tokens.length} rollback / incident-generating deploys</text>
     {visible.map((deployment, index) => {
@@ -232,7 +232,7 @@ return (
         </g>
       );
     })}
-  </svg>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
         x: 870,

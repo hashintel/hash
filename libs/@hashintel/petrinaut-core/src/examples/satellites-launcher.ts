@@ -40,21 +40,16 @@ export const probabilisticSatellitesSDCPN: {
         differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
         visualizerCode: `const { satellite_radius, planet_radius } = parameters;
 
-const width = 800;
-const height = 600;
-
-const centerX = width / 2;
-const centerY = height / 2;
-
 return (
-  <svg
-    viewBox={\`0 0 \${width} \${height}\`}
-    style={{ backgroundColor: "#000014" }}
+  <Visualizer.Svg
+    viewBox="-400 -300 800 600"
+    navigation="pan-zoom"
+    backgroundColor="#000014"
   >
     {/* Planet at center */}
     <circle
-      cx={centerX}
-      cy={centerY}
+      cx={0}
+      cy={0}
       r={planet_radius}
       fill="#2196f3"
       stroke="#1976d2"
@@ -63,17 +58,12 @@ return (
 
     {/* Satellites */}
     {tokens.map(({ x, y, direction, velocity }, index) => {
-      // Convert satellite coordinates to screen coordinates
-      // Assuming satellite coordinates are relative to planet center
-      const screenX = centerX + x;
-      const screenY = centerY + y;
-
       return (
         <g key={index}>
           {/* Satellite */}
           <circle
-            cx={screenX}
-            cy={screenY}
+            cx={x}
+            cy={y}
             r={satellite_radius}
             fill="#ff5722"
             stroke="#d84315"
@@ -83,10 +73,10 @@ return (
           {/* Velocity vector indicator */}
           {velocity > 0 && (
             <line
-              x1={screenX}
-              y1={screenY}
-              x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}
-              y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}
+              x1={x}
+              y1={y}
+              x2={x + Math.cos(direction) * Math.log(velocity) * 10}
+              y2={y + Math.sin(direction) * Math.log(velocity) * 10}
               stroke="#ffc107"
               strokeWidth="2"
               markerEnd="url(#arrowhead)"
@@ -115,7 +105,7 @@ return (
         />
       </marker>
     </defs>
-  </svg>
+  </Visualizer.Svg>
 );`,
         x: 1 * GRID_SIZE,
         y: 6 * GRID_SIZE,

@@ -22,6 +22,7 @@ import { detectUserCodeForm } from "../hir/user-code-form";
 import { rejectTypeScriptSyntax } from "./reject-typescript-syntax";
 import { VIEW_ELEMENT_ATTRIBUTES, VIEW_ELEMENT_TAGS } from "./view-elements";
 import { VIEW_FRAGMENT_TAG } from "./view-hir";
+import { visualizerSvgTag, visualizerSvgAttributes } from "./visualizer-svg";
 
 import type { HirDiagnostic, HirExpr } from "../hir/hir";
 import type {
@@ -111,7 +112,7 @@ class ViewLowering {
   lowerBody(): ViewHir {
     const scope = this.expressions.newScope();
     scope.locals.add(PROPS_PARAMETER_NAME);
-    for (const name of ["tokens", "parameters"]) {
+    for (const name of ["tokens", "parameters", "width", "height"]) {
       scope.destructuredFields.set(name, PROPS_PARAMETER_NAME);
     }
     return {
@@ -180,7 +181,7 @@ class ViewLowering {
       this.expressions.fail(
         component,
         "hir:missing-function",
-        `\`${CONSTRUCTOR_NAME}\` expects a function argument, e.g. \`({ tokens, parameters }) => <svg>…</svg>\`.`,
+        `\`${CONSTRUCTOR_NAME}\` expects a function argument, e.g. \`({ tokens, parameters }) => <Visualizer.Svg>…</Visualizer.Svg>\`.`,
       );
     }
     if (component.parameters.length > 1) {
@@ -199,7 +200,16 @@ class ViewLowering {
           PROPS_PARAMETER_NAME,
           scope,
         )
-      : null;
+      : {
+          name: PROPS_PARAMETER_NAME,
+          span: this.expressions.spanOf(component),
+        };
+    scope.locals.add(props.name);
+    for (const name of ["width", "height"]) {
+      if (!scope.locals.has(name) && !scope.destructuredFields.has(name)) {
+        scope.destructuredFields.set(name, props.name);
+      }
+    }
 
     const body = ts.isBlock(component.body)
       ? this.expressions.lowerBlockAs(component.body, scope, this.builder)
@@ -311,28 +321,27 @@ class ViewLowering {
     }
     const opening = ts.isJsxElement(node) ? node.openingElement : node;
     const { tagName } = opening;
-    if (!ts.isIdentifier(tagName)) {
+    const tag = ts.isIdentifier(tagName)
+      ? tagName.text
+      : ts.isPropertyAccessExpression(tagName) &&
+          ts.isIdentifier(tagName.expression) &&
+          tagName.expression.text === "Visualizer" &&
+          tagName.name.text === "Svg"
+        ? visualizerSvgTag
+        : tagName.getText(this.sourceFile);
+    if (tag !== visualizerSvgTag && !VIEW_ELEMENT_TAGS.has(tag)) {
       this.expressions.fail(
         tagName,
         "hir:unknown-element",
-        "Only plain element names like `svg` or `circle` can be drawn.",
+        tag === "svg"
+          ? "Use <Visualizer.Svg> as the visualizer root; <svg> is not supported."
+          : `\`<${tag}>\` cannot be drawn by a visualizer. Use Visualizer.Svg with supported SVG drawing elements.`,
       );
     }
-    const tag = tagName.text;
-    if (/^[A-Z]/u.test(tag)) {
-      this.expressions.fail(
-        tagName,
-        "hir:unknown-element",
-        `\`<${tag}>\` is a component; a visualizer draws elements such as \`<svg>\`, \`<g>\` and \`<circle>\` only.`,
-      );
-    }
-    if (!VIEW_ELEMENT_TAGS.has(tag)) {
-      this.expressions.fail(
-        tagName,
-        "hir:unknown-element",
-        `\`<${tag}>\` cannot be drawn by a visualizer. Images, links, scripts and embedded content are not available.`,
-      );
-    }
+    const allowedAttributes =
+      tag === visualizerSvgTag
+        ? visualizerSvgAttributes
+        : VIEW_ELEMENT_ATTRIBUTES;
 
     const attributes: ViewAttribute[] = [];
     let key: HirExpr | undefined;
@@ -352,7 +361,7 @@ class ViewLowering {
         );
       }
       const name = property.name.text;
-      if (name !== "key" && !VIEW_ELEMENT_ATTRIBUTES.has(name)) {
+      if (name !== "key" && !allowedAttributes.has(name)) {
         this.expressions.fail(
           property.name,
           "hir:unknown-element-attribute",

@@ -184,16 +184,14 @@ export const supplyChainWithDisruption: {
         visualizerCode: `// Inbound lanes: each shipment is a truck whose horizontal position shows
 // how close it is to arriving (right edge = ETA 0). Blue = Supplier A,
 // purple = Supplier B (decoded from the token's \`source\` field).
-const width = 520;
-const height = 170;
 const maxEta = Math.max(1, parameters.max_eta_visual || 10);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#eff6ff" }}>
+  <Visualizer.Svg backgroundColor="#eff6ff">
     <text x="18" y="26" fontSize="18" fontWeight="700" fill="#1e3a8a">Inbound lanes</text>
-    <line x1="60" y1="82" x2="470" y2="82" stroke="#93c5fd" strokeWidth="8" strokeLinecap="round" />
+    <line x1="60" y1={height / 2} x2={width - 50} y2={height / 2} stroke="#93c5fd" strokeWidth="8" strokeLinecap="round" />
     {tokens.slice(0, 18).map((t, i) => {
-      const x = 60 + (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * 410;
-      const y = 58 + (i % 3) * 24;
+      const x = 60 + (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * (width - 110);
+      const y = height / 2 - 24 + (i % 3) * 24;
       const color = t.source < 1.5 ? "#2563eb" : "#7c3aed";
       return (
         <g key={i}>
@@ -203,8 +201,8 @@ return (
         </g>
       );
     })}
-    <text x="18" y="152" fontSize="14" fill="#475569">{tokens.length} shipments moving toward dock</text>
-  </svg>
+    <text x="18" y={height - 18} fontSize="14" fill="#475569">{tokens.length} shipments moving toward dock</text>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
         x: 405,
@@ -222,16 +220,16 @@ return (
 // progress (toward completion) and the % label is current quality; the bar
 // turns green when quality is above the minimum and red when it has decayed
 // below it (i.e. the batch is heading for scrap).
-const width = 520;
-const height = 170;
+const columns = Math.max(1, Math.floor((width - 48) / 68));
+const rows = Math.max(1, Math.floor((height - 80) / 52));
 const maxTime = Math.max(1, parameters.production_time_mean || 3);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#f0fdf4" }}>
+  <Visualizer.Svg backgroundColor="#f0fdf4">
     <text x="18" y="26" fontSize="18" fontWeight="700" fill="#14532d">Factory WIP</text>
-    {tokens.slice(0, 14).map((b, i) => {
+    {tokens.slice(0, columns * rows).map((b, i) => {
       const progress = 1 - Math.min(maxTime, Math.max(0, b.processing_left)) / maxTime;
-      const x = 24 + (i % 7) * 68;
-      const y = 46 + Math.floor(i / 7) * 52;
+      const x = 24 + (i % columns) * 68;
+      const y = 46 + Math.floor(i / columns) * 52;
       const fill = b.quality >= parameters.min_quality ? "#22c55e" : "#ef4444";
       return (
         <g key={i}>
@@ -241,8 +239,8 @@ return (
         </g>
       );
     })}
-    <text x="18" y="154" fontSize="14" fill="#166534">{tokens.length} batches being processed</text>
-  </svg>
+    <text x="18" y={height - 18} fontSize="14" fill="#166534">{tokens.length} batches being processed</text>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
         x: 1515,
@@ -259,22 +257,22 @@ return (
         visualizerCode: `// Customer queue: one dot per open order. Red = past its promised lead time
 // (late), orange = on-time VIP, pale orange = on-time standard. The bottom
 // bar grows with the queue length.
-const width = 520;
-const height = 170;
+const columns = Math.max(1, Math.floor((width - 48) / 23));
+const rows = Math.max(1, Math.floor((height - 100) / 34));
 const urgent = tokens.filter(o => o.age > o.promised_lead_time).length;
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#fff7ed" }}>
+  <Visualizer.Svg backgroundColor="#fff7ed">
     <text x="18" y="26" fontSize="18" fontWeight="700" fill="#9a3412">Customer queue</text>
-    {tokens.slice(0, 40).map((o, i) => {
-      const x = 24 + (i % 20) * 23;
-      const y = 48 + Math.floor(i / 20) * 34;
+    {tokens.slice(0, columns * rows).map((o, i) => {
+      const x = 24 + (i % columns) * 23;
+      const y = 48 + Math.floor(i / columns) * 34;
       const late = o.age > o.promised_lead_time;
       const fill = late ? "#dc2626" : (o.priority > 0.5 ? "#f97316" : "#fdba74");
       return <circle key={i} cx={x} cy={y} r="8" fill={fill} stroke="#7c2d12" strokeWidth="1" />;
     })}
-    <text x="18" y="134" fontSize="14" fill="#9a3412">{tokens.length} open orders · {urgent} late</text>
-    <rect x="18" y="145" width={Math.min(480, tokens.length * 8)} height="10" rx="5" fill="#fb923c" />
-  </svg>
+    <text x="18" y={height - 36} fontSize="14" fill="#9a3412">{tokens.length} open orders · {urgent} late</text>
+    <rect x="18" y={height - 25} width={Math.min(width - 36, tokens.length * 8)} height="10" rx="5" fill="#fb923c" />
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
         x: 2085,
@@ -290,19 +288,17 @@ return (
         differentialEquationId: "dyn_order_age",
         visualizerCode: `// Backorder heat: one bar per backorder, taller the longer it has waited.
 // Dark red bars are VIP orders. Tall bars signal customers about to cancel.
-const width = 520;
-const height = 150;
 const maxAge = tokens.reduce((m, o) => Math.max(m, o.age), 0);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#fef2f2" }}>
+  <Visualizer.Svg backgroundColor="#fef2f2">
     <text x="18" y="26" fontSize="18" fontWeight="700" fill="#991b1b">Backorder heat</text>
-    {tokens.slice(0, 30).map((o, i) => {
-      const h = Math.min(90, 12 + o.age * 6);
+    {tokens.slice(0, Math.max(1, Math.floor((width - 44) / 16))).map((o, i) => {
+      const h = Math.min(height - 70, 12 + o.age * 6);
       const x = 22 + i * 16;
-      return <rect key={i} x={x} y={124 - h} width="11" height={h} rx="3" fill={o.priority > 0.5 ? "#7f1d1d" : "#ef4444"} opacity="0.85" />;
+      return <rect key={i} x={x} y={height - 30 - h} width="11" height={h} rx="3" fill={o.priority > 0.5 ? "#7f1d1d" : "#ef4444"} opacity="0.85" />;
     })}
-    <text x="18" y="142" fontSize="14" fill="#991b1b">{tokens.length} waiting · oldest {maxAge.toFixed(1)} days</text>
-  </svg>
+    <text x="18" y={height - 18} fontSize="14" fill="#991b1b">{tokens.length} waiting · oldest {maxAge.toFixed(1)} days</text>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
         x: 2640,
@@ -318,16 +314,14 @@ return (
         differentialEquationId: "dyn_shipment_eta",
         visualizerCode: `// Last-mile deliveries: outbound shipments (vans) move left-to-right as
 // their ETA counts down to 0, at which point they are delivered (or lost).
-const width = 520;
-const height = 150;
 const maxEta = Math.max(1, parameters.outbound_lead_time * 2 || 3);
 return (
-  <svg viewBox={\`0 0 \${width} \${height}\`} style={{ backgroundColor: "#f8fafc" }}>
+  <Visualizer.Svg backgroundColor="#f8fafc">
     <text x="18" y="26" fontSize="18" fontWeight="700" fill="#334155">Last-mile deliveries</text>
-    <line x1="55" y1="82" x2="470" y2="82" stroke="#cbd5e1" strokeWidth="7" strokeLinecap="round" />
+    <line x1="55" y1={height / 2} x2={width - 50} y2={height / 2} stroke="#cbd5e1" strokeWidth="7" strokeLinecap="round" />
     {tokens.slice(0, 20).map((t, i) => {
-      const x = 55 + (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * 415;
-      const y = 60 + (i % 2) * 30;
+      const x = 55 + (1 - Math.min(maxEta, Math.max(0, t.eta)) / maxEta) * (width - 105);
+      const y = height / 2 - 15 + (i % 2) * 30;
       return (
         <g key={i}>
           <rect x={x - 10} y={y - 7} width="20" height="14" rx="3" fill="#0f766e" />
@@ -335,8 +329,8 @@ return (
         </g>
       );
     })}
-    <text x="18" y="136" fontSize="14" fill="#475569">{tokens.length} customer shipments in transit</text>
-  </svg>
+    <text x="18" y={height - 18} fontSize="14" fill="#475569">{tokens.length} customer shipments in transit</text>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
         x: 3195,
@@ -354,15 +348,15 @@ return (
 const health = Math.max(0, Math.min(1, m.health));
 const wear = Math.max(0, Math.min(1, m.wear));
 return (
-  <svg viewBox="0 0 360 130" style={{ backgroundColor: "#f8fafc" }}>
+  <Visualizer.Svg backgroundColor="#f8fafc">
     <text x="18" y="26" fontSize="17" fontWeight="700" fill="#334155">Machine condition</text>
-    <rect x="26" y="48" width="260" height="22" rx="11" fill="#e2e8f0" />
-    <rect x="26" y="48" width={260 * health} height="22" rx="11" fill={health > 0.5 ? "#22c55e" : "#f59e0b"} />
-    <text x="300" y="65" fontSize="13" fill="#334155">health</text>
-    <rect x="26" y="86" width="260" height="18" rx="9" fill="#e2e8f0" />
-    <rect x="26" y="86" width={260 * wear} height="18" rx="9" fill="#64748b" />
-    <text x="300" y="100" fontSize="13" fill="#334155">wear</text>
-  </svg>
+    <rect x="26" y={height * 0.4} width={width - 100} height="22" rx="11" fill="#e2e8f0" />
+    <rect x="26" y={height * 0.4} width={(width - 100) * health} height="22" rx="11" fill={health > 0.5 ? "#22c55e" : "#f59e0b"} />
+    <text x={width - 60} y={height * 0.4 + 17} fontSize="13" fill="#334155">health</text>
+    <rect x="26" y={height * 0.7} width={width - 100} height="18" rx="9" fill="#e2e8f0" />
+    <rect x="26" y={height * 0.7} width={(width - 100) * wear} height="18" rx="9" fill="#64748b" />
+    <text x={width - 60} y={height * 0.7 + 14} fontSize="13" fill="#334155">wear</text>
+  </Visualizer.Svg>
 );`,
         showAsInitialState: true,
         x: 960,

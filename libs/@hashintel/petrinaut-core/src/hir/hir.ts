@@ -48,7 +48,7 @@ export type HirNodeId = number;
  *   *body* ending in `return <record keyed by place name>`, with the same
  *   ambient bindings.
  *
- * `visualizer` — a place visualizer: a function body returning SVG with
+ * `visualizer` — a place visualizer: a function body returning Visualizer.Svg with
  *   ambient `tokens` and `parameters` (legacy `Visualization(...)` also works),
  *   JavaScript with JSX, lowered to the view HIR over the place's tokens;
  *   only its expressions are HIR.

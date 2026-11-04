@@ -179,12 +179,15 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
             openPlaceVisualizer(nodeId);
           }}
         >
-          <Suspense fallback={<VisualizerLoading />}>
-            <PlaceStateVisualization
-              place={place}
-              placeType={placeType ?? null}
-            />
-          </Suspense>
+          {(size) => (
+            <Suspense fallback={<VisualizerLoading />}>
+              <PlaceStateVisualization
+                size={size}
+                place={place}
+                placeType={placeType ?? null}
+              />
+            </Suspense>
+          )}
         </VisualizerWindow>
       )}
       {showTrigger && (

@@ -676,3 +676,10 @@ export {
   parseConstraintDocumentUri,
   parseDocumentUri,
 } from "./lsp/lib/document-uris";
+
+export {
+  visualizerSvgTag,
+  visualizerSvgAttributes,
+  parseVisualizerSvgOptions,
+  type VisualizerSvgOptions,
+} from "./view-hir/visualizer-svg";

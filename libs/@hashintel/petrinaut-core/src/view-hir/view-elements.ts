@@ -17,7 +17,6 @@
 
 /** SVG drawing, container, text and paint-server elements. */
 export const VIEW_ELEMENT_TAGS: ReadonlySet<string> = new Set([
-  "svg",
   "g",
   "defs",
   "symbol",

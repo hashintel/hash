@@ -91,31 +91,31 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 
 ## Visualizer
 
-A visualizer renders a custom view of a place's tokens during simulation. Write a JavaScript function body with JSX that returns one `<svg>` element.
+A visualizer renders a custom view of a place's tokens during simulation. Write a JavaScript function body with JSX that returns one `<Visualizer.Svg>` element.
 
 **To enable:** select a place, then turn on the **Visualizer** switch in its properties. Click the **Visualizer** header to expand its code editor.
 
 ```jsx
 return (
-  <svg viewBox="0 0 800 600" style={{ backgroundColor: "#eff6ff" }}>
+  <Visualizer.Svg backgroundColor="#eff6ff">
     {tokens.map(({ x, y }, index) => (
-      <circle key={index} cx={x} cy={y} r={5} fill="red" />
+      <circle key={index} cx={x * width} cy={y * height} r={5} fill="red" />
     ))}
-  </svg>
+  </Visualizer.Svg>
 );
 ```
 
-`tokens` (this place's token objects) and `parameters` (global parameter values) are already in scope. No function declaration or export is needed. Existing `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported; their return value must also be one `<svg>`. The preview renders in a floating Canvas window and updates live as token state changes.
+`tokens` (this place's token objects), `parameters` (global parameter values), `width`, and `height` are already in scope. Dimensions are the window's drawable width and height in screen pixels, independent of Canvas zoom. In the example above, token coordinates range from 0 to 1. Local constants can shadow the ambient dimensions when a drawing needs a fixed coordinate system. No function declaration or export is needed. Existing `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported; their return value must also be one `<Visualizer.Svg>`. The preview renders in a floating Canvas window and updates live as token state changes.
 
 The code editor checks a visualizer as you type. `tokens` is typed from the place's type and `parameters` from the net's parameters, so completion and hover show the attributes and values available, and a misspelt SVG attribute, an attribute the type does not have, or a name such as `window` or `fetch` that visualizers cannot use is underlined in the editor and listed in the [Diagnostics](#diagnostics) tab under the place. Visualizer errors never block a simulation: a visualizer with errors draws nothing while the rest of the net runs.
 
-Visualizer code is JavaScript: the types are inferred, and a type annotation or a cast is an error. Like the other code surfaces, a visualizer is compiled by Petrinaut's own compiler to a restricted subset, so it stays a pure function of its tokens and parameters:
+Visualizer code is JavaScript: the types are inferred, and a type annotation or a cast is an error. Like the other code surfaces, a visualizer is compiled by Petrinaut's own compiler to a restricted subset, so it stays a pure function of its tokens, parameters, and viewport dimensions:
 
 - `const` bindings, destructuring, ternaries, `&&` and `||`, arithmetic, comparisons, `Math.*`, template literals and string concatenation.
 - `.map`, `.filter`, `.slice` and `.reduce` over tokens, `.length`, and `.toFixed` for numbers.
-- SVG elements such as `svg`, `g`, `rect`, `circle`, `line`, `path`, `polygon`, `text`, `defs`, `marker` and gradients, with their geometry, paint and text attributes, `key`, and a `style` object of common properties. Use `<text>` and `<tspan>` for labels. Fragments are allowed inside the SVG, but cannot replace its root.
+- SVG drawing elements such as `g`, `rect`, `circle`, `line`, `path`, `polygon`, `text`, `defs`, `marker` and gradients, with their geometry, paint and text attributes, `key`, and a `style` object of common properties. Use `<text>` and `<tspan>` for labels. Fragments are allowed inside the SVG, but cannot replace its root.
 
-Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
+Native `<svg>` elements, including nested ones, are not supported. `Visualizer.Svg` must be the single root on every return path and cannot be nested. Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
 
 Point at or select a place, then hover or focus **Show state visualizer** to open its Canvas preview after 15 milliseconds. It chooses an initial position near the place. Before a run it draws the initial marking; during a run it draws the displayed simulation frame.
 
@@ -129,11 +129,22 @@ Drag anywhere on the picture to move it. A following window remembers its new di
 
 A window opens at 360 × 240 pixels, with limits of 180 × 120 to 800 × 600. It fits into a smaller available area when necessary.
 
-Set `viewBox` to define the drawing's coordinates. The drawing stays centered and scales proportionally, so shapes and text keep their proportions. Petrinaut controls the root SVG's width, height and window corners; leave those out of your code. Geometry attributes such as a rectangle's `width` and `height` still control its shape.
+`Visualizer.Svg` controls the SVG viewport. Its root properties are:
 
-Set `style={{ backgroundColor: "#eff6ff" }}` on the root SVG to color the whole window, including the space around the drawing. SVG has no background-color attribute, so keep this CSS style. A background rectangle only colors the drawing area; replace it with the SVG background style in existing visualizer code.
+| Property          | Default      | Behavior                                                                                                                                                  |
+| ----------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `backgroundColor` | Transparent  | Colors the whole window, including space around the drawing.                                                                                              |
+| `origin`          | `"top-left"` | `"center"` places coordinate `(0, 0)` at the center. Positive Y points down in both modes.                                                                |
+| `viewBox`         | Automatic    | Optional `"x y width height"` bounds for an existing drawing. It fits proportionally without distorting shapes or text. Use either `viewBox` or `origin`. |
+| `navigation`      | `"none"`     | `"pan-zoom"` enables scene exploration independently of the Canvas and window position.                                                                   |
 
-Old CSS layout and interaction styles, including `width`, `height`, `borderRadius`, `margin`, `padding` and `cursor`, are accepted but ignored.
+Without `viewBox`, one drawing unit is one screen pixel. Use ambient `width` and `height` to make a chart fill its window as it resizes, as in the Supply Chain example. With `origin="center"`, a circle at `(0, 0)` remains centered. An explicit `viewBox` is useful for fixed drawings that should scale proportionally instead of rearranging.
+
+Use `backgroundColor="#eff6ff"` directly on `Visualizer.Svg`; the background always fills the window and stays still during scene navigation. Remove old root `style`, `width`, `height`, `borderRadius` and `preserveAspectRatio` attributes: they are not supported on this root. Geometry attributes such as a rectangle's `width` and `height` still control its shape. SVG children keep their existing drawing attributes and painting styles.
+
+For a scene such as Satellites, set `navigation="pan-zoom"`. Hover or focus the window to reveal **Explore** at the bottom-left. Turn it on to drag the scene, scroll to zoom around the pointer, or pinch with two fingers. The invisible strip across the top still moves the window. With the scene focused, arrow keys pan, Shift takes larger steps, +/− zoom, and 0 or **Reset view** restores the initial framing. Escape leaves Explore first; a second Escape closes the window.
+
+A navigable scene retains its center and zoom through simulation updates, successful code edits, and window resizing. Resizing reveals more or less of the scene. `viewBox` supplies the initial and reset framing; it does not refit the camera on each frame. Ambient `width` and `height` remain window dimensions, not camera dimensions.
 
 While new code compiles, the previous drawing stays visible with a small loading indicator in the bottom-right corner. The window keeps its size throughout loading and compilation.
 

@@ -10,20 +10,21 @@ export function generateDefaultVisualizerCode(type: Color): string {
   return `// This function defines how to visualize the tokens in the place of type "${
     type.name
   }".
-// \`tokens\` holds this place's tokens; \`parameters\` holds the net's parameters.
-return <svg viewBox="0 0 800 600">
+// \`tokens\` and \`parameters\` hold the model state. \`width\` and \`height\` track the window.
+const columns = Math.max(1, Math.floor(width / 40));
+return <Visualizer.Svg>
   {tokens.map(({ ${type.elements.map((el) => el.name).join(", ")} }, index) => (
     // Example: simple circle for each token
-    <circle />
+    <circle key={index} cx={20 + (index % columns) * 40} cy={20 + Math.floor(index / columns) * 40} r={14} fill="#2563eb" />
   ))}
-</svg>;`;
+</Visualizer.Svg>;`;
 }
 
 export const DEFAULT_VISUALIZER_CODE = `// This function defines how to visualize the tokens in the place.
-// \`tokens\` holds this place's tokens; \`parameters\` holds the net's parameters.
-return <svg viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="40" stroke="black" strokeWidth="3" fill="red" />
-</svg>;`;
+// \`tokens\` and \`parameters\` hold the model state. \`width\` and \`height\` track the window.
+return <Visualizer.Svg origin="center">
+  <circle r={Math.min(width, height) * 0.4} stroke="black" strokeWidth="3" fill="red" />
+</Visualizer.Svg>;`;
 
 export function generateDefaultDifferentialEquationCode(type: Color): string {
   const realElements = type.elements.filter(

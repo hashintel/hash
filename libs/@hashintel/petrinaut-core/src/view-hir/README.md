@@ -6,7 +6,7 @@ role: Lowers place visualizers (JavaScript with JSX) to a view tree over HIR exp
 # Petrinaut view HIR
 
 A place visualizer is a JavaScript function body with JSX and ambient
-`tokens` and `parameters`. Legacy `Visualization(...)` modules also work.
+`tokens`, `parameters`, `width`, and `height`. Legacy `Visualization(...)` modules also work.
 Both forms lower to the view HIR: a tree of elements, and of the conditionals and
 comprehensions that choose or repeat them, whose every value is an
 expression of the expression HIR (`../hir`) under the `visualizer` surface.
@@ -19,7 +19,7 @@ visualizer code (JSX)
                           every other expression -> ../hir/lower-typescript.ts
   -> view-hir.ts
   -> check-view.ts        allowlists, attribute and child types, the root is
-                          one SVG; expressions -> ../hir/typecheck.ts
+                          one Visualizer.Svg; expressions -> ../hir/typecheck.ts
   -> interpret-view.ts    element values; expressions -> ../hir/interpret.ts
   -> the editor's renderer
 ```
@@ -57,7 +57,7 @@ expression lowering, checker and interpreter, and apply to no other surface.
 The root is `ViewHir`: the props parameter (`({ tokens, parameters })`) and
 the body. Bare bodies bind the same props without a source wrapper, keeping
 diagnostic spans in the original code. `check-view.ts` requires every return
-path to produce a single SVG element.
+path to produce a single `Visualizer.Svg` element. This builtin root is distinct from SVG drawing elements. Native `svg` and nested visualizer roots are rejected. The root tag identifies the renderer; additional visualizer types can define their own lowering and rendering rules without widening the SVG child allowlist.
 
 ## What a visualizer may draw
 
@@ -68,6 +68,8 @@ are refused by the lowering, and `url(...)` in a value is accepted only as a
 fragment reference, `url(#marker)`. The renderer applies the same sets again
 before anything reaches the DOM, since attribute values may be computed at
 run time.
+
+`visualizer-svg.ts` defines the SVG root properties and validates both literal and computed values. The editor supplies viewport dimensions when interpreting a frame, owns the actual SVG size, and keeps the optional scene camera outside the compiled view. Resizing does not trigger compilation.
 
 ## Main modules
 
@@ -81,3 +83,5 @@ run time.
 | `interpret-view.ts`           | Evaluates a view into `ViewElementValue` trees for the renderer.        |
 | `view-elements.ts`            | The elements, attributes and style properties a visualizer may draw.    |
 | `visualizer.ts`               | Lowers and checks one visualizer; the worker's `sdcpn/lowerVisualizer`. |
+
+`Visualizer.Svg` accepts `backgroundColor`, `origin`, `viewBox`, and `navigation`. An explicit viewBox and an origin are mutually exclusive. The editor fits fixed drawings proportionally and keeps a navigable scene's camera through frame and code updates.

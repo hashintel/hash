@@ -226,7 +226,7 @@ export const placeSchema = z
     }),
     visualizerCode: z.string().optional().meta({
       description:
-        'Optional JavaScript function body with JSX returning one `<svg viewBox="0 0 800 600">…</svg>`. `tokens` holds this place\'s current tokens; `parameters` is keyed by each parameter\'s `variableName`. No function wrapper or export is needed. Use `style={{ backgroundColor: "#eff6ff" }}` for the background; Petrinaut controls the SVG size and window corners. SVG elements only; no imports, hooks or event handlers. Legacy `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported.',
+        'Optional JavaScript function body with JSX returning one `<Visualizer.Svg>…</Visualizer.Svg>`. `tokens` holds this place\'s current tokens; `parameters` is keyed by each parameter\'s `variableName`. Ambient `width` and `height` are the drawable window dimensions. Optional root properties: `origin` ("top-left" or "center"), `viewBox` (instead of origin), and `navigation` ("none" or "pan-zoom"). Native `<svg>` is forbidden. No function wrapper or export is needed. Use `backgroundColor="#eff6ff"` for the background; Petrinaut controls the SVG size and window corners. SVG elements only; no imports, hooks or event handlers. Legacy `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported.',
     }),
     showAsInitialState: z.boolean().optional().meta({
       description:

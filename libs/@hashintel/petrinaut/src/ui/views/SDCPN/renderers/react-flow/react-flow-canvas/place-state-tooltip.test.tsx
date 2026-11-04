@@ -30,7 +30,7 @@ vi.mock("./place-state-tooltip/visualizer-window", () => ({
     onKeepOpen,
     editing,
   }: {
-    children: ReactNode;
+    children: (size: { width: number; height: number }) => ReactNode;
     onClose: () => void;
     onKeepOpen: () => void;
     editing: boolean;
@@ -42,7 +42,7 @@ vi.mock("./place-state-tooltip/visualizer-window", () => ({
       <button type="button" onClick={onKeepOpen}>
         Move
       </button>
-      {children}
+      {children({ width: 360, height: 240 })}
     </div>
   ),
 }));
@@ -57,7 +57,7 @@ const Harness = ({
   keptOpen = false,
   typed = false,
   hovered = false,
-  code = "return <svg />;",
+  code = "return <Visualizer.Svg />;",
 }) => {
   const editor = use(EditorContext);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -132,7 +132,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it.each(["", "return <svg />;"])(
+it.each(["", "return <Visualizer.Svg />;"])(
   "opens a temporary preview while editing a place without a type: %s",
   async (code) => {
     const { rerender } = render(<Harness focused code={code} />);

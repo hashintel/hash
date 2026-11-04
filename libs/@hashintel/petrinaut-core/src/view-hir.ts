@@ -43,3 +43,10 @@ export {
   lowerVisualizerToHir,
   type VisualizerHir,
 } from "./view-hir/visualizer";
+
+export {
+  visualizerSvgTag,
+  visualizerSvgAttributes,
+  parseVisualizerSvgOptions,
+  type VisualizerSvgOptions,
+} from "./view-hir/visualizer-svg";
