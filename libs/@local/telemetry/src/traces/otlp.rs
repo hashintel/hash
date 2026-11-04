@@ -6,7 +6,7 @@ use opentelemetry_otlp::{
 };
 use opentelemetry_sdk::{Resource, propagation::TraceContextPropagator, trace::SdkTracerProvider};
 use tracing::Subscriber;
-use tracing_subscriber::{Layer, registry::LookupSpan};
+use tracing_subscriber::{EnvFilter, Layer, registry::LookupSpan};
 
 use crate::OtlpConfig;
 
@@ -33,10 +33,7 @@ pub(crate) fn provider(
 }
 
 #[must_use]
-pub(crate) fn layer<S>(
-    provider: &SdkTracerProvider,
-    directives: Option<&str>,
-) -> impl Layer<S> + use<S>
+pub(crate) fn layer<S>(provider: &SdkTracerProvider, filter: EnvFilter) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -49,5 +46,5 @@ where
         ))
         .with_error_events_to_status(false)
         .with_error_events_to_exceptions(false)
-        .with_filter(crate::logging::env_filter(None, directives))
+        .with_filter(filter)
 }

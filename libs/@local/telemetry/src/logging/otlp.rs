@@ -12,7 +12,7 @@ use opentelemetry_sdk::{
 };
 use tracing::{Span, Subscriber};
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
-use tracing_subscriber::{Layer, registry::LookupSpan};
+use tracing_subscriber::{EnvFilter, Layer, registry::LookupSpan};
 
 use crate::OtlpConfig;
 
@@ -70,13 +70,9 @@ pub(crate) fn provider(
 }
 
 #[must_use]
-pub(crate) fn layer<S>(
-    provider: &SdkLoggerProvider,
-    directives: Option<&str>,
-) -> impl Layer<S> + use<S>
+pub(crate) fn layer<S>(provider: &SdkLoggerProvider, filter: EnvFilter) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    OpenTelemetryTracingBridge::new(provider)
-        .with_filter(crate::logging::env_filter(None, directives))
+    OpenTelemetryTracingBridge::new(provider).with_filter(filter)
 }
