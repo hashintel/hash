@@ -161,15 +161,37 @@ test.each([
   expect(upstreamRequests).toEqual([]);
 });
 
-test("refuses a protocol-relative path rather than forwarding it to another host", async () => {
-  const { send, upstreamRequests } = await startProxy();
+test.each([
+  ["a protocol-relative path", (host: string) => `//${host}/agents/hash/x`],
+  ["a backslash path", (host: string) => `/\\${host}/agents/hash/x`],
+  [
+    "an encoded protocol-relative path",
+    (host: string) => `/%2f%2f${host}/agents/hash/x`,
+  ],
+])(
+  "refuses %s naming another host rather than forwarding it there",
+  async (_shape, pathTo) => {
+    const { send, upstreamRequests } = await startProxy();
+    // A second local server stands in for the other host, so a regression
+    // reaches it rather than the network; its path is the HASH agent's.
+    const otherHostRequests: string[] = [];
+    const otherHost = new URL(
+      await listen(
+        createServer((request, response) => {
+          otherHostRequests.push(request.url ?? "");
+          response.writeHead(202).end();
+        }),
+      ),
+    ).host;
 
-  const response = await send("/api/brunch//attacker.example/agents/x");
+    const response = await send(`/api/brunch${pathTo(otherHost)}`);
 
-  expect(response.status).toBe(404);
-  expect(JSON.parse(response.body)).toEqual({ error: "Not found" });
-  expect(upstreamRequests).toEqual([]);
-});
+    expect(response.status).toBe(404);
+    expect(JSON.parse(response.body)).toEqual({ error: "Not found" });
+    expect(otherHostRequests).toEqual([]);
+    expect(upstreamRequests).toEqual([]);
+  },
+);
 
 test("forwards an encoded slash verbatim under the HASH agent", async () => {
   const { send, upstreamRequests } = await startProxy();
