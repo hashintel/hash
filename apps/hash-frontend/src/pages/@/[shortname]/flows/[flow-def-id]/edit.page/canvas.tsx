@@ -136,14 +136,17 @@ const FlowCanvas = ({
         }
 
         /* On open, only steps with no saved position are placed. */
+        const unplacedPositions = new Map<string, XYPosition>();
+
         for (const step of editor.getState().flowDefinition.steps) {
           const position = positions.get(step.stepId);
 
           if (!step.position && position) {
-            editor.moveStep(step.stepId, position);
+            unplacedPositions.set(step.stepId, position);
           }
         }
 
+        editor.placeSteps(unplacedPositions);
         setForEachLayouts(layouts);
       })
       .catch(() => {

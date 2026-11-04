@@ -172,7 +172,11 @@ export const useAutosavedFlowEditor = ({
 
   useEffect(
     () =>
-      editor.subscribe(() => {
+      editor.subscribe(({ edited }) => {
+        if (!edited) {
+          return;
+        }
+
         unsavedRef.current = true;
         setStatus("saving");
 
