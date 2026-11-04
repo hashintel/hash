@@ -28,7 +28,7 @@ import {
   RightClickMenu,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { getCatalogEntry } from "./catalog";
 import {
@@ -45,7 +45,10 @@ import {
   showFull,
   useEditor,
 } from "./editor-context";
+import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
+import { RunBar, RunGlyph } from "./run-glyph";
+import { type StepRun, runTriggerId, triggerLabel } from "./run-history";
 import { describeSource } from "./shapes";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
@@ -56,7 +59,7 @@ const GROUP_HEADER = 48;
 const GROUP_PADDING = 32;
 
 type StepData = { stepId: string };
-type StepNode = Node<StepData, "step" | "forEach" | "start">;
+type StepNode = Node<StepData, "step" | "forEach" | "start" | "trigger">;
 
 const portRows = (step: DraftStep) =>
   step.kind === "action"
@@ -293,6 +296,7 @@ const PortHandle = ({
   children?: React.ReactNode;
 }) => {
   const { ui, setUi } = useEditor();
+  const runView = useRunView();
   const port = props.id ?? (props.type === "source" ? "next" : "in");
   const menu = ui.canvasMenu;
   const highlighted =
@@ -302,6 +306,10 @@ const PortHandle = ({
       {...props}
       data-highlight={highlighted || undefined}
       onContextMenu={(event) => {
+        if (runView) {
+          event.preventDefault();
+          return;
+        }
         setUi((current) => ({
           ...current,
           picker: null,
@@ -349,6 +357,10 @@ const portAddStyle = css({
 /** E3: the + on a port, which opens the picker and wires the new step to this port. */
 const PortAdd = ({ stepId, port }: { stepId: string; port: string }) => {
   const { document, ui, setUi } = useEditor();
+  // A run is read-only: no + on its ports.
+  if (useRunView()) {
+    return null;
+  }
   const dangling = !document.wires.some(
     (wire) => wire.source === stepId && wire.sourcePort === port,
   );
@@ -412,6 +424,39 @@ const RunDot = ({ stepId }: { stepId: string }) => {
     />
   ) : null;
 };
+
+/**
+ * Run marks B (4 Nov): a step that runs once shows its state glyph at the card's top-right; a step inside a For each
+ * shows the segmented bar along its bottom edge. Sizes are in canvas units: about 12 px and 4 px at J6's 45%.
+ */
+const RunMark = ({ mark, inset = 8 }: { mark?: StepRun; inset?: number }) =>
+  !mark ? null : mark.bar ? (
+    <RunBar segments={mark.bar} height={8} gap={3} />
+  ) : (
+    <span
+      className={css({ position: "absolute", pointerEvents: "none" })}
+      style={{ top: inset, right: inset }}
+    >
+      <RunGlyph state={mark.state} size={22} />
+    </span>
+  );
+
+/** In a run: steps not reached or skipped at 50%, the running step with a blue border, a waiting one orange. */
+const runStateStyle = css({
+  "&[data-run-state=notReached], &[data-run-state=skipped]": {
+    opacity: "[0.5]",
+  },
+  "&[data-run-state=running]": { borderColor: "blue.bd.solid" },
+  "&[data-run-state=needsReview]": {
+    borderColor: "orange.bd.strong",
+    boxShadow: "[inset 0 0 0 0.5px var(--colors-orange-bd-strong)]",
+  },
+});
+
+/** A For each box in a run only fades when not reached; its border stays grey while it runs. */
+const runFadeStyle = css({
+  "&[data-run-state=notReached]": { opacity: "[0.5]" },
+});
 
 const ProblemDot = ({ stepId }: { stepId: string }) => {
   const { validation } = useEditor();
@@ -505,15 +550,19 @@ const CardText = ({
 
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document, ui } = useEditor();
+  const runView = useRunView();
   const step = flatFind(document, id);
   if (!step || step.kind !== "action") {
     return null;
   }
   const entry = getCatalogEntry(step.actionDefinitionId);
-  const ports = portRows(step);
+  // A run draws every step as the one-line card: its branches are not ports to wire from.
+  const ports = runView ? null : portRows(step);
+  const mark = runView?.steps?.[id];
   return (
     <div
-      className={cardStyle({ selected })}
+      className={cx(cardStyle({ selected }), runStateStyle)}
+      data-run-state={mark?.state}
       data-flash={ui.flashId === id || undefined}
       data-source-hover={ui.hoverSourceId === id || undefined}
     >
@@ -595,6 +644,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
       )}
       <ProblemDot stepId={id} />
       <RunDot stepId={id} />
+      <RunMark mark={mark} />
     </div>
   );
 };
@@ -621,12 +671,24 @@ const triggerStyle = css({
 /** Start: always on the canvas, holds the flow's inputs and lists what starts the flow; steps follow it. */
 const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
   const { document, ui } = useEditor();
+  const runView = useRunView();
   return (
     <div
       className={triggerStyle}
       data-selected={selected || undefined}
       data-source-hover={ui.hoverSourceId === START_ID || undefined}
     >
+      {runView ? (
+        // In a run, the trigger that fired leads into Start.
+        <Handle
+          id="in"
+          type="target"
+          position={Position.Left}
+          className={handleStyle}
+          style={{ top: STEP_HEIGHT / 2 }}
+          isConnectable={false}
+        />
+      ) : null}
       <Tooltip content="Start · holds the flow's inputs" position="top">
         <div className={cardHeadStyle}>
           <CardTile icon="play" tone="neutral" />
@@ -645,6 +707,47 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
         <PortAdd stepId={START_ID} port="next" />
       </PortHandle>
       <RunDot stepId={START_ID} />
+      <RunMark mark={runView?.steps?.[START_ID]} />
+    </div>
+  );
+};
+
+/** J6: in a run, only the trigger that fired shows, highlighted, left of Start. */
+const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
+  const runView = useRunView();
+  if (!runView?.run) {
+    return null;
+  }
+  const label = triggerLabel(runView.run);
+  return (
+    <div
+      className={cx(
+        triggerStyle,
+        css({
+          borderColor: "blue.bd.solid",
+          "&[data-selected]": { borderColor: "blue.bd.strong" },
+        }),
+      )}
+      data-selected={selected || undefined}
+    >
+      <div className={cardHeadStyle}>
+        <CardTile
+          icon={
+            runView.run.trigger.kind === "manual" ? "user" : "calendarClock"
+          }
+          tone="neutral"
+        />
+        <CardText title={label.title} description={label.line} />
+      </div>
+      <Handle
+        id="next"
+        type="source"
+        position={Position.Right}
+        className={handleStyle}
+        style={{ top: STEP_HEIGHT / 2 }}
+        isConnectable={false}
+      />
+      <RunMark mark={runView.steps?.[runTriggerId]} />
     </div>
   );
 };
@@ -677,15 +780,18 @@ const groupStyle = cva({
 /** D17 D: a box names the group; the steps that run per item sit inside it (ledger, 20 Oct). */
 const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document, ui, setUi } = useEditor();
+  const runView = useRunView();
   const step = flatFind(document, id);
   if (!step || step.kind !== "for-each") {
     return null;
   }
   const over = step.over ? describeSource(document, step.over, id) : null;
   const folded = ui.collapsed?.includes(id) ?? false;
+  const mark = runView?.steps?.[id];
   return (
     <div
-      className={groupStyle({ selected })}
+      className={cx(groupStyle({ selected }), runFadeStyle)}
+      data-run-state={mark?.state}
       data-source-hover={ui.hoverSourceId === id || undefined}
     >
       <PortHandle
@@ -798,13 +904,20 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         type="source"
         position={Position.Right}
         className={handleStyle}
-        style={{ top: (folded ? FOLDED_GROUP.height : GROUP_HEADER) / 2 }}
+        // J6 draws a run's For each leaving from the middle of its right edge, level with the step after it.
+        style={{
+          top:
+            runView && !folded
+              ? "50%"
+              : (folded ? FOLDED_GROUP.height : GROUP_HEADER) / 2,
+        }}
       >
         {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
         <PortAdd stepId={id} port="next" />
       </PortHandle>
       <ProblemDot stepId={id} />
       <RunDot stepId={id} />
+      <RunMark mark={mark} inset={14} />
     </div>
   );
 };
@@ -813,6 +926,7 @@ const nodeTypes = {
   step: StepNodeView,
   start: StartNodeView,
   forEach: GroupNodeView,
+  trigger: RunTriggerView,
 };
 
 const edgeCloseStyle = css({
@@ -1118,6 +1232,8 @@ export const FlowCanvas = ({
   mode?: "select" | "hand";
 }) => {
   const { document, setDocument, ui, setUi } = useEditor();
+  const runView = useRunView();
+  const readOnly = Boolean(runView);
   const [dragPositions, setDragPositions] = useState<
     Record<string, { x: number; y: number }>
   >({});
@@ -1227,12 +1343,43 @@ export const FlowCanvas = ({
     };
   }, [ui.canvasMenu, setUi]);
 
-  const nodes = toNodes(
+  const stepNodes = toNodes(
     { ...document, positions: { ...document.positions, ...dragPositions } },
     ui.selectedId,
     ui.collapsed,
     ui.selectedIds,
   );
+  const start = document.positions[START_ID] ?? { x: 360, y: 220 };
+  // A run is read-only, and shows the trigger that fired left of Start (J6).
+  const nodes: StepNode[] = readOnly
+    ? [
+        {
+          id: runTriggerId,
+          type: "trigger",
+          position: { x: start.x - 300, y: start.y },
+          data: { stepId: runTriggerId },
+          selected: ui.selectedId === runTriggerId,
+          deletable: false,
+        },
+        ...stepNodes.map((node) => ({ ...node, deletable: false })),
+      ]
+    : stepNodes;
+  const edges: Edge[] = [
+    ...(readOnly
+      ? [
+          {
+            id: "run-trigger",
+            source: runTriggerId,
+            sourceHandle: "next",
+            target: START_ID,
+            targetHandle: "in",
+            type: "flow",
+            style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
+          },
+        ]
+      : []),
+    ...toEdges(document, ui.collapsed),
+  ];
 
   const onNodesChange = (changes: NodeChange<StepNode>[]) => {
     const moving: Record<string, { x: number; y: number }> = {};
@@ -1355,7 +1502,9 @@ export const FlowCanvas = ({
       <ReactFlow
         className={canvasStyle}
         nodes={nodes}
-        edges={toEdges(document, ui.collapsed)}
+        edges={edges}
+        nodesDraggable={!readOnly}
+        nodesConnectable={!readOnly}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onNodeDragStop={onNodeDragStop}
@@ -1372,6 +1521,10 @@ export const FlowCanvas = ({
           }))
         }
         onNodeContextMenu={(event, node) => {
+          if (readOnly) {
+            event.preventDefault();
+            return;
+          }
           // A port inside the step has its own menu (J1.21).
           if ((event.target as Element).closest(".react-flow__handle")) {
             return;
@@ -1408,6 +1561,10 @@ export const FlowCanvas = ({
           }));
         }}
         onEdgeContextMenu={(event, edge) => {
+          if (readOnly) {
+            event.preventDefault();
+            return;
+          }
           const point = { x: event.clientX, y: event.clientY };
           setUi((current) => ({
             ...current,
@@ -1427,7 +1584,9 @@ export const FlowCanvas = ({
           event.stopPropagation();
         }}
         onEdgeMouseEnter={(_, edge) =>
-          setUi((current) => ({ ...current, hoverWireId: edge.id }))
+          readOnly
+            ? undefined
+            : setUi((current) => ({ ...current, hoverWireId: edge.id }))
         }
         onEdgeMouseLeave={() =>
           setUi((current) => ({ ...current, hoverWireId: null }))
@@ -1490,7 +1649,7 @@ export const FlowCanvas = ({
         minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
-        deleteKeyCode={["Backspace", "Delete"]}
+        deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]}
       >
         {/* ↳ Current's canvas: a light dot grid, and a minimap at the top right. */}
         <Background

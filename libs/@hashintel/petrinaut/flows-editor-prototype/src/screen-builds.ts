@@ -11,6 +11,8 @@ import {
 } from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
 import { purityCheckExample } from "./purity-check-example";
+import { signOffAt, suppliers } from "./run-history";
+import { findScreenState } from "./states";
 import {
   CERTIFICATES,
   EACH_SUPPLIER,
@@ -18,8 +20,10 @@ import {
   SUPPLIERS,
   supplierCertificatesExample,
 } from "./supplier-certificates-example";
-import { findScreenState } from "./states";
-import { supplierReviewExample } from "./supplier-review-example";
+import {
+  supplierReviewExample,
+  supplierReviewRunExample,
+} from "./supplier-review-example";
 
 import type { FlowListEntry } from "./home";
 
@@ -430,5 +434,63 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
     },
   }),
 };
+
+/**
+ * J6 (4 Nov sync): the run view draws the flow at 45%: Start's top-left 148 px into the canvas and 402 px down, the
+ * cards at 0.46 (the bottom bar reads 45%).
+ */
+const runViewport: Partial<EditorUi> = {
+  viewport: { left: 147.5, top: 401.5, zoom: 0.46 },
+  zoomBase: 0.46 / 0.45,
+};
+
+/** Run 17 on J6.2, 14 of 20 suppliers in: 1:02 on its clock. */
+const inTheLoop = 62;
+
+const runScreen = (
+  runId: number | null,
+  ui: Partial<EditorUi> = {},
+  run17: { seconds: number; pinned: boolean } = {
+    seconds: inTheLoop,
+    pinned: false,
+  },
+): ScreenBuild =>
+  editor(supplierReviewRunExample(), {
+    ...runViewport,
+    runs: run17,
+    history: { runId },
+    ...ui,
+  });
+
+Object.assign(screenBuilds, {
+  // J6.0: History opens on all runs; Run 17 is 1:02 in and keeps running.
+  "J6.0": () => runScreen(null),
+  // J6.1: Run 17 just started, 0:04 in, at Find active suppliers; it runs on its own from here.
+  "J6.1": () => runScreen(17, {}, { seconds: 4, pinned: false }),
+  // J6.2 and J6.3 are moments of the live run, held still.
+  "J6.2": () => runScreen(17, {}, { seconds: inTheLoop, pinned: true }),
+  "J6.3": () =>
+    runScreen(
+      17,
+      {},
+      { seconds: signOffAt(suppliers.length) + 42, pinned: true },
+    ),
+  "J6.4": () => runScreen(16),
+  "J6.5": () => runScreen(15),
+  "J6.6": () => runScreen(13),
+  "J6.7": () =>
+    runScreen(16, {
+      selectedId: "fetchCertificate",
+      selectedIds: ["fetchCertificate"],
+    }),
+  "J6.8": () => ({
+    ...runScreen(16),
+    act: () => {
+      press("[data-run-picker]");
+    },
+  }),
+  "J6.9": () => runScreen(16, { runLog: false }),
+  "J6.10": () => runScreen(16, { runLog: true }),
+} satisfies Record<string, () => ScreenBuild>);
 
 export const liveScreenIds = new Set(Object.keys(screenBuilds));

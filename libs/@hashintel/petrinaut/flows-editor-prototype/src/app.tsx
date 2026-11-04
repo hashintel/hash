@@ -12,14 +12,26 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { AddNodePicker } from "./add-node-picker";
+import { AllRuns } from "./all-runs";
 import workspaceAvatar from "./assets/workspace-avatar.png";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
+import {
+  AllRunsButton,
+  HistoryContext,
+  RunBanner,
+  RunStepList,
+  RunStepPanel,
+  RunSwitcher,
+  useHistory,
+  useRunKeys,
+} from "./history-view";
 import { LeftPanel } from "./left-panel";
 import { mockRuns, runStatus } from "./mock-runs";
 import { PropertiesPanel } from "./properties-panel";
 import { RunForm } from "./run-dialogs";
+import { RunLog, RunViewSwitch } from "./run-log";
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, organize } from "./toolbar";
@@ -405,6 +417,11 @@ export const Editor = ({
     zoom: (by: number) => void;
   } | null>(null);
 
+  const history = useHistory(ui, setUiState);
+  // J6: History for a flow with runs. Without them (every other flow), History opens the older mock run view.
+  const inHistory = Boolean(history && ui.history);
+  const openRun = inHistory ? history?.run : null;
+  useRunKeys(history, Boolean(openRun));
   const runs = mockRuns(document);
   const latestRun = runs[0];
   const viewedRun = ui.viewRunId
@@ -420,8 +437,18 @@ export const Editor = ({
       .filter((diagnostic) => diagnostic.severity === "error").length +
     validation.incomplete.size;
   const mockCount = validation.mockFields.size;
-  // J4.4: Run only when the flow can be started by hand. The mock has no manual trigger kind yet.
-  const hasManualStart = false;
+  // J4.4: Run only when the flow can be started by hand: the J6 flow is (Manual run · Dora).
+  const hasManualStart = Boolean(history);
+  const toEditor = () =>
+    setUiState((current) => ({
+      ...current,
+      history: null,
+      viewRunId: null,
+      run: false,
+      runLog: current.runLog === undefined ? undefined : false,
+      selectedId: null,
+      selectedIds: [],
+    }));
   const allMessages = [
     ...validation.flowLevel.map((diagnostic) => diagnostic.message),
     ...[...validation.byStep.values()]
@@ -441,230 +468,306 @@ export const Editor = ({
   return (
     <PortalContainerContext value={portalRef}>
       <EditorContext value={context}>
-        <div ref={portalRef} className={`${rootStyle} petrinaut-root`}>
-          <HashSidebarStrip />
-          <div className={workspaceStyle}>
-            <header className={topBarStyle}>
-              <div
-                className={css({
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "3",
-                  flex: "1",
-                  minWidth: "[0]",
-                })}
-              >
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  iconName="arrowLeft"
-                  className={backStyle}
-                  aria-label="Back to flows"
-                  tooltip="Back to flows"
-                  disabled={!onBack}
-                  onClick={() => onBack?.(document)}
-                />
-                <FlowTitle
-                  name={document.name}
-                  onRename={(name) =>
-                    setDocumentState((current) => ({ ...current, name }))
-                  }
-                />
-              </div>
-              {/* History is selected while a run shows; it opens the latest run until History gets its own page. */}
-              <div className={viewSwitchStyle}>
-                <SegmentedControl<"editor" | "history">
-                  size="md"
-                  className={viewSwitchSizeStyle}
-                  aria-label="Flow view"
-                  items={[
-                    { value: "editor", label: "Editor" },
-                    {
-                      value: "history",
-                      label: "History",
-                      disabled: latestRun === undefined,
-                    },
-                  ]}
-                  value={showingRun ? "history" : "editor"}
-                  onChange={(view) =>
-                    setUiState((current) => ({
-                      ...current,
-                      ...(view === "history"
-                        ? {
-                            viewRunId: latestRun?.id ?? null,
-                            selectedId: null,
-                            selectedIds: [],
-                            picker: null,
-                            openField: null,
-                          }
-                        : { viewRunId: null, run: false }),
-                    }))
-                  }
-                />
-              </div>
-              <div
-                className={css({
-                  flex: "1",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  gap: "2",
-                })}
-              >
-                {/* Run shows only when the flow can be started by hand; no trigger kind does that yet. */}
-                {hasManualStart ? (
-                  <Button
-                    size="sm"
-                    variant="subtle"
-                    tone="neutral"
-                    className={simulateStyle}
-                  >
-                    Run
-                  </Button>
-                ) : null}
-                {/* Simulate: a dry run without the trigger. Its form opens under it. */}
-                <span ref={runRef} className={css({ display: "inline-flex" })}>
-                  <Button
-                    size="sm"
-                    variant="subtle"
-                    tone="neutral"
-                    className={simulateStyle}
-                    prefix={<StartGlyph />}
-                    tooltip={
-                      errorCount > 0
-                        ? allMessages.slice(0, 6).join(" · ") ||
-                          "Some steps are not set up yet"
-                        : mockCount > 0
-                          ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
-                          : "The engine's validator finds no errors"
-                    }
-                    onClick={() =>
-                      setUiState((current) => ({ ...current, runOpen: true }))
-                    }
-                  >
-                    Simulate
-                  </Button>
-                </span>
-                <Button size="sm" variant="solid" tone="neutral">
-                  Publish
-                </Button>
-                {/* J0.12 (2 Nov): flows are archived, never deleted, so ⋮ holds Archive only. */}
-                <Menu
-                  position="bottom-end"
-                  className={css({ minWidth: "[208px]" })}
-                  items={[
-                    {
-                      id: "archive",
-                      text: "Archive",
-                      onClick: () => (onArchive ?? onBack)?.(document),
-                    },
-                  ]}
-                  trigger={
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      iconName="ellipsisVertical"
-                      className={cx(barButtonStyle, squareStyle)}
-                      aria-label="More"
-                    />
-                  }
-                />
-              </div>
-            </header>
-            <main
-              className={css({
-                position: "relative",
-                display: "flex",
-                flex: "1",
-                minHeight: "[0]",
-              })}
-            >
-              <ReactFlowProvider>
-                <LeftPanel />
-                {/* The canvas and its floating parts, left of the docked panel (↳ Current: canvas, then a 420 panel). */}
+        <HistoryContext value={history}>
+          <div ref={portalRef} className={`${rootStyle} petrinaut-root`}>
+            <HashSidebarStrip />
+            <div className={workspaceStyle}>
+              <header className={topBarStyle}>
                 <div
                   className={css({
-                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "3",
                     flex: "1",
                     minWidth: "[0]",
                   })}
                 >
-                  <FlowCanvas
-                    mode={mode}
-                    onInit={(fitView, zoom) => {
-                      canvasControls.current = { fitView, zoom };
-                    }}
-                  />
-                  <FlowToolbar
-                    mode={mode}
-                    onMode={setMode}
-                    addNodeRef={addNodeRef}
-                    pickerOpen={ui.picker?.anchor === "toolbar"}
-                    onAddNode={() =>
-                      setUiState((current) => ({
-                        ...current,
-                        picker: current.picker ? null : { anchor: "toolbar" },
-                      }))
+                  {openRun && history ? (
+                    <AllRunsButton history={history} />
+                  ) : (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      iconName="arrowLeft"
+                      className={backStyle}
+                      aria-label="Back to flows"
+                      tooltip="Back to flows"
+                      disabled={!onBack}
+                      onClick={() => onBack?.(document)}
+                    />
+                  )}
+                  <FlowTitle
+                    name={document.name}
+                    onRename={(name) =>
+                      setDocumentState((current) => ({ ...current, name }))
                     }
-                    onOrganize={() => {
-                      setDocumentState((current) => organize(current));
-                      setTimeout(() => canvasControls.current?.fitView(), 60);
-                    }}
                   />
-                  <AddNodePicker toolbarAnchor={addNodeRef} />
-                  {viewedRun ? (
-                    // Option F (Explorations 903:39224): the run picked in History, on the same canvas.
-                    <div className={runBannerStyle} role="status">
-                      <span className={css({ fontWeight: "medium" })}>
-                        Run · {viewedRun.when}
-                      </span>
+                  {openRun && history ? (
+                    <>
                       <span
+                        aria-hidden
                         className={css({
-                          color: viewedRun.failedAt
-                            ? "red.fg.body"
-                            : "green.fg.body",
+                          color: "neutral.fg.subtle",
+                          marginX: "[-4px]",
                         })}
                       >
-                        {runStatus(viewedRun)}
+                        ›
                       </span>
-                      <Button
-                        size="sm"
-                        variant="subtle"
-                        tone="neutral"
-                        onClick={() =>
-                          setUiState((current) => ({
-                            ...current,
-                            viewRunId: null,
-                          }))
-                        }
-                      >
-                        Back to editing
-                      </Button>
-                    </div>
-                  ) : null}
-                  {session ? (
-                    <TaskCard
-                      session={session}
-                      onDone={finishTask}
-                      onReopenBriefing={reopenBriefing}
-                      onClose={() => setSession(null)}
-                    />
+                      <RunSwitcher history={history} />
+                    </>
                   ) : null}
                 </div>
-                <PropertiesPanel />
-              </ReactFlowProvider>
-            </main>
+                {/* History is selected while a run shows; it opens the latest run until History gets its own page. */}
+                <div className={viewSwitchStyle}>
+                  <SegmentedControl<"editor" | "history">
+                    size="md"
+                    className={viewSwitchSizeStyle}
+                    aria-label="Flow view"
+                    items={[
+                      { value: "editor", label: "Editor" },
+                      {
+                        value: "history",
+                        label: "History",
+                        disabled: latestRun === undefined,
+                      },
+                    ]}
+                    value={showingRun || inHistory ? "history" : "editor"}
+                    onChange={(view) =>
+                      history
+                        ? view === "history"
+                          ? history.open(null)
+                          : toEditor()
+                        : setUiState((current) => ({
+                            ...current,
+                            ...(view === "history"
+                              ? {
+                                  viewRunId: latestRun?.id ?? null,
+                                  selectedId: null,
+                                  selectedIds: [],
+                                  picker: null,
+                                  openField: null,
+                                }
+                              : { viewRunId: null, run: false }),
+                          }))
+                    }
+                  />
+                </div>
+                <div
+                  className={css({
+                    flex: "1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    gap: "2",
+                  })}
+                >
+                  {openRun ? (
+                    <Button
+                      size="sm"
+                      variant="subtle"
+                      tone="neutral"
+                      onClick={toEditor}
+                    >
+                      Return to editor
+                    </Button>
+                  ) : null}
+                  {/* Simulate: a dry run without the trigger. Its form opens under it. */}
+                  <span
+                    ref={runRef}
+                    className={css({ display: "inline-flex" })}
+                  >
+                    <Button
+                      size="sm"
+                      variant="subtle"
+                      tone="neutral"
+                      className={simulateStyle}
+                      prefix={<StartGlyph />}
+                      tooltip={
+                        errorCount > 0
+                          ? allMessages.slice(0, 6).join(" · ") ||
+                            "Some steps are not set up yet"
+                          : mockCount > 0
+                            ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
+                            : "The engine's validator finds no errors"
+                      }
+                      onClick={() =>
+                        setUiState((current) => ({ ...current, runOpen: true }))
+                      }
+                    >
+                      Simulate
+                    </Button>
+                  </span>
+                  {/* Run shows only when the flow can be started by hand: it starts a live run and opens it. */}
+                  {hasManualStart ? (
+                    <Button
+                      size="sm"
+                      variant="subtle"
+                      tone="neutral"
+                      className={simulateStyle}
+                      iconName="play"
+                      onClick={() => history?.start()}
+                    >
+                      Run
+                    </Button>
+                  ) : null}
+                  <Button size="sm" variant="solid" tone="neutral">
+                    Publish
+                  </Button>
+                  {/* J0.12 (2 Nov): flows are archived, never deleted, so ⋮ holds Archive only. */}
+                  <Menu
+                    position="bottom-end"
+                    className={css({ minWidth: "[208px]" })}
+                    items={[
+                      {
+                        id: "archive",
+                        text: "Archive",
+                        onClick: () => (onArchive ?? onBack)?.(document),
+                      },
+                    ]}
+                    trigger={
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        iconName="ellipsisVertical"
+                        className={cx(barButtonStyle, squareStyle)}
+                        aria-label="More"
+                      />
+                    }
+                  />
+                </div>
+              </header>
+              <main
+                className={css({
+                  position: "relative",
+                  display: "flex",
+                  flex: "1",
+                  minHeight: "[0]",
+                })}
+              >
+                <ReactFlowProvider>
+                  {inHistory && history && !openRun ? (
+                    <AllRuns history={history} />
+                  ) : null}
+                  {openRun && history ? (
+                    <RunStepList history={history} />
+                  ) : inHistory ? null : (
+                    <LeftPanel />
+                  )}
+                  {/* The canvas and its floating parts, left of the docked panel (↳ Current: canvas, then a 420 panel). */}
+                  <div
+                    className={css({
+                      position: "relative",
+                      flex: "1",
+                      minWidth: "[0]",
+                    })}
+                    style={
+                      inHistory && !openRun ? { display: "none" } : undefined
+                    }
+                  >
+                    {openRun && history && ui.runLog ? (
+                      <RunLog history={history} />
+                    ) : null}
+                    <FlowCanvas
+                      mode={mode}
+                      onInit={(fitView, zoom) => {
+                        canvasControls.current = { fitView, zoom };
+                      }}
+                    />
+                    <FlowToolbar
+                      mode={mode}
+                      onMode={setMode}
+                      addNodeRef={addNodeRef}
+                      pickerOpen={ui.picker?.anchor === "toolbar"}
+                      onAddNode={() =>
+                        setUiState((current) => ({
+                          ...current,
+                          picker: current.picker ? null : { anchor: "toolbar" },
+                        }))
+                      }
+                      onOrganize={() => {
+                        setDocumentState((current) => organize(current));
+                        setTimeout(() => canvasControls.current?.fitView(), 60);
+                      }}
+                    />
+                    {inHistory ? null : (
+                      <AddNodePicker toolbarAnchor={addNodeRef} />
+                    )}
+                    {openRun && history ? (
+                      <div
+                        className={css({
+                          position: "absolute",
+                          top: "4",
+                          left: "4",
+                          zIndex: "[6]",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "3",
+                        })}
+                      >
+                        <RunViewSwitch history={history} />
+                        <RunBanner history={history} />
+                      </div>
+                    ) : null}
+                    {viewedRun ? (
+                      // Option F (Explorations 903:39224): the run picked in History, on the same canvas.
+                      <div className={runBannerStyle} role="status">
+                        <span className={css({ fontWeight: "medium" })}>
+                          Run · {viewedRun.when}
+                        </span>
+                        <span
+                          className={css({
+                            color: viewedRun.failedAt
+                              ? "red.fg.body"
+                              : "green.fg.body",
+                          })}
+                        >
+                          {runStatus(viewedRun)}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="subtle"
+                          tone="neutral"
+                          onClick={() =>
+                            setUiState((current) => ({
+                              ...current,
+                              viewRunId: null,
+                            }))
+                          }
+                        >
+                          Back to editing
+                        </Button>
+                      </div>
+                    ) : null}
+                    {session ? (
+                      <TaskCard
+                        session={session}
+                        onDone={finishTask}
+                        onReopenBriefing={reopenBriefing}
+                        onClose={() => setSession(null)}
+                      />
+                    ) : null}
+                  </div>
+                  {inHistory ? (
+                    openRun && history ? (
+                      <RunStepPanel history={history} />
+                    ) : null
+                  ) : (
+                    <PropertiesPanel />
+                  )}
+                </ReactFlowProvider>
+              </main>
+            </div>
+            {ui.runOpen ? <RunForm anchor={runRef} /> : null}
+            {briefingOpen ? (
+              <Briefing
+                onClose={() => {
+                  markBriefingSeen();
+                  setBriefingOpen(false);
+                }}
+              />
+            ) : null}
           </div>
-          {ui.runOpen ? <RunForm anchor={runRef} /> : null}
-          {briefingOpen ? (
-            <Briefing
-              onClose={() => {
-                markBriefingSeen();
-                setBriefingOpen(false);
-              }}
-            />
-          ) : null}
-        </div>
+        </HistoryContext>
       </EditorContext>
     </PortalContainerContext>
   );

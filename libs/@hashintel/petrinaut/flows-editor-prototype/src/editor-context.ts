@@ -73,6 +73,15 @@ export type EditorUi = {
   showPortAddOn?: string;
   /** The step card a hovered reference comes from: the canvas highlights it while the pointer is on the reference. */
   hoverSourceId?: string | null;
+  /**
+   * J6: the flow has a run history (`run-history.ts`). Run 17 opens this many run seconds in, ticking on its own
+   * unless pinned (a screen frame that shows one moment).
+   */
+  runs?: { seconds: number; pinned: boolean };
+  /** J6: History is open, on this run, or on All runs when null. */
+  history?: { runId: number | null } | null;
+  /** J6.9 / J6.10: a past run's Canvas | Log switch shows (false: Canvas) and is on Log (true), which replaces the canvas. */
+  runLog?: boolean;
 };
 
 export const initialUi: EditorUi = {

@@ -4,7 +4,12 @@
  * from `public/figma/<id>.webp`. `tag` is the status tag Figma draws above the frame.
  */
 export type FigmaTag =
-  "Ready" | "Ready after fix" | "Redo" | "Waiting" | "History" | "None";
+  | "Ready"
+  | "Ready after fix"
+  | "Redo"
+  | "Waiting"
+  | "History"
+  | "None";
 
 export type FigmaScreen = {
   id: string;
@@ -670,6 +675,83 @@ export const figmaScreens: FigmaScreen[] = [
     section: "J4 · Triggers and run",
     tag: "Waiting",
     why: "run designs are next; where runs live",
+  },
+  {
+    id: "J6.0",
+    name: "History · all runs (layout 1)",
+    nodeId: "1205:16",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.1",
+    name: "Live run · Run 17 just started · Find active suppliers running",
+    nodeId: "1197:90499",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.2",
+    name: "Live run · in the loop · 14 of 20 suppliers, 1 failed so far",
+    nodeId: "1197:90917",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.3",
+    name: "Live run · waiting for review · Quality sign-off needs review",
+    nodeId: "1197:91353",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.4",
+    name: "Past run · Run 16 · completed with warnings (proposed)",
+    nodeId: "1196:89161",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.5",
+    name: "Past run · Run 15 · error · Quality sign-off timed out",
+    nodeId: "1197:91811",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.6",
+    name: "Past run · Run 13 · abandoned · cancelled by Dora mid-loop",
+    nodeId: "1197:92242",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.7",
+    name: "Past run · Fetch certificate selected · its outputs, Open goes to the file",
+    nodeId: "1198:1050",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.8",
+    name: "Run picker open · every run state",
+    nodeId: "1199:26736",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.9",
+    name: "Run 16 · Canvas | Log switch, Canvas selected",
+    nodeId: "1207:95471",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
+  },
+  {
+    id: "J6.10",
+    name: "Run 16 · Log selected · the log replaces the canvas",
+    nodeId: "1207:95816",
+    section: "J6 · Run view · 4 Nov sync",
+    tag: "None",
   },
   {
     id: "J5.1",

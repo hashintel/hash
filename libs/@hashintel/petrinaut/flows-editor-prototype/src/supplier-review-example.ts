@@ -250,3 +250,34 @@ export const supplierReviewExample = (): EditorDocument => {
     ],
   };
 };
+
+/**
+ * J6 (4 Nov): the same review with a Quality sign-off after the loop, an Ask a person step the head of quality
+ * answers. Its runs are in `run-history.ts`.
+ */
+export const supplierReviewRunExample = (): EditorDocument => {
+  const base = supplierReviewExample();
+  return {
+    ...base,
+    steps: [
+      ...base.steps,
+      {
+        kind: "action",
+        stepId: "qualitySignOff",
+        actionDefinitionId: "requestReview",
+        description: "Quality sign-off",
+        inputs: {},
+      },
+    ],
+    positions: { ...base.positions, qualitySignOff: { x: 1932, y: 332 } },
+    wires: [
+      ...base.wires,
+      {
+        id: "w9",
+        source: "eachSupplier",
+        sourcePort: "next",
+        target: "qualitySignOff",
+      },
+    ],
+  };
+};
