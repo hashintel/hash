@@ -41,7 +41,6 @@ import {
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, organize } from "./toolbar";
-import { StartGlyph } from "./ui";
 
 import type { EditorDocument } from "./document";
 
@@ -120,19 +119,19 @@ const topBarStyle = css({
 /** The breadcrumb's back button: 24 px, white, a hairline and 6 px corners, a 12 px arrow. */
 const backStyle = css({
   "&[class]": {
-    width: "[24px]",
-    height: "[24px]",
-    minWidth: "[24px]",
+    width: "[28px]",
+    height: "[28px]",
+    minWidth: "[28px]",
     padding: "[0]",
     justifyContent: "center",
     backgroundColor: "neutral.bgSolid.min",
     borderWidth: "thin",
     borderStyle: "solid",
     borderColor: "neutral.bd.solid",
-    borderRadius: "md",
+    borderRadius: "lg",
     color: "neutral.fg.heading",
   },
-  "&[class] svg": { width: "[12px]", height: "[12px]" },
+  "&[class] svg": { width: "[16px]", height: "[16px]" },
 });
 
 /** The flow name, as the breadcrumb's text (14 px medium), editable in place. */
@@ -161,9 +160,9 @@ const titleBoxStyle = css({
 /** Figma's pen: the DS ghost IconButton at xs, 24 px square. */
 const penStyle = css({
   "&[class]": {
-    width: "[24px]",
-    height: "[24px]",
-    minWidth: "[24px]",
+    width: "[28px]",
+    height: "[28px]",
+    minWidth: "[28px]",
     padding: "[0]",
     justifyContent: "center",
   },
@@ -172,7 +171,7 @@ const penStyle = css({
 const titleTextStyle = css({
   textStyle: "sm",
   fontWeight: "medium",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -231,7 +230,7 @@ const FlowTitle = ({
     <span className={titleBoxStyle} onClick={() => setEditing(true)}>
       <span className={titleTextStyle}>{name}</span>
       <Button
-        size="xs"
+        size="sm"
         variant="ghost"
         iconName="pencil"
         className={penStyle}
@@ -265,7 +264,7 @@ const viewSwitchSizeStyle = css({
 /** The top bar's 32 px bordered buttons (Run and ⋮), as the DS IconButton draws them. */
 const barButtonStyle = css({
   "&[class]": {
-    height: "[32px]",
+    height: "[28px]",
     backgroundColor: "neutral.bgSolid.min",
     borderWidth: "thin",
     borderStyle: "solid",
@@ -307,8 +306,8 @@ const simulateStyle = css({
 
 const squareStyle = css({
   "&[class]": {
-    width: "[32px]",
-    minWidth: "[32px]",
+    width: "[28px]",
+    minWidth: "[28px]",
     padding: "[0]",
     justifyContent: "center",
   },
@@ -536,7 +535,7 @@ export const Editor = ({
                           {/* Without the switch (takes 2, 3), ← on All runs goes back to the editor. */}
                           {inHistory && editorBar !== 1 ? (
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="ghost"
                               iconName="arrowLeft"
                               className={backStyle}
@@ -546,7 +545,7 @@ export const Editor = ({
                             />
                           ) : (
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="ghost"
                               iconName="arrowLeft"
                               className={backStyle}
@@ -644,7 +643,7 @@ export const Editor = ({
                             variant="subtle"
                             tone="neutral"
                             className={simulateStyle}
-                            prefix={<StartGlyph />}
+                            iconName="flask"
                             tooltip={
                               errorCount > 0
                                 ? allMessages.slice(0, 6).join(" · ") ||

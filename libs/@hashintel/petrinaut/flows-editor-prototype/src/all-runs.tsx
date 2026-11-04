@@ -13,7 +13,6 @@ import {
   Button,
   Icon,
   Menu,
-  SegmentedControl,
   TextInput,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -109,33 +108,35 @@ const pageStyle = css({
   backgroundColor: "neutral.bgSolid.min",
 });
 
+/**
+ * The status filters and Sort / Filter are one family (Aakarsh, 4 Nov: "sizes are all over the place"): 28 px high,
+ * 8 px corners, 14 px Medium, 16 px icons, no border. The selected status sits on a subtle neutral fill.
+ */
 const tabStyle = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: "2",
-  height: "[32px]",
-  paddingX: "[10px]",
+  gap: "1.5",
+  height: "[28px]",
+  paddingX: "2.5",
   textStyle: "sm",
   fontWeight: "medium",
   color: "neutral.fg.muted",
   cursor: "pointer",
-  borderRadius: "md",
-  _hover: { color: "neutral.fg.heading" },
-  "&[aria-selected=true]": { color: "neutral.fg.heading" },
+  borderRadius: "lg",
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  "&[aria-selected=true]": {
+    color: "neutral.fg.heading",
+    backgroundColor: "neutral.bg.surface.active",
+  },
 });
 
-const countBadgeStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: "[20px]",
-  height: "[18px]",
-  paddingX: "1",
-  borderRadius: "sm",
-  textStyle: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.muted",
-  backgroundColor: "neutral.bgSolid.surface.active",
+const countStyle = css({
+  color: "neutral.fg.subtle",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const rowButtonStyle = css({
+  "&[class]": { color: "neutral.fg.muted" },
 });
 
 const tableStyle = css({
@@ -215,48 +216,52 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
         </span>
       </div>
       <div
-        role="tablist"
-        aria-label="Run status"
-        className={css({ display: "flex", gap: "5" })}
-      >
-        {tabs.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.value}
-            className={tabStyle}
-            onClick={() => setTab(item.value)}
-          >
-            <span className={countBadgeStyle}>{counts(item.value)}</span>
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <div
         className={css({
           display: "flex",
           alignItems: "center",
-          gap: "2",
+          gap: "1",
           paddingY: "1",
         })}
       >
-        <Button size="sm" variant="subtle" tone="neutral" iconName="sortDown">
+        <div
+          role="tablist"
+          aria-label="Run status"
+          className={css({ display: "flex", alignItems: "center", gap: "1" })}
+        >
+          {tabs.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.value}
+              className={tabStyle}
+              onClick={() => setTab(item.value)}
+            >
+              {item.label}
+              <span className={countStyle}>{counts(item.value)}</span>
+            </button>
+          ))}
+        </div>
+        <span className={css({ flex: "1" })} />
+        <Button
+          size="sm"
+          variant="ghost"
+          tone="neutral"
+          iconName="sortDown"
+          className={rowButtonStyle}
+        >
           Sort
         </Button>
-        <span
-          aria-hidden
-          className={css({
-            width: "[1px]",
-            height: "[20px]",
-            backgroundColor: "neutral.bd.subtle",
-          })}
-        />
-        <Button size="sm" variant="subtle" tone="neutral" iconName="filter">
+        <Button
+          size="sm"
+          variant="ghost"
+          tone="neutral"
+          iconName="filter"
+          className={rowButtonStyle}
+        >
           Filter
         </Button>
-        <span className={css({ flex: "1" })} />
-        <span className={css({ width: "[200px]" })}>
+        <span className={css({ width: "[200px]", marginLeft: "2" })}>
           <TextInput
             value={search}
             onChange={setSearch}
@@ -398,8 +403,7 @@ const Tile = ({
   </div>
 );
 
-const months = [
-  "Dec",
+const monthNames = [
   "Jan",
   "Feb",
   "Mar",
@@ -411,13 +415,89 @@ const months = [
   "Sep",
   "Oct",
   "Nov",
+  "Dec",
 ];
 
-/** Which month bucket a run falls in: "Today" and "2 Nov" are November. */
-const monthOf = (run: RunRecord) =>
-  run.when.startsWith("Today") ? "Nov" : (run.when.split(/[ ,]/)[1] ?? "");
+/** The demo's today: 4 Nov 2026 (MOCK: the seeded runs are dated around it). */
+const today = new Date(2026, 10, 4);
+
+const dayMs = 24 * 60 * 60 * 1000;
+
+/** A run's day from its "Today, 10:42" / "2 Nov, 16:20" / "1 Dec 2025, 09:00" label. */
+const runDay = (run: RunRecord) => {
+  if (run.when.startsWith("Today")) {
+    return today;
+  }
+  if (run.when.startsWith("Yesterday")) {
+    return new Date(today.getTime() - dayMs);
+  }
+  const [day = "1", month = "Jan", year = "2026"] = run.when
+    .split(",")[0]!
+    .split(" ");
+  return new Date(Number(year), monthNames.indexOf(month), Number(day));
+};
+
+const dayLabel = (date: Date) =>
+  `${date.getDate()} ${monthNames[date.getMonth()]}`;
+
+type Period = "30d" | "6m" | "1y";
 
 type Bucket = { label: string; runs: RunRecord[] };
+
+/** 30D by day, 6M by week, 1Y by month (decided 4 Nov), each ending today. */
+const bucketsFor = (
+  period: Period,
+  runs: RunRecord[],
+): { name: string; range: string; buckets: Bucket[]; axis: string[] } => {
+  const days = runs.map((run) => ({ run, day: runDay(run).getTime() }));
+  const within = (start: number, end: number) =>
+    days
+      .filter((entry) => entry.day >= start && entry.day <= end)
+      .map((entry) => entry.run);
+  if (period === "1y") {
+    const buckets = Array.from({ length: 12 }, (_, index) => {
+      const start = new Date(
+        today.getFullYear(),
+        today.getMonth() - 11 + index,
+        1,
+      );
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+      return {
+        label: monthNames[start.getMonth()]!,
+        runs: within(start.getTime(), end.getTime()),
+      };
+    });
+    return {
+      name: "Monthly",
+      range: "Dec 2025 – Nov 2026",
+      buckets,
+      axis: ["Dec", "Jun", "Nov"],
+    };
+  }
+  const size = period === "30d" ? 1 : 7;
+  const count = period === "30d" ? 30 : 26;
+  const buckets = Array.from({ length: count }, (_, index) => {
+    const end = today.getTime() - (count - 1 - index) * size * dayMs;
+    const start = end - (size - 1) * dayMs;
+    return {
+      label:
+        size === 1
+          ? dayLabel(new Date(end))
+          : `${dayLabel(new Date(start))} – ${dayLabel(new Date(end))}`,
+      runs: within(start, end),
+    };
+  });
+  const first = new Date(today.getTime() - (count * size - 1) * dayMs);
+  const middle = new Date(
+    today.getTime() - Math.floor((count * size) / 2) * dayMs,
+  );
+  return {
+    name: size === 1 ? "Daily" : "Weekly",
+    range: `${dayLabel(first)} – ${dayLabel(today)}`,
+    buckets,
+    axis: [dayLabel(first), dayLabel(middle), "Today"],
+  };
+};
 
 const chartColour: Record<RunOutcome, string> = {
   completed: statusColor.done,
@@ -439,6 +519,21 @@ const stackOrder: RunOutcome[] = [
 
 const chartHeight = 124;
 
+const periodStyle = css({
+  height: "[24px]",
+  paddingX: "1.5",
+  borderRadius: "md",
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.subtle",
+  cursor: "pointer",
+  _hover: { color: "neutral.fg.heading" },
+  "&[aria-checked=true]": {
+    color: "neutral.fg.heading",
+    backgroundColor: "neutral.bg.surface.active",
+  },
+});
+
 /** The bucket a bar shows, and where its tooltip anchors: the bar's centre and top, in the chart's own pixels. */
 type ChartHover = { label: string; x: number; top: number };
 
@@ -458,24 +553,11 @@ const tipStyle = css({
 
 const RunsChart = ({ history }: { history: HistoryValue }) => {
   const { runs, now } = history;
-  const [period, setPeriod] = useState<"30d" | "6m" | "1y">("6m");
+  const [period, setPeriod] = useState<Period>("6m");
   const [hover, setHover] = useState<ChartHover | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
-  const recent = runs.filter((run) => !run.when.includes("2025"));
-  const buckets: Bucket[] =
-    period === "30d"
-      ? ["31 Oct", "1 Nov", "2 Nov", "Today"].map((day) => ({
-          label: day === "Today" ? "4 Nov" : day,
-          runs: recent.filter((run) => run.when.startsWith(day)),
-        }))
-      : (period === "6m" ? months.slice(6) : months).map((month) => ({
-          label: month,
-          runs:
-            month === "Dec"
-              ? runs.filter((run) => run.when.startsWith("1 Dec"))
-              : recent.filter((run) => monthOf(run) === month),
-        }));
+  const { name, range, buckets, axis } = bucketsFor(period, runs);
   const max = Math.max(1, ...buckets.map((bucket) => bucket.runs.length));
   // GitHub-style axis on the right: 0, the midpoint when it is a whole number, and the max.
   const ticks = [max, ...(max % 2 === 0 && max > 2 ? [max / 2] : []), 0];
@@ -512,26 +594,59 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
     <section
       className={css({ display: "flex", flexDirection: "column", gap: "3" })}
     >
-      <span
-        className={css({
-          textStyle: "sm",
-          fontWeight: "medium",
-          color: "neutral.fg.heading",
-        })}
+      <div
+        className={css({ display: "flex", flexDirection: "column", gap: "1" })}
       >
-        Runs over time
-      </span>
-      <SegmentedControl
-        size="sm"
-        aria-label="Period"
-        value={period}
-        onChange={(next) => setPeriod(next)}
-        items={[
-          { value: "30d", label: "30 days" },
-          { value: "6m", label: "6 months" },
-          { value: "1y", label: "1 year" },
-        ]}
-      />
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          })}
+        >
+          <span
+            className={css({
+              textStyle: "sm",
+              fontWeight: "medium",
+              color: "neutral.fg.heading",
+            })}
+          >
+            Runs over time
+          </span>
+          {/* A small text toggle (Aakarsh, 4 Nov: "just do 30D, 6M, 1Y"): no border, the pick on a subtle fill. */}
+          <div
+            role="radiogroup"
+            aria-label="Period"
+            data-control-check="skip"
+            className={css({ display: "flex", gap: "0.5" })}
+          >
+            {(
+              [
+                ["30d", "30D"],
+                ["6m", "6M"],
+                ["1y", "1Y"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={period === value}
+                className={periodStyle}
+                onClick={() => {
+                  setPeriod(value);
+                  setHover(null);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <span className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}>
+          {name} · {range}
+        </span>
+      </div>
       {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- leaving the chart hides its tooltip */}
       <div
         ref={boxRef}
@@ -540,7 +655,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
           position: "relative",
           height: "[192px]",
           display: "flex",
-          gap: "2",
+          gap: "[2px]",
           paddingRight: "6",
           paddingTop: "[48px]",
         })}
@@ -560,7 +675,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
               textStyle: "xxs",
               color: "neutral.fg.muted",
             })}
-            style={{ bottom: 20 + (tick / max) * chartHeight - 7 }}
+            style={{ bottom: 20 + (tick / max) * chartHeight - 6 }}
           >
             {tick}
           </span>
@@ -602,7 +717,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
                 flexDirection: "column-reverse",
                 gap: "[1.5px]",
                 width: "[100%]",
-                maxWidth: "[28px]",
+                maxWidth: "[24px]",
               })}
             >
               {stackOrder.map((outcome) => {
@@ -620,23 +735,38 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
                   />
                 ) : null;
               })}
+              {bucket.runs.length === 0 ? (
+                <span
+                  style={{
+                    height: 2,
+                    backgroundColor: statusColor.track,
+                    borderRadius: 1,
+                  }}
+                />
+              ) : null}
             </div>
-            <span
-              className={css({
-                textStyle: "xs",
-                color: "neutral.fg.subtle",
-                height: "[16px]",
-              })}
-            >
-              {bucket.label}
-            </span>
+            <span className={css({ height: "[16px]" })} />
           </div>
         ))}
+        {/* X labels thin out to the start, the middle and today (Figma X4). */}
+        <div
+          aria-hidden
+          className={css({
+            position: "absolute",
+            left: "[0]",
+            right: "6",
+            bottom: "[0]",
+            display: "flex",
+            justifyContent: "space-between",
+            textStyle: "xxs",
+            color: "neutral.fg.subtle",
+          })}
+        >
+          {axis.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
+        </div>
       </div>
-      <span className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}>
-        Direction, not final: Dei and Ciarán to weigh in. 30 days shows days, 1
-        year shows months; failures sit inside each bar.
-      </span>
     </section>
   );
 };

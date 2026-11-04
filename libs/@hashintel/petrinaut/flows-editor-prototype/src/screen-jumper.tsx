@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { resetDemoData } from "./app-store";
+import { checkControls } from "./dev/control-consistency";
 import { liveScreenIds } from "./screen-builds";
 import {
   type FigmaScreen,
@@ -173,6 +174,21 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
                 }}
               >
                 Reset demo data
+              </button>{" "}
+              ·{" "}
+              <button
+                type="button"
+                className={css({
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                })}
+                onClick={() => {
+                  setOpen(false);
+                  // After the jumper closes, so it is not part of the page checked.
+                  setTimeout(() => checkControls(), 50);
+                }}
+              >
+                Check control sizes
               </button>
             </span>
           </div>

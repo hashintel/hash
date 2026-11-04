@@ -209,9 +209,9 @@ const menuTimeStyle = css({
 
 const runArrowStyle = css({
   "&[class]": {
-    width: "[24px]",
-    minWidth: "[24px]",
-    height: "[24px]",
+    width: "[28px]",
+    minWidth: "[28px]",
+    height: "[28px]",
     padding: "[0]",
   },
 });

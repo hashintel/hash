@@ -21,7 +21,6 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { type HistoryValue, RunSwitcher } from "./history-view";
 import { bannerAction, factsOf, outcomeLabel, outcomeOf } from "./run-history";
-import { StartGlyph } from "./ui";
 
 export type RunBarVariant = 1 | 2 | 3 | 4;
 export type EditorBarVariant = 1 | 2 | 3;
@@ -104,8 +103,9 @@ const quietStyle = css({ "&[class]": { color: "neutral.fg.muted.hover" } });
 
 const squareStyle = css({
   "&[class]": {
-    width: "[32px]",
-    minWidth: "[32px]",
+    width: "[28px]",
+    height: "[28px]",
+    minWidth: "[28px]",
     padding: "[0]",
     justifyContent: "center",
   },
@@ -241,7 +241,7 @@ export const RunTopBar = ({
       variant="subtle"
       tone="neutral"
       className={quietStyle}
-      prefix={<StartGlyph />}
+      iconName="flask"
       tooltip="Open the editor and simulate with this run's inputs"
       onClick={onSimulate}
     >

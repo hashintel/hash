@@ -53,13 +53,14 @@ const zoomStyle = css({
     gap: "0",
     paddingX: "2",
     minWidth: "[0]",
+    height: "[32px]",
   },
   "&[class] > *": { paddingX: "[0]", marginX: "[0]" },
   "&[class] > span:not(:has(svg))": { paddingX: "0.5", marginX: "1" },
   "&[class] svg": {
-    width: "[14px]",
-    height: "[14px]",
-    minWidth: "[14px]",
+    width: "[16px]",
+    height: "[16px]",
+    minWidth: "[16px]",
     "--icon-size": "14px",
   },
 });
