@@ -143,7 +143,7 @@ const neighbour = (history: HistoryValue, by: -1 | 1) => {
   return index < 0 ? undefined : history.runs[index - by];
 };
 
-/** ↑ ↓ switch runs, Esc goes to All runs (the left panel's footer says so). */
+/** ↑ ↓ switch runs. Esc is not here: it only clears a selected step (`useEscapeClearsSelection`); All runs is the breadcrumb. */
 export const useRunKeys = (history: HistoryValue | null, active: boolean) => {
   useEffect(() => {
     if (!active || !history) {
@@ -166,8 +166,6 @@ export const useRunKeys = (history: HistoryValue | null, active: boolean) => {
       if (next) {
         event.preventDefault();
         history.open(next.id);
-      } else if (event.key === "Escape") {
-        history.open(null);
       }
     };
     globalThis.addEventListener("keydown", onKey);
@@ -283,7 +281,6 @@ export const RunSwitcher = ({
         id: "all-runs",
         text: "All runs",
         icon: "list" as const,
-        suffix: <span className={menuTimeStyle}>Esc</span>,
         onClick: () => history.open(null),
       },
     ],

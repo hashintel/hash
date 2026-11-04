@@ -37,7 +37,7 @@ import {
 } from "./run-top-bar";
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
-import { FlowToolbar, organize } from "./toolbar";
+import { FlowToolbar, isTyping, organize } from "./toolbar";
 import { InlineRename, Toast } from "./ui";
 import { PublishButton, VersionBanner, VersionButton } from "./versions";
 
@@ -334,6 +334,34 @@ export const Editor = ({
   const inHistory = Boolean(history && ui.history);
   const openRun = inHistory ? history?.run : null;
   useRunKeys(history, Boolean(openRun));
+  // Esc with a step selected clears the selection, in the editor and in a run; with nothing selected it does nothing.
+  const hasSelection =
+    Boolean(ui.selectedId) || (ui.selectedIds?.length ?? 0) > 0;
+  const escapeBusy = Boolean(ui.picker || ui.openField || ui.canvasMenu);
+  useEffect(() => {
+    if (!hasSelection || escapeBusy) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Escape" ||
+        event.defaultPrevented ||
+        isTyping(event.target) ||
+        globalThis.document.querySelector(
+          "[role=menu], [role=dialog], [role=listbox]",
+        )
+      ) {
+        return;
+      }
+      setUiState((current) => ({
+        ...current,
+        selectedId: null,
+        selectedIds: [],
+      }));
+    };
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
+  }, [hasSelection, escapeBusy]);
   const runs = mockRuns(document);
   const latestRun = runs[0];
   const viewedRun = ui.viewRunId
