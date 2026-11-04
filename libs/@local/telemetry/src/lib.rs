@@ -21,8 +21,6 @@ pub mod traces;
 
 mod otlp;
 
-#[cfg(feature = "clap")]
-use std::ffi::OsString;
 use std::{
     fs::{self, File},
     io::BufWriter,
@@ -49,22 +47,24 @@ use self::{
 };
 
 /// Namespace of the environment variables the telemetry configuration reads by default.
+///
+/// Every `env` name in [`TracingConfig`] other than `HASH_OTLP_ENDPOINT` starts with it, followed
+/// by `_`, because [`TracingConfig::with_namespace`] replaces exactly that part.
 pub const DEFAULT_NAMESPACE: &str = "HASH_GRAPH";
 
 /// Arguments for configuring the tracing setup.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct TracingConfig {
-    /// Namespace of the telemetry environment variables, e.g. `HASH_GRAPH` reads
-    /// `HASH_GRAPH_LOG_LEVEL`.
+    /// Namespace of the telemetry environment variables, which the binary sets in code.
     #[cfg_attr(
         feature = "clap",
         clap(
             id = "telemetry-namespace",
             long = "telemetry-namespace",
-            value_name = "NAMESPACE",
+            hide = true,
             default_value = DEFAULT_NAMESPACE,
-            global = true
+            value_parser = [DEFAULT_NAMESPACE]
         )
     )]
     pub namespace: String,
@@ -81,52 +81,19 @@ pub struct TracingConfig {
 
 #[cfg(feature = "clap")]
 impl TracingConfig {
-    /// Makes the telemetry arguments in `command` read the namespace that `args` pass with
-    /// `--telemetry-namespace`.
-    ///
-    /// The namespace decides which environment variables clap reads, so it is taken from the raw
-    /// arguments before `command` parses them. Without the flag the arguments read the variables
-    /// of [`DEFAULT_NAMESPACE`].
+    /// Makes the telemetry arguments in `command` read the variables of `namespace`, and parses
+    /// `namespace` into [`TracingConfig::namespace`].
     #[must_use]
-    pub fn with_namespace_flag(
-        command: Command,
-        args: impl IntoIterator<Item = impl Into<OsString>>,
-    ) -> Command {
-        match namespace_argument(args) {
-            Some(namespace) => with_env_namespace(command, &namespace),
-            None => command,
-        }
+    pub fn with_namespace(command: Command, namespace: &str) -> Command {
+        with_env_namespace(command, namespace).mut_arg("telemetry-namespace", |arg| {
+            arg.default_value(namespace.to_owned())
+                .value_parser([namespace.to_owned()])
+        })
     }
 }
 
-/// The value of the last `--telemetry-namespace` in `args`, ignoring everything after `--`.
-#[cfg(feature = "clap")]
-fn namespace_argument(args: impl IntoIterator<Item = impl Into<OsString>>) -> Option<String> {
-    let mut args = args.into_iter().map(Into::into);
-    let mut namespace = None;
-
-    while let Some(arg) = args.next() {
-        let Some(arg) = arg.to_str() else {
-            continue;
-        };
-
-        match arg {
-            "--" => break,
-            "--telemetry-namespace" => {
-                namespace = args.next().and_then(|value| value.into_string().ok());
-            }
-            _ => {
-                if let Some(value) = arg.strip_prefix("--telemetry-namespace=") {
-                    namespace = Some(value.to_owned());
-                }
-            }
-        }
-    }
-
-    namespace
-}
-
-/// Makes the telemetry arguments in `command` read `<namespace>_*` instead of `HASH_GRAPH_*`.
+/// Makes the telemetry arguments in `command` read `<namespace>_*` instead of the
+/// [`DEFAULT_NAMESPACE`] variables.
 ///
 /// Arguments that are not part of [`TracingConfig`] keep their environment variables, and so
 /// does `HASH_OTLP_ENDPOINT`.
@@ -188,9 +155,10 @@ impl TelemetryRegistry {
         self
     }
 
-    /// Sets the logging filter for outputs without their own level.
+    /// Sets the `EnvFilter` directives for outputs without their own level, the OTLP logs and
+    /// traces included.
     ///
-    /// See [`logging::env_filter`] for how it combines with the level of each output and with
+    /// See [`logging::env_filter`] for how they combine with the level of each output and with
     /// `RUST_LOG`.
     #[must_use]
     pub fn with_log_level(mut self, directives: Option<String>) -> Self {
@@ -438,8 +406,9 @@ impl Drop for Telemetry {
 
 /// Initialize the `tracing` logging setup.
 ///
-/// Outputs without their own level are filtered by `<namespace>_LOG_LEVEL`, falling back to
-/// `RUST_LOG`.
+/// Outputs without their own level, the OTLP logs and traces included, are filtered by the
+/// `LOG_LEVEL` variable in [`TracingConfig::namespace`], e.g. `HASH_GRAPH_LOG_LEVEL`, falling back
+/// to `RUST_LOG`.
 ///
 /// # Errors
 ///
@@ -463,9 +432,9 @@ pub fn init_tracing(
 
 #[cfg(all(test, feature = "clap"))]
 mod tests {
-    use clap::{Arg, Args as _, Command};
+    use clap::{Arg, Args as _, Command, FromArgMatches as _, error::ErrorKind};
 
-    use crate::{TracingConfig, namespace_argument, with_env_namespace};
+    use crate::{TracingConfig, with_env_namespace};
 
     fn telemetry_command() -> Command {
         TracingConfig::augment_args(Command::new("telemetry"))
@@ -503,12 +472,12 @@ mod tests {
                 ("sentry-event-filter", "HASH_GRAPH_SENTRY_EVENT_FILTER"),
             ],
             "telemetry arguments should read the `HASH_GRAPH_` variables unless a binary sets a \
-             prefix"
+             namespace"
         );
     }
 
     #[test]
-    fn with_env_prefix_telemetry_arguments() {
+    fn with_env_namespace_telemetry_arguments() {
         let command = with_env_namespace(telemetry_command(), "TEST");
 
         assert_eq!(
@@ -532,12 +501,12 @@ mod tests {
                 ("sentry-span-filter", "TEST_SENTRY_SPAN_FILTER"),
                 ("sentry-event-filter", "TEST_SENTRY_EVENT_FILTER"),
             ],
-            "every telemetry variable except `HASH_OTLP_ENDPOINT` should take the prefix"
+            "every telemetry variable except `HASH_OTLP_ENDPOINT` should move to the namespace"
         );
     }
 
     #[test]
-    fn with_env_prefix_other_arguments() {
+    fn with_env_namespace_other_arguments() {
         let command = with_env_namespace(
             telemetry_command().arg(
                 Arg::new("worker-threads")
@@ -559,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn with_env_prefix_subcommand() {
+    fn with_env_namespace_subcommand() {
         let mut command = with_env_namespace(
             telemetry_command().subcommand(Command::new("server")),
             "TEST",
@@ -581,82 +550,47 @@ mod tests {
                 ("logging-file-level", "TEST_LOG_FILE_LEVEL"),
                 ("logging-file-output", "TEST_LOG_FOLDER"),
             ],
-            "the global logging arguments a subcommand inherits should read the prefixed variables"
+            "the global logging arguments a subcommand inherits should read the namespace's \
+             variables"
         );
     }
 
     #[test]
-    fn namespace_argument_separate_value() {
+    fn namespace_default() {
+        let matches = telemetry_command()
+            .try_get_matches_from(["bin"])
+            .expect("should parse without arguments");
+        let config = TracingConfig::from_arg_matches(&matches).expect("should build the config");
+
         assert_eq!(
-            namespace_argument(["bin", "--telemetry-namespace", "TEST", "server"]),
-            Some("TEST".to_owned()),
-            "the value after the flag should be the namespace"
+            config.namespace, "HASH_GRAPH",
+            "a binary without a namespace should use the default"
         );
     }
 
     #[test]
-    fn namespace_argument_inline_value() {
+    fn with_namespace_parsed() {
+        let matches = TracingConfig::with_namespace(telemetry_command(), "TEST")
+            .try_get_matches_from(["bin"])
+            .expect("should parse without arguments");
+        let config = TracingConfig::from_arg_matches(&matches).expect("should build the config");
+
         assert_eq!(
-            namespace_argument(["bin", "server", "--telemetry-namespace=TEST"]),
-            Some("TEST".to_owned()),
-            "the value after `=` should be the namespace, also behind a subcommand"
+            config.namespace, "TEST",
+            "the parsed config should carry the namespace the command was built with"
         );
     }
 
     #[test]
-    fn namespace_argument_absent() {
-        assert_eq!(
-            namespace_argument(["bin", "server", "--logging-console-level", "info"]),
-            None,
-            "arguments without the flag should leave the default namespace in place"
-        );
-    }
-
-    #[test]
-    fn namespace_argument_repeated() {
-        assert_eq!(
-            namespace_argument([
-                "bin",
-                "--telemetry-namespace",
-                "FIRST",
-                "--telemetry-namespace=SECOND",
-            ]),
-            Some("SECOND".to_owned()),
-            "the last flag should win"
-        );
-    }
-
-    #[test]
-    fn namespace_argument_after_terminator() {
-        assert_eq!(
-            namespace_argument(["bin", "--", "--telemetry-namespace", "TEST"]),
-            None,
-            "a flag after `--` should be a positional value, not the namespace"
-        );
-    }
-
-    #[test]
-    fn with_namespace_flag_default() {
-        let command = TracingConfig::with_namespace_flag(telemetry_command(), ["bin", "server"]);
+    fn with_namespace_other_value() {
+        let error = TracingConfig::with_namespace(telemetry_command(), "TEST")
+            .try_get_matches_from(["bin", "--telemetry-namespace", "OTHER"])
+            .expect_err("should reject a namespace other than the binary's");
 
         assert_eq!(
-            env_names(&command),
-            env_names(&telemetry_command()),
-            "without the flag the telemetry arguments should keep their variables"
-        );
-    }
-
-    #[test]
-    fn with_namespace_flag_custom() {
-        let command = TracingConfig::with_namespace_flag(
-            telemetry_command(),
-            ["bin", "--telemetry-namespace", "TEST"],
-        );
-
-        assert_eq!(
-            env_names(&command),
-            env_names(&with_env_namespace(telemetry_command(), "TEST")),
-            "the flag should rename the telemetry variables into its namespace"
+            error.kind(),
+            ErrorKind::InvalidValue,
+            "the namespace should not be changeable from the command line"
         );
     }
 }

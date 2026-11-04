@@ -37,7 +37,7 @@ pub struct Args {
 impl Args {
     /// The command the program parses its arguments with.
     fn cli() -> Command {
-        TracingConfig::with_namespace_flag(Self::command(), std::env::args_os())
+        TracingConfig::with_namespace(Self::command(), "HASH_GRAPH")
             .color(ColorChoice::Auto)
             .styles(
                 Styles::styled()
@@ -100,16 +100,13 @@ mod tests {
     }
 
     #[test]
-    fn cli_env_custom_prefix() {
-        let command = TracingConfig::with_namespace_flag(
-            Args::command(),
-            ["hash-graph", "server", "--telemetry-namespace", "TEST"],
-        );
+    fn cli_env_custom_namespace() {
+        let command = TracingConfig::with_namespace(Args::command(), "TEST");
 
         assert_eq!(
             env_name(&command, "logging-console-level"),
             Some("TEST_LOG_CONSOLE_LEVEL"),
-            "the telemetry arguments should read the prefixed variables"
+            "the telemetry arguments should read the namespace's variables"
         );
         assert_eq!(
             env_name(&command, "worker_threads"),
