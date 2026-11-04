@@ -20,6 +20,7 @@ import {
   outcomeState,
   type RunOutcome,
   type RunRecord,
+  outcomeLabel,
   runClock,
   stepRuns,
   triggerLabel,
@@ -514,6 +515,22 @@ const stackOrder: RunOutcome[] = [
 
 const chartHeight = 124;
 
+/**
+ * Below this many runs in the period, the chart shows one square per run instead of count bars (Aakarsh, 4 Nov:
+ * "under about 30"). Set to 8 so the seed's 30D (5 runs) shows squares while 6M (11) and 1Y (16) show bars; the
+ * seed has 17 runs in all, so a threshold of 30 would show squares in every period.
+ */
+const squaresBelow = 8;
+
+const squareStyle = css({
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "[2px]",
+  cursor: "pointer",
+  outlineOffset: "[1px]",
+  "&[data-hovered]": { outline: "[1.5px solid var(--flows-sel-border)]" },
+});
+
 const periodStyle = css({
   height: "[24px]",
   paddingX: "1.5",
@@ -529,8 +546,8 @@ const periodStyle = css({
   },
 });
 
-/** The bucket a bar shows, and where its tooltip anchors: the bar's centre and top, in the chart's own pixels. */
-type ChartHover = { label: string; x: number; top: number };
+/** What is hovered (a bucket's bar or a run's square), its tooltip, and where that anchors: the centre and top. */
+type ChartHover = { key: string; text: string; x: number; top: number };
 
 const tipStyle = css({
   position: "absolute",
@@ -553,12 +570,12 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
   const boxRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const { name, range, buckets, axis } = bucketsFor(period, runs);
+  const squares =
+    buckets.reduce((total, bucket) => total + bucket.runs.length, 0) <
+    squaresBelow;
   const max = Math.max(1, ...buckets.map((bucket) => bucket.runs.length));
   // GitHub-style axis on the right: 0, the midpoint when it is a whole number, and the max.
   const ticks = [max, ...(max % 2 === 0 && max > 2 ? [max / 2] : []), 0];
-  const hovered = hover
-    ? buckets.find((bucket) => bucket.label === hover.label)
-    : undefined;
   const tipText = (bucket: Bucket) => {
     const failed = bucket.runs.filter(
       (run) => outcomeOf(run, now) === "error",
@@ -656,12 +673,13 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
         })}
         onMouseLeave={() => setHover(null)}
       >
-        {hovered && hovered.runs.length > 0 ? (
+        {hover ? (
           <div ref={tipRef} className={tipStyle} data-chart-tip>
-            {tipText(hovered)}
+            {hover.text}
           </div>
         ) : null}
-        {ticks.map((tick) => (
+        {/* No y axis for squares: each one is a run. */}
+        {(squares ? [] : ticks).map((tick) => (
           <span
             key={tick}
             className={css({
@@ -679,7 +697,9 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
           // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- hover shows the bucket's counts
           <div
             key={bucket.label}
-            data-hovered={hover?.label === bucket.label || undefined}
+            data-hovered={
+              (!squares && hover?.key === bucket.label) || undefined
+            }
             className={css({
               flex: "1",
               display: "flex",
@@ -693,21 +713,88 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
               },
             })}
             onMouseEnter={(event) => {
+              if (squares) {
+                return;
+              }
               const box = boxRef.current?.getBoundingClientRect();
               const stack = event.currentTarget.firstElementChild;
               const bar = stack?.getBoundingClientRect();
               if (!box || !bar) {
                 return;
               }
-              setHover({
-                label: bucket.label,
-                x: bar.left - box.left + bar.width / 2,
-                top: (bar.height > 0 ? bar.top : bar.bottom) - box.top,
-              });
+              setHover(
+                bucket.runs.length > 0
+                  ? {
+                      key: bucket.label,
+                      text: tipText(bucket),
+                      x: bar.left - box.left + bar.width / 2,
+                      top: (bar.height > 0 ? bar.top : bar.bottom) - box.top,
+                    }
+                  : null,
+              );
             }}
           >
+            {squares ? (
+              <div
+                className={css({
+                  display: "flex",
+                  flexDirection: "column-reverse",
+                  alignItems: "center",
+                  gap: "[2px]",
+                  width: "[100%]",
+                })}
+              >
+                {bucket.runs.length === 0 ? (
+                  <span
+                    style={{
+                      width: "100%",
+                      height: 2,
+                      backgroundColor: statusColor.track,
+                      borderRadius: 1,
+                    }}
+                  />
+                ) : (
+                  // Oldest at the bottom.
+                  bucket.runs
+                    .toSorted((first, second) => first.id - second.id)
+                    .map((run) => {
+                      const outcome = outcomeOf(run, now);
+                      return (
+                        <button
+                          key={run.id}
+                          type="button"
+                          className={squareStyle}
+                          style={{ backgroundColor: chartColour[outcome] }}
+                          aria-label={`Run ${run.id}`}
+                          data-run-square={run.id}
+                          data-hovered={
+                            hover?.key === `run:${run.id}` || undefined
+                          }
+                          onMouseEnter={(event) => {
+                            const box = boxRef.current?.getBoundingClientRect();
+                            const square =
+                              event.currentTarget.getBoundingClientRect();
+                            if (!box) {
+                              return;
+                            }
+                            setHover({
+                              key: `run:${run.id}`,
+                              text: `Run ${run.id} · ${run.when.replace(", ", " ")} · ${outcomeLabel[outcome]}`,
+                              x: square.left - box.left + square.width / 2,
+                              top: square.top - box.top,
+                            });
+                          }}
+                          onClick={() => history.open(run.id)}
+                        />
+                      );
+                    })
+                )}
+              </div>
+            ) : null}
             <div
+              hidden={squares}
               className={css({
+                "&[hidden]": { display: "none" },
                 display: "flex",
                 flexDirection: "column-reverse",
                 gap: "[1.5px]",
