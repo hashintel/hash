@@ -8,20 +8,20 @@
  * Docs pages are left alone.
  */
 
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 
 import { visit } from "unist-util-visit";
 
 import { dataAttribute } from "./estree-values.mjs";
 
-/** @type {{ path: string, stamp: number, model: any } | null} */
+/** @type {{ text: string, model: any } | null} */
 let cached = null;
 
-/** The model, read again whenever the bundle rewrites it. */
+/** The model, parsed again only when the bundle has rewritten it. */
 const modelAt = (path) => {
-  const stamp = statSync(path).mtimeMs;
-  if (cached?.path !== path || cached.stamp !== stamp) {
-    cached = { path, stamp, model: JSON.parse(readFileSync(path, "utf8")) };
+  const text = readFileSync(path, "utf8");
+  if (cached?.text !== text) {
+    cached = { text, model: JSON.parse(text) };
   }
   return cached.model;
 };

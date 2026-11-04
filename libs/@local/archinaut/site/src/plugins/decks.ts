@@ -14,6 +14,7 @@
 import { relative } from "node:path";
 
 import { listDecks, type DeckFolderLogo } from "../../../src/slides/folders.ts";
+import { codeLiteral } from "./code-literal.ts";
 
 import type { Plugin } from "vite";
 
@@ -22,12 +23,12 @@ const resolvedId = `\0${moduleId}`;
 
 const sourceOf = (root: string | null): string => {
   const specifier = (file: string): string =>
-    JSON.stringify(`@decks/${relative(root ?? "", file)}`);
+    codeLiteral(`@decks/${relative(root ?? "", file)}`);
   // A deck's own logo is an asset import, so Vite serves and fingerprints it.
   const logoImports: string[] = [];
   const logoOf = (logo: DeckFolderLogo): string => {
     if (logo.kind !== "file") {
-      return JSON.stringify(logo);
+      return codeLiteral(logo);
     }
     const name = `logo${logoImports.length}`;
     logoImports.push(`import ${name} from ${specifier(`${logo.file}?url`)};`);
@@ -36,13 +37,13 @@ const sourceOf = (root: string | null): string => {
   const decks = listDecks(root).map((deck) => {
     const slides = deck.slides.map(
       (slide) =>
-        `{ id: ${JSON.stringify(slide.id)}, kind: ${JSON.stringify(slide.kind)}, load: () => import(${specifier(slide.file)}) }`,
+        `{ id: ${codeLiteral(slide.id)}, kind: ${codeLiteral(slide.kind)}, load: () => import(${specifier(slide.file)}) }`,
     );
     const style =
       deck.stylesheet === null
         ? "null"
         : `() => import(${specifier(deck.stylesheet)})`;
-    return `{ id: ${JSON.stringify(deck.id)}, title: ${JSON.stringify(deck.title)}, description: ${JSON.stringify(deck.description)}, logo: ${logoOf(deck.logo)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
+    return `{ id: ${codeLiteral(deck.id)}, title: ${codeLiteral(deck.title)}, description: ${codeLiteral(deck.description)}, logo: ${logoOf(deck.logo)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
   });
   return `${logoImports.join("\n")}\nexport default [${decks.join(", ")}];`;
 };

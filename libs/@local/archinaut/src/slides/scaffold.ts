@@ -5,7 +5,7 @@
  * lives.
  */
 
-import { existsSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative, sep } from "node:path";
@@ -69,6 +69,9 @@ export const deckTsconfig = (root: string, siteRoot: string): string => {
   )}\n`;
 };
 
+const hasCode = (error: unknown, code: string): boolean =>
+  error instanceof Error && "code" in error && error.code === code;
+
 /** Creates `<root>/<name>/`; refuses to overwrite a deck. */
 export const scaffoldDeck = async (options: {
   root: string;
@@ -77,24 +80,36 @@ export const scaffoldDeck = async (options: {
 }): Promise<{ directory: string; wroteTsconfig: boolean }> => {
   const { root, name, siteRoot } = options;
   const directory = join(root, name);
-  if (existsSync(directory)) {
-    throw new Error(`${directory} already exists`);
+  mkdirSync(root, { recursive: true });
+  try {
+    mkdirSync(directory);
+  } catch (error) {
+    if (hasCode(error, "EEXIST")) {
+      throw new Error(`${directory} already exists`);
+    }
+    throw error;
   }
-  mkdirSync(directory, { recursive: true });
   const title = name
     .replace(/[-_]+/gu, " ")
     .replace(/^./u, (first) => first.toUpperCase());
-  const tsconfigPath = join(root, "tsconfig.json");
-  const wroteTsconfig = !existsSync(tsconfigPath);
-  await Promise.all([
+  const [, , wroteTsconfig] = await Promise.all([
     writeFile(
       join(directory, "deck.json"),
       `${JSON.stringify({ title, description: "" }, null, 2)}\n`,
     ),
     writeFile(join(directory, "0-title.mdx"), titleSlide(title)),
-    wroteTsconfig
-      ? writeFile(tsconfigPath, deckTsconfig(root, siteRoot))
-      : Promise.resolve(),
+    // `wx` fails on an existing file, so a tsconfig already there stays.
+    writeFile(join(root, "tsconfig.json"), deckTsconfig(root, siteRoot), {
+      flag: "wx",
+    }).then(
+      () => true,
+      (error: unknown) => {
+        if (hasCode(error, "EEXIST")) {
+          return false;
+        }
+        throw error;
+      },
+    ),
   ]);
   return { directory, wroteTsconfig };
 };

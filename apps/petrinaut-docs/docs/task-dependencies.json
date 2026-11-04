@@ -9,7 +9,9 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": [],
+      "dependsOn": [
+        "@hashintel/ds-icons#build"
+      ],
       "cache": false,
       "env": [
         "ARCHINAUT_CACHE_DIR",
@@ -29,7 +31,9 @@
       ]
     },
     "dev": {
-      "dependsOn": [],
+      "dependsOn": [
+        "@hashintel/ds-icons#build"
+      ],
       "cache": false,
       "persistent": true,
       "env": [

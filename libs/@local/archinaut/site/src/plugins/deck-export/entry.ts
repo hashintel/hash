@@ -7,11 +7,13 @@
 
 import { relative } from "node:path";
 
+import { codeLiteral } from "../code-literal.ts";
+
 import type { DeckFolder } from "../../../../src/slides/folders.ts";
 import type { SlideShape } from "../../slides/deck/slide-shape.ts";
 
 const deckSpecifier = (slidesRoot: string, file: string): string =>
-  JSON.stringify(`@decks/${relative(slidesRoot, file)}`);
+  codeLiteral(`@decks/${relative(slidesRoot, file)}`);
 
 export const exportEntrySource = ({
   deck,
@@ -38,16 +40,16 @@ export const exportEntrySource = ({
   const logo =
     deck.logo.kind === "file"
       ? `{ kind: "image", src: logo }`
-      : JSON.stringify(deck.logo);
+      : codeLiteral(deck.logo);
   const slides = deck.slides.map(
     (slide, index) =>
-      `{ id: ${JSON.stringify(slide.id)}, kind: ${JSON.stringify(slide.kind)}, module: slide${index} }`,
+      `{ id: ${codeLiteral(slide.id)}, kind: ${codeLiteral(slide.kind)}, module: slide${index} }`,
   );
   return `${imports.join("\n")}
 
 mountExportedDeck({
   logo: ${logo},
-  shape: ${JSON.stringify(shape)},
+  shape: ${codeLiteral(shape)},
   slides: [${slides.join(", ")}],
 });
 `;
