@@ -11,8 +11,9 @@
  * 4. Run as the title: ← History | Run 16 (big), "Failed · Today, 08:15", ‹ ▾ › | Re-run, Simulate, Open in editor,
  *    Publish, ⋮.
  *
- * Editor (`?editorbar=1..3`, remembered): Simulate, Run, Publish and ⋮ in each; only History moves.
- * 1. T1: the Editor | History segmented control, centred. The default until Aakarsh picks.
+ * Editor: take 1, picked by Aakarsh on 4 Nov. The others stay for comparison behind `?editorbar=2|3`, which is not
+ * remembered, so the default route always shows take 1.
+ * 1. T1: the Editor | History segmented control, centred.
  * 2. History as a quiet ghost button, "17 runs", beside Simulate.
  * 3. One muted line by the title, "v6 · Draft ▾ · 17 runs".
  * Every take has the title (renamed in place) and the version menu (V0–V7).
@@ -56,14 +57,10 @@ const variantFrom = <Variant extends number>(
 export const runBarVariant = (query: URLSearchParams) =>
   variantFrom<RunBarVariant>(query, "topbar", "flows-proto:topbar:v2", 4, 1);
 
-export const editorBarVariant = (query: URLSearchParams) =>
-  variantFrom<EditorBarVariant>(
-    query,
-    "editorbar",
-    "flows-proto:editorbar:v1",
-    3,
-    1,
-  );
+export const editorBarVariant = (query: URLSearchParams): EditorBarVariant => {
+  const take = Number(query.get("editorbar"));
+  return take === 2 || take === 3 ? take : 1;
+};
 
 const sideStyle = css({
   display: "flex",
