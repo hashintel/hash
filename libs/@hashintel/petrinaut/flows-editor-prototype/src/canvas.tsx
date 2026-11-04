@@ -39,6 +39,7 @@ import {
   removeStep,
   startSubtitle,
   stepTitle,
+  updateStep,
 } from "./document";
 import {
   type CanvasMenu,
@@ -66,7 +67,7 @@ import {
 } from "./run-history";
 import { describeSource } from "./shapes";
 import { tileColor } from "./status-colors";
-import { Toast } from "./ui";
+import { InlineRename, Toast } from "./ui";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
 export const STEP_WIDTH = 200;
@@ -524,12 +525,22 @@ const oneLineStyle = cva({
 });
 
 /** Two fixed lines, so every card has one height: the type, then the description or a muted prompt for one. */
+/** A run, or a past version open from the version menu (V6), is read-only. */
+const useReadOnlyCanvas = () => {
+  const runView = useRunView();
+  const viewingVersion = useLocation().query.has("version");
+  return Boolean(runView) || viewingVersion;
+};
+
 const CardText = ({
   title,
   description,
+  onDescription,
 }: {
   title: string;
   description?: string;
+  /** Renames the description in place on the card (Attio's pattern); none in a run or a past version. */
+  onDescription?: (value: string) => void;
 }) => (
   <span
     className={css({
@@ -541,14 +552,25 @@ const CardText = ({
     })}
   >
     <span className={oneLineStyle({ tone: "title" })}>{title}</span>
-    <span className={oneLineStyle({ tone: description ? "body" : "muted" })}>
-      {description ?? "Add a description…"}
-    </span>
+    {onDescription ? (
+      <InlineRename
+        compact
+        value={description ?? ""}
+        placeholder="Add a description…"
+        label="Step description"
+        onSave={onDescription}
+      />
+    ) : (
+      <span className={oneLineStyle({ tone: description ? "body" : "muted" })}>
+        {description ?? "Add a description…"}
+      </span>
+    )}
   </span>
 );
 
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
-  const { document, ui } = useEditor();
+  const { document, ui, setDocument } = useEditor();
+  const editable = !useReadOnlyCanvas();
   const runView = useRunView();
   const step = flatFind(document, id);
   if (!step || step.kind !== "action") {
@@ -585,6 +607,18 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             description={
               step.description && step.description !== entry?.title
                 ? step.description
+                : undefined
+            }
+            // The same description the panel header edits, so the two stay in step.
+            onDescription={
+              editable
+                ? (value) =>
+                    setDocument((current) =>
+                      updateStep(current, id, (candidate) => ({
+                        ...candidate,
+                        description: value,
+                      })),
+                    )
                 : undefined
             }
           />

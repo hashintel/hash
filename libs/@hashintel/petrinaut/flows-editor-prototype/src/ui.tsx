@@ -540,6 +540,38 @@ const renameInputStyle = css({
   outline: "none",
 });
 
+/** The compact rename, for a line of small text such as a step card's description. */
+const compactTextStyle = css({
+  display: "block",
+  minWidth: "[0]",
+  marginX: "[-2px]",
+  paddingX: "[2px]",
+  borderRadius: "sm",
+  textStyle: "xs",
+  lineHeight: "tight",
+  color: "neutral.fg.muted",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  cursor: "text",
+  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  "&[data-empty]": { color: "neutral.fg.subtle" },
+});
+
+const compactInputStyle = css({
+  display: "block",
+  width: "[100%]",
+  marginX: "[-2px]",
+  paddingX: "[2px]",
+  borderRadius: "sm",
+  borderWidth: "[0]",
+  textStyle: "xs",
+  lineHeight: "tight",
+  color: "neutral.fg.heading",
+  backgroundColor: "neutral.bg.surface.active",
+  outline: "none",
+});
+
 /**
  * Anything renamable (Aakarsh, 4 Nov, Attio's pattern): a subtle fill on hover, an input on click, Enter or blur
  * saves, Esc cancels. No pen icons anywhere.
@@ -550,12 +582,15 @@ export const InlineRename = ({
   label,
   placeholder,
   className,
+  compact = false,
 }: {
   value: string;
   onSave: (value: string) => void;
   label: string;
   placeholder?: string;
   className?: string;
+  /** A line of small text (a card's description) rather than a title. */
+  compact?: boolean;
 }) => {
   const [draft, setDraft] = useState<string | null>(null);
   if (draft !== null) {
@@ -568,7 +603,12 @@ export const InlineRename = ({
     };
     return (
       <input
-        className={cx(renameInputStyle, className)}
+        // `nodrag`: typing in a canvas card must not drag the card.
+        className={cx(
+          compact ? compactInputStyle : renameInputStyle,
+          "nodrag",
+          className,
+        )}
         value={draft}
         aria-label={label}
         placeholder={placeholder}
@@ -595,8 +635,9 @@ export const InlineRename = ({
       tabIndex={0}
       aria-label={`${label}: ${value || placeholder || ""}. Rename`}
       title="Rename"
-      className={cx(renameTextStyle, className)}
+      className={cx(compact ? compactTextStyle : renameTextStyle, className)}
       data-rename
+      data-empty={value ? undefined : true}
       onClick={() => setDraft(value)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
