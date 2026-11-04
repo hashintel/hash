@@ -4,7 +4,7 @@
  *
  * Run view (`?topbar=1..4`, remembered). No segmented control in any. Each has: back to the editor, all runs, the run
  * switcher (‹ › and the picker), Re-run (Stop on a live run), Simulate, Publish and ⋮. The takes differ only in
- * layout and grouping.
+ * layout and grouping. A run with failed items adds "Re-run 2 failed" left of Re-run, its only place in the app.
  * 1. Centred switcher: ← flow · All runs | ‹ Run 16 · Today, 08:15 ▾ › | Re-run, Simulate, Publish, ⋮. The default.
  * 2. One control: [← flow / Run 16 ▾] ‹ ›, All runs first in the picker | Re-run, Simulate, Publish, ⋮.
  * 3. Breadcrumb: flow › All runs › ‹ Run 16 ▾ › | Re-run, Simulate, Publish, ⋮.
@@ -210,8 +210,23 @@ export const RunTopBar = ({
     return null;
   }
   const outcome = outcomeOf(run, now);
-  const action = bannerAction(run, now);
-  const stop = action === "Stop";
+  const stop = bannerAction(run, now) === "Stop";
+  const failedCount =
+    outcome === "warnings" ? factsOf(run, now).failures.length : 0;
+  // The one place to re-run only the failed items: just left of Re-run. Elsewhere it is plain "2 failed".
+  const rerunFailedButton =
+    failedCount > 0 ? (
+      <Button
+        size="sm"
+        variant="subtle"
+        tone="neutral"
+        className={quietStyle}
+        data-run-rerun-failed
+        onClick={() => history.start(failedCount)}
+      >
+        {`Re-run ${failedCount} failed`}
+      </Button>
+    ) : null;
   const actionButton = (
     <Button
       size="sm"
@@ -220,17 +235,9 @@ export const RunTopBar = ({
       iconName={stop ? "stop" : "rotate"}
       className={quietStyle}
       data-run-action
-      onClick={() =>
-        stop
-          ? history.stop(run.id)
-          : history.start(
-              outcome === "warnings"
-                ? factsOf(run, now).failures.length
-                : undefined,
-            )
-      }
+      onClick={() => (stop ? history.stop(run.id) : history.start())}
     >
-      {action}
+      {stop ? "Stop" : "Re-run"}
     </Button>
   );
   const simulateButton = (
@@ -248,6 +255,7 @@ export const RunTopBar = ({
   );
   const right = (extra?: React.ReactNode) => (
     <div className={rightStyle}>
+      {rerunFailedButton}
       {actionButton}
       {simulateButton}
       {extra}

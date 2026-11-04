@@ -1,6 +1,6 @@
 /**
  * The minimal run log, in the right panel when no step is selected (spec: ops/screenshots/run-log-minimal-1104/,
- * R1–R4). A summary ("Run 16", "Failed · 18 of 20 suppliers", duration, trigger, who, when, and Re-run or Stop), then
+ * R1–R4). A summary ("Run 16", "Failed · 18 of 20 suppliers", duration, trigger, who, when, and Stop or "2 failed"), then
  * one row per step: a mono time, a 16 px mark, the step and a muted detail, a mono duration on the right.
  *
  * For each folds to "20 suppliers · 2 failed"; opened, its failures come first, each with its reason, and the
@@ -80,6 +80,12 @@ const monoStyle = css({
 });
 
 const mutedStyle = css({ color: "neutral.fg.subtle" });
+
+/** "2 failed" in the summary: a quiet link that opens the For each on its failures. */
+const failedLinkStyle = css({
+  "&[class]": { color: "neutral.fg.subtle", fontWeight: "normal" },
+  "&[class]:hover": { color: "neutral.fg.heading" },
+});
 
 /** A log row's mark: the run glyph, or a red cross for a failure. */
 const Mark = ({
@@ -468,19 +474,32 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
           >
             Run {run.id}
           </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            tone="neutral"
-            data-log-action
-            onClick={() =>
-              action === "Stop"
-                ? history.stop(run.id)
-                : history.start(outcome === "warnings" ? failed : undefined)
-            }
-          >
-            {action === "Stop" ? "Stop" : "Re-run"}
-          </Button>
+          {action === "Stop" ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              data-log-action
+              onClick={() => history.stop(run.id)}
+            >
+              Stop
+            </Button>
+          ) : !live && failed > 0 ? (
+            // Status, not a control: Re-run and "Re-run 2 failed" live in the top bar only.
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              className={failedLinkStyle}
+              tooltip="Show the failed items"
+              data-log-failed
+              onClick={() =>
+                setOpenIds((current) => ({ ...current, loop: true }))
+              }
+            >
+              {`${failed} failed`}
+            </Button>
+          ) : null}
         </div>
         <span className={css({ textStyle: "sm", color: "neutral.fg.heading" })}>
           <span style={{ color: statusTone }}>{statusWord}</span>
