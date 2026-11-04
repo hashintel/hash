@@ -10,6 +10,7 @@ import {
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { useSourceHover } from "./editor-context";
+import { tileColor } from "./status-colors";
 
 import type { StepInputSource } from "./engine";
 import type { EditorPayloadKind } from "./mock-action-definitions";
@@ -60,7 +61,7 @@ export const IconTile = ({
   tone?: "green" | "orange" | "neutral" | "blue";
   size?: "sm" | "md";
 }) => (
-  <span className={tile({ tone, size })}>
+  <span className={tile({ tone, size })} style={tileColor(icon)}>
     <Icon name={icon} size="sm" />
   </span>
 );
@@ -402,7 +403,7 @@ export const selectTriggerStyle = css({
   "& > svg": { color: "neutral.fg.muted", flexShrink: 0 },
   "&[data-placeholder]": { color: "neutral.fg.subtle" },
   _hover: { borderColor: "neutral.bd.strong" },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
+  _focusVisible: { outline: "[2px solid var(--flows-sel-border)]" },
 });
 
 /**
@@ -499,7 +500,7 @@ export const descriptionInputStyle = css({
   outline: "none",
   _placeholder: { color: "neutral.fg.muted.disabled" },
   _hover: { color: "neutral.fg.muted" },
-  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
+  _focusVisible: { boxShadow: "[0 0 0 2px var(--flows-sel-halo)]" },
 });
 
 const renameTextStyle = css({
@@ -520,7 +521,7 @@ const renameTextStyle = css({
   _hover: { backgroundColor: "neutral.bg.surface.hover" },
   _focusVisible: {
     outline: "none",
-    boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]",
+    boxShadow: "[0 0 0 2px var(--flows-sel-halo)]",
   },
 });
 

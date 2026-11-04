@@ -424,7 +424,10 @@ const chevronStyle = css({
 const Glyph = ({ glyph }: { glyph: LogRow["glyph"] }) =>
   glyph === "cross" ? (
     <span
-      className={css({ display: "inline-flex", color: "red.fg.body" })}
+      className={css({
+        display: "inline-flex",
+        color: "[var(--flows-failed-text)]",
+      })}
       aria-label="Failed"
     >
       <Icon name="close" size="sm" />
@@ -503,7 +506,10 @@ const Row = ({
       {row.note ? (
         <span
           className={css({
-            color: row.tone === "red" ? "red.fg.body" : "neutral.fg.subtle",
+            color:
+              row.tone === "red"
+                ? "[var(--flows-failed-text)]"
+                : "neutral.fg.subtle",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -532,8 +538,8 @@ const errorBoxStyle = css({
   borderRadius: "md",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "red.bd.solid",
-  backgroundColor: "red.bgSolid.subtle",
+  borderColor: "[var(--flows-failed-badgeBg)]",
+  backgroundColor: "[var(--flows-failed-badgeBg)]",
   textStyle: "sm",
   display: "flex",
   flexDirection: "column",
@@ -548,7 +554,12 @@ const ErrorBox = ({
   depth: number;
 }) => (
   <div className={errorBoxStyle} style={{ marginLeft: 104 + depth * 28 }}>
-    <span className={css({ color: "red.fg.body", fontWeight: "medium" })}>
+    <span
+      className={css({
+        color: "[var(--flows-failed-text)]",
+        fontWeight: "medium",
+      })}
+    >
       {error.title}
     </span>
     {error.tries.map(([time, line]) => (

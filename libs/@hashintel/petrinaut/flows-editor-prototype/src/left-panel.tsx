@@ -30,6 +30,10 @@ import {
   stepTitle,
 } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
+import { RunGlyph } from "./run-glyph";
+import { tileColor } from "./status-colors";
+
+import type { StepState } from "./run-history";
 
 type Tone = "green" | "orange" | "neutral" | "blue";
 
@@ -127,7 +131,7 @@ const labelStyle = css({
 const countStyle = css({ textStyle: "xxs", color: "neutral.fg.subtle" });
 
 const Tile = ({ icon, tone }: { icon: IconName; tone: Tone }) => (
-  <span className={tileStyle({ tone })}>
+  <span className={tileStyle({ tone })} style={tileColor(icon)}>
     <Icon name={icon} size="sm" />
   </span>
 );
@@ -154,9 +158,18 @@ const listHeadStyle = css({
   color: "neutral.fg.muted",
 });
 
-/** "In this flow": Start, then the steps in order, children of a For each indented under it. */
-const FlowList = () => {
+/**
+ * "In this flow": Start, then the steps in order, children of a For each indented under it. In a run the same tree
+ * shows, with each step's run mark at the row's right (`statusFor`).
+ */
+const FlowList = ({
+  statusFor,
+}: {
+  statusFor?: (stepId: string) => StepState;
+}) => {
   const { document, ui, setUi } = useEditor();
+  const mark = (stepId: string) =>
+    statusFor ? <RunGlyph state={statusFor(stepId)} /> : null;
   // Shared with the canvas: a For each closed here folds its box there too (J1.13).
   const closed = ui.collapsed ?? [];
   const setClosed = (next: string[] | ((current: string[]) => string[])) =>
@@ -169,6 +182,7 @@ const FlowList = () => {
     setUi((current) => ({
       ...current,
       selectedId: id,
+      selectedIds: [id],
       triggerId: null,
       openField: null,
     }));
@@ -222,6 +236,7 @@ const FlowList = () => {
             <span className={countStyle}>
               {inside === 1 ? "1 step" : `${inside} steps`}
             </span>
+            {mark(step.stepId)}
           </button>
         );
         return open ? [row, ...nested(step.steps, depth + 1)] : [row];
@@ -240,6 +255,7 @@ const FlowList = () => {
           <span className={chevronSlotStyle} />
           <Tile icon={look.icon} tone={look.tone} />
           <span className={labelStyle}>{stepLabel(step)}</span>
+          {mark(step.stepId)}
         </button>,
       ];
     });
@@ -342,6 +358,7 @@ const FlowList = () => {
           <span className={labelStyle}>
             {document.startDescription || "Flow inputs"}
           </span>
+          {mark(START_ID)}
         </button>
         {withParallel(document.steps, 0)}
       </div>
@@ -514,7 +531,7 @@ const tabStyle = css({
   cursor: "pointer",
   whiteSpace: "nowrap",
   _hover: { color: "neutral.fg.heading" },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
+  _focusVisible: { outline: "[2px solid var(--flows-sel-border)]" },
   "&[aria-selected=true]": { color: "neutral.fg.heading" },
 });
 
@@ -523,15 +540,20 @@ const panelTabs = [
   { value: "add", label: "Add", region: "Add a step" },
 ] as const;
 
-export const LeftPanel = () => {
+/** The editor's left panel. In a run (`statusFor`) it is the Steps tree only, read-only, with each step's run mark. */
+export const LeftPanel = ({
+  statusFor,
+}: {
+  statusFor?: (stepId: string) => StepState;
+}) => {
   const { ui, setUi } = useEditor();
-  const panel = ui.leftPanel ?? "steps";
+  const panel = statusFor ? "steps" : (ui.leftPanel ?? "steps");
   const current = panelTabs.find((tab) => tab.value === panel)!;
   return (
     <aside className={panelStyle} aria-label={current.region}>
       <div className={headerStyle}>
         <div role="tablist" aria-label="Left panel" className={tabListStyle}>
-          {panelTabs.map((tab) => (
+          {(statusFor ? panelTabs.slice(0, 1) : panelTabs).map((tab) => (
             <button
               key={tab.value}
               type="button"
@@ -548,7 +570,7 @@ export const LeftPanel = () => {
         </div>
       </div>
       <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
-        {panel === "add" ? <Library /> : <FlowList />}
+        {panel === "add" ? <Library /> : <FlowList statusFor={statusFor} />}
       </OverlayScrollArea>
     </aside>
   );

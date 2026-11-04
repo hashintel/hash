@@ -43,7 +43,11 @@ for (const file of files) {
   lines.forEach((line, index) => {
     const allowed = /\/\/ token-guard: allow \S/.test(line);
     for (const rule of rules) {
-      if (rule.pattern.test(line) && !allowed) {
+      // The Flows palettes (status-colors.ts) are the one place scale steps are named; everything else reads them.
+      const exempt =
+        rule.name === "raw neutral/blue scale colour" &&
+        file.endsWith("status-colors.ts");
+      if (rule.pattern.test(line) && !allowed && !exempt) {
         problems.push(
           `${relative(here, file)}:${index + 1}  ${rule.name}: ${line.trim()}\n    → ${rule.fix}`,
         );

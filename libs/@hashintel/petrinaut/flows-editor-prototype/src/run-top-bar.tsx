@@ -13,8 +13,9 @@
  *
  * Editor (`?editorbar=1..3`, remembered): Simulate, Run, Publish and ⋮ in each; only History moves.
  * 1. T1: the Editor | History segmented control, centred. The default until Aakarsh picks.
- * 2. History as a quiet ghost button with the run count, beside Simulate.
- * 3. History as a link beside the title.
+ * 2. History as a quiet ghost button, "17 runs", beside Simulate.
+ * 3. One muted line by the title, "v6 · Draft ▾ · 17 runs".
+ * Every take has the title (renamed in place) and the version menu (V0–V7).
  */
 import { BreadCrumbs, Button, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -404,47 +405,32 @@ export const RunTopBar = ({
   }
 };
 
-/** Editor takes 2 and 3: History without the segmented control. */
+/**
+ * History without the segmented control, labelled by its run count ("17 runs", never a bare number). Take 2: a quiet
+ * ghost button with the clock. Take 3: a link in the version line.
+ */
 export const HistoryButton = ({
   variant,
   runCount,
   onOpen,
 }: {
-  variant: 2 | 3;
+  variant: "button" | "link";
   runCount: number;
   onOpen: () => void;
-}) =>
-  variant === 2 ? (
-    <Button
-      size="sm"
-      variant="ghost"
-      tone="neutral"
-      iconName="clockRotateLeft"
-      className={quietStyle}
-      disabled={runCount === 0}
-      tooltip={runCount === 0 ? "No runs yet" : "Every run of this flow"}
-      onClick={onOpen}
-      data-history-button
-    >
-      {runCount > 0 ? `History · ${runCount}` : "History"}
-    </Button>
-  ) : (
-    <>
-      <span aria-hidden className={dotStyle}>
-        ·
-      </span>
-      <Button
-        size="sm"
-        variant="ghost"
-        tone="neutral"
-        iconName="clockRotateLeft"
-        className={flowLinkStyle}
-        disabled={runCount === 0}
-        tooltip={runCount === 0 ? "No runs yet" : "Every run of this flow"}
-        onClick={onOpen}
-        data-history-button
-      >
-        History
-      </Button>
-    </>
-  );
+}) => (
+  <Button
+    size="sm"
+    variant="ghost"
+    tone="neutral"
+    iconName={variant === "button" ? "clockRotateLeft" : undefined}
+    className={variant === "button" ? quietStyle : flowLinkStyle}
+    disabled={runCount === 0}
+    tooltip={runCount === 0 ? "No runs yet" : "Every run of this flow"}
+    onClick={onOpen}
+    data-history-button
+  >
+    {runCount === 0
+      ? "No runs"
+      : `${runCount} ${runCount === 1 ? "run" : "runs"}`}
+  </Button>
+);

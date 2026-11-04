@@ -21,7 +21,6 @@ import { flowTriggersOf } from "./flow-triggers";
 import {
   HistoryContext,
   RunBanner,
-  RunStepList,
   RunStepPanel,
   useHistory,
   useRunKeys,
@@ -41,6 +40,8 @@ import {
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, organize } from "./toolbar";
+import { InlineRename, Toast } from "./ui";
+import { PublishButton, VersionBanner, VersionButton } from "./versions";
 
 import type { EditorDocument } from "./document";
 
@@ -134,115 +135,22 @@ const backStyle = css({
   "&[class] svg": { width: "[16px]", height: "[16px]" },
 });
 
-/** The flow name, as the breadcrumb's text (14 px medium), editable in place. */
-/**
- * The flow title as Figma's DS ToggleableTextInput (3 Nov): the name with a pen right after it, 8 px after the back
- * button. Hover adds the pale fill; the name or the pen opens it for editing in place.
- *
- * DS gap: ds-components has no ToggleableTextInput. This is the smallest equivalent: the DS ghost xs Button for the
- * pen, and a plain input for the edit state.
- */
-const titleBoxStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "[2px]",
-  height: "[28px]",
-  paddingLeft: "2",
-  paddingRight: "[2px]",
-  // The bar's gap is 12 px; the box starts 8 px after the back button.
-  marginLeft: "[-4px]",
-  borderRadius: "lg",
-  minWidth: "[0]",
-  cursor: "text",
-  _hover: { backgroundColor: "neutral.bgSolid.surface.active" },
-});
-
-/** Figma's pen: the DS ghost IconButton at xs, 24 px square. */
-const penStyle = css({
-  "&[class]": {
-    width: "[28px]",
-    height: "[28px]",
-    minWidth: "[28px]",
-    padding: "[0]",
-    justifyContent: "center",
-  },
-});
-
-const titleTextStyle = css({
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "neutral.fg.heading",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  maxWidth: "[480px]",
-});
-
-/** J0.4: while renamed, the name sits in a 301 px pale field with the caret, no ring. */
-const titleInputStyle = css({
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "neutral.fg.heading",
-  height: "[28px]",
-  backgroundColor: "neutral.bgSolid.surface.active",
-  borderWidth: "[0]",
-  borderRadius: "lg",
-  paddingX: "2",
-  marginLeft: "[-4px]",
-  fieldSizing: "content",
-  minWidth: "[301px]",
-  maxWidth: "[480px]",
-  outline: "none",
-});
-
+/** The flow title: renamed in place (Aakarsh, 4 Nov: Attio's pattern, no pen). */
 const FlowTitle = ({
   name,
   onRename,
 }: {
   name: string;
   onRename: (name: string) => void;
-}) => {
-  const [editing, setEditing] = useState(false);
-  if (editing) {
-    return (
-      <input
-        className={titleInputStyle}
-        value={name}
-        aria-label="Flow name"
-        data-flow-name
-        // eslint-disable-next-line jsx-a11y/no-autofocus -- the user asked to rename; the caret goes to the name
-        autoFocus
-        onFocus={(event) =>
-          event.currentTarget.setSelectionRange(name.length, name.length)
-        }
-        onBlur={() => setEditing(false)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === "Escape") {
-            event.currentTarget.blur();
-          }
-        }}
-        onChange={(event) => onRename(event.target.value)}
-      />
-    );
-  }
-  return (
-    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the pen is the keyboard way in
-    <span className={titleBoxStyle} onClick={() => setEditing(true)}>
-      <span className={titleTextStyle}>{name}</span>
-      <Button
-        size="sm"
-        variant="ghost"
-        iconName="pencil"
-        className={penStyle}
-        aria-label="Rename flow"
-        onClick={(event) => {
-          event.stopPropagation();
-          setEditing(true);
-        }}
-      />
-    </span>
-  );
-};
+}) => <InlineRename value={name} onSave={onRename} label="Flow name" />;
+
+/** Editor take 3's muted line: the version menu, a dot, and the run count. */
+const versionLineStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.5",
+  color: "neutral.fg.subtle",
+});
 
 /** Editor | History (3 Nov): the DS SegmentedControl at md, centred in the top bar (x 42 to 1440). */
 const viewSwitchStyle = css({
@@ -448,6 +356,20 @@ export const Editor = ({
   } | null>(null);
 
   const history = useHistory(flowId, ui.history, setUiState);
+  // Versions (V0–V7): the routed flow's draft and published versions; `?version=4` opens v4 read-only (V6).
+  const version = flowId
+    ? appState.flows.find((flow) => flow.id === flowId)?.meta.version
+    : undefined;
+  const asked = Number(location.query.get("version"));
+  const viewingVersion =
+    version?.published.some((entry) => entry.n === asked) &&
+    !(version.state === "live" && version.current === asked)
+      ? asked
+      : null;
+  const [notice, setNotice] = useState<string | null>(null);
+  const liveRunId =
+    history?.runs.find((run) => run.kind === "live" && !run.stopped)?.id ??
+    null;
   const editorBar = editorBarVariant(location.query);
   // J6: History for a flow with runs. Without them (every other flow), History opens the older mock run view.
   const inHistory = Boolean(history && ui.history);
@@ -468,6 +390,18 @@ export const Editor = ({
       .filter((diagnostic) => diagnostic.severity === "error").length +
     validation.incomplete.size;
   const mockCount = validation.mockFields.size;
+  // V5: the steps that keep the draft from running (each counted once), plus flow-level errors.
+  const problemCount =
+    new Set([
+      ...[...validation.byStep.entries()]
+        .filter(([, diagnostics]) =>
+          diagnostics.some((diagnostic) => diagnostic.severity === "error"),
+        )
+        .map(([stepId]) => stepId),
+      ...validation.incomplete,
+    ]).size +
+    validation.flowLevel.filter((diagnostic) => diagnostic.severity === "error")
+      .length;
   // J4.4: Run only when the flow can be started by hand: manual runs are on in its Triggers panel.
   const hasManualStart = flowTriggersOf(document, ui.triggerSwitches).manual;
   const toEditor = () => {
@@ -564,12 +498,26 @@ export const Editor = ({
                               }))
                             }
                           />
-                          {editorBar === 3 ? (
-                            <HistoryButton
-                              variant={3}
-                              runCount={history?.runs.length ?? 0}
-                              onOpen={() => history?.open(null)}
+                          {version && editorBar !== 3 ? (
+                            <VersionButton
+                              version={version}
+                              viewing={viewingVersion}
                             />
+                          ) : null}
+                          {/* Take 3: one muted line, "v6 · Draft ▾ · 17 runs"; each part opens its own place. */}
+                          {version && editorBar === 3 ? (
+                            <span className={versionLineStyle}>
+                              <VersionButton
+                                version={version}
+                                viewing={viewingVersion}
+                              />
+                              <span aria-hidden>·</span>
+                              <HistoryButton
+                                variant="link"
+                                runCount={history?.runs.length ?? 0}
+                                onOpen={() => history?.open(null)}
+                              />
+                            </span>
                           ) : null}
                         </>
                       }
@@ -628,7 +576,7 @@ export const Editor = ({
                       <>
                         {editorBar === 2 ? (
                           <HistoryButton
-                            variant={2}
+                            variant="button"
                             runCount={history?.runs.length ?? 0}
                             onOpen={() => history?.open(null)}
                           />
@@ -682,9 +630,19 @@ export const Editor = ({
                         >
                           Run
                         </Button>
-                        <Button size="sm" variant="solid" tone="neutral">
-                          Publish
-                        </Button>
+                        {version ? (
+                          <PublishButton
+                            flowId={flowId}
+                            version={version}
+                            problems={problemCount}
+                            viewing={viewingVersion}
+                            liveRun={liveRunId}
+                          />
+                        ) : (
+                          <Button size="sm" variant="solid" tone="neutral">
+                            Publish
+                          </Button>
+                        )}
                         {/* J0.12 (2 Nov): flows are archived, never deleted, so ⋮ holds Archive only. */}
                         <Menu
                           position="bottom-end"
@@ -711,6 +669,9 @@ export const Editor = ({
                   </>
                 )}
               </header>
+              {notice ? (
+                <Toast text={notice} onDone={() => setNotice(null)} />
+              ) : null}
               <main
                 className={css({
                   position: "relative",
@@ -724,7 +685,11 @@ export const Editor = ({
                     <AllRuns history={history} />
                   ) : null}
                   {openRun && history ? (
-                    <RunStepList history={history} />
+                    <LeftPanel
+                      statusFor={(stepId) =>
+                        history.steps?.[stepId]?.state ?? "notReached"
+                      }
+                    />
                   ) : inHistory ? null : (
                     <LeftPanel />
                   )}
@@ -741,6 +706,19 @@ export const Editor = ({
                   >
                     {openRun && history && ui.runLog ? (
                       <RunLog history={history} />
+                    ) : null}
+                    {version && viewingVersion !== null && !inHistory ? (
+                      <VersionBanner
+                        version={version}
+                        viewing={viewingVersion}
+                        onRestore={() => {
+                          setQuery("version", null);
+                          // MOCK: restoring copies nothing yet; the draft stays as it is.
+                          setNotice(
+                            `Restored v${viewingVersion} into the v${version.state === "draft" ? version.current : version.current + 1} draft`,
+                          );
+                        }}
+                      />
                     ) : null}
                     <FlowCanvas
                       flowId={flowId}
@@ -793,8 +771,8 @@ export const Editor = ({
                         <span
                           className={css({
                             color: viewedRun.failedAt
-                              ? "red.fg.body"
-                              : "green.fg.body",
+                              ? "[var(--flows-failed-text)]"
+                              : "[var(--flows-done-text)]",
                           })}
                         >
                           {runStatus(viewedRun)}
@@ -827,9 +805,9 @@ export const Editor = ({
                     openRun && history ? (
                       <RunStepPanel history={history} />
                     ) : null
-                  ) : (
+                  ) : viewingVersion === null ? (
                     <PropertiesPanel />
-                  )}
+                  ) : null}
                 </ReactFlowProvider>
               </main>
             </div>

@@ -12,6 +12,7 @@ import {
   figmaScreens,
   screenImage,
 } from "./screens";
+import { applyPalette, currentPalette, paletteNames } from "./status-colors";
 
 /** `?clean` hides the jumper, for side-by-side comparisons with Figma. */
 const hidden = new URLSearchParams(globalThis.location.search).has("clean");
@@ -190,6 +191,28 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
               >
                 Check control sizes
               </button>
+              {(["today", "o2", "o4"] as const).map((id) => (
+                <span key={id}>
+                  {" "}
+                  ·{" "}
+                  <button
+                    type="button"
+                    className={css({
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                      "&[aria-pressed=true]": { fontWeight: "semibold" },
+                    })}
+                    aria-pressed={currentPalette() === id}
+                    data-colours={id}
+                    onClick={() => {
+                      applyPalette(id);
+                      setOpen(false);
+                    }}
+                  >
+                    Colours: {paletteNames[id]}
+                  </button>
+                </span>
+              ))}
             </span>
           </div>
           <div className={css({ overflowY: "auto", paddingY: "1" })}>

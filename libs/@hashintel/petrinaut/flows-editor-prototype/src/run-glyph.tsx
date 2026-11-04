@@ -17,13 +17,14 @@ const red = statusColor.failed;
 const blue = statusColor.running;
 const orange = statusColor.review;
 const grey = statusColor.quiet;
+const ring = statusColor.notReached;
 const white = statusColor.onSolid;
 
 const Tick = () => (
   <path
     d="M3.6 6.2 5.2 7.8 8.4 4.4"
     fill="none"
-    stroke="white"
+    stroke={white}
     strokeWidth="1.4"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -64,7 +65,7 @@ export const RunGlyph = ({
         cy="6"
         r="5.25"
         fill="none"
-        stroke={grey}
+        stroke={ring}
         strokeWidth="1.2"
       />
     ) : state === "running" ? (
@@ -89,7 +90,7 @@ export const RunGlyph = ({
         <circle cx="6" cy="6" r="6" fill={red} />
         <path
           d="M4.1 4.1 7.9 7.9M7.9 4.1 4.1 7.9"
-          stroke="white"
+          stroke={white}
           strokeWidth="1.4"
           strokeLinecap="round"
         />
@@ -99,11 +100,11 @@ export const RunGlyph = ({
         <circle cx="6" cy="6" r="6" fill={orange} />
         <path
           d="M6 3v3.6"
-          stroke="white"
+          stroke={white}
           strokeWidth="1.5"
           strokeLinecap="round"
         />
-        <circle cx="6" cy="8.7" r="0.85" fill="white" />
+        <circle cx="6" cy="8.7" r="0.85" fill={white} />
       </>
     ) : state === "skipped" ? (
       <>
@@ -125,7 +126,7 @@ export const RunGlyph = ({
     ) : state === "abandoned" ? (
       <>
         <circle cx="6" cy="6" r="6" fill={grey} />
-        <rect x="4" y="4" width="4" height="4" rx="0.6" fill="white" />
+        <rect x="4" y="4" width="4" height="4" rx="0.6" fill={white} />
       </>
     ) : (
       <>

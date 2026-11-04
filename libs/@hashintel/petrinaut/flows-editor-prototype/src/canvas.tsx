@@ -65,6 +65,7 @@ import {
   triggerLabel,
 } from "./run-history";
 import { describeSource } from "./shapes";
+import { tileColor } from "./status-colors";
 import { Toast } from "./ui";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
@@ -211,20 +212,20 @@ const cardStyle = cva({
     "&[data-read-only] [data-port-add]": { display: "none" },
     // A reference to this step is hovered in the panel: the soft ring a new step glows with, and the +, as on hover.
     "&[data-source-hover]": {
-      boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
+      boxShadow: "[0 0 0 3px var(--flows-sel-halo)]",
     },
     // A step just added for the user (Look up in the graph) glows for a moment.
     "&[data-flash]": {
-      borderColor: "blue.bd.strong",
-      boxShadow: "[0 0 0 4px var(--colors-blue-bd-subtle)]",
+      borderColor: "[var(--flows-sel-border)]",
+      boxShadow: "[0 0 0 4px var(--flows-sel-halo)]",
     },
   },
   variants: {
     selected: {
       true: {
         // 1.5 px blue, drawn inside so the card keeps its size.
-        borderColor: "blue.bd.strong",
-        boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-bd-strong)]",
+        borderColor: "[var(--flows-sel-border)]",
+        boxShadow: "[inset 0 0 0 0.5px var(--flows-sel-border)]",
         "& [data-port-add]": { opacity: "[1]" },
       },
     },
@@ -267,11 +268,13 @@ const cardTileStyle = cva({
 const CardTile = ({
   icon,
   tone,
+  ghost = false,
 }: {
   icon: IconName;
   tone: "green" | "orange" | "neutral" | "blue";
+  ghost?: boolean;
 }) => (
-  <span className={cardTileStyle({ tone })}>
+  <span className={cardTileStyle({ tone })} style={tileColor(icon, ghost)}>
     <Icon name={icon} size="sm" />
   </span>
 );
@@ -294,10 +297,10 @@ const handleStyle = css({
     borderWidth: "thin",
     borderColor: "neutral.bd.strong",
   },
-  // J1.21: the port whose menu is open shows blue.
+  // J1.21: the port whose menu is open shows the selection colour.
   "&.react-flow__handle[data-highlight]": {
-    backgroundColor: "blue.bg.solid",
-    borderColor: "blue.bd.strong",
+    backgroundColor: "[var(--flows-sel-border)]",
+    borderColor: "[var(--flows-sel-border)]",
   },
 });
 
@@ -363,10 +366,13 @@ const portAddStyle = css({
   transition: "[opacity 0.15s ease]",
   transform: "[translate(-50%, -50%)]",
   zIndex: "[2]",
-  _hover: { borderColor: "blue.bd.strong", color: "blue.fg.muted" },
+  _hover: {
+    borderColor: "[var(--flows-sel-border)]",
+    color: "neutral.fg.heading",
+  },
   _focusVisible: {
     opacity: "[1]",
-    outline: "[2px solid var(--colors-blue-bd-strong)]",
+    outline: "[2px solid var(--flows-sel-border)]",
   },
 });
 
@@ -408,7 +414,7 @@ const errorDotStyle = css({
   width: "[10px]",
   height: "[10px]",
   borderRadius: "full",
-  backgroundColor: "red.bg.solid",
+  backgroundColor: "[var(--flows-failed-mark)]",
   borderWidth: "[2px]",
   borderStyle: "solid",
   borderColor: "neutral.bgSolid.min",
@@ -422,8 +428,8 @@ const runDotStyle = css({
   width: "[8px]",
   height: "[8px]",
   borderRadius: "full",
-  "&[data-status=done]": { backgroundColor: "green.bg.solid" },
-  "&[data-status=failed]": { backgroundColor: "red.bg.solid" },
+  "&[data-status=done]": { backgroundColor: "[var(--flows-done-mark)]" },
+  "&[data-status=failed]": { backgroundColor: "[var(--flows-failed-mark)]" },
 });
 
 const RunDot = ({ stepId }: { stepId: string }) => {
@@ -654,11 +660,11 @@ const triggerStyle = css({
   "&:hover [data-port-add]": { opacity: "[1]" },
   "&[data-selected] [data-port-add]": { opacity: "[1]" },
   "&[data-source-hover]": {
-    boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
+    boxShadow: "[0 0 0 3px var(--flows-sel-halo)]",
   },
   "&[data-selected]": {
-    borderColor: "blue.bd.strong",
-    boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-bd-strong)]",
+    borderColor: "[var(--flows-sel-border)]",
+    boxShadow: "[inset 0 0 0 0.5px var(--flows-sel-border)]",
   },
 });
 
@@ -707,7 +713,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
 /**
  * Triggers are read-only (4 Nov): in the editor, one ghost node per kind of trigger sits left of Start, the Start
  * card's head only with a dashed border. A kind that is on is drawn at 50%, one that is off at 25%; the selected one
- * is solid, blue and opaque. Clicking one opens the Triggers panel.
+ * is solid, in the selection colour and opaque. Clicking one opens the Triggers panel.
  */
 const ghostStyle = css({
   position: "relative",
@@ -715,7 +721,7 @@ const ghostStyle = css({
   backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "dashed",
-  borderColor: "neutral.bd.solid",
+  borderColor: "[var(--flows-ghost-border)]",
   borderRadius: "lg",
   cursor: "pointer",
   opacity: "[0.25]",
@@ -725,8 +731,8 @@ const ghostStyle = css({
   "&[data-selected]": {
     opacity: "[1]",
     borderStyle: "solid",
-    borderColor: "blue.bd.strong",
-    boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-bd-strong)]",
+    borderColor: "[var(--flows-sel-border)]",
+    boxShadow: "[inset 0 0 0 0.5px var(--flows-sel-border)]",
   },
 });
 
@@ -745,7 +751,7 @@ const GhostTriggerView = ({ id, selected }: NodeProps<StepNode>) => {
       data-ghost-trigger={kind}
     >
       <div className={cardHeadStyle}>
-        <CardTile icon={summary.icon} tone="neutral" />
+        <CardTile icon={summary.icon} tone="neutral" ghost />
         <CardText title={summary.title} description={summary.line} />
       </div>
       <Handle
@@ -772,8 +778,8 @@ const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
       className={cx(
         triggerStyle,
         css({
-          borderColor: "blue.bd.solid",
-          "&[data-selected]": { borderColor: "blue.bd.strong" },
+          borderColor: "neutral.bd.solid",
+          "&[data-selected]": { borderColor: "[var(--flows-sel-border)]" },
         }),
       )}
       data-selected={selected || undefined}
@@ -812,14 +818,14 @@ const groupStyle = cva({
     position: "relative",
     "&:hover [data-port-add]": { opacity: "[1]" },
     "&[data-source-hover]": {
-      boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
+      boxShadow: "[0 0 0 3px var(--flows-sel-halo)]",
     },
   },
   variants: {
     selected: {
       true: {
-        borderColor: "blue.bd.strong",
-        boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
+        borderColor: "[var(--flows-sel-border)]",
+        boxShadow: "[0 0 0 3px var(--flows-sel-halo)]",
       },
     },
   },
@@ -990,8 +996,8 @@ const edgeCloseStyle = css({
   backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "blue.bd.strong",
-  color: "blue.fg.muted",
+  borderColor: "[var(--flows-sel-border)]",
+  color: "neutral.fg.heading",
   cursor: "pointer",
 });
 
@@ -1029,7 +1035,7 @@ const FlowEdge = ({
         interactionWidth={16}
         style={
           menuOpen || hovered
-            ? { ...style, stroke: "var(--colors-blue-bd-strong)" }
+            ? { ...style, stroke: "var(--flows-sel-border)" }
             : style
         }
       />
@@ -1330,15 +1336,15 @@ const canvasStyle = css({
   "& .react-flow__node:focus:not(:focus-visible), & .react-flow__edge:focus:not(:focus-visible)":
     { outline: "none" },
   "& .react-flow__node:focus-visible": {
-    outline: "[2px solid var(--colors-blue-bd-strong)]",
+    outline: "[2px solid var(--flows-sel-border)]",
     outlineOffset: "[2px]",
     borderRadius: "lg",
   },
   "& .react-flow__selection, & .react-flow__nodesselection-rect": {
-    backgroundColor: "blue.bg.surface",
+    backgroundColor: "[var(--flows-sel-row)]",
     borderWidth: "thin",
     borderStyle: "solid",
-    borderColor: "blue.bd.solid",
+    borderColor: "[var(--flows-sel-border)]",
   },
 });
 

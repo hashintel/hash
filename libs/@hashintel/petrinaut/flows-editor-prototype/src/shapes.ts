@@ -545,7 +545,7 @@ export const validateDocument = (
     // Mock actions aren't on the engine's AI worker list yet, so the engine reads them as integration actions.
     if (
       diagnostic.code === "mixedWorkers" &&
-      /"(readEntity|createEntity|updateEntity|draftMessage|sendEmail)/.test(
+      /"(readEntity|createEntity|updateEntity|draftMessage|sendEmail|requestReview)/.test(
         diagnostic.message,
       )
     ) {

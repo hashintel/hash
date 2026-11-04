@@ -34,19 +34,7 @@ import {
   type TemplatePart,
   VALUE_SUBJECT,
 } from "./document";
-import {
-  useEditor,
-  useSourceHover,
-} from "./editor-context";
-import {
-  findEntityType,
-  findPropertyType,
-  type MockPropertyType,
-  mockEntities,
-  mockEntityTypes,
-  mockFiles,
-  mockPeopleEmails,
-} from "./mock-graph";
+import { useEditor, useSourceHover } from "./editor-context";
 import {
   ChipHoverLayer,
   FallbackPopover,
@@ -56,6 +44,15 @@ import {
   TemplatePreview,
 } from "./inline-chips";
 import { tileMenu, type TiledItem, tiledRowsStyle } from "./menu-rows";
+import {
+  findEntityType,
+  findPropertyType,
+  type MockPropertyType,
+  mockEntities,
+  mockEntityTypes,
+  mockFiles,
+  mockPeopleEmails,
+} from "./mock-graph";
 import { OpenMenu } from "./open-menu";
 import { describeSource, getSourceShape, sourceOptions } from "./shapes";
 import { entityChoices, SearchHeader, SourceMenu } from "./source-menu";
@@ -368,8 +365,8 @@ const editorClass = css({
   overflowWrap: "anywhere",
   outline: "none",
   _focus: {
-    borderColor: "blue.bd.strong",
-    boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]",
+    borderColor: "[var(--flows-sel-border)]",
+    boxShadow: "[0 0 0 2px var(--flows-sel-halo)]",
   },
   "&:empty::before": {
     content: "attr(data-placeholder)",
@@ -705,7 +702,10 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
                   id: "change",
                   text: "Change",
                   onClick: () =>
-                    setChipAction({ index: chipAction.index, action: "change" }),
+                    setChipAction({
+                      index: chipAction.index,
+                      action: "change",
+                    }),
                 },
                 {
                   id: "fallback",
@@ -760,7 +760,11 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
       ) : null}
       {refParts.length > 0 ? (
         <div
-          className={css({ display: "flex", flexDirection: "column", gap: "2" })}
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "2",
+          })}
         >
           <button
             type="button"
@@ -980,12 +984,10 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
     if (added.length > 0) {
       setItems([
         ...items,
-        ...[...new Set(added)].map(
-          (address): StepInputSource => ({
-            kind: "constant",
-            payload: { kind: "Text", value: address },
-          }),
-        ),
+        ...[...new Set(added)].map((address): StepInputSource => ({
+          kind: "constant",
+          payload: { kind: "Text", value: address },
+        })),
       ]);
     }
     setTyping("");
@@ -1233,7 +1235,9 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         </div>
       )}
       {/* The "Skips this step when missing" line under To is parked (Aakarsh, 3 Nov). */}
-      {mode !== "email" && items.length === 1 && items[0]!.kind !== "constant" ? (
+      {mode !== "email" &&
+      items.length === 1 &&
+      items[0]!.kind !== "constant" ? (
         <SourceLine source={items[0]!} />
       ) : null}
       {items.some(badEmail) ? (
@@ -1369,7 +1373,8 @@ const EntityTypeField = ({
     source?.kind === "flow-input" ? "Flow inputs" : sourceLook?.owner;
 
   const text = search.trim().toLowerCase();
-  const matches = (label: string) => !text || label.toLowerCase().includes(text);
+  const matches = (label: string) =>
+    !text || label.toLowerCase().includes(text);
   const pickType = (baseUrl: string | undefined) => {
     update({
       entityTypeBaseUrl: baseUrl,
@@ -1407,9 +1412,7 @@ const EntityTypeField = ({
     typeInput,
     entry,
   )
-    .filter(
-      (option) => matches(option.label) || matches(option.ownerLabel),
-    )
+    .filter((option) => matches(option.label) || matches(option.ownerLabel))
     .map((option) => {
       const from =
         option.group === "Flow inputs"

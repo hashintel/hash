@@ -9,12 +9,7 @@
  */
 import { useLayoutEffect, useRef, useState } from "react";
 
-import {
-  Button,
-  Icon,
-  Menu,
-  TextInput,
-} from "@hashintel/ds-components";
+import { Button, Icon, Menu, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { RunGlyph } from "./run-glyph";
@@ -29,7 +24,7 @@ import {
   stepRuns,
   triggerLabel,
 } from "./run-history";
-import { statusColor } from "./status-colors";
+import { chartColor, statusColor } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
 
@@ -392,7 +387,7 @@ const Tile = ({
       className={css({
         textStyle: "lg",
         fontWeight: "semibold",
-        color: alert ? "red.fg.body" : "neutral.fg.heading",
+        color: alert ? "[var(--flows-failed-text)]" : "neutral.fg.heading",
       })}
     >
       {value}
@@ -500,12 +495,12 @@ const bucketsFor = (
 };
 
 const chartColour: Record<RunOutcome, string> = {
-  completed: statusColor.done,
-  warnings: statusColor.done,
-  error: statusColor.failed,
-  abandoned: statusColor.quiet,
-  running: statusColor.running,
-  needsReview: statusColor.review,
+  completed: chartColor.done,
+  warnings: chartColor.done,
+  error: chartColor.failed,
+  abandoned: chartColor.quiet,
+  running: chartColor.running,
+  needsReview: chartColor.review,
 };
 
 const stackOrder: RunOutcome[] = [

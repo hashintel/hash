@@ -23,9 +23,10 @@ import {
 
 import type { EditorDocument } from "./document";
 
-const storageKey = "flows-proto:v1";
+// v2: flows carry versions (V0–V7). Flows saved under v1 are dropped for the reseeded workspace.
+const storageKey = "flows-proto:v2";
 
-type Persisted = { version: 1; flows: FlowEntry[] };
+type Persisted = { version: 2; flows: FlowEntry[] };
 
 type State = {
   flows: FlowEntry[];
@@ -43,7 +44,7 @@ const load = (): FlowEntry[] => {
     const raw = globalThis.localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw) as Persisted;
-      if (parsed.version === 1 && Array.isArray(parsed.flows)) {
+      if (parsed.version === 2 && Array.isArray(parsed.flows)) {
         return parsed.flows;
       }
     }
@@ -89,7 +90,7 @@ const save = () => {
   clearTimeout(store.saveTimer);
   store.saveTimer = setTimeout(() => {
     try {
-      const persisted: Persisted = { version: 1, flows: store.state.flows };
+      const persisted: Persisted = { version: 2, flows: store.state.flows };
       globalThis.localStorage.setItem(storageKey, JSON.stringify(persisted));
     } catch {
       // Full or blocked storage: the session keeps working, unsaved.
@@ -128,7 +129,20 @@ export const updateDocument = (
           ? {
               ...flow,
               document: update(flow.document),
-              meta: { ...flow.meta, updated: "Just now" },
+              meta: {
+                ...flow.meta,
+                updated: "Just now",
+                // V1 → V2: the first edit after a publish starts the next draft.
+                version:
+                  flow.meta.version.state === "live"
+                    ? {
+                        ...flow.meta.version,
+                        current: flow.meta.version.current + 1,
+                        state: "draft",
+                        editedAt: "Just now",
+                      }
+                    : { ...flow.meta.version, editedAt: "Just now" },
+              },
             }
           : flow,
       ),
@@ -150,6 +164,39 @@ export const createFlow = () => {
   );
   return id;
 };
+
+/** V4 → V7: the draft goes live. MOCK: notes are not kept. */
+export const publishFlow = (id: string, name?: string) =>
+  setState(
+    (state) => ({
+      ...state,
+      flows: state.flows.map((flow) =>
+        flow.id === id && flow.meta.version.state === "draft"
+          ? {
+              ...flow,
+              meta: {
+                ...flow.meta,
+                status: "live",
+                version: {
+                  current: flow.meta.version.current,
+                  state: "live",
+                  published: [
+                    {
+                      n: flow.meta.version.current,
+                      at: "Today",
+                      by: "Aakarsh Singh",
+                      ...(name ? { name } : {}),
+                    },
+                    ...flow.meta.version.published,
+                  ],
+                },
+              },
+            }
+          : flow,
+      ),
+    }),
+    true,
+  );
 
 export const archiveFlow = (id: string) =>
   setState(

@@ -18,6 +18,7 @@ import { newFlowUi, type ScreenBuild, screenBuilds } from "./src/screen-builds";
 import { ScreenJumper, ScreenPlaceholder } from "./src/screen-jumper";
 import { findScreen } from "./src/screens";
 import { findScreenState } from "./src/states";
+import { initPalette } from "./src/status-colors";
 import { thinIcons } from "./src/thin-icons";
 
 const params = new URLSearchParams(location.search);
@@ -188,6 +189,7 @@ const Root = () => {
 const holder = globalThis as typeof globalThis & {
   flowsPrototypeRoot?: ReturnType<typeof createRoot>;
 };
+initPalette();
 holder.flowsPrototypeRoot ??= createRoot(document.getElementById("root")!);
 holder.flowsPrototypeRoot.render(
   <IconProvider icons={thinIcons}>

@@ -2,6 +2,7 @@ import { useRef } from "react";
 
 import {
   Button,
+  Icon,
   NumberInput,
   SegmentedControl,
   Select,
@@ -255,7 +256,7 @@ const Checks = ({ stepId }: { stepId: string }) => {
             textStyle: "xs",
             color:
               problem.severity === "error"
-                ? "red.fg.muted"
+                ? "[var(--flows-failed-text)]"
                 : "neutral.fg.muted",
           })}
         >
@@ -1485,8 +1486,124 @@ const TriggerPanel = ({ trigger }: { trigger: TriggerNode }) => {
   );
 };
 
+const checklistRowStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "2",
+  width: "[100%]",
+  paddingX: "2",
+  paddingY: "2",
+  borderRadius: "md",
+  textAlign: "left",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+});
+
+/**
+ * V5 with nothing selected (Attio's checklist): the flow, then what keeps the draft from publishing, one row per
+ * step; a row selects its step. Publish stays off until the list is empty.
+ */
+const Checklist = ({
+  items,
+}: {
+  items: { stepId: string; title: string; message: string }[];
+}) => {
+  const { document, setUi } = useEditor();
+  return (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "5" })}
+    >
+      <div
+        className={css({ display: "flex", flexDirection: "column", gap: "1" })}
+      >
+        <span
+          className={css({
+            textStyle: "base",
+            fontWeight: "medium",
+            color: "neutral.fg.heading",
+          })}
+        >
+          {document.name}
+        </span>
+        <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+          Add a description…
+        </span>
+      </div>
+      <div
+        className={css({
+          display: "flex",
+          alignItems: "center",
+          gap: "2",
+          paddingX: "3",
+          paddingY: "2.5",
+          borderRadius: "lg",
+          backgroundColor: "neutral.bg.surface.hover",
+          textStyle: "sm",
+          color: "neutral.fg.muted",
+        })}
+        data-checklist-banner
+      >
+        <span className={css({ flex: "1" })}>
+          This flow has unpublished changes
+        </span>
+        <Button
+          size="sm"
+          variant="subtle"
+          tone="neutral"
+          disabled
+          tooltip="Fix the items below first"
+        >
+          Publish changes
+        </Button>
+      </div>
+      <Section title={`Checklist · ${items.length}`}>
+        <div className={css({ display: "flex", flexDirection: "column" })}>
+          {items.map((item) => (
+            <button
+              key={`${item.stepId}-${item.message}`}
+              type="button"
+              className={checklistRowStyle}
+              data-checklist-row
+              onClick={() =>
+                setUi((current) => ({
+                  ...current,
+                  selectedId: item.stepId,
+                  selectedIds: [item.stepId],
+                }))
+              }
+            >
+              <Icon name="warning" size="sm" />
+              <span
+                className={css({ display: "flex", flexDirection: "column" })}
+              >
+                <span
+                  className={css({
+                    textStyle: "sm",
+                    fontWeight: "medium",
+                    color: "neutral.fg.heading",
+                  })}
+                >
+                  {item.title}
+                </span>
+                <span
+                  className={css({
+                    textStyle: "xs",
+                    color: "neutral.fg.subtle",
+                  })}
+                >
+                  {item.message}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </Section>
+    </div>
+  );
+};
+
 export const PropertiesPanel = () => {
-  const { document, ui } = useEditor();
+  const { document, ui, validation } = useEditor();
   // A trigger opens from Start's "Started by" list: Start stays selected, the panel shows the trigger (J4 A2).
   const trigger =
     ui.selectedId === START_ID && ui.triggerId
@@ -1496,9 +1613,46 @@ export const PropertiesPanel = () => {
     !ui.selectedId || ui.selectedId === START_ID
       ? null
       : findStep(document, ui.selectedId);
-  // J0.3 (3 Nov): with nothing selected there is no panel; the canvas runs to the right edge.
+  // J0.3 (3 Nov): with nothing selected there is no panel, unless the draft has a checklist to clear (V5).
   if (!ui.selectedId && !ui.run) {
-    return null;
+    const items = [...validation.byStep.entries()].flatMap(
+      ([stepId, diagnostics]) => {
+        const step = findStep(document, stepId)?.step;
+        return diagnostics
+          .filter((diagnostic) => diagnostic.severity === "error")
+          .slice(0, 1)
+          .map((diagnostic) => ({
+            stepId,
+            title: step ? stepLabel(step) : stepId,
+            message: diagnostic.message.replace(
+              /^Required input "([^"]+)".*/,
+              "Needs $1",
+            ),
+          }));
+      },
+    );
+    for (const stepId of validation.incomplete) {
+      if (!items.some((item) => item.stepId === stepId)) {
+        const step = findStep(document, stepId)?.step;
+        items.push({
+          stepId,
+          title: step ? stepLabel(step) : stepId,
+          message: "Not set up yet",
+        });
+      }
+    }
+    if (items.length === 0) {
+      return null;
+    }
+    return (
+      <aside className={panelStyle} aria-label="Checklist">
+        <OverlayScrollArea>
+          <div className={panelBodyStyle}>
+            <Checklist items={items} />
+          </div>
+        </OverlayScrollArea>
+      </aside>
+    );
   }
   // A ghost trigger node opens the read-only Triggers panel (J4.3).
   const ghost = ghostKindOf(ui.selectedId);
