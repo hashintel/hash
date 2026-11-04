@@ -130,7 +130,6 @@ pub struct InitTracingError;
 #[derive(Debug, Default)]
 pub struct TelemetryRegistry {
     error_layer: bool,
-    namespace: Option<String>,
     log_level: Option<String>,
     console_logging: Option<ConsoleConfig>,
     file_logging: Option<FileConfig>,
@@ -143,15 +142,6 @@ impl TelemetryRegistry {
     #[must_use]
     pub const fn with_error_layer(mut self) -> Self {
         self.error_layer = true;
-        self
-    }
-
-    /// Sets the namespace of the environment variables the configuration was read from.
-    ///
-    /// Warnings name the variables of this namespace, [`DEFAULT_NAMESPACE`] if unset.
-    #[must_use]
-    pub fn with_namespace(mut self, namespace: impl Into<String>) -> Self {
-        self.namespace = Some(namespace.into());
         self
     }
 
@@ -302,13 +292,10 @@ impl TelemetryRegistry {
             fn drop(&mut self) {}
         }
 
-        let namespace = self.namespace.clone();
-        let log_level_set = self.log_level.is_some();
         let (registry, telemetry_guard) = self.build()?;
         let default_guard = tracing::dispatcher::set_default(&registry.into());
 
         // We have to wait until logging is initialized before we can print the warnings.
-        warn_about_log_level_variables(namespace.as_deref(), log_level_set);
         telemetry_guard.warn_where_metrics_are_discarded();
 
         Ok(DropGuard(telemetry_guard, default_guard))
@@ -323,33 +310,15 @@ impl TelemetryRegistry {
     ///
     /// - [`InitTracingError`], if initializing the [`tracing_subscriber::Registry`] fails.
     pub fn init_global(self) -> Result<Telemetry, Report<InitTracingError>> {
-        let namespace = self.namespace.clone();
-        let log_level_set = self.log_level.is_some();
         let (registry, guard) = self.build()?;
 
         registry.try_init().change_context(InitTracingError)?;
         opentelemetry::global::set_meter_provider(guard.metrics_provider.clone());
 
         // We have to wait until logging is initialized before we can print the warnings.
-        warn_about_log_level_variables(namespace.as_deref(), log_level_set);
         guard.warn_where_metrics_are_discarded();
 
         Ok(guard)
-    }
-}
-
-fn warn_about_log_level_variables(namespace: Option<&str>, log_level_set: bool) {
-    let namespace = namespace.unwrap_or(DEFAULT_NAMESPACE);
-
-    if std::env::var("RUST_LOG").is_ok() {
-        if log_level_set {
-            warn!(
-                "`{namespace}_LOG_LEVEL` and `RUST_LOG` are set, `{namespace}_LOG_LEVEL` has been \
-                 used to determine the logging level."
-            );
-        } else {
-            warn!("`RUST_LOG` is set, please use `{namespace}_LOG_LEVEL` instead");
-        }
     }
 }
 
@@ -419,15 +388,23 @@ pub fn init_tracing(
 ) -> Result<Telemetry, Report<InitTracingError>> {
     let log_level = std::env::var(format!("{}_LOG_LEVEL", config.namespace)).ok();
 
-    TelemetryRegistry::default()
+    let telemetry = TelemetryRegistry::default()
         .with_error_layer()
-        .with_namespace(config.namespace)
         .with_log_level(log_level)
         .with_console_logging(config.logging.console)
         .with_file_logging(config.logging.file)
         .with_sentry(config.sentry)
         .with_otlp(config.otlp, service_name)
-        .init_global()
+        .init_global()?;
+
+    if std::env::var_os("RUST_LOG").is_some() {
+        warn!(
+            "`RUST_LOG` is set, please use `{}_LOG_LEVEL` instead, which takes precedence over it",
+            config.namespace
+        );
+    }
+
+    Ok(telemetry)
 }
 
 #[cfg(all(test, feature = "clap"))]
