@@ -81,6 +81,34 @@ export class BrunchPanelConversationTracker {
       );
     });
   }
+
+  /**
+   * Whether a turn this tracker sent may still be running: a submission
+   * between `send()` and its admission, or an admitted submission `snapshot`
+   * shows no settlement for. Without a snapshot every admitted submission
+   * counts, since nothing yet shows it finished. A submission only another tab
+   * admitted never counts.
+   *
+   * Flue's abort is conversation-wide, so this answer only decides whether to
+   * send one. When this tracker's submission has settled but `snapshot` does
+   * not show it yet (or there is no snapshot), the conversation's running turn
+   * may be another tab's newer one, and an abort would stop it; the tracker
+   * cannot tell that apart from its own turn still running. If nothing is
+   * running, the abort reports `aborted: false` and changes nothing.
+   */
+  public hasUnsettledTurn(
+    snapshot: FlueConversationState | undefined,
+  ): boolean {
+    if (this.#inFlightSubmissions.size !== 0) return true;
+    if (snapshot === undefined) return this.#admittedSubmissionIds.size !== 0;
+    return [...this.#admittedSubmissionIds].some(
+      (submissionId) =>
+        !snapshot.settlements.some(
+          (entry) => entry.submissionId === submissionId,
+        ),
+    );
+  }
+
   readonly #admissionFailureSubscriptions = new Set<{
     readonly listener: (error: FlueChatAdmissionError) => void;
     readonly target: BrunchPanelAdmissionTarget;
@@ -215,6 +243,29 @@ export class BrunchPanelConversationTracker {
    */
   public settleInFlightSubmissions(): Promise<void> {
     return Promise.allSettled(this.#inFlightSubmissions).then(() => undefined);
+  }
+
+  /**
+   * {@link hasUnsettledTurn} asked again once the submissions in flight now
+   * have settled. A send the agent definitively refused (`rejected`) or that
+   * was cancelled locally (`aborted`) no longer counts; any other failure,
+   * `ambiguous` included, may have been admitted without this tracker
+   * recording it, so it still does.
+   */
+  public async hasUnsettledTurnAfterSettling(
+    snapshot: FlueConversationState | undefined,
+  ): Promise<boolean> {
+    const outcomes = await Promise.allSettled(this.#inFlightSubmissions);
+    const mayBeAdmitted = outcomes.some(
+      (outcome) =>
+        outcome.status === "fulfilled" ||
+        !(
+          outcome.reason instanceof FlueChatAdmissionError &&
+          (outcome.reason.failure.kind === "rejected" ||
+            outcome.reason.failure.kind === "aborted")
+        ),
+    );
+    return mayBeAdmitted || this.hasUnsettledTurn(snapshot);
   }
 
   public trackSubmission<T>(submission: Promise<T>): Promise<T> {

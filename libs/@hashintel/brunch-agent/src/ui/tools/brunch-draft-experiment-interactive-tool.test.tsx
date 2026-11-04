@@ -26,6 +26,10 @@ import {
   createBrunchPanelTransport,
 } from "../../client/brunch-panel-transport";
 import {
+  LocalToolCallAuthorityContext,
+  type LocalToolCallAuthority,
+} from "../chat/local-tool-call-authority";
+import {
   BrunchDraftExperimentWidget,
   resetBrunchEditorDrafts,
   type BrunchDraftExperimentApi,
@@ -189,6 +193,7 @@ const renderWidget = ({
   claim = async () => {},
   readDraftAuthority,
   instance: suppliedInstance,
+  authority,
 }: {
   input: DraftPetrinautExperimentInput;
   toolCallId: string;
@@ -200,6 +205,7 @@ const renderWidget = ({
   claim?: () => Promise<void>;
   readDraftAuthority?: (toolCallId: string) => Promise<string>;
   instance?: Petrinaut;
+  authority?: LocalToolCallAuthority;
 }) => {
   const submit = vi.fn(submitOutput);
   const claimAndSubmit = async (
@@ -225,9 +231,9 @@ const renderWidget = ({
     },
     editor: { navigate: vi.fn() },
   };
-  const utils = render(
+  const widgetIn = (widgetState: WidgetState) => (
     <BrunchDraftExperimentWidget
-      {...state}
+      {...widgetState}
       api={api}
       input={input}
       readTitle={() => "Support desk"}
@@ -238,10 +244,23 @@ const renderWidget = ({
       submit={() => {}}
       claimAndSubmit={claimAndSubmit}
       toolCallId={toolCallId}
-    />,
+    />
   );
+  const withAuthority = (
+    value: LocalToolCallAuthority,
+    widgetState: WidgetState = state,
+  ) => (
+    <LocalToolCallAuthorityContext value={value}>
+      {widgetIn(widgetState)}
+    </LocalToolCallAuthorityContext>
+  );
+  const utils = render(authority ? withAuthority(authority) : widgetIn(state));
   return {
     ...utils,
+    rerenderWithAuthority: (
+      value: LocalToolCallAuthority,
+      widgetState?: WidgetState,
+    ) => utils.rerender(withAuthority(value, widgetState)),
     submit,
     claimAndSubmit,
     api,
@@ -609,6 +628,67 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(readDraftAuthority).toHaveBeenCalledWith("claim-before-authority");
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "drafted" });
+  });
+
+  it("claims a call only once its panel records the delivery, even after its first effect ran", async () => {
+    const delivered = new Set<string>();
+    const deliveredHere = (toolCallId: string) => delivered.has(toolCallId);
+    const claim = vi.fn(async () => {});
+    const { submit, rerenderWithAuthority } = renderWidget({
+      input: makeInput(),
+      toolCallId: "late-delivery",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      claim,
+      authority: { deliveredHere, deliveries: 0 },
+    });
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(claim).not.toHaveBeenCalled();
+
+    delivered.add("late-delivery");
+    rerenderWithAuthority({ deliveredHere, deliveries: 1 });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(claim).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a call another panel delivered as prepared there, not here", async () => {
+    const claim = vi.fn(async () => {});
+    renderWidget({
+      input: makeInput(),
+      toolCallId: "delivered-elsewhere",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      claim,
+      authority: { deliveredHere: () => false, deliveries: 0 },
+    });
+
+    await waitFor(() =>
+      expect(heading()).toEqual(["Preparing in another editor"]),
+    );
+    expect(screen.getByText(/being prepared in another editor/u)).toBeTruthy();
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  it("marks a call another panel delivered as not retained once it settles", async () => {
+    const authority = { deliveredHere: () => false, deliveries: 0 };
+    const { rerenderWithAuthority } = renderWidget({
+      input: makeInput(),
+      toolCallId: "settled-elsewhere",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      authority,
+    });
+    await waitFor(() =>
+      expect(heading()).toEqual(["Preparing in another editor"]),
+    );
+
+    rerenderWithAuthority(authority, submitted);
+    expect(heading()).toEqual(["Not retained in this editor"]);
+    expect(screen.queryByText(/being prepared/u)).toBeNull();
   });
 
   it("reports a failed claim or submission on the card", async () => {

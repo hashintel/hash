@@ -4035,6 +4035,54 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.getByText("Response stopped")).not.toBeNull();
   });
 
+  test("never runs an in-band browser call it only hydrated from another panel's turn (T2)", async () => {
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(async () => {});
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        // Another panel's turn, still running: its stream delivered these calls.
+        messages: [
+          {
+            id: "other-panel-turn",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "addPlace",
+                toolCallId: "other-panel-mutation",
+                state: "input-available",
+                input: { name: "Queue" },
+              },
+              {
+                type: `tool-${getLatestNetDefinitionToolName}`,
+                toolCallId: "other-panel-read",
+                state: "input-available",
+                input: {},
+              } as PetrinautAiMessage["parts"][number],
+            ],
+          },
+        ],
+        // Brunch's history arrives as followed messages.
+        followMessages: { canReplace: () => true },
+        inBandBrowserTools: {
+          has: (toolName) =>
+            toolName === "addPlace" ||
+            toolName === getLatestNetDefinitionToolName,
+          run,
+        },
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+    expect(run).not.toHaveBeenCalled();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
   test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {
     const observedStatuses: PetrinautAiComposerControlContext["status"][] = [];
     let requestCount = 0;

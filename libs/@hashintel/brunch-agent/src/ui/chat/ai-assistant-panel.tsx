@@ -79,6 +79,7 @@ import {
 } from "./ai-assistant-panel/tool-summaries";
 import { useLatest } from "./ai-assistant-panel/use-latest";
 import { readUserGuidePage } from "./docs/user-guide";
+import { LocalToolCallAuthorityContext } from "./local-tool-call-authority";
 import { VoiceSessionContext } from "./voice-session/context";
 import { VoiceSessionProvider } from "./voice-session/provider";
 
@@ -790,6 +791,7 @@ const ConversationAiAssistantPanel = ({
   // Authority is distinct from execution deduplication. Hydration/setMessages
   // never invokes SDK onToolCall, so external/reloaded calls cannot enter here.
   const locallyStreamedToolCallsRef = useRef(new Map<string, number>());
+  const [toolCallDeliveries, setToolCallDeliveries] = useState(0);
   const automaticToolCallExecutionsRef = useRef(new Set<string>());
   const pendingAutomaticToolCallExecutionsRef = useRef(new Set<string>());
   const automaticToolTerminationRef = useRef<{
@@ -1353,6 +1355,7 @@ const ConversationAiAssistantPanel = ({
         `${toolHostIdentityRef.current}:${toolCall.toolCallId}`,
         submissionGenerationRef.current,
       );
+      setToolCallDeliveries((deliveries) => deliveries + 1);
       if (aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
         executeIssuedBrowserCall(toolCall);
         return undefined;
@@ -2294,7 +2297,15 @@ const ConversationAiAssistantPanel = ({
       .map(({ toolName }) => toolName),
   );
 
-  return (
+  // The same authority `onInteractiveToolSubmit` checks, for widgets that act
+  // on a call before submitting it.
+  const deliveredHere = (toolCallId: string): boolean =>
+    aiAssistant.followMessages === undefined ||
+    locallyStreamedToolCallsRef.current.get(
+      `${toolHostIdentityRef.current}:${toolCallId}`,
+    ) === submissionGenerationRef.current;
+
+  const contents = (
     <AiAssistantContents
       additionalTab={aiAssistant.additionalTab}
       headerActions={aiAssistant.headerActions}
@@ -2459,6 +2470,13 @@ const ConversationAiAssistantPanel = ({
       resolveToolPresentation={aiAssistant.resolveToolPresentation}
       workingLabel={aiAssistant.workingLabel}
     />
+  );
+  return (
+    <LocalToolCallAuthorityContext
+      value={{ deliveredHere, deliveries: toolCallDeliveries }}
+    >
+      {contents}
+    </LocalToolCallAuthorityContext>
   );
 };
 
