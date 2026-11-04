@@ -451,7 +451,6 @@ describe("EditorProvider deep-link normalization", () => {
           description: undefined,
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },

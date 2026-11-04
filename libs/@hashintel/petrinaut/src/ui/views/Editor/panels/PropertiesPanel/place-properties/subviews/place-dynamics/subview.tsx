@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Menu } from "@hashintel/ds-components";
+import { Button, Menu, Toggle, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
@@ -62,9 +62,15 @@ const actionsStyle = css({
   flexShrink: 0,
 });
 
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+});
+
 /**
- * The composed terms of the selected place: the equations added after the
- * one the Dynamics dropdown selects, in the order they are applied.
+ * The equations composed into the selected place's dynamics, in the order
+ * they are applied; their derivatives are summed every step.
  */
 const PlaceDynamicsContent: React.FC = () => {
   const { place, isReadOnly, updatePlace } = usePlacePropertiesContext();
@@ -85,9 +91,8 @@ const PlaceDynamicsContent: React.FC = () => {
   if (terms.length === 0) {
     return (
       <div className={hintStyle}>
-        No further equations. Add one of this type&apos;s equations with the +
-        button; its derivatives are added to those of the equation selected
-        under Dynamics.
+        No equations yet. Add one of this type&apos;s equations with the +
+        button; the derivatives of every equation listed here are summed.
       </div>
     );
   }
@@ -102,125 +107,156 @@ const PlaceDynamicsContent: React.FC = () => {
   });
 
   return (
-    <ol className={listStyle} aria-label="Composed equations">
-      {terms.map((term, index) => {
-        const equation = differentialEquations.find(
-          (candidate) => candidate.id === term.differentialEquationId,
-        );
-        const name = equation?.name ?? term.differentialEquationId;
-        return (
-          <li key={keys[index]} className={rowStyle}>
-            <span className={nameStyle} title={name}>
-              {name}
-            </span>
-            <span className={formStyle}>
-              {equation ? describeEquationForm(equation) : "Missing equation"}
-            </span>
-            <div className={actionsStyle}>
-              <Button
-                aria-label={`Move ${name} up`}
-                tooltip="Move up"
-                variant="ghost"
-                tone="neutral"
-                size="xs"
-                iconName="arrowUp"
-                disabled={isReadOnly || index === 0}
-                onClick={() => setTerms(moveTerm(terms, index, -1))}
-              />
-              <Button
-                aria-label={`Move ${name} down`}
-                tooltip="Move down"
-                variant="ghost"
-                tone="neutral"
-                size="xs"
-                iconName="arrowDown"
-                disabled={isReadOnly || index === terms.length - 1}
-                onClick={() => setTerms(moveTerm(terms, index, 1))}
-              />
-              <Button
-                aria-label={`View ${name}`}
-                tooltip="View equation"
-                variant="ghost"
-                tone="neutral"
-                size="xs"
-                iconName="arrowRight"
-                disabled={equation === undefined}
-                onClick={() =>
-                  selectItem({
-                    type: "differentialEquation",
-                    id: term.differentialEquationId,
-                  })
-                }
-              />
-              <Button
-                aria-label={`Remove ${name}`}
-                tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Remove"}
-                variant="ghost"
-                tone="error"
-                size="xs"
-                iconName="trash"
-                disabled={isReadOnly}
-                onClick={() => setTerms(removeTerm(terms, index))}
-              />
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+    <>
+      {place.dynamicsEnabled ? null : (
+        <div className={hintStyle}>
+          Dynamics are switched off: these equations are kept but not
+          integrated.
+        </div>
+      )}
+      <ol className={listStyle} aria-label="Composed equations">
+        {terms.map((term, index) => {
+          const equation = differentialEquations.find(
+            (candidate) => candidate.id === term.differentialEquationId,
+          );
+          const name = equation?.name ?? term.differentialEquationId;
+          return (
+            <li key={keys[index]} className={rowStyle}>
+              <span className={nameStyle} title={name}>
+                {name}
+              </span>
+              <span className={formStyle}>
+                {equation ? describeEquationForm(equation) : "Missing equation"}
+              </span>
+              <div className={actionsStyle}>
+                <Button
+                  aria-label={`Move ${name} up`}
+                  tooltip="Move up"
+                  variant="ghost"
+                  tone="neutral"
+                  size="xs"
+                  iconName="arrowUp"
+                  disabled={isReadOnly || index === 0}
+                  onClick={() => setTerms(moveTerm(terms, index, -1))}
+                />
+                <Button
+                  aria-label={`Move ${name} down`}
+                  tooltip="Move down"
+                  variant="ghost"
+                  tone="neutral"
+                  size="xs"
+                  iconName="arrowDown"
+                  disabled={isReadOnly || index === terms.length - 1}
+                  onClick={() => setTerms(moveTerm(terms, index, 1))}
+                />
+                <Button
+                  aria-label={`View ${name}`}
+                  tooltip="View equation"
+                  variant="ghost"
+                  tone="neutral"
+                  size="xs"
+                  iconName="arrowRight"
+                  disabled={equation === undefined}
+                  onClick={() =>
+                    selectItem({
+                      type: "differentialEquation",
+                      id: term.differentialEquationId,
+                    })
+                  }
+                />
+                <Button
+                  aria-label={`Remove ${name}`}
+                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Remove"}
+                  variant="ghost"
+                  tone="error"
+                  size="xs"
+                  iconName="trash"
+                  disabled={isReadOnly}
+                  onClick={() => setTerms(removeTerm(terms, index))}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </>
   );
 };
 
-/** The header's + menu: one entry per equation of the colour not yet composed. */
-const AddDynamicsTermAction: React.FC = () => {
+/**
+ * The header's controls: the switch that runs the place's equations and the
+ * + menu with one entry per equation of the colour not yet composed.
+ */
+const PlaceDynamicsHeaderActions: React.FC = () => {
   const { place, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const {
     activeNet: { differentialEquations },
   } = use(ActiveNetContext);
   const candidates = composableEquations(place, differentialEquations);
-  const tooltip = isReadOnly
+  const untyped = place.colorId === null;
+  const toggleTooltip = isReadOnly
     ? UI_MESSAGES.READ_ONLY_MODE
-    : place.colorId === null
+    : untyped
+      ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
+      : undefined;
+  const addTooltip = isReadOnly
+    ? UI_MESSAGES.READ_ONLY_MODE
+    : untyped
       ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
       : candidates.length === 0
         ? "Every equation of this type is already composed"
         : "Add an equation";
 
   return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="Add equation"
-          tooltip={tooltip}
-          variant="ghost"
-          size="xs"
-          iconName="plus"
-          disabled={isReadOnly || candidates.length === 0}
+    <div className={headerActionsStyle}>
+      <Tooltip content={toggleTooltip} disableTooltip={!toggleTooltip}>
+        <Toggle
+          aria-label="Dynamics enabled"
+          size="sm"
+          tone="success"
+          value={!untyped && place.dynamicsEnabled}
+          disabled={isReadOnly || untyped}
+          onChange={(dynamicsEnabled) =>
+            updatePlace({ placeId: place.id, update: { dynamicsEnabled } })
+          }
         />
-      }
-      items={candidates.map((equation) => ({
-        id: equation.id,
-        text: `${equation.name} · ${describeEquationForm(equation)}`,
-        onClick: () =>
-          updatePlace({
-            placeId: place.id,
-            update: { dynamics: addTerm(place.dynamics ?? [], equation.id) },
-          }),
-      }))}
-    />
+      </Tooltip>
+      <Menu
+        trigger={
+          <Button
+            aria-label="Add equation"
+            tooltip={addTooltip}
+            variant="ghost"
+            size="xs"
+            iconName="plus"
+            disabled={isReadOnly || candidates.length === 0}
+          />
+        }
+        items={candidates.map((equation) => ({
+          id: equation.id,
+          text: `${equation.name} · ${describeEquationForm(equation)}`,
+          onClick: () =>
+            updatePlace({
+              placeId: place.id,
+              update: { dynamics: addTerm(place.dynamics ?? [], equation.id) },
+            }),
+        }))}
+      />
+    </div>
   );
 };
 
 /**
- * SubView definition for a place's composed dynamics. Requires
+ * SubView definition for a place's dynamics. Requires
  * PlacePropertiesProvider in the component tree.
  */
 export const placeDynamicsSubView: SubView = {
   id: "place-dynamics",
-  title: "Composed dynamics",
+  title: "Dynamics",
   tooltip:
-    "Further differential equations added to this place's dynamics, applied in order after the equation selected under Dynamics. Every term's derivatives are summed; an equation over several tokens is applied to every combination of that many tokens.",
+    "The differential equations that move this place's tokens while it holds them, applied in order with their derivatives summed. An equation over several tokens is applied to every combination of that many tokens.",
   component: PlaceDynamicsContent,
-  renderHeaderAction: () => <AddDynamicsTermAction />,
+  renderHeaderAction: () => <PlaceDynamicsHeaderActions />,
   headerActionMutates: true,
   alwaysShowHeaderAction: true,
 };

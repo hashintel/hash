@@ -184,7 +184,6 @@ describe("usePetrinautMutations", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -203,7 +202,6 @@ describe("usePetrinautMutations", () => {
             name: "P1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -240,7 +238,6 @@ describe("usePetrinautMutations", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -261,7 +258,6 @@ describe("usePetrinautMutations", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -283,7 +279,6 @@ describe("usePetrinautMutations", () => {
             name: "P1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           });
@@ -341,7 +336,6 @@ describe("usePetrinautMutations", () => {
             name: "P1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -350,7 +344,6 @@ describe("usePetrinautMutations", () => {
             name: "P2",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 100,
             y: 0,
           },
@@ -412,7 +405,6 @@ test.each([
         name: "Blocked",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       }),

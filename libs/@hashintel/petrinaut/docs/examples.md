@@ -207,11 +207,10 @@ The [Probabilistic Satellite Launcher](#probabilistic-satellite-launcher) with o
 
 **Demonstrates:**
 
-- **An equation over one token** -- _Satellite Orbit Dynamics_ is written for a single satellite (`const [satellite] = tokens;`) and returns one derivative object; the simulator runs it once per token.
 - **An equation over two tokens** -- _Mutual Attraction_ couples every pair of satellites: `const [a, b] = tokens;` and an array of two derivative objects, one per satellite, so the pull is symmetric. The `attraction_constant` parameter sets its strength.
-- **Composed dynamics** -- the Space place selects the orbit equation and composes the attraction below it; their derivatives are summed every step. See [composing equations](petri-net-extensions.md#composing-equations).
+- **Composed dynamics** -- the Space place lists the one-token orbit equation and the attraction after it; their derivatives are summed every step. See [composing equations](petri-net-extensions.md#composing-equations).
 - Everything else -- launches, collisions, crashes, the visualizer, the metrics and the five scenarios -- is the launcher's.
 
 **Suggested initial state:** pick **Pre-deployed Constellation** and press Play: the ring starts in circular orbits and the attraction draws neighbours together until pairs collide. Raise `attraction_constant` to see it sooner, or lower it toward 0 to recover the launcher's orbits. This net runs on the CPU: the GPU backend does not integrate composed dynamics.
 
-**Key concepts:** [equations over one or several tokens](petri-net-extensions.md#equations-over-one-or-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [visualizers](petri-net-extensions.md#visualizer), [scenarios](scenarios.md).
+**Key concepts:** [equations over several tokens](petri-net-extensions.md#equations-over-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [visualizers](petri-net-extensions.md#visualizer), [scenarios](scenarios.md).

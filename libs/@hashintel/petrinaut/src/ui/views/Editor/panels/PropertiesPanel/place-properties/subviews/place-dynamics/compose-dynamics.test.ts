@@ -5,6 +5,7 @@ import {
   composableEquations,
   describeEquationForm,
   moveTerm,
+  placeTypeChange,
   removeTerm,
 } from "./compose-dynamics";
 
@@ -40,15 +41,17 @@ describe("compose-dynamics", () => {
 
   it("offers the colour's equations the place does not compose yet", () => {
     const equations: DifferentialEquation[] = [
-      { id: "orbit", name: "Orbit", colorId: "sat", code: "" },
+      { id: "orbit", name: "Orbit", colorId: "sat", code: "", arity: 1 },
       { id: "pull", name: "Pull", colorId: "sat", code: "", arity: 2 },
       { id: "lift", name: "Lift", colorId: "sat", code: "", arity: 1 },
-      { id: "other", name: "Other", colorId: "rock", code: "" },
+      { id: "other", name: "Other", colorId: "rock", code: "", arity: 1 },
     ];
     const place = {
       colorId: "sat",
-      differentialEquationId: "orbit",
-      dynamics: [{ differentialEquationId: "pull" }],
+      dynamics: [
+        { differentialEquationId: "orbit" },
+        { differentialEquationId: "pull" },
+      ],
     };
     expect(composableEquations(place, equations).map(({ id }) => id)).toEqual([
       "lift",
@@ -58,9 +61,23 @@ describe("compose-dynamics", () => {
     );
   });
 
-  it("describes the form an equation sees tokens in", () => {
-    expect(describeEquationForm({})).toBe("Whole place");
+  it("describes how many tokens an equation couples", () => {
     expect(describeEquationForm({ arity: 1 })).toBe("1 token");
     expect(describeEquationForm({ arity: 2 })).toBe("2 tokens");
+  });
+
+  it("clears the composed equations and switches dynamics off when the type changes", () => {
+    const place = { colorId: "sat" };
+    expect(placeTypeChange(place, "rock")).toEqual({
+      colorId: "rock",
+      dynamicsEnabled: false,
+      dynamics: [],
+    });
+    expect(placeTypeChange(place, null)).toEqual({
+      colorId: null,
+      dynamicsEnabled: false,
+      dynamics: [],
+    });
+    expect(placeTypeChange(place, "sat")).toBeNull();
   });
 });

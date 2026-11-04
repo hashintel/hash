@@ -74,31 +74,22 @@ const arcStyle = css({
   alignItems: "center",
 });
 
-/** The Tokens select's value for the whole-place form. */
-const WHOLE_PLACE = "whole-place";
-
 /** Arities the select offers; a file may carry a larger one, listed then. */
 const OFFERED_ARITIES = [1, 2, 3, 4];
 
-const arityItems = (arity: number | undefined) =>
-  [
-    { value: WHOLE_PLACE, text: "Whole place (tokens.map)" },
-    ...[
-      ...OFFERED_ARITIES,
-      ...(arity !== undefined && !OFFERED_ARITIES.includes(arity)
-        ? [arity]
-        : []),
-    ].map((candidate) => ({
+const arityItems = (arity: number) =>
+  [...OFFERED_ARITIES, ...(OFFERED_ARITIES.includes(arity) ? [] : [arity])]
+    .toSorted((left, right) => left - right)
+    .map((candidate) => ({
       value: String(candidate),
       text: describeEquationForm({ arity: candidate }),
-    })),
-  ] as const;
+    }));
 
 /** Whether the code is still a template nobody has edited. */
 const isTemplateCode = (
   code: string,
   type: Color | undefined,
-  arity: number | undefined,
+  arity: number,
 ): boolean =>
   code.trim() === "" ||
   code === DEFAULT_DIFFERENTIAL_EQUATION_CODE ||
@@ -131,7 +122,7 @@ const DiffEqMainContent: React.FC = () => {
    * is kept for the author to adapt.
    */
   const handleArityChange = (value: string) => {
-    const arity = value === WHOLE_PLACE ? undefined : Number(value);
+    const arity = Number(value);
     const code =
       equationType !== undefined &&
       isTemplateCode(
@@ -246,11 +237,7 @@ const DiffEqMainContent: React.FC = () => {
               <Select
                 aria-label="Tokens"
                 required
-                value={
-                  differentialEquation.arity === undefined
-                    ? WHOLE_PLACE
-                    : String(differentialEquation.arity)
-                }
+                value={String(differentialEquation.arity)}
                 onChange={handleArityChange}
                 items={arityItems(differentialEquation.arity)}
                 size="sm"

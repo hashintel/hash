@@ -46,10 +46,10 @@ export const moveTerm = (
 
 /**
  * The equations the place could add: those of its colour that it does not
- * compose yet, as the selected equation or as a term.
+ * compose yet.
  */
 export const composableEquations = (
-  place: Pick<Place, "colorId" | "differentialEquationId" | "dynamics">,
+  place: Pick<Place, "colorId" | "dynamics">,
   equations: readonly DifferentialEquation[],
 ): DifferentialEquation[] =>
   place.colorId === null
@@ -60,10 +60,20 @@ export const composableEquations = (
           !placeUsesDifferentialEquation(place, equation.id),
       );
 
-/** How the equation sees tokens: "Whole place", "1 token", "2 tokens". */
+/** How many tokens the equation couples: "1 token", "2 tokens". */
 export const describeEquationForm = (
   equation: Pick<DifferentialEquation, "arity">,
-): string =>
-  equation.arity === undefined
-    ? "Whole place"
-    : `${equation.arity} token${equation.arity === 1 ? "" : "s"}`;
+): string => `${equation.arity} token${equation.arity === 1 ? "" : "s"}`;
+
+/**
+ * The update a change of the place's type implies, or `null` for the same
+ * type: the composed equations are over the old type, so they go with it
+ * and the dynamics switch off.
+ */
+export const placeTypeChange = (
+  place: Pick<Place, "colorId">,
+  nextColorId: ID | null,
+): Pick<Place, "colorId" | "dynamicsEnabled" | "dynamics"> | null =>
+  nextColorId === place.colorId
+    ? null
+    : { colorId: nextColorId, dynamicsEnabled: false, dynamics: [] };

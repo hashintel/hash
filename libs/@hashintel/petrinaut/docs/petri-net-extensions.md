@@ -53,18 +53,18 @@ Override parameter values before running a simulation in the **Simulation Settin
 
 Kernel, firing rate/predicate, differential equation, visualizer, metric, and scenario code is a plain function body ending in `return`. The variables each surface needs are in scope without declaring them:
 
-| Code surface                                              | Variables in scope                        | Must return                                               |
-| --------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------- |
-| [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name   |
-| [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)         |
-| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per token, or one per coupled token |
-| [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                            |
-| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                           |
-| Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                     |
+| Code surface                                              | Variables in scope                        | Must return                                             |
+| --------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name |
+| [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)       |
+| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per coupled token                 |
+| [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
+| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                         |
+| Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                   |
 
-`input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.
+`input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `tokens` is the tuple of tokens a differential equation couples (one, usually); `state` exposes every place's tokens and counts to a metric.
 
-Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)`, and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
+Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)` (one parameter per coupled token, then `parameters`), and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
 
 ### Migrating older code
 
@@ -93,32 +93,25 @@ Differential equations define how token data evolves continuously over time. The
 **Setup:**
 
 1. Create a differential equation in the **Differential Equations** group (left sidebar).
-2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
-3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place. Click **View equation** below the dropdown to open its definition.
+2. Give it a name, associate it with a **type** (the equation applies to tokens of that type) and choose how many **Tokens** it couples (one, usually).
+3. Select a place of that type and add the equation in its **Dynamics** section with the **+** button. The switch in the section header runs or pauses the place's dynamics. The arrow on each row opens that equation's properties and code.
 
 **Function body:**
 
 ```ts
-return tokens.map(({ x, y }) => {
-  return { x: /* dx/dt */, y: /* dy/dt */ };
-});
+const [token] = tokens;
+return { x: /* dx/dt */, y: /* dy/dt */ };
 ```
 
-The code is a plain function body ending in `return`, with `tokens` (the current token values) and `parameters` (the global parameters) in scope. Older documents may wrap the same code as `export default Dynamics((tokens, parameters) => { ... })`; that form still works. It must return an array of derivative objects -- one per token, with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the input tokens, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run.
+The code is a plain function body ending in `return`, with `tokens` (a tuple holding the token being integrated) and `parameters` (the global parameters) in scope. It runs once per token in the place and returns one derivative object with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the token, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run. The module style declares the token as a parameter: `export default Dynamics((token, parameters) => ({ ... }))`.
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
-**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
+**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update a satellite's position and velocity each step.
 
-### Equations over one or several tokens
+### Equations over several tokens
 
-By default an equation runs over the whole place: `tokens` is every token and the body returns one derivative object per token. The **Tokens** select in the equation's properties changes how it sees tokens:
-
-- **Whole place** -- the form above.
-- **1 token** -- the body runs once per token. `tokens` is a tuple holding that one token (`const [satellite] = tokens;`) and the body returns one derivative object.
-- **2 tokens** and above -- the body runs once per combination of that many distinct tokens, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it.
-
-Switching the form replaces the starting template; code you have edited is kept for you to adapt. In the older module style the equation declares one parameter per token: `export default Dynamics((a, b, parameters) => [ ... ])`.
+The **Tokens** select in the equation's properties sets how many tokens the equation couples. With **2 tokens** and above, the body runs once per combination of that many distinct tokens, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it.
 
 ```ts
 // A mutual attraction over every pair of tokens
@@ -128,13 +121,17 @@ const dx = b.x - a.x;
 return [{ vx: k * dx }, { vx: -k * dx }];
 ```
 
+Switching the number of tokens replaces the starting template; code you have edited is kept for you to adapt. In the module style the equation declares one parameter per token: `export default Dynamics((a, b, parameters) => [ ... ])`.
+
 ### Composing equations
 
-A place can run several equations at once. The dropdown under its **Dynamics** section selects the first; the **Composed dynamics** section below lists further equations of the place's type, added with its **+** button, reordered with the arrows and removed with the trash icon. Each step, every equation's derivatives are summed before the integration step, so an orbit equation over one token and an attraction over every pair combine into one motion. Removing an equation from the net removes it from every place that composed it.
+A place can run several equations at once: its **Dynamics** section lists them in order, added with the **+** button, reordered with the arrows and removed with the trash icon. Each step, every listed equation's derivatives are summed before the integration step, so an orbit equation over one token and an attraction over every pair combine into one motion. Removing an equation from the net removes it from every place that composed it, and changing a place's type clears its list.
 
-Composed and multi-token dynamics run on the CPU. The [GPU backend](experiments.md#compute-backend) refuses such a net and names the place.
+The [GPU backend](experiments.md#compute-backend) integrates one equation over one token per place; a net that composes several, or couples several tokens, runs on the CPU, and the backend names the place.
 
-**Example:** [Satellites with Attraction](examples.md#satellites-with-attraction) composes a one-token orbit equation with a two-token mutual attraction.
+**Example:** [Satellites with Attraction](examples.md#satellites-with-attraction) composes the one-token orbit equation with a two-token mutual attraction.
+
+Files saved by earlier versions, where a place named one equation and every equation covered the whole place at once, open with that equation as the place's only term, coupling one token; their bodies, written as `tokens.map(...)`, show a diagnostic until rewritten in the form above.
 
 ## Visualizer
 

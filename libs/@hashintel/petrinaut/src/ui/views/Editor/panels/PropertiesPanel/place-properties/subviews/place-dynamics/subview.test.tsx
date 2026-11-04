@@ -39,10 +39,10 @@ const satellite: Color = {
 };
 
 const equations: DifferentialEquation[] = [
-  { id: "orbit", name: "Orbit", colorId: "satellite", code: "" },
+  { id: "orbit", name: "Orbit", colorId: "satellite", code: "", arity: 1 },
   { id: "pull", name: "Pull", colorId: "satellite", code: "", arity: 2 },
   { id: "drag", name: "Drag", colorId: "satellite", code: "", arity: 1 },
-  { id: "rock", name: "Rock", colorId: "rock", code: "" },
+  { id: "rock", name: "Rock", colorId: "rock", code: "", arity: 1 },
 ];
 
 const initialPlace: Place = {
@@ -50,10 +50,9 @@ const initialPlace: Place = {
   name: "Space",
   colorId: "satellite",
   dynamicsEnabled: true,
-  differentialEquationId: "orbit",
   dynamics: [
+    { differentialEquationId: "orbit" },
     { differentialEquationId: "pull" },
-    { differentialEquationId: "drag" },
   ],
   x: 0,
   y: 0,
@@ -111,12 +110,16 @@ const listedNames = () =>
     .getAllByRole("listitem")
     .map((item) => item.querySelector("span")?.textContent);
 
-describe("Composed dynamics subview", () => {
-  it("lists the composed equations in order with how they see tokens", () => {
+// The design-system Toggle labels its root, so its hidden input is the one
+// unnamed checkbox in this harness.
+const dynamicsSwitch = () => screen.getByRole<HTMLInputElement>("checkbox");
+
+describe("Dynamics subview", () => {
+  it("lists the composed equations in order with how many tokens each couples", () => {
     render(<Harness />);
-    expect(listedNames()).toEqual(["Pull", "Drag"]);
-    expect(screen.getByText("2 tokens")).toBeDefined();
+    expect(listedNames()).toEqual(["Orbit", "Pull"]);
     expect(screen.getByText("1 token")).toBeDefined();
+    expect(screen.getByText("2 tokens")).toBeDefined();
   });
 
   it("reorders, removes and opens a term", () => {
@@ -132,14 +135,14 @@ describe("Composed dynamics subview", () => {
     );
 
     expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "Move Pull up" })
+      screen.getByRole<HTMLButtonElement>("button", { name: "Move Orbit up" })
         .disabled,
     ).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Move Pull down" }));
-    expect(listedNames()).toEqual(["Drag", "Pull"]);
+    fireEvent.click(screen.getByRole("button", { name: "Move Orbit down" }));
+    expect(listedNames()).toEqual(["Pull", "Orbit"]);
     expect(latest?.dynamics).toEqual([
-      { differentialEquationId: "drag" },
       { differentialEquationId: "pull" },
+      { differentialEquationId: "orbit" },
     ]);
 
     fireEvent.click(screen.getByRole("button", { name: "View Pull" }));
@@ -148,24 +151,40 @@ describe("Composed dynamics subview", () => {
       id: "pull",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Drag" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Orbit" }));
     expect(listedNames()).toEqual(["Pull"]);
     expect(latest?.dynamics).toEqual([{ differentialEquationId: "pull" }]);
+  });
+
+  it("shows whether the place's dynamics run from the header switch", () => {
+    // Driving the design-system switch is its own concern; the switch
+    // mirrors `dynamicsEnabled` and the list says when it is off.
+    const { unmount } = render(<Harness />);
+    expect(dynamicsSwitch().checked).toBe(true);
+    expect(screen.queryByText(/switched off/)).toBeNull();
+    unmount();
+
+    render(<Harness place={{ ...initialPlace, dynamicsEnabled: false }} />);
+    expect(dynamicsSwitch().checked).toBe(false);
+    expect(screen.getByText(/switched off/)).toBeDefined();
+    expect(listedNames()).toEqual(["Orbit", "Pull"]);
   });
 
   it("offers the colour's equations that are not composed yet", async () => {
     // Selecting an entry is the design-system menu's job, which jsdom cannot
     // drive; what the entry does is `addTerm`, tested with the transitions.
     render(<Harness place={{ ...initialPlace, dynamics: [] }} />);
-    expect(screen.getByText(/No further equations/)).toBeDefined();
+    expect(screen.getByText(/No equations yet/)).toBeDefined();
 
     fireEvent.click(screen.getByRole("button", { name: "Add equation" }));
-    await screen.findByRole("menuitem", { name: "Pull · 2 tokens" });
+    await screen.findByRole("menuitem", { name: "Orbit · 1 token" });
+    expect(
+      screen.getByRole("menuitem", { name: "Pull · 2 tokens" }),
+    ).toBeDefined();
     expect(
       screen.getByRole("menuitem", { name: "Drag · 1 token" }),
     ).toBeDefined();
-    // The selected equation and the other colour's are not offered.
-    expect(screen.queryByRole("menuitem", { name: /Orbit/ })).toBeNull();
+    // The other colour's equation is not offered.
     expect(screen.queryByRole("menuitem", { name: /Rock/ })).toBeNull();
   });
 
@@ -175,6 +194,7 @@ describe("Composed dynamics subview", () => {
         place={{
           ...initialPlace,
           dynamics: [
+            { differentialEquationId: "orbit" },
             { differentialEquationId: "pull" },
             { differentialEquationId: "drag" },
           ],
@@ -187,20 +207,33 @@ describe("Composed dynamics subview", () => {
     ).toBe(true);
   });
 
+  it("asks for a type before any equation", () => {
+    render(
+      <Harness place={{ ...initialPlace, colorId: null, dynamics: [] }} />,
+    );
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", { name: "Add equation" })
+        .disabled,
+    ).toBe(true);
+    expect(dynamicsSwitch().disabled).toBe(true);
+    expect(screen.getByText(/Select a token type/)).toBeDefined();
+  });
+
   it("keeps every control read-only", () => {
     render(<Harness readOnly />);
     for (const name of [
       "Add equation",
-      "Move Pull down",
+      "Move Orbit down",
+      "Remove Orbit",
       "Remove Pull",
-      "Remove Drag",
     ]) {
       expect(
         screen.getByRole<HTMLButtonElement>("button", { name }).disabled,
       ).toBe(true);
     }
+    expect(dynamicsSwitch().disabled).toBe(true);
     expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "View Pull" })
+      screen.getByRole<HTMLButtonElement>("button", { name: "View Orbit" })
         .disabled,
     ).toBe(false);
   });
