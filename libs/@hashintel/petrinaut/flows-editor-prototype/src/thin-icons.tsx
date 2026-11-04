@@ -1,7 +1,7 @@
 /**
  * Lighter icons for the whole prototype (Aakarsh, 4 Nov: the icons are "too heavy"). The DS draws Font Awesome
  * filled paths, which have no stroke to thin. This pack swaps them, through the DS `IconProvider`, for Lucide line
- * icons (already a ds-components dependency) at a 1.5 stroke on Lucide's 24 grid: about 1 px at 16 px.
+ * icons (already a ds-components dependency) at an absolute 1.25 px stroke at every size, the status glyphs' stroke.
  *
  * Names with no close Lucide match keep the DS icon. DS gap: the DS has no light icon weight or stroke setting.
  */
@@ -105,8 +105,19 @@ import type { IconProvider } from "@hashintel/ds-components";
 
 type IconPack = React.ComponentProps<typeof IconProvider>["icons"];
 
-/** The stroke on Lucide's 24 grid: 1.5 there is about 1 px at the DS's 16 px. */
-export const iconStroke = 1.5;
+/**
+ * The stroke in CSS pixels, whatever size the icon is drawn at. The DS sizes icons in CSS, so Lucide's
+ * `absoluteStrokeWidth` (which needs the `size` prop) can't hold it; a non-scaling stroke does.
+ */
+export const iconStroke = 1.25;
+
+const strokeSheetId = "flows-icon-stroke";
+if (!globalThis.document.getElementById(strokeSheetId)) {
+  const sheet = globalThis.document.createElement("style");
+  sheet.id = strokeSheetId;
+  sheet.textContent = "svg.lucide * { vector-effect: non-scaling-stroke; }";
+  globalThis.document.head.append(sheet);
+}
 
 const thin = (Lucide: LucideIcon) => {
   const ThinIcon = (props: React.SVGProps<SVGSVGElement>) => (
