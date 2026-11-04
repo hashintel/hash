@@ -59,11 +59,22 @@ import {
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
 import { navigate, setQuery, useLocation } from "./router";
-import { RunBar } from "./run-glyph";
+import { RunBar, RunGlyph } from "./run-glyph";
 import { flashLogRows } from "./run-log-panel";
-import { barOf, type StepRun, runTriggerId, triggerLabel } from "./run-history";
+import {
+  barOf,
+  type StepRun,
+  type StepState,
+  runTriggerId,
+  triggerLabel,
+} from "./run-history";
 import { describeSource } from "./shapes";
-import { tileColor } from "./status-colors";
+import {
+  failedOutlineColor,
+  quietBarColor,
+  strongBarColor,
+  tileColor,
+} from "./status-colors";
 import { InlineRename, Toast } from "./ui";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
@@ -336,6 +347,8 @@ const cardHeadStyle = css({
   alignItems: "center",
   gap: "2",
   padding: "3",
+  // Take 2's corner glyph keeps the title clear of it.
+  ":has(> [data-corner-glyph]) > &": { paddingRight: "[28px]" },
 });
 
 // Two classes outrank React Flow's own handle style.
@@ -500,13 +513,139 @@ const RunDot = ({ stepId }: { stepId: string }) => {
 };
 
 /**
- * Run marks B (4 Nov): a step that runs once shows its state glyph at the card's top-right; a step inside a For each
- * shows the segmented bar along its bottom edge. Sizes are in canvas units: about 12 px and 4 px at J6's 45%.
+ * How a run-view card shows its status, as four takes for Aakarsh to compare (4 Nov: the faint bar was "a bit too
+ * hard to read, especially since we aren't doing icons of status on the node itself"). Read from ?nodestatus= only,
+ * never remembered; take 1 is the default.
+ * 1. The 2 px bar at about s80 for every state.
+ * 2. Run marks B: a 12 px F3 glyph at the top right of a step that runs once; the s80 bar on a step that repeats.
+ * 3. Colour only where attention is needed: a 3 px bar for failed, running and needs review; done stays faint.
+ * 4. Attio: a small pill above the card for every state but done, and a faint red outline round a step card with
+ *    failures.
  */
-/** A card's run mark: the bar along its bottom edge, never a glyph (Aakarsh, 4 Nov). */
-const RunMark = ({ mark }: { mark?: StepRun }) => {
+type NodeStatusTake = 1 | 2 | 3 | 4;
+
+const nodeStatusTake: NodeStatusTake = (() => {
+  const take = Number(
+    new URLSearchParams(globalThis.location.search).get("nodestatus"),
+  );
+  return take === 2 || take === 3 || take === 4 ? take : 1;
+})();
+
+const attentionStates = new Set(["failed", "running", "review"]);
+
+const cornerGlyphStyle = css({
+  position: "absolute",
+  display: "flex",
+  pointerEvents: "none",
+});
+
+const statusPillStyle = css({
+  position: "absolute",
+  right: "[0]",
+  bottom: "[calc(100% + 6px)]",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  height: "[20px]",
+  paddingX: "[6px]",
+  borderRadius: "full",
+  textStyle: "xs",
+  fontWeight: "medium",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+});
+
+const pillLabel: Partial<Record<StepState, string>> = {
+  failed: "Failed",
+  running: "Running",
+  needsReview: "Needs review",
+  doneWithFailures: "Some failed",
+};
+
+const pillTone: Partial<Record<StepState, string>> = {
+  failed: "failed",
+  running: "running",
+  needsReview: "needsReview",
+  doneWithFailures: "failed",
+};
+
+/** A card's run mark, in the take ?nodestatus= picks. `group` is the For each box, whose header is 48 px. */
+const RunMark = ({ mark, group }: { mark?: StepRun; group?: boolean }) => {
   const segments = barOf(mark);
-  return segments ? <RunBar segments={segments} /> : null;
+  if (!mark || !segments) {
+    return null;
+  }
+  // A step repeats when it runs per item: its bar is split by item.
+  const repeats = Boolean(mark.bar && mark.bar.length > 0);
+  if (nodeStatusTake === 2) {
+    return repeats ? (
+      <RunBar segments={segments} colors={strongBarColor} />
+    ) : (
+      <span
+        data-corner-glyph
+        className={cornerGlyphStyle}
+        style={group ? { top: 18, right: 12 } : { top: 10, right: 10 }}
+      >
+        <RunGlyph state={mark.state} progress={mark.progress} />
+      </span>
+    );
+  }
+  if (nodeStatusTake === 3) {
+    const loud = segments.some((segment) =>
+      attentionStates.has(segment.state),
+    );
+    // Not reached draws no track: only what ran shows.
+    const shown = segments.filter((segment) => segment.state !== "rest");
+    return shown.length > 0 ? (
+      <RunBar segments={shown} colors={quietBarColor} height={loud ? 3 : 2} />
+    ) : null;
+  }
+  if (nodeStatusTake === 4) {
+    const label =
+      mark.state === "doneWithFailures" && mark.progress
+        ? `${mark.progress.failed} failed`
+        : pillLabel[mark.state];
+    const tone = pillTone[mark.state];
+    return (
+      <>
+        {label && tone ? (
+          <span
+            data-status-pill={mark.state}
+            className={statusPillStyle}
+            style={{
+              backgroundColor: `var(--flows-${tone}-badgeBg)`,
+              color: `var(--flows-${tone}-badgeFg)`,
+            }}
+          >
+            <RunGlyph state={mark.state} progress={mark.progress} />
+            {label}
+          </span>
+        ) : null}
+        {/* A step card that failed, or whose items partly failed; the For each box keeps its own border. */}
+        {!group &&
+        (mark.state === "failed" ||
+          (mark.state === "doneWithFailures" &&
+            (mark.progress?.failed ?? 0) > 0)) ? (
+          <span
+            aria-hidden
+            data-failed-outline
+            className={css({
+              position: "absolute",
+              inset: "[-1px]",
+              borderRadius: "[inherit]",
+              borderWidth: "thin",
+              borderStyle: "solid",
+              pointerEvents: "none",
+            })}
+            style={{ borderColor: failedOutlineColor }}
+          />
+        ) : null}
+        {/* Only a step that repeats keeps a bar, its items in the faint colours. */}
+        {repeats ? <RunBar segments={segments} /> : null}
+      </>
+    );
+  }
+  return <RunBar segments={segments} colors={strongBarColor} />;
 };
 
 const ProblemDot = ({ stepId }: { stepId: string }) => {
@@ -1087,7 +1226,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
       </PortHandle>
       <ProblemDot stepId={id} />
       <RunDot stepId={id} />
-      <RunMark mark={mark} />
+      <RunMark mark={mark} group />
     </div>
   );
 };
