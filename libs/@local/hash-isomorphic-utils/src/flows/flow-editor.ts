@@ -214,7 +214,7 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       };
     },
 
-    /** Renames the flow. Giving it the name it has isn't an edit, so nothing is saved. */
+    /** Giving the flow the name it has isn't an edit, so nothing is saved. */
     setName: (name: string) => {
       if (name === state.flowDefinition.name) {
         return;

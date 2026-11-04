@@ -71,9 +71,7 @@ const SaveStatus = ({
 };
 
 /**
- * The flow's name, which turns into a field when clicked. Pressing Enter or leaving the field renames the flow.
- * Pressing Escape keeps the name it had, as does leaving the field blank, so that renaming never leaves a flow
- * without a name.
+ * The flow's name, editable when clicked. Escape, or leaving it blank, keeps the name it had.
  */
 const FlowName = ({
   name,
@@ -82,9 +80,7 @@ const FlowName = ({
   name: string;
   onRename: (name: string) => void;
 }) => {
-  /* The name being typed, while the field is focused. */
   const [typed, setTyped] = useState<string | null>(null);
-  /* Pressing Escape leaves the field, which mustn't rename the flow. */
   const cancelledRef = useRef(false);
 
   return (
@@ -100,7 +96,6 @@ const FlowName = ({
       onFocus={() => setTyped(name)}
       onChange={setTyped}
       onKeyDown={(event) => {
-        /* Enter also confirms a character being composed with an input method, which mustn't rename the flow. */
         if (
           (event.key !== "Enter" && event.key !== "Escape") ||
           event.nativeEvent.isComposing
@@ -220,8 +215,7 @@ const LeaveFlowDialog = ({
 );
 
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, which is clicked to rename it, whether its edits
- * are saved, and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, and its menu.
  */
 export const TopBar = ({
   name,
