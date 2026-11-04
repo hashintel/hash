@@ -12,6 +12,7 @@
     type_info,
     variant_count
 )]
+#![cfg_attr(test, feature(ip))]
 
 extern crate alloc;
 

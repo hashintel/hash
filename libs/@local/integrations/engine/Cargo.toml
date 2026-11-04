@@ -24,6 +24,7 @@ hash-middleware  = { workspace = true }
 
 # Private third-party dependencies
 arrow-array    = { workspace = true }
+backon         = { workspace = true, features = ["std", "tokio-sleep"] }
 derive_more    = { workspace = true, features = ["display", "error"] }
 opentelemetry  = { workspace = true, features = ["metrics"] }
 parquet        = { workspace = true, features = ["arrow", "snap"] }
