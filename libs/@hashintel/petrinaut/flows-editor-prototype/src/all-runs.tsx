@@ -22,9 +22,9 @@ import {
   outcomeLabel,
   runClock,
   runProgress,
-  stepRuns,
   triggerLabel,
 } from "./run-history";
+import { RunOutputsCell } from "./run-outputs";
 import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
 
@@ -112,21 +112,6 @@ const statusCellOf = (
     default:
       return { state, progress, text: String(facts.n) };
   }
-};
-
-const outputsText = (run: RunRecord, now: number) => {
-  const outcome = outcomeOf(run, now);
-  const facts = factsOf(run, now);
-  if (outcome === "running" || outcome === "needsReview") {
-    return "In progress";
-  }
-  if (facts.find === "failed") {
-    return "Nothing (stopped at Find entities)";
-  }
-  const steps = stepRuns(facts);
-  const done = (id: string) =>
-    steps[id]?.bar?.find((segment) => segment.state === "done")?.count ?? 0;
-  return `${done("fetchCertificate")} certificates · ${done("sendReviewEmail")} emails`;
 };
 
 const durationText = (run: RunRecord, now: number) => {
@@ -342,7 +327,10 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                     ? `Manual · ${run.trigger.by}`
                     : "Schedule · monthly"}
                 </td>
-                <td>{outputsText(run, now)}</td>
+                <td>
+                  {/* What the run produced; each count opens the outputs viewer (`run-outputs.tsx`). */}
+                  <RunOutputsCell run={run} now={now} />
+                </td>
                 <td>{durationText(run, now)}</td>
                 {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- keeps the row's click off the menu */}
                 <td onClick={(event) => event.stopPropagation()}>

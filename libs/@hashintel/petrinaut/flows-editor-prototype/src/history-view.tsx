@@ -3,16 +3,15 @@
  * step's state; the left panel lists the steps with their counts; the top bar switches runs with arrows and a
  * dropdown, and All runs goes back to the list. Run 17 runs live; Runs 12–16 are past runs (`run-history.ts`).
  */
-import { createContext, Fragment, use, useEffect, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 
 import {
   Button,
   type ChipColor,
-  Icon,
   type IconName,
   Menu,
 } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
@@ -20,10 +19,10 @@ import { flattenSteps, START_ID, stepLabel } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
 import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
+import { runOutputs, StepOutputs } from "./run-outputs";
 import type { StepState } from "./run-history";
 import {
   anyTicking,
-  certificateName,
   clockPlus,
   factsOf,
   findSpan,
@@ -39,7 +38,6 @@ import {
   stageSpan,
   type StepRun,
   stepRuns,
-  suppliers,
   runTriggerId,
   triggerLabel,
 } from "./run-history";
@@ -153,7 +151,7 @@ export const useRunKeys = (history: HistoryValue | null, active: boolean) => {
       const target = event.target as HTMLElement | null;
       if (
         target?.closest("input, textarea, [contenteditable], [role=menu]") ||
-        globalThis.document.querySelector("[role=menu]")
+        globalThis.document.querySelector("[role=menu], [role=dialog]")
       ) {
         return;
       }
@@ -360,8 +358,9 @@ const runPanelStyle = css({
   overflowY: "auto",
   display: "flex",
   flexDirection: "column",
-  gap: "6",
-  padding: "4",
+  // Attio-like room (4 Nov: "cramped"): 24 px in from the edges, 32 px between sections.
+  gap: "8",
+  padding: "6",
   backgroundColor: "neutral.bgSolid.min",
   borderLeftWidth: "thin",
   borderLeftStyle: "solid",
@@ -382,13 +381,6 @@ const valueStyle = css({
   color: "neutral.fg.body",
   overflowWrap: "anywhere",
 });
-
-/** Opens a run's file: the prototype has no files, so a small preview page in a new tab. */
-const openFile = (name: string, supplier: string, run: RunRecord) => {
-  const html = `<!doctype html><meta charset="utf-8"><title>${name}</title><body style="font:14px system-ui;margin:48px;color:#202020"><p style="color:#8d8d8d">Mock file · Flows prototype</p><h1 style="font-size:20px">${name}</h1><p>Certificate of analysis · ${supplier}</p><p>Fetched by Fetch certificate in Run ${run.id} · ${run.when}</p></body>`;
-  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-  globalThis.open(url, "_blank", "noopener");
-};
 
 type Detail = {
   type: string;
@@ -607,139 +599,29 @@ const detailOf = (
   };
 };
 
-const outputGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[120px 1fr auto]",
-  alignItems: "center",
-  columnGap: "2",
-  rowGap: "0",
-  "& > *": { minHeight: "[32px]", display: "flex", alignItems: "center" },
-});
+/** Steps whose outputs open a viewer (`run-outputs.tsx`); the rest are simple values, inline. */
+const viewerSteps = new Set([
+  "findSuppliers",
+  forEachId,
+  "readName",
+  "readEmail",
+  "readCertificateLink",
+  "fetchCertificate",
+  "sendReviewEmail",
+  "markReviewed",
+]);
 
-const keyStyle = css({
-  textStyle: "sm",
-  color: "neutral.fg.subtle",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-});
+const hasViewer = (stepId: string) => viewerSteps.has(stepId);
 
-/** Fetch certificate's outputs: the files, one row per supplier, each opening its file (J6.7). */
-const FetchOutputs = ({ run, facts }: { run: RunRecord; facts: RunFacts }) => {
-  const [all, setAll] = useState(false);
-  const processed = facts.processed[1];
-  const rows = suppliers.slice(0, facts.n).map((supplier, item) => ({
-    supplier,
-    item,
-    failure: facts.failures.find((failure) => failure.item === item),
-    fetched: item < processed,
-  }));
-  const files = rows.filter((row) => row.fetched && !row.failure).length;
-  const shown = all ? rows : rows.slice(0, 6);
-  return (
-    <Section title="Outputs">
-      <div className={cx(outputGridStyle, css({ gridColumn: "1 / -1" }))}>
-        <span className={cx(keyStyle, css({ gap: "1.5" }))}>
-          <Icon name="cubes" size="sm" />
-          Certificates
-        </span>
-        <span className={css({ gap: "2", gridColumn: "2 / -1" })}>
-          <span className={valueStyle}>{files} files</span>
-          <Button
-            size="xs"
-            variant="subtle"
-            tone="neutral"
-            onClick={() => setAll(!all)}
-          >
-            {all ? "Show fewer" : "View all"}
-          </Button>
-        </span>
-        {shown.map((row) => (
-          <Fragment key={row.supplier}>
-            <span className={keyStyle}>{row.supplier}</span>
-            {row.failure ? (
-              <span
-                className={css({
-                  gridColumn: "2 / -1",
-                  textStyle: "sm",
-                  color: "[var(--flows-failed-text)]",
-                })}
-              >
-                Couldn&apos;t fetch · {row.failure.reason}
-              </span>
-            ) : row.fetched ? (
-              <>
-                <span className={valueStyle}>
-                  {certificateName(row.supplier)}
-                </span>
-                <span>
-                  <Button
-                    size="xs"
-                    variant="subtle"
-                    tone="neutral"
-                    iconName="arrowRight"
-                    iconPosition="right"
-                    onClick={() =>
-                      openFile(certificateName(row.supplier), row.supplier, run)
-                    }
-                  >
-                    Open
-                  </Button>
-                </span>
-              </>
-            ) : (
-              <span
-                className={cx(quietLineStyle, css({ gridColumn: "2 / -1" }))}
-              >
-                Not fetched yet
-              </span>
-            )}
-          </Fragment>
-        ))}
-      </div>
-      {all ? null : (
-        <span className={cx(quietLineStyle, css({ gridColumn: "1 / -1" }))}>
-          Showing 6 of {facts.n} · scroll for more
-        </span>
-      )}
-    </Section>
-  );
-};
-
-const plainOutputs = (
-  stepId: string,
-  facts: RunFacts,
-  state: StepRun,
-): [string, string][] => {
-  const done = state.bar?.find((segment) => segment.state === "done")?.count;
-  switch (stepId) {
-    case "findSuppliers":
-      return [["Entities", `${facts.n} suppliers`]];
-    case forEachId:
-      return [
-        [
-          "Reviewed suppliers",
-          `${facts.processed[3] - facts.failures.filter((failure) => failure.item < facts.processed[3]).length} suppliers`,
-        ],
-      ];
-    case "readName":
-    case "readEmail":
-    case "readCertificateLink":
-      return [["Values", `${done ?? 0} values`]];
-    case "sendReviewEmail":
-      return [["Emails", `${done ?? 0} sent`]];
-    case "markReviewed":
-      return [["Entities", `${done ?? 0} updated`]];
-    case signOffId:
-      return state.state === "done"
-        ? [["Decision", "Approved"]]
-        : state.state === "failed"
-          ? [["Decision", "None · nobody answered in 48 h"]]
-          : [];
-    default:
-      return [];
-  }
-};
+/** Simple outputs need no detail view (Ciarán, 26 Oct): the sign-off's Decision. */
+const plainOutputs = (stepId: string, state: StepRun): [string, string][] =>
+  stepId === signOffId
+    ? state.state === "done"
+      ? [["Decision", "Approved"]]
+      : state.state === "failed"
+        ? [["Decision", "None · nobody answered in 48 h"]]
+        : []
+    : [];
 
 export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
   const { document, ui } = useEditor();
@@ -766,7 +648,7 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
     step?.kind === "action"
       ? getCatalogEntry(step.actionDefinitionId)
       : undefined;
-  const outputs = plainOutputs(stepId, facts, state);
+  const outputs = plainOutputs(stepId, state);
   return (
     <aside className={runPanelStyle} aria-label="Step in this run">
       <div
@@ -828,9 +710,14 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
           ))}
         </Section>
       ) : null}
-      {stepId === "fetchCertificate" && state.state !== "notReached" ? (
-        <FetchOutputs run={run} facts={facts} />
-      ) : outputs.length > 0 && state.state !== "notReached" ? (
+      {state.state === "notReached" ? null : hasViewer(stepId) ? (
+        // Each output opens what it produced (4 Nov, Dora [29:11]–[35:49]); the take is ?stepoutputs=a..d.
+        <Section title="Outputs">
+          <div className={css({ gridColumn: "1 / -1" })}>
+            <StepOutputs stepId={stepId} outputs={runOutputs(run, now)} />
+          </div>
+        </Section>
+      ) : outputs.length > 0 ? (
         <Section title="Outputs">
           {outputs.map(([key, value]) => (
             <PropertyRow key={key} label={key}>
