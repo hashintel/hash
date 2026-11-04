@@ -157,6 +157,11 @@ impl RestSource {
         if self.url.trim().is_empty() {
             return Err("REST URL must be nonempty");
         }
+        // Next links stay on the configured origin, so checking it keeps credentials off
+        // cleartext requests for every page.
+        if self.auth.is_some() && !Url::parse(&self.url).is_ok_and(|url| url.scheme() == "https") {
+            return Err("authenticated REST sources must use an https URL");
+        }
         if self.rate_limit_ms > 86_400_000 {
             return Err("REST request interval must not exceed one day");
         }

@@ -1,0 +1,17 @@
+connector: demo
+sources:
+  authenticated:
+    rest:
+      url: http://api.example.org/items
+      auth:
+        type: bearer
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  public:
+    rest:
+      url: http://api.example.org/items
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: authenticated
+    - source: public
