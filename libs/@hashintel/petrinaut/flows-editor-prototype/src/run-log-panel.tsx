@@ -12,6 +12,8 @@ import { useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { START_ID } from "./document";
+import { useEditor } from "./editor-context";
 import { glyphSet, RunGlyph } from "./run-glyph";
 import {
   bannerAction,
@@ -21,6 +23,8 @@ import {
   outcomeLabel,
   outcomeOf,
   runClock,
+  runTriggerId,
+  signOffId,
 } from "./run-history";
 import { type LogRow, logRows, secondsText } from "./run-log";
 
@@ -115,6 +119,7 @@ const LogLine = ({
   open,
   onToggle,
   failure,
+  itemFailure,
 }: {
   id: string;
   time?: string;
@@ -128,11 +133,14 @@ const LogLine = ({
   open?: boolean;
   onToggle?: () => void;
   failure?: boolean;
+  /** A supplier that failed inside the For each. */
+  itemFailure?: boolean;
 }) => (
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- the chevron inside is the keyboard control
   <div
     className={rowStyle}
     data-log-row={id}
+    data-log-failure={itemFailure || undefined}
     data-toggle={onToggle ? true : undefined}
     onClick={onToggle}
   >
@@ -209,13 +217,74 @@ const LogLine = ({
   </div>
 );
 
+/**
+ * The rows "Show in log" marks for a step. A step inside the For each marks the suppliers it ran for: Fetch
+ * certificate its failures, the reads their failures and the done group, Send and Mark the done group.
+ */
+const loopStepRows: Record<string, string[]> = {
+  readName: ["failed", "done-items"],
+  readEmail: ["failed", "done-items"],
+  readCertificateLink: ["failed", "done-items"],
+  fetchCertificate: ["failed"],
+  sendReviewEmail: ["done-items"],
+  markReviewed: ["done-items"],
+};
+
+const ownRow: Record<string, string> = {
+  [runTriggerId]: "trigger",
+  [START_ID]: "start",
+  findSuppliers: "find",
+  [forEachId]: "loop",
+  [signOffId]: "sign-off",
+};
+
+const revealSelector = (stepId: string) => {
+  const rows = loopStepRows[stepId];
+  if (!rows) {
+    return `[data-log-row="${ownRow[stepId] ?? "loop"}"]`;
+  }
+  return rows
+    .map((row) =>
+      row === "failed" ? "[data-log-failure]" : `[data-log-row="${row}"]`,
+    )
+    .join(", ");
+};
+
+/** Scrolls to a step's log rows and marks them for a moment, in neutral; the For each row if it has none yet. */
+export const flashLogRows = (stepId: string) => {
+  const find = (selector: string) => [
+    ...globalThis.document.querySelectorAll<HTMLElement>(selector),
+  ];
+  const own = find(revealSelector(stepId));
+  const rows = own.length > 0 ? own : find('[data-log-row="loop"]');
+  rows[0]?.scrollIntoView({ block: "center" });
+  for (const row of rows) {
+    row.dataset.flash = "true";
+  }
+  setTimeout(() => {
+    for (const row of rows) {
+      delete row.dataset.flash;
+    }
+  }, 1400);
+};
+
 /** "5 m 00 s" → "5m 00s", as the spec writes durations. */
 const tight = (duration: string) =>
   duration.replace(/ (m|s|h)\b/g, "$1").replace(" total", "");
 
 export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
   const { run, now } = history;
+  const { ui } = useEditor();
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
+  // "Show in log" on a step inside the For each (or on it) opens the For each, once per request.
+  const reveal = ui.logReveal;
+  const [revealedAt, setRevealedAt] = useState<number | null>(null);
+  if (reveal && reveal.at !== revealedAt) {
+    setRevealedAt(reveal.at);
+    if (loopStepRows[reveal.stepId] || reveal.stepId === forEachId) {
+      setOpenIds((current) => ({ ...current, loop: true }));
+    }
+  }
   if (!run) {
     return null;
   }
@@ -303,6 +372,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
               duration={tight(failure.duration)}
               depth={1}
               failure
+              itemFailure
             />,
           );
         }

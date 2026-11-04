@@ -86,6 +86,8 @@ export type EditorUi = {
   triggerSwitches?: Record<string, boolean>;
   /** J6.9 / J6.10: a past run's Canvas | Log switch shows (false: Canvas) and is on Log (true), which replaces the canvas. */
   runLog?: boolean;
+  /** "Show in log" on a run step: the log opens the step's group and marks its rows for a moment (`at` repeats it). */
+  logReveal?: { stepId: string; at: number } | null;
 };
 
 export const initialUi: EditorUi = {

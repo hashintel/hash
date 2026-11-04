@@ -58,13 +58,8 @@ import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
 import { navigate, setQuery, useLocation } from "./router";
 import { RunBar } from "./run-glyph";
-import {
-  barOf,
-  type StepRun,
-  runTriggerId,
-  signOffId,
-  triggerLabel,
-} from "./run-history";
+import { flashLogRows } from "./run-log-panel";
+import { barOf, type StepRun, runTriggerId, triggerLabel } from "./run-history";
 import { describeSource } from "./shapes";
 import { tileColor } from "./status-colors";
 import { InlineRename, Toast } from "./ui";
@@ -1117,33 +1112,6 @@ const touching =
  * Backspace does (3 Nov). A box selection: Disconnect all. J1.20 a connection: Disconnect, Insert step here. J1.21 a
  * port: Disconnect, Disconnect all. Connections and ports have no Delete (2 Nov).
  */
-/** The steps inside For each log one row per supplier, ids ending in these (`run-log.tsx`). */
-const loopRowSuffix: Record<string, string> = {
-  readName: "-name",
-  readEmail: "-email",
-  readCertificateLink: "-link",
-  fetchCertificate: "-fetch",
-  sendReviewEmail: "-send",
-  markReviewed: "-mark",
-};
-
-/** The log rows a run step's "Show in log" scrolls to: its own row, or each supplier's row for a step in the loop. */
-const logRowsFor = (stepId: string) => {
-  const suffix = loopRowSuffix[stepId];
-  if (suffix) {
-    return `[data-log-row$="${suffix}"]`;
-  }
-  const row =
-    stepId === START_ID
-      ? "start"
-      : stepId === "findSuppliers"
-        ? "find"
-        : stepId === signOffId
-          ? "sign-off"
-          : "loop";
-  return `[data-log-row="${row}"]`;
-};
-
 const useCanvasMenuItems = (
   menu: CanvasMenu | null | undefined,
   flowId: string | undefined,
@@ -1176,28 +1144,18 @@ const useCanvasMenuItems = (
           icon: "list",
           onClick: () => {
             close();
+            // The step leaves the URL first, so the selection doesn't come back from it and hide the log.
+            setQuery("step", null);
             setQuery("panel", "log");
-            // The log is the right panel when no step is selected.
+            // The log is the right panel when no step is selected; it opens the step's rows and marks them.
             setUi((current) => ({
               ...current,
               runLog: true,
               selectedId: null,
               selectedIds: [],
+              logReveal: { stepId: menu.stepId, at: Date.now() },
             }));
-            // Once the log is open: scroll to the step's rows and mark them for a moment, in neutral.
-            setTimeout(() => {
-              const find = (selector: string) => [
-                ...globalThis.document.querySelectorAll<HTMLElement>(selector),
-              ];
-              // A step in the loop with no rows of its own (it never failed) points at For each.
-              const own = find(logRowsFor(menu.stepId));
-              const rows = own.length > 0 ? own : find('[data-log-row="loop"]');
-              rows[0]?.scrollIntoView({ block: "center" });
-              for (const row of rows) {
-                row.dataset.flash = "true";
-                setTimeout(() => delete row.dataset.flash, 1400);
-              }
-            }, 120);
+            setTimeout(() => flashLogRows(menu.stepId), 120);
           },
         },
         {
