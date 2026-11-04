@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import {
   Background,
   BackgroundVariant,
@@ -149,7 +150,10 @@ const FlowCanvas = ({
         editor.placeSteps(unplacedPositions);
         setForEachLayouts(layouts);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        /* Layout shouldn't fail. If it does, steps are still drawn where they were saved. */
+        Sentry.captureException(error);
+
         if (!cancelled) {
           setForEachLayouts(new Map());
         }
@@ -208,6 +212,15 @@ const FlowCanvas = ({
         : { nodes: [], edges: [] },
     [flowDefinition, problemsByStepId, forEachLayouts, collapsedStepIds],
   );
+  /* Connections removed other than by Delete (hover, right-click or a side panel) are no longer selected. */
+  useEffect(() => {
+    const edgeIds = new Set(graph.edges.map(({ id }) => id));
+
+    setSelectedEdgeIds((current) =>
+      current.isSubsetOf(edgeIds) ? current : current.intersection(edgeIds),
+    );
+  }, [graph.edges]);
+
   const graphNodesById = useMemo(
     () => new Map(graph.nodes.map((node) => [node.id, node])),
     [graph.nodes],
