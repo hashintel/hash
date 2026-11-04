@@ -24,6 +24,7 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
+import { StepPanel } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
   FlowChangedElsewhereError,
@@ -39,6 +40,7 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
+import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 
@@ -170,21 +172,49 @@ const FlowEditor = ({
     editor: typeof editor;
     key: number;
     selectedStepIds: string[];
+    startSelected: boolean;
     focusRequest: { stepId: string } | null;
-  }>({ editor, key: 0, selectedStepIds: [], focusRequest: null });
+  }>({
+    editor,
+    key: 0,
+    selectedStepIds: [],
+    startSelected: false,
+    focusRequest: null,
+  });
 
   if (session.editor !== editor) {
     setSession({
       editor,
       key: session.key + 1,
       selectedStepIds: [],
+      startSelected: false,
       focusRequest: null,
     });
   }
 
-  const { selectedStepIds, focusRequest } = session;
-  const setSelectedStepIds = (stepIds: string[]) =>
-    setSession((current) => ({ ...current, selectedStepIds: stepIds }));
+  const { selectedStepIds, startSelected, focusRequest } = session;
+  const setSelection = ({
+    stepIds,
+    start,
+  }: {
+    stepIds: string[];
+    start: boolean;
+  }) =>
+    setSession((current) => ({
+      ...current,
+      selectedStepIds: stepIds,
+      startSelected: start,
+    }));
+
+  const [selectedStepId] = selectedStepIds;
+  const panelSubject: StepPanelSubject | null =
+    startSelected && selectedStepIds.length === 0
+      ? { start: true }
+      : !startSelected &&
+          selectedStepId !== undefined &&
+          selectedStepIds.length === 1
+        ? { stepId: selectedStepId }
+        : null;
 
   /* For-each steps collapsed in the Steps tab and on the canvas. */
   const [collapsedStepIds, setCollapsedStepIds] = useState(
@@ -256,6 +286,7 @@ const FlowEditor = ({
             setSession((current) => ({
               ...current,
               selectedStepIds: [stepId],
+              startSelected: false,
               focusRequest: { stepId },
             }))
           }
@@ -294,12 +325,20 @@ const FlowEditor = ({
             key={session.key}
             editor={editor}
             selectedStepIds={selectedStepIds}
-            onSelectedStepIdsChange={setSelectedStepIds}
+            startSelected={startSelected}
+            onSelectionChange={setSelection}
             focusRequest={focusRequest}
             collapsedStepIds={collapsedStepIds}
             onToggleCollapsed={toggleCollapsed}
           />
         </div>
+        {panelSubject && (
+          <StepPanel
+            editor={editor}
+            subject={panelSubject}
+            onSelectStart={() => setSelection({ stepIds: [], start: true })}
+          />
+        )}
       </div>
     </DsComponentsScope>
   );

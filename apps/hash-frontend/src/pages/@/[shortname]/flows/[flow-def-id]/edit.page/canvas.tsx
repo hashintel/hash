@@ -80,7 +80,9 @@ const cardBeside = (point: XYPosition, side: "left" | "right") => ({
 type CanvasProps = {
   editor: FlowEditor;
   selectedStepIds: string[];
-  onSelectedStepIdsChange: (stepIds: string[]) => void;
+  /** Whether the start step is selected, which opens its panel. */
+  startSelected: boolean;
+  onSelectionChange: (selection: { stepIds: string[]; start: boolean }) => void;
   /** A new object each time, so the same step can be focused twice. */
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
@@ -90,7 +92,8 @@ type CanvasProps = {
 const FlowCanvas = ({
   editor,
   selectedStepIds,
-  onSelectedStepIdsChange,
+  startSelected,
+  onSelectionChange,
   focusRequest,
   collapsedStepIds,
   onToggleCollapsed,
@@ -221,7 +224,7 @@ const FlowCanvas = ({
       ...node,
       position: dragPositions.get(node.id) ?? node.position,
       measured: measurements.get(node.id),
-      selected: stepId !== null && selectedStepIdSet.has(stepId),
+      selected: stepId === null ? startSelected : selectedStepIdSet.has(stepId),
     };
   });
   const edges = graph.edges.map((edge) => ({
@@ -247,7 +250,7 @@ const FlowCanvas = ({
     });
 
   const selectStep = (stepId: string) => {
-    onSelectedStepIdsChange([stepId]);
+    onSelectionChange({ stepIds: [stepId], start: false });
     setSelectedEdgeIds(new Set());
   };
 
@@ -338,6 +341,7 @@ const FlowCanvas = ({
     const nextMeasurements = new Map(measurements);
     const nextDragPositions = new Map(dragPositions);
     const nextSelected = new Set(selectedStepIds);
+    let nextStartSelected = startSelected;
     let selectionChanged = false;
 
     for (const change of changes) {
@@ -353,7 +357,10 @@ const FlowCanvas = ({
         const node = graphNodesById.get(change.id);
         const stepId = node ? getNodeStepId(node) : null;
 
-        if (stepId !== null) {
+        if (change.id === startNodeId) {
+          selectionChanged = true;
+          nextStartSelected = change.selected;
+        } else if (stepId !== null) {
           selectionChanged = true;
 
           if (change.selected) {
@@ -369,7 +376,10 @@ const FlowCanvas = ({
     setDragPositions(nextDragPositions);
 
     if (selectionChanged) {
-      onSelectedStepIdsChange([...nextSelected]);
+      onSelectionChange({
+        stepIds: [...nextSelected],
+        start: nextStartSelected,
+      });
     }
   };
 
@@ -491,9 +501,10 @@ const FlowCanvas = ({
       editor.removeStep(stepId);
     }
 
-    onSelectedStepIdsChange(
-      selectedStepIds.filter((stepId) => !removedStepIds.has(stepId)),
-    );
+    onSelectionChange({
+      stepIds: selectedStepIds.filter((stepId) => !removedStepIds.has(stepId)),
+      start: startSelected,
+    });
     setSelectedEdgeIds(new Set());
 
     return Promise.resolve(false);
