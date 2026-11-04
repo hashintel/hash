@@ -4035,6 +4035,56 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.getByText("Response stopped")).not.toBeNull();
   });
 
+  test("does not execute tools from a failed reopened response", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([]),
+    );
+    const execute = vi.fn(() => ({ done: true }));
+    renderTestPanel({
+      aiAssistant: {
+        automaticTools: [
+          {
+            toolName: "hostAutomatic",
+            inputSchema: { parse: (raw: unknown) => raw as { value: number } },
+            outputSchema: { parse: (raw: unknown) => raw as { done: true } },
+            execute,
+          },
+        ],
+        messages: [
+          {
+            id: "failed",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [
+              {
+                type: "tool-updatePlace",
+                toolCallId: "failed-mutation",
+                state: "input-available",
+                input: { placeId: "place-1", update: { name: "MustNotApply" } },
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "hostAutomatic",
+                toolCallId: "failed-automatic",
+                state: "input-available",
+                input: { value: 1 },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+    expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+      "PlaceOne",
+    );
+    expect(execute).not.toHaveBeenCalled();
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(screen.getAllByText("No result — response failed")).toHaveLength(2);
+  });
+
   test("never runs an in-band browser call it only hydrated from another panel's turn (T2)", async () => {
     const run = vi.fn<
       NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
@@ -4142,6 +4192,338 @@ describe("AiAssistantPanel composer submissions", () => {
         .filter((status) => status === "ready"),
     ).toEqual([]);
     expect(observedStatuses.at(-1)).toBe("ready");
+  });
+
+  // FE-1988. The transport cannot loop forever in a test: from request
+  // `requestLimit` on it answers with text, which ends any repetition.
+  const runBrowserToolThenFollowUp = async (
+    followUpChunks: UIMessageChunk[] | ((request: number) => UIMessageChunk[]),
+    {
+      answerTool,
+      interactiveTools,
+      toolStep = [
+        { type: "start-step" },
+        {
+          type: "tool-input-available",
+          toolCallId: "net-read-1",
+          toolName: getLatestNetDefinitionToolName,
+          input: {},
+        },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "tool-calls" },
+      ],
+    }: {
+      /** Answers an interactive call in `toolStep` the way a user would. */
+      answerTool?: () => Promise<void>;
+      interactiveTools?: PetrinautAiAssistant["interactiveTools"];
+      toolStep?: UIMessageChunk[];
+    } = {},
+  ) => {
+    const requestLimit = 6;
+    const requests: PetrinautAiMessage[][] = [];
+    const observedStatuses: PetrinautAiComposerControlContext["status"][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requests.push(structuredClone(messages));
+        if (requests.length === 1) {
+          return Promise.resolve(streamChunks(toolStep));
+        }
+        if (requests.length >= requestLimit) {
+          return Promise.resolve(
+            streamChunks([
+              ...textChunks("request-limit", "Test request limit reached"),
+              { type: "finish-step" },
+              { type: "finish", finishReason: "stop" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(
+            typeof followUpChunks === "function"
+              ? followUpChunks(requests.length)
+              : followUpChunks,
+          ),
+        );
+      },
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        ...(interactiveTools ? { interactiveTools } : {}),
+        renderComposerControl: (context) => {
+          observedStatuses.push(context.status);
+          return null;
+        },
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Read the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await answerTool?.();
+    await waitFor(() =>
+      expect(sendMessages.mock.calls.length).toBeGreaterThanOrEqual(2),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Stop AI response" }),
+      ).toBeNull(),
+    );
+    // Let any continuation scheduled at settlement issue its request.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    return {
+      requests: requests.length,
+      requestsCarryingDiagnostics: requests.filter((messages) =>
+        messages.some((message) =>
+          message.parts.some(
+            (part) =>
+              part.type === "text" &&
+              part.text.startsWith("Petrinaut diagnostics context only"),
+          ),
+        ),
+      ).length,
+      stopOffered:
+        screen.queryByRole("button", { name: "Stop AI response" }) !== null,
+      limitReplies: screen.queryAllByText("Test request limit reached").length,
+      noReplyNotices: screen.queryAllByText("No reply received").length,
+      finalStatus: observedStatuses.at(-1),
+    };
+  };
+
+  const endedWithoutReply = {
+    requests: 2,
+    requestsCarryingDiagnostics: 1,
+    stopOffered: false,
+    limitReplies: 0,
+    noReplyNotices: 1,
+    finalStatus: "ready",
+  };
+
+  test("ends the turn when the follow-up to a completed browser tool is empty", async () => {
+    // What Flue's UI stream writes for a submission that settles `completed`
+    // without starting a message: a finish and nothing else.
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual(endedWithoutReply);
+  });
+
+  test("ends the turn when the follow-up to a completed browser tool is an empty step", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "start-step" },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual(endedWithoutReply);
+  });
+
+  test("ends the turn when the follow-up to a completed browser tool answers", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        ...textChunks("answer", "The net has one place"),
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+  });
+
+  test("recognizes a reply without step markers after the follow-up to a completed browser tool", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "text-start", id: "answer" },
+        { type: "text-delta", id: "answer", delta: "The net has one place" },
+        { type: "text-end", id: "answer" },
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+    expect(screen.getByText("The net has one place")).not.toBeNull();
+  });
+
+  test("does not call a durably stopped client follow-up an empty reply", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "message-metadata", messageMetadata: { stopped: true } },
+        { type: "abort", reason: "The chat turn aborted." },
+      ]),
+    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+    expect(screen.getByText("Response stopped")).not.toBeNull();
+  });
+
+  test("ends the turn when the follow-up to a completed browser tool fails", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "error", errorText: "Provider failed" },
+      ]),
+    ).toEqual({
+      ...endedWithoutReply,
+      noReplyNotices: 0,
+      finalStatus: "error",
+    });
+  });
+
+  test("continues when the follow-up to a completed browser tool calls another tool", async () => {
+    expect(
+      await runBrowserToolThenFollowUp((request) =>
+        request === 2
+          ? [
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId: "net-read-2",
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]
+          : [{ type: "finish", finishReason: "stop" }],
+      ),
+    ).toEqual({
+      ...endedWithoutReply,
+      requests: 3,
+      requestsCarryingDiagnostics: 2,
+    });
+  });
+
+  test("ends the turn when the follow-up to a completed host widget is empty", async () => {
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
+      outputSchema: { parse: (raw: unknown) => raw as { approved: boolean } },
+      component: ({ input, submit }) => (
+        <button type="button" onClick={() => submit({ approved: true })}>
+          {input.question}
+        </button>
+      ),
+    });
+
+    expect(
+      await runBrowserToolThenFollowUp(
+        [{ type: "finish", finishReason: "stop" }],
+        {
+          interactiveTools: [hostTool],
+          toolStep: [
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "release-1",
+              toolName: "confirmRelease",
+              input: { question: "Ship this change?" },
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ],
+          answerTool: async () => {
+            fireEvent.click(
+              await screen.findByRole("button", { name: "Ship this change?" }),
+            );
+          },
+        },
+      ),
+      // Diagnostics accompany only static tool results.
+    ).toEqual({ ...endedWithoutReply, requestsCarryingDiagnostics: 0 });
+  });
+
+  test("ends the turn when the follow-up to a completed layout consent is empty", async () => {
+    expect(
+      await runBrowserToolThenFollowUp(
+        [{ type: "finish", finishReason: "stop" }],
+        {
+          toolStep: [
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              toolCallId: "layout-1",
+              toolName: "applyAutoLayout",
+              input: { askUserFirst: true },
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ],
+          answerTool: async () => {
+            fireEvent.click(
+              await screen.findByRole("button", {
+                name: "No, keep current layout",
+              }),
+            );
+          },
+        },
+      ),
+    ).toEqual(endedWithoutReply);
+  });
+
+  test("clears the missing-reply notice when the user sends again after the follow-up to a completed browser tool", async () => {
+    expect(
+      await runBrowserToolThenFollowUp((request) =>
+        request === 2
+          ? [{ type: "finish", finishReason: "stop" }]
+          : [
+              ...textChunks("answer", "The net has one place"),
+              { type: "finish-step" },
+              { type: "finish", finishReason: "stop" },
+            ],
+      ),
+    ).toEqual(endedWithoutReply);
+
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+      { target: { value: "Try again" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await screen.findByText("The net has one place");
+    expect(screen.queryByText("No reply received")).toBeNull();
+  });
+
+  test("continues a new user turn whose layout tool reuses an earlier call ID", async () => {
+    const layoutStep: UIMessageChunk[] = [
+      { type: "start-step" },
+      {
+        type: "tool-input-available",
+        toolCallId: "layout-1",
+        toolName: "applyAutoLayout",
+        input: { askUserFirst: true },
+      },
+      { type: "finish-step" },
+      { type: "finish", finishReason: "tool-calls" },
+    ];
+    const declineLayout = async () => {
+      fireEvent.click(
+        await screen.findByRole("button", { name: "No, keep current layout" }),
+      );
+    };
+    expect(
+      await runBrowserToolThenFollowUp(
+        (request) =>
+          request === 2
+            ? [{ type: "finish", finishReason: "stop" }]
+            : request === 3
+              ? layoutStep
+              : [
+                  ...textChunks("later-answer", "Kept your current layout"),
+                  { type: "finish-step" },
+                  { type: "finish", finishReason: "stop" },
+                ],
+        { toolStep: layoutStep, answerTool: declineLayout },
+      ),
+    ).toEqual(endedWithoutReply);
+
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+      { target: { value: "Consider the layout again" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await declineLayout();
+
+    await screen.findByText("Kept your current layout");
+    expect(screen.queryByText("No reply received")).toBeNull();
   });
 
   test("replaces conversation-owned busy state when the identity changes", async () => {
@@ -4731,6 +5113,77 @@ describe("AiAssistantPanel composer submissions", () => {
       parts: [{ text: "Production", type: "text" }],
       role: "user",
     });
+  });
+
+  test("sends keyboard text as a message when its host tool's response failed", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? // What Flue's UI stream writes for a submission that settles
+                // `failed` after the agent called a host tool.
+                [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                  {
+                    type: "message-metadata",
+                    messageMetadata: { failed: true },
+                  },
+                  { type: "error", errorText: "Provider failed" },
+                ]
+              : textChunks("ordinary-response", "Ordinary text accepted"),
+          ),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: { interactiveTools: [hostTool], transport },
+      initialMessage: "Start questions",
+    });
+    await screen.findByText("No result — response failed");
+
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Production" } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    await screen.findByText("Ordinary text accepted");
+
+    expect(requestMessages).toHaveLength(2);
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      parts: [{ text: "Production", type: "text" }],
+      role: "user",
+    });
+    expect(
+      requestMessages[1]?.flatMap((message) =>
+        message.parts.filter(
+          (part) =>
+            part.type === "dynamic-tool" && part.toolCallId === "question-1",
+        ),
+      ),
+    ).toEqual([expect.objectContaining({ state: "input-available" })]);
   });
 
   test("persists voice provenance without clearing an ordinary message draft", async () => {

@@ -38,6 +38,8 @@ export type ToolRenderItem = {
   tone: ToolTone;
   toolName: string;
   notApplied: boolean;
+  /** Its response failed before it returned, so it will not get a result. */
+  noResult: boolean;
   stateLabel: string;
   /** Server-reported error message for tools whose state is `output-error`. */
   errorText?: string;
@@ -62,6 +64,9 @@ export const defaultPetrinautAiToolStateLabels: DefaultToolStateLabels = {
   outputAvailable: "",
   outputError: "",
 };
+
+/** The state of a call its failed response left without a result. */
+export const failedResponseToolStateLabel = "No result — response failed";
 
 export type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
   errorText?: unknown;
@@ -275,6 +280,11 @@ export const toToolRenderItem = (
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
   const toolName = getToolName(part);
+  // Neither an `error` chunk nor a failed settlement changes a tool part, so
+  // only the message's durable failure says an unanswered call has ended.
+  const noResult =
+    message.metadata?.failed === true &&
+    (state === "input-streaming" || state === "input-available");
   const defaultSummary: AiToolSummary =
     state === "input-streaming"
       ? { title: toolName }
@@ -318,12 +328,13 @@ export const toToolRenderItem = (
     typeof part.toolCallId === "string"
       ? part.toolCallId
       : `${message.id}-${part.type}`;
-  const interactiveDefinition = hasInteractiveToolInput(state)
-    ? getInteractiveTool(
-        { toolName, toolCallId: id, input: part.input },
-        interactiveTools,
-      )
-    : undefined;
+  const interactiveDefinition =
+    hasInteractiveToolInput(state) && !noResult
+      ? getInteractiveTool(
+          { toolName, toolCallId: id, input: part.input },
+          interactiveTools,
+        )
+      : undefined;
   const interactive = interactiveDefinition
     ? {
         definition: interactiveDefinition,
@@ -339,13 +350,16 @@ export const toToolRenderItem = (
     output: part.output,
     summary,
     hasConfiguredTitle: presentation !== undefined,
-    tone:
-      presentation?.tone ??
-      getToolTone({ state, summary, toolName, notApplied }),
+    tone: noResult
+      ? "neutral"
+      : (presentation?.tone ??
+        getToolTone({ state, summary, toolName, notApplied })),
     toolName,
     notApplied,
-    stateLabel:
-      presentation !== undefined
+    noResult,
+    stateLabel: noResult
+      ? failedResponseToolStateLabel
+      : presentation !== undefined
         ? ""
         : state === "input-streaming"
           ? defaultPetrinautAiToolStateLabels.inputStreaming

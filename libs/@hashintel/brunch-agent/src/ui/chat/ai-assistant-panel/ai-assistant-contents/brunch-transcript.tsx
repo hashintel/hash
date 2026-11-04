@@ -453,6 +453,7 @@ BrunchMessage.displayName = "BrunchMessage";
 export const BrunchTranscript = ({
   messages,
   stopped,
+  noReply,
   busy,
   canRetry,
   renderSystemMessage,
@@ -462,6 +463,8 @@ export const BrunchTranscript = ({
   busy: boolean;
   /** Whether a finished answer may be retried at all right now. */
   canRetry: boolean;
+  /** The turn ended because a tool follow-up came back with nothing. */
+  noReply: boolean;
   renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
   voice: boolean;
 }) => {
@@ -511,6 +514,11 @@ export const BrunchTranscript = ({
       )}
       {stopped && responseRole === "user" && (
         <div className={stoppedNoteStyle}>Response stopped</div>
+      )}
+      {noReply && (
+        <div className={stoppedNoteStyle} role="status">
+          No reply received
+        </div>
       )}
     </>
   );

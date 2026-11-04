@@ -158,8 +158,13 @@ const ToolItem = ({
   const stateLabel = cancelled ? "Cancelled" : tool.stateLabel || undefined;
   const inProgress =
     !cancelled &&
+    !tool.noResult &&
     (tool.state === "input-streaming" || tool.state === "input-available");
-  const toolStatus = cancelled ? "cancelled" : undefined;
+  const toolStatus = cancelled
+    ? "cancelled"
+    : tool.noResult
+      ? "no-result"
+      : undefined;
   const target = tool.summary.target;
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];

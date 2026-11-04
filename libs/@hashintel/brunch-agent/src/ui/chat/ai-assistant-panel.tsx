@@ -128,6 +128,26 @@ type RunnableStaticToolPart = Extract<
   { state: "input-available" }
 > & { type: `tool-${string}` };
 
+/**
+ * Names the completed client tool step that a follow-up would answer, by its
+ * tool call IDs, or null when the messages do not end in one. A follow-up that
+ * writes nothing leaves the same step last, under the same IDs, whatever
+ * message copy the SDK or a host now holds.
+ */
+const completedToolStepOf = (messages: PetrinautAiMessage[]): string | null => {
+  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return null;
+  const parts = messages.at(-1)?.parts ?? [];
+  const lastStepStart = parts.findLastIndex(
+    (part) => part.type === "step-start",
+  );
+  return JSON.stringify(
+    parts
+      .slice(lastStepStart + 1)
+      .filter(isToolUIPart)
+      .map((part) => part.toolCallId),
+  );
+};
+
 /** A static browser tool call the panel still owes an execution for. */
 const isRunnableStaticToolPart = (
   part: PetrinautAiMessagePart,
@@ -670,6 +690,14 @@ const ConversationAiAssistantPanel = ({
   // so hosts keep seeing a busy conversation until the follow-up starts or a
   // Stop withholds it.
   const [continuationPending, setContinuationPending] = useState(false);
+  // A completed tool step gets one follow-up. When that follow-up finishes
+  // cleanly but leaves the same step last, nothing replied: the turn ends with
+  // a neutral note rather than asking again.
+  const continuedToolStepRef = useRef<{
+    key: string;
+    parts: string;
+  } | null>(null);
+  const [noReply, setNoReply] = useState(false);
 
   const requestInputMode = useCallback(
     (nextMode: PetrinautAiInputMode) => {
@@ -1250,11 +1278,11 @@ const ConversationAiAssistantPanel = ({
     // Automatic tools and host-owned dynamic widgets coordinate an explicit
     // continuation below so stream settlement cannot duplicate their send.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
+      const completedToolStep = completedToolStepOf(currentMessages);
       if (
         suppressedAutomaticSendsRef.current !== 0 ||
-        !lastAssistantMessageIsCompleteWithToolCalls({
-          messages: currentMessages,
-        })
+        completedToolStep === null ||
+        completedToolStep === continuedToolStepRef.current?.key
       ) {
         return false;
       }
@@ -1267,6 +1295,10 @@ const ConversationAiAssistantPanel = ({
       if (!stopRequestedRef.current) {
         // Left pending until the follow-up's own status change lands, so hosts
         // never observe the `ready` between this check and that request.
+        continuedToolStepRef.current = {
+          key: completedToolStep,
+          parts: JSON.stringify(currentMessages.at(-1)?.parts),
+        };
         return true;
       }
       withholdContinuationForStop();
@@ -1293,13 +1325,40 @@ const ConversationAiAssistantPanel = ({
       const failed =
         termination?.generation === submissionGenerationRef.current &&
         termination.kind === "failed";
+      // A server abort can finish the stream without aborting the SDK's local
+      // request. Its durable metadata still rules out a clean completion.
+      const ending = finishedMessages.at(-1)?.metadata;
+      const completedNormally =
+        !failed && !isAbort && !isError && !ending?.stopped && !ending?.failed;
+      const alreadyContinuedToolStep =
+        completedNormally &&
+        continuedToolStepRef.current !== null &&
+        completedToolStepOf(finishedMessages) ===
+          continuedToolStepRef.current.key;
+      // A reply may append content without opening another step. The tool
+      // IDs still prevent a repeat send, but only unchanged parts mean no reply.
+      const noReplyToToolStep =
+        alreadyContinuedToolStep &&
+        JSON.stringify(finishedMessages.at(-1)?.parts) ===
+          continuedToolStepRef.current?.parts;
+      // In-band tools continue on the server, not through sendAutomaticallyWhen.
+      // A clean finish with only step markers after their result has no reply.
+      const lastReplyPart = finishedMessages
+        .at(-1)
+        ?.parts.findLast((part) => part.type !== "step-start");
+      const noReplyToServerToolStep =
+        completedNormally &&
+        lastReplyPart !== undefined &&
+        isToolUIPart(lastReplyPart) &&
+        lastReplyPart.providerExecuted === true &&
+        (lastReplyPart.state === "output-available" ||
+          lastReplyPart.state === "output-error");
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
       // of this turn.
       const followUpPending =
-        !failed &&
-        !isAbort &&
-        !isError &&
+        completedNormally &&
+        !alreadyContinuedToolStep &&
         (lastAssistantMessageIsCompleteWithToolCalls({
           messages: finishedMessages,
         }) ||
@@ -1347,6 +1406,7 @@ const ConversationAiAssistantPanel = ({
       stopRequestedRef.current = false;
       setStreamError(null);
       setStopped(false);
+      setNoReply(noReplyToToolStep || noReplyToServerToolStep);
     },
     // AI SDK does not auto-submit outputs added while a response is still
     // streaming. The ready-state effect below owns static tool execution.
@@ -1412,6 +1472,14 @@ const ConversationAiAssistantPanel = ({
         setStreamError(hostError);
         return;
       }
+      const completedToolStep = completedToolStepOf(messages);
+      continuedToolStepRef.current =
+        completedToolStep === null
+          ? null
+          : {
+              key: completedToolStep,
+              parts: JSON.stringify(messages.at(-1)?.parts),
+            };
       void sendContinuation().catch((caught: unknown) => {
         if (generation !== submissionGenerationRef.current) return;
         setContinuationPending(false);
@@ -1466,6 +1534,8 @@ const ConversationAiAssistantPanel = ({
     setContinuationPending(false);
     setStreamError(null);
     setStopped(false);
+    setNoReply(false);
+    continuedToolStepRef.current = null;
   }, [conversationId]);
   const status: PetrinautAiComposerStatus =
     chatStatus === "ready" && streamError !== null
@@ -1628,7 +1698,8 @@ const ConversationAiAssistantPanel = ({
     }
 
     for (const message of messages) {
-      if (message.metadata?.stopped) continue;
+      // A stopped or failed response's unanswered calls will not get a result.
+      if (message.metadata?.stopped || message.metadata?.failed) continue;
       for (const part of message.parts) {
         const isStatic = isRunnableStaticToolPart(part);
         const isAutomaticDynamic = isRunnableAutomaticDynamicToolPart(
@@ -1824,6 +1895,8 @@ const ConversationAiAssistantPanel = ({
         toolName: string;
       }[] = [];
       for (const message of target === "auto" ? currentMessages : []) {
+        // A failed response's unanswered calls will not get a result.
+        if (message.metadata?.failed) continue;
         for (const part of message.parts) {
           if (
             part.type !== "dynamic-tool" ||
@@ -1891,6 +1964,8 @@ const ConversationAiAssistantPanel = ({
         }
         setStreamError(null);
         setStopped(false);
+        setNoReply(false);
+        continuedToolStepRef.current = null;
         stopRequestedRef.current = false;
         submissionGenerationRef.current += 1;
         composerToolSubmissionsRef.current.add(mappedToolCall.toolCallId);
@@ -1944,6 +2019,8 @@ const ConversationAiAssistantPanel = ({
       }
       setStreamError(null);
       setStopped(false);
+      setNoReply(false);
+      continuedToolStepRef.current = null;
       stopRequestedRef.current = false;
       abortAndClear(automaticToolAbortsRef.current);
       explicitContinuationToolCallIdsRef.current.clear();
@@ -2329,6 +2406,7 @@ const ConversationAiAssistantPanel = ({
       hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
+      noReply={noReply}
       renderSystemMessage={aiAssistant.renderSystemMessage}
       onClearMessages={() => {
         abortAndClear(automaticToolAbortsRef.current);
@@ -2349,6 +2427,8 @@ const ConversationAiAssistantPanel = ({
         setInput("");
         setStreamError(null);
         setStopped(false);
+        setNoReply(false);
+        continuedToolStepRef.current = null;
         setContinuationPending(false);
         setMessages([]);
         aiAssistant.onMessages?.([]);
