@@ -334,7 +334,15 @@ const PanelHeader = ({
         {origin}
       </HeaderTitle>
       {subtitle ? (
-        <span className={descriptionInputStyle}>{subtitle}</span>
+        <span
+          className={cx(
+            descriptionInputStyle,
+            // Read-only: the same place as the editable line, without its hover.
+            css({ display: "block", cursor: "default", "&:hover:not(:focus)": { backgroundColor: "[transparent]" } }),
+          )}
+        >
+          {subtitle}
+        </span>
       ) : trigger ? (
         <DescriptionInput
           label="Trigger description"
@@ -363,7 +371,19 @@ const PanelHeader = ({
               {"Action · "}
             </span>
           ) : null}
-          <span className={css({ flex: "1", minWidth: "0", display: "grid" })}>
+          <span
+            className={css({
+              flex: "1",
+              minWidth: "0",
+              display: "grid",
+              // After "Action · " the field starts where the prefix ends instead of pulling left over it.
+              "&[data-after-prefix] input": {
+                marginLeft: "[0]",
+                width: "[calc(100% + 5px)]",
+              },
+            })}
+            data-after-prefix={description.trim() ? true : undefined}
+          >
             <DescriptionInput
               label="Step description"
               value={description}

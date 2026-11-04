@@ -487,28 +487,66 @@ export const HeaderTitle = ({
   </div>
 );
 
-/** The description under the header's type: 12 px muted text that edits in place. */
+/**
+ * The description under the header's type, edited in place: Attio's side-panel field (4 px padding inside a
+ * clear 1 px border, pulled out by 5 px so the text stays aligned with the type above).
+ */
 export const descriptionInputStyle = css({
-  width: "[100%]",
+  width: "[calc(100% + 10px)]",
+  marginX: "[-5px]",
+  padding: "[4px]",
   // J2.51: "Action · description" in 14 px regular, muted.
   textStyle: "sm",
+  lineHeight: "[20px]",
   color: "neutral.fg.muted.hover",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "[transparent]",
+  borderRadius: "[8px]",
   backgroundColor: "[transparent]",
-  borderWidth: "[0]",
-  borderRadius: "xs",
-  padding: "[0]",
   outline: "none",
+  cursor: "text",
+  transition: "[background-color 0.1s ease-in-out]",
   _placeholder: { color: "neutral.fg.muted.disabled" },
-  _hover: { color: "neutral.fg.muted" },
-  _focusVisible: { boxShadow: "[0 0 0 2px var(--flows-sel-halo)]" },
+  "&:hover:not(:focus)": { backgroundColor: "neutral.bg.surface.hover" },
+  _focus: { borderColor: "[var(--flows-sel-border)]", color: "neutral.fg.heading" },
+});
+
+/*
+ * In-place edit, measured 1:1 from Attio's workflow editor (4 Nov, ops/projects/flows-editor/references/
+ * attio-inline-edit-1104). Two variants, as Attio has:
+ * - Field (titles, the panel description): 8 px radius, a 1 px border that is clear at rest, a faint fill on hover,
+ *   and on edit the fill goes and the border takes the selection colour. Padding sits inside the field and a
+ *   matching negative margin keeps the text where it was, so nothing moves between rest, hover and edit.
+ * - Card line (a step card's description): 24 px tall, 4 px by 6 px padding, 8 px radius, the same faint fill on
+ *   hover and while editing, no border.
+ * The selection colour follows the palette (`--flows-sel-border`); Attio's is blue, which here means running.
+ */
+export const inlineFieldStyle = css({
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "[transparent]",
+  borderRadius: "[8px]",
+  backgroundColor: "[transparent]",
+  outline: "none",
+  transition: "[background-color 0.1s ease-in-out]",
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  _focusVisible: { borderColor: "[var(--flows-sel-border)]" },
+});
+
+export const inlineFieldEditingStyle = css({
+  "&, &:hover": {
+    backgroundColor: "[transparent]",
+    borderColor: "[var(--flows-sel-border)]",
+  },
 });
 
 const renameTextStyle = css({
   display: "inline-flex",
   alignItems: "center",
   height: "[28px]",
-  paddingX: "2",
-  borderRadius: "lg",
+  // 7 px plus the 1 px border keeps the title text 8 px in, where it sat before.
+  paddingX: "[7px]",
   minWidth: "[0]",
   maxWidth: "[480px]",
   textStyle: "sm",
@@ -518,57 +556,58 @@ const renameTextStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   cursor: "text",
-  _hover: { backgroundColor: "neutral.bg.surface.hover" },
-  _focusVisible: {
-    outline: "none",
-    boxShadow: "[0 0 0 2px var(--flows-sel-halo)]",
-  },
 });
 
 const renameInputStyle = css({
   height: "[28px]",
-  paddingX: "2",
-  borderRadius: "lg",
-  borderWidth: "[0]",
+  // 7 px plus the 1 px border keeps the title text 8 px in, where it sat before.
+  paddingX: "[7px]",
   textStyle: "sm",
   fontWeight: "medium",
   color: "neutral.fg.heading",
-  backgroundColor: "neutral.bg.surface.active",
   fieldSizing: "content",
   minWidth: "[160px]",
   maxWidth: "[480px]",
-  outline: "none",
 });
 
-/** The compact rename, for a line of small text such as a step card's description. */
+/** The card line: a step card's description. */
 const compactTextStyle = css({
   display: "block",
   minWidth: "[0]",
-  marginX: "[-2px]",
-  paddingX: "[2px]",
-  borderRadius: "sm",
+  height: "[24px]",
+  marginX: "[-6px]",
+  paddingX: "[6px]",
+  paddingY: "[4px]",
+  borderRadius: "[8px]",
   textStyle: "xs",
-  lineHeight: "tight",
+  lineHeight: "[16px]",
   color: "neutral.fg.muted",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
   cursor: "text",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  transition: "[background-color 0.1s ease-in-out]",
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  _focusVisible: {
+    outline: "none",
+    backgroundColor: "neutral.bg.surface.hover",
+  },
   "&[data-empty]": { color: "neutral.fg.subtle" },
 });
 
 const compactInputStyle = css({
   display: "block",
-  width: "[100%]",
-  marginX: "[-2px]",
-  paddingX: "[2px]",
-  borderRadius: "sm",
+  width: "[calc(100% + 12px)]",
+  height: "[24px]",
+  marginX: "[-6px]",
+  paddingX: "[6px]",
+  paddingY: "[4px]",
+  borderRadius: "[8px]",
   borderWidth: "[0]",
   textStyle: "xs",
-  lineHeight: "tight",
+  lineHeight: "[16px]",
   color: "neutral.fg.heading",
-  backgroundColor: "neutral.bg.surface.active",
+  backgroundColor: "neutral.bg.surface.hover",
   outline: "none",
 });
 
@@ -605,7 +644,9 @@ export const InlineRename = ({
       <input
         // `nodrag`: typing in a canvas card must not drag the card.
         className={cx(
-          compact ? compactInputStyle : renameInputStyle,
+          compact
+            ? compactInputStyle
+            : cx(inlineFieldStyle, renameInputStyle, inlineFieldEditingStyle),
           "nodrag",
           className,
         )}
@@ -635,7 +676,10 @@ export const InlineRename = ({
       tabIndex={0}
       aria-label={`${label}: ${value || placeholder || ""}. Rename`}
       title="Rename"
-      className={cx(compact ? compactTextStyle : renameTextStyle, className)}
+      className={cx(
+        compact ? compactTextStyle : cx(inlineFieldStyle, renameTextStyle),
+        className,
+      )}
       data-rename
       data-empty={value ? undefined : true}
       onClick={() => setDraft(value)}
