@@ -636,6 +636,7 @@ const glowLayerStyle = css({
 const breatheStyle = css({
   animation: "pulse",
   animationDuration: "[4s]",
+  animationIterationCount: "infinite",
   "@media (prefers-reduced-motion: reduce)": { animation: "none" },
 });
 

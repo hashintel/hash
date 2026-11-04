@@ -558,7 +558,13 @@ const OldRunGlyph = ({
   </svg>
 );
 
-const pulseStyle = css({ animation: "pulse" });
+const pulseStyle = css({
+  animation: "pulse",
+  animationDuration: "[2s]",
+  animationTimingFunction: "ease-in-out",
+  animationIterationCount: "infinite",
+  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+});
 
 /**
  * A card's run bar, inside its bottom edge. A clip box the size of the card (radius = the card's less its 1 px border,
