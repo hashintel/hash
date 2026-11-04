@@ -136,8 +136,8 @@ describe("getFlowGraph", () => {
     ]);
   });
 
-  it("draws a step inside a box running after a step outside it, and so no line from Start to the box", () => {
-    const graph = graphOf([
+  it("draws a step inside a box running after a step outside it, to the box when collapsed, and no line from Start to the box", () => {
+    const steps: StepDefinition<string>[] = [
       actionStep("first", { position: { x: 0, y: 0 } }),
       {
         kind: "for-each",
@@ -148,12 +148,20 @@ describe("getFlowGraph", () => {
         steps: [actionStep("inner", { runAfter: [{ stepId: "first" }] })],
         collect: { stepId: "inner", outputName: "entities", as: "results" },
       },
-    ]);
+    ];
 
-    expect(linesOf(graph)).toEqual([
+    expect(linesOf(graphOf(steps))).toEqual([
       {
         source: getStepNodeId("first"),
         target: getStepNodeId("inner"),
+        kind: "inner",
+      },
+      { source: startNodeId, target: getStepNodeId("first"), kind: "start" },
+    ]);
+    expect(linesOf(graphOf(steps, new Map(), new Set(["forEach"])))).toEqual([
+      {
+        source: getStepNodeId("first"),
+        target: getStepNodeId("forEach"),
         kind: "inner",
       },
       { source: startNodeId, target: getStepNodeId("first"), kind: "start" },

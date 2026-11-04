@@ -59,6 +59,12 @@ export type ConnectionEdge = Edge<ConnectionEdgeData, "connection">;
 const getConnectionEdgeId = ({ from, to }: FlowConnection) =>
   `connection:${JSON.stringify([from, to])}`;
 
+const getNestedRunAfterIds = (steps: StepDefinition<string>[]): string[] =>
+  steps.flatMap((step) => [
+    ...(step.runAfter ?? []).map(({ stepId }) => stepId),
+    ...(step.kind === "for-each" ? getNestedRunAfterIds(step.steps) : []),
+  ]);
+
 /** Start isn't stored: it sits a gap to the left of the leftmost top-level step with nothing before it. */
 export const getStartPosition = (
   steps: StepDefinition<string>[],
@@ -150,7 +156,27 @@ export const getFlowGraph = ({
           ...size,
         });
 
-        if (!collapsed) {
+        if (collapsed) {
+          const ownStepIdsBefore = new Set(
+            (step.runAfter ?? []).map(({ stepId }) => stepId),
+          );
+
+          /* Lines to the steps inside a collapsed box go to the box. */
+          for (const from of new Set(getNestedRunAfterIds(step.steps))) {
+            if (stepIdsInScope.has(from) && !ownStepIdsBefore.has(from)) {
+              edges.push({
+                id: getConnectionEdgeId({ from, to: step.stepId }),
+                type: "connection",
+                source: getStepNodeId(from),
+                target: id,
+                data: { kind: "inner" },
+                deletable: false,
+                selectable: false,
+                focusable: false,
+              });
+            }
+          }
+        } else {
           addSteps(step.steps, {
             stepId: step.stepId,
             layout,
