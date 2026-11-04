@@ -488,16 +488,18 @@ export const HeaderTitle = ({
 );
 
 /**
- * The description under the header's type, edited in place: Attio's side-panel field (4 px padding inside a
- * clear 1 px border, pulled out by 5 px so the text stays aligned with the type above).
+ * The description under the header's type, edited in place: Attio's side-panel field. 2 px by 6 px padding inside a
+ * clear 1 px border, pulled out by the same amount (3 px, 7 px), so the text sits exactly where plain text would and
+ * never moves between rest, hover and edit.
  */
 export const descriptionInputStyle = css({
-  width: "[calc(100% + 10px)]",
-  marginX: "[-5px]",
-  padding: "[4px]",
+  width: "[calc(100% + 14px)]",
+  marginX: "[-7px]",
+  marginY: "[-3px]",
+  paddingX: "[6px]",
+  paddingY: "[2px]",
   // J2.51: "Action · description" in 14 px regular, muted.
   textStyle: "sm",
-  lineHeight: "[20px]",
   color: "neutral.fg.muted.hover",
   borderWidth: "[1px]",
   borderStyle: "solid",
@@ -518,8 +520,9 @@ export const descriptionInputStyle = css({
  * - Field (titles, the panel description): 8 px radius, a 1 px border that is clear at rest, a faint fill on hover,
  *   and on edit the fill goes and the border takes the selection colour. Padding sits inside the field and a
  *   matching negative margin keeps the text where it was, so nothing moves between rest, hover and edit.
- * - Card line (a step card's description): 24 px tall, 4 px by 6 px padding, 8 px radius, the same faint fill on
- *   hover and while editing, no border.
+ * - Card line (a step card's description): 2 px by 6 px padding with a matching negative margin, 8 px radius, the
+ *   same faint fill on hover and while editing, no border. The text stays aligned with the card title and the card
+ *   keeps its height.
  * The selection colour follows the palette (`--flows-sel-border`); Attio's is blue, which here means running.
  */
 export const inlineFieldStyle = css({
@@ -570,17 +573,17 @@ const renameInputStyle = css({
   maxWidth: "[480px]",
 });
 
-/** The card line: a step card's description. */
+/** The card line: a step card's description. The padding and the negative margin cancel, so the text never moves. */
 const compactTextStyle = css({
   display: "block",
   minWidth: "[0]",
-  height: "[24px]",
   marginX: "[-6px]",
+  marginY: "[-2px]",
   paddingX: "[6px]",
-  paddingY: "[4px]",
+  paddingY: "[2px]",
   borderRadius: "[8px]",
   textStyle: "xs",
-  lineHeight: "[16px]",
+  lineHeight: "tight",
   color: "neutral.fg.muted",
   whiteSpace: "nowrap",
   overflow: "hidden",
@@ -598,14 +601,14 @@ const compactTextStyle = css({
 const compactInputStyle = css({
   display: "block",
   width: "[calc(100% + 12px)]",
-  height: "[24px]",
   marginX: "[-6px]",
+  marginY: "[-2px]",
   paddingX: "[6px]",
-  paddingY: "[4px]",
+  paddingY: "[2px]",
   borderRadius: "[8px]",
   borderWidth: "[0]",
   textStyle: "xs",
-  lineHeight: "[16px]",
+  lineHeight: "tight",
   color: "neutral.fg.heading",
   backgroundColor: "neutral.bg.surface.hover",
   outline: "none",

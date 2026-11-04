@@ -27,6 +27,35 @@ const isDsColours = (value: string | null): value is DsColours =>
 /** Three ids beat the DS preset's two (`.petrinaut-root:not(#\#):not(#\#)`), so the layer wins without !important. */
 const selector = ".petrinaut-root:not(#\\#):not(#\\#):not(#\\#)";
 
+/** The code-only solid surface takes Figma's surface hover and active steps too (s20, s30). */
+const solidSurface: Record<string, string> = {
+  "--colors-neutral-bg-solid-surface-hover": "var(--colors-neutral-s20)",
+  "--colors-neutral-bg-solid-surface-active": "var(--colors-neutral-s30)",
+};
+
+/**
+ * ?hover=s20|s25|s30|s35 sets every neutral hover background to that solid step, to compare darker hovers live
+ * (Aakarsh, 4 Nov). Without it, each hover is Figma's own step (s20 for surface, subtle and min; s25 for shaded).
+ */
+const hoverSteps = ["s20", "s25", "s30", "s35"] as const;
+type HoverStep = (typeof hoverSteps)[number];
+const isHoverStep = (value: string | null): value is HoverStep =>
+  hoverSteps.some((step) => step === value);
+
+const hoverTokens = ["min", "surface", "subtle", "shaded"].flatMap((level) => [
+  `--colors-neutral-bg-${level}-hover`,
+  `--colors-neutral-bg-solid-${level}-hover`,
+]);
+
+const hoverOverride = (): Record<string, string> => {
+  const step = new URLSearchParams(globalThis.location.search).get("hover");
+  return isHoverStep(step)
+    ? Object.fromEntries(
+        hoverTokens.map((name) => [name, `var(--colors-neutral-${step})`]),
+      )
+    : {};
+};
+
 export const applyDsColours = (mode: DsColours) => {
   const { document } = globalThis;
   let sheet = document.getElementById("flows-ds-colours");
@@ -35,7 +64,12 @@ export const applyDsColours = (mode: DsColours) => {
     sheet.id = "flows-ds-colours";
     document.head.append(sheet);
   }
-  const declarations = Object.entries({ ...figmaCore, ...figmaSemantic })
+  const declarations = Object.entries({
+    ...figmaCore,
+    ...figmaSemantic,
+    ...solidSurface,
+    ...hoverOverride(),
+  })
     .map(([name, value]) => `${name}: ${value};`)
     .join(" ");
   sheet.textContent = mode === "figma" ? `${selector} { ${declarations} }` : "";

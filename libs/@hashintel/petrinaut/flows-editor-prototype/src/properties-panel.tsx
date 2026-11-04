@@ -368,7 +368,7 @@ const PanelHeader = ({
                 color: "neutral.fg.muted.hover",
               })}
             >
-              {"Action · "}
+              {"Action ·"}
             </span>
           ) : null}
           <span
@@ -376,10 +376,10 @@ const PanelHeader = ({
               flex: "1",
               minWidth: "0",
               display: "grid",
-              // After "Action · " the field starts where the prefix ends instead of pulling left over it.
+              // After "Action ·" the field starts 3 px past the prefix, so its fill and border never touch the dot.
               "&[data-after-prefix] input": {
-                marginLeft: "[0]",
-                width: "[calc(100% + 5px)]",
+                marginLeft: "[3px]",
+                width: "[calc(100% + 4px)]",
               },
             })}
             data-after-prefix={description.trim() ? true : undefined}

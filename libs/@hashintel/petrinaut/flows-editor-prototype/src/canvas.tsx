@@ -275,9 +275,10 @@ const CardTile = ({
   </span>
 );
 
+// The tile sits centred on the title and description block (Aakarsh, 4 Nov).
 const cardHeadStyle = css({
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   gap: "2",
   padding: "3",
 });
