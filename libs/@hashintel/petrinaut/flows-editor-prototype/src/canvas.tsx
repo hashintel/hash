@@ -30,6 +30,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import { getViewport, saveViewport } from "./app-store";
 import { getCatalogEntry } from "./catalog";
 import {
   START_ID,
@@ -1291,8 +1292,11 @@ const fitOptions = {
 export const FlowCanvas = ({
   onInit,
   mode = "select",
+  flowId,
 }: {
   onInit: (fitView: () => void, zoom: (by: number) => void) => void;
+  /** A routed flow: the editor reopens at the viewport it was left at (a reload does not re-fit). */
+  flowId?: string;
   /** Hand pans on drag; Select drags a selection box (and pans with the middle or right button). */
   mode?: "select" | "hand";
 }) => {
@@ -1308,8 +1312,12 @@ export const FlowCanvas = ({
   const droppedAt = useRef(0);
   // On first load, wait for the initial fit to finish before panning to the selection.
   const loaded = useRef(false);
-  // A screen opened at a set viewport (a Figma frame) stays where it opened; it does not pan to its selection.
-  const placed = useRef(!!ui.viewport);
+  // The editor's last viewport for this flow, kept across reloads. A run keeps its J6 framing.
+  const [savedViewport] = useState(() =>
+    flowId && !readOnly ? getViewport(flowId) : undefined,
+  );
+  // A screen opened at a set viewport (a Figma frame, or where it was left) stays there; it does not pan to its selection.
+  const placed = useRef(!!ui.viewport || !!savedViewport);
 
   // A step added for the user flashes for a moment, then the highlight clears.
   useEffect(() => {
@@ -1368,6 +1376,9 @@ export const FlowCanvas = ({
 
   const [startViewport] = useState(() => {
     const start = document.positions[START_ID] ?? { x: 360, y: 220 };
+    if (savedViewport) {
+      return savedViewport;
+    }
     return ui.viewport
       ? {
           x: ui.viewport.left - start.x * ui.viewport.zoom,
@@ -1731,6 +1742,11 @@ export const FlowCanvas = ({
         data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
         // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
         connectOnClick={false}
+        onMoveEnd={(_event, viewport) => {
+          if (flowId && !readOnly) {
+            saveViewport(flowId, viewport);
+          }
+        }}
         fitView={!startViewport}
         fitViewOptions={fitOptions}
         defaultViewport={startViewport}

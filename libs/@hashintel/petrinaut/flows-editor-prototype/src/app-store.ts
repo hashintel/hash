@@ -160,12 +160,51 @@ export const archiveFlow = (id: string) =>
     true,
   );
 
+/* ----------------------------------------------------------------------------------------------------------------
+ * Viewports
+ * ------------------------------------------------------------------------------------------------------------- */
+
+/** Where each flow's editor canvas was last panned and zoomed, so a reload opens it where it was left. */
+export type SavedViewport = { x: number; y: number; zoom: number };
+
+const viewportKey = "flows-proto:viewports:v1";
+
+const viewports: Record<string, SavedViewport> = (() => {
+  try {
+    const raw = globalThis.localStorage.getItem(viewportKey);
+    return raw ? (JSON.parse(raw) as Record<string, SavedViewport>) : {};
+  } catch {
+    return {};
+  }
+})();
+
+let viewportTimer: ReturnType<typeof setTimeout> | undefined;
+
+export const getViewport = (flowId: string): SavedViewport | undefined =>
+  viewports[flowId];
+
+export const saveViewport = (flowId: string, viewport: SavedViewport) => {
+  viewports[flowId] = viewport;
+  clearTimeout(viewportTimer);
+  viewportTimer = setTimeout(() => {
+    try {
+      globalThis.localStorage.setItem(viewportKey, JSON.stringify(viewports));
+    } catch {
+      // Blocked storage: the viewport is kept for this page only.
+    }
+  }, 300);
+};
+
 /** Dev: back to the seeded workspace (behind the ⌘K jumper). */
 export const resetDemoData = () => {
   try {
     globalThis.localStorage.removeItem(storageKey);
+    globalThis.localStorage.removeItem(viewportKey);
   } catch {
     // Nothing stored.
+  }
+  for (const flowId of Object.keys(viewports)) {
+    delete viewports[flowId];
   }
   setState(() => ({ flows: seedFlows(), runs: seedRuns() }), false);
 };

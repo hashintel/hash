@@ -6,6 +6,7 @@
 import { createContext, Fragment, use, useEffect, useState } from "react";
 
 import {
+  BreadCrumbs,
   Button,
   Chip,
   type ChipColor,
@@ -207,20 +208,24 @@ const menuTimeStyle = css({
   whiteSpace: "nowrap",
 });
 
-/** "All runs" with the DS list icon: the way back to History's run list. */
-export const AllRunsButton = ({ history }: { history: HistoryValue }) => (
-  <Button
-    size="sm"
-    variant="ghost"
-    tone="neutral"
-    iconName="list"
-    onClick={() => history.open(null)}
-  >
-    All runs
-  </Button>
-);
+const runArrowStyle = css({
+  "&[class]": {
+    width: "[24px]",
+    minWidth: "[24px]",
+    height: "[24px]",
+    padding: "[0]",
+  },
+});
 
-/** ← older run, the run picker (a DS Menu), → newer run (off on the newest). */
+const runPickerStyle = css({
+  "&[class]": {
+    fontWeight: "medium",
+    color: "neutral.fg.heading",
+    paddingX: "1.5",
+  },
+});
+
+/** ‹ older run, the run picker (a DS Menu), › newer run (off on the newest). */
 export const RunSwitcher = ({ history }: { history: HistoryValue }) => {
   const { run, runs, now } = history;
   if (!run) {
@@ -229,12 +234,13 @@ export const RunSwitcher = ({ history }: { history: HistoryValue }) => {
   const older = neighbour(history, -1);
   const newer = neighbour(history, 1);
   return (
-    <div className={css({ display: "flex", alignItems: "center", gap: "1" })}>
+    <div className={css({ display: "flex", alignItems: "center", gap: "0.5" })}>
       <Button
         size="sm"
         variant="ghost"
         tone="neutral"
-        iconName="arrowLeft"
+        iconName="chevronLeft"
+        className={runArrowStyle}
         aria-label="Older run"
         tooltip="Older run"
         disabled={!older}
@@ -286,13 +292,15 @@ export const RunSwitcher = ({ history }: { history: HistoryValue }) => {
         trigger={
           <Button
             size="sm"
-            variant="subtle"
+            variant="ghost"
             tone="neutral"
             iconName="chevronDown"
             iconPosition="right"
+            className={runPickerStyle}
+            tooltip={run.when}
             data-run-picker
           >
-            {`Run ${run.id} · ${run.when}`}
+            {`Run ${run.id}`}
           </Button>
         }
       />
@@ -300,7 +308,8 @@ export const RunSwitcher = ({ history }: { history: HistoryValue }) => {
         size="sm"
         variant="ghost"
         tone="neutral"
-        iconName="arrowRight"
+        iconName="chevronRight"
+        className={runArrowStyle}
         aria-label="Newer run"
         tooltip="Newer run"
         disabled={!newer}
@@ -309,6 +318,32 @@ export const RunSwitcher = ({ history }: { history: HistoryValue }) => {
     </div>
   );
 };
+
+const breadcrumbStyle = css({ minWidth: "[0]" });
+
+/**
+ * The minimal run top bar's breadcrumb (Aakarsh, 4 Nov): "Monthly supplier review › All runs › ‹ Run 16 ▾ ›". The
+ * flow name opens the editor, All runs opens History's list, and the arrows and the picker switch runs.
+ */
+export const RunBreadcrumb = ({
+  history,
+  flowName,
+  onEditor,
+}: {
+  history: HistoryValue;
+  flowName: string;
+  onEditor: () => void;
+}) => (
+  <BreadCrumbs size="md" aria-label="Run" className={breadcrumbStyle}>
+    <BreadCrumbs.Item onClick={onEditor} maxWidth="280px" noCollapse>
+      {flowName}
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item onClick={() => history.open(null)} noCollapse>
+      All runs
+    </BreadCrumbs.Item>
+    <RunSwitcher history={history} />
+  </BreadCrumbs>
+);
 
 /* ----------------------------------------------------------------------------------------------------------------
  * Canvas banner
