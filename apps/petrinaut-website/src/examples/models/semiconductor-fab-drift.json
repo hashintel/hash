@@ -6,10 +6,14 @@
       "description": "Lots created by demand but not yet released into the fab; they wait here for a WIP permit.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__aging",
       "showAsInitialState": false,
       "x": 2360,
-      "y": 423.5
+      "y": 423.5,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__aging"
+        }
+      ]
     },
     {
       "id": "place__wip_queue",
@@ -17,10 +21,14 @@
       "description": "Released lots waiting for a chamber. The urgency dynamics raise priority as the due date approaches, and wait_time drives the periodic priority updates.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__aging",
       "showAsInitialState": false,
       "x": -255,
-      "y": 1515
+      "y": 1515,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__aging"
+        }
+      ]
     },
     {
       "id": "place__batch_queue",
@@ -28,10 +36,14 @@
       "description": "Lots at a furnace layer waiting to be loaded into a batch. batch_wait accumulates so a partial batch can start on timeout.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__batch_wait",
       "showAsInitialState": false,
       "x": 375,
-      "y": 1515
+      "y": 1515,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__batch_wait"
+        }
+      ]
     },
     {
       "id": "place__in_process",
@@ -39,10 +51,14 @@
       "description": "Lots inside a chamber. process_remaining counts down to zero, at which point the chamber holding the lot releases it.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__processing",
       "showAsInitialState": false,
       "x": 975,
-      "y": 1515
+      "y": 1515,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__processing"
+        }
+      ]
     },
     {
       "id": "place__post_process",
@@ -50,10 +66,14 @@
       "description": "Lots that have just finished a step, one layer further on, before routing back to the queue or, at layer 28, to final test.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__aging",
       "showAsInitialState": false,
       "x": 1800,
-      "y": 569.3333333333334
+      "y": 569.3333333333334,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__aging"
+        }
+      ]
     },
     {
       "id": "place__in_inspection",
@@ -61,10 +81,14 @@
       "description": "Lots on an inspection chamber. The inspection countdown runs like a process step but adds no defects.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__processing",
       "showAsInitialState": false,
       "x": 930,
-      "y": 585
+      "y": 585,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__processing"
+        }
+      ]
     },
     {
       "id": "place__finished",
@@ -72,7 +96,6 @@
       "description": "Lots that completed all 28 layers with a defect count under scrap_threshold.",
       "colorId": "type__lot",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2360,
       "y": 256
@@ -83,7 +106,6 @@
       "description": "Lots lost, either failing final test with too many defects or destroyed when their chamber broke down mid-process.",
       "colorId": "type__lot",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2355,
       "y": 885
@@ -94,7 +116,6 @@
       "description": "Release permits capping work in progress at wip_cap lots. A release takes one; a finished or scrapped lot returns one.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2355,
       "y": 1110
@@ -105,7 +126,6 @@
       "description": "Idle chambers ready to accept a lot, or furnaces still filling a batch. Each carries its condition, particle count, drift, and product qualification.",
       "colorId": "type__chamber",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 0,
       "y": 1020
@@ -116,10 +136,14 @@
       "description": "Chambers running a lot or batch. The wear dynamics raise condition and particle count while they run, and the diffusion step injects process noise.",
       "colorId": "type__chamber",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__chamber_processing",
       "showAsInitialState": false,
       "x": 930,
-      "y": 1020
+      "y": 1020,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__chamber_processing"
+        }
+      ]
     },
     {
       "id": "place__chambers_in_maintenance",
@@ -127,10 +151,14 @@
       "description": "Chambers with a crew member assigned, counting maintenance_remaining down to recalibration.",
       "colorId": "type__chamber",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__chamber_maintenance",
       "showAsInitialState": false,
       "x": 1875,
-      "y": 1515
+      "y": 1515,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__chamber_maintenance"
+        }
+      ]
     },
     {
       "id": "place__chambers_broken",
@@ -138,7 +166,6 @@
       "description": "Chambers that need maintenance or failed while no crew member was free; they wait here until one is released.",
       "colorId": "type__chamber",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1800,
       "y": 930
@@ -149,7 +176,6 @@
       "description": "Technicians free to service or repair a chamber. Each maintenance holds one until it completes.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 1260,
       "y": 1230
@@ -160,7 +186,6 @@
       "description": "Cumulative count of maintenance visits, whether preventive or forced by a chamber's condition at the end of a step.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1800,
       "y": 1080
@@ -171,7 +196,6 @@
       "description": "Cumulative count of chamber breakdowns.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1800,
       "y": 1231
@@ -182,7 +206,6 @@
       "description": "Cumulative count of lots released into the fab.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2925,
       "y": 1110
@@ -193,7 +216,6 @@
       "description": "Cumulative count of lots that passed final test.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2360,
       "y": 106
@@ -204,7 +226,6 @@
       "description": "Cumulative count of completed maintenances, each of which resets condition and re-centres process drift.",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2505,
       "y": 1515
@@ -1100,31 +1121,36 @@
       "id": "de__aging",
       "name": "Lot urgency escalation (+ age, wait clocks)",
       "colorId": "type__lot",
-      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((lot) => ({\n    priority: lot.priority < parameters.max_priority\n      ? (lot.priority * lot.priority) / parameters.target_cycle_time\n      : 0,\n    age: 1, defect_count: 0, process_remaining: 0, wait_time: 1, due_date: 0, process_bias: 0, batch_wait: 0\n  }));\n});"
+      "code": "export default Dynamics((lot, parameters) => ({\n    priority: lot.priority < parameters.max_priority\n      ? (lot.priority * lot.priority) / parameters.target_cycle_time\n      : 0,\n    age: 1, defect_count: 0, process_remaining: 0, wait_time: 1, due_date: 0, process_bias: 0, batch_wait: 0\n  }));",
+      "arity": 1
     },
     {
       "id": "de__processing",
       "name": "Clock: process countdown (+ age)",
       "colorId": "type__lot",
-      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({\n    priority: 0, age: 1, defect_count: 0, process_remaining: -1, wait_time: 0, due_date: 0, process_bias: 0, batch_wait: 1\n  }));\n});"
+      "code": "export default Dynamics((token) => ({\n    priority: 0, age: 1, defect_count: 0, process_remaining: -1, wait_time: 0, due_date: 0, process_bias: 0, batch_wait: 1\n  }));",
+      "arity": 1
     },
     {
       "id": "de__chamber_processing",
       "name": "Chamber wear and contamination (coupled)",
       "colorId": "type__chamber",
-      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((chamber) => {\n    const particleTarget = parameters.particle_baseline\n      + parameters.particle_drift * chamber.hours_since_maintenance\n      + parameters.particle_condition_factor * chamber.condition;\n    return {\n      condition: parameters.degradation_rate\n        * (1 + chamber.particle_count / parameters.particle_threshold),\n      particle_count: parameters.particle_reversion\n        * (particleTarget - chamber.particle_count),\n      hours_since_maintenance: 1,\n      maintenance_remaining: 0,\n      diffusion_clock: -1,\n      process_drift: -parameters.drift_reversion * chamber.process_drift\n    };\n  });\n});"
+      "code": "export default Dynamics((chamber, parameters) => {\n    const particleTarget = parameters.particle_baseline\n      + parameters.particle_drift * chamber.hours_since_maintenance\n      + parameters.particle_condition_factor * chamber.condition;\n    return {\n      condition: parameters.degradation_rate\n        * (1 + chamber.particle_count / parameters.particle_threshold),\n      particle_count: parameters.particle_reversion\n        * (particleTarget - chamber.particle_count),\n      hours_since_maintenance: 1,\n      maintenance_remaining: 0,\n      diffusion_clock: -1,\n      process_drift: -parameters.drift_reversion * chamber.process_drift\n    };\n  });",
+      "arity": 1
     },
     {
       "id": "de__chamber_maintenance",
       "name": "Clock: maintenance countdown",
       "colorId": "type__chamber",
-      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({\n    condition: 0, particle_count: 0, hours_since_maintenance: 0, maintenance_remaining: -1, diffusion_clock: 0, process_drift: 0\n  }));\n});"
+      "code": "export default Dynamics((token) => ({\n    condition: 0, particle_count: 0, hours_since_maintenance: 0, maintenance_remaining: -1, diffusion_clock: 0, process_drift: 0\n  }));",
+      "arity": 1
     },
     {
       "id": "de__batch_wait",
       "name": "Lot urgency escalation in batch queue (+ age, wait, batch clocks)",
       "colorId": "type__lot",
-      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((lot) => ({\n    priority: lot.priority < parameters.max_priority\n      ? (lot.priority * lot.priority) / parameters.target_cycle_time\n      : 0,\n    age: 1, defect_count: 0, process_remaining: 0, wait_time: 1, due_date: 0, process_bias: 0, batch_wait: 1\n  }));\n});"
+      "code": "export default Dynamics((lot, parameters) => ({\n    priority: lot.priority < parameters.max_priority\n      ? (lot.priority * lot.priority) / parameters.target_cycle_time\n      : 0,\n    age: 1, defect_count: 0, process_remaining: 0, wait_time: 1, due_date: 0, process_bias: 0, batch_wait: 1\n  }));",
+      "arity": 1
     }
   ],
   "parameters": [

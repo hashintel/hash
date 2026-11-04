@@ -31,7 +31,6 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Stock of unprocessed material; each production run consumes one unit.",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           showAsInitialState: true,
           x: -11 * GRID_SIZE,
           y: -27 * GRID_SIZE,
@@ -43,7 +42,6 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Idle machines ready to start a production run, each carrying the damage it has accumulated so far.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           showAsInitialState: true,
           x: -10 * GRID_SIZE,
           y: 5 * GRID_SIZE,
@@ -55,7 +53,9 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Machines working on a batch. The Production Dynamics advance their transformation progress while adding wear, so a long run raises the failure hazard.",
           colorId: "type__1762560154179",
           dynamicsEnabled: true,
-          differentialEquationId: "ca26e5e2-0373-46a9-920e-a6eacadd92e8",
+          dynamics: [
+            { differentialEquationId: "ca26e5e2-0373-46a9-920e-a6eacadd92e8" },
+          ],
           x: 25 * GRID_SIZE,
           y: -15 * GRID_SIZE,
         },
@@ -66,7 +66,6 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Defective output: one token per batch ruined by a machine failure mid-run.",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 74 * GRID_SIZE,
           y: -7 * GRID_SIZE,
         },
@@ -77,7 +76,6 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Finished output: one token per batch completed without a failure.",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 74 * GRID_SIZE,
           y: -15 * GRID_SIZE,
         },
@@ -88,7 +86,6 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Machines that failed mid-run and are waiting for a technician to be dispatched.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 74 * GRID_SIZE,
           y: 6 * GRID_SIZE,
         },
@@ -99,7 +96,9 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Machines paired with a technician. The Reparation Dynamics drive their damage ratio down to zero.",
           colorId: "type__1762560152725",
           dynamicsEnabled: true,
-          differentialEquationId: "5bfea547-faaf-4626-8662-6400d07c049e",
+          dynamics: [
+            { differentialEquationId: "5bfea547-faaf-4626-8662-6400d07c049e" },
+          ],
           x: -39 * GRID_SIZE,
           y: 27 * GRID_SIZE,
         },
@@ -110,7 +109,9 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Technicians travelling to the site. The Technician Travel Dynamics count their remaining distance down to zero.",
           colorId: "type__1762560159263",
           dynamicsEnabled: true,
-          differentialEquationId: "887245c3-183c-4dac-a1aa-d602d21b6450",
+          dynamics: [
+            { differentialEquationId: "887245c3-183c-4dac-a1aa-d602d21b6450" },
+          ],
           x: 57 * GRID_SIZE,
           y: 53 * GRID_SIZE,
         },
@@ -121,7 +122,6 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Technicians on site and ready to be paired with a machine that needs repair.",
           colorId: "type__1762560159263",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 93 * GRID_SIZE,
           y: 53 * GRID_SIZE,
         },
@@ -132,7 +132,6 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
             "Broken machines whose technician has been dispatched, queued until one is free to start the repair.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 74 * GRID_SIZE,
           y: 39 * GRID_SIZE,
         },
@@ -451,43 +450,40 @@ return {
           id: "5bfea547-faaf-4626-8662-6400d07c049e",
           name: "Reparation Dynamics",
           colorId: "type__1762560152725",
+          arity: 1,
           code: `// Applies to machines in the MachinesBeingRepaired place. Dynamics return the
 // DERIVATIVE of each attribute, so a negative value means the damage ratio
 // falls steadily at the repair rate until Finish Repair fires at 0.
-return tokens.map(({ machine_damage_ratio }) => {
-  return {
-    machine_damage_ratio: -parameters.damage_reparation_per_second
-  };
-});`,
+return {
+  machine_damage_ratio: -parameters.damage_reparation_per_second
+};`,
         },
         {
           id: "ca26e5e2-0373-46a9-920e-a6eacadd92e8",
           name: "Production Dynamics",
           colorId: "type__1762560154179",
+          arity: 1,
           code: `// Applies to machines actively producing (the MachinesProducing place).
 // While producing, the machine accumulates damage at \`damage_per_second\` and
 // its transformation_progress advances at 0.5/sec (so a batch takes ~2 sec to
 // reach the progress >= 1 completion threshold). More time producing means
 // more accumulated damage, which feeds the Machine Fail hazard.
-return tokens.map(({ machine_damage_ratio, transformation_progress }) => {
-  return {
-    machine_damage_ratio: parameters.damage_per_second,
-    transformation_progress: 1 / 2
-  };
-});`,
+return {
+  machine_damage_ratio: parameters.damage_per_second,
+  transformation_progress: 1 / 2
+};`,
         },
         {
           id: "887245c3-183c-4dac-a1aa-d602d21b6450",
           name: "Technician Travel Dynamics",
           colorId: "type__1762560159263",
+          arity: 1,
           code: `// Applies to technicians in the TechniciansComing place. They close the gap
 // to the site at a constant 2 units/sec; once distance_to_site reaches 0 the
 // Technician Ready transition can fire. (Dynamics return derivatives.)
-return tokens.map(({ distance_to_site }) => {
-  return {
-    distance_to_site: -2
-  };
-});`,
+return {
+  distance_to_site: -2
+};`,
         },
       ],
       parameters: [

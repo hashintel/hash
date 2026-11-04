@@ -21,7 +21,6 @@ const definition: SDCPN = {
       name: "Ward",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       visualizerCode: "",
       x: 0,
       y: 0,
@@ -43,6 +42,7 @@ const definition: SDCPN = {
   types: [],
   differentialEquations: [
     {
+      arity: 1,
       id: "de__viral_load",
       name: "Viral load",
       colorId: null,

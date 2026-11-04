@@ -32,7 +32,11 @@ function lower(
   code: string,
   surface: "lambda" | "kernel" | "dynamics" | "metric",
 ) {
-  const result = lowerTypeScriptToHir(code, surface);
+  const result = lowerTypeScriptToHir(
+    code,
+    surface,
+    surface === "dynamics" ? { arity: 1 } : {},
+  );
   if (!result.ok) {
     throw new Error(result.diagnostics[0]?.message);
   }
@@ -445,16 +449,17 @@ describe("emitBufferDynamicsJs (token format v2)", () => {
     const { views } = makeRegion(pool);
     const source = emitBufferDynamicsJs(
       lower(
-        `export default Dynamics((tokens, parameters) => {
+        `export default Dynamics(({ x, v, alive }, parameters) => {
   const g = parameters.g;
-  return tokens.map(({ x, v, alive }) => ({
+  return {
     x: alive ? v : 0,
     v: -g * x,
-  }));
+  };
 });`,
         "dynamics",
       ),
       poolElements,
+      1,
     );
     expect(source).not.toBeNull();
     const fn = instantiateHirBufferDynamics(source!, { g: 2 }, pool);
@@ -469,12 +474,13 @@ describe("emitBufferDynamicsJs (token format v2)", () => {
     const { views } = makeRegion(pool);
     const source = emitBufferDynamicsJs(
       lower(
-        `export default Dynamics((tokens) => tokens.map(({ v, status }) => ({
+        `export default Dynamics(({ v, status }) => ({
   x: status === "shipped" ? v : 0,
-})));`,
+}));`,
         "dynamics",
       ),
       poolElements,
+      1,
     );
     expect(source).not.toBeNull();
     const fn = instantiateHirBufferDynamics(source!, {}, pool);
@@ -546,11 +552,12 @@ return a.x > b.x ? [{ v: 1 }, { v: -1 }] : [{ v: -1 }, { v: 1 }];`,
     expect(emitBufferDynamicsJs(lowered.fn, poolElements, 2)).toBeNull();
   });
 
-  it("bails to null when the body is not a token map", () => {
+  it("bails to null when a one-token equation returns an array", () => {
     expect(
       emitBufferDynamicsJs(
-        lower(`export default Dynamics((tokens) => [{ x: 1 }]);`, "dynamics"),
+        lower(`export default Dynamics((token) => [{ x: 1 }]);`, "dynamics"),
         poolElements,
+        1,
       ),
     ).toBeNull();
   });

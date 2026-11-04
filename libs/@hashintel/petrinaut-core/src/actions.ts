@@ -967,7 +967,7 @@ export function createPetrinautActions(
         const net = resolveTargetNet(sdcpn, targetSubnetId);
         net.differentialEquations.push(parsedEquation);
         for (const place of net.places) {
-          if (place.differentialEquationId === parsedEquation.id) {
+          if (placeUsesDifferentialEquation(place, parsedEquation.id)) {
             assertPlaceDynamicsReferences(place, net.differentialEquations);
           }
         }
@@ -984,11 +984,6 @@ export function createPetrinautActions(
         for (const equation of net.differentialEquations) {
           if (equation.id === parsed.equationId) {
             Object.assign(equation, parsed.update);
-            if (equation.arity === undefined) {
-              // Back to the whole-place form: absent, not `undefined`, so
-              // the document compares equal to its persisted form.
-              delete equation.arity;
-            }
             differentialEquationSchema.parse(equation);
             for (const place of net.places) {
               if (placeUsesDifferentialEquation(place, equation.id)) {

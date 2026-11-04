@@ -33,7 +33,6 @@ describe("computeNextFrame", () => {
       name: id,
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
       ...(capacity === undefined ? {} : { capacity }),
@@ -106,7 +105,8 @@ describe("computeNextFrame", () => {
           id: "diffeq1",
           name: "Differential Equation 1",
           colorId: "type1",
-          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1, y: 1 })); });",
+          arity: 1,
+          code: "export default Dynamics((token, parameters) => ({ x: 1, y: 1 }));",
         },
       ],
       parameters: [],
@@ -116,7 +116,7 @@ describe("computeNextFrame", () => {
           name: "Place1",
           colorId: "type1",
           dynamicsEnabled: true,
-          differentialEquationId: "diffeq1",
+          dynamics: [{ differentialEquationId: "diffeq1" }],
           x: 0,
           y: 0,
         },
@@ -178,12 +178,9 @@ describe("computeNextFrame", () => {
   describe("composed dynamics", () => {
     // Two bodies on a line. `attraction` couples every pair and pulls each
     // body toward the other by `k` times their separation; `drift` moves
-    // every body by one unit; `legacyDrift` is the same as a whole-place map.
+    // every body by one unit.
     const bodies = (
-      place: Pick<
-        SDCPN["places"][number],
-        "differentialEquationId" | "dynamics"
-      >,
+      place: Pick<SDCPN["places"][number], "dynamics">,
     ): SDCPN => ({
       types: [
         {
@@ -210,12 +207,6 @@ return [{ x: pull }, { x: -pull }];`,
           colorId: "body",
           arity: 1,
           code: `return { x: 1 };`,
-        },
-        {
-          id: "legacyDrift",
-          name: "Legacy drift",
-          colorId: "body",
-          code: `return tokens.map(() => ({ x: 1 }));`,
         },
       ],
       parameters: [
@@ -262,7 +253,6 @@ return [{ x: pull }, { x: -pull }];`,
       expect(
         positionsAfterOneStep(
           bodies({
-            differentialEquationId: null,
             dynamics: [{ differentialEquationId: "attraction" }],
           }),
         ),
@@ -273,19 +263,21 @@ return [{ x: pull }, { x: -pull }];`,
       expect(
         positionsAfterOneStep(
           bodies({
-            differentialEquationId: "drift",
-            dynamics: [{ differentialEquationId: "attraction" }],
+            dynamics: [
+              { differentialEquationId: "drift" },
+              { differentialEquationId: "attraction" },
+            ],
           }),
         ),
       ).toEqual([2, 10]);
     });
 
-    it("sums the selected whole-place equation with the composed terms", () => {
+    it("sums every term, an equation listed twice counting twice", () => {
       expect(
         positionsAfterOneStep(
           bodies({
-            differentialEquationId: "legacyDrift",
             dynamics: [
+              { differentialEquationId: "drift" },
               { differentialEquationId: "attraction" },
               { differentialEquationId: "drift" },
             ],
@@ -297,7 +289,6 @@ return [{ x: pull }, { x: -pull }];`,
     it("leaves a lone token still under a pairwise equation", () => {
       const simulation = buildSimulation({
         sdcpn: bodies({
-          differentialEquationId: null,
           dynamics: [{ differentialEquationId: "attraction" }],
         }),
         initialMarking: { space: [{ x: 4 }] },
@@ -341,7 +332,8 @@ return [{ x: pull }, { x: -pull }];`,
           id: "diffeq1",
           name: "Differential Equation 1",
           colorId: "type1",
-          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1 })); });",
+          arity: 1,
+          code: "export default Dynamics((token, parameters) => ({ x: 1 }));",
         },
       ],
       parameters: [],
@@ -351,7 +343,7 @@ return [{ x: pull }, { x: -pull }];`,
           name: "Source",
           colorId: "type1",
           dynamicsEnabled: true,
-          differentialEquationId: "diffeq1",
+          dynamics: [{ differentialEquationId: "diffeq1" }],
           x: 0,
           y: 0,
         },
@@ -360,7 +352,6 @@ return [{ x: pull }, { x: -pull }];`,
           name: "Target",
           colorId: "type1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -454,7 +445,6 @@ return [{ x: pull }, { x: -pull }];`,
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -505,7 +495,6 @@ return [{ x: pull }, { x: -pull }];`,
           name: "Place1",
           colorId: null,
           dynamicsEnabled: true,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -549,7 +538,8 @@ return [{ x: pull }, { x: -pull }];`,
           id: "diffeq1",
           name: "Differential Equation 1",
           colorId: "type1",
-          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1 })); });",
+          arity: 1,
+          code: "export default Dynamics((token, parameters) => ({ x: 1 }));",
         },
       ],
       parameters: [],
@@ -559,7 +549,7 @@ return [{ x: pull }, { x: -pull }];`,
           name: "Place1",
           colorId: "type1",
           dynamicsEnabled: false,
-          differentialEquationId: "diffeq1",
+          dynamics: [{ differentialEquationId: "diffeq1" }],
           x: 0,
           y: 0,
         },

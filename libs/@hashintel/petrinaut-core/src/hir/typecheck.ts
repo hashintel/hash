@@ -291,12 +291,11 @@ class Typechecker {
   private tokensParamType(context: HirFunctionContext): HirType {
     switch (context.surface) {
       case "dynamics":
-        // With an arity, `tokens` is a tuple of exactly that many tokens;
-        // the whole-place form sees an array of unknown length.
+        // `tokens` is a tuple of exactly `arity` tokens.
         return {
           kind: "array",
           element: hirTokenRecordType(context.elements),
-          ...(context.arity === undefined ? {} : { length: context.arity }),
+          length: context.arity,
         };
       case "lambda":
       case "kernel":
@@ -1042,18 +1041,12 @@ class Typechecker {
             this.report(
               bodySpan,
               "hir:dynamics-return",
-              arity === undefined
-                ? `Dynamics must return an array of derivative records (one per token), got ${formatHirType(returnType)}.`
-                : `An equation over ${arity} tokens must return an array of ${arity} derivative records (one per token), got ${formatHirType(returnType)}.`,
+              `An equation over ${arity} tokens must return an array of ${arity} derivative records (one per token), got ${formatHirType(returnType)}.`,
             );
           }
           return;
         }
-        if (
-          arity !== undefined &&
-          returnType.length !== undefined &&
-          returnType.length !== arity
-        ) {
+        if (returnType.length !== undefined && returnType.length !== arity) {
           this.report(
             bodySpan,
             "hir:dynamics-return",

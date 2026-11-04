@@ -31,6 +31,7 @@ const definition: SDCPN = {
   types: [],
   differentialEquations: [
     {
+      arity: 1,
       id: "de__viral_load",
       name: "Viral load",
       colorId: null,

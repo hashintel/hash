@@ -13,19 +13,18 @@ const place = (fields: Partial<Place>): Place => ({
   name: "Space",
   colorId: "satellite",
   dynamicsEnabled: true,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   ...fields,
 });
 
 describe("getPlaceDynamicsEquationIds", () => {
-  it("lists the selected equation first, then the composed terms in order", () => {
+  it("lists the composed equations in order", () => {
     expect(
       getPlaceDynamicsEquationIds(
         place({
-          differentialEquationId: "orbit",
           dynamics: [
+            { differentialEquationId: "orbit" },
             { differentialEquationId: "pull" },
             { differentialEquationId: "drag" },
           ],
@@ -38,69 +37,50 @@ describe("getPlaceDynamicsEquationIds", () => {
     expect(getPlaceDynamicsEquationIds(place({}))).toEqual([]);
     expect(getPlaceDynamicsEquationIds(place({ dynamics: [] }))).toEqual([]);
   });
-
-  it("lists composed terms without a selected equation", () => {
-    expect(
-      getPlaceDynamicsEquationIds(
-        place({ dynamics: [{ differentialEquationId: "pull" }] }),
-      ),
-    ).toEqual(["pull"]);
-  });
 });
 
 describe("placeUsesDifferentialEquation", () => {
-  it("finds an equation in either position", () => {
+  it("finds an equation anywhere in the list", () => {
     const composed = place({
-      differentialEquationId: "orbit",
-      dynamics: [{ differentialEquationId: "pull" }],
+      dynamics: [
+        { differentialEquationId: "orbit" },
+        { differentialEquationId: "pull" },
+      ],
     });
     expect(placeUsesDifferentialEquation(composed, "orbit")).toBe(true);
     expect(placeUsesDifferentialEquation(composed, "pull")).toBe(true);
     expect(placeUsesDifferentialEquation(composed, "drag")).toBe(false);
+    expect(placeUsesDifferentialEquation(place({}), "orbit")).toBe(false);
   });
 });
 
 describe("withoutDifferentialEquation", () => {
   it("returns the same place when nothing referenced the equation", () => {
-    const source = place({ differentialEquationId: "orbit" });
+    const source = place({ dynamics: [{ differentialEquationId: "orbit" }] });
     expect(withoutDifferentialEquation(source, "pull")).toBe(source);
+    const bare = place({});
+    expect(withoutDifferentialEquation(bare, "orbit")).toBe(bare);
   });
 
-  it("clears the selected equation and keeps the composed terms", () => {
+  it("removes every term that referenced the equation", () => {
     const source = place({
-      differentialEquationId: "orbit",
-      dynamics: [{ differentialEquationId: "pull" }],
-    });
-    expect(withoutDifferentialEquation(source, "orbit")).toEqual(
-      place({
-        differentialEquationId: null,
-        dynamics: [{ differentialEquationId: "pull" }],
-      }),
-    );
-  });
-
-  it("removes the composed terms that referenced the equation", () => {
-    const source = place({
-      differentialEquationId: "orbit",
       dynamics: [
+        { differentialEquationId: "orbit" },
         { differentialEquationId: "pull" },
-        { differentialEquationId: "drag" },
+        { differentialEquationId: "orbit" },
       ],
     });
-    expect(withoutDifferentialEquation(source, "pull")).toEqual(
-      place({
-        differentialEquationId: "orbit",
-        dynamics: [{ differentialEquationId: "drag" }],
-      }),
+    expect(withoutDifferentialEquation(source, "orbit")).toEqual(
+      place({ dynamics: [{ differentialEquationId: "pull" }] }),
     );
   });
 
-  it("never adds a dynamics key", () => {
+  it("leaves an empty list when the last term goes", () => {
     expect(
       withoutDifferentialEquation(
-        place({ differentialEquationId: "orbit" }),
+        place({ dynamics: [{ differentialEquationId: "orbit" }] }),
         "orbit",
       ),
-    ).not.toHaveProperty("dynamics");
+    ).toEqual(place({ dynamics: [] }));
   });
 });

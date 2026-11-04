@@ -96,7 +96,13 @@ const legacyNet = (): SDCPN => ({
     },
   ],
   differentialEquations: [
-    { id: "decay", name: "Decay", colorId: "colour", code: "return 0;" },
+    {
+      id: "decay",
+      name: "Decay",
+      colorId: "colour",
+      code: "return { weight: 0 };",
+      arity: 1,
+    },
     {
       id: "drift",
       name: "Drift",
@@ -120,8 +126,10 @@ const legacyNet = (): SDCPN => ({
       name: "Waiting",
       colorId: "colour",
       dynamicsEnabled: true,
-      differentialEquationId: "decay",
-      dynamics: [{ differentialEquationId: "drift" }],
+      dynamics: [
+        { differentialEquationId: "decay" },
+        { differentialEquationId: "drift" },
+      ],
       x: 0,
       y: 0,
     },
@@ -130,7 +138,6 @@ const legacyNet = (): SDCPN => ({
       name: "Done",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -170,7 +177,6 @@ const legacyNet = (): SDCPN => ({
           name: "Port",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -286,13 +292,14 @@ describe("canonicalizePetrinautIds", () => {
     expect(canonical.places[0]).toMatchObject({
       id: idOf("waiting"),
       colorId: idOf("colour"),
-      differentialEquationId: idOf("decay"),
-      dynamics: [{ differentialEquationId: idOf("drift") }],
+      dynamics: [
+        { differentialEquationId: idOf("decay") },
+        { differentialEquationId: idOf("drift") },
+      ],
     });
     expect(canonical.places[1]).toMatchObject({
       id: idOf("done"),
       colorId: null,
-      differentialEquationId: null,
     });
     expect(canonical.places[1]).not.toHaveProperty("dynamics");
     expect(canonical.transitions[0]).toMatchObject({

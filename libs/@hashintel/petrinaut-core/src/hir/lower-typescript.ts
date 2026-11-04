@@ -539,21 +539,26 @@ class Lowering {
       );
     }
 
-    // An equation with an arity declares one parameter per coupled token
+    // A dynamics module declares one parameter per coupled token
     // (`Dynamics((a, b, parameters) => …)`); every other function declares
     // its one input object. Either way the HIR function's first parameter
-    // is the input: for the arity form a tuple the token parameters are
-    // bound from, so the checker, analyses and emitters see one shape.
+    // is the input: for dynamics a tuple the token parameters are bound
+    // from, so the checker, analyses and emitters see one shape.
     const arity = this.surface === "dynamics" ? this.options.arity : undefined;
+    if (this.surface === "dynamics" && arity === undefined) {
+      throw new Error(
+        "Lowering a dynamics module needs the equation's arity (LowerTypeScriptOptions.arity).",
+      );
+    }
     const tokenParamCount = arity ?? 1;
     // `(a, parameters)` and `(a, b)` have the same count, so a trailing
-    // parameter named `parameters`, or destructured, is the parameters
-    // object even when the count would let it be a token.
+    // parameter named `parameters` is the parameters object even when the
+    // count would let it be a token; a destructured one is a token
+    // (`({ x, v }) => …`) unless the count says otherwise.
     const lastParameter = fnArg.parameters.at(-1);
     const declaresParameters =
       lastParameter !== undefined &&
       (fnArg.parameters.length > tokenParamCount ||
-        ts.isObjectBindingPattern(lastParameter.name) ||
         (ts.isIdentifier(lastParameter.name) &&
           lastParameter.name.text === "parameters"));
     const declaredTokenCount =
@@ -654,12 +659,23 @@ class Lowering {
     const lowered = ts.isBlock(fnArg.body)
       ? this.lowerBlock(fnArg.body, scope)
       : this.lowerExpr(fnArg.body, scope);
+    // A token parameter the body never reads gets no binding, so declaring
+    // one only to satisfy the arity is not an unused binding.
+    const referenced = new Set<string>();
+    walkHir(lowered, (node) => {
+      if (node.kind === "localRef") {
+        referenced.add(node.name);
+      }
+    });
+    const usedTokenBindings = tokenBindings.filter((binding) =>
+      referenced.has(binding.name),
+    );
     const body =
-      tokenBindings.length === 0
+      usedTokenBindings.length === 0
         ? lowered
         : this.make(fnArg, {
             kind: "let",
-            bindings: tokenBindings,
+            bindings: usedTokenBindings,
             body: lowered,
           });
 

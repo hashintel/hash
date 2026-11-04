@@ -16,7 +16,7 @@ const body: Color = {
   ],
 };
 
-const netWith = (code: string, arity?: number): SDCPN => ({
+const netWith = (code: string, arity: number): SDCPN => ({
   types: [body],
   differentialEquations: [
     {
@@ -24,7 +24,7 @@ const netWith = (code: string, arity?: number): SDCPN => ({
       name: "Equation",
       colorId: body.id,
       code,
-      ...(arity === undefined ? {} : { arity }),
+      arity,
     },
   ],
   parameters: [],
@@ -33,7 +33,7 @@ const netWith = (code: string, arity?: number): SDCPN => ({
 });
 
 describe("generateDefaultDifferentialEquationCode", () => {
-  it.each([undefined, 1, 2, 3])(
+  it.each([1, 2, 3])(
     "produces a template that compiles for arity %s",
     (arity) => {
       const code = generateDefaultDifferentialEquationCode(body, arity);

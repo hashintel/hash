@@ -50,10 +50,11 @@ and additions append in step 3.
 
 A place's derivative is one function over its token region
 (`DifferentialEquationFn`). A place that composes several equations gets one
-program per equation and `compose-derivatives.ts` sums their results; an
-equation with an arity is a program over every combination of that many
-tokens, emitted as nested loops by `hir/emit-buffer-js.ts`. The engines, the
-Monte Carlo run and the event trace see only the summed function.
+program per equation and `compose-derivatives.ts` sums their results; every
+equation is a program over every combination of `arity` tokens, emitted as
+nested loops by `hir/emit-buffer-js.ts`, one loop for the usual arity of one.
+The engines, the Monte Carlo run and the event trace see only the summed
+function.
 
 Dynamics run before transitions, so a transition sees token values already
 advanced by this step's integration. Timers only advance on a step where nothing

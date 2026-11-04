@@ -224,7 +224,6 @@ test("runs automatic tools against the editor through refusal-aware plugin edits
     name: "Queue",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   };
@@ -325,7 +324,6 @@ test("refuses a static mutation on a read-only net before its host boundary runs
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     }),

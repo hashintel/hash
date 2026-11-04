@@ -53,7 +53,6 @@ describe("paste — ID generation", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -118,7 +117,13 @@ describe("paste — ID generation", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({
       differentialEquations: [
-        { id: "old-de", name: "Eq1", colorId: "some-color", code: "dx = 1;" },
+        {
+          arity: 1,
+          id: "old-de",
+          name: "Eq1",
+          colorId: "some-color",
+          code: "dx = 1;",
+        },
       ],
     });
 
@@ -131,7 +136,7 @@ describe("paste — ID generation", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({
       differentialEquations: [
-        { id: "old-orbit", name: "Orbit", colorId: "c", code: "" },
+        { arity: 1, id: "old-orbit", name: "Orbit", colorId: "c", code: "" },
         { id: "old-pull", name: "Pull", colorId: "c", code: "", arity: 2 },
       ],
       places: [
@@ -140,8 +145,8 @@ describe("paste — ID generation", () => {
           name: "Space",
           colorId: "c",
           dynamicsEnabled: true,
-          differentialEquationId: "old-orbit",
           dynamics: [
+            { differentialEquationId: "old-orbit" },
             { differentialEquationId: "old-pull" },
             { differentialEquationId: "not-pasted" },
           ],
@@ -155,8 +160,8 @@ describe("paste — ID generation", () => {
 
     const [orbit, pull] = sdcpn.differentialEquations;
     expect(sdcpn.places[0]).toMatchObject({
-      differentialEquationId: orbit!.id,
       dynamics: [
+        { differentialEquationId: orbit!.id },
         { differentialEquationId: pull!.id },
         { differentialEquationId: "not-pasted" },
       ],
@@ -197,7 +202,6 @@ describe("paste — name deduplication", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -215,7 +219,6 @@ describe("paste — name deduplication", () => {
       name: "Place1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -227,7 +230,6 @@ describe("paste — name deduplication", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -301,6 +303,7 @@ describe("paste — name deduplication", () => {
   it("renames a differential equation when the name already exists", () => {
     const sdcpn = emptyNet();
     sdcpn.differentialEquations.push({
+      arity: 1,
       id: "existing",
       name: "Eq1",
       colorId: "c1",
@@ -309,7 +312,7 @@ describe("paste — name deduplication", () => {
 
     const payload = makePayload({
       differentialEquations: [
-        { id: "de1", name: "Eq1", colorId: "c1", code: "" },
+        { arity: 1, id: "de1", name: "Eq1", colorId: "c1", code: "" },
       ],
     });
 
@@ -351,7 +354,6 @@ describe("paste — name deduplication", () => {
       name: "Place1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -363,7 +365,6 @@ describe("paste — name deduplication", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -372,7 +373,6 @@ describe("paste — name deduplication", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 100,
         },
@@ -399,7 +399,6 @@ describe("paste — position offset", () => {
           name: "P",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 100,
           y: 200,
         },
@@ -449,7 +448,6 @@ describe("paste — arc remapping", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -517,7 +515,6 @@ describe("paste — arc remapping", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -571,7 +568,6 @@ describe("paste — reference remapping", () => {
           name: "P1",
           colorId: "old-type",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -593,7 +589,6 @@ describe("paste — reference remapping", () => {
           name: "P1",
           colorId: "external-type-id",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -613,7 +608,6 @@ describe("paste — reference remapping", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -624,11 +618,11 @@ describe("paste — reference remapping", () => {
     expect(sdcpn.places[0]!.colorId).toBeNull();
   });
 
-  it("remaps place.differentialEquationId when the equation was also pasted", () => {
+  it("remaps a place's dynamics term when the equation was also pasted", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({
       differentialEquations: [
-        { id: "old-de", name: "Eq1", colorId: "c1", code: "dx = 1;" },
+        { arity: 1, id: "old-de", name: "Eq1", colorId: "c1", code: "dx = 1;" },
       ],
       places: [
         {
@@ -636,7 +630,7 @@ describe("paste — reference remapping", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: true,
-          differentialEquationId: "old-de",
+          dynamics: [{ differentialEquationId: "old-de" }],
           x: 0,
           y: 0,
         },
@@ -646,10 +640,12 @@ describe("paste — reference remapping", () => {
     pastePayloadIntoSDCPN(sdcpn, payload);
 
     const newDeId = sdcpn.differentialEquations[0]!.id;
-    expect(sdcpn.places[0]!.differentialEquationId).toBe(newDeId);
+    expect(sdcpn.places[0]!.dynamics).toEqual([
+      { differentialEquationId: newDeId },
+    ]);
   });
 
-  it("preserves place.differentialEquationId when the equation was NOT pasted", () => {
+  it("preserves a place's dynamics term when the equation was NOT pasted", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({
       places: [
@@ -658,7 +654,7 @@ describe("paste — reference remapping", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: true,
-          differentialEquationId: "external-de-id",
+          dynamics: [{ differentialEquationId: "external-de-id" }],
           x: 0,
           y: 0,
         },
@@ -666,7 +662,9 @@ describe("paste — reference remapping", () => {
     });
 
     pastePayloadIntoSDCPN(sdcpn, payload);
-    expect(sdcpn.places[0]!.differentialEquationId).toBe("external-de-id");
+    expect(sdcpn.places[0]!.dynamics).toEqual([
+      { differentialEquationId: "external-de-id" },
+    ]);
   });
 
   it("remaps differentialEquation.colorId when the type was also pasted", () => {
@@ -682,7 +680,7 @@ describe("paste — reference remapping", () => {
         },
       ],
       differentialEquations: [
-        { id: "old-de", name: "Eq1", colorId: "old-type", code: "" },
+        { arity: 1, id: "old-de", name: "Eq1", colorId: "old-type", code: "" },
       ],
     });
 
@@ -697,6 +695,7 @@ describe("paste — reference remapping", () => {
     const payload = makePayload({
       differentialEquations: [
         {
+          arity: 1,
           id: "old-de",
           name: "Eq1",
           colorId: "external-type",
@@ -722,7 +721,6 @@ describe("paste — empty payload", () => {
       name: "P1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -748,7 +746,6 @@ describe("paste — newItemIds return value", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -776,7 +773,7 @@ describe("paste — newItemIds return value", () => {
         },
       ],
       differentialEquations: [
-        { id: "de1", name: "Eq1", colorId: "c1", code: "" },
+        { arity: 1, id: "de1", name: "Eq1", colorId: "c1", code: "" },
       ],
       parameters: [
         {
@@ -824,7 +821,7 @@ describe("paste — data preservation", () => {
           name: "P1",
           colorId: "external-color",
           dynamicsEnabled: true,
-          differentialEquationId: "external-de",
+          dynamics: [{ differentialEquationId: "external-de" }],
           visualizerCode: "console.log('hi')",
           x: 10,
           y: 20,
@@ -837,7 +834,7 @@ describe("paste — data preservation", () => {
     const place = sdcpn.places[0]!;
     expect(place.colorId).toBe("external-color");
     expect(place.dynamicsEnabled).toBe(true);
-    expect(place.differentialEquationId).toBe("external-de");
+    expect(place.dynamics).toEqual([{ differentialEquationId: "external-de" }]);
     expect(place.visualizerCode).toBe("console.log('hi')");
   });
 
@@ -921,7 +918,13 @@ describe("paste — data preservation", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({
       differentialEquations: [
-        { id: "de1", name: "Eq1", colorId: "c1", code: "dx = -k * x;" },
+        {
+          arity: 1,
+          id: "de1",
+          name: "Eq1",
+          colorId: "c1",
+          code: "dx = -k * x;",
+        },
       ],
     });
 
@@ -942,7 +945,6 @@ describe("paste — integration with existing data", () => {
       name: "ExistingPlace",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 100,
       y: 100,
     });
@@ -954,7 +956,6 @@ describe("paste — integration with existing data", () => {
           name: "NewPlace",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -978,7 +979,6 @@ describe("paste — integration with existing data", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },

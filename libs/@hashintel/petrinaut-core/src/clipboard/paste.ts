@@ -129,11 +129,6 @@ export function pastePayloadIntoSDCPN(
         place.colorId !== null
           ? (idMap.get(place.colorId) ?? place.colorId)
           : null,
-      differentialEquationId:
-        place.differentialEquationId !== null
-          ? (idMap.get(place.differentialEquationId) ??
-            place.differentialEquationId)
-          : null,
       ...(place.dynamics === undefined
         ? {}
         : {

@@ -98,20 +98,15 @@ export type Place = {
   name: string;
   description?: string;
   colorId: null | ID;
+  /** Whether the place's `dynamics` run; the list is kept while off. */
   dynamicsEnabled: boolean;
   /**
-   * The place's first dynamics term: the equation the Dynamics dropdown
-   * selects. Runs only while `dynamicsEnabled` and `colorId` are set.
-   */
-  differentialEquationId: null | ID;
-  /**
-   * Further equations composed into the place's dynamics, applied after
-   * `differentialEquationId` while `dynamicsEnabled`. Each is over the
-   * place's colour. The place's derivative for a token is the sum of every
-   * term's contribution: a whole-place equation contributes one record per
-   * token, an equation of arity `n` one record per unordered combination of
-   * `n` distinct tokens that contains it (see `DifferentialEquation.arity`).
-   * Absent means no further terms.
+   * The differential equations composed into the place's dynamics, in
+   * application order, each over the place's colour. A token's derivative is
+   * the sum of every term's contribution: an equation of arity `n`
+   * contributes one record per unordered combination of `n` distinct tokens
+   * that contains the token (see `DifferentialEquation.arity`). Absent means
+   * no dynamics.
    */
   dynamics?: PlaceDynamicsTerm[];
   /**
@@ -163,18 +158,14 @@ export type DifferentialEquation = {
   colorId: ID | null;
   code: string;
   /**
-   * How many tokens the equation couples.
-   *
-   * Absent: the whole-place form. The code sees `tokens`, every token of the
-   * place, and returns one derivative record per token (`tokens.map(...)`).
-   *
-   * A positive integer `n`: the code sees `tokens` as a tuple of exactly `n`
-   * tokens of the colour and returns their derivatives: one record for
-   * arity 1, an array of `n` records (one per token, in order) above that.
-   * The simulator applies it to every unordered combination of `n` distinct
-   * tokens of the place, in index order, and sums the contributions.
+   * How many tokens the equation couples, a positive integer `n`. The code
+   * sees `tokens` as a tuple of exactly `n` tokens of the colour and returns
+   * their derivatives: one record for arity 1, an array of `n` records (one
+   * per token, in order) above that. The simulator applies it to every
+   * unordered combination of `n` distinct tokens of the place, in index
+   * order, and sums the contributions.
    */
-  arity?: number;
+  arity: number;
 };
 
 // -- Ad-hoc scenario definitions ---------------------------------------------

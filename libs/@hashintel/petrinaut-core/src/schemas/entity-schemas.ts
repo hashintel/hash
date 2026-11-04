@@ -210,11 +210,7 @@ export const placeSchema = z
     }),
     dynamicsEnabled: z.boolean().meta({
       description:
-        "Whether tokens in this place are updated by a differential equation during simulation. Dynamics only run when this is true AND `differentialEquationId` is set AND `colorId` is set.",
-    }),
-    differentialEquationId: idSchema.nullable().meta({
-      description:
-        "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`. With `dynamics`, this is the first term of the sum.",
+        "Whether the equations in `dynamics` update this place's tokens during simulation. Dynamics only run when this is true AND `dynamics` lists at least one equation AND `colorId` is set.",
     }),
     dynamics: z
       .array(
@@ -228,7 +224,7 @@ export const placeSchema = z
       .optional()
       .meta({
         description:
-          "Further differential equations composed into this place's dynamics, applied after `differentialEquationId` while `dynamicsEnabled`. A token's derivative is the SUM of every term: a whole-place equation contributes one record per token; an equation with `arity` n contributes to every unordered combination of n distinct tokens. Omit when the place has a single equation.",
+          "The differential equations composed into this place's dynamics, in order. A token's derivative is the SUM of every equation's contribution: an equation with `arity` n contributes to every unordered combination of n distinct tokens. Omit or leave empty for a place without dynamics.",
       }),
     capacity: z.int().nonnegative().nullable().optional().meta({
       description:
@@ -348,25 +344,25 @@ export const differentialEquationSchema = z
     }),
     colorId: idSchema.nullable().meta({
       description:
-        "ID of the colour/type whose token attributes this dynamics function updates. MUST match the `colorId` of every place that references this equation via `differentialEquationId`.",
+        "ID of the colour/type whose token attributes this dynamics function updates. MUST match the `colorId` of every place that lists this equation in `dynamics`.",
     }),
     code: z.string().meta({
       description: [
-        "Function body ending in `return`, with `tokens` and `parameters` ambient (the legacy `export default Dynamics((tokens, parameters) => …)` module form is also accepted).",
-        "Without `arity`: `tokens` is THIS place's current tokens only — NOT all places' tokens — and the body MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
-        "With `arity` n: `tokens` is a tuple of exactly n tokens (`const [a, b] = tokens;`) and the body returns one derivative record for arity 1, or an array of n records (one per token, in order) above that; the module form then declares the n token parameters, `export default Dynamics((a, b, parameters) => …)`.",
+        "Function body ending in `return`, with `tokens` and `parameters` ambient (the module form `export default Dynamics((token, parameters) => …)`, with one parameter per coupled token, is also accepted).",
+        "`tokens` is a tuple of exactly `arity` tokens of THIS place (`const [token] = tokens;` for arity 1, `const [a, b] = tokens;` for arity 2) — NOT all tokens of the place, NOT other places' tokens.",
+        "MUST return real-valued derivatives (i.e. dx/dt, NOT the new value): one record for arity 1, an array of `arity` records (one per token, in order) above that.",
         "Integer and boolean elements are discrete and remain unchanged by dynamics.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
     }),
-    arity: z.int().positive().optional().meta({
+    arity: z.int().positive().meta({
       description:
-        "How many tokens the equation couples. Omit for the whole-place form (`tokens.map(...)`). With n, the simulator applies the code to every unordered combination of n distinct tokens of the place, in index order, and sums the contributions into each token's derivative: 1 is a per-token equation, 2 a pairwise interaction such as an attraction between every two tokens.",
+        "How many tokens the equation couples. The simulator applies the code to every unordered combination of that many distinct tokens of the place, in index order, and sums the contributions into each token's derivative: 1 is a per-token equation (the usual case), 2 a pairwise interaction such as an attraction between every two tokens.",
     }),
   })
   .meta({
     description:
-      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId` or `dynamics`, and returned derivatives only update that colour's real-valued elements.",
+      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that lists this equation in `dynamics`, and returned derivatives only update that colour's real-valued elements.",
   }) satisfies z.ZodType<DifferentialEquation>;
 
 export const parameterObjectSchema = z.strictObject({

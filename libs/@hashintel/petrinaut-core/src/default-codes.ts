@@ -31,13 +31,13 @@ const tokenParameterName = (position: number): string =>
   position < 26 ? String.fromCharCode(97 + position) : `t${position}`;
 
 /**
- * The starting code of a differential equation over `type`: the whole-place
- * form without `arity`, otherwise a body over a tuple of `arity` tokens that
- * returns one derivative record (arity 1) or one per token.
+ * The starting code of a differential equation over `type`: a body over a
+ * tuple of `arity` tokens that returns one derivative record (arity 1) or one
+ * per token.
  */
 export function generateDefaultDifferentialEquationCode(
   type: Color,
-  arity?: number,
+  arity: number,
 ): string {
   const realElements = type.elements.filter(
     (element) => element.type === "real",
@@ -53,20 +53,6 @@ ${indent}}`
       ? "// Example: all real-valued derivatives = 1"
       : "// This type has no real-valued attributes; discrete values are unchanged by dynamics";
   const elementNames = type.elements.map((el) => el.name).join(", ");
-
-  if (arity === undefined) {
-    return `// This code defines the differential equation for the place of type "${
-      type.name
-    }".
-// \`tokens\` holds the current tokens in this place, and \`parameters\` any
-// global parameters defined.
-// Return derivatives for real-valued token attributes in this place.
-return tokens.map(({ ${elementNames} }) => {
-  // ...Do some computation with input token here if needed
-
-  return ${derivativeSource("  ")}; ${derivativeNote}
-});`;
-  }
 
   if (arity === 1) {
     return `// This code defines the differential equation for one token of type "${
@@ -100,13 +86,14 @@ ${names
 ];`;
 }
 
-export const DEFAULT_DIFFERENTIAL_EQUATION_CODE = `// This code defines the differential equation for the place.
-// \`tokens\` holds the current tokens in this place, and \`parameters\` any
-// global parameters defined.
-// Return derivatives for real-valued token attributes in this place.
-return tokens.map(({ x, y }) => {
-  return { x: 1, y: 1 }; // dx/dt = 1, dy/dt = 1
-});`;
+export const DEFAULT_DIFFERENTIAL_EQUATION_CODE = `// This code defines the differential equation for one token in the place.
+// \`tokens\` is a tuple holding that token, and \`parameters\` any global
+// parameters defined. It runs once per token in the place.
+// Return the derivatives of the token's real-valued attributes.
+const [token] = tokens;
+const { x, y } = token;
+
+return { x: 1, y: 1 }; // dx/dt = 1, dy/dt = 1`;
 
 export const generateDefaultLambdaCode = (
   lambdaType: "predicate" | "stochastic",

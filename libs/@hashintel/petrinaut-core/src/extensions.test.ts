@@ -28,7 +28,6 @@ const createSDCPN = (
       name: "Input",
       colorId: place.colorId ?? "type-1",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
       ...place,
@@ -121,7 +120,6 @@ const createComponentPortSDCPN = (
           name: "Port In",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -131,7 +129,6 @@ const createComponentPortSDCPN = (
           name: "Port Out",
           colorId: "type-1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           isPort: true,
           x: 0,
           y: 0,
@@ -495,8 +492,10 @@ describe("transition logic availability", () => {
       {},
       {
         dynamicsEnabled: true,
-        differentialEquationId: "equation-1",
-        dynamics: [{ differentialEquationId: "equation-2" }],
+        dynamics: [
+          { differentialEquationId: "equation-1" },
+          { differentialEquationId: "equation-2" },
+        ],
       },
     );
 
@@ -507,10 +506,9 @@ describe("transition logic availability", () => {
 
     expect(sanitized.places[0]).toMatchObject({
       dynamicsEnabled: false,
-      differentialEquationId: null,
     });
     expect(sanitized.places[0]).not.toHaveProperty("dynamics");
-    expect(sdcpn.places[0]!.dynamics).toHaveLength(1);
+    expect(sdcpn.places[0]!.dynamics).toHaveLength(2);
   });
 
   it("copies composed dynamics without sharing them with the source", () => {
@@ -518,8 +516,10 @@ describe("transition logic availability", () => {
       {},
       {
         dynamicsEnabled: true,
-        differentialEquationId: "equation-1",
-        dynamics: [{ differentialEquationId: "equation-2" }],
+        dynamics: [
+          { differentialEquationId: "equation-1" },
+          { differentialEquationId: "equation-2" },
+        ],
       },
     );
 

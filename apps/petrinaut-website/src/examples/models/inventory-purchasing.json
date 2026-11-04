@@ -5,27 +5,34 @@
       "name": "DemandOutlook",
       "colorId": "type__market",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__demand",
       "showAsInitialState": true,
       "x": 1080,
-      "y": -510
+      "y": -510,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__demand"
+        }
+      ]
     },
     {
       "id": "place__backlog",
       "name": "Backlog",
       "colorId": "type__customer_order",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__waiting",
       "showAsInitialState": false,
       "x": 1575,
-      "y": -510
+      "y": -510,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__waiting"
+        }
+      ]
     },
     {
       "id": "place__lost",
       "name": "LostSales",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2100,
       "y": -600
@@ -35,7 +42,6 @@
       "name": "SupplierA",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": -2025,
       "y": -360
@@ -45,7 +51,6 @@
       "name": "SupplierB",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": -2025,
       "y": -135
@@ -55,7 +60,6 @@
       "name": "SupplierC",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": -2025,
       "y": 210
@@ -65,7 +69,6 @@
       "name": "InStock_SupplierA",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": -1455,
       "y": -1110
@@ -75,7 +78,6 @@
       "name": "OutOfStock_SupplierA",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": -990,
       "y": -1260
@@ -85,7 +87,6 @@
       "name": "InStock_SupplierB",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": -1455,
       "y": -630
@@ -95,7 +96,6 @@
       "name": "OutOfStock_SupplierB",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": -990,
       "y": -735
@@ -105,7 +105,6 @@
       "name": "InStock_SupplierC",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": -1455,
       "y": -885
@@ -115,7 +114,6 @@
       "name": "OutOfStock_SupplierC",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": -990,
       "y": -1005
@@ -125,7 +123,6 @@
       "name": "SwitchFees",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": -1425,
       "y": 360
@@ -135,7 +132,6 @@
       "name": "LostShipments",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": -420,
       "y": -390
@@ -145,7 +141,6 @@
       "name": "OrdersPlaced",
       "colorId": "type__crate",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": -1425,
       "y": 150
@@ -155,27 +150,34 @@
       "name": "IngredientAStock",
       "colorId": "type__crate",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__stored",
       "showAsInitialState": true,
       "x": 540,
-      "y": -285
+      "y": -285,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__stored"
+        }
+      ]
     },
     {
       "id": "place__raw_2",
       "name": "IngredientBStock",
       "colorId": "type__crate",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__stored",
       "showAsInitialState": true,
       "x": 540,
-      "y": 315
+      "y": 315,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__stored"
+        }
+      ]
     },
     {
       "id": "place__line",
       "name": "ProductionLineFree",
       "colorId": null,
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 1470,
       "y": 75
@@ -185,27 +187,34 @@
       "name": "InProduction",
       "colorId": "type__job",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__production",
       "showAsInitialState": false,
       "x": 825,
-      "y": 0
+      "y": 0,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__production"
+        }
+      ]
     },
     {
       "id": "place__fg",
       "name": "FinishedGoods",
       "colorId": "type__crate",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__stored",
       "showAsInitialState": true,
       "x": 1455,
-      "y": -90
+      "y": -90,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__stored"
+        }
+      ]
     },
     {
       "id": "place__sales",
       "name": "FulfilledOrders",
       "colorId": "type__sale",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2100,
       "y": -420
@@ -215,7 +224,6 @@
       "name": "ExpiredStock",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2115,
       "y": 30
@@ -225,7 +233,6 @@
       "name": "ScrappedBatches",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 1470,
       "y": 255
@@ -235,17 +242,20 @@
       "name": "DelayedShipments",
       "colorId": "type__crate",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__shelf",
       "showAsInitialState": false,
       "x": -450,
-      "y": 375
+      "y": 375,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__shelf"
+        }
+      ]
     },
     {
       "id": "place__delay_log",
       "name": "DelayLog",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": -450,
       "y": 195
@@ -255,7 +265,6 @@
       "name": "HoldingCosts",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2115,
       "y": 240
@@ -265,47 +274,62 @@
       "name": "AtVendor",
       "colorId": "type__crate",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__at_vendor",
       "showAsInitialState": false,
       "x": -1425,
-      "y": -240
+      "y": -240,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__at_vendor"
+        }
+      ]
     },
     {
       "id": "place__in_transit",
       "name": "InTransit",
       "colorId": "type__crate",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__in_transit",
       "showAsInitialState": false,
       "x": -945,
-      "y": -240
+      "y": -240,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__in_transit"
+        }
+      ]
     },
     {
       "id": "place__price",
       "name": "RawPriceIndex",
       "colorId": "type__price",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__price",
       "showAsInitialState": true,
       "x": -1725,
-      "y": 630
+      "y": 630,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__price"
+        }
+      ]
     },
     {
       "id": "place__schedule",
       "name": "ProductionOrdersWaiting",
       "colorId": "type__prod_order",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__plan_wait",
       "showAsInitialState": false,
       "x": 330,
-      "y": 0
+      "y": 0,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__plan_wait"
+        }
+      ]
     },
     {
       "id": "place__pos_1",
       "name": "InventoryPosition_IngredientA",
       "colorId": "type__position",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": 30,
       "y": -1080
@@ -315,7 +339,6 @@
       "name": "InventoryPosition_IngredientB",
       "colorId": "type__position",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": true,
       "x": -480,
       "y": 960
@@ -325,17 +348,20 @@
       "name": "Quarantine",
       "colorId": "type__crate",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__stored",
       "showAsInitialState": false,
       "x": -390,
-      "y": -60
+      "y": -60,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__stored"
+        }
+      ]
     },
     {
       "id": "place__rejected",
       "name": "RejectedStock",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 180,
       "y": -510
@@ -345,7 +371,6 @@
       "name": "RecalledStock",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2115,
       "y": 630
@@ -355,7 +380,6 @@
       "name": "DisposalCosts",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 2115,
       "y": 435
@@ -365,7 +389,6 @@
       "name": "ShortageCosts",
       "colorId": "type__record",
       "dynamicsEnabled": false,
-      "differentialEquationId": null,
       "showAsInitialState": false,
       "x": 825,
       "y": 165
@@ -375,10 +398,14 @@
       "name": "PlanClock",
       "colorId": "type__job",
       "dynamicsEnabled": true,
-      "differentialEquationId": "de__production",
       "showAsInitialState": true,
       "x": 120,
-      "y": 180
+      "y": 180,
+      "dynamics": [
+        {
+          "differentialEquationId": "de__production"
+        }
+      ]
     }
   ],
   "transitions": [
@@ -2029,55 +2056,64 @@
       "id": "de__demand",
       "name": "Demand rate: OU drift (+ diffusion clock)",
       "colorId": "type__market",
-      "code": "// The DETERMINISTIC half of the Ornstein-Uhlenbeck SDE\n//   d lambda = theta * (mu - lambda) dt + sigma dW.\n// The dW half is injected by the diffusion-step transition\n// (Euler-Maruyama split: drift integrates every solver step, noise\n// lands every diffusion_step). sigma = 0 turns this into a pure ODE.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((m) => ({\n    rate: parameters.demand_theta * (parameters.demand_mu - m.rate),\n    diffusion_clock: -1,\n  }));\n});"
+      "code": "// The DETERMINISTIC half of the Ornstein-Uhlenbeck SDE\n//   d lambda = theta * (mu - lambda) dt + sigma dW.\n// The dW half is injected by the diffusion-step transition\n// (Euler-Maruyama split: drift integrates every solver step, noise\n// lands every diffusion_step). sigma = 0 turns this into a pure ODE.\nexport default Dynamics((m, parameters) => ({\n    rate: parameters.demand_theta * (parameters.demand_mu - m.rate),\n    diffusion_clock: -1,\n  }));",
+      "arity": 1
     },
     {
       "id": "de__waiting",
       "name": "Clock: customer order ageing",
       "colorId": "type__customer_order",
-      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ waited: 1, patience: 0, qty: 0 }));\n});"
+      "code": "export default Dynamics((token) => ({ waited: 1, patience: 0, qty: 0 }));",
+      "arity": 1
     },
     {
       "id": "de__shelf",
       "name": "Clock: shelf-life countdown (transit/hold — no storage charge)",
       "colorId": "type__crate",
-      "code": "// Life ticks from order placement, wherever the stock physically\n// is (AtVendor, InTransit, DelayedShipments). Storage cost is NOT\n// charged here: the warehouse equation (de__stored) does that on\n// our own shelves; committed transit spend is already booked by\n// the spend metric.\nexport default Dynamics((tokens) => {\n  return tokens.map(() => ({ qty: 0, remaining_life: -1, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }));\n});"
+      "code": "// Life ticks from order placement, wherever the stock physically\n// is (AtVendor, InTransit, DelayedShipments). Storage cost is NOT\n// charged here: the warehouse equation (de__stored) does that on\n// our own shelves; committed transit spend is already booked by\n// the spend metric.\nexport default Dynamics((token) => ({ qty: 0, remaining_life: -1, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }));",
+      "arity": 1
     },
     {
       "id": "de__production",
       "name": "Clock: production countdown",
       "colorId": "type__job",
-      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ remaining: -1, qty: 0 }));\n});"
+      "code": "export default Dynamics((token) => ({ remaining: -1, qty: 0 }));",
+      "arity": 1
     },
     {
       "id": "de__stored",
       "name": "Shelf-life countdown + storage-cost accrual (our shelves)",
       "colorId": "type__crate",
-      "code": "// Warehouse holding: capital + storage, accrued per unit-week\n// on the stock token itself and banked to the HoldingCosts ledger when\n// the stock is discarded or written off.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((c) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: c.qty * parameters.holding_cost_rate,\n    unit_price: 0,\n    dispatch_clock: 0,\n    transit_clock: 0,\n  }));\n});"
+      "code": "// Warehouse holding: capital + storage, accrued per unit-week\n// on the stock token itself and banked to the HoldingCosts ledger when\n// the stock is discarded or written off.\nexport default Dynamics((c, parameters) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: c.qty * parameters.holding_cost_rate,\n    unit_price: 0,\n    dispatch_clock: 0,\n    transit_clock: 0,\n  }));",
+      "arity": 1
     },
     {
       "id": "de__price",
       "name": "Price index: OU drift (+ diffusion clock)",
       "colorId": "type__price",
-      "code": "// The deterministic half of dP = theta * (1 - P) dt + sigma dW.\n// The dW half is injected by the price diffusion transition\n// (same Euler-Maruyama split as demand). price_sigma = 0 freezes\n// prices at their base values.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((p) => ({\n    level: parameters.price_theta * (1 - p.level),\n    diffusion_clock: -1,\n  }));\n});"
+      "code": "// The deterministic half of dP = theta * (1 - P) dt + sigma dW.\n// The dW half is injected by the price diffusion transition\n// (same Euler-Maruyama split as demand). price_sigma = 0 freezes\n// prices at their base values.\nexport default Dynamics((p, parameters) => ({\n    level: parameters.price_theta * (1 - p.level),\n    diffusion_clock: -1,\n  }));",
+      "arity": 1
     },
     {
       "id": "de__at_vendor",
       "name": "Order book: shelf life + dispatch clock",
       "colorId": "type__crate",
-      "code": "// At the vendor: shelf life burns from order placement\n// (assuming fresh stock) and the fixed\n// processing clock counts down to dispatch.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((c) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: 0,\n    unit_price: 0,\n    dispatch_clock: -1,\n    transit_clock: 0,\n  }));\n});"
+      "code": "// At the vendor: shelf life burns from order placement\n// (assuming fresh stock) and the fixed\n// processing clock counts down to dispatch.\nexport default Dynamics((c, parameters) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: 0,\n    unit_price: 0,\n    dispatch_clock: -1,\n    transit_clock: 0,\n  }));",
+      "arity": 1
     },
     {
       "id": "de__in_transit",
       "name": "Transit: shelf life + transit clock",
       "colorId": "type__crate",
-      "code": "// On the truck: the Gaussian transit clock counts\n// down to goods receipt.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((c) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: 0,\n    unit_price: 0,\n    dispatch_clock: 0,\n    transit_clock: -1,\n  }));\n});"
+      "code": "// On the truck: the Gaussian transit clock counts\n// down to goods receipt.\nexport default Dynamics((c, parameters) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: 0,\n    unit_price: 0,\n    dispatch_clock: 0,\n    transit_clock: -1,\n  }));",
+      "arity": 1
     },
     {
       "id": "de__plan_wait",
       "name": "Scheduled batch: waiting clock",
       "colorId": "type__prod_order",
-      "code": "// A scheduled production order ages while it waits for\n// materials — the shortage cost integrates over this. Every\n// real attribute needs a derivative; the quantities hold.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((s) => ({ produce_qty: 0, consume_ingredient_a: 0, consume_ingredient_b: 0, waited: 1 }));\n});"
+      "code": "// A scheduled production order ages while it waits for\n// materials — the shortage cost integrates over this. Every\n// real attribute needs a derivative; the quantities hold.\nexport default Dynamics((s, parameters) => ({ produce_qty: 0, consume_ingredient_a: 0, consume_ingredient_b: 0, waited: 1 }));",
+      "arity": 1
     }
   ],
   "parameters": [

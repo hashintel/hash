@@ -37,7 +37,9 @@ export const probabilisticSatellitesSDCPN: {
           "Satellites in orbit. The orbit dynamics integrate each one's position and velocity under the planet's gravity, and a custom visualizer draws them around the planet.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: true,
-        differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
+        dynamics: [
+          { differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab" },
+        ],
         visualizerCode: `const { satellite_radius, planet_radius } = parameters;
 
 return (
@@ -117,7 +119,6 @@ return (
           "Defunct objects left by collisions and crashes, frozen at the point of impact with zero velocity.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 36 * GRID_SIZE,
         y: 6 * GRID_SIZE,
       },
@@ -290,27 +291,25 @@ return {
         id: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         name: "Satellite Orbit Dynamics",
-        code: `// Example of ODE for Satellite in orbit (simplified)
+        arity: 1,
+        code: `// Example of ODE for one satellite in orbit (simplified)
 const mu = parameters.gravitational_constant; // Gravitational parameter
 
-// Process each token (satellite)
-return tokens.map(({ x, y, direction, velocity }) => {
-  const r = Math.hypot(x, y); // Distance to planet center
+const [satellite] = tokens;
+const { x, y, direction, velocity } = satellite;
+const r = Math.hypot(x, y); // Distance to planet center
 
-  // Gravitational acceleration vector (points toward origin)
-  const ax = (-mu * x) / (r * r * r);
-  const ay = (-mu * y) / (r * r * r);
+// Gravitational acceleration vector (points toward origin)
+const ax = (-mu * x) / (r * r * r);
+const ay = (-mu * y) / (r * r * r);
 
-  // Return derivatives for this token
-  return {
-    x: velocity * Math.cos(direction),
-    y: velocity * Math.sin(direction),
-    direction:
-      (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,
-    velocity:
-      ax * Math.cos(direction) + ay * Math.sin(direction),
-  }
-})`,
+// Return the derivatives of this satellite
+return {
+  x: velocity * Math.cos(direction),
+  y: velocity * Math.sin(direction),
+  direction: (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,
+  velocity: ax * Math.cos(direction) + ay * Math.sin(direction),
+};`,
       },
     ],
     parameters: [

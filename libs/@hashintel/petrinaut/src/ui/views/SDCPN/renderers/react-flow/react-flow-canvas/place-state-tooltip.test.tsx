@@ -91,7 +91,6 @@ const Harness = ({
               y: 300,
               colorId: typed ? "type" : null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               visualizerCode: code,
             },
           ],

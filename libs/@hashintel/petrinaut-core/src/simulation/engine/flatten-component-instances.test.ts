@@ -22,7 +22,6 @@ const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   name: id,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   ...overrides,
@@ -144,7 +143,8 @@ describe("flattenComponentInstancesForSimulation", () => {
       id: "flow",
       name: "Flow",
       colorId: "token",
-      code: "export default Dynamics(() => []);",
+      code: "export default Dynamics((token) => ({}));",
+      arity: 1,
     };
     const pairwise: DifferentialEquation = {
       id: "pull",
@@ -183,8 +183,10 @@ describe("flattenComponentInstancesForSimulation", () => {
               isPort: true,
               colorId: "token",
               dynamicsEnabled: true,
-              differentialEquationId: "flow",
-              dynamics: [{ differentialEquationId: "pull" }],
+              dynamics: [
+                { differentialEquationId: "flow" },
+                { differentialEquationId: "pull" },
+              ],
             }),
           ],
           transitions: [
@@ -213,8 +215,10 @@ describe("flattenComponentInstancesForSimulation", () => {
       {
         id: "worker::port-in",
         colorId: "worker::token",
-        differentialEquationId: "worker::flow",
-        dynamics: [{ differentialEquationId: "worker::pull" }],
+        dynamics: [
+          { differentialEquationId: "worker::flow" },
+          { differentialEquationId: "worker::pull" },
+        ],
       },
     ]);
     expect(result.sdcpn.places[0]).not.toHaveProperty("dynamics");

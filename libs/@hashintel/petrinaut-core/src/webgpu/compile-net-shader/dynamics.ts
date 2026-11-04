@@ -1,8 +1,9 @@
 /**
  * Continuous dynamics: integrating each token's `real` attributes in place.
  *
- * A token's derivative reads only that token's own attributes, so integration
- * is local to one invocation and every RK stage fits in the same loop body.
+ * The shader takes one equation over one token per place, whose derivative
+ * reads only that token's own attributes, so integration is local to one
+ * invocation and every RK stage fits in the same loop body.
  */
 import { WgslBailError, WgslEmitter } from "../emit-wgsl";
 import { commentSafe } from "../wgsl-identifiers";
@@ -15,8 +16,10 @@ import type { StateLayout } from "./token-layout";
 export type GpuOdeMethod = "euler" | "rk2" | "rk4";
 
 /**
- * Extracts a place's per-token derivative expressions from dynamics HIR,
- * which is `tokens.map(token => ({ field: expr }))`.
+ * Extracts a place's per-token derivative expressions from the HIR of an
+ * equation over one token: `const` bindings over the tuple `tokens`, whose
+ * only element is the token being integrated, ending in a record of
+ * derivatives.
  */
 const emitDerivatives = (
   fn: HirFunction,
@@ -30,57 +33,45 @@ const emitDerivatives = (
    */
   identifierScope: string,
 ): { statements: string[]; derivatives: Map<string, string> } => {
-  let body: HirExpr = fn.body;
-  const outerBindings = body.kind === "let" ? body.bindings : [];
-  if (body.kind === "let") {
-    body = body.body;
-  }
-
   const tokensParam = fn.params[0];
-  if (
-    !tokensParam ||
-    body.kind !== "arrayMap" ||
-    body.target.kind !== "localRef" ||
-    body.target.name !== tokensParam.name
-  ) {
-    throw new WgslBailError(
-      "dynamics must be a direct `tokens.map(...)` over the place's tokens",
-    );
+  if (!tokensParam) {
+    throw new WgslBailError("dynamics must declare its tokens");
   }
 
   const emitter = new WgslEmitter({ parameterValues, identifierScope });
   const env = new Map<string, WgslValue>();
-  for (const binding of outerBindings) {
-    env.set(
-      binding.name,
-      emitter.hoist(binding.name, emitter.emit(binding.value, env)),
-    );
-  }
-
   // The token binding resolves attribute reads to whatever accessor the caller
   // supplies, so the same HIR serves each RK stage at a different trial state.
-  env.set(body.param.name, {
-    kind: "token",
-    read: (fieldName) => ({ kind: "f32", code: fieldExpression(fieldName) }),
+  env.set(tokensParam.name, {
+    kind: "array",
+    elements: [
+      {
+        kind: "token",
+        read: (fieldName) => ({
+          kind: "f32",
+          code: fieldExpression(fieldName),
+        }),
+      },
+    ],
   });
 
-  let mapBody: HirExpr = body.body;
-  if (mapBody.kind === "let") {
-    for (const binding of mapBody.bindings) {
+  let body: HirExpr = fn.body;
+  while (body.kind === "let") {
+    for (const binding of body.bindings) {
       env.set(
         binding.name,
         emitter.hoist(binding.name, emitter.emit(binding.value, env)),
       );
     }
-    mapBody = mapBody.body;
+    body = body.body;
   }
-  if (mapBody.kind !== "recordLit") {
+  if (body.kind !== "recordLit") {
     throw new WgslBailError("dynamics must return a record of derivatives");
   }
 
   const derivatives = new Map<string, string>();
   for (const field of realFields) {
-    const entry = mapBody.entries.find((candidate) => candidate.key === field);
+    const entry = body.entries.find((candidate) => candidate.key === field);
     // A field with no entry has zero derivative, matching the CPU emitter.
     derivatives.set(
       field,

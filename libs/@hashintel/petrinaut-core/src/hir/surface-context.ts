@@ -110,13 +110,11 @@ export type HirDynamicsContext = {
   /** Attributes of the color the differential equation is attached to. */
   elements: HirTokenElementInfo[];
   /**
-   * The equation's arity (`DifferentialEquation.arity`). Absent for the
-   * whole-place form, where `tokens` is every token of the place and the
-   * result one record per token. Present, `tokens` is a tuple of exactly
-   * this many tokens and the result one record (arity 1) or an array of
-   * `arity` records.
+   * The equation's arity (`DifferentialEquation.arity`): `tokens` is a tuple
+   * of exactly this many tokens and the result one record (arity 1) or an
+   * array of `arity` records.
    */
-  arity?: number;
+  arity: number;
 };
 
 export type HirLambdaContext = {
@@ -409,7 +407,7 @@ export function buildDynamicsContext(
       name: element.name,
       type: element.type,
     })),
-    ...(equation.arity === undefined ? {} : { arity: equation.arity }),
+    arity: equation.arity,
   };
 }
 

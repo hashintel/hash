@@ -51,9 +51,11 @@ const placeSchema = z.object({
   dynamicsEnabled: currentPlaceSchema.shape.dynamicsEnabled
     .optional()
     .default(false),
-  differentialEquationId: currentPlaceSchema.shape.differentialEquationId
-    .optional()
-    .default(null),
+  /**
+   * Files written before equations composed carried one equation here; the
+   * parser moves it to the front of `dynamics`.
+   */
+  differentialEquationId: z.string().nullable().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
 });
@@ -95,6 +97,12 @@ const differentialEquationSchema = z.object({
   id: z.string(),
   name: z.string(),
   colorId: z.string().nullable(),
+  /**
+   * Files written before equations had an arity hold whole-place
+   * `tokens.map(...)` code; they import as one-token equations, whose code
+   * the diagnostics then ask the author to rewrite.
+   */
+  arity: currentDifferentialEquationSchema.shape.arity.optional().default(1),
 });
 
 const parameterSchema = z

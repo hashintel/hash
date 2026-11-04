@@ -187,7 +187,7 @@ export function compileHirArtifacts(
       }
       artifacts.dynamics[de.id] = {
         source,
-        ...(de.arity === undefined ? {} : { arity: de.arity }),
+        arity: de.arity,
         ...(options.includeHir ? { hir: item.fn } : {}),
       };
     }

@@ -328,9 +328,6 @@ const flattenNet = ({
       ...place,
       id,
       colorId: place.colorId ? (typeIdMap.get(place.colorId) ?? null) : null,
-      differentialEquationId: place.differentialEquationId
-        ? (equationIdMap.get(place.differentialEquationId) ?? null)
-        : null,
       ...(place.dynamics === undefined
         ? {}
         : {

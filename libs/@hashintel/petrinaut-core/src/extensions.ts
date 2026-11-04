@@ -283,9 +283,6 @@ export const sanitizePlaceForExtensions = <
     ...place,
     colorId: extensions.colors ? place.colorId : null,
     dynamicsEnabled: canUseDynamics(extensions) ? place.dynamicsEnabled : false,
-    differentialEquationId: canUseDynamics(extensions)
-      ? place.differentialEquationId
-      : null,
     visualizerCode: extensions.colors ? place.visualizerCode : undefined,
   };
   if (!canUseDynamics(extensions)) {

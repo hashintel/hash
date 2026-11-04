@@ -221,9 +221,9 @@ export function assessGpuEligibility(
     }
   }
 
-  // The shader integrates one whole-place equation per place. Summing
-  // several terms, and visiting token combinations for an equation with an
-  // arity, are not emitted yet.
+  // The shader integrates one equation over one token per place. Summing
+  // several terms, and visiting token combinations for an equation over
+  // several, are not emitted yet.
   const equationById = new Map(
     sdcpn.differentialEquations.map((equation) => [equation.id, equation]),
   );
@@ -234,14 +234,14 @@ export function assessGpuEligibility(
     const equationIds = getPlaceDynamicsEquationIds(place);
     const coupled = equationIds
       .map((equationId) => equationById.get(equationId))
-      .filter((equation) => equation?.arity !== undefined);
+      .filter((equation) => equation !== undefined && equation.arity > 1);
     if (equationIds.length > 1 || coupled.length > 0) {
       reasons.push({
         code: "composed-dynamics",
         itemId: place.id,
         message:
           equationIds.length > 1
-            ? `Place \`${place.name}\` composes ${equationIds.length} differential equations. The GPU backend integrates one whole-place equation per place; run on the CPU.`
+            ? `Place \`${place.name}\` composes ${equationIds.length} differential equations. The GPU backend integrates one equation per place; run on the CPU.`
             : `Place \`${place.name}\` uses an equation over ${coupled[0]?.arity} token(s) (\`${coupled[0]?.name}\`). The GPU backend does not visit token combinations; run on the CPU.`,
       });
     }

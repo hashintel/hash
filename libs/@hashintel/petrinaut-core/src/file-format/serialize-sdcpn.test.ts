@@ -15,7 +15,6 @@ const sourceDocument = {
       name: "Place 1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 100,
       y: 200,
     },

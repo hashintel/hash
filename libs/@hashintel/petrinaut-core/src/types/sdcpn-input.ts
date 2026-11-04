@@ -62,8 +62,6 @@ export type SDCPNPlaceInput = {
   colorId?: ID | null;
   /** @default false */
   dynamicsEnabled?: boolean;
-  /** @default null */
-  differentialEquationId?: ID | null;
   dynamics?: Place["dynamics"];
   capacity?: Place["capacity"];
   isPort?: boolean;
@@ -145,7 +143,6 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
         name: place.name,
         colorId: place.colorId ?? null,
         dynamicsEnabled: place.dynamicsEnabled ?? false,
-        differentialEquationId: place.differentialEquationId ?? null,
         x: place.x,
         y: place.y,
       };

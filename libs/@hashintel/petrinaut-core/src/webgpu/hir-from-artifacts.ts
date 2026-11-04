@@ -10,6 +10,7 @@
  * Deliberately dependency-free beyond types, for the same reason.
  */
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions";
+import { getPlaceDynamicsEquationIds } from "../place-dynamics";
 
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
@@ -91,16 +92,26 @@ export function hirFromArtifacts(
   }
 
   for (const place of sdcpn.places) {
-    if (
-      !extensions.dynamics ||
-      !place.dynamicsEnabled ||
-      !place.differentialEquationId ||
-      !place.colorId
-    ) {
+    const equationIds =
+      extensions.dynamics && place.dynamicsEnabled && place.colorId
+        ? getPlaceDynamicsEquationIds(place)
+        : [];
+    const [equationId] = equationIds;
+    if (equationId === undefined) {
+      continue;
+    }
+    if (equationIds.length > 1) {
+      // Eligibility refuses these nets before emission; this keeps a sum of
+      // equations out of the single-equation emitter regardless.
+      skipped.push({
+        itemId: place.id,
+        reason:
+          "its dynamics compose several equations, which the shader does not sum",
+      });
       continue;
     }
     // Dynamics artifacts are keyed by differential equation, not by place.
-    const artifact = artifacts.dynamics[place.differentialEquationId];
+    const artifact = artifacts.dynamics[equationId];
     if (!artifact) {
       continue;
     }
@@ -112,13 +123,11 @@ export function hirFromArtifacts(
       });
       continue;
     }
-    if (artifact.arity !== undefined || (place.dynamics?.length ?? 0) > 0) {
-      // Eligibility refuses these nets before emission; this keeps a
-      // tuple-shaped HIR out of the whole-place emitter regardless.
+    if (artifact.arity !== 1) {
       skipped.push({
         itemId: place.id,
         reason:
-          "its dynamics couple tokens or compose several equations, which the shader does not integrate",
+          "its differential equation couples several tokens, which the shader does not integrate",
       });
       continue;
     }

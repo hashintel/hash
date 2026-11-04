@@ -6,7 +6,11 @@ import { lowerTypeScriptToHir } from "./lower-typescript";
 import type { HirFunction, HirFunctionSurfaceKind } from "./hir";
 
 function lower(code: string, surface: HirFunctionSurfaceKind): HirFunction {
-  const result = lowerTypeScriptToHir(code, surface);
+  const result = lowerTypeScriptToHir(
+    code,
+    surface,
+    surface === "dynamics" ? { arity: 1 } : {},
+  );
   if (!result.ok) {
     throw new Error(result.diagnostics[0]?.message);
   }
@@ -47,16 +51,16 @@ describe("analyzeHir", () => {
       ]);
     });
 
-    it("attributes token reads through .map callbacks (dynamics)", () => {
+    it("attributes token reads to the one token of a dynamics module", () => {
       const analysis = analyzeHir(
         lower(
-          `export default Dynamics((tokens, parameters) => tokens.map(({ x, y }) => ({ x: y * parameters.g, y: x })));`,
+          `export default Dynamics(({ x, y }, parameters) => ({ x: y * parameters.g, y: x }));`,
           "dynamics",
         ),
       );
       expect(analysis.dependencies.tokenReads).toEqual([
-        { place: "self", field: "y" },
-        { place: "self", field: "x" },
+        { place: "self", field: "y", tokenIndex: 0 },
+        { place: "self", field: "x", tokenIndex: 0 },
       ]);
       expect(analysis.dependencies.parameters).toEqual(["g"]);
     });

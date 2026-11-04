@@ -37,7 +37,6 @@ export const supplyChainWithDisruption: {
           "Reliable supplier A is operating and can take purchase orders; the token moves to SupplierADown during a disruption.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 405,
@@ -50,7 +49,6 @@ export const supplyChainWithDisruption: {
           "Supplier A is disrupted and takes no orders until it recovers.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -63,7 +61,6 @@ export const supplyChainWithDisruption: {
           "Low-cost supplier B is operating and can take purchase orders; cheaper than A but riskier and slower.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 405,
@@ -76,7 +73,6 @@ export const supplyChainWithDisruption: {
           "Supplier B is disrupted and takes no orders until it recovers.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -89,7 +85,6 @@ export const supplyChainWithDisruption: {
           "Warehouse stock of usable material from cleanly received inbound shipments, consumed by production batches.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -102,7 +97,6 @@ export const supplyChainWithDisruption: {
           "Inbound shipments that arrived too damaged to use, written off on receipt.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 960,
@@ -115,7 +109,6 @@ export const supplyChainWithDisruption: {
           "Sellable stock: production batches that passed quality, waiting to fulfil open orders and backorders.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 2085,
@@ -128,7 +121,6 @@ export const supplyChainWithDisruption: {
           "Production batches that failed the quality check and were scrapped.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 2085,
@@ -141,7 +133,6 @@ export const supplyChainWithDisruption: {
           "Orders that completed the outbound leg and reached the customer.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 3765,
@@ -154,7 +145,6 @@ export const supplyChainWithDisruption: {
           "Outbound shipments lost or damaged in transit and never delivered.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 3765,
@@ -167,7 +157,6 @@ export const supplyChainWithDisruption: {
           "Backorders whose customers gave up waiting and cancelled.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 3195,
@@ -180,7 +169,7 @@ export const supplyChainWithDisruption: {
           "Purchase orders in transit from a supplier. The ETA-countdown dynamics run each one down to arrival, where it is received cleanly or written off as damaged.",
         colorId: "type_shipment",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_shipment_eta",
+        dynamics: [{ differentialEquationId: "dyn_shipment_eta" }],
         visualizerCode: `// Inbound lanes: each shipment is a truck whose horizontal position shows
 // how close it is to arriving (right edge = ETA 0). Blue = Supplier A,
 // purple = Supplier B (decoded from the token's \`source\` field).
@@ -243,7 +232,7 @@ return (
           "Batches on the factory floor. Dynamics count their remaining processing time down while quality decays; each finishes as a good batch or scrap.",
         colorId: "type_batch",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_batch_processing",
+        dynamics: [{ differentialEquationId: "dyn_batch_processing" }],
         visualizerCode: `// Factory WIP: one card per in-process batch. The fill bar shows processing
 // progress (toward completion) and the % label is current quality; the bar
 // turns green when quality is above the minimum and red when it has decayed
@@ -315,7 +304,7 @@ return (
           "New customer orders awaiting same-day fulfilment from stock; those that outlive their promised lead time convert to backorders.",
         colorId: "type_order",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_order_age",
+        dynamics: [{ differentialEquationId: "dyn_order_age" }],
         visualizerCode: `// Customer queue: one dot per open order. Red = past its promised lead time
 // (late), orange = on-time VIP, pale orange = on-time standard. The bottom
 // bar grows with the queue length.
@@ -375,7 +364,7 @@ return (
           "Orders that missed their promised lead time and now wait for replenished stock, at growing risk of cancellation as they age.",
         colorId: "type_order",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_order_age",
+        dynamics: [{ differentialEquationId: "dyn_order_age" }],
         visualizerCode: `// Backorder heat: one bar per backorder, taller the longer it has waited.
 // Dark red bars are VIP orders. Tall bars signal customers about to cancel.
 
@@ -421,7 +410,7 @@ return (
           "Fulfilled orders on the last-mile leg to the customer; each arrives and is delivered, or is lost or damaged in transit.",
         colorId: "type_shipment",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_shipment_eta",
+        dynamics: [{ differentialEquationId: "dyn_shipment_eta" }],
         visualizerCode: `// Last-mile deliveries: outbound shipments (vans) move left-to-right as
 // their ETA counts down to 0, at which point they are delivered (or lost).
 
@@ -480,7 +469,7 @@ return (
           "The factory machine while operational. Its health and wear drift over time and gate whether production can start.",
         colorId: "type_machine",
         dynamicsEnabled: true,
-        differentialEquationId: "dyn_machine_health",
+        dynamics: [{ differentialEquationId: "dyn_machine_health" }],
         visualizerCode: `const m = tokens[0] || { health: 0, wear: 1 };
 const health = Math.max(0, Math.min(1, m.health));
 const wear = Math.max(0, Math.min(1, m.wear));
@@ -543,7 +532,6 @@ return (
           "The factory machine while broken down, halting production until it is repaired.",
         colorId: "type_machine",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: ``,
         showAsInitialState: true,
         x: 405,
@@ -1364,56 +1352,65 @@ return {};`,
         id: "dyn_shipment_eta",
         name: "Shipment ETA countdown",
         colorId: "type_shipment",
-        code: `// Counts each shipment's ETA down by 1 per simulated unit of time. Dynamics
+        arity: 1,
+        code: `// Counts the shipment's ETA down by 1 per simulated unit of time. Dynamics
 // return DERIVATIVES, so eta: -1 means "decrease eta at rate 1"; once it
 // reaches 0 the derivative becomes 0 (it holds, ready for arrival predicates).
 // All other attributes are constant during transit (derivative 0).
-return tokens.map(({ eta }) => ({
-  eta: eta > 0 ? -1 : 0,
+const [shipment] = tokens;
+return {
+  eta: shipment.eta > 0 ? -1 : 0,
   risk_score: 0,
   cost: 0,
-}));`,
+};`,
       },
       {
         id: "dyn_order_age",
         name: "Order aging",
         colorId: "type_order",
+        arity: 1,
         code: `// Every waiting order ages at a constant rate (age derivative = 1), driving
 // the backorder-conversion and cancellation hazards that depend on age.
-return tokens.map(() => ({
+return {
   age: 1,
   priority: 0,
   promised_lead_time: 0,
-}));`,
+};`,
       },
       {
         id: "dyn_batch_processing",
         name: "Batch processing countdown",
         colorId: "type_batch",
+        arity: 1,
         code: `// While a batch is in process, processing_left counts down toward 0 and its
 // quality slowly decays. So a batch that sits in WIP too long can drift below
 // the minimum quality and end up scrapped rather than finished.
-return tokens.map(({ processing_left, quality, source_mix, cost }) => ({
+const [batch] = tokens;
+const { processing_left, quality } = batch;
+return {
   processing_left: processing_left > 0 ? -parameters.production_progress_rate : 0,
   // Decay stops at 0 so quality stays within its implied [0, 1] range
   // (a batch is scrapped once it falls below the minimum quality anyway).
   quality: quality > 0 ? -parameters.quality_decay_rate : 0,
   source_mix: 0,
   cost: 0,
-}));`,
+};`,
       },
       {
         id: "dyn_machine_health",
         name: "Machine health drift",
         colorId: "type_machine",
+        arity: 1,
         code: `// The running machine continuously loses a little health and gains a little
 // wear even between batches. Combined with the per-batch wear in production,
 // this is the slow degradation that maintenance and repair counteract.
-return tokens.map(({ health, wear }) => ({
+const [machine] = tokens;
+const { health, wear } = machine;
+return {
   health: health > 0 ? -parameters.machine_health_decay : 0,
   // Wear accrues only up to 1 so it stays within its implied [0, 1] range.
   wear: wear < 1 ? parameters.machine_wear_rate : 0,
-}));`,
+};`,
       },
     ],
     parameters: [

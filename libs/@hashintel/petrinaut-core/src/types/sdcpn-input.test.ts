@@ -34,7 +34,6 @@ describe("normalizeSDCPN", () => {
       name: "P1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 1,
       y: 2,
     });
@@ -83,7 +82,6 @@ describe("normalizeSDCPN", () => {
           y: 2,
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           ...(capacity === undefined ? {} : { capacity }),
         },
       ]);
@@ -101,8 +99,10 @@ describe("normalizeSDCPN", () => {
           y: 0,
           colorId: "c1",
           dynamicsEnabled: true,
-          differentialEquationId: "d1",
-          dynamics: [{ differentialEquationId: "d2" }],
+          dynamics: [
+            { differentialEquationId: "d1" },
+            { differentialEquationId: "d2" },
+          ],
           visualizerCode: "code",
           showAsInitialState: true,
         },
@@ -125,8 +125,10 @@ describe("normalizeSDCPN", () => {
     expect(result.places[0]).toMatchObject({
       colorId: idOf("c1"),
       dynamicsEnabled: true,
-      differentialEquationId: idOf("d1"),
-      dynamics: [{ differentialEquationId: idOf("d2") }],
+      dynamics: [
+        { differentialEquationId: idOf("d1") },
+        { differentialEquationId: idOf("d2") },
+      ],
       visualizerCode: "code",
       showAsInitialState: true,
     });
@@ -234,7 +236,6 @@ describe("normalizeSDCPN", () => {
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },

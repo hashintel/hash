@@ -176,7 +176,6 @@ describe("compileHirArtifacts with arity dynamics", () => {
         name: "Space",
         colorId: "body",
         dynamicsEnabled: true,
-        differentialEquationId: null,
         dynamics: [{ differentialEquationId: "pull" }],
         x: 0,
         y: 0,

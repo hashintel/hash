@@ -118,7 +118,6 @@ const canonicalizePlace = (place: Place): Place =>
   assignChanged(place, {
     id: toPetrinautId(place.id),
     colorId: toOptionalPetrinautId(place.colorId),
-    differentialEquationId: toOptionalPetrinautId(place.differentialEquationId),
     dynamics: mapOptional(place.dynamics, (term) =>
       assignChanged(term, {
         differentialEquationId: toPetrinautId(term.differentialEquationId),

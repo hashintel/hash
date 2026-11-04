@@ -13,7 +13,6 @@ function place(id: string, overrides: Partial<Place> = {}): Place {
     name: id,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
     ...overrides,
@@ -287,7 +286,7 @@ describe("assessGpuEligibility", () => {
         color("c", [{ elementId: "x", name: "x", type: "real" as const }]),
       ],
       differentialEquations: [
-        { id: "flow", name: "Flow", colorId: "c", code: "" },
+        { id: "flow", name: "Flow", colorId: "c", code: "", arity: 1 },
         { id: "pull", name: "Pull", colorId: "c", code: "", arity: 2 },
       ],
       transitions: [transition("t", [], [{ placeId: "p", weight: 1 }])],
@@ -300,8 +299,10 @@ describe("assessGpuEligibility", () => {
           place("p", {
             colorId: "c",
             dynamicsEnabled: true,
-            differentialEquationId: "flow",
-            dynamics: [{ differentialEquationId: "flow" }],
+            dynamics: [
+              { differentialEquationId: "flow" },
+              { differentialEquationId: "flow" },
+            ],
           }),
         ],
       }),
@@ -320,7 +321,7 @@ describe("assessGpuEligibility", () => {
           place("p", {
             colorId: "c",
             dynamicsEnabled: true,
-            differentialEquationId: "pull",
+            dynamics: [{ differentialEquationId: "pull" }],
           }),
         ],
       }),
@@ -337,8 +338,10 @@ describe("assessGpuEligibility", () => {
           place("p", {
             colorId: "c",
             dynamicsEnabled: false,
-            differentialEquationId: "pull",
-            dynamics: [{ differentialEquationId: "flow" }],
+            dynamics: [
+              { differentialEquationId: "pull" },
+              { differentialEquationId: "flow" },
+            ],
           }),
         ],
       }),

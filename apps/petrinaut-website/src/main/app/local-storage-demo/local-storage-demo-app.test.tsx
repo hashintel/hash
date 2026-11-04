@@ -550,7 +550,6 @@ describe("local document revision persistence", () => {
           name: "Direct place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -586,7 +585,6 @@ describe("local document revision persistence", () => {
           name: "Reopened place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -624,7 +622,6 @@ describe("local document revision persistence", () => {
           name: "Listed place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -674,7 +671,6 @@ describe("local document revision persistence", () => {
       name: "Other tab place",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     };
@@ -745,7 +741,6 @@ describe("local document revision persistence", () => {
             name: id,
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           });
@@ -827,7 +822,6 @@ describe("local document revision persistence", () => {
       name: "Other tab place",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     };
@@ -852,7 +846,6 @@ describe("local document revision persistence", () => {
           name: "Refused place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });
@@ -910,7 +903,6 @@ describe("local document revision persistence", () => {
           name: "First place",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         });

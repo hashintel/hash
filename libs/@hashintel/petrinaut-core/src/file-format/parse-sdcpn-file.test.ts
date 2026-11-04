@@ -10,7 +10,6 @@ const minimalPlace = {
   name: "Place 1",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 100,
   y: 200,
 };
@@ -147,7 +146,6 @@ describe("parseSDCPNFile", () => {
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -211,7 +209,6 @@ describe("parseSDCPNFile", () => {
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -293,7 +290,6 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.places[0]).toMatchObject({
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
       });
     });
 
@@ -322,7 +318,7 @@ describe("parseSDCPNFile", () => {
       });
     });
 
-    it("preserves explicit place colour, dynamics and arc weight values", () => {
+    it("preserves explicit place colour and arc weights, migrating a legacy equation reference", () => {
       const result = parseSDCPNFile({
         version: 1,
         meta: { generator: "Petrinaut" },
@@ -358,13 +354,18 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.places[0]).toMatchObject({
         colorId: idOf("c1"),
         dynamicsEnabled: true,
-        differentialEquationId: idOf("de1"),
-        dynamics: [{ differentialEquationId: idOf("de2") }],
+        dynamics: [
+          { differentialEquationId: idOf("de1") },
+          { differentialEquationId: idOf("de2") },
+        ],
       });
-      expect(result.sdcpn.differentialEquations[1]).toMatchObject({
-        id: idOf("de2"),
-        arity: 2,
-      });
+      expect(result.sdcpn.places[0]).not.toHaveProperty(
+        "differentialEquationId",
+      );
+      expect(result.sdcpn.differentialEquations).toMatchObject([
+        { id: idOf("de1"), arity: 1 },
+        { id: idOf("de2"), arity: 2 },
+      ]);
       expect(result.sdcpn.transitions[0]?.inputArcs[0]).toMatchObject({
         weight: 3,
         type: "read",

@@ -5,11 +5,15 @@ import { lowerTypeScriptToHir } from "./lower-typescript";
 
 import type { HirExpr } from "./hir";
 
+/** Dynamics modules need an arity; one token unless a test says otherwise. */
+const dynamicsOptions = (surface: string, arity = 1) =>
+  surface === "dynamics" ? { arity } : {};
+
 function lowerOk(
   code: string,
   surface: "dynamics" | "lambda" | "kernel" | "metric",
 ) {
-  const result = lowerTypeScriptToHir(code, surface);
+  const result = lowerTypeScriptToHir(code, surface, dynamicsOptions(surface));
   if (!result.ok) {
     throw new Error(
       `Expected lowering to succeed, got: ${result.diagnostics
@@ -24,7 +28,7 @@ function lowerErr(
   code: string,
   surface: "dynamics" | "lambda" | "kernel" | "metric",
 ) {
-  const result = lowerTypeScriptToHir(code, surface);
+  const result = lowerTypeScriptToHir(code, surface, dynamicsOptions(surface));
   if (result.ok) {
     throw new Error("Expected lowering to fail");
   }
@@ -33,21 +37,31 @@ function lowerErr(
 
 describe("lowerTypeScriptToHir", () => {
   describe("module shape", () => {
-    it("lowers the default dynamics template", () => {
+    it("lowers a one-token dynamics module", () => {
       const fn = lowerOk(
-        `export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x, y }) => {
-    return { x: 1, y: 1 };
-  });
+        `export default Dynamics((token, parameters) => {
+  return { x: token.y, y: 1 };
 });`,
         "dynamics",
       );
       expect(fn.surface).toBe("dynamics");
       expect(fn.params.map((parameter) => parameter.name)).toEqual([
-        "tokens",
+        "__tokens",
         "parameters",
       ]);
-      expect(fn.body.kind).toBe("arrayMap");
+      expect(fn.body).toMatchObject({
+        kind: "let",
+        bindings: [{ name: "token" }],
+        body: { kind: "recordLit" },
+      });
+    });
+
+    it("binds no token parameter the body never reads", () => {
+      const fn = lowerOk(
+        `export default Dynamics((token, parameters) => ({ x: 1 }));`,
+        "dynamics",
+      );
+      expect(fn.body.kind).toBe("recordLit");
     });
 
     it("rejects non-default exports on the module path", () => {
@@ -136,8 +150,8 @@ export default Lambda((input, parameters) => x);`,
 
     it("desugars destructured map params to field accesses", () => {
       const fn = lowerOk(
-        `export default Dynamics((tokens, parameters) => tokens.map(({ x }) => ({ x: x * 2 })));`,
-        "dynamics",
+        `export default TransitionKernel((input, parameters) => input.Pool.map(({ x }) => ({ x: x * 2 })));`,
+        "kernel",
       );
       const mapNode = fn.body as Extract<HirExpr, { kind: "arrayMap" }>;
       const record = mapNode.body as Extract<HirExpr, { kind: "recordLit" }>;
@@ -153,8 +167,8 @@ export default Lambda((input, parameters) => x);`,
 
     it("supports .length and index parameters", () => {
       const fn = lowerOk(
-        `export default Dynamics((tokens) => tokens.map((token, index) => ({ x: index / tokens.length })));`,
-        "dynamics",
+        `export default TransitionKernel((input) => input.Pool.map((token, index) => ({ x: index / input.Pool.length })));`,
+        "kernel",
       );
       const mapNode = fn.body as Extract<HirExpr, { kind: "arrayMap" }>;
       expect(mapNode.indexParam?.name).toBe("index");
@@ -582,11 +596,10 @@ export default Lambda((input, parameters) => x);`,
       expect(fn.body.kind).toBe("recordLit");
     });
 
-    it("lowers a dynamics body with ambient tokens", () => {
+    it("lowers a dynamics body with the ambient tuple", () => {
       const fn = lowerOk(
-        `return tokens.map(({ x }) => {
-  return { x: -x * parameters.decay };
-});`,
+        `const [token] = tokens;
+return { x: -token.x * parameters.decay };`,
         "dynamics",
       );
       expect(fn.surface).toBe("dynamics");
@@ -594,7 +607,7 @@ export default Lambda((input, parameters) => x);`,
         "tokens",
         "parameters",
       ]);
-      expect(fn.body.kind).toBe("arrayMap");
+      expect(fn.body.kind).toBe("let");
     });
 
     it("lowers the same HIR body as the equivalent module form", () => {

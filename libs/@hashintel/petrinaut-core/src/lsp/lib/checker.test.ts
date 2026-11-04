@@ -81,11 +81,9 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              return tokens.map((token) => {
-                const value = token.x;
-                return { x: value };
-              });
+            code: `export default Dynamics((token, parameters) => {
+              const value = token.x;
+              return { x: value };
             });`,
           },
         ],
@@ -115,10 +113,10 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
+            code: `export default Dynamics(({ x }, parameters) => {
               const a = parameters.alpha;
               const e = parameters.enabled;
-              return tokens.map(({ x }) => ({ x }));
+              return { x };
             });`,
           },
         ],
@@ -149,9 +147,9 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              const value = tokens[0].undefinedProperty;
-              return tokens;
+            code: `export default Dynamics((token, parameters) => {
+              const value = token.undefinedProperty;
+              return { x: value };
             });`,
           },
         ],
@@ -188,10 +186,8 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              return tokens.map(({ x, count, flag }) => {
-                return { x: flag ? x + count : x };
-              });
+            code: `export default Dynamics(({ x, count, flag }, parameters) => {
+              return { x: flag ? x + count : x };
             });`,
           },
         ],
@@ -220,10 +216,8 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              return tokens.map(({ x }) => {
-                return { x: 1, flag: 0 };
-              });
+            code: `export default Dynamics(({ x }, parameters) => {
+              return { x: 1, flag: 0 };
             });`,
           },
         ],
@@ -261,9 +255,9 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
+            code: `export default Dynamics((token, parameters) => {
               const value = parameters.undefinedParam;
-              return tokens;
+              return { x: value };
             });`,
           },
         ],
@@ -289,7 +283,7 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
+            code: `export default Dynamics((token, parameters) => {
               const x = ;
             });`,
           },
@@ -619,7 +613,6 @@ return [{ v: b.x - a.x }];`),
                 name: "PortIn",
                 colorId: "subnet-color",
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -1094,7 +1087,6 @@ return [{ v: b.x - a.x }];`),
                 name: "PortOut",
                 colorId: "subnet-color",
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -1670,9 +1662,8 @@ return { Target: [{ x: source.x + parameters.rate }] };`,
         differentialEquations: [
           {
             colorId: "color1",
-            code: `return tokens.map(({ x }) => {
-  return { x: -x * parameters.rate };
-});`,
+            code: `const [token] = tokens;
+return { x: -token.x * parameters.rate };`,
           },
         ],
         parameters: [
