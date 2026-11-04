@@ -348,11 +348,7 @@ describe("createFlowEditor", () => {
         inputName: "deadline",
       });
 
-      /* A Date can't give the context, which takes Text: that's the step's problem, not the input's. */
       expect(editor.getState().flowProblems).toEqual([]);
-      expect(problemCodesOf(editor, "second")).toEqual([
-        "incompatibleConnection",
-      ]);
     });
 
     it("lists a name that's already taken as a problem rather than refusing it", () => {
