@@ -88,6 +88,8 @@ type CanvasProps = {
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
+  /** How much of the canvas's right edge a panel covers, in pixels. Steps are centred and fitted in the rest. */
+  coveredRight: number;
 };
 
 const FlowCanvas = ({
@@ -98,6 +100,7 @@ const FlowCanvas = ({
   focusRequest,
   collapsedStepIds,
   onToggleCollapsed,
+  coveredRight,
 }: CanvasProps) => {
   const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
@@ -112,6 +115,13 @@ const FlowCanvas = ({
     setCenter,
   } = useReactFlow<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
+  const fitPadding = useMemo(
+    () =>
+      coveredRight > 0
+        ? ({ x: "5%", y: "5%", right: `${coveredRight + 24}px` } as const)
+        : undefined,
+    [coveredRight],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<CanvasTool>("select");
@@ -174,9 +184,9 @@ const FlowCanvas = ({
   useEffect(() => {
     if (nodesInitialized && !fittedRef.current) {
       fittedRef.current = true;
-      void fitView({ maxZoom: 1 });
+      void fitView({ maxZoom: 1, padding: fitPadding });
     }
-  }, [nodesInitialized, fitView]);
+  }, [nodesInitialized, fitView, fitPadding]);
 
   /* A step picked in the Steps tab replaces any selected connections. */
   const [lastFocusRequest, setLastFocusRequest] = useState(focusRequest);
@@ -198,15 +208,26 @@ const FlowCanvas = ({
       focusedRequestRef.current = focusRequest;
       const { x, y } = node.internals.positionAbsolute;
 
+      const zoom = getZoom();
+
       void setCenter(
-        x + (node.measured.width ?? stepCardSize.width) / 2,
+        x +
+          (node.measured.width ?? stepCardSize.width) / 2 +
+          coveredRight / 2 / zoom,
         y + (node.measured.height ?? stepCardSize.height) / 2,
-        { zoom: getZoom(), duration: 300 },
+        { zoom, duration: 300 },
       );
     }
-  }, [focusRequest, nodesInitialized, getInternalNode, getZoom, setCenter]);
+  }, [
+    focusRequest,
+    nodesInitialized,
+    getInternalNode,
+    getZoom,
+    setCenter,
+    coveredRight,
+  ]);
 
-  /* Opening the step panel narrows the canvas, so a step selected near its edge is brought back into view. */
+  /* A step selected partly out of view, or under the step panel when it opens, is brought into view. */
   const paneWidth = useStore((state) => state.width);
   const paneHeight = useStore((state) => state.height);
   const soleSelectedStepId =
@@ -230,18 +251,20 @@ const FlowCanvas = ({
     if (
       left < 0 ||
       top < 0 ||
-      left + width * viewport.zoom > paneWidth ||
+      left + width * viewport.zoom > paneWidth - coveredRight ||
       top + height * viewport.zoom > paneHeight
     ) {
-      void setCenter(x + width / 2, y + height / 2, {
-        zoom: viewport.zoom,
-        duration: 300,
-      });
+      void setCenter(
+        x + width / 2 + coveredRight / 2 / viewport.zoom,
+        y + height / 2,
+        { zoom: viewport.zoom, duration: 300 },
+      );
     }
   }, [
     soleSelectedStepId,
     paneWidth,
     paneHeight,
+    coveredRight,
     /* A step just added is measured after it's selected. */
     nodesInitialized,
     getInternalNode,
@@ -321,7 +344,7 @@ const FlowCanvas = ({
     }
 
     const center = screenToFlowPosition({
-      x: bounds.left + bounds.width / 2,
+      x: bounds.left + (bounds.width - coveredRight) / 2,
       y: bounds.top + bounds.height / 2,
     });
 
@@ -578,7 +601,7 @@ const FlowCanvas = ({
 
     setForEachLayouts((current) => new Map([...(current ?? []), ...layouts]));
     requestAnimationFrame(() => {
-      void fitView({ maxZoom: 1, duration: 300 });
+      void fitView({ maxZoom: 1, duration: 300, padding: fitPadding });
     });
   };
 
@@ -683,7 +706,12 @@ const FlowCanvas = ({
             proOptions={{ hideAttribution: true }}
           >
             <Background variant={BackgroundVariant.Dots} />
-            <MiniMap position="top-right" pannable zoomable />
+            <MiniMap
+              position="top-right"
+              pannable
+              zoomable
+              style={{ marginRight: coveredRight + 15 }}
+            />
             <Panel position="bottom-center">
               <CanvasToolbar
                 tool={tool}
@@ -693,6 +721,7 @@ const FlowCanvas = ({
                   void organize();
                 }}
                 canOrganize={flowDefinition.steps.length > 0}
+                fitPadding={fitPadding}
               />
             </Panel>
           </ReactFlow>

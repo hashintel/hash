@@ -24,7 +24,7 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
-import { StepPanel } from "./edit.page/step-panel";
+import { StepPanel, stepPanelWidth } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
   FlowChangedElsewhereError,
@@ -296,7 +296,10 @@ const FlowEditor = ({
         />
         <div className={canvasArea}>
           {(saveRefusedReason !== null || changedElsewhere) && (
-            <div className={notices}>
+            <div
+              className={notices}
+              style={panelSubject ? { right: stepPanelWidth + 16 } : undefined}
+            >
               {saveRefusedReason !== null && (
                 <Banner tone="error">
                   <Banner.Title>Your latest edits can't be saved</Banner.Title>
@@ -330,15 +333,16 @@ const FlowEditor = ({
             focusRequest={focusRequest}
             collapsedStepIds={collapsedStepIds}
             onToggleCollapsed={toggleCollapsed}
+            coveredRight={panelSubject ? stepPanelWidth : 0}
           />
+          {panelSubject && (
+            <StepPanel
+              editor={editor}
+              subject={panelSubject}
+              onSelectStart={() => setSelection({ stepIds: [], start: true })}
+            />
+          )}
         </div>
-        {panelSubject && (
-          <StepPanel
-            editor={editor}
-            subject={panelSubject}
-            onSelectStart={() => setSelection({ stepIds: [], start: true })}
-          />
-        )}
       </div>
     </DsComponentsScope>
   );

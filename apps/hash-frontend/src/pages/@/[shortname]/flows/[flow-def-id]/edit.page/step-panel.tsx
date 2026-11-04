@@ -29,13 +29,21 @@ type StepsUsing = ReturnType<typeof indexValueUses>;
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
 
+/** The panel floats over the canvas's right edge, so opening it doesn't resize the canvas or move what's on it. */
+export const stepPanelWidth = 384;
+
 const panel = css({
+  position: "absolute",
+  zIndex: "docked",
+  top: "0",
+  right: "0",
+  bottom: "0",
   display: "flex",
   flexDirection: "column",
   gap: "8",
-  flexShrink: "0",
   width: "[384px]",
   p: "4",
+  bg: "bgSolid.min",
   overflowY: "auto",
   borderLeftWidth: "1px",
   borderLeftStyle: "solid",
