@@ -39,7 +39,12 @@ export const createBrowserCallRouter = (agentName: string): Hono => {
     if (binding === undefined)
       return context.json({ error: "invalid-binding" }, 400);
     const { id, callId } = context.req.param();
-    const issued = claimBrowserCall(agentName, id, callId, binding);
+    const issued = claimBrowserCall({
+      agentName,
+      instanceId: id,
+      toolCallId: callId,
+      binding,
+    });
     return issued
       ? context.json(issued)
       : context.json({ error: "not-issued" }, 404);

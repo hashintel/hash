@@ -63,12 +63,7 @@ const onFailureOf = async (
     binding,
   };
   const result = issueBrowserCall(call);
-  const claim = claimBrowserCall(
-    call.agentName,
-    call.instanceId,
-    call.toolCallId,
-    binding,
-  );
+  const claim = claimBrowserCall(call);
   if (!claim) throw new Error("The issued call was not claimable.");
   failBrowserCall({
     ...call,

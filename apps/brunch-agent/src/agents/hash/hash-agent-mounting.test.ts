@@ -140,6 +140,7 @@ const systemPrompt = async () =>
 /** The system prompt's opening of its paragraph on the HASH graph. */
 const hashGraphParagraph = "You work inside HASH. The _user_'s HASH graph";
 /** The secret Brunch is configured to require from hash-api in these tests. */
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
 const hashSecret = "hash-caller-test-secret";
 const hashCredential = (
   secret = hashSecret,
@@ -150,6 +151,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("NODE_ENV", "test");
+  // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
   vi.stubEnv(brunchEnv.hashServiceSecret, hashSecret);
   mounted.initialData = undefined;
   mounted.body = "Four agents";
@@ -523,29 +525,30 @@ test("the app admits the actor header alone or its former name alone to the same
   ).toEqual(expect.arrayContaining(["x-brunch-actor", "x-brunch-principal"]));
 });
 
-test("outside production the app serves the HASH agent under /agents/hash and the Petrinaut agent under its routes", async () => {
-  const { PetrinautAgent } = await import("../petrinaut/agent.ts");
-  expect(await served("hash")).toEqual({
-    status: 200,
-    body: "brunch-hash-agent",
-  });
-  for (const segment of [brunchRoutes.petrinautAgent, "chat"])
-    expect(await served(segment)).toEqual({
+test.each(["test", "production"])(
+  "under NODE_ENV=%s the app serves the HASH agent under /agents/hash with hash-api's secret and the Petrinaut agent under its routes",
+  async (nodeEnv) => {
+    vi.stubEnv("NODE_ENV", nodeEnv);
+    const { PetrinautAgent } = await import("../petrinaut/agent.ts");
+    expect(await served("hash")).toEqual({
       status: 200,
-      body: PetrinautAgent.agentName,
+      body: "brunch-hash-agent",
     });
-});
-
-test("a production app doesn't mount the HASH agent and still serves the Petrinaut agent", async () => {
-  vi.stubEnv("NODE_ENV", "production");
-  const { PetrinautAgent } = await import("../petrinaut/agent.ts");
-  expect((await served("hash")).status).toBe(404);
-  for (const segment of [brunchRoutes.petrinautAgent, "chat"])
-    expect(await served(segment)).toEqual({
-      status: 200,
-      body: PetrinautAgent.agentName,
-    });
-});
+    expect(
+      (
+        await served("hash", {
+          ...agentOwnershipHeaders(identity),
+          [brunchCallerAuthorization.header]: "",
+        })
+      ).status,
+    ).toBe(401);
+    for (const segment of [brunchRoutes.petrinautAgent, "chat"])
+      expect(await served(segment)).toEqual({
+        status: 200,
+        body: PetrinautAgent.agentName,
+      });
+  },
+);
 
 /** A browser request on one agent route segment for an owned instance's call. */
 const browserCall = async (
@@ -727,6 +730,7 @@ const wrongCredentials = {
   "a wrong secret": hashCredential("wrong-secret"),
   "a prefix of the secret": hashCredential(hashSecret.slice(0, -1)),
   "the secret and more": hashCredential(`${hashSecret} more`),
+  // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
   "the secret under another scheme": hashCredential(hashSecret, "Bearer"),
 } satisfies Record<string, Record<string, string>>;
 /** Every kind of request the HASH route serves, on the owned instance and an issued call. */

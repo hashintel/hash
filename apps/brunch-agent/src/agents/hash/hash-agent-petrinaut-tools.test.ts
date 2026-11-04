@@ -99,12 +99,12 @@ const claimed = async (
   binding: string,
 ): Promise<BrowserCallClaim> => {
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    const claim = claimBrowserCall(
-      hashAgent.agentName,
+    const claim = claimBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId,
       toolCallId,
       binding,
-    );
+    });
     if (claim) return claim;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -248,7 +248,12 @@ test("a call naming another editor is not started and never issued", async () =>
     `Not started: editor_id \\"another-editor\\" names no open editor; the open editor is \\"${hashProcessEditorId}\\".`,
   );
   expect(
-    claimBrowserCall(hashAgent.agentName, instanceId, "p1", issuedBinding),
+    claimBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId,
+      toolCallId: "p1",
+      binding: issuedBinding,
+    }),
   ).toBeUndefined();
 });
 
@@ -291,11 +296,11 @@ test("a change with no read of the net in context is not started, and the model 
   expect(JSON.stringify(seen?.content)).toContain("petrinaut_get_net");
   expect(JSON.stringify(seen?.content)).not.toContain("readNetOutline");
   expect(
-    claimBrowserCall(
-      hashAgent.agentName,
+    claimBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId,
-      "p0",
-      canonicalContent(binding),
-    ),
+      toolCallId: "p0",
+      binding: canonicalContent(binding),
+    }),
   ).toBeUndefined();
 });
