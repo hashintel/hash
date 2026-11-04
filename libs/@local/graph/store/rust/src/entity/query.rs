@@ -667,7 +667,7 @@ impl QueryPath for EntityQueryPath<'_> {
 }
 
 /// A single token in an [`EntityQueryPath`].
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
@@ -716,9 +716,9 @@ struct EntityPropertiesPathVisitor {
     position: usize,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) enum MetaTag {
+enum MetaTag {
     Convert,
     DataTypeId,
 }
@@ -910,7 +910,7 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQuerySortingToken {
@@ -1049,9 +1049,8 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct EntityQuerySortingRecord<'s> {
-    #[serde(serialize_with = "crate::query::serialization::sorting_path")]
     pub path: EntityQueryPath<'s>,
     pub ordering: Ordering,
     pub nulls: Option<NullOrdering>,
@@ -1114,9 +1113,9 @@ impl EntityQuerySortingRecord<'_> {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct EntityQuerySorting<'s> {
-    #[serde(borrow, rename(serialize = "sortingPaths"))]
+    #[serde(borrow)]
     pub paths: Vec<EntityQuerySortingRecord<'s>>,
     #[serde(borrow)]
     pub cursor: Option<EntityQueryCursor<'s>>,

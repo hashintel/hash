@@ -118,7 +118,7 @@ fn entity(web: Uuid, id: Uuid) -> Entity {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct SecretQueryRequest<'a> {
     #[serde(borrow)]
     filter: Filter<'a, Entity>,

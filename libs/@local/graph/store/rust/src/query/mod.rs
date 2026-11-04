@@ -5,7 +5,6 @@ pub use self::{
 
 mod ordering;
 mod pagination;
-pub(crate) mod serialization;
 
 use error_stack::Report;
 use futures::{Stream, TryFutureExt as _, TryStreamExt};

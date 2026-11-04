@@ -193,7 +193,7 @@ pub struct ValidateEntityParams<'a> {
     pub components: ValidateEntityComponents,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryConversion<'a> {
@@ -201,12 +201,10 @@ pub struct QueryConversion<'a> {
     pub data_type_id: VersionedUrl,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct QueryEntitiesParams<'a> {
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    #[serde(flatten)]
     pub sorting: EntityQuerySorting<'static>,
     pub conversions: Vec<QueryConversion<'a>>,
     pub limit: usize,

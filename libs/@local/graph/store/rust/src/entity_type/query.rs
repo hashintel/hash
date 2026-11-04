@@ -4,7 +4,7 @@ use core::{
 };
 
 use serde::{
-    Deserialize, Serialize,
+    Deserialize, Serialize as _,
     de::{self, Deserializer, SeqAccess, Visitor},
 };
 #[cfg(feature = "utoipa")]
@@ -640,7 +640,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
 }
 
 /// A single token in a [`EntityTypeQueryPath`].
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeQueryToken {

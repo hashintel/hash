@@ -253,7 +253,7 @@ pub struct SearchEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum IncludeEntityTypeOption {

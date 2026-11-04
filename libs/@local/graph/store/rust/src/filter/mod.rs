@@ -19,7 +19,7 @@ use hash_graph_authorization::policies::{
     },
 };
 use hash_graph_types::ontology::DataTypeLookup;
-use serde::{Deserialize, Serialize, de, de::IntoDeserializer as _};
+use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
     knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
@@ -86,7 +86,7 @@ pub(crate) fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
     T::deserialize(token.into_deserializer()).map(|token| (token, parameters))
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Selector {
     #[serde(rename = "*")]
@@ -115,14 +115,11 @@ pub trait OntologyQueryPath {
 }
 
 /// A set of conditions used for queries.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 #[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
 #[serde(
     rename_all = "camelCase",
-    bound(
-        deserialize = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>",
-        serialize = "R::QueryPath<'p>: Serialize"
-    )
+    bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
 pub enum Filter<'p, R: QueryRecord> {
     All(Vec<Self>),
@@ -1455,7 +1452,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ParameterConversion {
     from: VersionedUrl,
@@ -1463,22 +1460,15 @@ pub struct ParameterConversion {
 }
 
 /// A leaf value in a [`Filter`].
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 #[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
-#[serde(
-    untagged,
-    bound(
-        deserialize = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>",
-        serialize = "R::QueryPath<'p>: Serialize"
-    )
-)]
+#[serde(untagged, bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
 pub enum FilterExpression<'p, R: QueryRecord> {
     Path {
         path: R::QueryPath<'p>,
     },
     Parameter {
         parameter: Parameter<'p>,
-        #[serde(skip_serializing_if = "Option::is_none")]
         convert: Option<ParameterConversion>,
     },
 }

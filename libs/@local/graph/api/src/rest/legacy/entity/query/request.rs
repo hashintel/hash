@@ -358,44 +358,9 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
 mod tests {
     use core::assert_matches;
 
-    use serde::Deserialize as _;
     use serde_json::json;
 
     use super::*;
-
-    #[test]
-    fn deserialize_serialized_store_query() {
-        let query = QueryEntitiesParams {
-            filter: Filter::All(Vec::new()),
-            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-            sorting: EntityQuerySorting {
-                paths: vec![EntityQuerySortingRecord {
-                    path: EntityQueryPath::DecisionTime,
-                    ordering: Ordering::Descending,
-                    nulls: None,
-                }],
-                cursor: None,
-            },
-            conversions: Vec::new(),
-            limit: 2,
-            include_drafts: false,
-            include_entity_types: None,
-            include_permissions: false,
-        };
-        let body = serde_json::to_value(&query).expect("the shared query should serialize");
-        let request = QueryEntitiesRequest::deserialize(&body)
-            .expect("the Graph endpoint should accept the serialized shared query");
-        assert_eq!(request.limit, Some(2));
-        assert_eq!(request.temporal_axes, query.temporal_axes);
-        let sorting = request
-            .sorting_paths
-            .expect("the sorting paths should be preserved");
-        assert_eq!(sorting.len(), 1);
-        assert_eq!(sorting[0].path, EntityQueryPath::DecisionTime);
-        assert_eq!(sorting[0].ordering, Ordering::Descending);
-        assert!(!request.include_drafts);
-        assert!(!request.include_permissions);
-    }
 
     /// Minimal valid temporal axes for test payloads.
     fn temporal_axes() -> serde_json::Value {

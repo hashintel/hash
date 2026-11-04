@@ -2,25 +2,20 @@ use core::{error::Error as _, pin::Pin, time::Duration};
 
 use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
-use hash_graph_store::{
-    entity::{EntityQueryPath, EntityQuerySorting, QueryEntitiesParams},
-    filter::{Filter, FilterExpression, Parameter},
-    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
-};
+use hash_graph_store::subgraph::temporal_axes::QueryTemporalAxesUnresolved;
 use hash_integrations_definition::SecretReference;
 use hash_middleware::authentication::{
     request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
 };
 use reqwest::{Client, Url, header::AUTHORIZATION};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use type_system::{
     knowledge::{
         Entity, Property, PropertyValue,
         entity::{EntityId, id::EntityUuid},
     },
-    ontology::VersionedUrl,
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
@@ -129,38 +124,38 @@ fn segment(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
 }
 
-fn secret_query(
-    web_id: Uuid,
-    entity_id: Uuid,
-    secret_type: &VersionedUrl,
-) -> QueryEntitiesParams<'_> {
-    QueryEntitiesParams {
-        filter: Filter::All(vec![
-            Filter::for_entity_by_entity_id(EntityId {
-                web_id: WebId::new(web_id),
-                entity_uuid: EntityUuid::new(entity_id),
-                draft_id: None,
-            }),
-            Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::Archived,
+/// Body of a Graph `POST /entities/query` request.
+///
+/// Mirrors the public REST request rather than the store's query types, which stay internal to the
+/// Graph.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SecretQuery {
+    filter: Value,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    limit: usize,
+    include_drafts: bool,
+    include_permissions: bool,
+}
+
+fn secret_query(web_id: Uuid, entity_id: Uuid) -> SecretQuery {
+    let equal = |path: Value, parameter: Value| json!({ "equal": [{ "path": path }, { "parameter": parameter }] });
+    SecretQuery {
+        filter: json!({
+            "all": [
+                {
+                    "all": [
+                        equal(json!(["webId"]), json!(web_id.to_string())),
+                        equal(json!(["uuid"]), json!(entity_id.to_string())),
+                    ],
                 },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Boolean(false),
-                    convert: None,
-                },
-            ),
-            Filter::for_entity_by_type_id(secret_type),
-        ]),
+                equal(json!(["archived"]), json!(false)),
+                equal(json!(["type", "versionedUrl"]), json!(USER_SECRET_TYPE)),
+            ],
+        }),
         temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-        sorting: EntityQuerySorting {
-            paths: Vec::new(),
-            cursor: None,
-        },
-        conversions: Vec::new(),
         limit: 2,
         include_drafts: false,
-        include_entity_types: None,
         include_permissions: false,
     }
 }
@@ -206,10 +201,7 @@ impl SecretStore for GraphVaultSecretStore {
             .map_err(|()| Report::new(SourceError::Configuration))?
             .pop_if_empty()
             .extend(["entities", "query"]);
-        let secret_type = USER_SECRET_TYPE
-            .parse::<VersionedUrl>()
-            .map_err(|_error| Report::new(SourceError::Configuration))?;
-        let query = secret_query(web_id, reference.secret_entity_uuid, &secret_type);
+        let query = secret_query(web_id, reference.secret_entity_uuid);
         let response = self
             .client
             .post(graph)

@@ -1,7 +1,7 @@
 use core::{fmt, fmt::Write as _};
 
 use serde::{
-    Deserialize, Serialize,
+    Deserialize, Serialize as _,
     de::{self, Deserializer, SeqAccess, Visitor},
 };
 #[cfg(feature = "utoipa")]
@@ -321,7 +321,7 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
 }
 
 /// A single token in a [`DataTypeQueryPath`].
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum PropertyTypeQueryToken {
