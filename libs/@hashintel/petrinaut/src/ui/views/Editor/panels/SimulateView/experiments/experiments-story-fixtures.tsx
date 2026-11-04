@@ -884,6 +884,7 @@ export function FakeEditorProvider({
     closePlaceVisualizer: () => {},
     openPlaceVisualizer: () => {},
     setVisualizerEditorFocus: () => {},
+    bringVisualizerToFront: () => {},
     setDraggingStateByNodeId: () => {},
     updateDraggingStateByNodeId: () => {},
     simulateDrawer,

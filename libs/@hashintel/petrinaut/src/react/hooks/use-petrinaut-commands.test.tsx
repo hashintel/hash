@@ -68,6 +68,7 @@ const editorContextValue = (
   closePlaceVisualizer: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
+  bringVisualizerToFront: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

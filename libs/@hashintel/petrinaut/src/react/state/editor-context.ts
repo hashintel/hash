@@ -98,6 +98,8 @@ export type EditorState = {
   hoveredItem: SelectionItem | null;
   /** Windows explicitly kept open, independently of their positioning mode. */
   keptOpenVisualizerPlaceIds: Set<string>;
+  /** Visualizer place IDs ordered from back to front. */
+  visualizerStack: string[];
   /** The temporary hover or keyboard preview. */
   openVisualizerPlaceId: string | null;
   focusedVisualizerPlaceId: string | null;
@@ -163,6 +165,7 @@ export type EditorActions = {
   clearHoveredItem: () => void;
   keepPlaceVisualizerOpen: (placeId: string) => void;
   closePlaceVisualizer: (placeId: string) => void;
+  bringVisualizerToFront: (placeId: string) => void;
   /** Show or dismiss a temporary preview. */
   openPlaceVisualizer: (placeId: string | null) => void;
   setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
@@ -209,6 +212,7 @@ export const initialEditorState: EditorState = {
   hasSelection: false,
   hoveredItem: null,
   keptOpenVisualizerPlaceIds: new Set<string>(),
+  visualizerStack: [],
   openVisualizerPlaceId: null,
   focusedVisualizerPlaceId: null,
   draggingStateByNodeId: {},
@@ -252,6 +256,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearHoveredItem: () => {},
   keepPlaceVisualizerOpen: () => {},
   closePlaceVisualizer: () => {},
+  bringVisualizerToFront: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
   setDraggingStateByNodeId: () => {},

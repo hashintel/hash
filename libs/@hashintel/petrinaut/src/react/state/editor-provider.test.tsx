@@ -234,6 +234,27 @@ describe("EditorProvider selection gestures", () => {
     expect(editor.openVisualizerPlaceId).toBe("place-a");
   });
 
+  it("keeps the most recently activated visualizer in front after blur and restores the previous order on close", () => {
+    act(() => editor.keepPlaceVisualizerOpen("place-a"));
+    act(() => editor.keepPlaceVisualizerOpen("place-b"));
+    act(() => editor.keepPlaceVisualizerOpen("place-c"));
+    act(() => editor.bringVisualizerToFront("place-a"));
+    expect(editor.visualizerStack).toEqual(["place-b", "place-c", "place-a"]);
+    const stack = editor.visualizerStack;
+    act(() => editor.bringVisualizerToFront("place-a"));
+    expect(editor.visualizerStack).toBe(stack);
+    act(() => editor.setVisualizerEditorFocus("place-b", true));
+    expect(editor.visualizerStack).toEqual(["place-c", "place-a", "place-b"]);
+    act(() => editor.setVisualizerEditorFocus("place-b", false));
+    act(() => editor.openPlaceVisualizer("place-c"));
+    expect(editor.visualizerStack).toEqual(["place-c", "place-a", "place-b"]);
+    act(() => editor.closePlaceVisualizer("place-b"));
+    expect(editor.visualizerStack).toEqual(["place-c", "place-a"]);
+    act(() => editor.setVisualizerEditorFocus("temporary", true));
+    expect(editor.visualizerStack.at(-1)).toBe("temporary");
+    expect(editor.keptOpenVisualizerPlaceIds.has("temporary")).toBe(false);
+  });
+
   it("records Edit view switches without changing the mode or selection", () => {
     act(() => editor.setSelection(selectionOf("place-a")));
     recorded.length = 0;

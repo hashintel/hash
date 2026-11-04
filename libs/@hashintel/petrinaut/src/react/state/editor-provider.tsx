@@ -31,6 +31,19 @@ const selectionFromNavigation = (
 const selectionToNavigation = (selection: SelectionMap) =>
   Array.from(selection.values());
 
+const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
+  state.visualizerStack.at(-1) === placeId
+    ? state
+    : {
+        ...state,
+        visualizerStack: [
+          ...state.visualizerStack.filter(
+            (visualizerPlaceId) => visualizerPlaceId !== placeId,
+          ),
+          placeId,
+        ],
+      };
+
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const actualMode = use(ActualModeContext);
@@ -465,13 +478,15 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, openVisualizerPlaceId: placeId })),
     setVisualizerEditorFocus: (placeId: string, focused: boolean) =>
       setState((previous) => ({
-        ...previous,
+        ...(focused ? raiseVisualizer(previous, placeId) : previous),
         focusedVisualizerPlaceId: focused
           ? placeId
           : previous.focusedVisualizerPlaceId === placeId
             ? null
             : previous.focusedVisualizerPlaceId,
       })),
+    bringVisualizerToFront: (placeId) =>
+      setState((previous) => raiseVisualizer(previous, placeId)),
     keepPlaceVisualizerOpen: (placeId: string) =>
       setState((previous) => {
         if (previous.keptOpenVisualizerPlaceIds.has(placeId)) return previous;
@@ -479,7 +494,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
           previous.keptOpenVisualizerPlaceIds,
         );
         keptOpenVisualizerPlaceIds.add(placeId);
-        return { ...previous, keptOpenVisualizerPlaceIds };
+        return {
+          ...raiseVisualizer(previous, placeId),
+          keptOpenVisualizerPlaceIds,
+        };
       }),
     closePlaceVisualizer: (placeId: string) =>
       setState((previous) => {
@@ -490,6 +508,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         return {
           ...previous,
           keptOpenVisualizerPlaceIds,
+          visualizerStack: previous.visualizerStack.filter(
+            (visualizerPlaceId) => visualizerPlaceId !== placeId,
+          ),
           openVisualizerPlaceId:
             previous.openVisualizerPlaceId === placeId
               ? null

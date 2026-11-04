@@ -14,7 +14,6 @@ import type { PointerEventHandler, ReactNode } from "react";
 
 const panelStyle = css({
   position: "absolute",
-  zIndex: "[1001]",
   display: "flex",
   flexDirection: "column",
   backgroundColor: "neutral.s00",
@@ -121,6 +120,8 @@ export const VisualizerWindow = ({
   editing,
   dimmed,
   animated,
+  stackIndex,
+  onActivate,
   onKeepOpen,
   onClose,
   onEdit,
@@ -133,6 +134,8 @@ export const VisualizerWindow = ({
   editing: boolean;
   dimmed: boolean;
   animated: boolean;
+  stackIndex: number;
+  onActivate: () => void;
   onKeepOpen: () => void;
   onClose: () => void;
   onEdit?: () => void;
@@ -198,6 +201,7 @@ export const VisualizerWindow = ({
       <div
         className={`${panelStyle} nodrag nopan nowheel`}
         style={{
+          zIndex: 1001 + stackIndex,
           left: layout.position.x,
           top: layout.position.y,
           width: layout.size.width,
@@ -212,6 +216,10 @@ export const VisualizerWindow = ({
         tabIndex={-1}
         aria-label={`${name} state visualizer`}
         {...getHandleProps("move")}
+        onFocusCapture={onActivate}
+        onPointerDownCapture={(event) => {
+          if (event.button === 0) onActivate();
+        }}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
         onMouseDown={(event) => event.stopPropagation()}

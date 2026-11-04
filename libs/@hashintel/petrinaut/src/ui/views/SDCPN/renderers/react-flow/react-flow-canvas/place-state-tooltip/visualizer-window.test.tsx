@@ -48,13 +48,19 @@ vi.mock("@hashintel/ds-components", () => ({
   ),
 }));
 
-const panel = (onClose = () => {}, onKeepOpen = () => {}) => (
+const panel = (
+  onClose = () => {},
+  onKeepOpen = () => {},
+  onActivate = () => {},
+) => (
   <VisualizerWindow
     nodeId="place"
     name="Space"
     editing={false}
     dimmed={false}
     animated
+    stackIndex={0}
+    onActivate={onActivate}
     onClose={onClose}
     onKeepOpen={onKeepOpen}
   >
@@ -162,6 +168,33 @@ it("switches between following and fixed positions without jumping", () => {
   canvas.node.internals.positionAbsolute.x += 30;
   rerender(panel(undefined, keepOpen));
   expect(parseFloat(visualizer.style.left)).toBe(previousLeft + 30);
+});
+
+it("raises the window from picture, resize, and control interactions, including keyboard focus", () => {
+  const activate = vi.fn();
+  render(panel(undefined, undefined, activate));
+  const visualizer = screen.getByRole("group");
+  mockPointerCapture(visualizer);
+  pointerEvent(visualizer.querySelector("svg")!, "pointerdown");
+  expect(activate).toHaveBeenCalled();
+  pointerEvent(visualizer, "pointerup");
+  activate.mockClear();
+
+  const resize = screen.getByRole("button", {
+    name: "Resize Space visualizer from bottom-right",
+  });
+  mockPointerCapture(resize);
+  pointerEvent(resize, "pointerdown");
+  expect(activate).toHaveBeenCalled();
+  pointerEvent(resize, "pointerup");
+  activate.mockClear();
+
+  const pin = screen.getByRole("button", { name: "Fix position on screen" });
+  pointerEvent(pin, "pointerdown");
+  expect(activate).toHaveBeenCalledOnce();
+  activate.mockClear();
+  act(() => pin.focus());
+  expect(activate).toHaveBeenCalledOnce();
 });
 
 it("remembers the dragged offset when following and restores it after the place returns from offscreen", () => {
@@ -452,6 +485,8 @@ it("keeps its dragged layout when leaving the editor and while content loads", a
       editing={!keptOpen}
       dimmed={false}
       animated
+      stackIndex={0}
+      onActivate={() => {}}
       onClose={() => {}}
       onKeepOpen={() => {}}
     >

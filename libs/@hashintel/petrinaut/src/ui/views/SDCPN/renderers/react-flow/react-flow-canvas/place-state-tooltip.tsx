@@ -59,6 +59,8 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
   const { showAnimations } = use(UserSettingsContext);
   const {
     keptOpenVisualizerPlaceIds,
+    visualizerStack,
+    bringVisualizerToFront,
     openVisualizerPlaceId,
     focusedVisualizerPlaceId,
     keepPlaceVisualizerOpen,
@@ -150,6 +152,8 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
           editing={editing}
           dimmed={focusedVisualizerPlaceId !== null && !editing}
           animated={showAnimations}
+          stackIndex={visualizerStack.indexOf(nodeId) + 1}
+          onActivate={() => bringVisualizerToFront(nodeId)}
           onKeepOpen={() => {
             setEyeFocused(false);
             setEyeHovered(false);
