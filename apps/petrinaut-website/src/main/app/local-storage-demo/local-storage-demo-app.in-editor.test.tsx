@@ -13,17 +13,17 @@ import { type ComponentProps, useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent";
-
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
-} from "../plugins/brunch/conversation/brunch-conversation-id";
-import { conversationWordsKey } from "../plugins/brunch/words/conversation-words";
+} from "@hashintel/brunch-agent/client";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
-} from "../shared/petrinaut-jsdom";
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
+import { conversationWordsKey } from "@hashintel/brunch-agent/ui";
+
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import {
@@ -36,7 +36,7 @@ import type { PetrinautProps } from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 
@@ -53,13 +53,13 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
     return client.current;
   },
 }));
-vi.mock("../plugins/brunch/brunch-preview-config", () => ({
+vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/petrinaut",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
+vi.mock("./brunch-owner-key", () => ({
   getOrCreateBrunchOwnerKey: () => "prompt-test-owner",
 }));
 // The real editor, observed: the props the shell hands it.
