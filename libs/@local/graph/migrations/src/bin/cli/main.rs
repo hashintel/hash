@@ -10,7 +10,7 @@ mod subcommand;
 
 use core::error::Error;
 
-use clap::Parser as _;
+use clap::{CommandFactory as _, FromArgMatches as _};
 use hash_telemetry::{TracingConfig, init_tracing};
 
 pub trait Command {
@@ -29,7 +29,10 @@ pub struct Entry {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let entry = Entry::parse();
+    let mut matches =
+        TracingConfig::with_namespace_flag(Entry::command(), std::env::args_os()).get_matches();
+    let entry = Entry::from_arg_matches_mut(&mut matches)
+        .unwrap_or_else(|error| error.format(&mut Entry::command()).exit());
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()

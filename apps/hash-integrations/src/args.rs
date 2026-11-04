@@ -24,7 +24,7 @@ pub struct Args {
 impl Args {
     /// Parse the arguments passed to the program.
     pub fn parse_args() -> Self {
-        let mut matches = Self::command()
+        let mut matches = TracingConfig::with_namespace_flag(Self::command(), std::env::args_os())
             .color(ColorChoice::Auto)
             .styles(
                 Styles::styled()
