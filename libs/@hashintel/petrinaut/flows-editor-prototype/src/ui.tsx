@@ -17,21 +17,22 @@ const tile = cva({
     borderRadius: "md",
   },
   variants: {
+    // Neutral for every type (Aakarsh, 4 Nov); `tone` stays for when the Flows palette is picked.
     tone: {
       green: {
-        backgroundColor: "green.bgSolid.surface.active",
-        color: "green.fg.link",
+        backgroundColor: "neutral.bgSolid.surface",
+        color: "neutral.fg.muted",
       },
       orange: {
-        backgroundColor: "orange.bgSolid.surface.active",
-        color: "orange.fg.link",
+        backgroundColor: "neutral.bgSolid.surface",
+        color: "neutral.fg.muted",
       },
       blue: {
-        backgroundColor: "blue.bgSolid.surface.active",
-        color: "blue.fg.link",
+        backgroundColor: "neutral.bgSolid.surface",
+        color: "neutral.fg.muted",
       },
       neutral: {
-        backgroundColor: "neutral.bgSolid.surface.active",
+        backgroundColor: "neutral.bgSolid.surface",
         color: "neutral.fg.muted",
       },
     },
@@ -494,5 +495,112 @@ export const descriptionInputStyle = css({
   _hover: { color: "neutral.fg.muted" },
   _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
 });
+
+const renameTextStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  height: "[28px]",
+  paddingX: "2",
+  borderRadius: "lg",
+  minWidth: "[0]",
+  maxWidth: "[480px]",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.heading",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  cursor: "text",
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  _focusVisible: {
+    outline: "none",
+    boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]",
+  },
+});
+
+const renameInputStyle = css({
+  height: "[28px]",
+  paddingX: "2",
+  borderRadius: "lg",
+  borderWidth: "[0]",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.heading",
+  backgroundColor: "neutral.bg.surface.active",
+  fieldSizing: "content",
+  minWidth: "[160px]",
+  maxWidth: "[480px]",
+  outline: "none",
+});
+
+/**
+ * Anything renamable (Aakarsh, 4 Nov, Attio's pattern): a subtle fill on hover, an input on click, Enter or blur
+ * saves, Esc cancels. No pen icons anywhere.
+ */
+export const InlineRename = ({
+  value,
+  onSave,
+  label,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onSave: (value: string) => void;
+  label: string;
+  placeholder?: string;
+  className?: string;
+}) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  if (draft !== null) {
+    const save = () => {
+      const next = draft.trim();
+      if (next && next !== value) {
+        onSave(next);
+      }
+      setDraft(null);
+    };
+    return (
+      <input
+        className={cx(renameInputStyle, className)}
+        value={draft}
+        aria-label={label}
+        placeholder={placeholder}
+        data-rename-input
+        // oxlint-disable-next-line jsx-a11y/no-autofocus -- the user asked to rename; the caret goes to the name
+        autoFocus
+        onFocus={(event) => event.currentTarget.select()}
+        onBlur={save}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            save();
+          } else if (event.key === "Escape") {
+            event.stopPropagation();
+            setDraft(null);
+          }
+        }}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+    );
+  }
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label={`${label}: ${value || placeholder || ""}. Rename`}
+      title="Rename"
+      className={cx(renameTextStyle, className)}
+      data-rename
+      onClick={() => setDraft(value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setDraft(value);
+        }
+      }}
+    >
+      {value || placeholder}
+    </span>
+  );
+};
 
 export { cx };

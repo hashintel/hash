@@ -4,6 +4,8 @@ import "../src/ui/index.css";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
+import { IconProvider } from "@hashintel/ds-components";
+
 import { Editor } from "./src/app";
 import { Results } from "./src/briefing";
 import { emptyDocument } from "./src/document";
@@ -16,6 +18,7 @@ import { newFlowUi, type ScreenBuild, screenBuilds } from "./src/screen-builds";
 import { ScreenJumper, ScreenPlaceholder } from "./src/screen-jumper";
 import { findScreen } from "./src/screens";
 import { findScreenState } from "./src/states";
+import { thinIcons } from "./src/thin-icons";
 
 const params = new URLSearchParams(location.search);
 
@@ -146,6 +149,20 @@ const ScreenPage = () => {
   );
 };
 
+/** The app's routes (`/flows/…`); `/` with an old `?screen=` or `?state=` keeps the Journeys screens. */
+const Routes = () => {
+  const { route } = useLocation();
+  if (route.page === "legacy") {
+    return <ScreenPage />;
+  }
+  return (
+    <>
+      <RoutedApp />
+      <ScreenJumper />
+    </>
+  );
+};
+
 const Root = () => {
   if (params.has("results")) {
     return <Results />;
@@ -167,23 +184,13 @@ const Root = () => {
   return <Routes />;
 };
 
-/** The app's routes (`/flows/…`); `/` with an old `?screen=` or `?state=` keeps the Journeys screens. */
-const Routes = () => {
-  const { route } = useLocation();
-  if (route.page === "legacy") {
-    return <ScreenPage />;
-  }
-  return (
-    <>
-      <RoutedApp />
-      <ScreenJumper />
-    </>
-  );
-};
-
 // Hot reloads re-run this module: keep one root, so an edit re-renders instead of mounting a second React tree.
 const holder = globalThis as typeof globalThis & {
   flowsPrototypeRoot?: ReturnType<typeof createRoot>;
 };
 holder.flowsPrototypeRoot ??= createRoot(document.getElementById("root")!);
-holder.flowsPrototypeRoot.render(<Root />);
+holder.flowsPrototypeRoot.render(
+  <IconProvider icons={thinIcons}>
+    <Root />
+  </IconProvider>,
+);

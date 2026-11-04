@@ -55,6 +55,7 @@ import {
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
+import { useLocation } from "./router";
 import { RunBar } from "./run-glyph";
 import { barOf, type StepRun, runTriggerId, triggerLabel } from "./run-history";
 import { describeSource } from "./shapes";
@@ -223,6 +224,11 @@ const cardStyle = cva({
   },
 });
 
+const neutralTile = {
+  backgroundColor: "neutral.bgSolid.surface",
+  color: "neutral.fg.muted",
+} as const;
+
 const cardTileStyle = cva({
   base: {
     display: "inline-flex",
@@ -238,24 +244,14 @@ const cardTileStyle = cva({
       "--icon-size": "14px",
     },
   },
+  // Icons are neutral, on an almost invisible tile (Aakarsh, 4 Nov: "too heavy"); `tone` stays for when the
+  // Flows palette is picked.
   variants: {
     tone: {
-      green: {
-        backgroundColor: "green.bgSolid.surface.active",
-        color: "green.fg.muted",
-      },
-      orange: {
-        backgroundColor: "orange.bgSolid.surface.active",
-        color: "orange.fg.muted",
-      },
-      blue: {
-        backgroundColor: "blue.bgSolid.surface.active",
-        color: "blue.fg.muted",
-      },
-      neutral: {
-        backgroundColor: "blue.bgSolid.surface.active",
-        color: "neutral.fg.muted",
-      },
+      green: neutralTile,
+      orange: neutralTile,
+      blue: neutralTile,
+      neutral: neutralTile,
     },
   },
 });
@@ -1282,7 +1278,9 @@ export const FlowCanvas = ({
 }) => {
   const { document, setDocument, ui, setUi } = useEditor();
   const runView = useRunView();
-  const readOnly = Boolean(runView);
+  // A run, or a past version open from the version menu (V6), is read-only.
+  const viewingVersion = useLocation().query.has("version");
+  const readOnly = Boolean(runView) || viewingVersion;
   const [dragPositions, setDragPositions] = useState<
     Record<string, { x: number; y: number }>
   >({});

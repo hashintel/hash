@@ -15,15 +15,15 @@ export const statusColor = {
 } as const;
 
 /**
- * The run bar on canvas cards, neutral until the Flows palette is picked (Aakarsh, 4 Nov: "no green, red or blue on
- * the bar yet"). Darkest for a failure, a strong grey for done, a light track for what has not run. Swap these for
- * the status colours above once he picks.
+ * The run bar on canvas cards: "super subtle, like a faint idea" (Aakarsh, 4 Nov). Neutral alpha steps only: done
+ * is faint, failure and needs review one step darker so they can still be found, running pulses on the faint step,
+ * and the not-reached track is fainter still. Swap for the status colours above once the palette is picked.
  */
 export const barColor = {
-  done: "var(--colors-neutral-fg-muted)",
-  failed: "var(--colors-neutral-fg-heading)",
-  running: "var(--colors-neutral-fg-subtle)",
-  review: "var(--colors-neutral-fg-heading)",
-  skipped: "var(--colors-neutral-bd-solid)",
-  rest: "var(--colors-neutral-bd-subtle)",
+  done: "var(--colors-neutral-a25)",
+  failed: "var(--colors-neutral-a45)",
+  running: "var(--colors-neutral-a25)",
+  review: "var(--colors-neutral-a45)",
+  skipped: "var(--colors-neutral-a15)",
+  rest: "var(--colors-neutral-a10)",
 } as const;

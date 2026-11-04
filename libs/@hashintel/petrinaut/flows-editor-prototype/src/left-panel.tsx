@@ -98,7 +98,7 @@ const tileStyle = cva({
     width: "[14px]",
     height: "[14px]",
     borderRadius: "[3px]",
-    backgroundColor: "neutral.bgSolid.surface.active",
+    backgroundColor: "neutral.bgSolid.surface",
     "&[class] svg": {
       width: "[10px]",
       height: "[10px]",
@@ -107,9 +107,10 @@ const tileStyle = cva({
   },
   variants: {
     tone: {
-      green: { color: "green.fg.muted" },
-      orange: { color: "orange.fg.muted" },
-      blue: { color: "blue.fg.muted" },
+      // Neutral for every type (Aakarsh, 4 Nov); `tone` stays for when the Flows palette is picked.
+      green: { color: "neutral.fg.muted" },
+      orange: { color: "neutral.fg.muted" },
+      blue: { color: "neutral.fg.muted" },
       neutral: { color: "neutral.fg.muted" },
     },
   },

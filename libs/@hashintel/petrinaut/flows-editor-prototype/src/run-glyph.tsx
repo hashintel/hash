@@ -147,13 +147,13 @@ export const RunGlyph = ({
 const pulseStyle = css({ animation: "pulse" });
 
 /**
- * A card's run bar: 3 px (2 px all but vanished at the run view's 45% zoom), inside the card's bottom edge and clipped to its corners, in neutral greys for now
+ * A card's run bar: 2 px, faint (a "faint idea", 4 Nov), inside the card's bottom edge and clipped to its corners, in neutral greys for now
  * (`barColor`). A step that runs once fills it; a step that runs per item gets one segment per item with 2 px gaps,
  * or proportional groups when the items would not fit. A running segment pulses.
  */
 export const RunBar = ({
   segments,
-  height = 3,
+  height = 2,
   gap = 2,
 }: {
   segments: BarSegment[];
