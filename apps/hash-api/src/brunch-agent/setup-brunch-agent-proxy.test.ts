@@ -30,12 +30,17 @@ const listen = async (server: Server) => {
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 };
 
+/** The secret the proxy is configured with in these tests. */
+const brunchSecret = "hash-api-test-secret";
+
 const startProxy = async ({
   configured = true,
+  secret = brunchSecret,
   signedIn = true,
   appJsonParser = true,
 }: {
   configured?: boolean;
+  secret?: string | null;
   signedIn?: boolean;
   appJsonParser?: boolean;
 } = {}) => {
@@ -86,6 +91,7 @@ const startProxy = async ({
   }
   setupBrunchAgentProxy(app, {
     origin: configured ? new URL(upstreamOrigin) : null,
+    secret,
     publicOrigin: "https://app-api.example",
     logger: { warn: vi.fn() },
   });
@@ -282,6 +288,28 @@ test("overwrites an actor key forged by the browser with the account's, under ei
   expect(upstreamRequests[0]?.headers["x-brunch-principal"]).toBeUndefined();
 });
 
+test("authenticates to Brunch with its own secret on every request, never the browser's, and returns it to no one", async () => {
+  const { send, upstreamRequests } = await startProxy();
+
+  const responses = await Promise.all([
+    send("/api/brunch/agents/hash/instance", {
+      method: "POST",
+      headers: { authorization: "HASH-Service forged-by-the-browser" },
+    }),
+    send("/api/brunch/agents/hash/instance?live=sse", {
+      headers: { authorization: "Bearer forged-by-the-browser" },
+    }),
+    send("/api/brunch/agents/hash/instance/browser-calls/call-1"),
+  ]);
+
+  expect(upstreamRequests.map(({ headers }) => headers.authorization)).toEqual(
+    Array.from({ length: 3 }, () => `HASH-Service ${brunchSecret}`),
+  );
+  for (const response of responses) {
+    expect(JSON.stringify(response)).not.toContain(brunchSecret);
+  }
+});
+
 test("never forwards the browser's cookie", async () => {
   const { send, upstreamRequests } = await startProxy();
 
@@ -421,17 +449,26 @@ test.each(["/api/brunch/identity", "/api/brunch/agents/hash/instance"])(
   },
 );
 
-test.each(["/api/brunch/identity", "/api/brunch/agents/hash/instance"])(
-  "answers %s with 503 when no Brunch origin is configured",
-  async (path) => {
-    const { send, upstreamRequests } = await startProxy({ configured: false });
+test.each([
+  ["no Brunch origin", { configured: false }],
+  ["no Brunch secret", { secret: null }],
+  ["an empty Brunch secret", { secret: "" }],
+])(
+  "answers identity and agent routes with 503 when %s is configured",
+  async (_missing, configuration) => {
+    const { send, upstreamRequests } = await startProxy(configuration);
 
-    const response = await send(path);
+    for (const path of [
+      "/api/brunch/identity",
+      "/api/brunch/agents/hash/instance",
+    ]) {
+      const response = await send(path);
 
-    expect(response.status).toBe(503);
-    expect(JSON.parse(response.body)).toEqual({
-      error: "Brunch agent is not configured",
-    });
+      expect(response.status, path).toBe(503);
+      expect(JSON.parse(response.body)).toEqual({
+        error: "Brunch agent is not configured",
+      });
+    }
     expect(upstreamRequests).toEqual([]);
   },
 );

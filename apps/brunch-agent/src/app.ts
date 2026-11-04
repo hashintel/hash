@@ -37,6 +37,7 @@ import {
   createAgentCors,
   parseCorsAllowedOrigins,
 } from "./server/http/cors.ts";
+import { hashCallerGuard } from "./server/http/hash-caller-guard.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
 import { createModelCallScope } from "./server/model-call-scope.ts";
@@ -276,6 +277,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const app = new Hono();
+const hashServiceSecret = process.env[brunchEnv.hashServiceSecret];
 
 app.use(
   `${brunchRoutes.agents}/*`,
@@ -289,6 +291,13 @@ for (const { route, aliases = [], agent } of mountedAgents) {
     throw new Error(`No live-tool channel for ${agent.agentName}.`);
   for (const segment of [route, ...aliases]) {
     const mount = `${brunchRoutes.agents}/${segment}`;
+    app.use(
+      `${mount}/*`,
+      hashCallerGuard({
+        secret: hashServiceSecret,
+        hashRoute: route === brunchRoutes.hashAgent,
+      }),
+    );
     app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, agent.agentName));
     app.get(`${mount}/:id/${liveToolRouteSegment}`, (context) =>
       liveToolResponse(broadcaster, {

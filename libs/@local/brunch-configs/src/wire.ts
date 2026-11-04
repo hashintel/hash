@@ -21,6 +21,18 @@ export const brunchHeaders = {
 } as const;
 
 /**
+ * How a server-side caller proves to Brunch which caller it is:
+ * `<header>: <scheme> <secret>`, with a secret per caller. Brunch accepts a
+ * caller's secret only on that caller's own agent route. hash-api is the HASH
+ * caller and uses the scheme it already authenticates to the graph with.
+ * Browsers never send it: Brunch's CORS does not allow the header.
+ */
+export const brunchCallerAuthorization = {
+  header: "authorization",
+  hashScheme: "HASH-Service",
+} as const;
+
+/**
  * Response headers a cross-origin browser must be able to read, wherever it
  * reaches Brunch from: the durable-streams client reads its next offset,
  * cursor and up-to-date state from the `stream-*` headers, and a conversation's

@@ -74,6 +74,7 @@ export const brunchActorKeyStorageKey = "brunch-principal-v1";
  * so hash-api can share them without depending on this package.
  */
 export {
+  brunchCallerAuthorization,
   brunchExposedResponseHeaders,
   brunchHeaders,
   brunchRoutes,
