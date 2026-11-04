@@ -10,6 +10,8 @@ import { instrument, setProvider } from "@flue/runtime";
 import { Hono } from "hono";
 import { beforeAll, expect, test, vi } from "vitest";
 
+vi.setConfig({ clearMocks: false });
+
 vi.mock("./server/telemetry-bootstrap.ts", () => ({}));
 vi.mock("./agents/petrinaut/agent.ts", () => ({
   PetrinautAgent: { agentName: "brunch-chat-agent" },
@@ -52,36 +54,29 @@ vi.mock(
     };
   },
 );
-let registeredProviders: Parameters<typeof setProvider>[0][] = [];
-let instrumentations: Parameters<typeof instrument>[0][] = [];
-let nativeOpenRouterProvider: Provider | undefined;
-
 beforeAll(async () => {
   await import("./app");
-  registeredProviders = vi
-    .mocked(setProvider)
-    .mock.calls.map(([provider]) => provider);
-  instrumentations = vi
-    .mocked(instrument)
-    .mock.calls.map(([instrumentation]) => instrumentation);
-  const { openrouterProvider } =
-    await import("@earendil-works/pi-ai/providers/openrouter");
-  const result = vi.mocked(openrouterProvider).mock.results[0];
-  nativeOpenRouterProvider =
-    result?.type === "return" ? result.value : undefined;
 });
 
-test("registered providers", () => {
-  const ids = registeredProviders.map((provider) => provider.id).sort();
+test("app registration admits the Anthropic, OpenAI and OpenRouter providers", () => {
+  const ids = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry.id)
+    .sort();
   expect(ids).toEqual(["anthropic", "openai", "openrouter"]);
 });
 
-test("native OpenRouter provider", async () => {
-  const native = nativeOpenRouterProvider;
+test("app registration admits native OpenRouter with GPT-6.1 Sol and its API-key auth", async () => {
+  const { openrouterProvider } =
+    await import("@earendil-works/pi-ai/providers/openrouter");
+  const native = vi.mocked(openrouterProvider).mock.results[0]?.value as
+    | Provider
+    | undefined;
   expect(native).toBeDefined();
-  const provider = registeredProviders.find(
-    (provider) => provider.id === "openrouter",
-  )!;
+  const provider = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry)
+    .find((entry) => entry.id === "openrouter")!;
   expect(provider.auth).toBe(native!.auth);
   // The catalogue extension keeps native streams, so a different stream is the admission wrapper.
   expect(Reflect.get(provider, "streamSimple")).not.toBe(
@@ -114,17 +109,17 @@ const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
   return stream.result();
 };
 
-// Admission applies to the Petrinaut agent's own execution, so a concurrent unrelated agent and a task it delegates are not held by it.
-test("admission scope", async () => {
-  const registration = instrumentations.find(
-    (instrumentation) =>
-      instrumentation.key === Symbol.for("brunch.buffered-tool-admission"),
-  );
+test("app registration scopes admission to the Petrinaut agent's execution, isolating concurrent agents and delegated tasks", async () => {
+  const registration = vi
+    .mocked(instrument)
+    .mock.calls.find(
+      ([entry]) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
+    )?.[0];
   expect(registration).toBeDefined();
-  const provider = registeredProviders.find(
-    (provider) => provider.id === "anthropic",
-  )!;
-
+  const provider = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry)
+    .find((entry) => entry.id === "anthropic")!;
   expect(provider.auth).toBe(faux.provider.auth);
   expect(provider.getModels()).toEqual(faux.provider.getModels());
   const model = provider.getModels()[0]!;
