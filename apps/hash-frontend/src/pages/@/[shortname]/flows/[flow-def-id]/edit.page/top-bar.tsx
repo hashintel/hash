@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
-  BreadCrumbs,
   Button,
   Chip,
   Dialog,
   EllipsisMenu,
+  TextInput,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -32,6 +32,7 @@ const titleGroup = css({
   gap: "2",
   minWidth: "0",
 });
+const flowName = css({ fontWeight: "medium", minWidth: "0" });
 const dialogText = css({ textStyle: "sm" });
 
 const SaveStatus = ({
@@ -67,6 +68,60 @@ const SaveStatus = ({
         </Chip>
       );
   }
+};
+
+/**
+ * The flow's name, which turns into a field when clicked. Pressing Enter or leaving the field renames the flow.
+ * Pressing Escape keeps the name it had, as does leaving the field blank, so that renaming never leaves a flow
+ * without a name.
+ */
+const FlowName = ({
+  name,
+  onRename,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+}) => {
+  /* The name being typed, while the field is focused. */
+  const [typed, setTyped] = useState<string | null>(null);
+  /* Pressing Escape leaves the field, which mustn't rename the flow. */
+  const cancelledRef = useRef(false);
+
+  return (
+    <TextInput
+      variant="subtle"
+      size="sm"
+      width="fitContent"
+      showEditIcon
+      aria-label="Flow name"
+      placeholder="Untitled flow"
+      className={flowName}
+      value={typed ?? name}
+      onFocus={() => setTyped(name)}
+      onChange={setTyped}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== "Escape") {
+          return;
+        }
+
+        cancelledRef.current = event.key === "Escape";
+
+        if (event.currentTarget instanceof HTMLElement) {
+          event.currentTarget.blur();
+        }
+      }}
+      onBlur={() => {
+        const renamed = typed?.trim();
+
+        if (!cancelledRef.current && renamed) {
+          onRename(renamed);
+        }
+
+        cancelledRef.current = false;
+        setTyped(null);
+      }}
+    />
+  );
 };
 
 const ArchiveFlowDialog = ({
@@ -161,10 +216,12 @@ const LeaveFlowDialog = ({
 );
 
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, which renames it, whether its edits are saved,
+ * and its menu.
  */
 export const TopBar = ({
   name,
+  onRename,
   saveStatus,
   editsRefused,
   onRetrySave,
@@ -173,6 +230,7 @@ export const TopBar = ({
   onLeaveWithoutSaving,
 }: {
   name: string;
+  onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
   /** Whether the API refused the latest edits. */
   editsRefused: boolean;
@@ -208,7 +266,6 @@ export const TopBar = ({
   return (
     <div className={topBar}>
       <div className={titleGroup}>
-        {/* BreadCrumbs has no back button of its own yet, so it sits beside it. */}
         <Button
           variant="subtle"
           size="xs"
@@ -219,9 +276,7 @@ export const TopBar = ({
             void leave();
           }}
         />
-        <BreadCrumbs size="sm">
-          <BreadCrumbs.Item>{name}</BreadCrumbs.Item>
-        </BreadCrumbs>
+        <FlowName name={name} onRename={onRename} />
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
