@@ -34,12 +34,94 @@ const solidSurface: Record<string, string> = {
 };
 
 /**
- * The DS Button's subtle variant borders on core steps (`neutral.a60`, hover `neutral.a80`), not on `neutral.bd.*`.
- * Figma's alpha steps are far darker than the code's (a60 is 40% black, the code's is 15%), so on the layer the border
- * went dark. Figma's Button (outline, neutral) strokes with `neutral/bd/solid` (a30, 15%) and hovers to
- * `neutral/bd/solid/hover` (a40, 20%), so inside those buttons the two steps point there.
+ * DS components whose recipes use core alpha steps (`neutral.a60`) or solid steps where Figma's component binds a
+ * semantic token. Figma's alpha steps are far darker than the code's (a60 is 40% black, the code's 15%), so on the
+ * layer those parts went dark. Each rule repoints the steps inside one component at the variable Figma's component
+ * uses (file WmnosvOvi4Blw0HK0jh1mG, read 4 Nov):
+ * - Button outline/ghost, neutral: stroke `bd/solid` (a30), hover `bd/solid/hover` (a40); hover fill `bg/subtle/hover`
+ *   (s20), pressed `bg/subtle/active` (s25).
+ * - Input and Select trigger: fill `bg/subtle` (s05), stroke `bd/solid`; hover fill s20, stroke `bd/solid/hover`.
+ *   Invalid and disabled inputs keep their own colours.
+ * - Menu: content stroke `bd/subtle` (a25; the menu borders on the palette-less `bd.subtle`, which the layer does not
+ *   remap); item hover `bg/subtle/hover` (s20), selected `bg/subtle/active` (s25).
+ * - Checkbox: stroke `bd/solid`, hover fill s20 and stroke `bd/solid/hover`. Figma draws no inset shadow; it stays as
+ *   faint as the code's (black a10).
+ * - Switch: on `bg/solid` (s120), off `bg/surface/active` (s30), stroke `bd/min` (a15).
  */
-const buttonBorders = `button[class~="bd-c_neutral.a60"] { --colors-neutral-a60: var(--colors-neutral-bd-solid); --colors-neutral-a80: var(--colors-neutral-bd-solid-hover); }`;
+const hoverBg = `[class~="[&:not([aria-disabled=true]):hover]:bg_neutral.a20"]`;
+const defaultInput = `[class~="bd-c_var(--base-input-border-color)"][class~="--base-input-border-color_var(--colors-neutral-s40)"]:not([class~="--base-input-border-color_var(--colors-red-s60)"]):not([class~="--base-input-border-color_var(--colors-neutral-s50)"])`;
+const componentRules: [string, Record<string, string>][] = [
+  [
+    `button[class~="bd-c_neutral.a60"]`,
+    {
+      "--colors-neutral-a60": "var(--colors-neutral-bd-solid)",
+      "--colors-neutral-a80": "var(--colors-neutral-bd-solid-hover)",
+    },
+  ],
+  [
+    `button[class~="[&:not([aria-disabled=true]):hover]:bd-c_neutral.a60"]`,
+    { "--colors-neutral-a60": "var(--colors-neutral-bd-solid-hover)" },
+  ],
+  [
+    `button${hoverBg}`,
+    { "--colors-neutral-a20": "var(--colors-neutral-bg-subtle-hover)" },
+  ],
+  [
+    `button${hoverBg}:not([aria-disabled="true"]):active`,
+    { "--colors-neutral-a20": "var(--colors-neutral-bg-subtle-active)" },
+  ],
+  [
+    defaultInput,
+    {
+      "--base-input-border-color": "var(--colors-neutral-bd-solid)",
+      "--base-input-border-hover-color": "var(--colors-neutral-bd-solid-hover)",
+      "--base-input-focus-color": "var(--colors-neutral-bd-solid)",
+      "--base-input-background-color": "var(--colors-neutral-bg-subtle)",
+    },
+  ],
+  [
+    `${defaultInput}:not(.layer-style_disabled):hover`,
+    {
+      "--base-input-background-color": "var(--colors-neutral-bg-subtle-hover)",
+    },
+  ],
+  [
+    `[data-scope="menu"][data-part="content"]`,
+    {
+      "--colors-bd-subtle": "var(--colors-neutral-bd-subtle)",
+      "--colors-neutral-a25": "var(--colors-neutral-bg-subtle-hover)",
+      "--colors-neutral-a35": "var(--colors-neutral-bg-subtle-active)",
+    },
+  ],
+  [
+    `[data-scope="checkbox"][data-part="root"]`,
+    {
+      "--colors-neutral-a60": "var(--colors-neutral-bd-solid)",
+      "--colors-neutral-a70": "var(--colors-neutral-bd-solid-hover)",
+      "--colors-neutral-a20": "var(--colors-neutral-bg-subtle-hover)",
+      "--colors-neutral-a30": "var(--colors-black-a10)",
+    },
+  ],
+  [
+    `[data-scope="switch"][data-part="control"]`,
+    {
+      "--colors-neutral-s115": "var(--colors-neutral-bg-solid)",
+      "--colors-neutral-s60": "var(--colors-neutral-bg-surface-active)",
+      "--colors-neutral-s65": "var(--colors-neutral-bg-surface-active)",
+      "--colors-black-a05": "var(--colors-neutral-bd-min)",
+    },
+  ],
+];
+/** The DS's own classes carry four ids (`:not(#\#)` x4); five let a rule here reset a variable they set. */
+const componentSelector = `${selector}:not(#\\#):not(#\\#)`;
+const componentCss = componentRules
+  .map(
+    ([target, declarations]) =>
+      `${componentSelector} ${target} { ${Object.entries(declarations)
+        .map(([name, value]) => `${name}: ${value};`)
+        .join(" ")} }`,
+  )
+  .join(" ");
 
 /**
  * ?hover=s20|s25|s30|s35 sets every neutral hover background to that solid step, to compare darker hovers live
@@ -82,7 +164,7 @@ export const applyDsColours = (mode: DsColours) => {
     .join(" ");
   sheet.textContent =
     mode === "figma"
-      ? `${selector} { ${declarations} } ${selector} ${buttonBorders}`
+      ? `${selector} { ${declarations} } ${componentCss}`
       : "";
   document.documentElement.dataset.dsColours = mode;
   try {
