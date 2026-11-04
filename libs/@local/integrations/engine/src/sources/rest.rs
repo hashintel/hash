@@ -34,6 +34,9 @@ const PAGE_CEILING: u64 = 10_000;
 #[cfg(test)]
 const PAGE_CEILING: u64 = 3;
 
+/// Distinct fields a source may produce before its responses are rejected.
+const MAX_COLUMNS: usize = 1_024;
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct StoredToken {
@@ -221,14 +224,21 @@ fn extract<'body>(body: &'body Value, path: Option<&str>) -> Option<&'body Value
 struct Spool {
     file: NamedTempFile,
     columns: BTreeSet<String>,
+    /// Each column by its ASCII-lowercased name, to find case collisions without a scan.
+    folded: BTreeMap<String, String>,
     rows: u64,
 }
 
 impl Spool {
     fn new(directory: &Path, columns: BTreeSet<String>) -> Result<Self, Report<SourceError>> {
+        let folded = columns
+            .iter()
+            .map(|column| (column.to_ascii_lowercase(), column.clone()))
+            .collect();
         Ok(Self {
             file: NamedTempFile::new_in(directory).change_context(SourceError::Write)?,
             columns,
+            folded,
             rows: 0,
         })
     }
@@ -237,6 +247,7 @@ impl Spool {
         for row in rows {
             if self.rows == 0 {
                 self.columns.clear();
+                self.folded.clear();
             }
             let object = row
                 .as_object()
@@ -246,16 +257,26 @@ impl Spool {
             }
             let mut cells = BTreeMap::new();
             for (column, value) in object {
-                if column.is_empty()
-                    || column.contains('\0')
-                    || self
-                        .columns
-                        .iter()
-                        .any(|known| known != column && known.eq_ignore_ascii_case(column))
-                {
+                if column.is_empty() || column.contains('\0') {
                     return Err(Report::new(SourceError::Response));
                 }
-                self.columns.insert(column.clone());
+                match self.folded.get(&column.to_ascii_lowercase()) {
+                    Some(known) if known != column => {
+                        return Err(Report::new(SourceError::Response));
+                    }
+                    Some(_) => {}
+                    None => {
+                        if self.columns.len() >= MAX_COLUMNS {
+                            return Err(Report::new(SourceError::Response).attach(format!(
+                                "responses must not contain more than {MAX_COLUMNS} distinct \
+                                 fields"
+                            )));
+                        }
+                        self.folded
+                            .insert(column.to_ascii_lowercase(), column.clone());
+                        self.columns.insert(column.clone());
+                    }
+                }
                 cells.insert(
                     column,
                     match value {
@@ -665,6 +686,23 @@ mod schema_tests {
         let error = spool.append(&[json!({"VALUE": "second"})]).expect_err(
             "should reject a case-insensitive column collision before DuckDB can rename it",
         );
+        assert!(
+            matches!(error.current_context(), SourceError::Response),
+            "should identify an invalid response schema"
+        );
+    }
+
+    #[test]
+    fn rows_reject_too_many_columns() {
+        let directory = TempDir::new().expect("should create spool storage");
+        let mut spool =
+            Spool::new(directory.path(), BTreeSet::new()).expect("should create the spool");
+        let row = (0..=super::MAX_COLUMNS)
+            .map(|index| (format!("column{index}"), json!(index)))
+            .collect();
+        let error = spool
+            .append(&[serde_json::Value::Object(row)])
+            .expect_err("should reject a response with too many distinct fields");
         assert!(
             matches!(error.current_context(), SourceError::Response),
             "should identify an invalid response schema"
