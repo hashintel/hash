@@ -36,6 +36,8 @@ import {
   START_ID,
   type DraftStep,
   type EditorDocument,
+  findStep,
+  flattenSteps,
   removeStep,
   startSubtitle,
   stepTitle,
@@ -106,6 +108,59 @@ const groupSize = (document: EditorDocument, step: DraftStep) => {
     width: Math.max(264, right + GROUP_PADDING + 8),
     height: Math.max(168, bottom + GROUP_PADDING + 4),
   };
+};
+
+/** The gap kept around a step placed for the user, and how far down it moves to find room. */
+const placeGap = 24;
+const placeStep = 40;
+
+/**
+ * Where a step added after `stepId` goes: one column to its right (a card and the 96 px gap), level with it, moved down
+ * until it overlaps no step, group or Start that shares its parent.
+ */
+export const freeSpotRightOf = (
+  document: EditorDocument,
+  stepId: string,
+  collapsed: string[] = [],
+): { x: number; y: number } => {
+  const from = document.positions[stepId] ?? { x: 0, y: 0 };
+  const parentId = findStep(document, stepId)?.parentId ?? null;
+  const boxes = flattenSteps(document.steps)
+    .filter((entry) => entry.parentId === parentId)
+    .map(({ step }) => {
+      const size =
+        step.kind !== "for-each"
+          ? { width: STEP_WIDTH, height: stepHeight(step) }
+          : collapsed.includes(step.stepId)
+            ? FOLDED_GROUP
+            : groupSize(document, step);
+      return {
+        ...(document.positions[step.stepId] ?? { x: 0, y: 0 }),
+        ...size,
+      };
+    });
+  if (parentId === null && document.positions[START_ID]) {
+    boxes.push({
+      ...document.positions[START_ID],
+      width: STEP_WIDTH,
+      height: STEP_HEIGHT,
+    });
+  }
+  const height = STEP_HEIGHT;
+  const x = from.x + STEP_WIDTH + 96;
+  const overlaps = (y: number) =>
+    boxes.some(
+      (box) =>
+        x < box.x + box.width + placeGap &&
+        x + STEP_WIDTH + placeGap > box.x &&
+        y < box.y + box.height + placeGap &&
+        y + height + placeGap > box.y,
+    );
+  let y = from.y;
+  while (overlaps(y)) {
+    y += placeStep;
+  }
+  return { x, y };
 };
 
 /** J1.13: a folded For each is its header alone, 240 wide, a step card's height. */
@@ -573,10 +628,30 @@ const CardText = ({
   </span>
 );
 
+/** A step just added from a picker fades and grows in, over the canvas's 200 ms pan (Attio's fit-to-view, 4 Nov). */
+const useEnterAnimation = (id: string) => {
+  const { ui } = useEditor();
+  const ref = useRef<HTMLDivElement>(null);
+  const entering = ui.enterId === id;
+  useEffect(() => {
+    if (entering) {
+      ref.current?.animate(
+        [
+          { opacity: 0, transform: "scale(0.96)" },
+          { opacity: 1, transform: "scale(1)" },
+        ],
+        { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+      );
+    }
+  }, [entering]);
+  return ref;
+};
+
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document, ui, setDocument } = useEditor();
   const editable = !useReadOnlyCanvas();
   const runView = useRunView();
+  const enterRef = useEnterAnimation(id);
   const step = flatFind(document, id);
   if (!step || step.kind !== "action") {
     return null;
@@ -587,6 +662,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const mark = runView?.steps?.[id];
   return (
     <div
+      ref={enterRef}
       className={cardStyle({ selected })}
       data-run-state={mark?.state}
       data-read-only={runView ? true : undefined}
@@ -873,6 +949,7 @@ const groupStyle = cva({
 const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document, ui, setUi } = useEditor();
   const runView = useRunView();
+  const enterRef = useEnterAnimation(id);
   const step = flatFind(document, id);
   if (!step || step.kind !== "for-each") {
     return null;
@@ -882,6 +959,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const mark = runView?.steps?.[id];
   return (
     <div
+      ref={enterRef}
       className={groupStyle({ selected })}
       data-run-state={mark?.state}
       data-source-hover={ui.hoverSourceId === id || undefined}
@@ -1413,6 +1491,18 @@ export const FlowCanvas = ({
     );
     return () => clearTimeout(timer);
   }, [ui.flashId, setUi]);
+
+  // A step's entry animation runs once; clear the mark so a remount (folding a group) does not replay it.
+  useEffect(() => {
+    if (!ui.enterId) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setUi((current) => ({ ...current, enterId: null })),
+      400,
+    );
+    return () => clearTimeout(timer);
+  }, [ui.enterId, setUi]);
 
   // Keep the selected step (or one just added) in view; the panel is docked beside the canvas.
   const focusId = ui.flashId ?? ui.selectedId;

@@ -469,8 +469,9 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
   ) : null;
 
   const hidden = showFull ? [] : (trimmedInputs[step.actionDefinitionId] ?? []);
+  // A trimmed input shows once it holds a value (one wired from an output's "Use in a step").
   const visibleInputs = entry.inputs.filter(
-    (input) => !hidden.includes(input.name),
+    (input) => !hidden.includes(input.name) || !!step.inputs[input.name],
   );
 
   return (

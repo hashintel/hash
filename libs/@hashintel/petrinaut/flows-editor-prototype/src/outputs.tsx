@@ -5,6 +5,8 @@
  * - What depends on it, by name, as plain text: "Used in Alert to the team", or "Not used yet".
  * - The dependents as chips only while the row is hovered; a chip selects that step.
  * - Three names show; "+N more" lists the next ten on hover and shows all on click (Dei: there might be 50 or 100).
+ * - An output no step reads offers "Use in a step" on hover, as Attio's Select next block does (4 Nov): it opens the
+ *   step picker, and the step picked is added after this one, reading this output.
  */
 import { useState } from "react";
 
@@ -13,6 +15,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { type EditorDocument, findStep, stepLabel, usersOf } from "./document";
 import { useEditor } from "./editor-context";
+import { useRunView } from "./history-view";
+import { useLocation } from "./router";
 import { PropertyRow, SourceChip } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -45,6 +49,51 @@ const emptyStyle = css({
   color: "neutral.fg.subtle",
 });
 
+/** "Not used yet" and its "Use in a step" share one cell, so the row keeps its height when the action shows. */
+const unusedStyle = css({
+  display: "grid",
+  justifyItems: "start",
+  alignItems: "center",
+  "& > *": { gridArea: "1 / 1" },
+  "& > [data-use]": { visibility: "hidden" },
+  "[data-row]:hover &": {
+    "& > [data-empty]": { visibility: "hidden" },
+    "& > [data-use]": { visibility: "visible" },
+  },
+  "&[data-open]": {
+    "& > [data-empty]": { visibility: "hidden" },
+    "& > [data-use]": { visibility: "visible" },
+  },
+});
+
+/** A ghost text button at the panel's control size (28 px, 14 px medium, 16 px icon), its icon on the text's start. */
+const actionStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  height: "[28px]",
+  marginY: "[-6px]",
+  marginLeft: "[-8px]",
+  paddingX: "2",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  textStyle: "sm",
+  lineHeight: "[16px]",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  _hover: {
+    backgroundColor: "neutral.bg.surface.hover",
+    color: "neutral.fg.heading",
+  },
+  "[data-open] > &": {
+    backgroundColor: "neutral.bg.surface.hover",
+    color: "neutral.fg.heading",
+  },
+});
+
 const moreStyle = css({
   padding: "[0]",
   border: "none",
@@ -63,15 +112,36 @@ const nameOf = (document: EditorDocument, id: string) => {
 const UsedByTree = ({
   match,
   iconOf,
+  action,
 }: {
   match: (source: StepInputSource) => boolean;
   iconOf: (id: string) => IconName;
+  /** The "Use in a step" action, when the flow can be edited. */
+  action?: { anchor: string; open: boolean; onOpen: () => void };
 }) => {
   const { document, ui, setUi } = useEditor();
   const [all, setAll] = useState(false);
   const users = usersOf(document, match);
   if (users.length === 0) {
-    return <span className={emptyStyle}>Not used yet</span>;
+    return action ? (
+      <span className={unusedStyle} data-open={action.open || undefined}>
+        <span className={emptyStyle} data-empty>
+          Not used yet
+        </span>
+        <button
+          type="button"
+          className={actionStyle}
+          data-use
+          data-output-use={action.anchor}
+          onClick={action.onOpen}
+        >
+          <Icon name="plus" size="sm" />
+          Use in a step
+        </button>
+      </span>
+    ) : (
+      <span className={emptyStyle}>Not used yet</span>
+    );
   }
   const withIcons = ui.outputIcons !== false;
   const shown = all ? users : users.slice(0, shownUsers);
@@ -169,51 +239,83 @@ export const OutputRows = ({
   /** The output's kind as a label, or `null` when it is known only when the flow runs. */
   kindOf: (outputName: string) => string | null;
   iconOf: (id: string) => IconName;
-}) => (
-  <>
-    {outputs.map((output) => {
-      const kind = kindOf(output.name);
-      return (
-        <PropertyRow
-          key={output.name}
-          label={
-            // A flex row that can shrink, so a long name ends in an ellipsis instead of being cut off (an
-            // inline-flex child never takes the key's ellipsis). The full name is in the hover.
-            <span
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                gap: "1",
-                minWidth: "[0]",
-              })}
-            >
-              <span className={css({ display: "flex", flexShrink: 0 })}>
-                <Icon name={kindIcon(kind)} size="sm" />
-              </span>
+}) => {
+  const { ui, setUi } = useEditor();
+  // A run, or a past version, is read-only: nothing is added from it.
+  const runView = useRunView();
+  const viewingVersion = useLocation().query.has("version");
+  const readOnly = Boolean(runView) || viewingVersion || !!ui.run;
+  return (
+    <>
+      {outputs.map((output) => {
+        const kind = kindOf(output.name);
+        const open =
+          ui.picker?.anchor === "output" &&
+          ui.picker.after?.stepId === stepId &&
+          ui.picker.feed?.outputName === output.name;
+        return (
+          <PropertyRow
+            key={output.name}
+            label={
+              // A flex row that can shrink, so a long name ends in an ellipsis instead of being cut off (an
+              // inline-flex child never takes the key's ellipsis). The full name is in the hover.
               <span
                 className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1",
                   minWidth: "[0]",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
                 })}
               >
-                {output.label}
+                <span className={css({ display: "flex", flexShrink: 0 })}>
+                  <Icon name={kindIcon(kind)} size="sm" />
+                </span>
+                <span
+                  className={css({
+                    minWidth: "[0]",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  })}
+                >
+                  {output.label}
+                </span>
               </span>
-            </span>
-          }
-          hover={`${output.label} · ${kind ?? "Kind is known when it runs"}`}
-        >
-          <UsedByTree
-            iconOf={iconOf}
-            match={(source) =>
-              source.kind === "step-output" &&
-              source.stepId === stepId &&
-              source.outputName === output.name
             }
-          />
-        </PropertyRow>
-      );
-    })}
-  </>
-);
+            hover={`${output.label} · ${kind ?? "Kind is known when it runs"}`}
+          >
+            <UsedByTree
+              iconOf={iconOf}
+              action={
+                readOnly
+                  ? undefined
+                  : {
+                      anchor: `${stepId}:${output.name}`,
+                      open,
+                      onOpen: () =>
+                        setUi((current) => ({
+                          ...current,
+                          openField: null,
+                          picker: {
+                            anchor: "output",
+                            after: { stepId, port: "next" },
+                            feed: {
+                              outputName: output.name,
+                              label: output.label,
+                            },
+                          },
+                        })),
+                    }
+              }
+              match={(source) =>
+                source.kind === "step-output" &&
+                source.stepId === stepId &&
+                source.outputName === output.name
+              }
+            />
+          </PropertyRow>
+        );
+      })}
+    </>
+  );
+};

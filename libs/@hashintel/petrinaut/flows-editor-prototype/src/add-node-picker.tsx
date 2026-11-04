@@ -6,20 +6,25 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   type CatalogEntry,
   catalog,
+  getCatalogEntry,
   isOffered,
   groupEntries,
   stepGroups,
 } from "./catalog";
+import { freeSpotRightOf } from "./canvas";
 import {
   START_ID,
   addStep,
   type EditorDocument,
   findStep,
   flattenSteps,
+  setInputSource,
+  updateStep,
 } from "./document";
 import { showDebug, useEditor } from "./editor-context";
 import { tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
+import { getSourceShape, sourceOptions } from "./shapes";
 import { SearchHeader } from "./source-menu";
 import { OriginMark } from "./ui";
 
@@ -56,6 +61,62 @@ const stepLines: Record<string, string> = {
 /** A step Figma gives no line: the first sentence of its definition's description. */
 const stepLine = (entry: CatalogEntry) =>
   stepLines[entry.id] ?? entry.description.split(/(?<=\.)\s/)[0]?.replace(/\.$/, "");
+
+/**
+ * "Use in a step" (Attio's Select next block, 4 Nov): the step added after `fromId`, in the free spot to its right,
+ * with the output in its first input that takes it, a required one first. `null` when no input of the step takes it.
+ */
+const feedStep = (
+  document: EditorDocument,
+  entry: CatalogEntry,
+  fromId: string,
+  outputName: string,
+  collapsed: string[] = [],
+): { document: EditorDocument; stepId: string } | null => {
+  const from = findStep(document, fromId)?.step;
+  const fromEntry =
+    from?.kind === "action" ? getCatalogEntry(from.actionDefinitionId) : null;
+  const port = fromEntry?.ports?.[0]?.outputName ?? "next";
+  const output = { kind: "step-output" as const, stepId: fromId, outputName };
+  const { document: added, stepId } = addStep(document, entry.id, {
+    after: { stepId: fromId, port },
+    position: freeSpotRightOf(document, fromId, collapsed),
+  });
+  if (entry.id === "forEach") {
+    // A For each runs over a list: it takes the output only when the output is one.
+    return getSourceShape(document, output, fromId)?.array
+      ? {
+          document: updateStep(added, stepId, (step) =>
+            step.kind === "for-each" ? { ...step, over: output } : step,
+          ),
+          stepId,
+        }
+      : null;
+  }
+  const fits = entry.inputs.flatMap((input) =>
+    sourceOptions(added, stepId, input, entry)
+      .filter(
+        ({ source }) =>
+          source.kind === "step-output" &&
+          source.stepId === fromId &&
+          source.outputName === outputName,
+      )
+      .slice(0, 1)
+      .map(({ source }) => ({ input, source })),
+  );
+  const chosen = fits.find(({ input }) => input.required) ?? fits[0];
+  return chosen
+    ? {
+        document: setInputSource(
+          added,
+          stepId,
+          chosen.input.name,
+          chosen.source,
+        ),
+        stepId,
+      }
+    : null;
+};
 
 /** The Figma picker's width, on the DS Menu: 240 px, or 288 px for a menu with step rows (3 Nov). */
 const pickerWidthStyle = css({
@@ -102,9 +163,11 @@ export const AddNodePicker = ({
       : picker.anchor === "drop" && picker.drop
         ? anchorAtPoint(picker.drop.client)
         : anchorBySelector(
-            picker.anchor === "port" && picker.after
-              ? `[data-port-add="${picker.after.stepId}:${picker.after.port}"]`
-              : `[data-group-add="${picker.parentId ?? ""}"]`,
+            picker.anchor === "output" && picker.after && picker.feed
+              ? `[data-output-use="${picker.after.stepId}:${picker.feed.outputName}"]`
+              : picker.anchor === "port" && picker.after
+                ? `[data-port-add="${picker.after.stepId}:${picker.after.port}"]`
+                : `[data-group-add="${picker.parentId ?? ""}"]`,
           );
 
   const close = () => {
@@ -112,7 +175,38 @@ export const AddNodePicker = ({
     setUi((current) => ({ ...current, picker: null }));
   };
 
+  const remember = (entryId: string) =>
+    [entryId, ...ui.recent.filter((id) => id !== entryId)].slice(0, 4);
+
+  const feed =
+    picker.anchor === "output" && picker.after && picker.feed
+      ? { fromId: picker.after.stepId, ...picker.feed }
+      : null;
+
   const pick = (entry: CatalogEntry) => {
+    if (feed) {
+      const fed = feedStep(
+        document,
+        entry,
+        feed.fromId,
+        feed.outputName,
+        ui.collapsed,
+      );
+      if (fed) {
+        setDocument(() => fed.document);
+        setUi((current) => ({
+          ...current,
+          picker: null,
+          openField: null,
+          selectedId: fed.stepId,
+          selectedIds: [fed.stepId],
+          enterId: fed.stepId,
+          recent: remember(entry.id),
+        }));
+      }
+      setSearch("");
+      return;
+    }
     const selected = ui.selectedId;
     const selectedStep = selected ? findStep(document, selected) : undefined;
     // From the toolbar: after the selected step, or after the end of the main line when nothing is selected.
@@ -200,6 +294,8 @@ export const AddNodePicker = ({
       ...current,
       picker: null,
       selectedId: stepId,
+      selectedIds: [stepId],
+      enterId: stepId,
       recent: [
         entry.id,
         ...current.recent.filter((id) => id !== entry.id),
@@ -258,60 +354,137 @@ export const AddNodePicker = ({
             ],
     };
   });
-  const items: Array<ItemOrGroup<MenuItem>> = query
-    ? [
-        {
-          id: "results",
-          label: "",
-          items:
-            matches.length === 0
-              ? [
-                  {
-                    id: "nothing",
-                    text: `No step matches “${search}”`,
-                    disabled: true,
-                    onClick: () => undefined,
-                  },
-                ]
-              : matches.map((entry) => entryItem(entry, "result")),
-        },
-      ]
-    : [
-        ...(picker.anchor === "port" && document.steps.length === 0
-          ? [
+  // From an output: only the steps that can take it, one line each and grouped flat by kind, as Attio's step list is.
+  const feedItem = (entry: CatalogEntry, key: string): MenuItem => ({
+    ...entryItem(entry, key),
+    description: undefined,
+  });
+  // From an output: only the steps that can take it, grouped flat by kind as Attio's step list is.
+  const usable = feed
+    ? available.filter(
+        (entry) =>
+          feedStep(document, entry, feed.fromId, feed.outputName) !== null,
+      )
+    : [];
+  const ungrouped = usable.filter(
+    (entry) => !stepGroups.some((group) => group.ids.includes(entry.id)),
+  );
+  const feedItems: Array<ItemOrGroup<MenuItem>> = !feed
+    ? []
+    : usable.length === 0
+      ? [
+          {
+            id: "none",
+            label: "",
+            items: [
               {
-                id: "recommended",
-                label: "Recommended",
-                items: recommendedFirstSteps.flatMap((id) =>
-                  available
-                    .filter((entry) => entry.id === id)
-                    .map((entry) => entryItem(entry, "recommended")),
-                ),
+                id: "none:row",
+                text: `No step takes ${feed.label} yet`,
+                disabled: true,
+                onClick: () => undefined,
               },
-            ]
-          : []),
-        ...(recent.length > 0
-          ? [
-              {
-                id: "recent",
-                label: "Recent",
-                items: recent.map((entry) => entryItem(entry, "recent")),
-              },
-            ]
-          : []),
-        { id: "browse", label: "Browse all", items: browseAll },
-      ];
+            ],
+          },
+        ]
+      : query
+        ? [
+            {
+              id: "results",
+              label: "",
+              items:
+                usable.filter((entry) => matches.includes(entry)).length === 0
+                  ? [
+                      {
+                        id: "nothing",
+                        text: `No step matches “${search}”`,
+                        disabled: true,
+                        onClick: () => undefined,
+                      },
+                    ]
+                  : usable
+                      .filter((entry) => matches.includes(entry))
+                      .map((entry) => feedItem(entry, "result")),
+            },
+          ]
+        : [
+            ...stepGroups.map((group) => ({
+              id: `feed:${group.name}`,
+              label: group.name,
+              items: groupEntries(group, usable).map((entry) =>
+                feedItem(entry, "feed"),
+              ),
+            })),
+            {
+              id: "feed:other",
+              label: "Other",
+              items: ungrouped.map((entry) => feedItem(entry, "feed")),
+            },
+          ].filter((group) => group.items.length > 0);
+
+  const items: Array<ItemOrGroup<MenuItem>> = feed
+    ? feedItems
+    : query
+      ? [
+          {
+            id: "results",
+            label: "",
+            items:
+              matches.length === 0
+                ? [
+                    {
+                      id: "nothing",
+                      text: `No step matches “${search}”`,
+                      disabled: true,
+                      onClick: () => undefined,
+                    },
+                  ]
+                : matches.map((entry) => entryItem(entry, "result")),
+          },
+        ]
+      : [
+          ...(picker.anchor === "port" && document.steps.length === 0
+            ? [
+                {
+                  id: "recommended",
+                  label: "Recommended",
+                  items: recommendedFirstSteps.flatMap((id) =>
+                    available
+                      .filter((entry) => entry.id === id)
+                      .map((entry) => entryItem(entry, "recommended")),
+                  ),
+                },
+              ]
+            : []),
+          ...(recent.length > 0
+            ? [
+                {
+                  id: "recent",
+                  label: "Recent",
+                  items: recent.map((entry) => entryItem(entry, "recent")),
+                },
+              ]
+            : []),
+          { id: "browse", label: "Browse all", items: browseAll },
+        ];
 
   return (
     <OpenMenu
       anchor={anchor}
-      label="Add node"
-      position={picker.anchor === "toolbar" ? "top" : "bottom-start"}
+      label={feed ? `Use ${feed.label} in a step` : "Add node"}
+      position={
+        picker.anchor === "toolbar"
+          ? "top"
+          : feed
+            ? "bottom-end"
+            : "bottom-start"
+      }
+      // From the panel: under the row's action, its right edge on the panel's.
+      alignToPanel={!!feed}
       // From a port it opens beside the + when there is room (J0.10), else below it (J1.4).
       besideWhenFits={picker.anchor === "port"}
       className={cx(pickerWidthStyle, tiledRowsStyle)}
       keepInCanvasWidth={
-        picker.anchor === "toolbar"
+        picker.anchor === "toolbar" || feed
           ? undefined
           : query || recent.length > 0 || document.steps.length === 0
             ? 288

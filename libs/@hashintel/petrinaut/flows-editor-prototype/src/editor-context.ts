@@ -9,7 +9,9 @@ import type { validateDocument } from "./shapes";
 export type PickerTarget = {
   after?: { stepId: string; port: string };
   parentId?: string | null;
-  anchor: "toolbar" | "port" | "group" | "drop";
+  anchor: "toolbar" | "port" | "group" | "drop" | "output";
+  /** "Use in a step" on an output row: the new step goes after `after` and reads this output of it. */
+  feed?: { outputName: string; label: string };
   /** For "drop": where a wire was released on empty canvas, in window pixels (the menu) and flow units (the new step). */
   drop?: { client: { x: number; y: number }; flow: { x: number; y: number } };
   /** J1.20 Insert step here: the connection the new step goes into; it is rewired through the new step. */
@@ -43,6 +45,8 @@ export type EditorUi = {
   runOpen: boolean;
   /** Step kinds added this session, newest first, for "Recent". */
   recent: string[];
+  /** A step just added from a picker: its card fades and grows in once. */
+  enterId?: string | null;
   /** A step just added for the user (Look up in the graph): the canvas pans to it and highlights it briefly. */
   flashId?: string | null;
   /** MOCK run view (26 Oct): the panel shows one run of the flow, read-only (`run-view.tsx`). */
