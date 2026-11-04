@@ -102,6 +102,39 @@ const recordReservoir = async (page: Page) => {
   );
 };
 
+/**
+ * Each record occurrence the Ledger marks as changed by the latest turn, in
+ * document order: address, change, and the marker word its style shows.
+ */
+const latestTurnMarks = (page: Page) =>
+  page
+    .locator('section[aria-label="Ledger"] [data-ledger-change]')
+    .evaluateAll((elements) =>
+      elements.map((element) =>
+        [
+          element.getAttribute("data-ledger-address"),
+          element.getAttribute("data-ledger-change"),
+          getComputedStyle(element, "::before").content,
+        ].join(" "),
+      ),
+    );
+
+/** Polls the marks until they equal `expected`; returns the last observed either way. */
+const marksSettleOn = async (
+  page: Page,
+  expected: string[],
+  deadline = Date.now() + 15_000,
+): Promise<string[]> => {
+  const marks = await latestTurnMarks(page);
+  if (
+    JSON.stringify(marks) === JSON.stringify(expected) ||
+    Date.now() >= deadline
+  )
+    return marks;
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return marksSettleOn(page, expected, deadline);
+};
+
 /** A recorded Ledger commit reaches the panel's Ledger tab. */
 const ledgerTabShowsCommit = async () => {
   const page = await fixture.openAssistant();
@@ -194,10 +227,39 @@ const ledgerReviewControls = async () => {
     };
     release?.();
 
-    // An unsent draft survives Chat → Ledger → Chat.
+    // A turn that changes the Ledger, so the comment turn below has marks to clear.
     await chatTab.click();
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "commit-pump",
+      ),
+      fauxAssistantMessage([fauxText("Recorded the pump.")]),
+    ]);
+    await fixture.ask(
+      page,
+      "A booster pump fills it.",
+      "Recorded the pump.",
+      60_000,
+    );
+
+    // An unsent draft survives Chat → Ledger → Chat.
     await composer.fill("Unsent draft about pumps");
     await ledgerTab.click();
+    observed.marksBeforeComment = await marksSettleOn(page, ['e2 added "New"']);
     observed.ledgerIdleWithDraft = {
       ...(await controls()),
       // With no comments, hint or running work, the review tab has no footer.
@@ -241,6 +303,15 @@ const ledgerReviewControls = async () => {
       ...(await controls()),
       stillOnLedger: await ledgerTab.getAttribute("aria-selected"),
     };
+    // The comment batch opens a turn that commits nothing, so once Brunch
+    // has replied to it the Ledger marks nothing.
+    await page
+      .getByText(commentReply, { exact: true })
+      .waitFor({ state: "attached" });
+    observed.marksAfterCommentTurn = await marksSettleOn(page, []);
+    observed.recordsAfterCommentTurn = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address]')
+      .count();
 
     await chatTab.click();
     await page.getByText(commentReply, { exact: true }).waitFor();
@@ -289,6 +360,9 @@ const ledgerReviewControls = async () => {
     voiceLaunch: 0,
     emptyFooterVisible: false,
   });
+  assert.deepEqual(observed.marksBeforeComment, ['e2 added "New"']);
+  assert.deepEqual(observed.marksAfterCommentTurn, []);
+  assert.notEqual(observed.recordsAfterCommentTurn, 0);
   assert.match(String(observed.commentsBar), /1 comment on the Ledger/u);
   assert.equal(observed.commentsFooterVisible, true);
   assert.deepEqual(observed.afterCommentSend, {
@@ -314,6 +388,276 @@ const ledgerReviewControls = async () => {
     chatSelected: "true",
     draft: "Unsent draft about pumps",
   });
+};
+
+/** A provider response held until the case releases it, so the turn keeps running. */
+const heldResponse = (message: AssistantMessage) => {
+  let release: () => void = () => {};
+  const respond = () =>
+    new Promise<AssistantMessage>((resolve) => {
+      release = () => resolve(message);
+      setTimeout(release, 60_000).unref();
+    });
+  return { respond, release: () => release() };
+};
+
+/**
+ * Waits until no finite animation or transition runs, such as the tab pill's,
+ * and reports the selected tab with its box, so a screenshot shows settled tabs.
+ */
+const tabsSettled = async (page: Page) => {
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          animation.playState !== "running" ||
+          animation.effect?.getTiming().iterations === Infinity,
+      ),
+  );
+  return page
+    .locator('[data-style-variant="pill"] [role="tab"][aria-selected="true"]')
+    .evaluate((tab) => {
+      const box = tab.getBoundingClientRect();
+      return {
+        selected: tab.textContent,
+        pill: getComputedStyle(tab).backgroundColor,
+        box: [box.x, box.y, box.width, box.height].map(Math.round),
+      };
+    });
+};
+
+/**
+ * The Ledger marks the entries the latest turn added or changed: across its
+ * accepted commits while the response runs, not a refused call, the same after
+ * tab switches and a reload, and none once a turn changes nothing. Marker
+ * words stay out of a comment's quote. Observations print before the
+ * assertions, so a failing run still records what the Ledger showed.
+ */
+const ledgerLatestTurnHighlights = async () => {
+  const page = await fixture.openAssistant();
+  page.setDefaultTimeout(15_000);
+  const chatTab = () => page.getByRole("tab", { name: "Chat" });
+  const ledgerTab = () => page.getByRole("tab", { name: "Ledger" });
+  const stop = () =>
+    page.getByRole("button", { name: "Stop AI response", exact: true });
+  const observed: Record<string, unknown> = {};
+  const turnTwoRunning = ['c2 updated "Updated"', 'e2 added "New"'];
+  const turnTwoDone = [
+    'e2 added "New"',
+    'e1 updated "Updated"',
+    'c2 updated "Updated"',
+  ];
+  try {
+    await recordReservoir(page);
+    await ledgerTab().click();
+    observed.turnOne = await marksSettleOn(page, [
+      'e1 added "New"',
+      'c1 added "New"',
+    ]);
+    await chatTab().click();
+
+    // Turn two replaces the overflow claim and adds a pump, has a call
+    // refused, then holds its response open before moving the reservoir out
+    // of scope.
+    const held = heldResponse(
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/update/e1",
+              {
+                name: "Hillcrest service reservoir",
+                kind: "resource",
+                origin: "stated",
+                status: "out-of-scope",
+              },
+            ],
+          ],
+        },
+        "commit-4",
+      ),
+    );
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "claim/create",
+              {
+                text: "Hillcrest overflowed four times this summer.",
+                entities: ["e1"],
+                origin: "stated",
+                status: "confirmed",
+                supersedes: ["c1"],
+              },
+            ],
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "commit-2",
+      ),
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/update/e9",
+              {
+                name: "Nowhere",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "commit-3",
+      ),
+      held.respond,
+      fauxAssistantMessage([fauxText("Moved the reservoir out of scope.")]),
+    ]);
+    await fixture.send(
+      page,
+      "It overflowed four times; a booster pump fills it.",
+    );
+    await stop().waitFor();
+    await ledgerTab().click();
+    observed.turnTwoRunning = await marksSettleOn(page, turnTwoRunning);
+    observed.turnTwoRunningStop = await stop().isVisible();
+    observed.turnTwoRunningTabs = await tabsSettled(page);
+    await page.screenshot({
+      path: join(output, "ledger-latest-turn-running.png"),
+    });
+    await chatTab().click();
+    await ledgerTab().click();
+    observed.turnTwoRunningAfterTabs = await latestTurnMarks(page);
+
+    held.release();
+    await page
+      .getByText("Moved the reservoir out of scope.", { exact: true })
+      .waitFor({ state: "attached" });
+    observed.turnTwoDone = await marksSettleOn(page, turnTwoDone);
+    // The superseded claim stays as context under its replacement, unmarked.
+    observed.supersededMark = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address="c1"]')
+      .evaluateAll((elements) =>
+        elements.map(
+          (element) =>
+            `${element.textContent} ${element.getAttribute("data-ledger-change")}`,
+        ),
+      );
+    observed.markedEntryAria = await page
+      .locator(
+        'section[aria-label="Ledger"] li:has(> [data-ledger-address="e2"])',
+      )
+      .ariaSnapshot();
+    observed.turnTwoDoneTabs = await tabsSettled(page);
+    await page.screenshot({
+      path: join(output, "ledger-latest-turn-done.png"),
+    });
+
+    // A comment's quote carries the record's words, not its marker.
+    await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address="e2"]')
+      .first()
+      .evaluate((record) => {
+        const range = document.createRange();
+        range.selectNodeContents(record);
+        const selection = document.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      });
+    observed.selectedText = await page.evaluate(() =>
+      document.getSelection()?.toString(),
+    );
+    await page.getByRole("button", { name: "Comment", exact: true }).click();
+    const form = page.getByRole("dialog", { name: "Comment on the Ledger" });
+    observed.commentQuote = await form.locator("blockquote").textContent();
+    await form.getByRole("button", { name: "Cancel" }).click();
+
+    // The same history after a reload marks the same entries. The fixture
+    // serves files only, so the document's route gets the site's index page
+    // as a deployed host's fallback would.
+    await page.route(
+      (url) => url.pathname.startsWith("/local/"),
+      async (route) =>
+        route.fulfill({
+          response: await route.fetch({ url: `${fixture.origin}/` }),
+        }),
+    );
+    await page.reload();
+    const skipTour = page.getByRole("button", { name: "Skip tour" });
+    if (await skipTour.isVisible().catch(() => false)) await skipTour.click();
+    const showAssistant = page.getByRole("button", {
+      name: "Show AI assistant",
+      exact: true,
+    });
+    await ledgerTab().or(showAssistant).first().waitFor();
+    if (await showAssistant.isVisible()) await showAssistant.click();
+    await ledgerTab().click();
+    observed.afterReload = await marksSettleOn(page, turnTwoDone);
+
+    // Turn three clears the marks as it opens and changes nothing.
+    await chatTab().click();
+    const quiet = heldResponse(
+      fauxAssistantMessage([fauxText("Glad to help.")]),
+    );
+    faux.setResponses([quiet.respond]);
+    await fixture.send(page, "Thanks, that is all for now.");
+    await stop().waitFor();
+    await ledgerTab().click();
+    observed.turnThreeRunning = await marksSettleOn(page, []);
+    observed.turnThreeRecords = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address]')
+      .evaluateAll((elements) => [
+        ...new Set(
+          elements.map((element) =>
+            element.getAttribute("data-ledger-address"),
+          ),
+        ),
+      ]);
+    observed.turnThreeRunningTabs = await tabsSettled(page);
+    await page.screenshot({
+      path: join(output, "ledger-latest-turn-cleared.png"),
+    });
+    quiet.release();
+    await stop().waitFor({ state: "hidden" });
+    observed.turnThreeDone = await latestTurnMarks(page);
+  } finally {
+    process.stdout.write(`OBSERVED ${JSON.stringify(observed)}\n`);
+    await page.close();
+  }
+
+  assert.deepEqual(observed.turnOne, ['e1 added "New"', 'c1 added "New"']);
+  assert.deepEqual(observed.turnTwoRunning, turnTwoRunning);
+  assert.equal(observed.turnTwoRunningStop, true);
+  assert.deepEqual(observed.turnTwoRunningAfterTabs, turnTwoRunning);
+  assert.deepEqual(observed.turnTwoDone, turnTwoDone);
+  assert.deepEqual(observed.supersededMark, [
+    "Hillcrest overflowed three times this summer. — superseded null",
+  ]);
+  assert.deepEqual(observed.afterReload, turnTwoDone);
+  // The marker word reaches the accessibility tree, ahead of the record.
+  assert.equal(
+    observed.markedEntryAria,
+    "- listitem:\n  - text: New\n  - strong: Booster pump\n  - text: — stated · confirmed",
+  );
+  assert.equal(observed.selectedText, "Booster pump — stated · confirmed");
+  assert.equal(observed.commentQuote, "“Booster pump — stated · confirmed”");
+  assert.deepEqual(observed.turnThreeRunning, []);
+  assert.deepEqual(observed.turnThreeRecords, ["e2", "e1", "c2", "c1"]);
+  assert.deepEqual(observed.turnThreeDone, []);
 };
 
 const baseRequest = {
@@ -433,6 +777,7 @@ const experimentTimings = async () => {
 const witnesses = [
   ledgerTabShowsCommit,
   ledgerReviewControls,
+  ledgerLatestTurnHighlights,
   experimentTimings,
 ];
 const selected = process.argv.slice(2);

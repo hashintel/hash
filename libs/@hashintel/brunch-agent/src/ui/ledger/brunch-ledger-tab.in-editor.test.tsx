@@ -292,3 +292,138 @@ test("the Ledger reviews without the chat composer, keeping its comments, Stop a
   ).toBe("Unsent draft");
   expect(sent).toHaveLength(1);
 });
+
+const ledgerCall = (
+  toolCallId: string,
+  entries: unknown[],
+  ids: string[],
+  settled = true,
+): LedgerHistoryMessage => ({
+  id: `assistant-${toolCallId}`,
+  role: "assistant",
+  purpose: "assistant",
+  parts: [
+    {
+      type: "dynamic-tool",
+      toolName: "ledger_commit",
+      toolCallId,
+      state: settled ? "output-available" : "input-available",
+      input: { entries },
+      ...(settled
+        ? {
+            output: {
+              status: "recorded",
+              commitId: toolCallId,
+              revision: 1,
+              ids,
+            },
+          }
+        : {}),
+    },
+  ],
+});
+
+const boosterPump = [
+  "entity/create",
+  {
+    name: "Booster pump",
+    kind: "resource",
+    origin: "stated",
+    status: "confirmed",
+  },
+];
+
+test("the Ledger marks the latest turn's changes as they are accepted, and keeps them across tab switches", async () => {
+  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+  vi.stubGlobal("Worker", InProcessLspWorker);
+  Element.prototype.scrollIntoView = vi.fn();
+  const secondTurn: LedgerHistoryMessage[] = [
+    ...messages,
+    {
+      id: "user-2",
+      role: "user",
+      purpose: "user",
+      parts: [{ type: "text", text: "A booster pump fills it." }],
+    },
+  ];
+  const handle = createJsonDocHandle({
+    initial: { places: [], transitions: [] },
+  });
+  const editor = (history: LedgerHistoryMessage[]) => (
+    <BrunchAssistantContext
+      value={fixedBrunchAssistant({
+        messages: [],
+        presentation: "brunch",
+        primaryLabel: "Chat",
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages: () =>
+            Promise.resolve(new ReadableStream<UIMessageChunk>()),
+        },
+        additionalTab: {
+          label: "Ledger",
+          content: (
+            <BrunchLedgerTab conversationId="conversation" messages={history} />
+          ),
+        },
+      })}
+    >
+      <Petrinaut handle={handle} plugins={[brunchPlugin]} />
+    </BrunchAssistantContext>
+  );
+  const marks = () =>
+    [
+      ...screen
+        .getByTestId("brunch-ledger-document")
+        .querySelectorAll<HTMLElement>("[data-ledger-change]"),
+    ].map(({ dataset }) => `${dataset.ledgerAddress} ${dataset.ledgerChange}`);
+
+  const { rerender } = render(editor(secondTurn));
+  await act(async () =>
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Show AI assistant" }),
+    ),
+  );
+  await act(async () =>
+    fireEvent.click(await screen.findByRole("tab", { name: /Ledger/u })),
+  );
+  // The second turn has opened and changed nothing yet.
+  expect(marks()).toEqual([]);
+
+  // While the response runs, each accepted commit adds to the marks; a call
+  // still pending adds nothing.
+  const pumpAdded = [
+    ...secondTurn,
+    ledgerCall("ledger-2", [boosterPump], ["e2"]),
+  ];
+  rerender(editor([...pumpAdded, ledgerCall("ledger-3", [], [], false)]));
+  expect(marks()).toEqual(["e2 added"]);
+  const renamed = [
+    ...pumpAdded,
+    ledgerCall(
+      "ledger-3",
+      [
+        [
+          "entity/update/e1",
+          {
+            name: "Hillcrest reservoir",
+            kind: "resource",
+            origin: "stated",
+            status: "confirmed",
+          },
+        ],
+      ],
+      ["e1"],
+    ),
+  ];
+  rerender(editor(renamed));
+  expect(marks()).toEqual(["e1 updated", "e2 added"]);
+
+  await act(async () =>
+    fireEvent.click(screen.getByRole("tab", { name: /Chat/u })),
+  );
+  await act(async () =>
+    fireEvent.click(screen.getByRole("tab", { name: /Ledger/u })),
+  );
+  expect(marks()).toEqual(["e1 updated", "e2 added"]);
+});

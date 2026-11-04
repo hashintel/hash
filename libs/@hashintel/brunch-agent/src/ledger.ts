@@ -20,6 +20,10 @@ export {
   type LedgerHistory,
   type LedgerHistoryMessage,
 } from "./ledger/commits";
+export {
+  latestTurnChanges,
+  type LedgerChange,
+} from "./ledger/latest-turn-changes";
 export { vClaim } from "./ledger/elicitation/claims";
 export {
   entityKindStages,

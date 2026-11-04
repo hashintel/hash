@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import {
+  latestTurnChanges,
   projectLedger,
   type LedgerHistoryMessage,
   type LedgerTrace,
@@ -230,6 +231,7 @@ export const BrunchLedgerPane = ({
     comments?.get ?? readNoPending,
   );
   const { ledger } = foldBrunchLedgerHistory(messages);
+  const changed = ledger && latestTurnChanges({ messages }, ledger);
   const trace = ledger && traceCanvasSelection(ledger, selection);
   const projection = ledger && projectLedger(ledger);
 
@@ -297,6 +299,7 @@ export const BrunchLedgerPane = ({
               projection={projection}
               options={{
                 traced: tracedAddresses(trace),
+                changed: changed ?? new Map(),
                 showReflections,
                 ...(onSelectNetElements ? { onSelectNetElements } : {}),
                 comments: {
