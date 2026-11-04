@@ -5,6 +5,7 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { noEntityChangesMessage } from "@local/hash-isomorphic-utils/flows/entity-steps";
 import { validatePropertyPatches } from "@local/hash-isomorphic-utils/flows/property-values";
 import {
   currentTimeInstantTemporalAxes,
@@ -15,6 +16,7 @@ import { StatusCode } from "@local/status";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
+import { validateEntityTypeIds } from "./shared/entity-types.js";
 import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
@@ -26,22 +28,33 @@ const invalidArgument = (message: string) => ({
 });
 
 /**
- * Applies property patches to an entity the user running the flow can edit, leaving its other properties as they are.
- * The graph validates the entity the patches leave. An entity ID with a draft ID updates that draft, which stays a
- * draft.
+ * Applies property patches to an entity the user running the flow can edit, leaving its other properties as they are,
+ * and replaces its types if given new ones. The graph validates the entity the update leaves. An entity ID with a
+ * draft ID updates that draft, which stays a draft.
  */
 export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
   inputs,
 }) => {
-  const { entityId, propertyPatches } = getSimplifiedFlowActionInputs({
-    inputs,
-    actionType: "updateEntity",
-  });
+  const { entityId, propertyPatches, entityTypeIds } =
+    getSimplifiedFlowActionInputs({
+      inputs,
+      actionType: "updateEntity",
+    });
 
   const patchesError = validatePropertyPatches(propertyPatches);
 
   if (patchesError) {
     return invalidArgument(patchesError);
+  }
+
+  if (entityTypeIds) {
+    const entityTypeIdsError = validateEntityTypeIds(entityTypeIds);
+
+    if (entityTypeIdsError) {
+      return invalidArgument(entityTypeIdsError);
+    }
+  } else if (propertyPatches.length === 0) {
+    return invalidArgument(noEntityChangesMessage);
   }
 
   const { flowEntityId, stepId, userAuthentication, webId, workflowId } =
@@ -113,6 +126,7 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
         { actorId: savingActorId },
         {
           propertyPatches,
+          entityTypeIds,
           draft: !!draftId,
           provenance: {
             actorType: "machine",

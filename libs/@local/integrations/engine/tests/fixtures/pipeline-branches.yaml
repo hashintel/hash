@@ -1,0 +1,22 @@
+- id: save
+  checkpoint: before
+- id: branches
+  branches:
+    - - id: add-hundred
+        sql: SELECT _op, _key, ID, VALUE + 100 AS VALUE FROM input
+      - id: sink-hundred
+        sink:
+          entityType: https://example.com/entity/v/1
+          entityId: ID
+    - - id: add-two-hundred
+        sql: SELECT _op, _key, ID, VALUE + 200 AS VALUE FROM input
+      - id: sink-two-hundred
+        sink:
+          entityType: https://example.com/entity/v/1
+          entityId: ID
+- id: add-one
+  sql: WITH rows AS (SELECT * FROM input) SELECT _op, _key, ID, VALUE + 1 AS VALUE FROM rows;
+- id: sink-main
+  sink:
+    entityType: https://example.com/entity/v/1
+    entityId: ID

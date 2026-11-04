@@ -12,7 +12,7 @@ error-stack              = { workspace = true, public = true }
 hash-graph-authorization = { workspace = true, public = true }
 hash-graph-store         = { workspace = true, public = true }
 hash-middleware          = { workspace = true, public = true }
-hash-secret              = { workspace = true, public = true }
+hash-crypto              = { workspace = true, public = true }
 type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
@@ -24,15 +24,12 @@ reqwest       = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-aws-lc-rs      = { workspace = true }
 cookie         = { workspace = true }
 crc32fast      = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
-hmac           = { workspace = true }
 moka           = { workspace = true, features = ["future"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
-sha2           = { workspace = true, features = ["zeroize"] }
 simple-mermaid = { workspace = true }
 tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true }
@@ -46,7 +43,7 @@ jsonwebtoken      = { workspace = true, features = ["use_pem"] }
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
 rstest            = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid              = { workspace = true, features = ["v4"] }
+uuid              = { workspace = true, features = ["std", "v7"] }
 
 [features]
 test-utils = []

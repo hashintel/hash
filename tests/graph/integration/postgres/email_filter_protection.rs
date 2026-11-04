@@ -35,7 +35,7 @@ use hash_graph_store::{
 use hash_graph_test_data::{data_type, entity_type};
 use type_system::{
     knowledge::{
-        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::{Link, LinkEndpoint, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
@@ -3112,7 +3112,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
             api.account_id,
             CreateEntityParams {
                 web_id: WebId::new(api.account_id),
-                entity_uuid: Some(EntityUuid::new(Uuid::new_v4())), /* Different UUID = different
+                entity_uuid: Some(EntityUuid::new(Uuid::now_v7())), /* Different UUID = different
                                                                      * owner */
                 decision_time: None,
                 entity_type_ids: HashSet::from([user_type_id]),
@@ -3146,13 +3146,17 @@ async fn subgraph_traversal_masks_linked_user_email() {
             entity_type_ids: HashSet::from([link_type_id]),
             properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                 .unwrap(),
-            link_data: Some(LinkData {
-                left_entity_id: org.metadata.record_id.entity_id,
-                right_entity_id: other_user.metadata.record_id.entity_id,
-                left_entity_confidence: None,
-                left_entity_provenance: PropertyProvenance::default(),
-                right_entity_confidence: None,
-                right_entity_provenance: PropertyProvenance::default(),
+            link_data: Some(Link::Directed {
+                source: LinkEndpoint {
+                    entity_id: org.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                target: LinkEndpoint {
+                    entity_id: other_user.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
             }),
             draft: false,
             policies: Vec::new(),

@@ -49,7 +49,7 @@ const fixturesDirectory = path.join(
 /** Kept out of the histories in place of the machine's `pid@hostname`. */
 const identity = "flow-run-histories";
 
-/** Left out of the histories, as neither `buildFlowRunEvents` nor `getFlowRunDetails` reads them. */
+/** Left out of the histories, as `buildFlowRunEvents` doesn't read them. */
 const unreadEventTypes = new Set<proto.temporal.api.enums.v1.EventType>([
   proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_SCHEDULED,
   proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_STARTED,
@@ -76,19 +76,6 @@ const recordRun = async (
     handle.fetchHistory(),
   ]);
 
-  const firstExecutionRunId =
-    history.events?.[0]?.workflowExecutionStartedEventAttributes
-      ?.firstExecutionRunId;
-
-  const originalRunStartTime =
-    firstExecutionRunId && firstExecutionRunId !== description.runId
-      ? (
-          await client.workflow
-            .getHandle(workflowId, firstExecutionRunId)
-            .describe()
-        ).startTime.toISOString()
-      : undefined;
-
   mkdirSync(fixturesDirectory, { recursive: true });
   writeFileSync(
     path.join(fixturesDirectory, `${fixtureName}.json`),
@@ -102,7 +89,6 @@ const recordRun = async (
           closeTime: description.closeTime?.toISOString() ?? null,
           memo: description.memo ?? {},
         },
-        ...(originalRunStartTime ? { originalRunStartTime } : {}),
         /*
          * `historyToJSON` throws on payload metadata with the version of `proto3-json-serializer` installed, so the
          * history is written as protobuf.js writes it, which `History.fromObject` reads.
@@ -229,6 +215,7 @@ const main = async () => {
       }),
       recordFlowRunActivity: () => undefined,
       generateFlowRunName: () => currentCase?.flow.flowDefinition.name,
+      saveOpenInputRequestsActivity: () => undefined,
     },
   });
 

@@ -472,6 +472,7 @@ export const InfoIcon = createIcon("info");
 export const ErrorIcon = createIcon("error");
 export const WarningIcon = createIcon("warning");
 export const CircleCheckIcon = createIcon("circleCheck");
+export const CircleCloseIcon = createIcon("circleClose");
 export const TerminalIcon = createIcon("terminal");
 export const TextIcon = createIcon("text");
 export const UserIcon = createIcon("user");
@@ -630,6 +631,7 @@ export const hashIconPack = {
   error: ErrorIcon,
   warning: WarningIcon,
   circleCheck: CircleCheckIcon,
+  circleClose: CircleCloseIcon,
   terminal: TerminalIcon,
   text: TextIcon,
   user: UserIcon,

@@ -1,0 +1,409 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Form } from "../Form/form";
+import { RadioGroup } from "./radio-group";
+
+<Meta title="Docs/RadioGroup" />
+
+export const meta = {
+  title: "RadioGroup",
+  description: "Lets users pick exactly one option from a small visible set.",
+  alternativeNames: ["RadioButtons", "ChoiceList"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/RadioGroup/radio-group.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-radiogroup--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/radio/",
+    ark: "https://ark-ui.com/docs/components/radio-group",
+  },
+  related: ["Radio", "CheckboxGroup", "Select", "SegmentedControl", "Form"],
+};
+
+# RadioGroup
+
+Lets users pick exactly one option from a small visible set.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <RadioGroup
+      aria-label="Entity visibility"
+      items={[
+        { value: "private", label: "Only me" },
+        { value: "workspace", label: "Everyone in the workspace" },
+        { value: "public", label: "Anyone with the link" },
+      ]}
+      value="workspace"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      layout="blockWithBorder"
+      aria-label="Sync frequency"
+      items={[
+        { value: "hourly", label: "Hourly" },
+        { value: "daily", label: "Daily" },
+        { value: "weekly", label: "Weekly" },
+      ]}
+      value="daily"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { RadioGroup } from "@hashintel/ds-components";
+
+export const EntityVisibility = () => {
+  const [visibility, setVisibility] = useState<
+    "private" | "workspace" | "public"
+  >("workspace");
+
+  return (
+    <RadioGroup
+      aria-label="Entity visibility"
+      items={[
+        { value: "private", label: "Only me" },
+        { value: "workspace", label: "Everyone in the workspace" },
+        { value: "public", label: "Anyone with the link" },
+      ]}
+      value={visibility}
+      onChange={setVisibility}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use RadioGroup when users must pick exactly one of 2–5 mutually exclusive options",
+    "Use it when seeing every option at once helps the decision — all choices stay visible, unlike Select.",
+    <Fragment key="0">
+      Give the group a sensible default selection — <code>value</code> is
+      required and must match one of the item values.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use it for large amounts of options — use Select, or Combobox when the list needs search.",
+    "Don't use it when users may pick several options — use CheckboxGroup.",
+    "Don't use it for an on/off choice — use Toggle, or a single Checkbox in forms.",
+    "Don't use it for a mode switch that applies instantly in toolbars or chrome — use SegmentedControl; RadioGroup belongs in forms.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+RadioGroup is controlled: `value` holds the selected option's value and `onChange` receives the newly selected one. Each item takes a unique `value` plus any Radio props, such as `label`, `disabled`, or `tone`.
+
+<Stage>
+  <DemoState data-harness>
+    <RadioGroup
+      aria-label="Flow trigger"
+      items={[
+        { value: "manual", label: "Manual" },
+        { value: "scheduled", label: "Scheduled" },
+        { value: "entity-update", label: "On entity update" },
+      ]}
+      value="scheduled"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Disabled
+
+Set `disabled` on the group to lock every option, or `disabled: true` on an item to lock just that one. Explain why in nearby text — a disabled option doesn't say.
+
+<Stage>
+  <RadioGroup
+    disabled
+    aria-label="Sync frequency"
+    items={[
+      { value: "hourly", label: "Hourly" },
+      { value: "daily", label: "Daily" },
+      { value: "weekly", label: "Weekly" },
+    ]}
+    value="daily"
+    onChange={noop}
+  />
+  <DemoState data-harness>
+    <RadioGroup
+      aria-label="Teammate role"
+      items={[
+        { value: "viewer", label: "Viewer" },
+        { value: "editor", label: "Editor" },
+        { value: "admin", label: "Admin", disabled: true },
+      ]}
+      value="editor"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Invalid
+
+Set `invalid` when the current selection fails validation — for example, a choice the workspace's policy forbids. The error styling appears on the selected option; pair it with an error message, since the styling alone doesn't say what's wrong.
+
+<Stage>
+  <DemoState data-harness>
+    <RadioGroup
+      invalid
+      aria-label="Entity visibility"
+      items={[
+        { value: "private", label: "Only me" },
+        { value: "workspace", label: "Everyone in the workspace" },
+        { value: "public", label: "Anyone with the link" },
+      ]}
+      value="public"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Layouts
+
+`block` (the default) stacks options for easy scanning. Use `blockWithBorder` for settings-style lists where each option reads as a row, and `inline` only for 2–3 short options where vertical space is tight.
+
+<Stage>
+  <DemoState data-harness>
+    <RadioGroup
+      layout="block"
+      aria-label="When duplicates are found"
+      items={[
+        { value: "keep-newest", label: "Keep newest values" },
+        { value: "keep-existing", label: "Keep existing values" },
+        { value: "review", label: "Review each conflict" },
+      ]}
+      value="keep-newest"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      layout="blockWithBorder"
+      aria-label="Sync frequency"
+      items={[
+        { value: "hourly", label: "Hourly" },
+        { value: "daily", label: "Daily" },
+        { value: "weekly", label: "Weekly" },
+      ]}
+      value="daily"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      layout="inline"
+      aria-label="Sort order"
+      items={[
+        { value: "ascending", label: "Ascending" },
+        { value: "descending", label: "Descending" },
+      ]}
+      value="ascending"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`size` scales the circles, labels, and spacing together, from `xxs` to `lg`; `md` is the default. Match the size of the surrounding form inputs.
+
+<Stage>
+  <DemoState data-harness>
+    <RadioGroup
+      size="xxs"
+      aria-label="xxs"
+      items={[{ value: "xxs", label: "xxs" }]}
+      value="xxs"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      size="xs"
+      aria-label="xs"
+      items={[{ value: "xs", label: "xs" }]}
+      value="xs"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      size="sm"
+      aria-label="sm"
+      items={[{ value: "sm", label: "sm" }]}
+      value="sm"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      size="md"
+      aria-label="md"
+      items={[{ value: "md", label: "md" }]}
+      value="md"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      size="lg"
+      aria-label="lg"
+      items={[{ value: "lg", label: "lg" }]}
+      value="lg"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Tones
+
+Items take a `tone` that colors their selected state: `neutral` (the default), `brand`, or `success`. Use one tone across a group — mixed tones read as different meanings.
+
+<Stage>
+  <DemoState data-harness>
+    <RadioGroup
+      aria-label="Neutral tone"
+      items={[{ value: "neutral", label: "Neutral", tone: "neutral" }]}
+      value="neutral"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      aria-label="Brand tone"
+      items={[{ value: "brand", label: "Brand", tone: "brand" }]}
+      value="brand"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <RadioGroup
+      aria-label="Success tone"
+      items={[{ value: "success", label: "Success", tone: "success" }]}
+      value="success"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Label placement
+
+Set `labelPlacement: "left"` on items to put the label before the circle.
+
+<Stage>
+  <DemoState data-harness>
+    <RadioGroup
+      layout="blockWithBorder"
+      aria-label="Default entity view"
+      items={[
+        { value: "table", label: "Table", labelPlacement: "left" },
+        { value: "board", label: "Board", labelPlacement: "left" },
+        { value: "graph", label: "Graph", labelPlacement: "left" },
+      ]}
+      value="table"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### With a group label
+
+Wrap the group in `Form.Field` with `as="legend"` to give it a visible label, description, and error messages — `as="legend"` names the whole group rather than a single input.
+
+<Stage>
+  <Form.Field
+    as="legend"
+    label="Entity visibility"
+    description="Who can see entities you create"
+  >
+    <DemoState data-harness>
+      <RadioGroup
+        items={[
+          { value: "private", label: "Only me" },
+          { value: "workspace", label: "Everyone in the workspace" },
+          { value: "public", label: "Anyone with the link" },
+        ]}
+        value="workspace"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+## Behavior
+
+- `onFocus` and `onBlur` fire only when focus enters or leaves the group as a whole — moving between options doesn't retrigger them.
+- Options share one `name` for form submission, auto-generated unless you pass one.
+- Users can move the selection but never clear it — `onChange` always receives an option value.
+- `required` sets `aria-required` on the group but doesn't enable native form validation — validate on submit and set `invalid`.
+
+## Content
+
+- Write option labels as short, parallel phrases — sentence case, under 4 words, no end punctuation: "Hourly", "On entity update".
+- Make options mutually exclusive and cover every case — add an explicit "Other" or "No preference" option rather than forcing a wrong fit.
+- Order options logically — by likely frequency of use, or smallest to largest; alphabetically when there's no natural order.
+- Let long labels wrap rather than truncating them — the circle stays aligned with the first line.
+
+## Accessibility
+
+Options are native radio inputs; together they implement the [WAI-ARIA radio group pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/).
+
+### What RadioGroup provides
+
+- Renders a `role="radiogroup"` container, with `aria-required` when a selection is required and `aria-orientation` matching the layout.
+
+### What you must do
+
+- Always name the group: a visible label via `Form.Field` with `as="legend"`, or `aria-label` when the surrounding context already says what the choice is.
+- Pair `invalid` with an error message, e.g. `Form.Field`'s `errors` — the red styling alone isn't perceivable by everyone.
+- Explain disabled options in nearby text — a disabled radio doesn't say why it's unusable.
+
+## API reference
+
+<PropsTable
+  of={RadioGroup}
+  defaults={{
+    layout: '"block"',
+    size: '"md"',
+  }}
+/>

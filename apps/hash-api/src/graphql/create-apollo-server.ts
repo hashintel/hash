@@ -13,9 +13,11 @@ import { context } from "@opentelemetry/api";
 import { getRPCMetadata } from "@opentelemetry/core";
 import * as Sentry from "@sentry/node";
 
+import { createRunningFlowRunHistoryCache } from "@local/hash-backend-utils/flows/run-events/running-flow-run-history-cache";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import {
   getHashClientTypeFromRequest,
+  getUserAgentFromRequest,
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 
@@ -196,6 +198,8 @@ export const createApolloServer = async ({
     uploadProvider,
   };
 
+  const runningFlowRunHistories = createRunningFlowRunHistoryCache();
+
   const server = new ApolloServer<GraphQLContext>({
     schema: combinedSchema,
     cache: new KeyvAdapter(cache),
@@ -238,7 +242,7 @@ export const createApolloServer = async ({
         actorType: "user",
         origin: {
           type: getHashClientTypeFromRequest(req) ?? "api",
-          userAgent: req.headers["user-agent"],
+          userAgent: getUserAgentFromRequest(req),
         },
       },
       user: req.user,
@@ -248,6 +252,7 @@ export const createApolloServer = async ({
       }),
       temporal: temporalClient,
       flowRunRecords: new Map(),
+      runningFlowRunHistories,
       vault: vaultClient,
     }),
   });

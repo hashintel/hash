@@ -22,7 +22,10 @@ use super::{
         EntityTypeResource, EntityTypeResourceConstraint, PolicyMetaResource, PropertyTypeResource,
         PropertyTypeResourceConstraint, ResourceConstraint,
     },
-    store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
+    store::{
+        PolicyStore, PrincipalStore, ResolvePoliciesParams,
+        error::{BuildEntityTypeContextError, ContextCreationError},
+    },
 };
 
 /// Optimization data extracted from policy analysis for database entity filter generation.
@@ -560,6 +563,21 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     }
 }
 
+/// Returns the entity types `report` names as missing, or [`None`] if it reports any other error.
+fn missing_entity_types(
+    report: &Report<[BuildEntityTypeContextError]>,
+) -> Option<HashSet<VersionedUrl>> {
+    report
+        .current_contexts()
+        .map(|context| match context {
+            BuildEntityTypeContextError::EntityTypeNotFound { entity_type_id } => {
+                Some(entity_type_id.clone())
+            }
+            BuildEntityTypeContextError::StoreError => None,
+        })
+        .collect()
+}
+
 impl<S> IntoFuture for PolicyComponentsBuilder<'_, S>
 where
     S: PrincipalStore + PolicyStore + Sync,
@@ -608,8 +626,16 @@ where
                     .store
                     .build_entity_type_context(&entity_type_ids)
                     .await
-                    .change_context_lazy(|| ContextCreationError::BuildEntityTypeContext {
-                        entity_type_ids: entity_type_ids.into_iter().cloned().collect(),
+                    .map_err(|report| {
+                        let context = missing_entity_types(&report).map_or_else(
+                            || ContextCreationError::BuildEntityTypeContext {
+                                entity_type_ids: entity_type_ids.into_iter().cloned().collect(),
+                            },
+                            |entity_type_ids| ContextCreationError::EntityTypesNotFound {
+                                entity_type_ids,
+                            },
+                        );
+                        report.change_context(context)
                     })?;
                 for entity_type_resource in &entity_type_resources {
                     self.context.add_entity_type(entity_type_resource);
@@ -725,7 +751,7 @@ mod tests {
 
     fn create_test_entity_permit_policy(entity_uuid: EntityUuid) -> ResolvedPolicy {
         ResolvedPolicy {
-            original_policy_id: PolicyId(Uuid::new_v4()),
+            original_policy_id: PolicyId(Uuid::now_v7()),
             effect: Effect::Permit,
             actions: vec![ActionName::View],
             resource: Some(ResourceConstraint::Entity(
@@ -740,8 +766,8 @@ mod tests {
     /// action tracking issues.
     #[test]
     fn build_policy_set_prevented_after_optimization() {
-        let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
-        let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
+        let entity_uuid1 = EntityUuid::new(Uuid::now_v7());
+        let entity_uuid2 = EntityUuid::new(Uuid::now_v7());
 
         let policies = vec![
             create_test_entity_permit_policy(entity_uuid1),
@@ -794,8 +820,8 @@ mod tests {
     /// and fails when optimization is enabled.
     #[test]
     fn builder_optimization_opt_out_controls_policy_set() {
-        let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
-        let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
+        let entity_uuid1 = EntityUuid::new(Uuid::now_v7());
+        let entity_uuid2 = EntityUuid::new(Uuid::now_v7());
 
         let policies_without_optimization = vec![
             create_test_entity_permit_policy(entity_uuid1),
@@ -861,12 +887,12 @@ mod tests {
     /// by filter creation functions.
     #[test]
     fn extract_filter_policies_converts_correctly() {
-        let entity_uuid = EntityUuid::new(Uuid::new_v4());
+        let entity_uuid = EntityUuid::new(Uuid::now_v7());
         let policy = create_test_entity_permit_policy(entity_uuid);
 
         let policy_components = PolicyComponents {
             actor_id: Some(ActorId::User(type_system::principal::actor::UserId::new(
-                Uuid::new_v4(),
+                Uuid::now_v7(),
             ))),
             is_instance_admin: false,
             policies: vec![policy],

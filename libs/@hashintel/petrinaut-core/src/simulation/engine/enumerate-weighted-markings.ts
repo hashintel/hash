@@ -50,7 +50,7 @@ function nextIndexCombination(combo: number[], n: number): boolean {
  * weight-`w` arc has `C(n, w)` combinations, and building them eagerly made
  * transition evaluation quadratic in the token count (see "Weighted-arc
  * enumeration" in
- * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx`).
+ * `libs/@hashintel/petrinaut-core/src/simulation/performance.mdx`).
  * Cost is proportional to the combinations the caller actually consumes.
  *
  * The enumeration order is a contract: the engine fires the first passing

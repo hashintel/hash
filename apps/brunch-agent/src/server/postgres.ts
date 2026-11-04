@@ -3,8 +3,7 @@ import { readFileSync } from "node:fs";
 import { Signer, type SignerConfig } from "@aws-sdk/rds-signer";
 import { Pool } from "pg";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
-
+import { brunchEnv } from "../env.ts";
 import { type PostgresDatabaseConfig } from "./database-config.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
 import { errorCode, recordOperationalFailure } from "./telemetry.ts";

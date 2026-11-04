@@ -1,6 +1,10 @@
 import * as v from "valibot";
 
-import { vClaimReference, vEntityReference } from "../shared/references";
+import {
+  resolvesField,
+  vClaimReference,
+  vEntityReference,
+} from "../shared/references";
 
 export const vObligation = v.pipe(
   v.strictObject({
@@ -27,6 +31,7 @@ export const vObligation = v.pipe(
         ),
       ),
     ),
+    ...resolvesField,
   }),
   v.check(
     (obligation) =>

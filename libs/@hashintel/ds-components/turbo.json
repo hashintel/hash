@@ -19,7 +19,11 @@
       "outputs": [".build/storybook/**"]
     },
     "codegen": {
-      "outputs": ["src/preset/**/*.gen.ts", "../ds-helpers/styled-system/**"]
+      "outputs": [
+        "src/preset/**/*.gen.ts",
+        "docs/blocks/props-table/*.gen.ts",
+        "../ds-helpers/styled-system/**"
+      ]
     },
     "dev": {
       "cache": false,

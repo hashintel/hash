@@ -20,7 +20,7 @@
  * `i < j`, so scanning `x` ascending *is* the CPU's order.
  *
  * "The WebGPU backend" in
- * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx` covers
+ * `libs/@hashintel/petrinaut-core/src/simulation/performance.mdx` covers
  * why this is a flat scan rather than a nested loop: dynamic trip counts cost
  * the maximum across a SIMT subgroup, and unranking removes the nesting
  * entirely.

@@ -19,6 +19,7 @@ mod multi_type;
 mod partial_updates;
 mod property_metadata;
 mod property_type;
+mod provenance;
 mod read_only;
 mod semantic_search;
 mod sorting;
@@ -28,6 +29,7 @@ mod transaction;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -63,7 +65,10 @@ use hash_graph_store::{
         SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, DeletionError, EntityCreationError, InsertionError, QueryError,
+        UpdateError,
+    },
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -75,7 +80,6 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_secret::Secret;
 use hash_telemetry::logging::env_filter;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
@@ -809,7 +813,7 @@ impl EntityStore for DatabaseApi<'_> {
         &mut self,
         actor_id: ActorId,
         params: Vec<CreateEntityParams>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>> {
+    ) -> Result<Vec<Entity>, Report<EntityCreationError>> {
         self.store.create_entities(actor_id, params).await
     }
 

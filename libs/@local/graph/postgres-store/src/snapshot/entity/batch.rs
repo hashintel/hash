@@ -14,8 +14,10 @@ use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 use type_system::{
+    Validator as _,
     knowledge::{Entity, property::PropertyObjectWithMetadata},
     ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
+    provenance::validation::ProvenanceValidator,
 };
 
 use crate::{
@@ -368,7 +370,11 @@ where
             if changed {
                 edition_ids_updates.push(entity.metadata.record_id.edition_id);
                 properties_updates.push(entity.properties);
-                metadata_updates.push(entity.metadata.properties);
+                metadata_updates.push(
+                    ProvenanceValidator
+                        .validate(entity.metadata.properties)
+                        .change_context(InsertionError)?,
+                );
             }
         }
 

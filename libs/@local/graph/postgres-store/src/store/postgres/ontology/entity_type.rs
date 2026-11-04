@@ -2,7 +2,7 @@ use alloc::{borrow::Cow, collections::BTreeSet, sync::Arc};
 use core::iter;
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
@@ -54,7 +54,7 @@ use type_system::{
             EntityTypeUuid,
             schema::{
                 EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeValidator,
-                PartialEntityType,
+                LINK_ENTITY_TYPE_BASE_URL, PartialEntityType,
             },
         },
         id::{OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
@@ -69,7 +69,7 @@ use type_system::{
 };
 
 use crate::store::{
-    error::{DeletionError, OntologyVersionDoesNotExist},
+    error::{DeletionError, LinkToLinkConstraint, OntologyVersionDoesNotExist},
     postgres::{
         AsClient, GenericClientIter as _, PostgresStore, ResponseCountMap, TransactionState,
         TraversalContext,
@@ -433,6 +433,88 @@ where
 
                 Ok((source_id, resolve_data))
             }))
+    }
+
+    /// Rejects the `entity_types` that would let a link point to a link.
+    ///
+    /// An entity type must not allow a link type as a link destination, and a link type must not
+    /// declare links. The check reads the reference tables, so the references of every type in
+    /// `entity_types` have to be inserted before.
+    ///
+    /// # Errors
+    ///
+    /// - [`LinkToLinkConstraint`] for each link destination and each declared link that breaks this
+    async fn ensure_no_links_to_links(
+        &self,
+        entity_types: &[EntityTypeUuid],
+    ) -> Result<(), Report<InsertionError>> {
+        // `endpoint_id` is the entity type at the end of the link that must not be a link: the
+        // destination for a link destination, and the declaring type for a declared link.
+        self.as_client()
+            .query(
+                "
+                    SELECT
+                        reference.is_destination,
+                        source.base_url || 'v/' || source.version,
+                        target.base_url || 'v/' || target.version
+                    FROM (
+                        SELECT
+                            TRUE AS is_destination,
+                            source_entity_type_ontology_id AS source_id,
+                            target_entity_type_ontology_id AS target_id,
+                            target_entity_type_ontology_id AS endpoint_id
+                        FROM entity_type_constrains_link_destinations_on
+                        WHERE source_entity_type_ontology_id = ANY($1)
+                        UNION ALL
+                        SELECT
+                            FALSE,
+                            source_entity_type_ontology_id,
+                            target_entity_type_ontology_id,
+                            source_entity_type_ontology_id
+                        FROM entity_type_constrains_links_on
+                        WHERE source_entity_type_ontology_id = ANY($1)
+                    ) AS reference
+                    JOIN ontology_ids AS source ON source.ontology_id = reference.source_id
+                    JOIN ontology_ids AS target ON target.ontology_id = reference.target_id
+                    JOIN ontology_ids AS endpoint ON endpoint.ontology_id = reference.endpoint_id
+                    WHERE endpoint.base_url = $2
+                       OR EXISTS (
+                           SELECT 1
+                           FROM entity_type_inherits_from AS inherits
+                           JOIN ontology_ids AS ancestor
+                             ON ancestor.ontology_id = inherits.target_entity_type_ontology_id
+                           WHERE inherits.source_entity_type_ontology_id = reference.endpoint_id
+                             AND ancestor.base_url = $2
+                       );
+                ",
+                &[&entity_types, &LINK_ENTITY_TYPE_BASE_URL],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres"
+            ))
+            .await
+            .change_context(InsertionError)?
+            .into_iter()
+            .map(|row| {
+                let entity_type_id = row.get(1);
+                let referenced_type_id = row.get(2);
+                Err(Report::new(if row.get(0) {
+                    LinkToLinkConstraint::Destination {
+                        entity_type_id,
+                        destination_id: referenced_type_id,
+                    }
+                } else {
+                    LinkToLinkConstraint::Source {
+                        entity_type_id,
+                        link_type_id: referenced_type_id,
+                    }
+                }))
+            })
+            .try_collect_reports::<()>()
+            .change_context(InsertionError)
     }
 
     #[expect(clippy::too_many_lines)]
@@ -1080,6 +1162,15 @@ where
                 .insert_entity_type_references(*entity_type_id, closed_metadata)
                 .await?;
         }
+
+        transaction
+            .ensure_no_links_to_links(
+                &inserted_entity_types
+                    .iter()
+                    .map(|(entity_type_id, _)| *entity_type_id)
+                    .collect::<Vec<_>>(),
+            )
+            .await?;
 
         transaction.commit().await.change_context(InsertionError)?;
 
@@ -1812,6 +1903,16 @@ where
                 .await
                 .change_context(UpdateError)?;
         }
+
+        transaction
+            .ensure_no_links_to_links(
+                &inserted_entity_types
+                    .iter()
+                    .map(|(entity_type_id, _)| *entity_type_id)
+                    .collect::<Vec<_>>(),
+            )
+            .await
+            .change_context(UpdateError)?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

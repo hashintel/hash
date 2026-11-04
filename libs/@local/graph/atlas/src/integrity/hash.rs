@@ -2,15 +2,15 @@
 
 use core::{fmt, str::FromStr};
 
-use sha2::{Digest as _, digest::typenum::Unsigned as _};
+use hash_crypto::digest;
 
 use super::{
     hex::{HexBytes, ParseHexError},
     writer::Update,
 };
 
-/// The digest width in bytes, read off the hash itself rather than written down as 32.
-const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::OutputSize::USIZE;
+/// The digest width in bytes.
+const DIGEST_BYTES: usize = 32;
 
 /// A SHA-256 content identity.
 ///
@@ -130,7 +130,7 @@ impl FromStr for Sha256Digest {
 /// );
 /// ```
 #[derive(Debug, Default)]
-pub(crate) struct Sha256(sha2::Sha256);
+pub(crate) struct Sha256(digest::Sha256);
 
 impl Sha256 {
     /// Creates a hasher over the empty byte sequence.
@@ -142,7 +142,7 @@ impl Sha256 {
     /// Finishes the digest over all bytes absorbed so far.
     #[must_use]
     pub(crate) fn finalize(self) -> Sha256Digest {
-        Sha256Digest(HexBytes::new(self.0.finalize().into()))
+        Sha256Digest(HexBytes::new(self.0.finalize().to_bytes()))
     }
 }
 

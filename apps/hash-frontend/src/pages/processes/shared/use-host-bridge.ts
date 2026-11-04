@@ -25,18 +25,6 @@ type HostBridgeHandlers = {
   onReportError?: (
     payload: Extract<IframeToHostMessage, { kind: "reportError" }>,
   ) => void;
-  onOptimizationCreate?: (
-    payload: Extract<IframeToHostMessage, { kind: "optimizationCreate" }>,
-  ) => void;
-  onOptimizationAttach?: (
-    payload: Extract<IframeToHostMessage, { kind: "optimizationAttach" }>,
-  ) => void;
-  onOptimizationAbort?: (
-    payload: Extract<IframeToHostMessage, { kind: "optimizationAbort" }>,
-  ) => void;
-  onOptimizationCancel?: (
-    payload: Extract<IframeToHostMessage, { kind: "optimizationCancel" }>,
-  ) => void;
 };
 
 type HostBridge = {
@@ -110,18 +98,6 @@ export const useHostBridge = ({
           break;
         case "reportError":
           current.onReportError?.(data);
-          break;
-        case "optimizationCreate":
-          current.onOptimizationCreate?.(data);
-          break;
-        case "optimizationAttach":
-          current.onOptimizationAttach?.(data);
-          break;
-        case "optimizationAbort":
-          current.onOptimizationAbort?.(data);
-          break;
-        case "optimizationCancel":
-          current.onOptimizationCancel?.(data);
           break;
       }
     };

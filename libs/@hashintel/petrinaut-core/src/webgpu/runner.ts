@@ -4,7 +4,7 @@
  * The API is deliberately whole-experiment rather than per-frame. Implementing
  * `MonteCarloSimulator.advanceAll()` — synchronous, one frame at a time — would
  * force a `mapAsync` readback per frame, and "The WebGPU backend" in
- * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx`
+ * `libs/@hashintel/petrinaut-core/src/simulation/performance.mdx`
  * measures that round-trip at hundreds of microseconds against roughly a
  * microsecond of per-frame work. Instead the host dispatches a chunk of frames,
  * and results come back as per-frame histograms accumulated on the device.

@@ -1,6 +1,6 @@
 import { type ReactNode, use, useEffect, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
@@ -13,6 +13,7 @@ import {
   type AssistantPanel,
   AssistantPanelContext,
   AssistantTitleBarContext,
+  useAssistantChoice,
 } from "../../../plugins/plugin-assistant";
 import { ResizeHandle } from "../../../resize/resize-handle";
 import { FloatingResizeHandles } from "../shared/floating-resize-handles";
@@ -192,6 +193,45 @@ const buttonStyle = css({
   },
 });
 
+// Positioned, so it paints above the drag handle, right after its icon. The
+// negative right margin gives back the room the title keeps for the icon, so
+// the title follows the switcher closely.
+const switcherStyle = css({
+  position: "relative",
+  display: "flex",
+  marginLeft: "[18px]",
+  marginRight: "[-18px]",
+});
+
+/** Switches between the running plugins' assistants, while there are several. */
+const AssistantSwitcher = () => {
+  const { assistants, shownId, choose } = useAssistantChoice();
+
+  return assistants.length > 1 ? (
+    <div className={switcherStyle}>
+      <Menu
+        position="bottom-start"
+        items={assistants.map(({ id, name }) => ({
+          id,
+          text: name,
+          selected: id === shownId,
+          onClick: choose,
+        }))}
+        trigger={
+          <Button
+            size="xs"
+            variant="ghost"
+            className={buttonStyle}
+            aria-label="Switch AI assistant"
+            prefix={<Icon name="chevronDown" size="xs" />}
+            tooltip="Switch AI assistant"
+          />
+        }
+      />
+    </div>
+  ) : null;
+};
+
 /**
  * The AI assistant panel around a plugin's content: the space it takes beside
  * the canvas, its docked or floating placement, resizing, and a title bar with
@@ -319,6 +359,7 @@ export const PluginAssistantPanel = ({
               >
                 <AiAssistantIcon size={16} />
               </HeaderLabel>
+              <AssistantSwitcher />
               <div ref={setTitleElement} className={titleStyle} />
               <Button
                 size="xs"

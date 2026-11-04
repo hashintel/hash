@@ -830,8 +830,8 @@ fn variant_schema(base: &Schema, variant: &Variant, extensions: Schema) -> Schem
 
 /// The one branch of the `oneOf` or `anyOf` that `extensions` consists of, or `extensions` itself.
 ///
-/// schemars describes an enum with one variant as a `oneOf` of it. Documentation viewers show the
-/// members of such a branch without the members it requires.
+/// schemars describes an enum with one variant as a `oneOf` of it, which documentation viewers show
+/// as a choice with a single entry.
 fn only_branch(extensions: Schema) -> Schema {
     extensions
         .as_object()

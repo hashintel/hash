@@ -1,9 +1,7 @@
 /**
  * Runtime schema for the serialized HIR grammar that `hir.ts` declares as
- * types. Anything that carries HIR across a process boundary (an
- * optimization manifest, the CLI's describe protocol) validates it here, and
- * the CLI publishes this schema as JSON Schema so other languages generate a
- * matching, fully typed AST from the one definition.
+ * types. Anything that carries HIR across a process boundary, such as an
+ * optimization manifest, validates it here.
  *
  * The schema and the types are kept in lockstep by the `Equals` assertions
  * at the bottom of this file: adding a node kind or a field to `hir.ts`

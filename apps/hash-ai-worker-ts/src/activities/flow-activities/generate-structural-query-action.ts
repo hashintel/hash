@@ -560,7 +560,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       },
       required: ["filter"],
       additionalProperties: false,
-      $defs: filterSchemaDefinitions as Record<string, unknown>,
+      $defs: filterSchemaDefinitions,
     },
   },
   {
@@ -598,7 +598,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       },
       required: ["filter", "explanation", "suggestedChartTypes"],
       additionalProperties: false,
-      $defs: filterSchemaDefinitions as Record<string, unknown>,
+      $defs: filterSchemaDefinitions,
     },
   },
 ];

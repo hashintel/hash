@@ -269,7 +269,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
     }
 
     fn known_user(email: &str) -> (HashMap<String, UserId>, ActorEntityUuid) {
-        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
         (
             HashMap::from([(email.to_owned(), UserId::new(actor_id))]),
             actor_id,

@@ -28,7 +28,7 @@ uv             = "0.13.4"
 # wasm-opt crate from source added ~7 minutes to every install that needed it.
 "github:WebAssembly/binaryen"   = "version_131"
 "github:wasm-bindgen/wasm-pack" = "0.15.0"
-java                            = "25"
+java                            = "temurin-25.0.5+8.0.LTS"
 protoc                          = "35.1"
 
 # CLI tools
@@ -43,7 +43,7 @@ protoc                          = "35.1"
 # See https://linear.app/hash/issue/SRE-878
 "cargo:cargo-insta"                     = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
 just                                    = "1.51.0"
-markdownlint-cli2                       = "0.22.1"
+markdownlint-cli2                       = "0.24.0"
 "npm:@napi-rs/cli"                      = "3.7.0"
 "npm:@redocly/cli"                      = "2.31.5"
 # TODO(SRE-871): Remove the `@yarnpkg/libzip@3.2.2` exclusion once an attested libzip release > 3.2.2
@@ -56,5 +56,5 @@ oxfmt                                   = "0.71.0"
 sentry-cli                              = "2.52.0"
 tombi                                   = "1.8.9"
 typst                                   = "0.15.1"
-"ubi:terrastruct/d2"                    = "0.7.1"
+"ubi:terrastruct/d2"                    = "0.9.0"
 yq                                      = "4.53.2"

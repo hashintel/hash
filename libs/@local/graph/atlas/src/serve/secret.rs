@@ -1,6 +1,6 @@
 use core::pin::Pin;
 
-use hash_secret::Secret;
+use hash_crypto::Secret;
 
 /// A serving deployment's 32-byte secret.
 ///
@@ -9,15 +9,18 @@ use hash_secret::Secret;
 /// Authorization also salts each authority's derivation with fresh randomness.
 ///
 /// Supply unpredictable key material: the type accepts every 32-byte value and checks no entropy.
-/// [`core::fmt::Debug`] redacts the value, and each owned buffer zeroes on drop. This zeroing does
-/// not cover copies made from [`expose`](Self::expose).
+/// [`core::fmt::Debug`] redacts the value, and each owned buffer zeroes on drop.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ServeSecret(Pin<Box<Secret<[u8; 32]>>>);
 
 impl ServeSecret {
-    /// The secret's bytes.
-    pub(crate) fn expose(&self) -> &[u8] {
-        self.0.expose()
+    /// The secret that keys are derived from.
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "dereferencing a `Pin<Box<_>>` is not const"
+    )]
+    pub(crate) fn as_secret(&self) -> &Secret<[u8; 32]> {
+        &self.0
     }
 }
 

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/open_other_purpose.rs:35:25
+   |
+35 |     let _ = tokens.open(&sealed, &(), pin!(Secret::<[u8; 4]>::zeroed()));
+   |                    ---- ^^^^^^^ expected `&Sealed<Tokens, 4>`, found `&Sealed<Sessions, 4>`
+   |                    |
+   |                    arguments to this method are incorrect
+   |
+   = note: expected reference `&Sealed<Tokens, 4>`
+              found reference `&Sealed<Sessions, 4>`
+note: method defined here
+  --> src/aes_gcm.rs
+   |
+   |     pub fn open<const N: usize>(
+   |            ^^^^

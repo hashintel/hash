@@ -35,7 +35,7 @@ tokio-util        = { workspace = true, features = ["io"] }
 tracing           = { workspace = true, features = ["attributes"] }
 trait-variant     = { workspace = true }
 utoipa            = { workspace = true, optional = true }
-uuid              = { workspace = true, features = ["v4"] }
+uuid              = { workspace = true, features = ["std", "v7"] }
 
 [dev-dependencies]
 hash-codegen      = { workspace = true }

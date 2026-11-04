@@ -1,7 +1,7 @@
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { execa } from "execa";
 import fs from "fs-extra";
 
 import { monorepoRootDirPath } from "./shared/monorepo";
@@ -11,7 +11,7 @@ import type { JsonObject } from "@blockprotocol/core";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const script = async () => {
+const script = () => {
   const args = process.argv.slice(2);
 
   const blockName = args[0];
@@ -27,9 +27,9 @@ const script = async () => {
 
   console.log("************ Creating block ************");
 
-  await execa("npx", ["create-block-app@latest", ...args], {
+  execFileSync("npx", ["create-block-app@latest", ...args], {
     cwd: path.join(monorepoRootDirPath, "blocks"),
-    stdout: "inherit",
+    stdio: ["pipe", "inherit", "pipe"],
   });
 
   console.log("********* Configuring for repo *********");
@@ -94,6 +94,4 @@ const script = async () => {
   fs.rmSync(path.join(newBlockFolder, ".gitignore"));
 };
 
-void (async () => {
-  await script();
-})();
+script();

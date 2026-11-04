@@ -16,7 +16,6 @@ export type {
   PetrinautConnectedOptimizationCapability,
   PetrinautConnectedRunOptions,
   PetrinautOptimizationChannel,
-  PetrinautOptimizationSource,
   PetrinautOptimizationTrialOutcome,
   PetrinautOptimizationTrialRequest,
 } from "../index";

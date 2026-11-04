@@ -1,0 +1,174 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { LoadingSpinner } from "./loading-spinner";
+
+<Meta title="Docs/Loading" />
+
+export const meta = {
+  title: "LoadingSpinner",
+  description:
+    "Signals an operation is in progress when its duration is unknown.",
+  alternativeNames: ["Spinner", "Loader", "ProgressCircle"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Loading/loading-spinner.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-loadingspinner--default",
+  },
+  related: ["Button"],
+};
+
+# LoadingSpinner
+
+Signals an operation is in progress when its duration is unknown.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <LoadingSpinner size="lg" />
+  <LoadingSpinner size="md" />
+  <LoadingSpinner size="md" variant="bars" />
+  <LoadingSpinner size="sm" variant="bars" />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { LoadingSpinner } from "@hashintel/ds-components";
+
+export const EntityTableLoading = () => <LoadingSpinner size="md" />;
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use a spinner for indeterminate waits — fetching entities, syncing a type, running a flow — where progress can't be quantified.",
+    "Place it where the loaded content will appear, so the user's eye is already there when it lands.",
+    "Use one spinner per loading region — simultaneous spinners compete for attention and imply separate processes.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't show a spinner for sub-second work — render the result directly; a spinner that flashes in and out reads as flicker.",
+    'Don\'t use a spinner when progress is measurable — state it as text, like "3 of 5 imports complete", so users can gauge the wait.',
+    "Don't leave a spinner running after a request fails — swap in an error state, such as a Banner, that says what went wrong.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+The default spinner is a smooth circular sweep at `md`. Drop it into
+the space the pending content will fill.
+
+<Stage>
+  <LoadingSpinner />
+</Stage>
+
+### Sizes
+
+Five fixed sizes from `xxs` to `lg`, sharing the scale Button and
+the form inputs use — match the control or region the spinner stands in for.
+
+<Stage>
+  <LoadingSpinner size="xxs" />
+  <LoadingSpinner size="xs" />
+  <LoadingSpinner size="sm" />
+  <LoadingSpinner size="md" />
+  <LoadingSpinner size="lg" />
+</Stage>
+
+### Bars variant
+
+`bars` replaces the smooth sweep with twelve spokes that tick in discrete
+steps.
+
+<Stage>
+  <LoadingSpinner variant="default" size="md" />
+  <LoadingSpinner variant="bars" size="md" />
+</Stage>
+
+### Color
+
+Both variants draw entirely with `currentColor`, so the spinner takes the CSS
+`color` of its container.
+
+<Stage>
+  <LoadingSpinner size="md" />
+  <span style={{ color: "#0d74ce", display: "inline-flex" }}>
+    <LoadingSpinner size="md" />
+  </span>
+  <div
+    style={{
+      backgroundColor: "#1d1d1d",
+      color: "#ffffff",
+      padding: 12,
+      borderRadius: 8,
+      display: "inline-flex",
+    }}
+  >
+    <LoadingSpinner size="md" />
+  </div>
+</Stage>
+
+### With a label
+
+A spinner alone doesn't say what's loading. Pair it with text naming the work,
+and wrap both in `role="status"` so screen readers announce it too.
+
+<Stage>
+  <div role="status" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <LoadingSpinner size="sm" variant="bars" />
+    <span>Loading entities…</span>
+  </div>
+</Stage>
+
+## Behavior
+
+- The animation keeps running under `prefers-reduced-motion` — a frozen
+  spinner reads as a stalled process.
+- Sizes are fixed sizes; the spinner doesn't scale with
+  surrounding text or its container.
+
+## Accessibility
+
+LoadingSpinner provides a decorative SVG with no role, accessible name, or live region. You must set these yourself.
+
+### What you must do
+
+- Announce loading in text: wrap the spinner and a label in an element with
+  `role="status"` so screen readers hear the state change.
+- Name the work in the label — "Loading entities…", not "Please wait".
+
+## API reference
+
+<PropsTable
+  of={LoadingSpinner}
+  defaults={{
+    size: '"md"',
+    variant: '"default"',
+  }}
+/>

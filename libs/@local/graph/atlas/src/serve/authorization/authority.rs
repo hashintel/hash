@@ -4,44 +4,56 @@
 //! [`Scope`]. Verification authenticates the envelope before comparing its actor, generation and
 //! delta lifetime with the request. [`ScopeLease::current`] checks expiry.
 
-use core::{pin::Pin, time::Duration};
-use std::{sync::nonpoison::Mutex, time::SystemTime};
-
-use chacha20poly1305::{
-    AeadCore, AeadInPlace as _, KeyInit as _, KeySizeUser, Tag, XChaCha20Poly1305, XNonce,
+use core::{
+    pin::pin,
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
 };
-use error_stack::Report;
-use hash_secret::Secret;
-use hkdf::Hkdf;
-use rand::TryCryptoRng;
-use sha2::{Sha256, digest::typenum::Unsigned};
+use std::time::SystemTime;
+
+use error_stack::{Report, ResultExt as _};
+use hash_crypto::{
+    Secret, SecretBuffer,
+    aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
+    hkdf::HkdfSha256Key,
+    random::random_bytes,
+};
+use opentelemetry::{
+    KeyValue,
+    metrics::{Counter, Meter},
+};
 use type_system::principal::actor::ActorId;
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    error::AuthorityError,
+    error::{AuthorityError, AuthorityKeyError, IssueError},
     scope::{Scope, ScopeLease},
-    token::{EncryptedToken, MessageVersion, Token, TokenHeader, UnixEpochSeconds},
+    token::{EncryptedToken, MessageVersion, SCOPE_BYTES, Token, TokenHeader, UnixEpochSeconds},
 };
 use crate::{
     morton::Zoom,
     serve::{delta::epoch::Epoch, visibility::cache::FilterDigest},
 };
 
-/// The authenticated cipher protecting the scope and clear header.
-type Encryption = XChaCha20Poly1305;
-
 /// The HKDF info string for authorization key derivation.
 ///
 /// This label must change when the envelope's interpretation changes. Distinct labels separate
 /// layout versions in key derivation.
-const LABEL: &[u8] = b"atlas.authorization.v2";
-/// The nonce width the envelope's header reserves.
-pub(crate) const NONCE_BYTES: usize = <<Encryption as AeadCore>::NonceSize as Unsigned>::USIZE;
-/// The sealing key's width, the number of bytes HKDF expands to.
-pub(crate) const KEY_BYTES: usize = <<Encryption as KeySizeUser>::KeySize as Unsigned>::USIZE;
-/// The authentication tag's width, the envelope's trailer.
-pub(crate) const TAG_BYTES: usize = <<Encryption as AeadCore>::TagSize as Unsigned>::USIZE;
+const LABEL: &[u8] = b"atlas.authorization.v3";
+
+/// The most tokens one key seals with random 96-bit nonces (SP 800-38D, section 8.3).
+const ISSUE_BUDGET: u64 = 1 << 32;
+
+/// The purpose of the key that seals a [`Scope`] into a token, bound to the token's clear header.
+pub(super) struct Scopes;
+
+impl AeadPurpose for Scopes {
+    type AssociatedData = TokenHeader;
+
+    fn associated_data(data: &TokenHeader) -> impl AsRef<[u8]> {
+        data.as_bytes()
+    }
+}
 
 /// The actor, filter identity and delivery offset to seal into a token.
 ///
@@ -65,58 +77,67 @@ pub(crate) struct Issue {
 ///
 /// # Key and nonce requirements
 ///
-/// XChaCha20-Poly1305 requires a secret key and non-repeating nonces under that key. [`Self::new`]
-/// derives the key with HKDF-SHA256 from a deployment secret and a random 64-bit salt. Each issue
-/// draws a 192-bit nonce from `R`, with access serialized within this authority. Confidentiality
-/// and authenticity depend on the cipher's security assumptions, secret key material and a
-/// correctly seeded, protected random source.
-///
-/// Random draws provide probabilistic separation, not uniqueness. The authority checks neither salt
-/// nor nonce collisions. The [`TryCryptoRng`] marker alone does not establish correct seeding or
-/// protect against duplicated generator state. Keep the secret unpredictable and avoid cloning or
-/// restoring a generator's state for independent issuers.
+/// [`Self::new`] derives an AES-256-GCM key with HKDF-SHA-256 from a deployment secret and a random
+/// 64-bit salt. Each token gets a random 96-bit nonce, so one authority issues at most `2^32`
+/// tokens (SP 800-38D, section 8.3). [`Self::issue`] refuses every token beyond that.
 ///
 /// The derived key is not persisted. A new authority draws another salt, including after restart.
 /// Equal secret, salt and label derive equal keys, and a repeated salt can therefore reproduce an
 /// earlier key. Authorities constructed independently from the same deployment secret are not
 /// configured to share tokens.
-pub(crate) struct Authority<R> {
-    key: Pin<Box<Secret<[u8; KEY_BYTES]>>>,
+pub(crate) struct Authority {
+    key: Aes256GcmKey<Scopes>,
     expiration: Duration,
-    rng: Mutex<R>,
+    issued: AtomicU64,
+    tokens: Counter<u64>,
 }
 
-impl<R> Authority<R> {
-    /// Derives a sealing key and sets the issue-time window for its tokens.
+impl Authority {
+    /// Derives a sealing key from `secret` and sets the issue-time window for its tokens.
     ///
-    /// Each construction salts `secret` with a newly drawn `u64`. The timestamp recorded in each
-    /// token starts its `expiration` window. A zero duration admits no lease as current. The [key
-    /// and nonce requirements](Self#key-and-nonce-requirements) apply to `secret` and `rng`.
+    /// Each construction salts `secret` with newly drawn random bytes. The timestamp recorded in
+    /// each token starts its `expiration` window. A zero duration admits no lease as current.
+    /// `meter` counts tokens by outcome: issued, refused for an exhausted budget or failed to seal.
     ///
     /// # Errors
     ///
-    /// Returns `rng`'s error if drawing the salt fails.
-    #[expect(
-        clippy::big_endian_bytes,
-        reason = "HKDF salts are byte strings, and a fixed order keeps the derivation \
-                  host-independent"
-    )]
-    pub(crate) fn new(secret: &[u8], expiration: Duration, mut rng: R) -> Result<Self, R::Error>
+    /// Returns [`AuthorityKeyError`] if drawing the salt or deriving the key fails.
+    pub(crate) fn new<T>(
+        secret: &Secret<T>,
+        expiration: Duration,
+        meter: &Meter,
+    ) -> Result<Self, Report<AuthorityKeyError>>
     where
-        R: TryCryptoRng,
+        T: ?Sized + SecretBuffer<View = [u8]>,
     {
-        let salt = rng.try_next_u64()?;
-        let mut key = Box::pin(Secret::zeroed());
-
-        Hkdf::<Sha256>::new(Some(&salt.to_be_bytes()), secret)
-            .expand(LABEL, key.as_mut().expose_mut())
-            .expect("the cipher's key size stays within HKDF-SHA256's expansion bound");
+        let salt = random_bytes::<8>().change_context(AuthorityKeyError)?;
+        let mut key = pin!(Secret::<[u8; 32]>::zeroed());
+        HkdfSha256Key::extract(&salt, secret)
+            .expand(LABEL, key.as_mut())
+            .change_context(AuthorityKeyError)?;
 
         Ok(Self {
-            key,
+            key: Aes256GcmKey::from_secret(&key),
             expiration,
-            rng: Mutex::new(rng),
+            issued: AtomicU64::new(0),
+            tokens: meter
+                .u64_counter("hash.atlas.authority.tokens")
+                .with_description("Authority tokens by issuance outcome")
+                .with_unit("{token}")
+                .build(),
         })
+    }
+
+    /// Leaves this authority `remaining` tokens to issue.
+    #[cfg(test)]
+    pub(crate) fn with_remaining(self, remaining: u64) -> Self {
+        let issued = ISSUE_BUDGET
+            .checked_sub(remaining)
+            .expect("should leave at most the whole budget");
+        Self {
+            issued: AtomicU64::new(issued),
+            ..self
+        }
     }
 
     /// Seals the supplied delivery decision over `epoch`.
@@ -132,7 +153,11 @@ impl<R> Authority<R> {
     ///
     /// # Errors
     ///
-    /// Returns `rng`'s error if drawing the nonce fails.
+    /// - [`Exhausted`] if this authority has already issued `2^32` tokens
+    /// - [`Seal`] if sealing the scope fails
+    ///
+    /// [`Exhausted`]: IssueError::Exhausted
+    /// [`Seal`]: IssueError::Seal
     #[expect(
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -142,10 +167,18 @@ impl<R> Authority<R> {
         epoch: &Epoch,
         now: SystemTime,
         Issue { actor, filter, k }: Issue,
-    ) -> Result<EncryptedToken, R::Error>
-    where
-        R: TryCryptoRng,
-    {
+    ) -> Result<EncryptedToken, Report<IssueError>> {
+        if self
+            .issued
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |issued| {
+                issued.checked_add(1).filter(|&next| next <= ISSUE_BUDGET)
+            })
+            .is_err()
+        {
+            self.tokens.add(1, &[KeyValue::new("outcome", "exhausted")]);
+            return Err(Report::new(IssueError::Exhausted));
+        }
+
         let scope = Scope {
             generation: epoch.generation(),
             delta: epoch.reference(),
@@ -153,40 +186,26 @@ impl<R> Authority<R> {
             filter: filter.into(),
             k,
         };
-
-        let mut nonce = [0_u8; NONCE_BYTES];
-        self.rng.lock().try_fill_bytes(&mut nonce)?;
-
         let header = TokenHeader {
-            version: MessageVersion::V1,
+            version: MessageVersion::V2,
             issued_at: UnixEpochSeconds::new(now),
-            nonce,
         };
 
-        let mut blob = [0_u8; Token::BYTES];
-        header
-            .write_to_prefix(&mut blob)
-            .unwrap_or_else(|_err| unreachable!("header is included in the payload"));
-        scope
-            .write_to_prefix(&mut blob[TokenHeader::BYTES..])
-            .unwrap_or_else(|_err| unreachable!("scope is included in the payload"));
+        let mut plaintext = pin!(Secret::<[u8; SCOPE_BYTES]>::zeroed());
+        plaintext
+            .as_mut()
+            .expose_mut()
+            .copy_from_slice(scope.as_bytes());
+        let sealed = self.key.seal(&plaintext, &header);
+        let outcome = if sealed.is_ok() { "issued" } else { "failed" };
+        self.tokens.add(1, &[KeyValue::new("outcome", outcome)]);
+        let sealed = sealed.change_context(IssueError::Seal)?;
 
-        // the fixed-size header and scope fit the cipher's message and associated-data bounds.
-        let sealed_tag = Encryption::new(self.key.expose().into())
-            .encrypt_in_place_detached(
-                XNonce::from_slice(&nonce),
-                header.as_bytes(),
-                &mut blob[size_of::<TokenHeader>()..size_of::<TokenHeader>() + size_of::<Scope>()],
-            )
-            .unwrap_or_else(|_error| {
-                unreachable!("XChaCha20-Poly1305 encryption is infallible for in-memory payloads")
-            });
-
-        sealed_tag
-            .write_to_suffix(&mut blob)
-            .unwrap_or_else(|_err| unreachable!("trailer only contains tag"));
-
-        Ok(EncryptedToken::new_unchecked(blob))
+        let token = Token {
+            header,
+            sealed: zerocopy::transmute!(sealed),
+        };
+        Ok(EncryptedToken::new_unchecked(zerocopy::transmute!(token)))
     }
 
     /// Opens a presented token and checks that its scope binds this request.
@@ -214,17 +233,13 @@ impl<R> Authority<R> {
         let token = Token::try_ref_from_bytes(blob.as_bytes())
             .map_err(|_err| Report::new(AuthorityError::Envelope))?;
 
-        let mut plaintext = token.ciphertext;
-        XChaCha20Poly1305::new(self.key.expose().into())
-            .decrypt_in_place_detached(
-                &XNonce::from(token.header.nonce),
-                token.header.as_bytes(),
-                &mut plaintext,
-                &Tag::from(token.trailer.tag),
-            )
-            .map_err(|_error| Report::new(AuthorityError::Decryption))?;
+        let sealed: Sealed<Scopes, SCOPE_BYTES> = zerocopy::transmute!(token.sealed);
+        let mut plaintext = pin!(Secret::<[u8; SCOPE_BYTES]>::zeroed());
+        self.key
+            .open(&sealed, &token.header, plaintext.as_mut())
+            .change_context(AuthorityError::Decryption)?;
 
-        let scope = Scope::try_read_from_bytes(&plaintext)
+        let scope = Scope::try_read_from_bytes(plaintext.expose())
             .map_err(|_err| Report::new(AuthorityError::Envelope))?;
 
         let issued_at = token

@@ -27,6 +27,7 @@ import type {
   SelectorAutocompleteProps,
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
+import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
@@ -43,6 +44,11 @@ type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   dropdownProps?: Omit<TypeListSelectorDropdownProps, "query">;
   expectedEntityTypes?: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
+  /**
+   * Leave link entities out of the options, e.g. when picking a link's
+   * destination, since a link cannot point to another link.
+   */
+  excludeLinkEntities?: boolean;
   includeDrafts: boolean;
   multiple?: Multiple;
   onSelect: (
@@ -55,11 +61,21 @@ type EntitySelectorProps<Multiple extends boolean = false> = Omit<
 export const EntitySelector = <Multiple extends boolean>({
   expectedEntityTypes,
   entityIdsToFilterOut,
+  excludeLinkEntities = false,
   includeDrafts,
   onSelect,
   ...autocompleteProps
 }: EntitySelectorProps<Multiple>) => {
   const [query, setQuery] = useState("");
+
+  const entityTypeFilter: Filter =
+    !expectedEntityTypes || expectedEntityTypes.length === 0
+      ? { all: [] }
+      : {
+          any: expectedEntityTypes.map(({ $id }) => ({
+            equal: [{ path: ["type", "versionedUrl"] }, { parameter: $id }],
+          })),
+        };
 
   const { data: entitiesData, loading } = useQuery<
     QueryEntitiesQuery,
@@ -67,17 +83,15 @@ export const EntitySelector = <Multiple extends boolean>({
   >(queryEntitiesQuery, {
     variables: {
       request: {
-        filter:
-          !expectedEntityTypes || expectedEntityTypes.length === 0
-            ? { all: [] }
-            : {
-                any: expectedEntityTypes.map(({ $id }) => ({
-                  equal: [
-                    { path: ["type", "versionedUrl"] },
-                    { parameter: $id },
-                  ],
-                })),
-              },
+        filter: excludeLinkEntities
+          ? {
+              all: [
+                entityTypeFilter,
+                /** A link entity is exactly one with a left endpoint */
+                { not: { exists: { path: ["leftEntity", "uuid"] } } },
+              ],
+            }
+          : entityTypeFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts,
         includeEntityTypes: "resolved",

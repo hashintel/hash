@@ -7,6 +7,11 @@
 
 export { vLedgerAppend, type LedgerAppend } from "./ledger/append";
 export {
+  ledgerCommentsMessage,
+  parseLedgerComments,
+  type LedgerComment,
+} from "./ledger/comments";
+export {
   foldCommits,
   isRefusedLedgerCommit,
   ledgerAppendOutputSchema,

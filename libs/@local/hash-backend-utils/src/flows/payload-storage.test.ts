@@ -56,14 +56,25 @@ const createMemoryStorageProvider = () => {
   return {
     storageProvider: provider as unknown as FileStorageProvider,
     getDownloadCount: () => downloads,
+    getObjectCount: () => objects.size,
   };
 };
 
 /**
- * A stand-in for a proposed entity: storage doesn't look inside the values it stores.
+ * A proposed entity, told apart from others by its local id.
  */
 const entity = (index: number) =>
-  ({ localEntityId: `entity-${index}` }) as unknown as ProposedEntity;
+  ({
+    claims: { isSubjectOf: [], isObjectOf: [] },
+    provenance: { actorType: "ai", origin: { type: "flow" } },
+    propertyMetadata: { value: {} },
+    localEntityId: `entity-${index}`,
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/person/v/1"],
+    properties: {},
+  }) as unknown as ProposedEntity;
+
+const entityId = (index: number) =>
+  `d4e16033-c281-4cde-aa35-9085bf2e7579~0f5f3bd1-3a28-4b9f-9e3a-5b4a6b1c2d${String(index).padStart(2, "0")}` as EntityId;
 
 /**
  * The workflow every test's run belongs to.
@@ -219,8 +230,8 @@ describe("stored arrays", () => {
     const { storageProvider } = createMemoryStorageProvider();
 
     const persisted: PersistedEntityMetadata[] = [
-      { entityId: "web~entity-0" as EntityId, operation: "create" },
-      { entityId: "web~entity-1" as EntityId, operation: "create" },
+      { entityId: entityId(0), operation: "create" },
+      { entityId: entityId(1), operation: "create" },
     ];
 
     const ref = await storePayload({
@@ -412,6 +423,52 @@ describe("stored arrays", () => {
 
     expect(getDownloadCount()).toBe(0);
   });
+
+  it("fails to resolve a concatenation with a part that isn't a stored array", async () => {
+    const { storageProvider } = createMemoryStorageProvider();
+
+    const [first, second] = await Promise.all([
+      storeEntities(storageProvider, "branch-0", [entity(0)]),
+      storeEntities(storageProvider, "branch-1", [entity(1)]),
+    ]);
+
+    /* Flattened with the other part, a single entity would pass as an item of the array. */
+    await storageProvider.uploadDirect({
+      key: second.storageKey,
+      body: JSON.stringify(entity(1)),
+      contentType: "application/json",
+    });
+
+    await expect(
+      resolvePayloadValue(
+        { storageProvider, workflowId },
+        "ProposedEntity",
+        appendCollectedValue(
+          appendCollectedValue(undefined, first),
+          second,
+        ) as ArrayStoredPayloadRef<"ProposedEntity">,
+      ),
+    ).rejects.toThrow(
+      "A concatenation has a part that is a stored value that isn't an array",
+    );
+  });
+});
+
+describe("checking values against their kind's schema", () => {
+  it("refuses to store an invalid value, saying where it's invalid, without a retry", async () => {
+    const { storageProvider, getObjectCount } = createMemoryStorageProvider();
+
+    const storing = storeEntities(storageProvider, "persist", [
+      entity(0),
+      { ...entity(1), entityTypeIds: [] } as unknown as ProposedEntity,
+    ]);
+
+    await expect(storing).rejects.toThrow(
+      'Can\'t store output "proposedEntities", which is invalid at [1].entityTypeIds: ',
+    );
+    await expect(storing).rejects.toMatchObject({ nonRetryable: true });
+    expect(getObjectCount()).toBe(0);
+  });
 });
 
 describe("payloads whose kind is only known when an action runs", () => {
@@ -430,7 +487,7 @@ describe("payloads whose kind is only known when an action runs", () => {
     const { storageProvider } = createMemoryStorageProvider();
 
     const persisted = {
-      entityId: "web~entity-0" as EntityId,
+      entityId: entityId(0),
       operation: "create",
     } as const;
 

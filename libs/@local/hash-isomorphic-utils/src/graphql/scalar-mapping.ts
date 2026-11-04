@@ -4,6 +4,11 @@ export const scalars = {
 
   Date: "string",
 
+  ApiTokenId: "@local/hash-graph-sdk/api-token#ApiTokenId",
+  ApiTokenResponse: "@local/hash-graph-sdk/api-token#ApiTokenResponse",
+  CreateApiTokenResponse:
+    "@local/hash-graph-sdk/api-token#CreateApiTokenResponse",
+
   JSONObject: "@blockprotocol/core#JsonObject",
   QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
 
@@ -69,6 +74,7 @@ export const scalars = {
 
   Entity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
+  EntityEditionId: "@blockprotocol/type-system#EntityEditionId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
@@ -156,12 +162,11 @@ export const scalars = {
     "@local/hash-isomorphic-utils/flows/types#ExternalInputRequest",
   ExternalInputResponseWithoutUser:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseWithoutUser",
-  StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
   FlowRunEvent: "@local/hash-isomorphic-utils/flows/run-events#FlowRunEvent",
+  FlowDefinitionDiagnostic:
+    "@local/hash-isomorphic-utils/flows/validate-flow-definition#FlowDefinitionDiagnosticWithStepId",
   FlowInputValues: "@local/hash-isomorphic-utils/flows/types#FlowInputValues",
-  ResolvedStepRunOutput:
-    "@local/hash-isomorphic-utils/flows/types#ResolvedStepRunOutput",
-  StepProgressLog: "@local/hash-isomorphic-utils/flows/types#StepProgressLog",
+  ResolvedPayload: "@local/hash-isomorphic-utils/flows/types#ResolvedPayload",
 
   RoleAssignmentStatus: "@local/hash-graph-client#RoleAssignmentStatus",
   RoleUnassignmentStatus: "@local/hash-graph-client#RoleUnassignmentStatus",

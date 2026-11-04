@@ -18,12 +18,12 @@ import { createFlueClient } from "@flue/sdk";
 
 import {
   agentOwnershipHeaders,
-  brunchEnv,
   foldCommits,
   projectLedger,
   renderLedgerMarkdown,
 } from "@hashintel/brunch-agent";
 
+import { brunchEnv } from "../../src/env.ts";
 import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
@@ -66,7 +66,7 @@ const stopSignals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
 for (const signal of stopSignals) process.once(signal, interrupt);
 try {
   const identity = {
-    principalKey: "probe",
+    ownerKey: "probe",
     conversationId: `probe-${randomUUID()}`,
   };
   const client = createFlueClient({

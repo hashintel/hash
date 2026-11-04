@@ -7,6 +7,8 @@ import type {
   AppliesFromPropertyValueWithMetadata,
   AppliesUntilPropertyValue,
   AppliesUntilPropertyValueWithMetadata,
+  ClosedAtPropertyValue,
+  ClosedAtPropertyValueWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -48,6 +50,8 @@ import type {
   NumberDataTypeWithMetadata,
   ObjectDataType,
   ObjectDataTypeWithMetadata,
+  OpenInputRequestPropertyValue,
+  OpenInputRequestPropertyValueWithMetadata,
   OutputDefinitionPropertyValue,
   OutputDefinitionPropertyValueWithMetadata,
   OutputUnitCostPropertyValue,
@@ -63,10 +67,12 @@ import type {
   ServiceNamePropertyValueWithMetadata,
   ServiceUnitCostPropertyValue,
   ServiceUnitCostPropertyValueWithMetadata,
+  StartedAtPropertyValue,
+  StartedAtPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   StepDefinitionPropertyValue,
   StepDefinitionPropertyValueWithMetadata,
-  StepPropertyValue,
-  StepPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   TriggeredBy,
@@ -91,6 +97,8 @@ export type {
   AppliesFromPropertyValueWithMetadata,
   AppliesUntilPropertyValue,
   AppliesUntilPropertyValueWithMetadata,
+  ClosedAtPropertyValue,
+  ClosedAtPropertyValueWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -132,6 +140,8 @@ export type {
   NumberDataTypeWithMetadata,
   ObjectDataType,
   ObjectDataTypeWithMetadata,
+  OpenInputRequestPropertyValue,
+  OpenInputRequestPropertyValueWithMetadata,
   OutputDefinitionPropertyValue,
   OutputDefinitionPropertyValueWithMetadata,
   OutputsPropertyValue,
@@ -147,10 +157,12 @@ export type {
   ServiceNamePropertyValueWithMetadata,
   ServiceUnitCostPropertyValue,
   ServiceUnitCostPropertyValueWithMetadata,
+  StartedAtPropertyValue,
+  StartedAtPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   StepDefinitionPropertyValue,
   StepDefinitionPropertyValueWithMetadata,
-  StepPropertyValue,
-  StepPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   TriggeredBy,
@@ -290,7 +302,7 @@ export type UpdatedPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * A record of usage of a service
  */
 export type UsageRecord = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/usage-record/v/3"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/usage-record/v/4"];
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
 };

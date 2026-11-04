@@ -1,11 +1,12 @@
 //! [`get`] and [`post`] create the routes of the public and internal APIs, and [`Routes`] collects
 //! them for [`openapi::build`].
 //!
-//! They accept only a handler answering with [`Json`] or with `Result<Json<_, _>, Rejection<_>>`,
-//! so a successful response is JSON that [`Json`] documents and an error is a problem details
-//! response that the [`Problem`](problematic::Problem) of the [`Rejection`] documents. A handler
-//! answering with anything else, such as a bare `StatusCode`, fails to compile. [`Routes`] accepts
-//! no other route, so a handler reaches an API only through [`get`] or [`post`].
+//! They accept only a handler answering with [`Json`] or [`Page`], or with a `Result` of one of
+//! them and a [`Rejection`], so a successful response is JSON that [`Json`] or [`Page`] documents
+//! and an error is a problem details response that the [`Problem`](problematic::Problem) of the
+//! [`Rejection`] documents. A handler answering with anything else, such as a bare `StatusCode`,
+//! fails to compile. [`Routes`] accepts no other route, so a handler reaches an API only through
+//! [`get`] or [`post`].
 //!
 //! [`openapi::build`]: crate::rest::openapi::build
 
@@ -21,7 +22,7 @@ use aide::{
 use axum::handler::Handler;
 use problematic::Rejection;
 
-use super::extract::Json;
+use super::extract::{Json, Page};
 
 /// A response a handler of the public and internal APIs answers with.
 pub(in crate::rest) trait Outcome: OperationOutput {}
@@ -32,6 +33,10 @@ impl<T, K, const STATUS: u16> Outcome for Result<Json<T, STATUS>, Rejection<K>> 
     Self: OperationOutput
 {
 }
+
+impl<T> Outcome for Page<T> where Self: OperationOutput {}
+
+impl<T, K> Outcome for Result<Page<T>, Rejection<K>> where Self: OperationOutput {}
 
 /// A route [`get`] or [`post`] created.
 pub(in crate::rest) struct Route<S>(ApiMethodRouter<S>);
@@ -85,10 +90,6 @@ where
 /// # Panics
 ///
 /// Panics if `transform` leaves the operation without an `operationId` or a `summary`.
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "only the tests route `POST` requests")
-)]
 pub(in crate::rest) fn post<H, I, O, T, S>(
     handler: H,
     transform: impl FnOnce(TransformOperation<'_>) -> TransformOperation<'_>,

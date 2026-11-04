@@ -13,7 +13,7 @@ use tokio_postgres::{Row, types::ToSql};
 use uuid::Uuid;
 
 use super::{
-    LINK_ROOT_BASE_URL, corpus,
+    LINK_ENTITY_TYPE_BASE_URL, corpus,
     id::ArchivedEntityId,
     requests::requests,
     sql::{AttachmentVocabulary, Axes},
@@ -87,7 +87,7 @@ pub(crate) fn classification_statement<'params>(
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
-    let link_root = binder.bind(&LINK_ROOT_BASE_URL);
+    let link_root = binder.bind(&LINK_ENTITY_TYPE_BASE_URL);
     let attachments = AttachmentVocabulary::bind(&mut binder);
     let web_ids = binder.bind(web_ids);
     let entity_uuids = binder.bind(entity_uuids);

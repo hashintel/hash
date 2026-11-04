@@ -1,6 +1,5 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
-import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
 import type {
   AiFlowActionDefinitionId,
@@ -23,7 +22,6 @@ import type {
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { QueryEntitiesRequest } from "@local/hash-graph-sdk/entity";
-import type { Status } from "@local/status";
 
 export const flowRunsQueryMaxLimit = 100;
 
@@ -221,24 +219,6 @@ export type KindWithTrait<Trait extends "fields" | "entity"> = {
     : never;
 }[PayloadKind];
 
-const primitiveJsonTypes = {
-  text: "string",
-  number: "number",
-  date: "string",
-  datetime: "string",
-  boolean: "boolean",
-} as const satisfies Record<PayloadPrimitive, string>;
-
-export type PayloadJsonType =
-  | (typeof primitiveJsonTypes)[PayloadPrimitive]
-  | "object";
-
-/** How a value of a payload kind is represented in JSON, for checking constants. */
-export const getPayloadKindJsonType = (kind: PayloadKind): PayloadJsonType => {
-  const { primitive } = payloadKindTraits[kind];
-  return primitive === null ? "object" : primitiveJsonTypes[primitive];
-};
-
 /**
  * Every payload kind, for an action input that accepts any of them (e.g. the items of a `filter` action).
  *
@@ -314,6 +294,8 @@ export type StoredItemRef<
 
 /**
  * Several stored arrays concatenated, e.g. the arrays collected from each branch of a for-each step.
+ *
+ * Its parts are stored objects, never concatenations: concatenating a concatenation takes its parts.
  */
 export type StoredConcatRef<
   Kind extends StorablePayloadKind = StorablePayloadKind,
@@ -321,7 +303,7 @@ export type StoredConcatRef<
   __stored: true;
   kind: Kind;
   array: true;
-  parts: StoredArrayRef<Kind>[];
+  parts: StoredObjectRef<Kind, true>[];
   length: number;
 };
 
@@ -338,9 +320,6 @@ export type SingularStoredPayloadRef<
 export type ArrayStoredPayloadRef<
   Kind extends StorablePayloadKind = StorablePayloadKind,
 > = StoredObjectRef<Kind, true> | StoredConcatRef<Kind>;
-
-type StoredArrayRef<Kind extends StorablePayloadKind> =
-  ArrayStoredPayloadRef<Kind>;
 
 /**
  * A reference to a payload that has been stored in S3, used to avoid passing large payloads through Temporal.
@@ -637,11 +616,21 @@ export type StepInputSource =
   /** A fixed value, the same in every run. */
   | { kind: "constant"; payload: ConstantPayload };
 
+type StepDefinitionBase = {
+  stepId: string;
+  /** Where an editor shows the step. Nothing that runs or compiles a flow reads it. */
+  position?: { x: number; y: number };
+  /**
+   * Steps this step starts after, a line drawn in the editor. Only sets order: the step's values still come from its
+   * inputs. A skipped step counts as finished.
+   */
+  runAfter?: { stepId: string }[];
+};
+
 export type ActionStepDefinition<
   ActionDefinitionId extends string = FlowActionDefinitionId,
-> = {
+> = StepDefinitionBase & {
   kind: "action";
-  stepId: string;
   /**
    * The id of an action definition. A definition from outside the codebase may name an action that doesn't
    * exist: `validateFlowDefinition` reports it.
@@ -661,9 +650,8 @@ export type ActionStepDefinition<
  */
 export type ForEachStepDefinition<
   ActionDefinitionId extends string = FlowActionDefinitionId,
-> = {
+> = StepDefinitionBase & {
   kind: "for-each";
-  stepId: string;
   description: string;
   /** The array whose items each run the nested steps once. */
   over: StepInputSource;
@@ -757,17 +745,6 @@ export type ResolvedStepOutput = {
   outputName: string;
   payload: ResolvedPayload;
 };
-
-export type StepRunOutput = Status<
-  Required<Pick<ActionStep<FlowActionDefinitionId>, "outputs">>
->;
-
-/**
- * StepRunOutput with resolved payloads - used in frontend/GraphQL contexts.
- */
-export type ResolvedStepRunOutput = Status<{
-  outputs: ResolvedStepOutput[];
-}>;
 
 export type ActionStep<
   ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
@@ -1170,19 +1147,3 @@ export type StartedForEachStep = {
   itemCount: number;
   startedAt: string;
 };
-
-export const detailedFlowFields = [
-  "failureMessage",
-  "flowInputs",
-  "dataSources",
-  "inputRequests",
-  "outputs",
-  "steps",
-] as const;
-
-export type DetailedFlowField = (typeof detailedFlowFields)[number];
-
-/** A run as its reader returns it: `events` has a field resolver of its own, which reads the run's history. */
-export type FlowRunWithoutEvents = Omit<FlowRun, "events">;
-
-export type SparseFlowRun = Omit<FlowRunWithoutEvents, DetailedFlowField>;

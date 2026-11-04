@@ -13,6 +13,7 @@ members         = [
     "libs/@local/codec/rust",
     "libs/@local/codegen",
     "libs/@local/config",
+    "libs/@local/crypto",
     "libs/@local/durable-kernel",
     "libs/@local/graph/api",
     "libs/@local/graph/atlas",
@@ -48,7 +49,6 @@ members         = [
     "libs/@local/integrations/engine",
     "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
-    "libs/@local/secret",
     "libs/@local/status/rust",
     "libs/@local/telemetry",
     "libs/@local/temporal-client",
@@ -95,6 +95,7 @@ harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
 hash-codec.path                     = "libs/@local/codec/rust"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-config.path                    = "libs/@local/config"
+hash-crypto.path                    = "libs/@local/crypto"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-atlas.path               = "libs/@local/graph/atlas"
 hash-graph-authentication.path      = "libs/@local/graph/authentication/"
@@ -113,7 +114,6 @@ hash-integrations-definition.path   = "libs/@local/integrations/definition"
 hash-integrations-engine.path       = "libs/@local/integrations/engine"
 hash-middleware.path                = "libs/@local/middleware"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
-hash-secret.path                    = "libs/@local/secret"
 hash-status.path                    = "libs/@local/status/rust"
 hash-telemetry.path                 = "libs/@local/telemetry"
 hash-temporal-client.path           = "libs/@local/temporal-client"
@@ -139,6 +139,7 @@ anstyle                            = { version = "1.0.13", default-features = fa
 anstyle-lossy                      = { version = "1.1.4", default-features = false }
 anstyle-svg                        = { version = "1.0.0", default-features = false }
 arc-swap                           = { version = "1.9.1", default-features = false }
+arrow-array                        = { version = "60.0.0", default-features = false }
 async-scoped                       = { version = "0.9.0", default-features = false }
 aws-config                         = { version = "1.12.0" }
 aws-credential-types               = { version = "1.3.0", default-features = false }
@@ -163,7 +164,6 @@ bytes-utils                        = { version = "0.1.4", default-features = fal
 camino                             = { version = "1.1.12", default-features = false }
 cargo_metadata                     = { version = "0.23.0", default-features = false }
 cedar-policy-core                  = { version = "4.5.1", default-features = false, features = ["decimal"] }                                                                                       # FIXME: Remove `decimal`: https://github.com/cedar-policy/cedar/issues/1700
-chacha20poly1305                   = { version = "0.10.1", default-features = false, features = ["alloc"] }
 circular-buffer                    = { version = "1.1.0", default-features = false }
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
@@ -182,7 +182,7 @@ deadpool                           = { version = "0.12.3", default-features = fa
 derive-where                       = { version = "1.6.0", default-features = false, features = ["nightly"] }
 derive_more                        = { version = "2.0.1", default-features = false }
 dotenv-flow                        = { version = "0.16.2", default-features = false }
-duckdb                             = { version = "1.10505.0", default-features = false }
+duckdb                             = { version = "1.20000.0", default-features = false }
 either                             = { version = "1.15.0", default-features = false }
 email_address                      = { version = "0.2.9", default-features = false }
 ena                                = { version = "0.14.3", default-features = false }
@@ -210,8 +210,6 @@ hannoy                             = { version = "0.1.7-nested-rtxns" }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 heed                               = { version = "0.22.1" }
 hifijson                           = { version = "0.4.0", default-features = false }
-hkdf                               = { version = "0.13.0", default-features = false }
-hmac                               = { version = "0.13.0", default-features = false }
 hostname                           = { version = "0.4.2", default-features = false }
 http                               = { version = "1.3.1", default-features = false, features = ["std"] }
 humansize                          = { version = "2.1.3", default-features = false }
@@ -259,6 +257,7 @@ opentelemetry-semantic-conventions = { version = "0.32.1", default-features = fa
 opentelemetry_sdk                  = { version = "0.32.1", default-features = false }
 owo-colors                         = { version = "4.2.3", default-features = false }
 oxc                                = { version = "0.95.0", default-features = false }
+parquet                            = { version = "60.0.0", default-features = false }
 percent-encoding                   = { version = "2.3.2", default-features = false }
 pin-project                        = { version = "1.1.10", default-features = false }
 pin-project-lite                   = { version = "0.2.16", default-features = false }
@@ -294,7 +293,7 @@ roaring                            = { version = "0.11.2", default-features = fa
 rpds                               = { version = "1.1.2", default-features = false }
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
-scalar_api_reference               = { version = "0.2.2", default-features = false }
+scalar_api_reference               = { version = "0.2.12", default-features = false }
 scc                                = { version = "3.8.4", default-features = false }
 schemars                           = { version = "1.2.2" }
 semver                             = { version = "1.0.27", default-features = false }
@@ -306,7 +305,6 @@ serde-saphyr                       = { version = "1.3.0", default-features = fal
 serde_core                         = { version = "1.0.229", default-features = false }
 serde_json                         = { version = "1.0.145" }
 serde_plain                        = { version = "1.0.2", default-features = false }
-sha2                               = { version = "0.11.0", default-features = false }
 similar-asserts                    = { version = "2.0.0", default-features = false }
 simple-mermaid                     = { version = "0.2.0", default-features = false }
 siphasher                          = { version = "1.0.3", default-features = false }

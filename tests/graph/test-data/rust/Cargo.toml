@@ -38,4 +38,3 @@ xxhash-rust    = { workspace = true, features = ["xxh3"] }
 pretty_assertions = { workspace = true }
 rand              = { workspace = true, features = ["thread_rng"] }
 rayon             = { workspace = true }
-uuid              = { workspace = true, features = ["v4"] }

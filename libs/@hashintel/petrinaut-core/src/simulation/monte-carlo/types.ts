@@ -9,7 +9,6 @@ import type { MonteCarloFrameMetric } from "./metrics/types";
 export type MonteCarloRunStatus = "ready" | "running" | "complete" | "error";
 
 export type MonteCarloRunConfig = {
-  seed?: number;
   parameterValues?: Record<string, string>;
   initialMarking?: InitialMarking;
 };

@@ -11,6 +11,7 @@ proc-macro = true
 
 [dependencies]
 # Workspace dependencies
+hash-crypto = { workspace = true }
 
 # Third-party dependencies
 convert_case   = { workspace = true }
@@ -18,7 +19,6 @@ derive_more    = { workspace = true, features = ["display", "error", "from"] }
 proc-macro2    = { workspace = true }
 quote          = { workspace = true }
 regex          = { workspace = true }
-sha2           = { workspace = true }
 simple-mermaid = { workspace = true }
 syn            = { workspace = true }
 walkdir        = { workspace = true }

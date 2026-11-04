@@ -35,13 +35,13 @@ export type PopoverProps = {
    * automatically as this element moves, resizes, or scrolls.
    */
   triggerRef: React.Ref<Element>;
-  /** The preferred position of the popover - depending on the viewport, trigger and content another position may be chosen for better fit */
+  /** The preferred position of the popover; another may be chosen for a better fit. */
   position?: Position;
-  /** Instead of positioning around the trigger, position from a specific point inside or outside the trigger where 0,0 is the top left of the trigger element. The popover repositions as this point changes. */
+  /** A point to position the popover from instead of the trigger's bounds, in coordinates relative to the trigger's top-left corner (values may fall outside it). The popover repositions as the point changes. */
   positionFromPoint?: { x: number; y: number };
-  /** The X distance the popover will be from the trigger in px */
+  /** The horizontal distance in pixels between the popover and the trigger. */
   gapX?: number;
-  /** The Y distance the popover will be from the trigger in px */
+  /** The vertical distance in pixels between the popover and the trigger. */
   gapY?: number;
   /** Called when the popover requests to close (e.g. Escape or an interaction outside it). Required for the popover to be dismissable. */
   onClose?: () => void;
@@ -51,9 +51,9 @@ export type PopoverProps = {
    * @default true
    */
   closeOnInteractOutside?: boolean;
-  /** The element to focus when the popover opens. Defaults to the first focusable element inside it. */
+  /** The element to focus when the popover opens. Omit to focus the first focusable element inside. */
   initialFocusRef?: React.RefObject<HTMLElement | null>;
-  /** The element to return focus to when the popover closes. Defaults to the trigger. */
+  /** The element to return focus to when the popover closes. Omit to return focus to the trigger. */
   returnFocusRef?: React.RefObject<HTMLElement | null>;
 };
 
@@ -295,6 +295,8 @@ const PopoverRoot = ({
     </ArkPopover.Root>
   );
 };
+
+PopoverRoot.displayName = "Popover";
 
 export const Popover = Object.assign(PopoverRoot, {
   Container: PopoverContainer,

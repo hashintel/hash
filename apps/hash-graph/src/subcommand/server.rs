@@ -15,9 +15,10 @@ use futures::{StreamExt as _, channel::mpsc};
 use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
+use hash_crypto::Secret;
 use hash_graph_api::{
     rest::{
-        self,
+        self, PublicApiConfig,
         authentication::{
             KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
@@ -42,7 +43,6 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_graph_type_fetcher::FetchingPool;
-use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
@@ -443,6 +443,9 @@ pub struct ServerConfig {
     pub api_config: ApiConfig,
 
     #[clap(flatten)]
+    pub public_api_config: PublicApiConfig,
+
+    #[clap(flatten)]
     pub rate_limit: RateLimitConfig,
 
     #[clap(flatten)]
@@ -726,6 +729,7 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        public_api_config: config.public_api_config,
         session_auth: authentication.session_auth,
         service_secret: authentication.service_secret,
         api_tokens: authentication.api_tokens,
@@ -942,11 +946,11 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 mod tests {
     use core::{num::NonZero, pin::Pin};
 
+    use hash_crypto::Secret;
     use hash_graph_api::rest::authentication::api_token::{
         ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
     };
     use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
-    use hash_secret::Secret;
     use reqwest::Url;
     use rstest::rstest;
     use type_system::principal::{
@@ -1025,7 +1029,7 @@ mod tests {
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )
-            .expect("the random number generator should provide bytes");
+            .expect("the API token should be issued");
 
         let hashed = HashedApiToken::from(&token);
         assert_eq!(
@@ -1037,14 +1041,14 @@ mod tests {
             params.encryption_key_id, key_id,
             "the token should record the configured key ID"
         );
-        assert_eq!(
+        assert!(
             ApiTokenEncryptionKey::new(key_id, &key())
-                .decrypt(
+                .matches(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),
+                    hashed.secret_hash(),
                 )
                 .expect("the configured key should decrypt the secret hash"),
-            hashed.secret_hash(),
             "the token should be encrypted with the configured key"
         );
     }

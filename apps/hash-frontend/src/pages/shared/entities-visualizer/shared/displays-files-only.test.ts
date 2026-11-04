@@ -29,7 +29,7 @@ const lookup = (
       typeId,
       { isFile, isImage: false, isLink: false },
     ]),
-  ) as Record<VersionedUrl, SpecialEntityTypeRecord>;
+  );
 
 const fileLookup = lookup({
   [fileTypeId]: true,

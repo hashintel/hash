@@ -55,29 +55,12 @@ const metric = (config: Partial<MonteCarloUserDefinedMetricConfig> = {}) =>
     ...config,
   });
 
-describe("createMonteCarloUserDefinedMetric getRunValues", () => {
-  it("reports each run's latest sample without a time aggregation", () => {
-    const indicator = metric();
-    indicator.observeFrame(frameContext(0, { 0: 1, 1: 1 }));
-    indicator.observeFrame(frameContext(1, { 0: 0, 1: 1 }));
-    indicator.observeFrame(frameContext(2, { 0: 1, 1: 1 }));
-    expect([...indicator.getRunValues()]).toEqual([
-      [0, 1],
-      [1, 1],
-    ]);
-  });
-
-  it("reports each run's minimum over its frames with aggregateTime min: a run that dipped once reads 0", () => {
+describe("createMonteCarloUserDefinedMetric time aggregation", () => {
+  it("folds the mean over runs of each frame's samples over time with aggregateTime min", () => {
     const indicator = metric({ aggregateTime: "min" });
     indicator.observeFrame(frameContext(0, { 0: 1, 1: 1 }));
     indicator.observeFrame(frameContext(1, { 0: 0, 1: 1 }));
     indicator.observeFrame(frameContext(2, { 0: 1, 1: 1 }));
-    expect([...indicator.getRunValues()]).toEqual([
-      [0, 0],
-      [1, 1],
-    ]);
-    // The frame value stays the mean over runs of the per-frame samples,
-    // folded over time by the same aggregation.
     expect(indicator.getLatestFrame()).toMatchObject({
       outputType: "scalar",
       frameValue: 1,
@@ -85,17 +68,13 @@ describe("createMonteCarloUserDefinedMetric getRunValues", () => {
     });
   });
 
-  it("aggregates each run over time for distribution output too", () => {
+  it("bins each run's aggregate over time for distribution output", () => {
     const indicator = metric({
       aggregateTime: "max",
       runOutput: { type: "distribution", binning: "exact" },
     });
     indicator.observeFrame(frameContext(0, { 0: 2, 1: 5 }));
     indicator.observeFrame(frameContext(1, { 0: 7, 1: 1 }));
-    expect([...indicator.getRunValues()]).toEqual([
-      [0, 7],
-      [1, 5],
-    ]);
     expect(indicator.getLatestFrame()).toMatchObject({
       outputType: "distribution",
       bins: [
@@ -154,11 +133,16 @@ describe("createMonteCarloUserDefinedMetric getRunValues", () => {
   });
 
   it("clears the per-run aggregates with the rest", () => {
-    const indicator = metric({ aggregateTime: "min" });
+    const indicator = metric({
+      aggregateTime: "min",
+      runOutput: { type: "distribution", binning: "exact" },
+    });
     indicator.observeFrame(frameContext(0, { 0: 0 }));
     indicator.clear();
-    expect(indicator.getRunValues().size).toBe(0);
     indicator.observeFrame(frameContext(0, { 0: 1 }));
-    expect([...indicator.getRunValues()]).toEqual([[0, 1]]);
+    expect(indicator.getLatestFrame()).toMatchObject({
+      outputType: "distribution",
+      bins: [[1, 1]],
+    });
   });
 });

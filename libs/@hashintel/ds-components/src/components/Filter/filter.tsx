@@ -18,6 +18,7 @@ import {
   isRejectedNumberInputKey,
   preventAutocompleteProps,
 } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
@@ -60,6 +61,10 @@ import {
   type LooseSelectConfig,
   type CommittedValue,
   type SlotValue,
+  type TextInput as FilterTextInput,
+  type NumberInput as FilterNumberInput,
+  type SingleSelectInput,
+  type MultiSelectInput,
 } from "./filter-util";
 import { filterRecipe } from "./filter.recipe";
 
@@ -77,21 +82,32 @@ export type FilterOperator<ValueMap extends Record<string, unknown>> = {
      */
     label: string;
     /**
-     * Custom content for the operator's dropdown row. Defaults to `label`.
-     * A single element keeps natural inline flow, so e.g. a subtle
-     * description span stays baseline-aligned with the main text.
+     * Custom content for the operator's dropdown row. A single element
+     * keeps natural inline flow, so e.g. a subtle description span stays
+     * baseline-aligned with the main text.
      */
     renderItem?: React.ReactNode;
     /**
      * Custom content for the chip's operator segment once this operator is
-     * selected. Defaults to `renderItem`, or `label` if neither is
-     * provided.
+     * selected.
      */
     renderSelectedItem?: React.ReactNode;
     input: InputFor<ValueMap[Key]>;
     onChange?: (value: ValueMap[Key] | null) => void;
   };
 }[keyof ValueMap & string];
+
+// Docs-only markers: render nothing, exist so react-docgen can surface these
+// object shapes in the docs prop tables. The operator marker is typed as
+// LooseOperator — the untyped equivalent of the mapped FilterOperator above,
+// which docgen cannot expand.
+export const FilterOperatorDoc = (_props: LooseOperator): null => null;
+export const FilterTextInputDoc = (_props: FilterTextInput): null => null;
+export const FilterNumberInputDoc = (_props: FilterNumberInput): null => null;
+export const FilterSingleSelectInputDoc = (_props: SingleSelectInput): null =>
+  null;
+export const FilterMultiSelectInputDoc = (_props: MultiSelectInput): null =>
+  null;
 
 const caretSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xxs",
@@ -591,6 +607,9 @@ export const Filter = <
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
       return;
     }
+    if (hasCaretModifier(event)) {
+      return;
+    }
     if (
       operatorDropdownOpenRef.current ||
       isSelectDropdownOpen(inputRefs.current)
@@ -665,7 +684,11 @@ export const Filter = <
     event: React.KeyboardEvent<Element>,
     inputIndex: number,
   ) => {
-    if (event.key === "Enter") {
+    // An IME owns Enter (confirm) and Escape (cancel) while composing.
+    if (event.nativeEvent.isComposing) {
+      return;
+    }
+    if (event.key === "Enter" && !hasCommandModifier(event)) {
       event.preventDefault();
       // Enter submits from any input, so a multi-input draft filled out of
       // order still commits; while the draft is incomplete it instead
@@ -872,7 +895,7 @@ export const Filter = <
       loopFocus={false}
       lazyMount
       unmountOnExit
-      ref={rootRef as React.Ref<HTMLDivElement>}
+      ref={rootRef}
       className={cx(classes.root, className)}
       style={
         dismissing ? { opacity: 0 } : fading ? abandonedFadeStyle : undefined
@@ -1105,3 +1128,5 @@ export const Filter = <
     </BaseTooltip>
   );
 };
+
+Filter.displayName = "Filter";

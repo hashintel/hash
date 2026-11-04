@@ -8,8 +8,8 @@ use error_stack::{
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::entity::{
     EntityRetrieval, EntityTypeRetrieval, LinkDataStateError, LinkDataValidationReport, LinkError,
-    LinkTargetError, LinkValidationReport, LinkedEntityError, MissingLinkData,
-    PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
+    LinkTargetError, LinkValidationReport, LinkedEntityError, LinkedEntityIsLinkError,
+    MissingLinkData, PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
     ValidateEntityComponents,
 };
 use hash_graph_types::{
@@ -26,7 +26,7 @@ use hash_graph_types::{
 use thiserror::Error;
 use type_system::{
     knowledge::{
-        entity::{Entity, EntityId, LinkData},
+        entity::{Entity, EntityId, Link},
         property::{
             PropertyArrayWithMetadata, PropertyObjectWithMetadata, PropertyPath,
             PropertyValueWithMetadata,
@@ -65,7 +65,7 @@ pub enum EntityValidationError {
     InvalidPropertyPath { path: PropertyPath<'static> },
 }
 
-impl<P> Validate<ClosedMultiEntityType, P> for Option<&LinkData>
+impl<P> Validate<ClosedMultiEntityType, P> for Option<&Link>
 where
     P: EntityProvider
         + OntologyTypeProvider<ClosedEntityType>
@@ -84,7 +84,7 @@ where
         let mut validation_report = LinkValidationReport::default();
 
         let is_link = schema.is_link();
-        if let Some(link_data) = self {
+        if let Some(link) = self {
             if !is_link {
                 validation_report.link_data = Some(LinkDataStateError::Unexpected(Report::new(
                     UnexpectedLinkData,
@@ -93,7 +93,7 @@ where
 
             if components.link_validation {
                 validation_report.link_data_validation =
-                    link_data.validate(schema, components, context).await;
+                    link.validate(schema, components, context).await;
             }
         } else if is_link {
             validation_report.link_data =
@@ -151,7 +151,8 @@ where
     }
 }
 
-async fn read_entity_type<P>(
+/// Reads the entity type of an entity a link points to, which must not be a link itself.
+async fn read_linked_entity_type<P>(
     entity_id: EntityId,
     provider: &P,
 ) -> Result<ClosedMultiEntityType, LinkedEntityError>
@@ -177,11 +178,17 @@ where
         .await
         .map_err(LinkedEntityError::EntityTypeRetrieval)?;
 
-    ClosedMultiEntityType::from_multi_type_closed_schema(entity_types)
-        .map_err(LinkedEntityError::ResolveClosedEntityType)
+    let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(entity_types)
+        .map_err(LinkedEntityError::ResolveClosedEntityType)?;
+    if entity_type.is_link() {
+        return Err(LinkedEntityError::Link(Report::new(
+            LinkedEntityIsLinkError { entity_id },
+        )));
+    }
+    Ok(entity_type)
 }
 
-impl<P> Validate<ClosedMultiEntityType, P> for LinkData
+impl<P> Validate<ClosedMultiEntityType, P> for Link
 where
     P: EntityProvider + OntologyTypeProvider<ClosedEntityType> + Sync,
 {
@@ -189,30 +196,31 @@ where
 
     // TODO: validate link data
     //   see https://linear.app/hash/issue/H-972
-    // TODO: Optimize reading of left/right parent types and/or cache them
+    // TODO: Optimize reading of source/target parent types and/or cache them
     async fn validate(
         &self,
         schema: &ClosedMultiEntityType,
         _: ValidateEntityComponents,
         context: &P,
     ) -> Self::Report {
+        let Self::Directed { source, target } = self;
         let mut validation_report = LinkDataValidationReport::default();
 
-        let left_entity_type = read_entity_type(self.left_entity_id, context)
+        let source_entity_type = read_linked_entity_type(source.entity_id, context)
             .await
             .map_err(|link_data_error| {
                 validation_report.left_entity = Some(link_data_error);
             })
             .ok();
-        let right_entity_type = read_entity_type(self.right_entity_id, context)
+        let target_entity_type = read_linked_entity_type(target.entity_id, context)
             .await
             .map_err(|link_data_error| {
                 validation_report.right_entity = Some(link_data_error);
             })
             .ok();
 
-        // We cannot further validate the links if the left type is not known
-        let Some(left_entity_type) = left_entity_type else {
+        // We cannot further validate the links if the source type is not known
+        let Some(source_entity_type) = source_entity_type else {
             return validation_report;
         };
         let link_entity_ids = schema
@@ -224,7 +232,7 @@ where
 
         let Some(maybe_allowed_targets) = link_entity_ids
             .iter()
-            .find_map(|(_, link_type_id)| left_entity_type.constraints.links.get(link_type_id))
+            .find_map(|(_, link_type_id)| source_entity_type.constraints.links.get(link_type_id))
         else {
             validation_report.link_type = Some(LinkError::UnexpectedEntityType {
                 data: UnexpectedEntityType {
@@ -234,7 +242,12 @@ where
                         .flat_map(|entity_type| &entity_type.all_of)
                         .map(|entity_type| entity_type.id.clone())
                         .collect(),
-                    expected: left_entity_type.constraints.links.keys().cloned().collect(),
+                    expected: source_entity_type
+                        .constraints
+                        .links
+                        .keys()
+                        .cloned()
+                        .collect(),
                 },
             });
             return validation_report;
@@ -246,14 +259,14 @@ where
             return validation_report;
         };
 
-        let Some(right_entity_type) = &right_entity_type else {
-            // We cannot further validate the links if the right type is not known.
+        let Some(target_entity_type) = &target_entity_type else {
+            // We cannot further validate the links if the target type is not known.
             return validation_report;
         };
 
-        // Link destinations are constrained, search for the right entity's type
+        // Link destinations are constrained, search for the target entity's type
         let found_match = allowed_targets.possibilities.iter().any(|allowed_target| {
-            right_entity_type.all_of.iter().any(|entity_type| {
+            target_entity_type.all_of.iter().any(|entity_type| {
                 // We check that the base URL matches for the exact type or the versioned URL
                 // for the parent types
                 entity_type.id.base_url == allowed_target.url.base_url

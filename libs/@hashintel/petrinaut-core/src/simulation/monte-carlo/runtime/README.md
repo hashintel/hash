@@ -14,7 +14,7 @@ results, events.
 Two invariants keep shard count out of the results, with one exception:
 
 - **Seeds derive from the global run index.** `shard-plan.ts` assigns each
-  shard a contiguous slice of runs and its global index offset, so run _i_
+  shard a contiguous slice of runs and its global index offset, so run $i$
   gets the same seed regardless of which shard owns it.
 - **Frames are released on a watermark.** A frame number finalises only once
   every still-running shard has reported it; a finished shard drops out of the
@@ -24,8 +24,8 @@ Two invariants keep shard count out of the results, with one exception:
   sampling every run's frozen state.
 
 The runtime does not know what a shard runs on. Hosts supply a worker factory
-— a Web Worker in the editor, `worker_threads` in the CLI, the in-process
-worker in tests — and the shard count is the host's decision too.
+— a Web Worker in the editor, the in-process worker in tests — and the shard
+count is the host's decision too.
 
 `experiment-stores.ts` holds the store and event plumbing shared by every
 experiment backend: the WebGPU backend presents the identical
@@ -35,5 +35,4 @@ and cannot drift.
 `reusable-worker-factory.ts` wraps a host's worker factory in an idle pool:
 a lease's `terminate()` posts `cancel` and returns the worker once its
 `cancelled` ack arrives, so back-to-back experiments skip re-fetching the
-engine module. `runExperimentToCompletion` (`experiment-completion.ts`) starts
-a handle, resolves on its first terminal event and disposes it.
+engine module.

@@ -30,10 +30,10 @@
 //!
 //! # Security boundary
 //!
-//! [`Authority`](authority::Authority) uses XChaCha20-Poly1305 to encrypt the scope and
-//! authenticate it together with the clear header. Its [key and nonce
+//! [`Authority`](authority::Authority) uses AES-256-GCM to encrypt the scope and authenticate it
+//! together with the clear header. Its [key and nonce
 //! requirements](authority::Authority#key-and-nonce-requirements) are part of this protection. The
-//! header exposes the layout version, issue time and nonce. Hexadecimal presentation adds no
+//! token exposes the layout version, issue time and nonce. Hexadecimal presentation adds no
 //! secrecy.
 //!
 //! Tokens are reusable within their admission conditions. Verification records no use and provides
@@ -47,7 +47,7 @@
 
 mod actor;
 pub(crate) mod authority;
-mod error;
+pub(crate) mod error;
 pub(crate) mod scope;
 pub(crate) mod token;
 

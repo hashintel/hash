@@ -10,11 +10,11 @@ use core::{
 
 use error_stack::Report;
 use futures::FutureExt as _;
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
-use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use tokio::{sync::mpsc, time::Instant};
 use tokio_postgres::NoTls;

@@ -8,8 +8,13 @@ import type {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 
+/**
+ * A link type cannot have outgoing links, so `links` is empty when
+ * `isLinkType` is set, whatever the form holds.
+ */
 export const getEntityTypeFromFormData = (
   data: EntityTypeEditorFormData,
+  { isLinkType }: { isLinkType: boolean },
 ): {
   schema: Required<Pick<EntityType, "description" | "links" | "properties">> &
     Pick<
@@ -62,7 +67,7 @@ export const getEntityTypeFromFormData = (
 
   const links: NonNullable<EntityType["links"]> = {};
 
-  for (const link of data.links) {
+  for (const link of isLinkType ? [] : data.links) {
     if (
       typeof link.minValue === "string" ||
       typeof link.maxValue === "string"

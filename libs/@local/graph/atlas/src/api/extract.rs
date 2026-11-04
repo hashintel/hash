@@ -125,12 +125,12 @@ pub(super) struct Generation {
     pub(super) observation: Observation,
 }
 
-impl<R: Send> FromRequestParts<AppState<R>> for Generation {
+impl FromRequestParts<AppState> for Generation {
     type Rejection = Problem<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState<R>,
+        state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let Path(RequestedGeneration { generation }) = parts
             .extract_with_state::<Path<RequestedGeneration>, _>(state)
@@ -163,12 +163,12 @@ pub(super) struct Variant {
     pub(super) observation: Observation,
 }
 
-impl<R: Send> FromRequestParts<AppState<R>> for Variant {
+impl FromRequestParts<AppState> for Variant {
     type Rejection = Problem<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState<R>,
+        state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let Generation { observation } = parts.extract_with_state::<Generation, _>(state).await?;
         let Path(VariantData { variant }) = parts

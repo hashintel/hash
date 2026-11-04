@@ -39,28 +39,14 @@ const assess = (
   request: ExperimentRequest,
   options: WorkerPoolExperimentBackendOptions,
 ): ExperimentAssessment => {
-  if (request.runs !== undefined && request.runPlan !== undefined) {
-    return {
-      eligible: false,
-      blockers: [
-        {
-          code: "conflicting-run-overrides",
-          message:
-            "Per-run overrides were given both as `runs` and as a `runPlan`; an experiment takes one or the other.",
-          origin: "configuration",
-        },
-      ],
-    };
-  }
   const runs =
-    request.runs ??
-    (request.runPlan === undefined
+    request.runPlan === undefined
       ? undefined
       : expandRunPlan(
           request.runPlan,
           request.runCount,
           request.sdcpn.parameters,
-        ));
+        );
 
   return {
     eligible: true,

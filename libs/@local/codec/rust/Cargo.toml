@@ -17,6 +17,7 @@ bytes      = { workspace = true, public = true, optional = true }
 regex      = { workspace = true, public = true, optional = true }
 serde_core = { workspace = true, public = true, optional = true }
 specta     = { workspace = true, public = true, optional = true, features = ["derive"] }
+time       = { workspace = true, public = true, optional = true, features = ["macros", "serde", "parsing", "formatting"] }
 tokio-util = { workspace = true, public = true, optional = true, features = ["codec"] }
 utoipa     = { workspace = true, public = true, optional = true }
 uuid       = { workspace = true, public = true, optional = true, features = ["serde"] }
@@ -31,7 +32,6 @@ derive_more    = { workspace = true, optional = true, features = ["display", "er
 serde          = { workspace = true, optional = true }
 serde_json     = { workspace = true, optional = true }
 simple-mermaid = { workspace = true }
-time           = { workspace = true, optional = true, features = ["macros", "serde", "parsing", "formatting"] }
 
 [dev-dependencies]
 harpc-types  = { workspace = true }

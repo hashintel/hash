@@ -14,26 +14,21 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.74.0",
     "@blockprotocol/core": "0.1.5",
-    "@linear/sdk": "61.0.0",
     "@local/hash-backend-utils": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "@optique/core": "0.8.1",
     "chalk": "5.6.2",
     "dataloader": "2.2.3",
-    "dotenv-flow": "3.3.0",
     "envalid": "8.1.0",
-    "execa": "9.6.0",
     "fs-extra": "11.3.2",
-    "globby": "15.0.0",
     "ignore": "7.0.5",
     "js-yaml": "4.3.2",
     "regex-parser": "2.3.1",
+    "tinyglobby": "0.2.17",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "zod": "4.4.3",
-    "zod-to-json-schema": "3.24.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",

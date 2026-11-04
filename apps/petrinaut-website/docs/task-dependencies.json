@@ -30,10 +30,7 @@
         "VITE_VERCEL_ENV"
       ],
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "codegen": {
@@ -54,10 +51,7 @@
       "cache": false,
       "persistent": true,
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "examples:generate": {
@@ -71,10 +65,7 @@
         "@local/flue-aisdk-transport#build"
       ],
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "fix:eslint": {
@@ -90,10 +81,7 @@
         "codegen"
       ],
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
@@ -112,10 +100,7 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
@@ -131,10 +116,7 @@
         "examples:generate"
       ],
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -153,10 +135,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     }
   }

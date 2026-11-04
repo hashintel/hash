@@ -756,9 +756,19 @@ export const startFlowNetRun = (
     );
   };
 
-  /** A `forEach` step can't start while its array is missing. */
-  const hasMissingArray = (bindings: Binding[]) =>
-    bindings.some(({ token }) => token.kind === "value" && !token.present);
+  /** A `forEach` step can't start while its array is missing. What it reads for `runAfter` isn't its array. */
+  const hasMissingArray = (
+    metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
+    bindings: Binding[],
+  ) =>
+    bindings.some(
+      ({ path, token }) =>
+        token.kind === "value" &&
+        !token.present &&
+        !(metadata.runAfter ?? []).some((endpoint) =>
+          isSameFlowNetPath(path, rootPath(endpoint)),
+        ),
+    );
 
   const constantItemCount = (constant: JsonValue | undefined) => {
     if (constant === undefined) {
@@ -836,7 +846,7 @@ export const startFlowNetRun = (
           anchorAccepts: (anchor) =>
             fired?.role !== "startForEach" ||
             isSameItemPath(anchor.itemPath, fired.stepRun.itemPath),
-          guard: (candidate) => !hasMissingArray(candidate),
+          guard: (candidate) => !hasMissingArray(metadata, candidate),
         });
 
         if (!bindings) {
@@ -1312,7 +1322,7 @@ export const startFlowNetRun = (
             anchorAccepts: (anchor) => anchor === pending,
             guard: (candidate) =>
               transitionMetadata.role === "startForEach"
-                ? !hasMissingArray(candidate)
+                ? !hasMissingArray(transitionMetadata, candidate)
                 : !hasMissingSkipInput(transitionMetadata, candidate),
           }) !== null,
       )

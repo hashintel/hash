@@ -3,6 +3,7 @@ use core::{fmt, net::SocketAddr, num::NonZero, pin::Pin, str::FromStr as _, time
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_api::rest::authentication::{
     AuthenticationMetrics, CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig,
     api_token::ApiTokenRejection, build_environment_provider, build_explicit_providers,
@@ -11,7 +12,6 @@ use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
-use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use jsonwebtoken::Algorithm;
 use opentelemetry::metrics::Meter;
@@ -513,7 +513,7 @@ pub async fn healthcheck(address: AdminAddress) -> Result<(), Report<Healthcheck
 
 #[cfg(test)]
 mod tests {
-    use hash_secret::Secret;
+    use hash_crypto::Secret;
     use rstest::rstest;
 
     use super::require_service_secret;

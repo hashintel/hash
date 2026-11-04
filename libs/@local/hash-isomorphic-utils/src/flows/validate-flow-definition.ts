@@ -4,11 +4,11 @@ import {
 } from "./action-definitions.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
 import { flowDefinitionSchema } from "./flow-definition-schema.js";
+import { validatePayloadValue } from "./payload-schemas.js";
 import {
   type ActionDefinitions,
   createStepShapeResolver,
 } from "./step-shapes.js";
-import { getPayloadKindJsonType } from "./types.js";
 
 import type {
   ActionDefinition,
@@ -16,7 +16,6 @@ import type {
   FlowActionDefinitionId,
   FlowDefinition,
   ForEachStepDefinition,
-  PayloadJsonType,
   PayloadKind,
   StepDefinition,
   StepInputSource,
@@ -28,6 +27,9 @@ export type FlowDefinitionDiagnosticCode =
   | "duplicateStepId"
   | "duplicateInputName"
   | "duplicateOutputName"
+  | "unnamedInput"
+  /** A flow output, or a for-each step's `collect.as`, with no name. */
+  | "unnamedOutput"
   | "unknownAction"
   | "unknownInput"
   | "missingInput"
@@ -116,14 +118,6 @@ const findCycles = (dependencies: Map<string, Set<string>>): string[][] => {
   return cycles;
 };
 
-const isOfJsonType = {
-  string: (value: unknown) => typeof value === "string",
-  number: (value: unknown) => typeof value === "number",
-  boolean: (value: unknown) => typeof value === "boolean",
-  object: (value: unknown) =>
-    typeof value === "object" && value !== null && !Array.isArray(value),
-} satisfies Record<PayloadJsonType, unknown>;
-
 /**
  * Checks a flow definition from any source, reporting every problem found rather than stopping at the first,
  * each with a path that a UI can attach to a step or connection. A definition with warnings but no errors can
@@ -167,20 +161,26 @@ export const validateFlowDefinition = (
     diagnostics.push({ severity, code, message, path });
   };
 
-  const reportDuplicateNames = (
+  const reportNameProblems = (
     items: { name: string }[],
-    code: "duplicateInputName" | "duplicateOutputName",
     collection: "inputs" | "outputs",
   ) => {
+    const noun = collection === "inputs" ? "input" : "output";
     const seen = new Set<string>();
 
     for (const [index, { name }] of items.entries()) {
-      if (seen.has(name)) {
+      if (name === "") {
         report(
-          code,
-          `The flow has more than one ${
-            collection === "inputs" ? "input" : "output"
-          } named "${name}"`,
+          collection === "inputs" ? "unnamedInput" : "unnamedOutput",
+          `A flow ${noun} has no name`,
+          [collection, index, "name"],
+        );
+      } else if (seen.has(name)) {
+        report(
+          collection === "inputs"
+            ? "duplicateInputName"
+            : "duplicateOutputName",
+          `The flow has more than one ${noun} named "${name}"`,
           [collection, index, "name"],
         );
       }
@@ -189,12 +189,8 @@ export const validateFlowDefinition = (
     }
   };
 
-  reportDuplicateNames(flowDefinition.inputs, "duplicateInputName", "inputs");
-  reportDuplicateNames(
-    flowDefinition.outputs,
-    "duplicateOutputName",
-    "outputs",
-  );
+  reportNameProblems(flowDefinition.inputs, "inputs");
+  reportNameProblems(flowDefinition.outputs, "outputs");
 
   const stepsById = new Map<string, StepEntry>();
 
@@ -429,20 +425,18 @@ export const validateFlowDefinition = (
 
       case "constant": {
         const { kind, value } = source.payload;
-        const expectedJsonType = getPayloadKindJsonType(kind);
 
-        const values: unknown[] = Array.isArray(value) ? value : [value];
+        const problem = validatePayloadValue({
+          kind,
+          array: Array.isArray(value),
+          value,
+          allowStoredRefs: false,
+        });
 
-        const isValid = values.every(isOfJsonType[expectedJsonType]);
-
-        if (!isValid) {
+        if (problem) {
           report(
             "invalidConstant",
-            `A ${kind} constant must be ${
-              expectedJsonType === "object"
-                ? "an object"
-                : `a ${expectedJsonType}`
-            }, or an array of them`,
+            `A ${kind} constant is invalid${problem.path ? ` at ${problem.path}` : ""}: ${problem.message}`,
             [...path, "payload", "value"],
           );
           return null;
@@ -503,6 +497,14 @@ export const validateFlowDefinition = (
 
     for (const child of step.steps) {
       addDependency(step.stepId, child.stepId);
+    }
+
+    if (step.collect.as === "") {
+      report(
+        "unnamedOutput",
+        `The output for-each step "${step.stepId}" collects into has no name`,
+        [...entry.path, "collect", "as"],
+      );
     }
 
     const collected = getCollectedStep(step);
@@ -674,6 +676,31 @@ export const validateFlowDefinition = (
     }
   }
 
+  for (const { step, path, scope } of entries) {
+    for (const [index, { stepId }] of (step.runAfter ?? []).entries()) {
+      const runAfterPath = [...path, "runAfter", index, "stepId"];
+      const before = stepsById.get(stepId);
+
+      if (!before) {
+        report("unknownStep", `There is no step "${stepId}"`, runAfterPath);
+      } else if (stepId === step.stepId) {
+        report(
+          "selfReference",
+          `Step "${stepId}" cannot run after itself`,
+          runAfterPath,
+        );
+      } else if (!isInScope(before.scope, scope)) {
+        report(
+          "stepNotInScope",
+          `Step "${stepId}" runs once per item of a for-each step, so only steps inside that step can run after it`,
+          runAfterPath,
+        );
+      } else {
+        addDependency(step.stepId, stepId);
+      }
+    }
+  }
+
   for (const [index, output] of flowDefinition.outputs.entries()) {
     resolveStepOutput({
       stepId: output.stepId,
@@ -710,28 +737,106 @@ export const validateFlowDefinition = (
 };
 
 /**
+ * The definition a validation checked, typed as one whose actions all exist, if it has no errors, or `null`. Warnings
+ * don't stop a flow running.
+ */
+export const getValidFlowDefinition = ({
+  flowDefinition,
+  diagnostics,
+}: ReturnType<typeof validateFlowDefinition>): FlowDefinition | null =>
+  flowDefinition !== null &&
+  !diagnostics.some(({ severity }) => severity === "error")
+    ? /* Every action id was checked against `actionDefinitions`. */
+      (flowDefinition as FlowDefinition)
+    : null;
+
+/**
+ * The id of the innermost step a path into a definition goes through, if it goes through one with an id: e.g. the
+ * id of the first step of the third step for `["steps", 2, "steps", 0, "inputs", "question"]`.
+ */
+const getStepIdOnPath = (
+  input: unknown,
+  path: FlowDefinitionDiagnostic["path"],
+): string | undefined => {
+  let stepId: string | undefined;
+  let value = input;
+
+  for (const [index, segment] of path.entries()) {
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      !Object.hasOwn(value, segment)
+    ) {
+      break;
+    }
+
+    value = Reflect.get(value, segment) as unknown;
+
+    if (
+      path[index - 1] === "steps" &&
+      typeof segment === "number" &&
+      typeof value === "object" &&
+      value !== null &&
+      "stepId" in value &&
+      typeof value.stepId === "string"
+    ) {
+      stepId = value.stepId;
+    }
+  }
+
+  return stepId;
+};
+
+export type FlowDefinitionDiagnosticWithStepId = FlowDefinitionDiagnostic & {
+  /** The id of the innermost step the problem is in, if it's in one. */
+  stepId?: string;
+};
+
+/**
+ * Gives each problem found in a definition the id of the step it's in, if it's in one: e.g. for a UI to show it on
+ * the step, as a step keeps its id when steps are moved, but the paths of the problems found in it shift.
+ */
+export const addStepIdsToDiagnostics = (
+  input: unknown,
+  diagnostics: FlowDefinitionDiagnostic[],
+): FlowDefinitionDiagnosticWithStepId[] =>
+  diagnostics.map((diagnostic) => {
+    const stepId = getStepIdOnPath(input, diagnostic.path);
+
+    return stepId === undefined ? diagnostic : { ...diagnostic, stepId };
+  });
+
+/**
+ * A list of problems for a message, one per line with where each is.
+ */
+export const formatFlowDefinitionDiagnostics = (
+  diagnostics: FlowDefinitionDiagnostic[],
+) =>
+  diagnostics
+    .map(({ path, message }) => `- ${path.join(".")}: ${message}`)
+    .join("\n");
+
+/**
  * Validates a flow definition, returning it typed as one whose actions all exist.
  *
  * @throws if the definition has validation errors, listing them all.
  */
 export const assertValidFlowDefinition = (input: unknown): FlowDefinition => {
-  const { flowDefinition, diagnostics } = validateFlowDefinition(input);
+  const validation = validateFlowDefinition(input);
+  const flowDefinition = getValidFlowDefinition(validation);
 
-  const errors = diagnostics.filter(({ severity }) => severity === "error");
-
-  if (flowDefinition === null || errors.length > 0) {
+  if (!flowDefinition) {
     const name =
       typeof input === "object" && input !== null && "name" in input
         ? String(input.name)
         : "(unnamed)";
 
     throw new Error(
-      `Flow definition "${name}" is invalid:\n${errors
-        .map(({ path, message }) => `- ${path.join(".")}: ${message}`)
-        .join("\n")}`,
+      `Flow definition "${name}" is invalid:\n${formatFlowDefinitionDiagnostics(
+        validation.diagnostics.filter(({ severity }) => severity === "error"),
+      )}`,
     );
   }
 
-  /* Every action id was checked against `actionDefinitions` above. */
-  return flowDefinition as FlowDefinition;
+  return flowDefinition;
 };

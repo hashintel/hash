@@ -8,6 +8,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { hasCaretModifier } from "../keyboard";
 import { useIsomorphicLayoutEffect } from "../use-isomorphic-layout-effect";
 import { styles } from "./overflow-row.recipe";
 
@@ -449,6 +450,12 @@ const OverflowRowBase = ({
   // continuation. The hold-Backspace guard stays inside it so a host cannot
   // accidentally bypass it.
   const machineKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+      hasCaretModifier(event)
+    ) {
+      return;
+    }
     if (event.key === "Backspace") {
       if (!event.repeat) {
         backspaceHoldBeganWithTextRef.current =

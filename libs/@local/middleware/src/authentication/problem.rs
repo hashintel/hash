@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn answer_failed_exchange_internal() {
-        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::now_v7())) {
             let exchange_failed = matches!(
                 error.kind(),
                 AuthenticationErrorKind::ProviderRejection
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn answer_unauthorized_challenge() {
         for challenge in [Challenge::Bearer, Challenge::Service] {
-            for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+            for error in every_error("identity-id", ActorEntityUuid::new(Uuid::now_v7())) {
                 let message = error.to_string();
                 let report = Report::new(error);
                 let answer = AuthenticationProblem::answer(&report, challenge);
@@ -250,7 +250,7 @@ mod tests {
     /// `"` or `\`.
     #[test]
     fn detail_fits_error_description() {
-        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::now_v7())) {
             let text = detail(error.kind());
             assert!(
                 text.bytes()

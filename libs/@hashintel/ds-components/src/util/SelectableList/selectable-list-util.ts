@@ -3,41 +3,66 @@ import { useMemo } from "react";
 
 import { type IconName } from "../../components/Icon/icon";
 import { type Tone } from "../form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../keyboard";
 
 import type { UseMenuContext } from "@ark-ui/react/menu";
 import type { ExclusifyUnion } from "type-fest";
 
 type ItemBase = {
+  /** One line of secondary text under the label */
   description?: React.ReactNode;
+  /** Design-system icon before the label — use sparingly, to differentiate important items */
   icon?: IconName;
+  /** Shows a spinner and makes the item inert */
   loading?: boolean;
+  /** Trailing content aligned to the row's end, e.g. a count */
   suffix?: React.ReactNode;
 
+  /** Indents the row by this many steps */
   indent?: number;
+  /** Disables the item; arrow keys skip it */
   disabled?: boolean;
+  /** `error` marks destructive actions */
   tone?: Exclude<Tone, "warning" | "success">;
+  /** How a selected item is shown */
   selectedStyle?: "tick" | "checkbox" | "highlight";
+  /** Tone of the selected indicator, when it differs from `tone` */
   selectedTone?: Exclude<Tone, "warning" | "success">;
+  /** Keeps the menu open when this item is selected */
   keepOpenOnSelect?: boolean;
 };
 
 // When `text` is a plain string we can use it as a stable id, so callers can
 // omit `id`. For any non-string `text` (e.g. JSX) an explicit `id` is required.
 type ItemTextAndId =
-  | { id: string; text: React.ReactNode }
-  | { id?: string; text: string };
+  | {
+      /** Identifies the item, e.g. in `onClick` — required when `text` is not a plain string */
+      id: string;
+      /** The row's label */
+      text: React.ReactNode;
+    }
+  | {
+      /** Identifies the item, e.g. in `onClick` — a plain-string `text` doubles as the id */
+      id?: string;
+      /** The row's label; a plain string doubles as the item's `id` */
+      text: string;
+    };
 
 type StandardItem = ItemBase &
   ItemTextAndId &
   ExclusifyUnion<
     | {
+        /** Renders the item as a link to this URL — one of `href`, `onClick`, or `subItems` per item */
         href: string;
+        /** Opens the link in a new tab */
         target?: "_blank";
       }
     | {
+        /** Called with the item's `id` when it is activated */
         onClick: (id: string) => void;
       }
     | {
+        /** Opens a nested submenu of these entries */
         subItems: Array<ItemOrGroup<Item>>;
         /**
          * Applied to this item's submenu content, composed with the list's
@@ -54,6 +79,7 @@ type StandardItem = ItemBase &
  */
 export type CustomItem = {
   id?: string;
+  /** A row of arbitrary content — never highlighted or selectable, though Tab reaches focusable children. Mutually exclusive with every other field. */
   custom: React.ReactNode;
 } & { [K in Exclude<keyof StandardItem, "id">]?: never };
 
@@ -339,7 +365,10 @@ export const useCustomRowNavigation = (
     if (row instanceof HTMLElement) {
       const rowId = row.getAttribute("data-selectable-list-custom") ?? "";
 
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (
+        (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+        !hasCaretModifier(event)
+      ) {
         event.preventDefault();
         event.stopPropagation();
         const direction = event.key === "ArrowDown" ? 1 : -1;
@@ -361,7 +390,7 @@ export const useCustomRowNavigation = (
         return;
       }
 
-      if (event.key === "Tab") {
+      if (event.key === "Tab" && !hasCommandModifier(event)) {
         const direction = event.shiftKey ? -1 : 1;
         const rowTabbables = getVisibleTabbables(row);
         const focusedIndex = rowTabbables.findIndex(
@@ -398,7 +427,7 @@ export const useCustomRowNavigation = (
 
     // Focus is on the content itself (activedescendant navigation). Only Tab
     // is augmented, and only when a focusable custom row exists.
-    if (event.key !== "Tab") {
+    if (event.key !== "Tab" || hasCommandModifier(event)) {
       return;
     }
     const stops = getTabStops();
@@ -478,7 +507,8 @@ export const useLoopSelection = (items: Array<ItemOrGroup<Item>>) => {
   return (event: React.KeyboardEvent, menu: UseMenuContext) => {
     const isDown = event.key === "ArrowDown";
     const isUp = event.key === "ArrowUp";
-    if (!isDown && !isUp) {
+    // Cmd+Down means "jump to end", not "wrap to top".
+    if ((!isDown && !isUp) || hasCommandModifier(event)) {
       return;
     }
 
