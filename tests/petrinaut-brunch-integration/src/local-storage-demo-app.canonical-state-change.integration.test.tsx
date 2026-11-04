@@ -77,9 +77,9 @@ vi.mock(
   }),
 );
 vi.mock(
-  "@apps/petrinaut-website/src/main/app/local-storage-demo/brunch-owner-key",
+  "@apps/petrinaut-website/src/main/app/local-storage-demo/brunch-actor-key",
   () => ({
-    getOrCreateBrunchOwnerKey: () => "test-owner",
+    getOrCreateBrunchActorKey: () => "test-owner",
   }),
 );
 

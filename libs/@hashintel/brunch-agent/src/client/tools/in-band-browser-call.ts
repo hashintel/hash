@@ -12,7 +12,7 @@ import {
   browserToolFacts,
 } from "../../petrinaut/browser-executed-tools";
 
-import type { BrunchFetch } from "../brunch-flue-client";
+import type { BrunchConnection, BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
 import type {
   BrowserCallClaim,
@@ -49,7 +49,9 @@ export const BROWSER_CALL_STALE_MESSAGE =
 /** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
 export const createInBandBrowserCalls = (input: {
   readonly client: Promise<FlueClient>;
-  readonly ownerKey: string;
+  readonly actorKey: string;
+  /** As the connection's: sends the actor under the header's former name. */
+  readonly legacyActorHeader?: BrunchConnection["legacyActorHeader"];
   readonly binding: BrowserContext["binding"];
   readonly metadataFor: (
     toolCallId: string,
@@ -71,10 +73,13 @@ export const createInBandBrowserCalls = (input: {
     const client = await input.client;
     const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
     const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
-    const headers = agentOwnershipHeaders({
-      ownerKey: input.ownerKey,
-      conversationId: input.binding.conversationId,
-    });
+    const headers = agentOwnershipHeaders(
+      {
+        actorKey: input.actorKey,
+        conversationId: input.binding.conversationId,
+      },
+      input,
+    );
     const claimSignal = AbortSignal.any([
       call.signal,
       AbortSignal.timeout(6_000),

@@ -5,13 +5,19 @@
  */
 
 /**
- * Request headers that carry conversation identity. The owner key's header
- * name predates its rename from "principal" and is a wire name: changing it
- * needs a coordinated deploy of every client and server.
+ * Request headers that carry conversation identity: who is acting, and which
+ * of their conversations.
  */
 export const brunchHeaders = {
+  actor: "x-brunch-actor",
   conversation: "x-brunch-conversation",
-  ownerKey: "x-brunch-principal",
+  /**
+   * The actor header's former name, which Brunch still reads when `actor` is
+   * absent, so a browser client and Brunch can deploy in either order.
+   * Temporary: remove once the Petrinaut website sends `actor` from its own
+   * server-side hop and no client sends this name.
+   */
+  legacyPrincipal: "x-brunch-principal",
 } as const;
 
 /**

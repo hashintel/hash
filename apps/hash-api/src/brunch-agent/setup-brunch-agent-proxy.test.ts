@@ -210,7 +210,7 @@ test("refuses a non-agents POST with 404 before reading its body", async () => {
   expect(upstreamRequests).toEqual([]);
 });
 
-test("forwards an agents request with the account's owner key and points its URLs at the public origin", async () => {
+test("forwards an agents request with the account's actor key and points its URLs at the public origin", async () => {
   const { send, upstreamRequests } = await startProxy();
 
   const response = await send("/api/brunch/agents/hash/instance", {
@@ -220,7 +220,7 @@ test("forwards an agents request with the account's owner key and points its URL
   expect(upstreamRequests).toMatchObject([
     {
       path: "/agents/hash/instance",
-      headers: { "x-brunch-principal": "hash:account-1" },
+      headers: { "x-brunch-actor": "hash:account-1" },
     },
   ]);
   expect(response.status).toBe(202);
@@ -243,17 +243,21 @@ test("forwards an agents request with the account's owner key and points its URL
   });
 });
 
-test("overwrites an owner key forged by the browser with the account's", async () => {
+test("overwrites an actor key forged by the browser with the account's, under either header name", async () => {
   const { send, upstreamRequests } = await startProxy();
 
   await send("/api/brunch/agents/hash/instance", {
     method: "POST",
-    headers: { "x-brunch-principal": "hash:someone-else" },
+    headers: {
+      "x-brunch-actor": "hash:someone-else",
+      "x-brunch-principal": "hash:someone-else",
+    },
   });
 
   expect(upstreamRequests).toMatchObject([
-    { headers: { "x-brunch-principal": "hash:account-1" } },
+    { headers: { "x-brunch-actor": "hash:account-1" } },
   ]);
+  expect(upstreamRequests[0]?.headers["x-brunch-principal"]).toBeUndefined();
 });
 
 test("never forwards the browser's cookie", async () => {
@@ -358,7 +362,7 @@ test("limits each account's turn submissions, counting nothing else", async () =
   expect(otherAccount.status).toBe(202);
   expect(otherAccount.headers["ratelimit-remaining"]).toBe("29");
   expect(upstreamRequests.at(-1)?.headers).toMatchObject({
-    "x-brunch-principal": "hash:account-2",
+    "x-brunch-actor": "hash:account-2",
   });
 
   // A limited account still reads its streams.
@@ -410,11 +414,11 @@ test.each(["/api/brunch/identity", "/api/brunch/agents/hash/instance"])(
   },
 );
 
-test("answers identity with the account's owner key when configured", async () => {
+test("answers identity with the account's actor key when configured", async () => {
   const { send } = await startProxy();
 
   const response = await send("/api/brunch/identity");
 
   expect(response.status).toBe(200);
-  expect(JSON.parse(response.body)).toEqual({ ownerKey: "hash:account-1" });
+  expect(JSON.parse(response.body)).toEqual({ actorKey: "hash:account-1" });
 });

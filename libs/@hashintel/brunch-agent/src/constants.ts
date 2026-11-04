@@ -63,11 +63,11 @@ export const brunchSignals = {
 } as const;
 
 /**
- * Where a browser host stores its owner key. Keeps its pre-rename name: it
- * addresses owner keys already stored in users' browsers, and a new name would
- * orphan their conversations.
+ * Where a browser host stores its actor key. The value keeps its pre-rename
+ * name: it addresses actor keys already stored in users' browsers, and a new
+ * value would orphan their conversations.
  */
-export const brunchOwnerKeyStorageKey = "brunch-principal-v1";
+export const brunchActorKeyStorageKey = "brunch-principal-v1";
 
 /**
  * The wire facts of reaching Brunch over HTTP, owned by `@local/brunch-configs`
@@ -79,8 +79,8 @@ export {
   brunchRoutes,
 } from "@local/brunch-configs/wire";
 
-/** Owner key for the stock Flue UI at `/`. Not a second ownership rule. */
-export const localUiOwnerKey = "local";
+/** Actor key for the stock Flue UI at `/`. Not a second ownership rule. */
+export const localUiActorKey = "local";
 
 /** Prefix of the conversation ID the Petrinaut website derives from a net ID. */
 export const previewConversationIdPrefix = "petrinaut-preview:";

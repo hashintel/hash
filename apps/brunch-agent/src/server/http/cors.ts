@@ -12,7 +12,9 @@ import type { MiddlewareHandler } from "hono";
 const AGENT_CORS_METHODS = ["GET", "POST", "OPTIONS"];
 const AGENT_CORS_REQUEST_HEADERS = [
   "Content-Type",
-  brunchHeaders.ownerKey,
+  brunchHeaders.actor,
+  // Temporary, as Brunch reads it: until no browser sends the former name.
+  brunchHeaders.legacyPrincipal,
   brunchHeaders.conversation,
 ];
 // Enforce exact lexical origins before WHATWG URL parsing normalizes forgiving separator forms.

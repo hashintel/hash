@@ -119,7 +119,7 @@ beforeEach(() => {
   captureException.mockClear();
   fetchMock.mockClear();
   identityResponse = () =>
-    Promise.resolve(Response.json({ ownerKey: "hash:alice-account" }));
+    Promise.resolve(Response.json({ actorKey: "hash:alice-account" }));
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -169,7 +169,7 @@ const settleIdentity = async () => {
 
 const lastPlugins = () => observed.petrinautPlugins.at(-1);
 
-test("Brunch is offered on an editable saved net only once the owner key is known", async () => {
+test("Brunch is offered on an editable saved net only once the actor key is known", async () => {
   let respond: (response: Response) => void = () => {};
   identityResponse = () =>
     new Promise((resolve) => {
@@ -181,7 +181,7 @@ test("Brunch is offered on an editable saved net only once the owner key is know
   expect(observed.brunchInputs).toHaveLength(0);
   expect(lastPlugins()).toEqual([topBarPluginMarker]);
 
-  act(() => respond(Response.json({ ownerKey: "hash:alice-account" })));
+  act(() => respond(Response.json({ actorKey: "hash:alice-account" })));
 
   await waitFor(() =>
     expect(lastPlugins()).toEqual([topBarPluginMarker, brunchPluginMarker]),
@@ -192,7 +192,7 @@ test("Brunch is offered on an editable saved net only once the owner key is know
   for (const input of observed.brunchInputs) {
     expect(input.starterChips).toBeUndefined();
     expect(input).toMatchObject({
-      ownerKey: "hash:alice-account",
+      actorKey: "hash:alice-account",
       openDocument: { documentId: savedEntityId, editor: { handle } },
     });
   }

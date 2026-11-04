@@ -6,13 +6,13 @@
  */
 
 export {
+  brunchActorKeyStorageKey,
   brunchExposedResponseHeaders,
   brunchHeaders,
-  brunchOwnerKeyStorageKey,
   brunchRoutes,
   brunchSignals,
   brunchTools,
-  localUiOwnerKey,
+  localUiActorKey,
   previewConversationIdPrefix,
 } from "./constants";
 export * from "./conversation-identity";

@@ -13,6 +13,7 @@ import {
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 
+import { brunchEnv } from "../../env.ts";
 import { flueConversationId } from "../../shared/conversation/identity.ts";
 import {
   commitToolDescription,
@@ -441,18 +442,73 @@ test("the HASH agent keeps its own conversation storage", async () => {
   expect(HashAgent.agentName).not.toBe(PetrinautAgent.agentName);
 });
 
-const identity = { ownerKey: "owner", conversationId: "conversation" };
+const identity = { actorKey: "owner", conversationId: "conversation" };
 /** The status and body the app gives an owned instance under one agent route segment. */
-const served = async (segment: string) => {
+const served = async (
+  segment: string,
+  headers: Record<string, string> = agentOwnershipHeaders(identity),
+) => {
   const { default: app } = await import("../../app.ts");
   const response = await app.fetch(
     new Request(
       `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
-      { headers: agentOwnershipHeaders(identity) },
+      { headers },
     ),
   );
   return { status: response.status, body: await response.text() };
 };
+
+test("the app admits the actor header alone or its former name alone to the same conversation, and allows both cross-origin", async () => {
+  const origin = "https://app.example.com";
+  vi.stubEnv(brunchEnv.corsAllowedOrigins, origin);
+  const { PetrinautAgent } = await import("../petrinaut/agent.ts");
+  for (const [segment, agentName] of [
+    ["hash", "brunch-hash-agent"],
+    [brunchRoutes.petrinautAgent, PetrinautAgent.agentName],
+  ] as const) {
+    for (const legacyActorHeader of [false, true]) {
+      expect(
+        await served(
+          segment,
+          agentOwnershipHeaders(identity, { legacyActorHeader }),
+        ),
+      ).toEqual({ status: 200, body: agentName });
+      expect(
+        (
+          await served(
+            segment,
+            agentOwnershipHeaders(
+              { ...identity, actorKey: "another" },
+              { legacyActorHeader },
+            ),
+          )
+        ).status,
+      ).toBe(403);
+    }
+  }
+  const { default: app } = await import("../../app.ts");
+  const preflight = await app.fetch(
+    new Request(
+      `http://brunch.test${brunchRoutes.agents}/hash/${flueConversationId(identity)}`,
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers":
+            "content-type,x-brunch-actor,x-brunch-principal,x-brunch-conversation",
+        },
+      },
+    ),
+  );
+  expect(preflight.status).toBe(204);
+  expect(
+    preflight.headers
+      .get("access-control-allow-headers")
+      ?.toLowerCase()
+      .split(","),
+  ).toEqual(expect.arrayContaining(["x-brunch-actor", "x-brunch-principal"]));
+});
 
 test("outside production the app serves the HASH agent under /agents/hash and the Petrinaut agent under its routes", async () => {
   const { PetrinautAgent } = await import("../petrinaut/agent.ts");

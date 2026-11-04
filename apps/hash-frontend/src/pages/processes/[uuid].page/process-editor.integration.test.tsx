@@ -620,7 +620,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn<typeof fetch>(() =>
-      Promise.resolve(Response.json({ ownerKey: "hash:alice-account" })),
+      Promise.resolve(Response.json({ actorKey: "hash:alice-account" })),
     ),
   );
 });

@@ -146,7 +146,7 @@ const renderAssistant = (
   overrides: Partial<Parameters<typeof useBrunchAssistant>[0]> = {},
 ) => {
   const input: Parameters<typeof useBrunchAssistant>[0] = {
-    ownerKey: "test-owner",
+    actorKey: "test-owner",
     chatEndpoint: "/agents/petrinaut",
     selected: true,
     openDocument: openDocument(),
