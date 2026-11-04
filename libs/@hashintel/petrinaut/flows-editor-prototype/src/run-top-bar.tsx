@@ -1,43 +1,69 @@
 /**
- * The run view's top bar, four ways (Aakarsh, 4 Nov: "what's the most minimal version of the top bar we can do which
- * is still clear and like allows all the affordances"). Each gives the same three ways out: back to the editor, back
- * to all runs, and switching runs (‹ › and a picker). `?topbar=1..4` picks one; the pick is remembered.
+ * Top bar takes, for Aakarsh to pick from (4 Nov): "what's the most minimal version of the top bar we can do which is
+ * still clear and like allows all the affordances". Minimal means fewer, quieter controls, never fewer functions.
  *
- * 1. Centred (Figma 1172:586): ← flow › ‹ Run 16 · time ▾ ›, the view switch in the middle, Run and Publish.
- * 2. One control: [← Monthly supplier review / Run 16 ▾] ‹ ›. ← is the editor; the picker opens with All runs.
- * 3. Breadcrumb only: Monthly supplier review › All runs › ‹ Run 16 ▾ ›, then Run. No Return to editor.
- * 4. Centred switcher: the flow (to History) on the left, ‹ Run 16 · time ▾ › in the middle, Done on the right.
+ * Run view (`?topbar=1..4`, remembered). No segmented control in any. Each has: back to the editor, all runs, the run
+ * switcher (‹ › and the picker), Re-run (Stop on a live run), Simulate, Publish and ⋮. The takes differ only in
+ * layout and grouping.
+ * 1. Centred switcher: ← flow · All runs | ‹ Run 16 · Today, 08:15 ▾ › | Re-run, Simulate, Publish, ⋮. The default.
+ * 2. One control: [← flow / Run 16 ▾] ‹ ›, All runs first in the picker | Re-run, Simulate, Publish, ⋮.
+ * 3. Breadcrumb: flow › All runs › ‹ Run 16 ▾ › | Re-run, Simulate, Publish, ⋮.
+ * 4. Run as the title: ← History | Run 16 (big), "Failed · Today, 08:15", ‹ ▾ › | Re-run, Simulate, Open in editor,
+ *    Publish, ⋮.
+ *
+ * Editor (`?editorbar=1..3`, remembered): Simulate, Run, Publish and ⋮ in each; only History moves.
+ * 1. T1: the Editor | History segmented control, centred. The default until Aakarsh picks.
+ * 2. History as a quiet ghost button with the run count, beside Simulate.
+ * 3. History as a link beside the title.
  */
-import {
-  BreadCrumbs,
-  Button,
-  SegmentedControl,
-} from "@hashintel/ds-components";
+import { BreadCrumbs, Button, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { type HistoryValue, RunSwitcher } from "./history-view";
+import { bannerAction, factsOf, outcomeLabel, outcomeOf } from "./run-history";
+import { StartGlyph } from "./ui";
 
-export type TopBarVariant = 1 | 2 | 3 | 4;
+export type RunBarVariant = 1 | 2 | 3 | 4;
+export type EditorBarVariant = 1 | 2 | 3;
 
-const storageKey = "flows-proto:topbar";
-
-/** `?topbar=` wins and is remembered (switching runs drops the query); else the last pick; else 1. */
-export const topBarVariant = (query: URLSearchParams): TopBarVariant => {
+/** `?<key>=` wins and is remembered (switching runs drops the query); else the last pick; else the default. */
+const variantFrom = <Variant extends number>(
+  query: URLSearchParams,
+  key: string,
+  storageKey: string,
+  max: number,
+  fallback: Variant,
+): Variant => {
   const read = (value: string | null) => {
     const number = Number(value);
-    return number >= 1 && number <= 4 ? (number as TopBarVariant) : undefined;
+    return Number.isInteger(number) && number >= 1 && number <= max
+      ? (number as Variant)
+      : undefined;
   };
-  const fromQuery = read(query.get("topbar"));
+  const fromQuery = read(query.get(key));
   try {
     if (fromQuery) {
       globalThis.localStorage.setItem(storageKey, String(fromQuery));
       return fromQuery;
     }
-    return read(globalThis.localStorage.getItem(storageKey)) ?? 1;
+    return read(globalThis.localStorage.getItem(storageKey)) ?? fallback;
   } catch {
-    return fromQuery ?? 1;
+    return fromQuery ?? fallback;
   }
 };
+
+// v2: the first takes (one had a segmented control) are retired; a remembered pick of them must not come back.
+export const runBarVariant = (query: URLSearchParams) =>
+  variantFrom<RunBarVariant>(query, "topbar", "flows-proto:topbar:v2", 4, 1);
+
+export const editorBarVariant = (query: URLSearchParams) =>
+  variantFrom<EditorBarVariant>(
+    query,
+    "editorbar",
+    "flows-proto:editorbar:v1",
+    3,
+    1,
+  );
 
 const sideStyle = css({
   display: "flex",
@@ -64,24 +90,6 @@ const centreStyle = css({
   transform: "[translate(-50%, -50%)]",
 });
 
-/** The editor's back button (24 px, white, a hairline), so both bars start the same way. */
-const backStyle = css({
-  "&[class]": {
-    width: "[24px]",
-    height: "[24px]",
-    minWidth: "[24px]",
-    padding: "[0]",
-    justifyContent: "center",
-    backgroundColor: "neutral.bgSolid.min",
-    borderWidth: "thin",
-    borderStyle: "solid",
-    borderColor: "neutral.bd.solid",
-    borderRadius: "md",
-    color: "neutral.fg.heading",
-  },
-  "&[class] svg": { width: "[12px]", height: "[12px]" },
-});
-
 const flowLinkStyle = css({
   "&[class]": {
     fontWeight: "medium",
@@ -92,13 +100,20 @@ const flowLinkStyle = css({
   "&[class]:hover": { color: "neutral.fg.heading" },
 });
 
-const separatorStyle = css({ color: "neutral.fg.subtle" });
+const quietStyle = css({ "&[class]": { color: "neutral.fg.muted.hover" } });
 
-const viewSwitchSizeStyle = css({
-  "&[class]": { "--sc-item-px": "6px", "--form-padding-y": "3px" },
+const squareStyle = css({
+  "&[class]": {
+    width: "[32px]",
+    minWidth: "[32px]",
+    padding: "[0]",
+    justifyContent: "center",
+  },
 });
 
-/** Top bar 2's one control: a hairline group holding the way back and the run picker. */
+const dotStyle = css({ color: "neutral.fg.subtle" });
+
+/** Take 2's one control: a hairline group holding the way back and the run picker. */
 const groupStyle = css({
   display: "flex",
   alignItems: "center",
@@ -122,41 +137,145 @@ const groupRunStyle = css({
   "&[class]": { fontWeight: "medium", color: "neutral.fg.heading" },
 });
 
-const quietStyle = css({ "&[class]": { color: "neutral.fg.muted.hover" } });
+const runTitleStyle = css({
+  textStyle: "lg",
+  fontWeight: "semibold",
+  color: "neutral.fg.heading",
+  whiteSpace: "nowrap",
+});
+
+const runMetaStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+});
+
+/** ⋮ in a run. MOCK: Download log and Delete run do nothing yet. */
+const RunMoreMenu = () => (
+  <Menu
+    position="bottom-end"
+    className={css({ minWidth: "[208px]" })}
+    items={[
+      {
+        id: "copy-link",
+        text: "Copy run link",
+        icon: "copy",
+        onClick: () => {
+          void globalThis.navigator.clipboard
+            ?.writeText(globalThis.location.href)
+            .catch(() => undefined);
+        },
+      },
+      {
+        id: "download-log",
+        text: "Download log",
+        icon: "download",
+        onClick: () => undefined,
+      },
+      {
+        id: "delete",
+        text: "Delete run",
+        icon: "trash",
+        onClick: () => undefined,
+      },
+    ]}
+    trigger={
+      <Button
+        size="sm"
+        variant="subtle"
+        tone="neutral"
+        iconName="ellipsisVertical"
+        className={squareStyle}
+        aria-label="More"
+        data-run-more
+      />
+    }
+  />
+);
 
 export const RunTopBar = ({
   variant,
   history,
   flowName,
   onEditor,
-  canRun,
+  onSimulate,
 }: {
-  variant: TopBarVariant;
+  variant: RunBarVariant;
   history: HistoryValue;
   flowName: string;
   onEditor: () => void;
-  canRun: boolean;
+  /** The editor, with Simulate open on this run's inputs. */
+  onSimulate: () => void;
 }) => {
-  const run = history.run;
+  const { run, now } = history;
   if (!run) {
     return null;
   }
-  const runButton = (
+  const outcome = outcomeOf(run, now);
+  const action = bannerAction(run, now);
+  const stop = action === "Stop";
+  const actionButton = (
     <Button
       size="sm"
       variant="subtle"
       tone="neutral"
-      iconName="play"
+      iconName={stop ? "stop" : "rotate"}
       className={quietStyle}
-      disabled={!canRun}
-      tooltip={
-        canRun
-          ? "Start another run"
-          : "Manual runs are off for this flow. Turn them on in Triggers."
+      data-run-action
+      onClick={() =>
+        stop
+          ? history.stop(run.id)
+          : history.start(
+              outcome === "warnings"
+                ? factsOf(run, now).failures.length
+                : undefined,
+            )
       }
-      onClick={() => history.start()}
     >
-      Run
+      {action}
+    </Button>
+  );
+  const simulateButton = (
+    <Button
+      size="sm"
+      variant="subtle"
+      tone="neutral"
+      className={quietStyle}
+      prefix={<StartGlyph />}
+      tooltip="Open the editor and simulate with this run's inputs"
+      onClick={onSimulate}
+    >
+      Simulate
+    </Button>
+  );
+  const right = (extra?: React.ReactNode) => (
+    <div className={rightStyle}>
+      {actionButton}
+      {simulateButton}
+      {extra}
+      {/* Publish publishes the editor's draft; it is here so the run view keeps every flow-level action. */}
+      <Button
+        size="sm"
+        variant="solid"
+        tone="neutral"
+        tooltip="Publish the flow's draft"
+      >
+        Publish
+      </Button>
+      <RunMoreMenu />
+    </div>
+  );
+  const toEditorLink = (
+    <Button
+      size="sm"
+      variant="ghost"
+      tone="neutral"
+      iconName="arrowLeft"
+      className={flowLinkStyle}
+      tooltip="Back to the editor"
+      onClick={onEditor}
+    >
+      {flowName}
     </Button>
   );
 
@@ -164,19 +283,9 @@ export const RunTopBar = ({
     case 2:
       return (
         <>
-          <div className={sideStyle}>
-            <div className={groupStyle} data-topbar="2">
-              <Button
-                size="sm"
-                variant="ghost"
-                tone="neutral"
-                iconName="arrowLeft"
-                className={flowLinkStyle}
-                tooltip="Back to the editor"
-                onClick={onEditor}
-              >
-                {flowName}
-              </Button>
+          <div className={sideStyle} data-topbar="2">
+            <div className={groupStyle}>
+              {toEditorLink}
               <span aria-hidden className={groupDividerStyle} />
               <RunSwitcher
                 history={history}
@@ -200,7 +309,7 @@ export const RunTopBar = ({
             </div>
             <RunSwitcher history={history} picker={false} />
           </div>
-          <div className={rightStyle}>{runButton}</div>
+          {right()}
         </>
       );
     case 3:
@@ -217,7 +326,7 @@ export const RunTopBar = ({
               <RunSwitcher history={history} />
             </BreadCrumbs>
           </div>
-          <div className={rightStyle}>{runButton}</div>
+          {right()}
         </>
       );
     case 4:
@@ -228,80 +337,114 @@ export const RunTopBar = ({
               size="sm"
               variant="ghost"
               tone="neutral"
-              iconName="list"
+              iconName="arrowLeft"
               className={flowLinkStyle}
               tooltip="All runs of this flow"
               onClick={() => history.open(null)}
             >
-              {flowName}
+              History
             </Button>
+            <span className={runTitleStyle}>Run {run.id}</span>
+            <span className={runMetaStyle}>
+              {outcomeLabel[outcome]} · {run.when}
+            </span>
+            <RunSwitcher
+              history={history}
+              trigger={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="neutral"
+                  iconName="chevronDown"
+                  className={squareStyle}
+                  aria-label="Pick a run"
+                  tooltip="Pick a run"
+                  data-run-picker
+                />
+              }
+            />
           </div>
-          <div className={centreStyle}>
-            <RunSwitcher history={history} withTime />
-          </div>
-          <div className={rightStyle}>
+          {right(
             <Button
               size="sm"
               variant="subtle"
               tone="neutral"
-              tooltip="Back to the editor"
+              className={quietStyle}
               onClick={onEditor}
             >
-              Done
-            </Button>
-          </div>
+              Open in editor
+            </Button>,
+          )}
         </>
       );
     default:
       return (
         <>
           <div className={sideStyle} data-topbar="1">
-            <Button
-              size="xs"
-              variant="ghost"
-              iconName="arrowLeft"
-              className={backStyle}
-              aria-label="Back to the editor"
-              tooltip="Back to the editor"
-              onClick={onEditor}
-            />
+            {toEditorLink}
+            <span aria-hidden className={dotStyle}>
+              ·
+            </span>
             <Button
               size="sm"
               variant="ghost"
               tone="neutral"
               className={flowLinkStyle}
-              onClick={onEditor}
+              onClick={() => history.open(null)}
             >
-              {flowName}
+              All runs
             </Button>
-            <span aria-hidden className={separatorStyle}>
-              ›
-            </span>
-            <RunSwitcher history={history} withTime bordered />
           </div>
-          {/* Parked in runs (4 Nov); shown here as the "switch" option. History is the list of runs. */}
           <div className={centreStyle}>
-            <SegmentedControl<"editor" | "history">
-              size="md"
-              className={viewSwitchSizeStyle}
-              aria-label="Flow view"
-              items={[
-                { value: "editor", label: "Editor" },
-                { value: "history", label: "History" },
-              ]}
-              value="history"
-              onChange={(view) =>
-                view === "editor" ? onEditor() : history.open(null)
-              }
-            />
+            <RunSwitcher history={history} withTime />
           </div>
-          <div className={rightStyle}>
-            {runButton}
-            <Button size="sm" variant="solid" tone="neutral">
-              Publish
-            </Button>
-          </div>
+          {right()}
         </>
       );
   }
 };
+
+/** Editor takes 2 and 3: History without the segmented control. */
+export const HistoryButton = ({
+  variant,
+  runCount,
+  onOpen,
+}: {
+  variant: 2 | 3;
+  runCount: number;
+  onOpen: () => void;
+}) =>
+  variant === 2 ? (
+    <Button
+      size="sm"
+      variant="ghost"
+      tone="neutral"
+      iconName="clockRotateLeft"
+      className={quietStyle}
+      disabled={runCount === 0}
+      tooltip={runCount === 0 ? "No runs yet" : "Every run of this flow"}
+      onClick={onOpen}
+      data-history-button
+    >
+      {runCount > 0 ? `History · ${runCount}` : "History"}
+    </Button>
+  ) : (
+    <>
+      <span aria-hidden className={dotStyle}>
+        ·
+      </span>
+      <Button
+        size="sm"
+        variant="ghost"
+        tone="neutral"
+        iconName="clockRotateLeft"
+        className={flowLinkStyle}
+        disabled={runCount === 0}
+        tooltip={runCount === 0 ? "No runs yet" : "Every run of this flow"}
+        onClick={onOpen}
+        data-history-button
+      >
+        History
+      </Button>
+    </>
+  );

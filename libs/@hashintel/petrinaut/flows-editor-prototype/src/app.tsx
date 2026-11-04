@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Avatar,
   Button,
-  Icon,
   Menu,
   PortalContainerContext,
   SegmentedControl,
@@ -33,10 +32,16 @@ import { PropertiesPanel } from "./properties-panel";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
 import { RunLog, RunViewSwitch } from "./run-log";
-import { RunTopBar, topBarVariant } from "./run-top-bar";
+import {
+  editorBarVariant,
+  HistoryButton,
+  RunTopBar,
+  runBarVariant,
+} from "./run-top-bar";
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, organize } from "./toolbar";
+import { StartGlyph } from "./ui";
 
 import type { EditorDocument } from "./document";
 
@@ -300,25 +305,6 @@ const simulateStyle = css({
   "&[class]": { color: "neutral.fg.muted.hover" },
 });
 
-/** Start's play glyph on its 14 px grey tile (D19 A tile · Start), as Simulate shows it. */
-const StartGlyph = () => (
-  <span
-    className={css({
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "[14px]",
-      height: "[14px]",
-      borderRadius: "[3px]",
-      backgroundColor: "neutral.bgSolid.surface.active",
-      color: "neutral.fg.muted",
-      "& svg": { width: "[10px]", height: "[10px]", "--icon-size": "10px" },
-    })}
-  >
-    <Icon name="play" size="xs" />
-  </span>
-);
-
 const squareStyle = css({
   "&[class]": {
     width: "[32px]",
@@ -463,6 +449,7 @@ export const Editor = ({
   } | null>(null);
 
   const history = useHistory(flowId, ui.history, setUiState);
+  const editorBar = editorBarVariant(location.query);
   // J6: History for a flow with runs. Without them (every other flow), History opens the older mock run view.
   const inHistory = Boolean(history && ui.history);
   const openRun = inHistory ? history?.run : null;
@@ -524,11 +511,14 @@ export const Editor = ({
               <header className={topBarStyle}>
                 {openRun && history ? (
                   <RunTopBar
-                    variant={topBarVariant(location.query)}
+                    variant={runBarVariant(location.query)}
                     history={history}
                     flowName={document.name}
                     onEditor={toEditor}
-                    canRun={hasManualStart}
+                    onSimulate={() => {
+                      toEditor();
+                      setUiState((current) => ({ ...current, runOpen: true }));
+                    }}
                   />
                 ) : (
                   <>
@@ -543,16 +533,29 @@ export const Editor = ({
                     >
                       {
                         <>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            iconName="arrowLeft"
-                            className={backStyle}
-                            aria-label="Back to flows"
-                            tooltip="Back to flows"
-                            disabled={!onBack}
-                            onClick={() => onBack?.(document)}
-                          />
+                          {/* Without the switch (takes 2, 3), ← on All runs goes back to the editor. */}
+                          {inHistory && editorBar !== 1 ? (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              iconName="arrowLeft"
+                              className={backStyle}
+                              aria-label="Back to the editor"
+                              tooltip="Back to the editor"
+                              onClick={toEditor}
+                            />
+                          ) : (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              iconName="arrowLeft"
+                              className={backStyle}
+                              aria-label="Back to flows"
+                              tooltip="Back to flows"
+                              disabled={!onBack}
+                              onClick={() => onBack?.(document)}
+                            />
+                          )}
                           <FlowTitle
                             name={document.name}
                             onRename={(name) =>
@@ -562,6 +565,13 @@ export const Editor = ({
                               }))
                             }
                           />
+                          {editorBar === 3 ? (
+                            <HistoryButton
+                              variant={3}
+                              runCount={history?.runs.length ?? 0}
+                              onOpen={() => history?.open(null)}
+                            />
+                          ) : null}
                         </>
                       }
                     </div>
@@ -569,7 +579,10 @@ export const Editor = ({
                   History is selected on All runs and the older run view. Inside a J6 run the top bar is minimal
                   (Aakarsh, 4 Nov): no switch; All runs and Return to editor are the ways back.
                 */}
-                    <div className={viewSwitchStyle}>
+                    <div
+                      className={viewSwitchStyle}
+                      style={editorBar === 1 ? undefined : { display: "none" }}
+                    >
                       <SegmentedControl<"editor" | "history">
                         size="md"
                         className={viewSwitchSizeStyle}
@@ -614,6 +627,13 @@ export const Editor = ({
                     >
                       {/* T1 (4 Nov): Simulate, Run, Publish, ⋮. */}
                       <>
+                        {editorBar === 2 ? (
+                          <HistoryButton
+                            variant={2}
+                            runCount={history?.runs.length ?? 0}
+                            onOpen={() => history?.open(null)}
+                          />
+                        ) : null}
                         {/* Simulate: a dry run without the trigger. Its form opens under it. */}
                         <span
                           ref={runRef}

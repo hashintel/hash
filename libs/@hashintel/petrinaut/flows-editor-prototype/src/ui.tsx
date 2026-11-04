@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Chip, Icon, type IconName, Tooltip } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import type { StepInputSource } from "./engine";
 import { useSourceHover } from "./editor-context";
+
+import type { StepInputSource } from "./engine";
 import type { EditorPayloadKind } from "./mock-action-definitions";
 
 const tile = cva({
@@ -493,5 +494,24 @@ export const descriptionInputStyle = css({
   _hover: { color: "neutral.fg.muted" },
   _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
 });
+
+/** Start's play glyph on its 14 px grey tile (D19 A tile · Start), as Simulate shows it. */
+export const StartGlyph = () => (
+  <span
+    className={css({
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "[14px]",
+      height: "[14px]",
+      borderRadius: "[3px]",
+      backgroundColor: "neutral.bgSolid.surface.active",
+      color: "neutral.fg.muted",
+      "& svg": { width: "[10px]", height: "[10px]", "--icon-size": "10px" },
+    })}
+  >
+    <Icon name="play" size="xs" />
+  </span>
+);
 
 export { cx };
