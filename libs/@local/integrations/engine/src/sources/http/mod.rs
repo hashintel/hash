@@ -80,7 +80,11 @@ pub(super) fn validate(url: &Url) -> Result<(), Report<SourceError>> {
 }
 
 #[derive(Default)]
-struct Pacer(Mutex<BTreeMap<String, (Instant, Duration)>>);
+/// The last reserved request slot for each host.
+///
+/// Each caller is spaced by its own interval only, so a definition with a long interval cannot
+/// delay other runs that request the same host.
+struct Pacer(Mutex<BTreeMap<String, Instant>>);
 
 impl Pacer {
     async fn wait(&self, host: &str, interval: Duration) -> Result<(), Report<SourceError>> {
@@ -91,18 +95,18 @@ impl Pacer {
                 .map_err(|_error| Report::new(SourceError::Request))?;
             let now = Instant::now();
             if slots.len() > 64 {
-                slots.retain(|_, (last, _)| {
+                slots.retain(|_, last| {
                     now.saturating_duration_since(*last) < Duration::from_hours(24)
                 });
             }
             let slot = match slots.get(host) {
-                Some((last, previous)) => last
-                    .checked_add(interval.max(*previous))
+                Some(last) => last
+                    .checked_add(interval)
                     .ok_or_else(|| Report::new(SourceError::Configuration))?
                     .max(now),
                 None => now,
             };
-            slots.insert(host.to_owned(), (slot, interval));
+            slots.insert(host.to_owned(), slot);
             slot
         };
         sleep_until(slot).await;

@@ -96,11 +96,11 @@ async fn pacing_across_callers() {
     pacer
         .wait("one.test", Duration::ZERO)
         .await
-        .expect("should honor the preceding caller's interval");
+        .expect("should not wait for another caller's interval");
     assert_eq!(
         start.elapsed(),
-        Duration::from_millis(500),
-        "a faster caller should retain the preceding caller's spacing"
+        Duration::from_millis(300),
+        "a caller should not be held to a longer interval requested by another caller"
     );
 }
 
