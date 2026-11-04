@@ -159,6 +159,8 @@ fn secret_query(web_id: Uuid, entity_id: Uuid) -> SecretQuery {
             ],
         }),
         temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+        // One match is expected; asking for a second lets `read` reject an ambiguous reference
+        // with `SecretEntityCount` instead of silently picking one.
         limit: 2,
         include_drafts: false,
         include_permissions: false,
