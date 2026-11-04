@@ -20,7 +20,6 @@ import { EditorContext, type EditorUi } from "./editor-context";
 import { flowTriggersOf } from "./flow-triggers";
 import {
   HistoryContext,
-  RunBanner,
   RunStepPanel,
   useHistory,
   useRunKeys,
@@ -30,7 +29,7 @@ import { mockRuns, runStatus } from "./mock-runs";
 import { PropertiesPanel } from "./properties-panel";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
-import { RunLog, RunViewSwitch } from "./run-log";
+import { RunLogPanel } from "./run-log-panel";
 import {
   editorBarVariant,
   HistoryButton,
@@ -704,9 +703,6 @@ export const Editor = ({
                       inHistory && !openRun ? { display: "none" } : undefined
                     }
                   >
-                    {openRun && history && ui.runLog ? (
-                      <RunLog history={history} />
-                    ) : null}
                     {version && viewingVersion !== null && !inHistory ? (
                       <VersionBanner
                         version={version}
@@ -746,22 +742,6 @@ export const Editor = ({
                     {inHistory ? null : (
                       <AddNodePicker toolbarAnchor={addNodeRef} />
                     )}
-                    {openRun && history ? (
-                      <div
-                        className={css({
-                          position: "absolute",
-                          top: "4",
-                          left: "4",
-                          zIndex: "[6]",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "3",
-                        })}
-                      >
-                        <RunViewSwitch history={history} />
-                        <RunBanner history={history} />
-                      </div>
-                    ) : null}
                     {viewedRun ? (
                       // Option F (Explorations 903:39224): the run picked in History, on the same canvas.
                       <div className={runBannerStyle} role="status">
@@ -803,7 +783,12 @@ export const Editor = ({
                   </div>
                   {inHistory ? (
                     openRun && history ? (
-                      <RunStepPanel history={history} />
+                      // A selected step shows its outputs; otherwise the run's log (minimal log, 4 Nov).
+                      ui.selectedId ? (
+                        <RunStepPanel history={history} />
+                      ) : (
+                        <RunLogPanel history={history} />
+                      )
                     ) : null
                   ) : viewingVersion === null ? (
                     <PropertiesPanel />

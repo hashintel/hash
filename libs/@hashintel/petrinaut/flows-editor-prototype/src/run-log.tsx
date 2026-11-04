@@ -1,24 +1,11 @@
 /**
- * J6.9 / J6.10 (Figma 1207:95471, 1207:95816): a past run's Canvas | Log switch, a DS SegmentedControl xs at the
- * canvas top-left. Its placement is still open (4 Nov: L1 switch vs a logs button vs the right panel). Log replaces
- * the canvas with one chronological row per step; the For each groups its items, and a failed item opens on its
- * retries. The last row says how the run ended.
+ * A run's log, as rows: one per step in time order, the For each grouping its items, a failed item carrying its
+ * retries, and a last row saying how the run ended. `run-log-panel.tsx` draws them in the right panel.
  */
-import { useState } from "react";
+import { type IconName } from "@hashintel/ds-components";
 
-import {
-  Icon,
-  type IconName,
-  SegmentedControl,
-  TextInput,
-} from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
-
-import { useEditor } from "./editor-context";
-import { RunGlyph } from "./run-glyph";
 import {
   clockPlus,
-  factsOf,
   outcomeOf,
   type RunFacts,
   type RunRecord,
@@ -26,47 +13,13 @@ import {
   suppliers,
 } from "./run-history";
 
-import type { HistoryValue } from "./history-view";
-
-/** Only a run that has ended has a log to read; a live run stays on the canvas. */
-const hasLog = (history: HistoryValue) => {
-  const run = history.run;
-  if (!run) {
-    return false;
-  }
-  const outcome = outcomeOf(run, history.now);
-  return outcome !== "running" && outcome !== "needsReview";
-};
-
-export const RunViewSwitch = ({ history }: { history: HistoryValue }) => {
-  const { ui, setUi } = useEditor();
-  // J6.4–J6.8 draw no switch; J6.9 adds it (its placement is still open), and from there every past run has it.
-  if (!hasLog(history) || ui.runLog === undefined) {
-    return null;
-  }
-  return (
-    <SegmentedControl
-      size="xs"
-      aria-label="Run view"
-      value={ui.runLog ? "log" : "canvas"}
-      onChange={(view) =>
-        setUi((current) => ({ ...current, runLog: view === "log" }))
-      }
-      items={[
-        { value: "canvas", label: "Canvas" },
-        { value: "log", label: "Log" },
-      ]}
-    />
-  );
-};
-
 /* ----------------------------------------------------------------------------------------------------------------
  * The log's rows
  * ------------------------------------------------------------------------------------------------------------- */
 
 type Tone = "muted" | "red";
 
-type LogRow = {
+export type LogRow = {
   id: string;
   time?: string;
   glyph: StepState | "cross";
@@ -83,7 +36,7 @@ type LogRow = {
   open?: boolean;
 };
 
-const secondsText = (seconds: number) =>
+export const secondsText = (seconds: number) =>
   seconds >= 3600
     ? `${Math.floor(seconds / 3600)} h ${String(Math.floor((seconds % 3600) / 60)).padStart(2, "0")} m`
     : seconds >= 60
@@ -140,7 +93,11 @@ const failureDetail = (
         after: "This supplier stopped here. The steps after it did not run.",
       };
 
-const logRows = (run: RunRecord, facts: RunFacts, now: number): LogRow[] => {
+export const logRows = (
+  run: RunRecord,
+  facts: RunFacts,
+  now: number,
+): LogRow[] => {
   const at = (seconds: number) => clockPlus(run.startClock, seconds);
   const outcome = outcomeOf(run, now);
   const total = durationSeconds(run);
@@ -385,359 +342,4 @@ const logRows = (run: RunRecord, facts: RunFacts, now: number): LogRow[] => {
     failure: outcome !== "completed",
   });
   return rows;
-};
-
-/* ----------------------------------------------------------------------------------------------------------------
- * The log view
- * ------------------------------------------------------------------------------------------------------------- */
-
-const rowStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[88px 1fr auto]",
-  alignItems: "center",
-  minHeight: "[36px]",
-  paddingX: "4",
-  textStyle: "sm",
-  "&[data-loop]": { backgroundColor: "neutral.bgSolid.surface" },
-  // "Show in log" from a run step's menu marks its rows for a moment.
-  "&[data-flash]": { backgroundColor: "neutral.bg.surface.active" },
-  transition: "[background-color 0.4s ease]",
-  "&[data-end]": {
-    borderTopWidth: "thin",
-    borderTopStyle: "solid",
-    borderTopColor: "neutral.bd.subtle",
-  },
-});
-
-const chevronStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[16px]",
-  height: "[16px]",
-  color: "neutral.fg.muted",
-  cursor: "pointer",
-  borderRadius: "sm",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
-});
-
-const Glyph = ({ glyph }: { glyph: LogRow["glyph"] }) =>
-  glyph === "cross" ? (
-    <span
-      className={css({
-        display: "inline-flex",
-        color: "[var(--flows-failed-text)]",
-      })}
-      aria-label="Failed"
-    >
-      <Icon name="close" size="sm" />
-    </span>
-  ) : (
-    <RunGlyph state={glyph} size={14} />
-  );
-
-const Row = ({
-  row,
-  depth,
-  open,
-  onToggle,
-}: {
-  row: LogRow;
-  depth: number;
-  open: boolean;
-  onToggle: () => void;
-}) => (
-  <div
-    className={rowStyle}
-    data-loop={row.id === "loop" || undefined}
-    data-end={row.id === "end" || undefined}
-    data-log-row={row.id}
-  >
-    <span className={css({ color: "neutral.fg.subtle" })}>
-      {row.time ?? ""}
-    </span>
-    <span
-      className={css({
-        display: "flex",
-        alignItems: "center",
-        gap: "2",
-        minWidth: "[0]",
-      })}
-      style={{ paddingLeft: depth * 28 }}
-    >
-      <span className={css({ width: "[16px]", display: "inline-flex" })}>
-        {row.children ? (
-          <button
-            type="button"
-            className={chevronStyle}
-            aria-label={open ? "Fold" : "Unfold"}
-            aria-expanded={open}
-            onClick={onToggle}
-          >
-            <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
-          </button>
-        ) : null}
-      </span>
-      <Glyph glyph={row.glyph} />
-      {row.icon ? (
-        <span
-          className={css({ display: "inline-flex", color: "neutral.fg.muted" })}
-        >
-          <Icon name={row.icon} size="sm" />
-        </span>
-      ) : null}
-      <span
-        className={css({
-          fontWeight: "medium",
-          color: "neutral.fg.heading",
-          whiteSpace: "nowrap",
-        })}
-      >
-        {row.title}
-        {row.label ? (
-          <span
-            className={css({ fontWeight: "normal", color: "neutral.fg.body" })}
-          >
-            {" "}
-            · {row.label}
-          </span>
-        ) : null}
-      </span>
-      {row.note ? (
-        <span
-          className={css({
-            color:
-              row.tone === "red"
-                ? "[var(--flows-failed-text)]"
-                : "neutral.fg.subtle",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          })}
-        >
-          {row.note}
-        </span>
-      ) : null}
-    </span>
-    <span
-      className={css({
-        color: "neutral.fg.subtle",
-        whiteSpace: "nowrap",
-        paddingLeft: "3",
-      })}
-    >
-      {row.duration}
-    </span>
-  </div>
-);
-
-const errorBoxStyle = css({
-  marginY: "1",
-  marginRight: "4",
-  padding: "3",
-  borderRadius: "md",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "[var(--flows-failed-badgeBg)]",
-  backgroundColor: "[var(--flows-failed-badgeBg)]",
-  textStyle: "sm",
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.5",
-});
-
-const ErrorBox = ({
-  error,
-  depth,
-}: {
-  error: NonNullable<LogRow["error"]>;
-  depth: number;
-}) => (
-  <div className={errorBoxStyle} style={{ marginLeft: 104 + depth * 28 }}>
-    <span
-      className={css({
-        color: "[var(--flows-failed-text)]",
-        fontWeight: "medium",
-      })}
-    >
-      {error.title}
-    </span>
-    {error.tries.map(([time, line]) => (
-      <span
-        key={time + line}
-        className={css({ textStyle: "xs", color: "neutral.fg.body" })}
-      >
-        <span className={css({ color: "neutral.fg.subtle", marginRight: "2" })}>
-          {time}
-        </span>
-        {line}
-      </span>
-    ))}
-    <span className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}>
-      {error.after}
-    </span>
-  </div>
-);
-
-/** Keeps what "Failures only" shows: failed rows, the rows that hold them, and how the run ended. A failed item keeps
- * every step, so its story reads in order. */
-const failuresOnly = (rows: LogRow[]): LogRow[] =>
-  rows.flatMap((row) =>
-    row.id === "end"
-      ? [row]
-      : !row.failure
-        ? []
-        : row.id.startsWith("failed-") || !row.children
-          ? [row]
-          : [{ ...row, children: failuresOnly(row.children) }],
-  );
-
-export const RunLog = ({ history }: { history: HistoryValue }) => {
-  const { run, now } = history;
-  const [filter, setFilter] = useState<"all" | "failures">("all");
-  const [search, setSearch] = useState("");
-  const [toggled, setToggled] = useState<Record<string, boolean>>({});
-  if (!run || !hasLog(history)) {
-    return null;
-  }
-  const facts = factsOf(run, now);
-  const all = logRows(run, facts, now);
-  const failureCount =
-    facts.failures.length +
-    (facts.find === "failed" || facts.signOff === "timedOut" ? 1 : 0);
-  const query = search.trim().toLowerCase();
-  const isOpen = (row: LogRow) => toggled[row.id] ?? row.open ?? false;
-  const flat: { row: LogRow; depth: number }[] = [];
-  const visit = (rows: LogRow[], depth: number) => {
-    for (const row of rows) {
-      flat.push({ row, depth });
-      if (row.children && (query || isOpen(row))) {
-        visit(row.children, depth + 1);
-      }
-    }
-  };
-  visit(filter === "failures" ? failuresOnly(all) : all, 0);
-  const shown = query
-    ? flat.filter(({ row }) =>
-        `${row.title} ${row.label ?? ""} ${row.note ?? ""}`
-          .toLowerCase()
-          .includes(query),
-      )
-    : flat;
-  return (
-    <div
-      data-run-log
-      className={css({
-        position: "absolute",
-        inset: "[0]",
-        zIndex: "[5]",
-        backgroundColor: "neutral.bgSolid.surface",
-        paddingTop: "[74px]",
-        paddingX: "4",
-        paddingBottom: "4",
-        display: "flex",
-      })}
-    >
-      <div
-        className={css({
-          flex: "1",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "[0]",
-          backgroundColor: "neutral.bgSolid.min",
-          borderWidth: "thin",
-          borderStyle: "solid",
-          borderColor: "neutral.bd.subtle",
-          borderRadius: "lg",
-          overflow: "hidden",
-        })}
-      >
-        <div
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "2",
-            height: "[52px]",
-            paddingX: "4",
-            borderBottomWidth: "thin",
-            borderBottomStyle: "solid",
-            borderBottomColor: "neutral.bd.subtle",
-          })}
-        >
-          <span
-            className={css({
-              textStyle: "base",
-              fontWeight: "semibold",
-              color: "neutral.fg.heading",
-            })}
-          >
-            Log
-          </span>
-          <span
-            className={css({
-              textStyle: "sm",
-              color: "neutral.fg.subtle",
-              flex: "1",
-            })}
-          >
-            {shown.length} rows · Run {run.id} ·{" "}
-            {secondsText(durationSeconds(run))}
-          </span>
-          <SegmentedControl
-            size="sm"
-            aria-label="Rows"
-            value={filter}
-            onChange={(next) => setFilter(next)}
-            items={[
-              { value: "all", label: "All" },
-              { value: "failures", label: `Failures only · ${failureCount}` },
-            ]}
-          />
-          <span className={css({ width: "[200px]" })}>
-            <TextInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search the log"
-              size="sm"
-            />
-          </span>
-        </div>
-        <div
-          className={css({
-            display: "grid",
-            gridTemplateColumns: "[88px 1fr auto]",
-            height: "[30px]",
-            alignItems: "center",
-            paddingX: "4",
-            textStyle: "xs",
-            color: "neutral.fg.muted",
-          })}
-        >
-          <span>Time</span>
-          <span>Step</span>
-          <span>Duration</span>
-        </div>
-        <div
-          className={css({ flex: "1", overflowY: "auto", paddingBottom: "2" })}
-        >
-          {shown.map(({ row, depth }) => (
-            <div key={row.id}>
-              <Row
-                row={row}
-                depth={depth}
-                open={isOpen(row)}
-                onToggle={() =>
-                  setToggled((current) => ({
-                    ...current,
-                    [row.id]: !isOpen(row),
-                  }))
-                }
-              />
-              {row.error ? <ErrorBox error={row.error} depth={depth} /> : null}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 };

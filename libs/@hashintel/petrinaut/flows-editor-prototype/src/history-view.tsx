@@ -23,8 +23,6 @@ import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
   anyTicking,
-  bannerAction,
-  bannerDetail,
   certificateName,
   clockPlus,
   factsOf,
@@ -350,70 +348,6 @@ export const RunSwitcher = ({
 /* ----------------------------------------------------------------------------------------------------------------
  * Canvas banner
  * ------------------------------------------------------------------------------------------------------------- */
-
-const bannerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "3",
-  height: "[42px]",
-  paddingLeft: "3.5",
-  paddingRight: "[6px]",
-  textStyle: "sm",
-  whiteSpace: "nowrap",
-  backgroundColor: "neutral.bgSolid.min",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
-});
-
-export const RunBanner = ({ history }: { history: HistoryValue }) => {
-  const { ui } = useEditor();
-  const { run, now } = history;
-  if (!run) {
-    return null;
-  }
-  const outcome = outcomeOf(run, now);
-  const action = bannerAction(run, now);
-  const facts = factsOf(run, now);
-  return (
-    <div className={bannerStyle} role="status" data-run-banner>
-      <span
-        className={css({
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "2",
-        })}
-      >
-        <RunGlyph state={outcomeState[outcome]} />
-        <span
-          className={css({ fontWeight: "medium", color: "neutral.fg.heading" })}
-        >
-          Run {run.id}
-        </span>
-      </span>
-      <span className={css({ color: "neutral.fg.subtle" })}>
-        {outcomeLabel[outcome]}
-        {outcome === "warnings" ? " (proposed)" : ""} ·{" "}
-        {bannerDetail(run, now, Boolean(ui.selectedId))}
-      </span>
-      <Button
-        size="sm"
-        variant="subtle"
-        tone="neutral"
-        onClick={() =>
-          action === "Stop"
-            ? history.stop(run.id)
-            : history.start(
-                outcome === "warnings" ? facts.failures.length : undefined,
-              )
-        }
-      >
-        {action}
-      </Button>
-    </div>
-  );
-};
 
 /* ----------------------------------------------------------------------------------------------------------------
  * Right panel: a step in a run (J6.7)

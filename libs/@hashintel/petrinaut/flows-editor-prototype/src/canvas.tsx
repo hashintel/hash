@@ -1143,14 +1143,21 @@ const useCanvasMenuItems = (
           onClick: () => {
             close();
             setQuery("panel", "log");
-            setUi((current) => ({ ...current, runLog: true }));
+            // The log is the right panel when no step is selected.
+            setUi((current) => ({
+              ...current,
+              runLog: true,
+              selectedId: null,
+              selectedIds: [],
+            }));
             // Once the log is open: scroll to the step's rows and mark them for a moment, in neutral.
             setTimeout(() => {
-              const rows = [
-                ...globalThis.document.querySelectorAll<HTMLElement>(
-                  logRowsFor(menu.stepId),
-                ),
+              const find = (selector: string) => [
+                ...globalThis.document.querySelectorAll<HTMLElement>(selector),
               ];
+              // A step in the loop with no rows of its own (it never failed) points at For each.
+              const own = find(logRowsFor(menu.stepId));
+              const rows = own.length > 0 ? own : find('[data-log-row="loop"]');
               rows[0]?.scrollIntoView({ block: "center" });
               for (const row of rows) {
                 row.dataset.flash = "true";
