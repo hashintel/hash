@@ -42,8 +42,269 @@ const glyphLabel: Record<StepState, string> = {
   doneWithFailures: "Done with failures",
 };
 
-/** One state's glyph, 12 px by default, drawn on a 12 px grid. */
+/**
+ * Which glyph set draws the marks, for comparison while Aakarsh decides (4 Nov):
+ * - `old`: the filled 12 px set below (Figma 1196:88872), the default.
+ * - `new`: the outline set from ops/projects/flows-editor/icons/status (16 px grid, 1.25 stroke, one ring, tick and
+ *   cross in one 5 px box). Partly done is a progress arc that closes into done.
+ * - `filled`: `new`, with the filled done disc and pie from icons/status/alt-filled.
+ *
+ * Pick: ?glyphs=old|new|filled. Remembered in localStorage.
+ */
+export type GlyphSet = "old" | "new" | "filled";
+
+const glyphStorageKey = "flows-proto:glyphs:v1";
+
+const isGlyphSet = (value: string | null): value is GlyphSet =>
+  value === "old" || value === "new" || value === "filled";
+
+const readGlyphSet = (): GlyphSet => {
+  const fromQuery = new URLSearchParams(globalThis.location.search).get(
+    "glyphs",
+  );
+  if (isGlyphSet(fromQuery)) {
+    try {
+      globalThis.localStorage.setItem(glyphStorageKey, fromQuery);
+    } catch {
+      // Blocked storage: the pick lasts for this page.
+    }
+    return fromQuery;
+  }
+  try {
+    const stored = globalThis.localStorage.getItem(glyphStorageKey);
+    if (isGlyphSet(stored)) {
+      return stored;
+    }
+  } catch {
+    // Blocked storage.
+  }
+  return "old";
+};
+
+export const glyphSet: GlyphSet = readGlyphSet();
+
+// The outline set's geometry, from icons/status/src/gen_glyphs.py.
+const R = 6.5;
+const SW = 1.25;
+const capDeg = ((SW / 2 / R) * 180) / Math.PI;
+const segGapDeg = ((0.6 / R) * 180) / Math.PI;
+const minFailDeg = ((2.5 / R) * 180) / Math.PI;
+const pieR = (R + SW / 2) / 2;
+const pieC = 2 * Math.PI * pieR;
+const tickD = "M5.75 8.85 L7.65 10.75 L10.75 5.75";
+
+/** A clockwise arc on the ring, in degrees from 12 o'clock. */
+const arc = (start: number, end: number) => {
+  const point = (deg: number) => {
+    const t = ((deg - 90) * Math.PI) / 180;
+    return `${(8 + R * Math.cos(t)).toFixed(3)} ${(8 + R * Math.sin(t)).toFixed(3)}`;
+  };
+  const large = end - start > 180 ? 1 : 0;
+  return `M${point(start)} A${R} ${R} 0 ${large} 1 ${point(end)}`;
+};
+
+export type GlyphProgress = { done: number; failed: number; total: number };
+
+const OutlineGlyph = ({
+  state,
+  progress,
+  filled,
+}: {
+  state: StepState;
+  progress: GlyphProgress;
+  filled: boolean;
+}) => {
+  const ring = <circle cx="8" cy="8" r={R} />;
+  const track = <circle cx="8" cy="8" r={R} opacity="0.25" />;
+  const onFill = { stroke: white };
+  const failStyle = { stroke: red };
+  switch (state) {
+    case "notReached":
+      return (
+        <circle
+          cx="8"
+          cy="8"
+          r={R}
+          strokeDasharray="1.3 3.805"
+          strokeDashoffset="0.65"
+          transform="rotate(-90 8 8)"
+        />
+      );
+    case "running":
+      return (
+        <>
+          {track}
+          <path d="M8 1.5 A6.5 6.5 0 0 1 14.401 9.129" />
+        </>
+      );
+    case "done":
+      return filled ? (
+        <>
+          <circle
+            cx="8"
+            cy="8"
+            r={R + SW / 2}
+            fill="currentColor"
+            stroke="none"
+          />
+          <path d={tickD} style={onFill} />
+        </>
+      ) : (
+        <>
+          {ring}
+          <path d={tickD} />
+        </>
+      );
+    case "failed":
+      return (
+        <>
+          {ring}
+          <path d="M5.5 5.5 L10.5 10.5 M10.5 5.5 L5.5 10.5" />
+        </>
+      );
+    case "needsReview":
+      return (
+        <>
+          {ring}
+          <path d="M8 5V8.25" />
+          <path d="M8 10.75h.01" strokeWidth="1.6" />
+        </>
+      );
+    case "skipped":
+      return (
+        <>
+          {ring}
+          <path d="M10.5 5.5 L5.5 10.5" />
+        </>
+      );
+    case "abandoned":
+      return (
+        <>
+          {ring}
+          <rect
+            x="6.5"
+            y="6.5"
+            width="3"
+            height="3"
+            rx="0.4"
+            fill="currentColor"
+          />
+        </>
+      );
+    case "doneWithFailures": {
+      const { done, failed, total } = progress;
+      if (done >= total) {
+        return <OutlineGlyph state="done" progress={progress} filled={filled} />;
+      }
+      if (filled) {
+        const common = {
+          cx: 8,
+          cy: 8,
+          r: pieR,
+          strokeWidth: pieR * 2,
+          strokeLinecap: "butt" as const,
+          transform: "rotate(-90 8 8)",
+        };
+        return (
+          <>
+            {ring}
+            {done > 0 && (
+              <circle
+                {...common}
+                strokeDasharray={`${(pieC * done) / total} ${pieC}`}
+              />
+            )}
+            {failed > 0 && (
+              <circle
+                {...common}
+                strokeDasharray={`${(pieC * failed) / total} ${pieC}`}
+                strokeDashoffset={(-pieC * done) / total}
+                style={failStyle}
+              />
+            )}
+          </>
+        );
+      }
+      const doneEnd = (360 * done) / total;
+      const failEnd = (360 * (done + failed)) / total;
+      const failStart = failed ? Math.min(doneEnd, failEnd - minFailDeg) : doneEnd;
+      const arcEnd = failed ? failStart - segGapDeg : doneEnd;
+      return (
+        <>
+          {track}
+          {done > 0 && <path d={arc(capDeg, arcEnd - capDeg)} />}
+          {failed > 0 && (
+            <path
+              d={arc(failStart + capDeg, failEnd - capDeg)}
+              style={failStyle}
+            />
+          )}
+        </>
+      );
+    }
+  }
+};
+
+const glyphColor: Record<StepState, string> = {
+  notReached: ring,
+  running: blue,
+  done: green,
+  failed: red,
+  needsReview: orange,
+  skipped: grey,
+  abandoned: grey,
+  doneWithFailures: green,
+};
+
+const spinStyle = css({
+  animation: "spin",
+  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+});
+
+/**
+ * One state's glyph, 12 px by default. `progress` draws partly done (`doneWithFailures`) from real counts in the new
+ * sets; without it the mark shows 17 of 20 done, 1 failed.
+ */
 export const RunGlyph = ({
+  state,
+  size = 12,
+  progress = { done: 17, failed: 1, total: 20 },
+}: {
+  state: StepState;
+  size?: number;
+  progress?: GlyphProgress;
+}) =>
+  glyphSet === "old" ? (
+    <OldRunGlyph state={state} size={size} />
+  ) : (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      role="img"
+      aria-label={glyphLabel[state]}
+      data-run-glyph={state}
+      data-glyph-set={glyphSet}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={SW}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ color: glyphColor[state] }}
+      className={`${css({ flexShrink: 0, overflow: "visible" })}${
+        state === "running" ? ` ${spinStyle}` : ""
+      }`}
+    >
+      <OutlineGlyph
+        state={state}
+        progress={progress}
+        filled={glyphSet === "filled"}
+      />
+    </svg>
+  );
+
+/** The filled 12 px set (Figma 1196:88872). */
+const OldRunGlyph = ({
   state,
   size = 12,
 }: {
