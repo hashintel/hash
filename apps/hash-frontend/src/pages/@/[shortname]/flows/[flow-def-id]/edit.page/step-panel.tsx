@@ -14,8 +14,14 @@ import { UsedByField } from "./step-panel/used-by-field";
 import { getStepsUsingValue } from "./step-panel/value-uses";
 
 import type { IconName } from "@hashintel/ds-components";
-import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowEditor,
+  FlowEditorState,
+} from "@local/hash-isomorphic-utils/flows/flow-editor";
+import type {
+  FlowDefinition,
+  StepDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
 /** What the panel shows: the start step, or one step at any depth. */
@@ -42,7 +48,7 @@ const headerText = css({
   flex: "1",
   minWidth: "0",
 });
-const title = css({
+const heading = css({
   m: "0",
   textStyle: "sm",
   fontWeight: "medium",
@@ -50,21 +56,15 @@ const title = css({
 });
 const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
 const section = css({ display: "flex", flexDirection: "column", gap: "2" });
-const sectionTitle = css({
-  m: "0",
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "fg.heading",
-});
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 
 const PanelHeader = ({
   icon,
-  heading,
+  title,
   children,
 }: {
   icon: IconName;
-  heading: string;
+  title: string;
   children: ReactNode;
 }) => (
   <div className={header}>
@@ -72,78 +72,73 @@ const PanelHeader = ({
       <Icon name={icon} size="sm" />
     </span>
     <div className={headerText}>
-      <h2 className={title}>{heading}</h2>
+      <h2 className={heading}>{title}</h2>
       {children}
     </div>
   </div>
 );
 
 const PanelSection = ({
-  heading,
+  title,
   children,
 }: {
-  heading: string;
+  title: string;
   children: ReactNode;
 }) => (
   <section className={section}>
-    <h3 className={sectionTitle}>{heading}</h3>
+    <h3 className={heading}>{title}</h3>
     {children}
   </section>
 );
 
-const StartPanel = ({ editor }: { editor: FlowEditor }) => {
-  const { flowDefinition } = useSyncExternalStore(
-    editor.subscribe,
-    editor.getState,
-  );
-
-  return (
-    <aside className={panel} aria-label="Start">
-      <PanelHeader icon={startDisplay.icon} heading={startDisplay.title}>
-        <span className={fixedDescription}>{startDisplay.description}</span>
-      </PanelHeader>
-      <PanelSection heading="Inputs">
-        {flowDefinition.inputs.length === 0 ? (
-          <span className={empty}>No inputs yet</span>
-        ) : (
-          <Form.Section>
-            {flowDefinition.inputs.map(
-              ({ name, label, payloadKind, array }) => (
-                <UsedByField
-                  key={name}
-                  name={label ?? getNameLabel(name)}
-                  shape={{ payloadKind, array }}
-                  usedBy={getStepsUsingValue(flowDefinition.steps, {
-                    kind: "flow-input",
-                    inputName: name,
-                  })}
-                />
-              ),
-            )}
-          </Form.Section>
-        )}
-      </PanelSection>
-    </aside>
-  );
-};
+const StartPanel = ({
+  flowDefinition,
+}: {
+  flowDefinition: FlowDefinition<string>;
+}) => (
+  <aside className={panel} aria-label="Start">
+    <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
+      <span className={fixedDescription}>{startDisplay.description}</span>
+    </PanelHeader>
+    <PanelSection title="Inputs">
+      {flowDefinition.inputs.length === 0 ? (
+        <span className={empty}>No inputs yet</span>
+      ) : (
+        <Form.Section>
+          {flowDefinition.inputs.map(({ name, label, payloadKind, array }) => (
+            <UsedByField
+              key={name}
+              name={label ?? getNameLabel(name)}
+              shape={{ payloadKind, array }}
+              usedBy={getStepsUsingValue(flowDefinition.steps, {
+                kind: "flow-input",
+                inputName: name,
+              })}
+            />
+          ))}
+        </Form.Section>
+      )}
+    </PanelSection>
+  </aside>
+);
 
 const SelectedStepPanel = ({
   editor,
+  flowDefinition,
+  problemsByStepId,
   step,
   inner,
   onSelectStart,
 }: {
   editor: FlowEditor;
+  flowDefinition: FlowDefinition<string>;
+  problemsByStepId: FlowEditorState["problemsByStepId"];
   step: StepDefinition<string>;
   /** Inside a for-each step, so read-only (FE-1915). */
   inner: boolean;
   onSelectStart: () => void;
 }) => {
-  const { flowDefinition, problemsByStepId } = useSyncExternalStore(
-    editor.subscribe,
-    editor.getState,
-  );
-  const { title: heading, icon } = getStepDisplay(step);
+  const { title, icon } = getStepDisplay(step);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)
@@ -161,8 +156,8 @@ const SelectedStepPanel = ({
   );
 
   return (
-    <aside className={panel} aria-label={heading}>
-      <PanelHeader icon={icon} heading={heading}>
+    <aside className={panel} aria-label={title}>
+      <PanelHeader icon={icon} title={title}>
         <TextInput
           variant="subtle"
           size="sm"
@@ -176,7 +171,7 @@ const SelectedStepPanel = ({
         />
       </PanelHeader>
       {step.kind === "action" && actionDefinition && (
-        <PanelSection heading="Inputs">
+        <PanelSection title="Inputs">
           {stepProblems.length > 0 && (
             <Form.Field.Errors
               errors={stepProblems.map(({ message }) => message)}
@@ -202,7 +197,7 @@ const SelectedStepPanel = ({
       )}
       {/* TODO(FE-1915): edit a for-each step's list and what it collects */}
       {outputNames.length > 0 && (
-        <PanelSection heading="Outputs">
+        <PanelSection title="Outputs">
           <Form.Section>
             {outputNames.map((outputName) => (
               <UsedByField
@@ -233,13 +228,13 @@ export const StepPanel = ({
   subject: StepPanelSubject;
   onSelectStart: () => void;
 }) => {
-  const { flowDefinition } = useSyncExternalStore(
+  const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
     editor.getState,
   );
 
   if ("start" in subject) {
-    return <StartPanel editor={editor} />;
+    return <StartPanel flowDefinition={flowDefinition} />;
   }
 
   const found = findStep(flowDefinition.steps, subject.stepId);
@@ -249,6 +244,8 @@ export const StepPanel = ({
       /* Each step's fields start afresh, e.g. not mid-way through typing a value. */
       key={subject.stepId}
       editor={editor}
+      flowDefinition={flowDefinition}
+      problemsByStepId={problemsByStepId}
       step={found.step}
       inner={found.inner}
       onSelectStart={onSelectStart}
