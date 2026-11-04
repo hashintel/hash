@@ -31,6 +31,7 @@ const listen = async (server: Server) => {
 };
 
 /** The secret the proxy is configured with in these tests. */
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
 const brunchSecret = "hash-api-test-secret";
 
 const startProxy = async ({

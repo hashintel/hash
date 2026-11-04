@@ -119,12 +119,12 @@ const claimed = async (
   binding: object,
 ): Promise<BrowserCallClaim> => {
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    const claim = claimBrowserCall(
-      hashAgent.agentName,
+    const claim = claimBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId,
       toolCallId,
-      canonicalContent(binding),
-    );
+      binding: canonicalContent(binding),
+    });
     if (claim) return claim;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -589,12 +589,12 @@ test.each([-1, 1.5, 4])(
 
     expect(rejected?.isError).toBe(true);
     expect(
-      claimBrowserCall(
-        hashAgent.agentName,
-        chat.instanceId,
-        "r4",
-        canonicalContent(chat.binding),
-      ),
+      claimBrowserCall({
+        agentName: hashAgent.agentName,
+        instanceId: chat.instanceId,
+        toolCallId: "r4",
+        binding: canonicalContent(chat.binding),
+      }),
     ).toBeUndefined();
   },
 );

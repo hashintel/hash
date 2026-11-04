@@ -166,43 +166,50 @@ export const setupBrunchAgentProxy = (
   const origin = authorization ? configuredOrigin : null;
 
   /**
-   * The signed-in user's Brunch actor key, which is also how the frontend
-   * learns whether to offer Brunch at all: 401 without a session, and 503 with
-   * the agent routes' "not configured" body when `HASH_BRUNCH_AGENT_ORIGIN` or
-   * `HASH_BRUNCH_AGENT_SECRET` is unset, so Brunch stays off unless it is
-   * configured.
+   * Authenticates the session and checks that Brunch is configured before
+   * handing the handler the account's Brunch actor key and upstream config:
+   * 401 without a session, and 503 when `HASH_BRUNCH_AGENT_ORIGIN` or
+   * `HASH_BRUNCH_AGENT_SECRET` is unset.
    */
-  app.get(`${brunchAgentProxyPath}/identity`, (request, response) => {
-    if (!request.user) {
-      response.status(401).json({ error: "Authentication required" });
-      return;
-    }
-    if (!origin) {
-      response.status(503).json(notConfiguredError);
-      return;
-    }
-    response.json({ actorKey: brunchActorKey(request.user.accountId) });
-  });
+  const withConfiguredActor =
+    (
+      handler: (
+        request: Request,
+        response: Response,
+        next: NextFunction,
+        configured: {
+          readonly actorKey: string;
+          readonly origin: URL;
+          readonly authorization: string;
+        },
+      ) => void,
+    ) =>
+    (request: Request, response: Response, next: NextFunction) => {
+      if (!request.user) {
+        response.status(401).json({ error: "Authentication required" });
+        return;
+      }
+      if (!origin || !authorization) {
+        response.status(503).json(notConfiguredError);
+        return;
+      }
+      handler(request, response, next, {
+        actorKey: brunchActorKey(request.user.accountId),
+        origin,
+        authorization,
+      });
+    };
 
-  const admitRequest = (
-    request: Request,
-    response: Response,
-    next: NextFunction,
-  ) => {
-    if (!request.user) {
-      response.status(401).json({ error: "Authentication required" });
-      return;
-    }
-    if (!origin) {
-      response.status(503).json(notConfiguredError);
-      return;
-    }
-    if (!hashAgentUrl(request, origin)) {
-      response.status(404).json({ error: "Not found" });
-      return;
-    }
-    next();
-  };
+  /**
+   * The signed-in user's Brunch actor key, which is also how the frontend
+   * learns whether to offer Brunch at all.
+   */
+  app.get(
+    `${brunchAgentProxyPath}/identity`,
+    withConfiguredActor((_request, response, _next, { actorKey }) => {
+      response.json({ actorKey });
+    }),
+  );
 
   /** Counts turn submissions per signed-in account; admitted requests only. */
   const turnSubmissionRateLimiter = rateLimit({
@@ -211,124 +218,149 @@ export const setupBrunchAgentProxy = (
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (request) => getActorIdFromRequest(request),
-    skip: (request) => {
-      const upstreamUrl = origin ? hashAgentUrl(request, origin) : null;
-      return !upstreamUrl || !isTurnSubmission(request, upstreamUrl);
-    },
     message: { error: "Too many Brunch agent turns, try again later" },
   });
+  // The body is re-serialised below, so this hop parses it itself rather
+  // than rely on the app mounting a JSON parser first. A body an earlier
+  // parser already read is left as that parser set it.
+  const parseJsonBody = express.json({ limit: jsonBodyLimit });
+
+  const forwardToBrunch = async (
+    request: Request,
+    response: Response,
+    upstreamUrl: URL,
+    configured: {
+      readonly actorKey: string;
+      readonly origin: URL;
+      readonly authorization: string;
+    },
+  ) => {
+    const body = requestBody(request);
+    if (body === null) {
+      response.status(415).json({
+        error: "Brunch agent requests must be JSON",
+      });
+      return;
+    }
+    const headers = new Headers();
+    for (const [name, value] of Object.entries(request.headers)) {
+      if (typeof value === "string" && isForwardedRequestHeader(name)) {
+        headers.set(name, value);
+      }
+    }
+    // Overwrites anything the browser sent under this name; the actor
+    // header's former name is never forwarded.
+    headers.set(brunchHeaders.actor, configured.actorKey);
+    // The browser's own `authorization` was never copied above.
+    headers.set(brunchCallerAuthorization.header, configured.authorization);
+
+    const abort = new AbortController();
+    response.on("close", () => {
+      if (!response.writableFinished) {
+        abort.abort();
+      }
+    });
+
+    try {
+      // Semgrep reports the admission `send` below from here; see the note
+      // there for why it reflects nothing from the browser's request.
+      // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
+      const upstream = await fetch(upstreamUrl, {
+        method: request.method,
+        headers,
+        body,
+        signal: abort.signal,
+      });
+      response.status(upstream.status);
+      // The durable-streams client reads its next offset, cursor and
+      // up-to-date state from these headers; cross-origin JS cannot see
+      // them unless they are exposed.
+      response.setHeader(
+        "access-control-expose-headers",
+        brunchExposedResponseHeaders.join(", "),
+      );
+      // Flue builds `streamUrl` and `Location` from the URL it was reached
+      // at, which names Brunch's internal origin. Point both back through
+      // this hop.
+      const internalBase = `${configured.origin.origin}${brunchRoutes.agents}/`;
+      const publicBase = `${publicOrigin}${brunchAgentProxyPath}${brunchRoutes.agents}/`;
+      for (const [name, value] of upstream.headers) {
+        if (
+          !droppedResponseHeaders.has(name) &&
+          !name.startsWith("access-control-")
+        ) {
+          response.setHeader(
+            name,
+            name === "location"
+              ? value.replace(internalBase, publicBase)
+              : value,
+          );
+        }
+      }
+      if (upstream.status === 202) {
+        // An admission is a small JSON body, never a stream.
+        const admission = await upstream.text();
+        response.type("json");
+        // Brunch's own admission JSON, served as JSON, with only its URLs
+        // rewritten; nothing from the browser's request is reflected.
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
+        response.send(admission.replaceAll(internalBase, publicBase));
+        return;
+      }
+      response.flushHeaders();
+      if (upstream.body) {
+        await pipeline(
+          // The DOM and Node web-stream types differ only nominally.
+          Readable.fromWeb(upstream.body as NodeReadableStream<Uint8Array>),
+          response,
+        );
+      } else {
+        response.end();
+      }
+    } catch (error) {
+      if (abort.signal.aborted) {
+        return;
+      }
+      logger.warn("Brunch agent proxy request failed", {
+        error,
+        path: request.path,
+      });
+      if (!response.headersSent) {
+        response.status(502).json({ error: "Brunch agent unavailable" });
+      } else {
+        response.destroy();
+      }
+    }
+  };
 
   app.use(
     brunchAgentProxyPath,
-    admitRequest,
-    turnSubmissionRateLimiter,
-    // The body is re-serialised below, so this hop parses it itself rather
-    // than rely on the app mounting a JSON parser first. A body an earlier
-    // parser already read is left as that parser set it.
-    express.json({ limit: jsonBodyLimit }),
-    async (request: Request, response: Response) => {
-      const upstreamUrl = origin ? hashAgentUrl(request, origin) : null;
-      if (!request.user || !origin || !authorization || !upstreamUrl) {
-        // `admitRequest` has already answered anything this would refuse.
+    withConfiguredActor((request, response, next, configured) => {
+      const upstreamUrl = hashAgentUrl(request, configured.origin);
+      if (!upstreamUrl) {
         response.status(404).json({ error: "Not found" });
         return;
       }
-      const body = requestBody(request);
-      if (body === null) {
-        response.status(415).json({
-          error: "Brunch agent requests must be JSON",
+      const forward = () => {
+        parseJsonBody(request, response, (error?: unknown) => {
+          if (error !== undefined) {
+            next(error);
+            return;
+          }
+          void forwardToBrunch(request, response, upstreamUrl, configured);
+        });
+      };
+      if (isTurnSubmission(request, upstreamUrl)) {
+        void turnSubmissionRateLimiter(request, response, (error?: unknown) => {
+          if (error !== undefined) {
+            next(error);
+            return;
+          }
+          forward();
         });
         return;
       }
-      const headers = new Headers();
-      for (const [name, value] of Object.entries(request.headers)) {
-        if (typeof value === "string" && isForwardedRequestHeader(name)) {
-          headers.set(name, value);
-        }
-      }
-      // Overwrites anything the browser sent under this name; the actor
-      // header's former name is never forwarded.
-      headers.set(brunchHeaders.actor, brunchActorKey(request.user.accountId));
-      // The browser's own `authorization` was never copied above.
-      headers.set(brunchCallerAuthorization.header, authorization);
-
-      const abort = new AbortController();
-      response.on("close", () => {
-        if (!response.writableFinished) {
-          abort.abort();
-        }
-      });
-
-      try {
-        // Semgrep reports the admission `send` below from here; see the note
-        // there for why it reflects nothing from the browser's request.
-        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
-        const upstream = await fetch(upstreamUrl, {
-          method: request.method,
-          headers,
-          body,
-          signal: abort.signal,
-        });
-        response.status(upstream.status);
-        // The durable-streams client reads its next offset, cursor and
-        // up-to-date state from these headers; cross-origin JS cannot see
-        // them unless they are exposed.
-        response.setHeader(
-          "access-control-expose-headers",
-          brunchExposedResponseHeaders.join(", "),
-        );
-        // Flue builds `streamUrl` and `Location` from the URL it was reached
-        // at, which names Brunch's internal origin. Point both back through
-        // this hop.
-        const internalBase = `${origin.origin}${brunchRoutes.agents}/`;
-        const publicBase = `${publicOrigin}${brunchAgentProxyPath}${brunchRoutes.agents}/`;
-        for (const [name, value] of upstream.headers) {
-          if (
-            !droppedResponseHeaders.has(name) &&
-            !name.startsWith("access-control-")
-          ) {
-            response.setHeader(
-              name,
-              name === "location"
-                ? value.replace(internalBase, publicBase)
-                : value,
-            );
-          }
-        }
-        if (upstream.status === 202) {
-          // An admission is a small JSON body, never a stream.
-          const admission = await upstream.text();
-          response.type("json");
-          // Brunch's own admission JSON, served as JSON, with only its URLs
-          // rewritten; nothing from the browser's request is reflected.
-          // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
-          response.send(admission.replaceAll(internalBase, publicBase));
-          return;
-        }
-        response.flushHeaders();
-        if (upstream.body) {
-          await pipeline(
-            // The DOM and Node web-stream types differ only nominally.
-            Readable.fromWeb(upstream.body as NodeReadableStream<Uint8Array>),
-            response,
-          );
-        } else {
-          response.end();
-        }
-      } catch (error) {
-        if (abort.signal.aborted) {
-          return;
-        }
-        logger.warn("Brunch agent proxy request failed", {
-          error,
-          path: request.path,
-        });
-        if (!response.headersSent) {
-          response.status(502).json({ error: "Brunch agent unavailable" });
-        } else {
-          response.destroy();
-        }
-      }
-    },
+      forward();
+    }),
   );
 };

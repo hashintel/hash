@@ -121,16 +121,15 @@ const deliverableCall = (
     : undefined;
 };
 
-export const issueBrowserCall = (input: {
-  readonly agentName: string;
-  readonly instanceId: string;
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly binding: string;
-  readonly canonicalInput: unknown;
-  readonly expectedRevision?: string;
-  readonly signal?: AbortSignal;
-}): Promise<ClientToolResult> => {
+export const issueBrowserCall = (
+  input: CallAddress & {
+    readonly toolName: string;
+    readonly binding: string;
+    readonly canonicalInput: unknown;
+    readonly expectedRevision?: string;
+    readonly signal?: AbortSignal;
+  },
+): Promise<ClientToolResult> => {
   const key = keyFor(input.agentName, input.instanceId, input.toolCallId);
   if (calls.has(key)) throw new Error("Duplicate issued browser call.");
   if (input.signal?.aborted)
@@ -179,15 +178,14 @@ export const issueBrowserCall = (input: {
 
 /** The caller's ownership middleware runs before these operations. The capability is one-use, not user authentication. */
 export const claimBrowserCall = (
-  agentName: string,
-  instanceId: string,
-  toolCallId: string,
-  binding: string,
+  input: CallAddress & { readonly binding: string },
 ): BrowserCallClaim | undefined => {
-  const entry = calls.get(keyFor(agentName, instanceId, toolCallId));
+  const entry = calls.get(
+    keyFor(input.agentName, input.instanceId, input.toolCallId),
+  );
   if (
     !entry ||
-    entry.binding !== binding ||
+    entry.binding !== input.binding ||
     entry.claimed ||
     entry.finished ||
     Date.now() >= entry.deadline

@@ -121,12 +121,12 @@ const claimed = async (
   binding: object,
 ): Promise<BrowserCallClaim> => {
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    const claim = claimBrowserCall(
-      hashAgent.agentName,
+    const claim = claimBrowserCall({
+      agentName: hashAgent.agentName,
       instanceId,
       toolCallId,
-      canonicalContent(binding),
-    );
+      binding: canonicalContent(binding),
+    });
     if (claim) return claim;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -160,12 +160,12 @@ test("a save with no view of the net in context is refused as not started and ne
     hashSaveUnconfirmedNote,
   );
   expect(
-    claimBrowserCall(
-      hashAgent.agentName,
-      chat.instanceId,
-      "s0",
-      canonicalContent(chat.binding),
-    ),
+    claimBrowserCall({
+      agentName: hashAgent.agentName,
+      instanceId: chat.instanceId,
+      toolCallId: "s0",
+      binding: canonicalContent(chat.binding),
+    }),
   ).toBeUndefined();
 });
 

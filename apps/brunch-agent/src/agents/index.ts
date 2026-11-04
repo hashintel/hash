@@ -25,6 +25,5 @@ export const agents: readonly MountedAgent[] = [
     // `VITE_BRUNCH_CHAT_ENDPOINT` names `/agents/petrinaut`.
     aliases: ["chat"],
   },
-  // HASH's process page; kept off production until it is released.
-  { route: brunchRoutes.hashAgent, agent: HashAgent, devOnly: true },
+  { route: brunchRoutes.hashAgent, agent: HashAgent },
 ];
