@@ -26,7 +26,10 @@ import {
 
 import { agents } from "./agents/index.ts";
 import { brunchEnv } from "./env.ts";
-import { verifyChatModel } from "./server/chat-model-configuration.ts";
+import {
+  ChatModelConfigurationError,
+  verifyChatModel,
+} from "./server/chat-model-configuration.ts";
 import { healthHandler } from "./server/health.ts";
 import { assetHandler } from "./server/http/assets.ts";
 import { createBrowserCallRouter } from "./server/http/browser-calls.ts";
@@ -239,7 +242,13 @@ if (process.env.NODE_ENV === "production") {
     } catch {
       // The model configuration failure remains the authoritative startup cause.
     }
-    throw error;
+    // Node prints an uncaught error's message, stack and cause to stderr, and
+    // an error from other code may quote the credential it was handed.
+    throw error instanceof ChatModelConfigurationError
+      ? error
+      : new Error(
+          "Chat model verification failed; the model.configuration diagnostic records its type.",
+        );
   }
 }
 

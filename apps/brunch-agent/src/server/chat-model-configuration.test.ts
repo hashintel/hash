@@ -1,8 +1,19 @@
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  afterEach,
+  assert,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
 import { brunchEnv } from "../env.ts";
-import { verifyChatModel } from "./chat-model-configuration.ts";
+import {
+  ChatModelConfigurationError,
+  verifyChatModel,
+} from "./chat-model-configuration.ts";
 import { openaiProviderWithAddedModels } from "./openai-provider.ts";
 
 import type { Mock } from "vitest";
@@ -62,6 +73,45 @@ describe("chat model credential presence", () => {
         "is not declared by a registered provider",
       );
       await expect(failure).rejects.not.toThrow(syntheticKey);
+    },
+  );
+});
+
+describe("malformed chat model credentials", () => {
+  test.each([
+    [
+      "an OpenAI key with a leading newline",
+      "OPENAI_API_KEY",
+      undefined,
+      `\n${syntheticKey}`,
+    ],
+    [
+      "an OpenAI key with an embedded newline",
+      "OPENAI_API_KEY",
+      undefined,
+      `sk-\n${syntheticKey}`,
+    ],
+    [
+      "an Anthropic key outside Latin-1",
+      "ANTHROPIC_API_KEY",
+      "claude-haiku-4-5",
+      `${syntheticKey}€`,
+    ],
+  ])(
+    "refuses %s without quoting it",
+    async (_case, keyVariable, model, key) => {
+      vi.stubEnv(keyVariable, key);
+      if (model) vi.stubEnv(brunchEnv.chatModel, model);
+      const fetchMock = fetchReturning(200);
+      const failure: unknown = await verifyChatModel(
+        providers,
+        fetchMock,
+      ).catch((error: unknown) => error);
+      assert.instanceOf(failure, ChatModelConfigurationError);
+      expect(failure.message).toContain("not a valid HTTP header value");
+      expect(failure.message).not.toContain(syntheticKey);
+      expect(failure.cause).toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
     },
   );
 });

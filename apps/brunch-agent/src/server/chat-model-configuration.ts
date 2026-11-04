@@ -10,6 +10,14 @@ export type ChatModelVerification =
   | { readonly verified: true; readonly shutdownDate?: string }
   | { readonly verified: false; readonly reason: string };
 
+/**
+ * A refusal whose message this module wrote, so it names no credential. Errors
+ * from other code may quote one and must not reach a log as they are.
+ */
+export class ChatModelConfigurationError extends Error {
+  public readonly code = "chat_model_configuration";
+}
+
 const lookupTimeoutMs = 10_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -84,18 +92,34 @@ export const verifyChatModel = async (
   for (const provider of providers) models.setProvider(provider);
   const model = models.getModel(providerId, specifier.slice(slash + 1));
   if (!model) {
-    throw new Error(
+    throw new ChatModelConfigurationError(
       `Chat model "${specifier}" is not declared by a registered provider (${providers.map((provider) => provider.id).join(", ")}). Check ${brunchEnv.chatModel}.`,
     );
   }
-  const auth = await models.getAuth(model);
+  let auth: Awaited<ReturnType<typeof models.getAuth>>;
+  try {
+    auth = await models.getAuth(model);
+  } catch {
+    throw new ChatModelConfigurationError(
+      `Chat model "${specifier}" has a credential that provider "${providerId}" could not resolve. Check its API key.`,
+    );
+  }
   if (!auth) {
-    throw new Error(
+    throw new ChatModelConfigurationError(
       `Chat model "${specifier}" has no credential: provider "${providerId}" is not configured. Supply its API key (see the production environment table in apps/brunch-agent/README.md).`,
     );
   }
 
-  const lookup = modelLookup(model, auth.auth);
+  let lookup: ReturnType<typeof modelLookup>;
+  try {
+    lookup = modelLookup(model, auth.auth);
+  } catch {
+    // `Headers` quotes a rejected value, the credential, in its message. A chat
+    // turn would fail the same way, so this refuses rather than warns.
+    throw new ChatModelConfigurationError(
+      `Chat model "${specifier}" has a provider "${providerId}" credential or header that is not a valid HTTP header value. Check it for stray whitespace or control characters.`,
+    );
+  }
   if (!lookup) return { verified: false, reason: "unsupported-credential" };
   let response: Response;
   try {
@@ -116,7 +140,7 @@ export const verifyChatModel = async (
   }
   const rejection = await definitiveRejection(response);
   if (rejection) {
-    throw new Error(
+    throw new ChatModelConfigurationError(
       `Chat model "${specifier}" is unusable: ${rejection} (HTTP ${response.status}). Check the provider "${providerId}" credential and ${brunchEnv.chatModel}.`,
     );
   }
