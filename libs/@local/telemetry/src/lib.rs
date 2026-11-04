@@ -148,8 +148,8 @@ impl TelemetryRegistry {
     /// Sets the `EnvFilter` directives for outputs without their own level, the OTLP logs and
     /// traces included.
     ///
-    /// See [`logging::env_filter`] for how they combine with the level of each output and with
-    /// `RUST_LOG`.
+    /// An output with its own level ignores them. See [`logging::env_filter`] for how they combine
+    /// with `RUST_LOG`.
     #[must_use]
     pub fn with_log_level(mut self, directives: Option<String>) -> Self {
         self.log_level = directives;
@@ -196,17 +196,17 @@ impl TelemetryRegistry {
     }
 
     fn build(self) -> Result<(impl Into<Dispatch>, Telemetry), Report<InitTracingError>> {
-        let directives = self.log_level.as_deref();
+        let filter = self::logging::env_filter(self.log_level.as_deref());
 
         let error_layer = self.error_layer.then(ErrorLayer::default);
         let console_layer = self
             .console_logging
             .as_ref()
-            .map(|config| self::logging::console_layer(config, directives));
+            .map(|config| self::logging::console_layer(config, &filter));
 
         let (file_layer, file_guard) = self
             .file_logging
-            .map(|config| self::logging::file_layer(config, directives))
+            .map(|config| self::logging::file_layer(config, &filter))
             .unzip();
 
         let sentry_layer = self.sentry.as_ref().map(self::traces::sentry::layer);
@@ -217,7 +217,12 @@ impl TelemetryRegistry {
             .map(|(otlp, service_name)| {
                 self::logging::otlp::provider(otlp, service_name)
                     .change_context(InitTracingError)
-                    .map(|provider| (self::logging::otlp::layer(&provider, directives), provider))
+                    .map(|provider| {
+                        (
+                            self::logging::otlp::layer(&provider, filter.clone()),
+                            provider,
+                        )
+                    })
             })
             .transpose()?
             .unzip();
@@ -228,7 +233,12 @@ impl TelemetryRegistry {
             .map(|(otlp, service_name)| {
                 self::traces::otlp::provider(otlp, service_name)
                     .change_context(InitTracingError)
-                    .map(|provider| (self::traces::otlp::layer(&provider, directives), provider))
+                    .map(|provider| {
+                        (
+                            self::traces::otlp::layer(&provider, filter.clone()),
+                            provider,
+                        )
+                    })
             })
             .transpose()?
             .unzip();
