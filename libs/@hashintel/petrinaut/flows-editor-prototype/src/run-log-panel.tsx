@@ -12,10 +12,12 @@ import { useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { RunGlyph } from "./run-glyph";
+import { glyphSet, RunGlyph } from "./run-glyph";
 import {
   bannerAction,
   factsOf,
+  forEachId,
+  type ItemProgress,
   outcomeLabel,
   outcomeOf,
   runClock,
@@ -76,7 +78,13 @@ const monoStyle = css({
 const mutedStyle = css({ color: "neutral.fg.subtle" });
 
 /** A log row's mark: the run glyph, or a red cross for a failure. */
-const Mark = ({ glyph }: { glyph: LogRow["glyph"] }) => (
+const Mark = ({
+  glyph,
+  progress,
+}: {
+  glyph: LogRow["glyph"];
+  progress?: ItemProgress;
+}) => (
   <span
     className={css({
       display: "inline-flex",
@@ -89,7 +97,7 @@ const Mark = ({ glyph }: { glyph: LogRow["glyph"] }) => (
     {glyph === "cross" ? (
       <Icon name="close" size="sm" />
     ) : (
-      <RunGlyph state={glyph} size={12} />
+      <RunGlyph state={glyph} size={12} progress={progress} />
     )}
   </span>
 );
@@ -98,6 +106,7 @@ const LogLine = ({
   id,
   time,
   glyph,
+  progress,
   title,
   detail,
   note,
@@ -110,6 +119,7 @@ const LogLine = ({
   id: string;
   time?: string;
   glyph: LogRow["glyph"];
+  progress?: ItemProgress;
   title: string;
   detail?: string;
   note?: string;
@@ -127,7 +137,7 @@ const LogLine = ({
     onClick={onToggle}
   >
     <span className={monoStyle}>{time ?? ""}</span>
-    <Mark glyph={glyph} />
+    <Mark glyph={glyph} progress={progress} />
     <span
       className={css({
         display: "flex",
@@ -256,12 +266,17 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
       const failures = children.filter((child) => child.failure);
       const rest = children.filter((child) => !child.failure);
       const open = isOpen("loop");
+      const loopMark = history.steps?.[forEachId];
+      // The outline sets draw the For each's partly done mark from its items; the old set keeps R1's cross.
+      const partlyDone =
+        !live && glyphSet !== "old" && loopMark?.state === "doneWithFailures";
       lines.push(
         <LogLine
           key="loop"
           id="loop"
           time={row.time}
-          glyph={live ? "running" : row.glyph}
+          glyph={live ? "running" : partlyDone ? loopMark.state : row.glyph}
+          progress={loopMark?.progress}
           title={row.label ?? row.title}
           note={
             live

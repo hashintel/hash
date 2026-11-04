@@ -33,7 +33,7 @@ import { type EditorUi, useEditor } from "./editor-context";
 import { RunGlyph } from "./run-glyph";
 import { tileColor } from "./status-colors";
 
-import type { StepState } from "./run-history";
+import type { StepRun } from "./run-history";
 
 type Tone = "green" | "orange" | "neutral" | "blue";
 
@@ -165,11 +165,16 @@ const listHeadStyle = css({
 const FlowList = ({
   statusFor,
 }: {
-  statusFor?: (stepId: string) => StepState;
+  statusFor?: (stepId: string) => StepRun;
 }) => {
   const { document, ui, setUi } = useEditor();
   const mark = (stepId: string) =>
-    statusFor ? <RunGlyph state={statusFor(stepId)} /> : null;
+    statusFor ? (
+      <RunGlyph
+        state={statusFor(stepId).state}
+        progress={statusFor(stepId).progress}
+      />
+    ) : null;
   // Shared with the canvas: a For each closed here folds its box there too (J1.13).
   const closed = ui.collapsed ?? [];
   const setClosed = (next: string[] | ((current: string[]) => string[])) =>
@@ -544,7 +549,7 @@ const panelTabs = [
 export const LeftPanel = ({
   statusFor,
 }: {
-  statusFor?: (stepId: string) => StepState;
+  statusFor?: (stepId: string) => StepRun;
 }) => {
   const { ui, setUi } = useEditor();
   const panel = statusFor ? "steps" : (ui.leftPanel ?? "steps");

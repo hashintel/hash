@@ -646,7 +646,7 @@ export const Editor = ({
                   {openRun && history ? (
                     <LeftPanel
                       statusFor={(stepId) =>
-                        history.steps?.[stepId]?.state ?? "notReached"
+                        history.steps?.[stepId] ?? { state: "notReached" }
                       }
                     />
                   ) : inHistory ? null : (

@@ -5,7 +5,7 @@ import { HashShell } from "./hash-shell";
 import { RunGlyph } from "./run-glyph";
 
 import type { EditorDocument } from "./document";
-import type { StepState } from "./run-history";
+import type { ItemProgress, StepState } from "./run-history";
 
 export type FlowListEntry = {
   id: string;
@@ -15,7 +15,7 @@ export type FlowListEntry = {
   /** "v6 · Draft" or "v5 · Live" (V0–V7). */
   version?: string;
   /** The newest run: its mark and "Run 17 · Today 10:42", or none yet. */
-  lastRun?: { state: StepState; label: string };
+  lastRun?: { state: StepState; label: string; progress?: ItemProgress };
   runCount?: number;
 };
 
@@ -261,7 +261,10 @@ export const Home = ({
                             gap: "2",
                           })}
                         >
-                          <RunGlyph state={flow.lastRun.state} />
+                          <RunGlyph
+                            state={flow.lastRun.state}
+                            progress={flow.lastRun.progress}
+                          />
                           {flow.lastRun.label}
                         </span>
                       ) : (

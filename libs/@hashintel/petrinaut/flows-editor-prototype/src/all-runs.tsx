@@ -22,6 +22,7 @@ import {
   type RunRecord,
   outcomeLabel,
   runClock,
+  runProgress,
   stepRuns,
   triggerLabel,
 } from "./run-history";
@@ -302,7 +303,10 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                       gap: "2",
                     })}
                   >
-                    <RunGlyph state={outcomeState[outcomeOf(run, now)]} />
+                    <RunGlyph
+                      state={outcomeState[outcomeOf(run, now)]}
+                      progress={runProgress(run, now)}
+                    />
                     {statusText(run, now)}
                   </span>
                 </td>

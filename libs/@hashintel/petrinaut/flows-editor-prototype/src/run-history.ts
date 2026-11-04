@@ -25,8 +25,13 @@ export type BarSegment = {
   count: number;
 };
 
+/** Items of a For each, for a partly done mark: done, failed, and all of them. */
+export type ItemProgress = { done: number; failed: number; total: number };
+
 export type StepRun = {
   state: StepState;
+  /** For each steps and the steps inside one: their items, for the partly done mark. */
+  progress?: ItemProgress;
   /** The grey count in the step list: "20", "14 of 20", "12 ✓ · 1 ×", "Waiting". */
   count?: string;
   /** For each steps: the bar along the card's bottom edge. */
@@ -94,12 +99,7 @@ export type RunFacts = {
 };
 
 export type RunOutcome =
-  | "running"
-  | "needsReview"
-  | "warnings"
-  | "error"
-  | "completed"
-  | "abandoned";
+  "running" | "needsReview" | "warnings" | "error" | "completed" | "abandoned";
 
 export type RunRecord = {
   id: number;
@@ -262,7 +262,7 @@ const loopStepRun = (facts: RunFacts, stage: number): StepRun => {
       : failed > 0
         ? "doneWithFailures"
         : "done";
-  return { state, count, bar };
+  return { state, count, bar, progress: { done, failed, total: n } };
 };
 
 export const stepRuns = (facts: RunFacts): Record<string, StepRun> => {
@@ -302,6 +302,7 @@ export const stepRuns = (facts: RunFacts): Record<string, StepRun> => {
       count: Math.max(0, n - doneItems - failedItems - runningItems),
     },
   ].filter((segment) => segment.count > 0);
+  const forEachProgress = { done: doneItems, failed: failedItems, total: n };
   runs[forEachId] =
     facts.find !== "done"
       ? { state: "notReached" }
@@ -322,6 +323,7 @@ export const stepRuns = (facts: RunFacts): Record<string, StepRun> => {
                 state: "doneWithFailures",
                 count: `${n - failed} ✓ · ${failed} ×`,
                 bar: forEachBar,
+                progress: forEachProgress,
               }
             : { state: "done", count: `${n} of ${n}`, bar: forEachBar };
   runs[signOffId] =
@@ -350,6 +352,10 @@ export const outcomeOf = (run: RunRecord, now: number): RunOutcome => {
   }
   return liveFacts(run, now).signOff === "waiting" ? "needsReview" : "running";
 };
+
+/** A run's items, for its partly done mark: how far its For each got. */
+export const runProgress = (run: RunRecord, now: number) =>
+  stepRuns(factsOf(run, now))[forEachId]?.progress;
 
 /** The glyph a run shows: the same set as steps. */
 export const outcomeState: Record<RunOutcome, StepState> = {

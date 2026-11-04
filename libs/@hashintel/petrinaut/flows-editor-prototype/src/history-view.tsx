@@ -31,6 +31,7 @@ import {
   outcomeLabel,
   outcomeOf,
   outcomeState,
+  runProgress,
   type RunFacts,
   type RunRecord,
   signOffAt,
@@ -262,6 +263,7 @@ export const RunSwitcher = ({
           <span className={menuRowStyle}>
             <RunGlyph
               state={outcomeState[outcomeOf(candidate, now)]}
+              progress={runProgress(candidate, now)}
               size={14}
             />
             <span>{runMenuLabel(candidate, now)}</span>
