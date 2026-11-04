@@ -7,7 +7,6 @@ import { createContext, Fragment, use, useEffect, useState } from "react";
 
 import {
   Button,
-  Chip,
   type ChipColor,
   Icon,
   type IconName,
@@ -21,6 +20,7 @@ import { flattenSteps, START_ID, stepLabel } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
 import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
+import type { StepState } from "./run-history";
 import {
   anyTicking,
   certificateName,
@@ -398,6 +398,36 @@ type Detail = {
   inputs: [string, string][];
 };
 
+/** The status mark for a chip: the F3 glyph beside the label, in place of a coloured pill. */
+const chipState = (chip: Detail["chips"][number]): StepState => {
+  switch (chip.color) {
+    case "blue":
+      return "running";
+    case "orange":
+      return "needsReview";
+    case "red":
+      return "failed";
+    case "green":
+      return "done";
+    default:
+      return chip.label === "Abandoned"
+        ? "abandoned"
+        : chip.label === "Skipped"
+          ? "skipped"
+          : "notReached";
+  }
+};
+
+const statusMarkStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  height: "[24px]",
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.body",
+});
+
 const chipsFor = (state: StepRun, done: string): Detail["chips"] => {
   switch (state.state) {
     case "running":
@@ -772,9 +802,10 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
             className={css({ display: "flex", gap: "1", flexWrap: "wrap" })}
           >
             {detail.chips.map((chip) => (
-              <Chip key={chip.label} size="sm" color={chip.color}>
+              <span key={chip.label} className={statusMarkStyle}>
+                <RunGlyph state={chipState(chip)} size={16} />
                 {chip.label}
-              </Chip>
+              </span>
             ))}
           </span>
           {detail.span ? (

@@ -44,19 +44,20 @@ const glyphLabel: Record<StepState, string> = {
 
 /**
  * Which glyph set draws the marks, for comparison while Aakarsh decides (4 Nov):
- * - `old`: the filled 12 px set below (Figma 1196:88872), the default.
+ * - `bare` (default, picked 4 Nov): family F3 from icons/status/families/F3, the mark with no ring.
+ * - `old`: the filled 12 px set below (Figma 1196:88872).
  * - `new`: the outline set from ops/projects/flows-editor/icons/status (16 px grid, 1.25 stroke, one ring, tick and
  *   cross in one 5 px box). Partly done is a progress arc that closes into done.
  * - `filled`: `new`, with the filled done disc and pie from icons/status/alt-filled.
  *
- * Pick: ?glyphs=old|new|filled. Remembered in localStorage.
+ * Pick: ?glyphs=bare (F3, the default)|old|new|filled. Remembered in localStorage.
  */
-export type GlyphSet = "old" | "new" | "filled";
+export type GlyphSet = "bare" | "old" | "new" | "filled";
 
-const glyphStorageKey = "flows-proto:glyphs:v1";
+const glyphStorageKey = "flows-proto:glyphs:v2";
 
 const isGlyphSet = (value: string | null): value is GlyphSet =>
-  value === "old" || value === "new" || value === "filled";
+  value === "bare" || value === "old" || value === "new" || value === "filled";
 
 const readGlyphSet = (): GlyphSet => {
   const fromQuery = new URLSearchParams(globalThis.location.search).get(
@@ -78,7 +79,7 @@ const readGlyphSet = (): GlyphSet => {
   } catch {
     // Blocked storage.
   }
-  return "old";
+  return "bare";
 };
 
 export const glyphSet: GlyphSet = readGlyphSet();
@@ -245,6 +246,90 @@ const OutlineGlyph = ({
   }
 };
 
+// The bare set (family F3, icons/status/families/F3, picked 4 Nov): marks with no ring; running and partly done
+// draw on a small faint ring.
+const bareR = 4;
+/** F3 is drawn for 16 px (a 1.25 px stroke); smaller, the bare tick drops under 5 px. */
+const bareMinSize = 16;
+const bareCap = ((SW / 2 / bareR) * 180) / Math.PI;
+const bareGap = ((0.6 / bareR) * 180) / Math.PI;
+const bareMinFail = ((2.5 / bareR) * 180) / Math.PI;
+
+const bareArc = (start: number, end: number) => {
+  const point = (deg: number) => {
+    const t = ((deg - 90) * Math.PI) / 180;
+    return `${(8 + bareR * Math.cos(t)).toFixed(3)} ${(8 + bareR * Math.sin(t)).toFixed(3)}`;
+  };
+  const large = end - start > 180 ? 1 : 0;
+  return `M${point(start)} A${bareR} ${bareR} 0 ${large} 1 ${point(end)}`;
+};
+
+const BareGlyph = ({
+  state,
+  progress,
+}: {
+  state: StepState;
+  progress: GlyphProgress;
+}) => {
+  const track = <circle cx="8" cy="8" r={bareR} opacity="0.25" />;
+  switch (state) {
+    case "notReached":
+      return (
+        <circle
+          cx="8"
+          cy="8"
+          r={bareR}
+          strokeDasharray="0.01 3.13"
+          transform="rotate(-90 8 8)"
+        />
+      );
+    case "running":
+      return (
+        <>
+          {track}
+          <path d="M8 4 A4 4 0 0 1 11.939 8.695" />
+        </>
+      );
+    case "done":
+      return <path d="M5.125 9 L7.5 11.375 L11.375 5.125" />;
+    case "failed":
+      return <path d="M4.875 4.875 L11.125 11.125 M11.125 4.875 L4.875 11.125" />;
+    case "needsReview":
+      return (
+        <>
+          <path d="M8 4.5V8.5" />
+          <path d="M8 11.25h.01" strokeWidth="1.6" />
+        </>
+      );
+    case "skipped":
+      return <path d="M10.75 5.25 L5.25 10.75" />;
+    case "abandoned":
+      return <rect x="5.5" y="5.5" width="5" height="5" rx="0.75" />;
+    case "doneWithFailures": {
+      const { done, failed, total } = progress;
+      if (done >= total) {
+        return <BareGlyph state="done" progress={progress} />;
+      }
+      const doneEnd = (360 * done) / total;
+      const failEnd = (360 * (done + failed)) / total;
+      const failStart = failed ? Math.min(doneEnd, failEnd - bareMinFail) : doneEnd;
+      const arcEnd = failed ? failStart - bareGap : doneEnd;
+      return (
+        <>
+          {track}
+          {done > 0 && <path d={bareArc(bareCap, arcEnd - bareCap)} />}
+          {failed > 0 && (
+            <path
+              d={bareArc(failStart + bareCap, failEnd - bareCap)}
+              style={{ stroke: red }}
+            />
+          )}
+        </>
+      );
+    }
+  }
+};
+
 const glyphColor: Record<StepState, string> = {
   notReached: ring,
   running: blue,
@@ -278,8 +363,8 @@ export const RunGlyph = ({
     <OldRunGlyph state={state} size={size} />
   ) : (
     <svg
-      width={size}
-      height={size}
+      width={glyphSet === "bare" ? Math.max(size, bareMinSize) : size}
+      height={glyphSet === "bare" ? Math.max(size, bareMinSize) : size}
       viewBox="0 0 16 16"
       role="img"
       aria-label={glyphLabel[state]}
@@ -295,11 +380,15 @@ export const RunGlyph = ({
         state === "running" ? ` ${spinStyle}` : ""
       }`}
     >
-      <OutlineGlyph
-        state={state}
-        progress={progress}
-        filled={glyphSet === "filled"}
-      />
+      {glyphSet === "bare" ? (
+        <BareGlyph state={state} progress={progress} />
+      ) : (
+        <OutlineGlyph
+          state={state}
+          progress={progress}
+          filled={glyphSet === "filled"}
+        />
+      )}
     </svg>
   );
 
