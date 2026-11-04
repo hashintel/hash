@@ -80,6 +80,8 @@ export type EditorUi = {
   runs?: { seconds: number; pinned: boolean };
   /** J6: History is open, on this run, or on All runs when null. */
   history?: { runId: number | null } | null;
+  /** Trigger switches flipped in the Triggers panel this session, by trigger id ("manual" for manual runs). */
+  triggerSwitches?: Record<string, boolean>;
   /** J6.9 / J6.10: a past run's Canvas | Log switch shows (false: Canvas) and is on Log (true), which replaces the canvas. */
   runLog?: boolean;
 };

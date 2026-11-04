@@ -2,8 +2,6 @@ import { useRef } from "react";
 
 import {
   Button,
-  Icon,
-  Menu,
   NumberInput,
   SegmentedControl,
   Select,
@@ -13,10 +11,10 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
+import { BranchRows } from "./branches";
 import { forEachEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
   START_ID,
-  addTrigger,
   type DraftActionStep,
   type DraftForEachStep,
   type EditorDocument,
@@ -54,10 +52,8 @@ import {
   QueryField,
   ValueField,
 } from "./fields";
+import { ghostKindOf, TriggersPanel } from "./flow-triggers";
 import { isMockPayloadKind } from "./mock-action-definitions";
-import { OutputRows } from "./outputs";
-import { BranchRows } from "./branches";
-import { RunPanel } from "./run-view";
 import { findEntityType, mockEntities, mockEntityTypes } from "./mock-graph";
 import {
   describeCron,
@@ -68,10 +64,11 @@ import {
   type TriggerKind,
   type TriggerNode,
   triggerDefinitions,
-  addableTriggerKinds,
   isEntityTrigger,
   weekdays,
 } from "./mock-triggers";
+import { OutputRows } from "./outputs";
+import { RunPanel } from "./run-view";
 import {
   acceptedKinds,
   describeSource,
@@ -468,7 +465,9 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         <Section
           title="Inputs"
           gridClassName={
-            step.actionDefinitionId === "sendEmail" ? sendEmailGridStyle : undefined
+            step.actionDefinitionId === "sendEmail"
+              ? sendEmailGridStyle
+              : undefined
           }
         >
           {visibleInputs.map((input) => {
@@ -1438,114 +1437,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
   );
 };
 
-/** A "Started by" row's value: the trigger's tile and name, as a quiet row; clicking it opens the trigger's panel. */
-const startedByRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
-  minHeight: "[32px]",
-  paddingX: "1",
-  borderRadius: "md",
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "neutral.fg.body",
-  textAlign: "left",
-  cursor: "pointer",
-  minWidth: "[0]",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
-});
-
-const startedByIconStyle = css({
-  display: "inline-flex",
-  flexShrink: 0,
-  color: "neutral.fg.muted",
-});
-
-const addTriggerStyle = css({
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "blue.fg.link",
-  cursor: "pointer",
-  _hover: { textDecoration: "underline" },
-});
-
-/** What starts the flow, listed on Start (J4 A1): one row per trigger, and "Add trigger", a menu that opens a form. */
-const StartedBy = () => {
-  const { document, setDocument, setUi } = useEditor();
-  const open = (triggerId: string) =>
-    setUi((ui) => ({
-      ...ui,
-      selectedId: START_ID,
-      triggerId,
-      openField: null,
-    }));
-  return (
-    <Section title="Started by">
-      {document.triggers.map((trigger) => {
-        const definition = triggerDefinitions[trigger.kind];
-        return (
-          <PropertyRow
-            key={trigger.id}
-            label={trigger.kind === "schedule" ? "Schedule" : "Trigger"}
-          >
-            <button
-              type="button"
-              className={startedByRowStyle}
-              onClick={() => open(trigger.id)}
-            >
-              <span className={startedByIconStyle}>
-                <Icon name={definition.icon} size="sm" />
-              </span>
-              <span>{trigger.description || definition.title}</span>
-            </button>
-          </PropertyRow>
-        );
-      })}
-      <div>
-        <Menu
-          position="bottom-start"
-          items={[
-            {
-              id: "triggers",
-              label: "",
-              // Two kinds (ledger, 23 Oct; Figma 637:23265): Schedule, and Responsive (an entity changes). Manual runs
-              // and API calls start a flow elsewhere, so they are not in this menu.
-              items: addableTriggerKinds
-                .filter((kind) => kind === "schedule" || kind === "entityChanged")
-                .map((kind) => ({
-                id: kind,
-                text: kind === "schedule" ? "Schedule" : "Responsive",
-                icon: triggerDefinitions[kind].icon,
-                suffix:
-                  showDebug && triggerDefinitions[kind].mock ? (
-                    <OriginMark
-                      label="mock"
-                      hover="No such trigger on main yet."
-                    />
-                  ) : undefined,
-                onClick: () => {
-                  const { document: next, triggerId } = addTrigger(
-                    document,
-                    kind,
-                  );
-                  setDocument(() => next);
-                  open(triggerId);
-                },
-              })),
-            },
-          ]}
-          trigger={
-            <button type="button" className={addTriggerStyle}>
-              Add trigger
-            </button>
-          }
-        />
-      </div>
-    </Section>
-  );
-};
-
-/** Start: the flow's inputs, which the Run button's form and every trigger fill. */
+/** Start: the flow's inputs, which the Run button's form and every trigger fill. Nothing about triggers (4 Nov). */
 const StartPanel = () => {
   const { document, setDocument } = useEditor();
   return (
@@ -1562,8 +1454,8 @@ const StartPanel = () => {
           }
         />
       </div>
+      {/* Triggers are read-only here (4 Nov): they show as ghost nodes left of Start, and open their own panel. */}
       <RunFormFields />
-      <StartedBy />
     </>
   );
 };
@@ -1608,12 +1500,16 @@ export const PropertiesPanel = () => {
   if (!ui.selectedId && !ui.run) {
     return null;
   }
+  // A ghost trigger node opens the read-only Triggers panel (J4.3).
+  const ghost = ghostKindOf(ui.selectedId);
   return (
     <aside className={panelStyle} aria-label="Properties">
       <OverlayScrollArea>
         <div className={panelBodyStyle}>
           {ui.run ? (
             <RunPanel />
+          ) : ghost ? (
+            <TriggersPanel key={ghost} kind={ghost} />
           ) : trigger ? (
             <TriggerPanel key={trigger.id} trigger={trigger} />
           ) : ui.selectedId === START_ID ? (

@@ -17,6 +17,7 @@ import workspaceAvatar from "./assets/workspace-avatar.png";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
+import { flowTriggersOf } from "./flow-triggers";
 import {
   AllRunsButton,
   HistoryContext,
@@ -437,8 +438,8 @@ export const Editor = ({
       .filter((diagnostic) => diagnostic.severity === "error").length +
     validation.incomplete.size;
   const mockCount = validation.mockFields.size;
-  // J4.4: Run only when the flow can be started by hand: the J6 flow is (Manual run · Dora).
-  const hasManualStart = Boolean(history);
+  // J4.4: Run only when the flow can be started by hand: manual runs are on in its Triggers panel.
+  const hasManualStart = flowTriggersOf(document, ui.triggerSwitches).manual;
   const toEditor = () =>
     setUiState((current) => ({
       ...current,
@@ -517,8 +518,14 @@ export const Editor = ({
                     </>
                   ) : null}
                 </div>
-                {/* History is selected while a run shows; it opens the latest run until History gets its own page. */}
-                <div className={viewSwitchStyle}>
+                {/*
+                  History is selected on All runs and the older run view. Inside a J6 run the top bar is minimal
+                  (Aakarsh, 4 Nov): no switch; All runs and Return to editor are the ways back.
+                */}
+                <div
+                  className={viewSwitchStyle}
+                  style={openRun ? { display: "none" } : undefined}
+                >
                   <SegmentedControl<"editor" | "history">
                     size="md"
                     className={viewSwitchSizeStyle}

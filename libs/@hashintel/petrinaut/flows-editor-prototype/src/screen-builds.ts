@@ -10,6 +10,7 @@ import {
   START_ID,
 } from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
+import { ghostId } from "./flow-triggers";
 import { purityCheckExample } from "./purity-check-example";
 import { signOffAt, suppliers } from "./run-history";
 import { findScreenState } from "./states";
@@ -491,6 +492,39 @@ Object.assign(screenBuilds, {
   }),
   "J6.9": () => runScreen(16, { runLog: false }),
   "J6.10": () => runScreen(16, { runLog: true }),
+} satisfies Record<string, () => ScreenBuild>);
+
+/**
+ * J4.1 and J4.3 (4 Nov: triggers read-only): the supplier review with a Supplier region input, at 60% with Start
+ * 345 px into the canvas, so the three ghost triggers show left of it.
+ */
+const triggersScreen = (selectedId: string): ScreenBuild => {
+  const document = supplierReviewExample();
+  return editor(
+    {
+      ...document,
+      inputs: [
+        ...document.inputs,
+        {
+          name: "supplierRegion",
+          label: "Supplier region",
+          payloadKind: "Text",
+          array: false,
+          required: false,
+        },
+      ],
+    },
+    {
+      viewport: { left: 345, top: 401, zoom: 0.6 },
+      selectedId,
+      selectedIds: [selectedId],
+    },
+  );
+};
+
+Object.assign(screenBuilds, {
+  "J4.1": () => triggersScreen(START_ID),
+  "J4.3": () => triggersScreen(ghostId("schedule")),
 } satisfies Record<string, () => ScreenBuild>);
 
 export const liveScreenIds = new Set(Object.keys(screenBuilds));

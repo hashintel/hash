@@ -591,7 +591,7 @@ export const figmaScreens: FigmaScreen[] = [
   },
   {
     id: "J4.1",
-    name: "Start selected · Started by · Add trigger",
+    name: "Start selected · ghost triggers left of Start",
     nodeId: "806:40727",
     section: "J4 · Triggers and run",
     tag: "Waiting",
@@ -607,7 +607,7 @@ export const figmaScreens: FigmaScreen[] = [
   },
   {
     id: "J4.3",
-    name: "Existing trigger opened from Started by",
+    name: "Schedule ghost selected · Triggers panel (read-only)",
     nodeId: "849:23796",
     section: "J4 · Triggers and run",
     tag: "Waiting",

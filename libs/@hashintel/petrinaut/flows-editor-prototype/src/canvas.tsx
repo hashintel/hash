@@ -45,6 +45,13 @@ import {
   showFull,
   useEditor,
 } from "./editor-context";
+import {
+  ghostId,
+  ghostKindOf,
+  ghostKinds,
+  ghostSummary,
+  useFlowTriggers,
+} from "./flow-triggers";
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
 import { RunBar, RunGlyph } from "./run-glyph";
@@ -59,7 +66,10 @@ const GROUP_HEADER = 48;
 const GROUP_PADDING = 32;
 
 type StepData = { stepId: string };
-type StepNode = Node<StepData, "step" | "forEach" | "start" | "trigger">;
+type StepNode = Node<
+  StepData,
+  "step" | "forEach" | "start" | "trigger" | "ghost"
+>;
 
 const portRows = (step: DraftStep) =>
   step.kind === "action"
@@ -678,17 +688,15 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
       data-selected={selected || undefined}
       data-source-hover={ui.hoverSourceId === START_ID || undefined}
     >
-      {runView ? (
-        // In a run, the trigger that fired leads into Start.
-        <Handle
-          id="in"
-          type="target"
-          position={Position.Left}
-          className={handleStyle}
-          style={{ top: STEP_HEIGHT / 2 }}
-          isConnectable={false}
-        />
-      ) : null}
+      {/* The triggers lead into Start: the ghosts in the editor, the one that fired in a run. */}
+      <Handle
+        id="in"
+        type="target"
+        position={Position.Left}
+        className={handleStyle}
+        style={{ top: STEP_HEIGHT / 2 }}
+        isConnectable={false}
+      />
       <Tooltip content="Start · holds the flow's inputs" position="top">
         <div className={cardHeadStyle}>
           <CardTile icon="play" tone="neutral" />
@@ -708,6 +716,62 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
       </PortHandle>
       <RunDot stepId={START_ID} />
       <RunMark mark={runView?.steps?.[START_ID]} />
+    </div>
+  );
+};
+
+/**
+ * Triggers are read-only (4 Nov): in the editor, one ghost node per kind of trigger sits left of Start, the Start
+ * card's head only with a dashed border. A kind that is on is drawn at 50%, one that is off at 25%; the selected one
+ * is solid, blue and opaque. Clicking one opens the Triggers panel.
+ */
+const ghostStyle = css({
+  position: "relative",
+  width: "[200px]",
+  backgroundColor: "neutral.bgSolid.min",
+  borderWidth: "thin",
+  borderStyle: "dashed",
+  borderColor: "neutral.bd.solid",
+  borderRadius: "lg",
+  cursor: "pointer",
+  opacity: "[0.25]",
+  transition: "[opacity 0.15s ease, border-color 0.15s ease]",
+  "&[data-on]": { opacity: "[0.5]" },
+  _hover: { opacity: "[0.8]" },
+  "&[data-selected]": {
+    opacity: "[1]",
+    borderStyle: "solid",
+    borderColor: "blue.bd.strong",
+    boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-bd-strong)]",
+  },
+});
+
+const GhostTriggerView = ({ id, selected }: NodeProps<StepNode>) => {
+  const triggers = useFlowTriggers();
+  const kind = ghostKindOf(id);
+  if (!kind) {
+    return null;
+  }
+  const summary = ghostSummary(triggers, kind);
+  return (
+    <div
+      className={ghostStyle}
+      data-on={summary.on || undefined}
+      data-selected={selected || undefined}
+      data-ghost-trigger={kind}
+    >
+      <div className={cardHeadStyle}>
+        <CardTile icon={summary.icon} tone="neutral" />
+        <CardText title={summary.title} description={summary.line} />
+      </div>
+      <Handle
+        id="next"
+        type="source"
+        position={Position.Right}
+        className={handleStyle}
+        style={{ top: STEP_HEIGHT / 2 }}
+        isConnectable={false}
+      />
     </div>
   );
 };
@@ -927,6 +991,7 @@ const nodeTypes = {
   start: StartNodeView,
   forEach: GroupNodeView,
   trigger: RunTriggerView,
+  ghost: GhostTriggerView,
 };
 
 const edgeCloseStyle = css({
@@ -1363,7 +1428,19 @@ export const FlowCanvas = ({
         },
         ...stepNodes.map((node) => ({ ...node, deletable: false })),
       ]
-    : stepNodes;
+    : [
+        // Stacked 1.33 cards apart, centred on Start, half a card width left of it.
+        ...ghostKinds.map((kind, index) => ({
+          id: ghostId(kind),
+          type: "ghost" as const,
+          position: { x: start.x - 300, y: start.y + (index - 1) * 80 },
+          data: { stepId: ghostId(kind) },
+          selected: ui.selectedId === ghostId(kind),
+          draggable: false,
+          deletable: false,
+        })),
+        ...stepNodes,
+      ];
   const edges: Edge[] = [
     ...(readOnly
       ? [
@@ -1377,7 +1454,20 @@ export const FlowCanvas = ({
             style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
           },
         ]
-      : []),
+      : ghostKinds.map((kind) => ({
+          id: `ghost-wire:${kind}`,
+          source: ghostId(kind),
+          sourceHandle: "next",
+          target: START_ID,
+          targetHandle: "in",
+          selectable: false,
+          focusable: false,
+          style: {
+            stroke: "rgba(0, 0, 0, 0.2)",
+            strokeWidth: 1,
+            strokeDasharray: "3 2",
+          },
+        }))),
     ...toEdges(document, ui.collapsed),
   ];
 
@@ -1521,7 +1611,7 @@ export const FlowCanvas = ({
           }))
         }
         onNodeContextMenu={(event, node) => {
-          if (readOnly) {
+          if (readOnly || node.type === "ghost") {
             event.preventDefault();
             return;
           }
@@ -1561,7 +1651,7 @@ export const FlowCanvas = ({
           }));
         }}
         onEdgeContextMenu={(event, edge) => {
-          if (readOnly) {
+          if (readOnly || edge.id.startsWith("ghost-wire:")) {
             event.preventDefault();
             return;
           }
