@@ -15,9 +15,11 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
 import { flattenSteps, START_ID, stepLabel } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
+import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
   anyTicking,
@@ -28,15 +30,11 @@ import {
   factsOf,
   findSpan,
   forEachId,
-  liveRun17,
-  newLiveRun,
   outcomeLabel,
   outcomeOf,
   outcomeState,
-  pastRuns,
   type RunFacts,
   type RunRecord,
-  runClock,
   signOffAt,
   signOffId,
   stageSpan,
@@ -76,15 +74,18 @@ export const useRunView = () => {
 
 const tickMs = 250;
 
-/** The flow's runs, for a flow whose screen gives it a run history (`ui.runs`). */
+/**
+ * A flow's runs from the app store, and the clock that moves the live ones. Which run is open comes from the URL
+ * (`/flows/:flowId/history`, `/flows/:flowId/runs/:runId`); opening one navigates.
+ */
 export const useHistory = (
-  ui: EditorUi,
+  flowId: string | undefined,
+  opened: EditorUi["history"],
   setUi: (update: (ui: EditorUi) => EditorUi) => void,
 ): HistoryValue | null => {
+  const appState = useAppState();
+  const runs = flowId ? runsOf(appState, flowId) : [];
   const [now, setNow] = useState(() => Date.now());
-  const [runs, setRuns] = useState<RunRecord[]>(() =>
-    ui.runs ? [liveRun17(Date.now(), ui.runs), ...pastRuns()] : [],
-  );
   const ticking = anyTicking(runs);
   useEffect(() => {
     if (!ticking) {
@@ -94,13 +95,12 @@ export const useHistory = (
     return () => clearInterval(timer);
   }, [ticking]);
 
-  if (!ui.runs) {
+  if (!flowId) {
     return null;
   }
-  const open = (id: number | null) =>
+  const open = (id: number | null) => {
     setUi((current) => ({
       ...current,
-      history: { runId: id },
       selectedId: null,
       selectedIds: [],
       picker: null,
@@ -109,10 +109,18 @@ export const useHistory = (
       viewRunId: null,
       run: false,
     }));
+    navigate(
+      routePath(
+        id === null
+          ? { page: "history", flowId }
+          : { page: "run", flowId, runId: id },
+      ),
+    );
+  };
   const run =
-    ui.history?.runId == null
+    opened?.runId == null
       ? null
-      : (runs.find((candidate) => candidate.id === ui.history?.runId) ?? null);
+      : (runs.find((candidate) => candidate.id === opened.runId) ?? null);
   return {
     runs,
     now,
@@ -120,24 +128,11 @@ export const useHistory = (
     steps: run ? stepRuns(factsOf(run, now)) : null,
     open,
     start: (items) => {
-      const at = Date.now();
-      const id = Math.max(...runs.map((candidate) => candidate.id)) + 1;
-      setRuns((current) => [newLiveRun(id, at, items), ...current]);
-      setNow(at);
+      const id = startRun(flowId, items);
+      setNow(Date.now());
       open(id);
     },
-    stop: (id) => {
-      const at = Date.now();
-      const date = new Date(at);
-      const clock = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-      setRuns((current) =>
-        current.map((candidate) =>
-          candidate.id === id && candidate.kind === "live"
-            ? { ...candidate, stopped: { at: runClock(candidate, at), clock } }
-            : candidate,
-        ),
-      );
-    },
+    stop: (id) => stopRun(flowId, id),
   };
 };
 

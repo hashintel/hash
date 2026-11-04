@@ -1,0 +1,188 @@
+/**
+ * The Flows app on its URL routes (`router.ts`) and its data (`app-store.ts`): the flows list, a flow's editor,
+ * History and runs. A reload or a hot update lands on the same page with the same flows.
+ */
+import { useEffect, useState } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
+
+import { Editor } from "./app";
+import { archiveFlow, createFlow, useAppState } from "./app-store";
+import { type EditorUi, initialUi } from "./editor-context";
+import { Home } from "./home";
+import { navigate, routePath, useLocation } from "./router";
+import { monthlyReviewId } from "./seed-flows";
+
+/** The supplier review opens as J6 draws it: Start 148 px in, at 45% (zoom 0.46), so the whole flow shows. */
+const reviewViewport: Partial<EditorUi> = {
+  viewport: { left: 147.5, top: 401.5, zoom: 0.46 },
+  zoomBase: 0.46 / 0.45,
+};
+
+const uiFor = (flowId: string, query: URLSearchParams): EditorUi => {
+  const step = query.get("step");
+  return {
+    ...initialUi,
+    ...(flowId === monthlyReviewId ? reviewViewport : {}),
+    selectedId: step,
+    selectedIds: step ? [step] : [],
+  };
+};
+
+/** Presses the pointer on an element, for DS menus that open on pointer down. */
+const press = (selector: string) => {
+  const element = globalThis.document.querySelector<HTMLElement>(selector);
+  for (const type of [
+    "pointerdown",
+    "mousedown",
+    "pointerup",
+    "mouseup",
+    "click",
+  ]) {
+    element?.dispatchEvent(
+      new (type.startsWith("pointer") ? PointerEvent : MouseEvent)(type, {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+      }),
+    );
+  }
+};
+
+/** `?menu=runs` (J6.8): the run picker opens once the run is on screen. */
+const useOpenMenu = (menu: string | null) => {
+  useEffect(() => {
+    if (menu !== "runs") {
+      return;
+    }
+    const timer = setTimeout(() => press("[data-run-picker]"), 600);
+    return () => clearTimeout(timer);
+  }, [menu]);
+};
+
+const NewFlow = () => {
+  useEffect(() => {
+    const id = createFlow();
+    navigate(routePath({ page: "editor", flowId: id }), { replace: true });
+  }, []);
+  return null;
+};
+
+const pageStyle = css({
+  minHeight: "[100vh]",
+  padding: "12",
+  fontFamily: "body",
+  textStyle: "sm",
+  color: "neutral.fg.body",
+  backgroundColor: "neutral.bgSolid.min",
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+});
+
+const linkStyle = css({
+  color: "blue.fg.link",
+  cursor: "pointer",
+  textDecoration: "underline",
+});
+
+/** A page that is not built yet: says so, and links back to the flows. */
+const Stub = ({ title, note }: { title: string; note: string }) => (
+  <div className={`${pageStyle} petrinaut-root`}>
+    <span
+      className={css({
+        textStyle: "lg",
+        fontWeight: "semibold",
+        color: "neutral.fg.heading",
+      })}
+    >
+      {title}
+    </span>
+    <span>{note}</span>
+    <button
+      type="button"
+      className={linkStyle}
+      onClick={() => navigate("/flows")}
+    >
+      Back to flows
+    </button>
+  </div>
+);
+
+export const RoutedApp = () => {
+  const { route, query } = useLocation();
+  const state = useAppState();
+  const [search, setSearch] = useState("");
+  useOpenMenu(query.get("menu"));
+
+  switch (route.page) {
+    case "flows":
+      return (
+        <Home
+          flows={
+            route.empty
+              ? []
+              : state.flows.map((flow) => ({
+                  id: flow.id,
+                  document: flow.document,
+                  lastEdited: flow.meta.updated,
+                }))
+          }
+          search={search}
+          onSearch={setSearch}
+          onOpen={(flowId) => navigate(routePath({ page: "editor", flowId }))}
+          onNew={() => navigate(routePath({ page: "newFlow" }))}
+        />
+      );
+    case "newFlow":
+      return <NewFlow />;
+    case "editor":
+    case "history":
+    case "run": {
+      const flow = state.flows.find(
+        (candidate) => candidate.id === route.flowId,
+      );
+      if (!flow) {
+        return (
+          <Stub
+            title="No flow here"
+            note={`Nothing is called “${route.flowId}”. It may have been archived, or the demo data was reset.`}
+          />
+        );
+      }
+      return (
+        <Editor
+          key={flow.id}
+          flowId={flow.id}
+          initialDocument={flow.document}
+          initialUi={uiFor(flow.id, query)}
+          opened={
+            route.page === "history"
+              ? { runId: null }
+              : route.page === "run"
+                ? { runId: route.runId }
+                : null
+          }
+          onBack={() => navigate("/flows")}
+          onArchive={() => {
+            archiveFlow(flow.id);
+            navigate("/flows");
+          }}
+        />
+      );
+    }
+    case "triggers":
+      return (
+        <Stub
+          title="Flows › Triggers"
+          note="Every flow's triggers, where they are added and edited (Q·B, 4 Nov). Not built yet."
+        />
+      );
+    case "runs":
+      return (
+        <Stub title="All runs" note="Runs across every flow. Not built yet." />
+      );
+    default:
+      return null;
+  }
+};

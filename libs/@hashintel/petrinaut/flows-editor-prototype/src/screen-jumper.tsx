@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { resetDemoData } from "./app-store";
 import { liveScreenIds } from "./screen-builds";
 import {
   type FigmaScreen,
@@ -14,7 +15,7 @@ import {
 /** `?clean` hides the jumper, for side-by-side comparisons with Figma. */
 const hidden = new URLSearchParams(globalThis.location.search).has("clean");
 
-export const screenHref = (id: string) => `?screen=${id}`;
+export const screenHref = (id: string) => `/?screen=${id}`;
 
 /**
  * Each screen's Figma tag is Claude's note on it, not a status Aakarsh approved (2 Nov: every Tag frame reads
@@ -45,7 +46,7 @@ export const TagPill = ({ tag }: { tag: FigmaTag }) => (
 const sectionKey = (screen: FigmaScreen) => screen.section;
 
 /**
- * A dev-only way to every Figma screen: a small pill in the bottom-left corner, or ⌘K / Ctrl+K. Each row shows the
+ * A dev-only way to every Figma screen: ⌘K / Ctrl+K, never on screen. Each row shows the
  * screen's id, name, Figma tag, and whether it is built (live) or still the Figma export.
  */
 export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
@@ -147,7 +148,7 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
               })}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && visible[0]) {
-                  globalThis.location.search = screenHref(visible[0].id);
+                  globalThis.location.href = screenHref(visible[0].id);
                 }
               }}
             />
@@ -156,9 +157,23 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
             >
               {figmaScreens.length} Figma screens · {liveCount} live ·{" "}
               {figmaScreens.length - liveCount} Figma exports · ⌘K toggles ·{" "}
-              <a href="?" className={css({ textDecoration: "underline" })}>
-                start from J0.1
-              </a>
+              <a href="/flows" className={css({ textDecoration: "underline" })}>
+                the flows
+              </a>{" "}
+              ·{" "}
+              <button
+                type="button"
+                className={css({
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                })}
+                onClick={() => {
+                  resetDemoData();
+                  globalThis.location.href = "/flows";
+                }}
+              >
+                Reset demo data
+              </button>
             </span>
           </div>
           <div className={css({ overflowY: "auto", paddingY: "1" })}>
@@ -248,30 +263,8 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
           </div>
         </div>
       ) : null}
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className={css({
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "1.5",
-          height: "[24px]",
-          paddingX: "2",
-          textStyle: "xs",
-          color: "neutral.fg.muted",
-          backgroundColor: "neutral.bgSolid.min",
-          borderWidth: "thin",
-          borderStyle: "solid",
-          borderColor: "neutral.bd.subtle",
-          borderRadius: "md",
-          cursor: "pointer",
-          opacity: "[0.85]",
-          _hover: { opacity: "[1]", color: "neutral.fg.heading" },
-        })}
-      >
-        {current ? <strong>{current.id}</strong> : null}
-        Screens ⌘K
-      </button>
+      {/* Dev only: ⌘K / Ctrl+K opens it; nothing shows on screen (4 Nov: the prototype is the app, not Journeys). */}
+      {current ? <span hidden data-screen={current.id} /> : null}
     </div>
   );
 };

@@ -13,6 +13,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { AddNodePicker } from "./add-node-picker";
 import { AllRuns } from "./all-runs";
+import { updateDocument, useAppState } from "./app-store";
 import workspaceAvatar from "./assets/workspace-avatar.png";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
@@ -31,6 +32,7 @@ import {
 import { LeftPanel } from "./left-panel";
 import { mockRuns, runStatus } from "./mock-runs";
 import { PropertiesPanel } from "./properties-panel";
+import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
 import { RunLog, RunViewSwitch } from "./run-log";
 import { validateDocument } from "./shapes";
@@ -334,7 +336,13 @@ export const Editor = ({
   initialTaskId = null,
   onBack,
   onArchive,
+  flowId,
+  opened,
 }: {
+  /** A routed flow (`/flows/:flowId`): its document lives in the app store, and the URL says which run is open. */
+  flowId?: string;
+  /** From the URL: History's run list (`runId: null`) or one run; nothing in the editor. */
+  opened?: EditorUi["history"];
   initialDocument: EditorDocument;
   initialUi: EditorUi;
   showBriefing?: boolean;
@@ -344,8 +352,45 @@ export const Editor = ({
   /** ⋮ › Archive: the flow leaves the list. */
   onArchive?: (document: EditorDocument) => void;
 }) => {
-  const [document, setDocumentState] = useState(initialDocument);
-  const [ui, setUiState] = useState(initialUi);
+  const appState = useAppState();
+  const stored = flowId
+    ? appState.flows.find((flow) => flow.id === flowId)?.document
+    : undefined;
+  const [localDocument, setLocalDocument] = useState(initialDocument);
+  const document = stored ?? localDocument;
+  const setDocumentState = (
+    update: (current: EditorDocument) => EditorDocument,
+  ) => (flowId ? updateDocument(flowId, update) : setLocalDocument(update));
+  const [uiState, setUiState] = useState(initialUi);
+  const location = useLocation();
+  const urlStep = location.query.get("step");
+  // Back and Forward: the step in the URL is the step selected.
+  const href = `${location.pathname}${location.search}`;
+  const [seenHref, setSeenHref] = useState(href);
+  if (flowId && href !== seenHref) {
+    setSeenHref(href);
+    if (urlStep !== uiState.selectedId) {
+      setUiState((current) => ({
+        ...current,
+        selectedId: urlStep,
+        selectedIds: urlStep ? [urlStep] : [],
+      }));
+    }
+  }
+  // The selected step goes into the URL (no new history entry), so a reload keeps it.
+  const selectedId = uiState.selectedId;
+  useEffect(() => {
+    if (flowId) {
+      setQuery("step", selectedId);
+    }
+  }, [flowId, selectedId]);
+  const ui: EditorUi = flowId
+    ? {
+        ...uiState,
+        history: opened ?? null,
+        runLog: location.query.get("panel") === "log" ? true : uiState.runLog,
+      }
+    : uiState;
   const [mode, setMode] = useState<"select" | "hand">("select");
   const [briefingOpen, setBriefingOpen] = useState(showBriefing);
   const [session, setSession] = useState<TaskSession | null>(() => {
@@ -418,7 +463,7 @@ export const Editor = ({
     zoom: (by: number) => void;
   } | null>(null);
 
-  const history = useHistory(ui, setUiState);
+  const history = useHistory(flowId, ui.history, setUiState);
   // J6: History for a flow with runs. Without them (every other flow), History opens the older mock run view.
   const inHistory = Boolean(history && ui.history);
   const openRun = inHistory ? history?.run : null;
@@ -440,7 +485,10 @@ export const Editor = ({
   const mockCount = validation.mockFields.size;
   // J4.4: Run only when the flow can be started by hand: manual runs are on in its Triggers panel.
   const hasManualStart = flowTriggersOf(document, ui.triggerSwitches).manual;
-  const toEditor = () =>
+  const toEditor = () => {
+    if (flowId) {
+      navigate(routePath({ page: "editor", flowId }));
+    }
     setUiState((current) => ({
       ...current,
       history: null,
@@ -450,6 +498,7 @@ export const Editor = ({
       selectedId: null,
       selectedIds: [],
     }));
+  };
   const allMessages = [
     ...validation.flowLevel.map((diagnostic) => diagnostic.message),
     ...[...validation.byStep.values()]

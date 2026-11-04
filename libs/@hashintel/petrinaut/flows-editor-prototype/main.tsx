@@ -1,3 +1,5 @@
+// First: old links move to their routes before the app store reads the URL.
+import "./src/legacy-redirect";
 import "../src/ui/index.css";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -8,6 +10,8 @@ import { emptyDocument } from "./src/document";
 import { type EditorUi, initialUi } from "./src/editor-context";
 import { Guide } from "./src/guide";
 import { type FlowListEntry, Home } from "./src/home";
+import { RoutedApp } from "./src/routed-app";
+import { useLocation } from "./src/router";
 import { newFlowUi, type ScreenBuild, screenBuilds } from "./src/screen-builds";
 import { ScreenJumper, ScreenPlaceholder } from "./src/screen-jumper";
 import { findScreen } from "./src/screens";
@@ -160,7 +164,21 @@ const Root = () => {
       </>
     );
   }
-  return <ScreenPage />;
+  return <Routes />;
+};
+
+/** The app's routes (`/flows/…`); `/` with an old `?screen=` or `?state=` keeps the Journeys screens. */
+const Routes = () => {
+  const { route } = useLocation();
+  if (route.page === "legacy") {
+    return <ScreenPage />;
+  }
+  return (
+    <>
+      <RoutedApp />
+      <ScreenJumper />
+    </>
+  );
 };
 
 // Hot reloads re-run this module: keep one root, so an edit re-renders instead of mounting a second React tree.
