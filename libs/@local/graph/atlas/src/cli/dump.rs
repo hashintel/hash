@@ -11,22 +11,22 @@ use std::time::Instant;
 
 use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
+use error_stack::{Report, ResultExt as _};
 use tokio_postgres::Client;
 
-use super::embedder::{self, EmbedderArgs, EmbedderError};
+use super::embedder::{self, EmbedderArgs};
 use crate::{
     dataset::{
         TemporalAxes,
         offline::{
-            dump::{Dump, DumpError as OfflineDumpError, DumpOptions, embed, read},
+            dump::{Dump, DumpOptions, embed, read},
             format::{CanonicalCoverage, StreamKind},
         },
         postgres::{PostgresDataset, PostgresDatasetError},
     },
     progress::NoProgress,
     salt::{
-        embedding::external::ExternalEmbeddingError,
-        fit::{SuppliedAnnotations, annotations::SupplyError as AnnotationSupplyError},
+        embedding::external::ExternalEmbeddingError, fit::SuppliedAnnotations,
         policy::annotation::assembly::AssemblyConfig,
     },
 };
@@ -79,49 +79,32 @@ pub struct DumpArgs {
 }
 
 /// One dump invocation's failure, by step.
-///
-/// The embedder and dump variants splice into the chain transparently (their display text and
-/// sources are the wrapped fault's, unchanged). The other variants name their own step.
-#[expect(
-    private_interfaces,
-    reason = "the dump variant's payload is reachable outside the crate as a `dyn Error` source \
-              alone, and naming its concrete type stays an in-crate capability"
-)]
 #[derive(Debug)]
 pub enum DumpError {
     /// Admitting the supplied annotation-corpus document failed.
-    Annotations(AnnotationSupplyError),
+    Annotations,
     /// Producing the embedding provider failed.
-    Embedder(EmbedderError),
+    Embedder,
     /// The store could not open a snapshot transaction.
-    Snapshot(PostgresDatasetError),
+    Snapshot,
     /// Writing the dump directory failed.
-    Dump(OfflineDumpError<PostgresDatasetError, ExternalEmbeddingError>),
+    Dump,
 }
 
 impl fmt::Display for DumpError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Annotations(_) => {
+            Self::Annotations => {
                 fmt.write_str("the supplied annotation-corpus document was refused")
             }
-            Self::Embedder(error) => fmt::Display::fmt(error, fmt),
-            Self::Snapshot(_) => fmt.write_str("the store could not open a snapshot transaction"),
-            Self::Dump(error) => fmt::Display::fmt(error, fmt),
+            Self::Embedder => fmt.write_str("the embedding provider could not be produced"),
+            Self::Snapshot => fmt.write_str("the store could not open a snapshot transaction"),
+            Self::Dump => fmt.write_str("the dump directory could not be written"),
         }
     }
 }
 
-impl Error for DumpError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Annotations(error) => Some(error),
-            Self::Embedder(error) => error.source(),
-            Self::Snapshot(error) => Some(error),
-            Self::Dump(error) => error.source(),
-        }
-    }
-}
+impl Error for DumpError {}
 
 /// One dump's verdict.
 ///
@@ -202,7 +185,7 @@ impl DumpCommand {
     ///
     /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first and rejects a
     /// CPU below the compiled baseline, on the conditions it documents.
-    pub async fn run(self, client: &mut Client) -> Result<DumpVerdict, DumpError> {
+    pub async fn run(self, client: &mut Client) -> Result<DumpVerdict, Report<DumpError>> {
         // Embedders reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
 
@@ -224,11 +207,11 @@ impl DumpCommand {
             .as_deref()
             .map(SuppliedAnnotations::open)
             .transpose()
-            .map_err(DumpError::Annotations)?;
+            .change_context(DumpError::Annotations)?;
 
         let embedder = embedder::openai(self.args.credential.into_key(), NoProgress)
             .await
-            .map_err(DumpError::Embedder)?;
+            .change_context(DumpError::Embedder)?;
 
         let started = Instant::now();
         let options = DumpOptions {
@@ -246,17 +229,25 @@ impl DumpCommand {
 
         let dataset = PostgresDataset::new(client, TemporalAxes::now())
             .await
-            .map_err(DumpError::Snapshot)?;
-        let reading = read(&dataset, &self.args.output, &options)
+            .change_context(DumpError::Snapshot)?;
+        let reading = read::<_, ExternalEmbeddingError>(&dataset, &self.args.output, &options)
             .await
-            .map_err(DumpError::Dump)?;
+            .change_context(DumpError::Dump)
+            .attach_with(|| format!("dump directory: {}", self.args.output))?;
         // The reading borrows nothing from the dataset. The snapshot transaction ends here rather
         // than spanning the provider round-trips below.
         drop(dataset);
 
-        let finished = embed(&embedder, reading, &self.args.output, &options, &NoProgress)
-            .await
-            .map_err(DumpError::Dump)?;
+        let finished = embed::<PostgresDatasetError, _, _>(
+            &embedder,
+            reading,
+            &self.args.output,
+            &options,
+            &NoProgress,
+        )
+        .await
+        .change_context(DumpError::Dump)
+        .attach_with(|| format!("dump directory: {}", self.args.output))?;
 
         Ok(DumpVerdict {
             directory: self.args.output,
