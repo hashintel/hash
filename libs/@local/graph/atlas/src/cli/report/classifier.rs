@@ -4,6 +4,7 @@ use core::fmt::{self, Display};
 
 use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
+use error_stack::{Report, ResultExt as _};
 
 use super::ReportError;
 use crate::{file::generation::GenerationId, salt::policy::classifier::report::ClassifierReport};
@@ -69,12 +70,14 @@ impl ClassifierArgs {
     ///
     /// This panics when the run cannot open the generation, its staged corpus fails reconstruction,
     /// or the refit fails. A report run has no recovery path, and the error is the diagnosis.
-    pub(super) async fn run(self) -> Result<ClassifierVerdict, ReportError> {
+    pub(super) async fn run(self) -> Result<ClassifierVerdict, Report<ReportError>> {
         let report = ClassifierReport::compile(&self.root.root, self.generation).await;
 
         let bundle =
             serde_json::to_vec_pretty(&report).expect("the report bundle serializes to JSON");
-        std::fs::write(&self.output, bundle).map_err(ReportError::Io)?;
+        std::fs::write(&self.output, bundle)
+            .change_context(ReportError::Write)
+            .attach_with(|| format!("report bundle: {}", self.output))?;
 
         Ok(ClassifierVerdict {
             verified: report.verified(),

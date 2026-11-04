@@ -88,11 +88,13 @@ impl QualityArgs {
             },
         )
         .await
-        .map_err(ReportError::Assess)?;
+        .change_context(ReportError::Assess)?;
 
-        let report =
-            serde_json::to_string_pretty(&assessment.report).map_err(ReportError::Serialize)?;
-        std::fs::write(&self.output, report).map_err(ReportError::Io)?;
+        let report = serde_json::to_string_pretty(&assessment.report)
+            .change_context(ReportError::Serialize)?;
+        std::fs::write(&self.output, report)
+            .change_context(ReportError::Write)
+            .attach_with(|| format!("report bundle: {}", self.output))?;
 
         Ok(QualityVerdict {
             assessment,
