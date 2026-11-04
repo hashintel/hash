@@ -378,6 +378,20 @@ mod tests {
     }
 
     #[test]
+    fn parse_labeled_argument_missing_prefix_control_characters() {
+        let error = run_array(
+            r##"["greet", {":name": {"#literal": 1}, "\u001b[2Jage": {"#literal": 2}}]"##,
+        )
+        .expect_err("should fail with missing prefix");
+
+        with_settings!({
+            description => "Escapes control characters in a key without ':'"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
     fn parse_labeled_argument_invalid_identifier() {
         // Invalid identifier starting with digit
         let error = run_array(r##"["func", {":123": {"#literal": "value"}}]"##)
