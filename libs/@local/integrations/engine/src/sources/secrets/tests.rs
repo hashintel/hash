@@ -88,10 +88,7 @@ fn entity(web: Uuid, id: Uuid) -> Entity {
                     OpenTemporalBound::Unbounded,
                 ),
             },
-            entity_type_ids: [USER_SECRET_TYPE
-                .parse()
-                .expect("should parse the secret type")]
-            .into(),
+            entity_type_ids: [USER_SECRET_TYPE.clone()].into(),
             archived: false,
             read_only: false,
             provenance: EntityProvenance {
@@ -143,9 +140,6 @@ fn assert_query(headers: &HeaderMap, body: &str, web: Uuid, actor: Uuid, id: Uui
         Some("graph-token"),
         "should authenticate the service"
     );
-    let secret_type = USER_SECRET_TYPE
-        .parse()
-        .expect("should parse the secret type");
     let equal = |path, parameter| {
         Filter::Equal(
             FilterExpression::Path { path },
@@ -169,7 +163,7 @@ fn assert_query(headers: &HeaderMap, body: &str, web: Uuid, actor: Uuid, id: Uui
                 ),
             ]),
             equal(EntityQueryPath::Archived, Parameter::Boolean(false)),
-            Filter::for_entity_by_type_id(&secret_type),
+            Filter::for_entity_by_type_id(&USER_SECRET_TYPE),
         ]),
         "should constrain the web, identity, archive state, and type"
     );

@@ -1,4 +1,5 @@
-use core::{error::Error as _, pin::Pin, time::Duration};
+use core::{error::Error as _, pin::Pin, str::FromStr as _, time::Duration};
+use std::sync::LazyLock;
 
 use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
@@ -16,6 +17,7 @@ use type_system::{
         Entity, Property, PropertyValue,
         entity::{EntityId, id::EntityUuid},
     },
+    ontology::VersionedUrl,
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
@@ -53,7 +55,10 @@ pub struct GraphVaultSecretStore {
     client: Client,
 }
 
-const USER_SECRET_TYPE: &str = "https://hash.ai/@h/types/entity-type/user-secret/v/1";
+static USER_SECRET_TYPE: LazyLock<VersionedUrl> = LazyLock::new(|| {
+    VersionedUrl::from_str("https://hash.ai/@h/types/entity-type/user-secret/v/1")
+        .expect("should contain a valid URL")
+});
 const EXPIRED_AT: &str = "https://hash.ai/@h/types/property-type/expired-at/";
 const VAULT_PATH: &str = "https://hash.ai/@h/types/property-type/vault-path/";
 
@@ -150,7 +155,7 @@ fn secret_query(web_id: Uuid, entity_id: Uuid) -> SecretQuery {
                     ],
                 },
                 equal(json!(["archived"]), json!(false)),
-                equal(json!(["type", "versionedUrl"]), json!(USER_SECRET_TYPE)),
+                equal(json!(["type", "versionedUrl"]), json!(&*USER_SECRET_TYPE)),
             ],
         }),
         temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -270,11 +275,7 @@ fn validate_entity(
     };
     if entity.metadata.record_id.entity_id != expected
         || entity.metadata.archived
-        || !entity
-            .metadata
-            .entity_type_ids
-            .iter()
-            .any(|id| id.to_string() == USER_SECRET_TYPE)
+        || !entity.metadata.entity_type_ids.contains(&*USER_SECRET_TYPE)
     {
         return Err(Report::new(SourceError::SecretEntity));
     }
