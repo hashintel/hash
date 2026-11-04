@@ -196,7 +196,8 @@ fn store(graph_url: &str, vault_url: &str) -> GraphVaultSecretStore {
 #[tokio::test]
 async fn read_graph_authorization_and_vault_value() {
     let web = Uuid::new_v4();
-    let actor = Uuid::new_v4();
+    // The owner runs the integration in their own web.
+    let actor = web;
     let id = Uuid::new_v4();
     let entity = entity(web, id);
     let router = Router::new()
@@ -290,7 +291,7 @@ async fn read_request_failure(#[case] service: SecretService) {
     let error = store(graph_url, &unavailable_url)
         .read(
             web,
-            Uuid::new_v4(),
+            web,
             SecretReference {
                 secret_entity_uuid: id,
             },
@@ -355,7 +356,7 @@ async fn read_entity_count_and_value(#[case] count: usize) {
     let error = store(services.url(), services.url())
         .read(
             web,
-            Uuid::new_v4(),
+            web,
             SecretReference {
                 secret_entity_uuid: id,
             },
@@ -553,7 +554,7 @@ async fn read_redirects(#[case] redirect_graph: bool) {
     let error = store
         .read(
             web,
-            Uuid::new_v4(),
+            web,
             SecretReference {
                 secret_entity_uuid: id,
             },
@@ -586,12 +587,27 @@ async fn read_redirects(#[case] redirect_graph: bool) {
 }
 
 #[test]
+fn member_alias_of_another_users_secret() {
+    // A member of the owner's web creates an entity that points at the owner's Vault path.
+    let owner = Uuid::new_v4();
+    let member = Uuid::new_v4();
+    let id = Uuid::new_v4();
+    let alias = entity(owner, id);
+    let error = validate_entity(&alias, owner, member, id)
+        .expect_err("should reject a Vault path owned by another user");
+    assert!(
+        matches!(error.current_context(), SourceError::SecretPath),
+        "should identify the foreign Vault path"
+    );
+}
+
+#[test]
 fn entity_identity_expiry_and_path() {
     let web = Uuid::new_v4();
     let id = Uuid::new_v4();
     let original = entity(web, id);
     assert!(
-        validate_entity(&original, web, id).is_ok(),
+        validate_entity(&original, web, web, id).is_ok(),
         "should accept an active secret in the owner's web"
     );
     let mut archived = original.clone();
@@ -604,7 +620,7 @@ fn entity_identity_expiry_and_path() {
         .expect("should parse the unrelated entity type")]
     .into();
     for invalid in [archived, foreign, wrong_type] {
-        let error = validate_entity(&invalid, web, id)
+        let error = validate_entity(&invalid, web, web, id)
             .expect_err("should reject an invalid secret identity");
         assert!(
             matches!(error.current_context(), SourceError::SecretEntity),
@@ -624,8 +640,8 @@ fn entity_identity_expiry_and_path() {
             Property::Value(PropertyValue::String(path)),
         );
         invalid.properties = PropertyObject::new(properties);
-        let error =
-            validate_entity(&invalid, web, id).expect_err("should reject an invalid Vault path");
+        let error = validate_entity(&invalid, web, web, id)
+            .expect_err("should reject an invalid Vault path");
         assert!(
             matches!(error.current_context(), SourceError::SecretPath),
             "should identify an invalid Vault path"
@@ -644,7 +660,7 @@ fn entity_identity_expiry_and_path() {
             );
         }
         invalid.properties = PropertyObject::new(properties);
-        let error = validate_entity(&invalid, web, id)
+        let error = validate_entity(&invalid, web, web, id)
             .expect_err("should reject missing or malformed expiry metadata");
         assert!(
             matches!(error.current_context(), SourceError::SecretExpiry),
@@ -662,7 +678,8 @@ fn entity_identity_expiry_and_path() {
         Property::Value(PropertyValue::String("2000-01-01T00:00:00Z".to_owned())),
     );
     expired.properties = PropertyObject::new(properties);
-    let error = validate_entity(&expired, web, id).expect_err("should reject an expired secret");
+    let error =
+        validate_entity(&expired, web, web, id).expect_err("should reject an expired secret");
     assert!(
         matches!(error.current_context(), SourceError::SecretExpired),
         "should distinguish expiration from invalid expiry metadata"

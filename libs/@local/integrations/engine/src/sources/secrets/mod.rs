@@ -236,7 +236,7 @@ impl SecretStore for GraphVaultSecretStore {
                 count: body.entities.len(),
             }));
         };
-        let path = validate_entity(entity, web_id, reference.secret_entity_uuid)?;
+        let path = validate_entity(entity, web_id, actor_id, reference.secret_entity_uuid)?;
         let mut vault = self.vault.clone();
         vault
             .path_segments_mut()
@@ -276,6 +276,7 @@ impl SecretStore for GraphVaultSecretStore {
 fn validate_entity(
     entity: &Entity,
     web_id: Uuid,
+    actor_id: Uuid,
     entity_id: Uuid,
 ) -> Result<&str, Report<SourceError>> {
     let expected = EntityId {
@@ -297,10 +298,14 @@ fn validate_entity(
     }
     let path =
         string_property(entity, VAULT_PATH).ok_or_else(|| Report::new(SourceError::SecretPath))?;
+    // The second segment names the user who owns the Vault object. Requiring it to be the run's
+    // actor, and not only its web, stops a web member from creating an entity that points at
+    // another user's secret and reading it with the service's Vault token.
     let parts: Vec<_> = path.split('/').collect();
     if parts.len() < 4
         || parts.first().copied() != Some("users")
         || parts.get(1).copied() != Some(web_id.to_string().as_str())
+        || parts.get(1).copied() != Some(actor_id.to_string().as_str())
         || !parts.iter().all(|part| segment(part))
     {
         return Err(Report::new(SourceError::SecretPath));
