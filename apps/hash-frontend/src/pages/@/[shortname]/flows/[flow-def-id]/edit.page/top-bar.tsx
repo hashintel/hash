@@ -100,7 +100,11 @@ const FlowName = ({
       onFocus={() => setTyped(name)}
       onChange={setTyped}
       onKeyDown={(event) => {
-        if (event.key !== "Enter" && event.key !== "Escape") {
+        /* Enter also confirms a character being composed with an input method, which mustn't rename the flow. */
+        if (
+          (event.key !== "Enter" && event.key !== "Escape") ||
+          event.nativeEvent.isComposing
+        ) {
           return;
         }
 
@@ -216,8 +220,8 @@ const LeaveFlowDialog = ({
 );
 
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, which renames it, whether its edits are saved,
- * and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, which is clicked to rename it, whether its edits
+ * are saved, and its menu.
  */
 export const TopBar = ({
   name,
