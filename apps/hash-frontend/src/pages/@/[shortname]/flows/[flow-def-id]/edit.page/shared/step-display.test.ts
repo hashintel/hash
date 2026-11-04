@@ -20,7 +20,10 @@ describe("addableActionGroups", () => {
       ["Messages", ["Draft email"]],
       ["Documents", ["Fetch file"]],
       ["Entities", ["Find entities", "Create entity", "Update entity"]],
-      ["Flow control", ["If", "Filter list"]],
+      [
+        "Flow control",
+        ["If", "Filter list", "Find", "Order by", "Take first", "Aggregate"],
+      ],
     ]);
   });
 });
@@ -47,6 +50,8 @@ describe("searchAddableActions", () => {
       "Find entities",
       "If",
       "Filter list",
+      "Find",
+      "Take first",
     ]);
   });
 });

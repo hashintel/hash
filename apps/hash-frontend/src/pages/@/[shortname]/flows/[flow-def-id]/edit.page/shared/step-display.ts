@@ -103,6 +103,39 @@ const addableActions: AddableAction[] = [
     icon: "filter",
     tone: "green",
   },
+  {
+    actionDefinitionId: "find",
+    label: "Find",
+    description: "Pick the first item of a list that matches a condition",
+    groupId: "flowControl",
+    icon: "bullseye",
+    tone: "green",
+  },
+  {
+    actionDefinitionId: "orderBy",
+    label: "Order by",
+    description: "Sort a list by its items, one of their fields or a property",
+    groupId: "flowControl",
+    icon: "sortDown",
+    tone: "green",
+  },
+  {
+    actionDefinitionId: "takeFirst",
+    label: "Take first",
+    description: "Keep the first items of a list, up to a count",
+    groupId: "flowControl",
+    icon: "circleOne",
+    tone: "green",
+  },
+  {
+    actionDefinitionId: "aggregate",
+    label: "Aggregate",
+    description:
+      "Count a list's items, or take their sum, average, minimum or maximum",
+    groupId: "flowControl",
+    icon: "function",
+    tone: "green",
+  },
 ];
 
 /** `undefined` for an action that can't be added. */
