@@ -112,7 +112,7 @@ const subtleStates: Palette["states"] = {
 const neutralSelection: Palette["selection"] = {
   border: "neutral.s110",
   rowBg: "neutral.s20",
-  halo: "neutral.a25",
+  halo: "neutral.a10",
 };
 
 const neutralGhost: Palette["ghost"] = {
@@ -142,10 +142,11 @@ const tiles = (
 export const palettes: Record<PaletteId, Palette> = {
   today: {
     states: {
-      // Bars: the faint 2 px neutral alpha bars Aakarsh approved on 4 Nov.
+      // Bars: the faint 2 px neutral alpha bars Aakarsh approved on 4 Nov. Alpha steps are Figma's (figma-colours.ts),
+      // about 3× stronger than the old code steps, so each pick is the Figma step nearest the approved value.
       done: {
         mark: "neutral.s100",
-        bar: "neutral.a25",
+        bar: "neutral.a10",
         chart: "green.s90",
         text: "neutral.s100",
         badgeBg: "green.s20",
@@ -153,7 +154,7 @@ export const palettes: Record<PaletteId, Palette> = {
       },
       failed: {
         mark: "red.s90",
-        bar: "neutral.a45",
+        bar: "neutral.a20",
         chart: "red.s90",
         text: "red.s90",
         badgeBg: "red.s30",
@@ -161,7 +162,7 @@ export const palettes: Record<PaletteId, Palette> = {
       },
       running: {
         mark: "blue.s90",
-        bar: "neutral.a25",
+        bar: "neutral.a10",
         chart: "blue.s90",
         text: "blue.s90",
         badgeBg: "blue.s20",
@@ -179,7 +180,7 @@ export const palettes: Record<PaletteId, Palette> = {
       },
       waiting: {
         mark: "neutral.s80",
-        bar: "neutral.a45",
+        bar: "neutral.a20",
         chart: "neutral.s80",
         text: "neutral.s90",
         badgeBg: "neutral.s20",
@@ -187,7 +188,7 @@ export const palettes: Record<PaletteId, Palette> = {
       },
       notRun: {
         mark: "neutral.s80",
-        bar: "neutral.a10",
+        bar: "neutral.a05",
         chart: "neutral.s80",
         text: "neutral.s90",
         badgeBg: "neutral.s20",
@@ -195,14 +196,14 @@ export const palettes: Record<PaletteId, Palette> = {
       },
       skipped: {
         mark: "neutral.s90",
-        bar: "neutral.a15",
+        bar: "neutral.a05",
         chart: "neutral.s90",
         text: "neutral.s90",
         badgeBg: "neutral.s20",
         badgeFg: "neutral.s90",
       },
     },
-    selection: { border: "blue.a80", rowBg: "neutral.s20", halo: "blue.a25" },
+    selection: { border: "blue.a80", rowBg: "neutral.s20", halo: "blue.a15" },
     tiles: tiles(
       {
         start: "blue.s20",
@@ -222,7 +223,7 @@ export const palettes: Record<PaletteId, Palette> = {
       },
     ),
     ghost: {
-      border: "neutral.a60",
+      border: "neutral.a30",
       tileBg: "blue.s20",
       tileIcon: "neutral.s100",
     },
