@@ -8,7 +8,10 @@ use hash_integrations_definition::SecretReference;
 use hash_middleware::authentication::{
     request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
 };
-use reqwest::{Client, Url, header::AUTHORIZATION};
+use reqwest::{
+    Client, Url,
+    header::{AUTHORIZATION, HeaderValue},
+};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Map, Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -209,17 +212,17 @@ impl SecretStore for GraphVaultSecretStore {
             .pop_if_empty()
             .extend(["entities", "query"]);
         let query = secret_query(web_id, reference.secret_entity_uuid);
+        let mut authorization = HeaderValue::from_str(&format!(
+            "{SERVICE_AUTH_SCHEME} {}",
+            self.config.graph_service_secret.expose()
+        ))
+        .map_err(|_error| Report::new(SourceError::Configuration))?;
+        authorization.set_sensitive(true);
         let response = self
             .client
             .post(graph)
             .header(ACTOR_ID_HEADER, actor_id.to_string())
-            .header(
-                AUTHORIZATION,
-                format!(
-                    "{SERVICE_AUTH_SCHEME} {}",
-                    self.config.graph_service_secret.expose()
-                ),
-            )
+            .header(AUTHORIZATION, authorization)
             .json(&query)
             .send()
             .await
@@ -241,10 +244,13 @@ impl SecretStore for GraphVaultSecretStore {
             .pop_if_empty()
             .extend(["v1", &self.config.vault_mount, "data"])
             .extend(path.split('/'));
+        let mut vault_token = HeaderValue::from_str(self.config.vault_token.expose())
+            .map_err(|_error| Report::new(SourceError::Configuration))?;
+        vault_token.set_sensitive(true);
         let response = self
             .client
             .get(vault)
-            .header("x-vault-token", self.config.vault_token.expose())
+            .header("x-vault-token", vault_token)
             .send()
             .await
             .map_err(reqwest::Error::without_url)
