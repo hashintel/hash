@@ -126,8 +126,9 @@ export const Section = ({
   /** Spacing a panel sets for its own rows (Send email's 16 px between fields). */
   gridClassName?: string;
 }) => (
+  // 12 px from a section's heading to its first row, in every section (Aakarsh, 4 Nov).
   <section
-    className={css({ display: "flex", flexDirection: "column", gap: "2" })}
+    className={css({ display: "flex", flexDirection: "column", gap: "3" })}
   >
     {title ? (
       <div
