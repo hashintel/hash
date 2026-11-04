@@ -106,9 +106,9 @@ const getEarlierStepIds = (
   let frontier = [stepId];
 
   while (frontier.length > 0) {
-    frontier = frontier
-      .flatMap((id) => stepsBefore.get(id) ?? [])
-      .filter((id) => id !== stepId && !earlier.has(id));
+    frontier = [
+      ...new Set(frontier.flatMap((id) => stepsBefore.get(id) ?? [])),
+    ].filter((id) => id !== stepId && !earlier.has(id));
 
     for (const id of frontier) {
       earlier.add(id);

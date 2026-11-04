@@ -104,6 +104,7 @@ const SourceMenu = ({
   onPick,
   onAddFlowInput,
   onType,
+  onClear,
 }: {
   label: string;
   options: { id: string; label: string; options: SourceOption[] }[];
@@ -118,6 +119,7 @@ const SourceMenu = ({
   onPick: (option: SourceOption) => void;
   onAddFlowInput: () => void;
   onType: () => void;
+  onClear: () => void;
 }) => {
   const [query, setQuery] = useState("");
   const [expandedGroupIds, setExpandedGroupIds] = useState(
@@ -171,6 +173,16 @@ const SourceMenu = ({
 
   const items: ItemOrGroup<MenuItem>[] = [
     ...groups,
+    ...(fits && groups.length === 0
+      ? [
+          {
+            id: "no-matches",
+            text: "No matching values",
+            disabled: true,
+            onClick: () => {},
+          } satisfies MenuItem,
+        ]
+      : []),
     ...(!fits && newFlowInputLabel !== null
       ? [
           {
@@ -188,6 +200,16 @@ const SourceMenu = ({
             text: typeLabel,
             icon: "pencil",
             onClick: onType,
+          } satisfies MenuItem,
+        ]
+      : []),
+    ...(pickedKey !== undefined
+      ? [
+          {
+            id: "clear-value",
+            text: "Clear value",
+            icon: "close",
+            onClick: onClear,
           } satisfies MenuItem,
         ]
       : []),
@@ -400,6 +422,7 @@ export const InputField = ({
           onSelectStart();
         }}
         onType={() => setTyping(true)}
+        onClear={() => setSource(null)}
       />
     </Form.Field>
   );
