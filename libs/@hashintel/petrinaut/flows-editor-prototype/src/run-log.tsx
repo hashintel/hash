@@ -399,6 +399,9 @@ const rowStyle = css({
   paddingX: "4",
   textStyle: "sm",
   "&[data-loop]": { backgroundColor: "neutral.bgSolid.surface" },
+  // "Show in log" from a run step's menu marks its rows for a moment.
+  "&[data-flash]": { backgroundColor: "neutral.bg.surface.active" },
+  transition: "[background-color 0.4s ease]",
   "&[data-end]": {
     borderTopWidth: "thin",
     borderTopStyle: "solid",

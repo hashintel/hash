@@ -55,10 +55,17 @@ import {
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
-import { useLocation } from "./router";
+import { navigate, setQuery, useLocation } from "./router";
 import { RunBar } from "./run-glyph";
-import { barOf, type StepRun, runTriggerId, triggerLabel } from "./run-history";
+import {
+  barOf,
+  type StepRun,
+  runTriggerId,
+  signOffId,
+  triggerLabel,
+} from "./run-history";
 import { describeSource } from "./shapes";
+import { Toast } from "./ui";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
 export const STEP_WIDTH = 200;
@@ -316,7 +323,7 @@ const PortHandle = ({
       data-highlight={highlighted || undefined}
       onContextMenu={(event) => {
         if (runView) {
-          event.preventDefault();
+          event.stopPropagation();
           return;
         }
         setUi((current) => ({
@@ -1070,8 +1077,37 @@ const touching =
  * Backspace does (3 Nov). A box selection: Disconnect all. J1.20 a connection: Disconnect, Insert step here. J1.21 a
  * port: Disconnect, Disconnect all. Connections and ports have no Delete (2 Nov).
  */
+/** The steps inside For each log one row per supplier, ids ending in these (`run-log.tsx`). */
+const loopRowSuffix: Record<string, string> = {
+  readName: "-name",
+  readEmail: "-email",
+  readCertificateLink: "-link",
+  fetchCertificate: "-fetch",
+  sendReviewEmail: "-send",
+  markReviewed: "-mark",
+};
+
+/** The log rows a run step's "Show in log" scrolls to: its own row, or each supplier's row for a step in the loop. */
+const logRowsFor = (stepId: string) => {
+  const suffix = loopRowSuffix[stepId];
+  if (suffix) {
+    return `[data-log-row$="${suffix}"]`;
+  }
+  const row =
+    stepId === START_ID
+      ? "start"
+      : stepId === "findSuppliers"
+        ? "find"
+        : stepId === signOffId
+          ? "sign-off"
+          : "loop";
+  return `[data-log-row="${row}"]`;
+};
+
 const useCanvasMenuItems = (
   menu: CanvasMenu | null | undefined,
+  flowId: string | undefined,
+  onCopied: () => void,
 ): Array<ItemOrGroup<MenuItem>> => {
   const { document, setDocument, setUi } = useEditor();
   const dropWires = (
@@ -1085,17 +1121,65 @@ const useCanvasMenuItems = (
   };
   // ds-icons has no broken-link glyph; the plug stands in for Figma's unlink.
   if (!menu) {
-    // Never shown: a right-click on empty canvas stops before the menu (see `onPaneContextMenu`).
-    return [
-      {
-        id: "none",
-        text: "Nothing to do here",
-        disabled: true,
-        onClick: () => undefined,
-      },
-    ];
+    // Never shown, and says nothing: it keeps the DS menu mounted (an empty list unmounts it, and the canvas with
+    // it). Every right-click with no actions stops before the menu and gets the browser's own.
+    return [{ id: "none", text: "", disabled: true, onClick: () => undefined }];
   }
   return (() => {
+    if (menu.kind === "runStep") {
+      const close = () =>
+        setUi((current) => ({ ...current, canvasMenu: null }));
+      return [
+        {
+          id: "show-in-log",
+          text: "Show in log",
+          icon: "list",
+          onClick: () => {
+            close();
+            setQuery("panel", "log");
+            setUi((current) => ({ ...current, runLog: true }));
+            // Once the log is open: scroll to the step's rows and mark them for a moment, in neutral.
+            setTimeout(() => {
+              const rows = [
+                ...globalThis.document.querySelectorAll<HTMLElement>(
+                  logRowsFor(menu.stepId),
+                ),
+              ];
+              rows[0]?.scrollIntoView({ block: "center" });
+              for (const row of rows) {
+                row.dataset.flash = "true";
+                setTimeout(() => delete row.dataset.flash, 1400);
+              }
+            }, 120);
+          },
+        },
+        {
+          id: "open-in-editor",
+          text: "Open step in editor",
+          icon: "arrowUpRight",
+          onClick: () => {
+            close();
+            if (flowId) {
+              navigate(`/flows/${flowId}?step=${menu.stepId}`);
+            }
+          },
+        },
+        {
+          id: "copy-link",
+          text: "Copy link to this step",
+          icon: "copy",
+          onClick: () => {
+            close();
+            const url = new URL(globalThis.location.href);
+            url.searchParams.set("step", menu.stepId);
+            void globalThis.navigator.clipboard
+              ?.writeText(url.toString())
+              .catch(() => undefined);
+            onCopied();
+          },
+        },
+      ];
+    }
     if (menu.kind === "step") {
       const incoming = document.wires.some(
         (wire) => wire.target === menu.stepId,
@@ -1366,7 +1450,10 @@ export const FlowCanvas = ({
       : undefined;
   });
 
-  const canvasMenuItems = useCanvasMenuItems(ui.canvasMenu);
+  const [copied, setCopied] = useState(false);
+  const canvasMenuItems = useCanvasMenuItems(ui.canvasMenu, flowId, () =>
+    setCopied(true),
+  );
   // A menu's highlight (the port or connection it is for) clears on the next press or Escape.
   useEffect(() => {
     if (!ui.canvasMenu) {
@@ -1572,193 +1659,243 @@ export const FlowCanvas = ({
     }));
   };
 
-  return (
-    // One DS right-click menu for the canvas; what was right-clicked (set by the handlers below) decides its rows.
-    <RightClickMenu
-      items={canvasMenuItems}
-      className={css({ minWidth: "[268px]" })}
-    >
-      <ReactFlow
-        className={canvasStyle}
-        nodes={nodes}
-        edges={edges}
-        nodesDraggable={!readOnly}
-        nodesConnectable={!readOnly}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onNodeDragStop={onNodeDragStop}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        edgeTypes={edgeTypes}
-        onNodeClick={(_, node) =>
-          setUi((current) => ({
-            ...current,
-            selectedId: node.id,
-            selectedIds: [node.id],
-            triggerId: null,
-            openField: null,
-          }))
-        }
-        onNodeContextMenu={(event, node) => {
-          if (readOnly || node.type === "ghost") {
-            event.preventDefault();
-            return;
-          }
-          // A port inside the step has its own menu (J1.21).
-          if ((event.target as Element).closest(".react-flow__handle")) {
-            return;
-          }
-          const point = { x: event.clientX, y: event.clientY };
-          setUi((current) => {
-            const group = current.selectedIds ?? [];
-            return group.length > 1 && group.includes(node.id)
-              ? {
-                  ...current,
-                  picker: null,
-                  canvasMenu: { kind: "selection", stepIds: group, point },
-                }
-              : {
-                  ...current,
-                  picker: null,
-                  selectedId: node.id,
-                  selectedIds: [node.id],
-                  triggerId: null,
-                  openField: null,
-                  canvasMenu: { kind: "step", stepId: node.id, point },
-                };
-          });
-        }}
-        onSelectionContextMenu={(event, selected) => {
+  const canvas = (
+    <ReactFlow
+      className={canvasStyle}
+      nodes={nodes}
+      edges={edges}
+      nodesDraggable={!readOnly}
+      nodesConnectable={!readOnly}
+      nodeTypes={nodeTypes}
+      onNodesChange={onNodesChange}
+      onNodeDragStop={onNodeDragStop}
+      onConnect={onConnect}
+      onConnectEnd={onConnectEnd}
+      edgeTypes={edgeTypes}
+      onNodeClick={(_, node) =>
+        setUi((current) => ({
+          ...current,
+          selectedId: node.id,
+          selectedIds: [node.id],
+          triggerId: null,
+          openField: null,
+        }))
+      }
+      onNodeContextMenu={(event, node) => {
+        // A step in a run has its three run actions; the trigger and the For each box have none.
+        if (
+          runView &&
+          !viewingVersion &&
+          (node.type === "step" || node.type === "start")
+        ) {
           setUi((current) => ({
             ...current,
             picker: null,
             canvasMenu: {
-              kind: "selection",
-              stepIds: selected.map((node) => node.id),
+              kind: "runStep",
+              stepId: node.id,
               point: { x: event.clientX, y: event.clientY },
             },
           }));
-        }}
-        onEdgeContextMenu={(event, edge) => {
-          if (readOnly || edge.id.startsWith("ghost-wire:")) {
-            event.preventDefault();
-            return;
-          }
-          const point = { x: event.clientX, y: event.clientY };
-          setUi((current) => ({
-            ...current,
-            picker: null,
-            hoverWireId: null,
-            canvasMenu: {
-              kind: "connection",
-              wireId: edge.id,
-              point,
-              flow: flow.screenToFlowPosition(point),
-            },
-          }));
-        }}
-        onPaneContextMenu={(event) => {
-          // Empty canvas has no menu: keep the right-click from reaching it, and keep the browser's own away.
-          event.preventDefault();
+          return;
+        }
+        // Nothing to do on a read-only or ghost node: the browser's own menu, never an empty custom one.
+        if (readOnly || node.type === "ghost") {
           event.stopPropagation();
-        }}
-        onEdgeMouseEnter={(_, edge) =>
-          readOnly
-            ? undefined
-            : setUi((current) => ({ ...current, hoverWireId: edge.id }))
+          return;
         }
-        onEdgeMouseLeave={() =>
-          setUi((current) => ({ ...current, hoverWireId: null }))
+        // A port inside the step has its own menu (J1.21).
+        if ((event.target as Element).closest(".react-flow__handle")) {
+          return;
         }
-        onPaneClick={() => {
-          if (Date.now() - droppedAt.current < 400) {
-            return;
-          }
-          setUi((current) => ({
-            ...current,
-            selectedId: null,
-            selectedIds: [],
-            picker: null,
-            openField: null,
-            canvasMenu: null,
-          }));
-        }}
-        // Delete / Backspace deletes the selected steps; a step's right-click menu has Delete step too.
-        onNodesDelete={(deleted) => {
-          const ids = deleted.map((node) => node.id);
-          setDocument((current) =>
-            ids.reduce((next, id) => removeStep(next, id), current),
-          );
-          setUi((current) => ({
-            ...current,
-            selectedId: ids.includes(current.selectedId ?? "")
-              ? null
-              : current.selectedId,
-            selectedIds: (current.selectedIds ?? []).filter(
-              (id) => !ids.includes(id),
-            ),
-          }));
-        }}
-        onEdgesDelete={(deleted) =>
-          setDocument((current) => ({
-            ...current,
-            wires: current.wires.filter(
-              (wire) => !deleted.some((edge) => edge.id === wire.id),
-            ),
-          }))
+        const point = { x: event.clientX, y: event.clientY };
+        setUi((current) => {
+          const group = current.selectedIds ?? [];
+          return group.length > 1 && group.includes(node.id)
+            ? {
+                ...current,
+                picker: null,
+                canvasMenu: { kind: "selection", stepIds: group, point },
+              }
+            : {
+                ...current,
+                picker: null,
+                selectedId: node.id,
+                selectedIds: [node.id],
+                triggerId: null,
+                openField: null,
+                canvasMenu: { kind: "step", stepId: node.id, point },
+              };
+        });
+      }}
+      onSelectionContextMenu={(event, selected) => {
+        setUi((current) => ({
+          ...current,
+          picker: null,
+          canvasMenu: {
+            kind: "selection",
+            stepIds: selected.map((node) => node.id),
+            point: { x: event.clientX, y: event.clientY },
+          },
+        }));
+      }}
+      onEdgeContextMenu={(event, edge) => {
+        if (readOnly || edge.id.startsWith("ghost-wire:")) {
+          event.stopPropagation();
+          return;
         }
-        onInit={(instance) => {
-          // Dev: headless checks centre the canvas on a step (`__flowsCanvas.setCenter`).
-          if (import.meta.env.DEV) {
-            (globalThis as { __flowsCanvas?: unknown }).__flowsCanvas =
-              instance;
-          }
-          onInit(
-            () => {
-              instance.fitView(fitOptions).catch(() => undefined);
-            },
-            (by) => {
-              instance.zoomTo(instance.getZoom() * by).catch(() => undefined);
-            },
-          );
-        }}
-        data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
-        // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
-        connectOnClick={false}
-        onMoveEnd={(_event, viewport) => {
-          if (flowId && !readOnly) {
-            saveViewport(flowId, viewport);
-          }
-        }}
-        fitView={!startViewport}
-        fitViewOptions={fitOptions}
-        defaultViewport={startViewport}
-        panOnDrag={mode === "hand" ? true : [1, 2]}
-        selectionOnDrag={mode === "select"}
-        minZoom={0.2}
-        maxZoom={2}
-        proOptions={{ hideAttribution: true }}
-        deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]}
+        const point = { x: event.clientX, y: event.clientY };
+        setUi((current) => ({
+          ...current,
+          picker: null,
+          hoverWireId: null,
+          canvasMenu: {
+            kind: "connection",
+            wireId: edge.id,
+            point,
+            flow: flow.screenToFlowPosition(point),
+          },
+        }));
+      }}
+      onPaneContextMenu={(event) => {
+        // Empty canvas has no actions: keep the right-click from the custom menu; the browser's own shows.
+        event.stopPropagation();
+      }}
+      onEdgeMouseEnter={(_, edge) =>
+        readOnly
+          ? undefined
+          : setUi((current) => ({ ...current, hoverWireId: edge.id }))
+      }
+      onEdgeMouseLeave={() =>
+        setUi((current) => ({ ...current, hoverWireId: null }))
+      }
+      onPaneClick={() => {
+        if (Date.now() - droppedAt.current < 400) {
+          return;
+        }
+        setUi((current) => ({
+          ...current,
+          selectedId: null,
+          selectedIds: [],
+          picker: null,
+          openField: null,
+          canvasMenu: null,
+        }));
+      }}
+      // Delete / Backspace deletes the selected steps; a step's right-click menu has Delete step too.
+      onNodesDelete={(deleted) => {
+        const ids = deleted.map((node) => node.id);
+        setDocument((current) =>
+          ids.reduce((next, id) => removeStep(next, id), current),
+        );
+        setUi((current) => ({
+          ...current,
+          selectedId: ids.includes(current.selectedId ?? "")
+            ? null
+            : current.selectedId,
+          selectedIds: (current.selectedIds ?? []).filter(
+            (id) => !ids.includes(id),
+          ),
+        }));
+      }}
+      onEdgesDelete={(deleted) =>
+        setDocument((current) => ({
+          ...current,
+          wires: current.wires.filter(
+            (wire) => !deleted.some((edge) => edge.id === wire.id),
+          ),
+        }))
+      }
+      onInit={(instance) => {
+        // Dev: headless checks centre the canvas on a step (`__flowsCanvas.setCenter`).
+        if (import.meta.env.DEV) {
+          (globalThis as { __flowsCanvas?: unknown }).__flowsCanvas = instance;
+        }
+        onInit(
+          () => {
+            instance.fitView(fitOptions).catch(() => undefined);
+          },
+          (by) => {
+            instance.zoomTo(instance.getZoom() * by).catch(() => undefined);
+          },
+        );
+      }}
+      data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
+      // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
+      connectOnClick={false}
+      onMoveEnd={(_event, viewport) => {
+        if (flowId && !readOnly) {
+          saveViewport(flowId, viewport);
+        }
+      }}
+      fitView={!startViewport}
+      fitViewOptions={fitOptions}
+      defaultViewport={startViewport}
+      // A run has nothing to select, so a drag pans; right-click stays free for the browser's menu.
+      panOnDrag={readOnly || mode === "hand" ? true : [1, 2]}
+      selectionOnDrag={mode === "select"}
+      minZoom={0.2}
+      maxZoom={2}
+      proOptions={{ hideAttribution: true }}
+      deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]}
+    >
+      {/* ↳ Current's canvas: a light dot grid, and a minimap at the top right. */}
+      <Background
+        variant={BackgroundVariant.Dots}
+        gap={16}
+        size={1}
+        color="var(--colors-neutral-bd-solid)"
+      />
+      <MiniMap
+        position="top-right"
+        pannable
+        zoomable
+        ariaLabel="Minimap"
+        style={{ width: 100, height: 64, borderRadius: 6 }}
+        maskColor="rgba(0, 0, 0, 0.08)"
+        nodeColor="var(--colors-neutral-fg-onSolid)"
+        nodeStrokeColor="var(--colors-neutral-bd-solid)"
+      />
+    </ReactFlow>
+  );
+  const toast = copied ? (
+    <Toast text="Link copied" onDone={() => setCopied(false)} />
+  ) : null;
+  // A past version has no actions on any target, so no custom menu at all.
+  if (viewingVersion) {
+    return canvas;
+  }
+  return (
+    <>
+      {/* One DS right-click menu for the canvas; what was right-clicked (set by the handlers) decides its rows. */}
+      <RightClickMenu
+        items={canvasMenuItems}
+        className={css({ minWidth: "[240px]" })}
       >
-        {/* ↳ Current's canvas: a light dot grid, and a minimap at the top right. */}
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={16}
-          size={1}
-          color="var(--colors-neutral-bd-solid)"
-        />
-        <MiniMap
-          position="top-right"
-          pannable
-          zoomable
-          ariaLabel="Minimap"
-          style={{ width: 100, height: 64, borderRadius: 6 }}
-          maskColor="rgba(0, 0, 0, 0.08)"
-          nodeColor="var(--colors-neutral-fg-onSolid)"
-          nodeStrokeColor="var(--colors-neutral-bd-solid)"
-        />
-      </ReactFlow>
-    </RightClickMenu>
+        {/* A right-click on anything with no actions (empty canvas, the For each box, a run's wires and ports)
+            stops here, so the browser's own menu shows instead of an empty custom one. */}
+        {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- only routes the right-click */}
+        <div
+          style={{ display: "contents" }}
+          onContextMenu={(event) => {
+            const target = event.target as Element;
+            const actionable = readOnly
+              ? target.closest(
+                  ".react-flow__node-step, .react-flow__node-start",
+                )
+              : target.closest(
+                  ".react-flow__node:not(.react-flow__node-ghost), .react-flow__edge, .react-flow__handle, .react-flow__nodesselection-rect",
+                );
+            if (!actionable) {
+              event.stopPropagation();
+            }
+          }}
+        >
+          {canvas}
+        </div>
+      </RightClickMenu>
+      {toast}
+    </>
   );
 };
 

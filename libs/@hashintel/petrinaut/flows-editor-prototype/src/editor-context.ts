@@ -22,6 +22,8 @@ export type CanvasMenu = { point: { x: number; y: number } } & (
   | { kind: "selection"; stepIds: string[] }
   | { kind: "connection"; wireId: string; flow: { x: number; y: number } }
   | { kind: "port"; stepId: string; port: string; side: "source" | "target" }
+  /** A step in a run (approved 4 Nov): Show in log, Open step in editor, Copy link to this step. */
+  | { kind: "runStep"; stepId: string }
 );
 
 /** A field whose menu is open: the source menu, or the "@" search of a free-text field. */

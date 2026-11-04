@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Chip, Icon, type IconName, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Chip,
+  Icon,
+  type IconName,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { useSourceHover } from "./editor-context";
@@ -604,3 +610,63 @@ export const InlineRename = ({
 };
 
 export { cx };
+
+const toastStyle = css({
+  position: "fixed",
+  left: "[50%]",
+  bottom: "[88px]",
+  transform: "[translateX(-50%)]",
+  zIndex: "[50]",
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  height: "[40px]",
+  paddingLeft: "4",
+  paddingRight: "1.5",
+  borderRadius: "lg",
+  backgroundColor: "neutral.fg.heading",
+  color: "neutral.fg.onSolid",
+  textStyle: "sm",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.16)]",
+});
+
+const toastActionStyle = css({
+  "&[class]": { color: "neutral.fg.onSolid" },
+  "&[class]:hover": { backgroundColor: "[rgba(255, 255, 255, 0.12)]" },
+});
+
+/**
+ * A short confirmation at the bottom of the page ("Link copied", V7 "Published v6 · Add notes"), gone after a few
+ * seconds. DS gap: ds-components has no toast; this is the smallest stand-in.
+ */
+export const Toast = ({
+  text,
+  action,
+  onDone,
+}: {
+  text: string;
+  action?: string;
+  onDone: () => void;
+}) => {
+  useEffect(() => {
+    const timer = setTimeout(onDone, 6000);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+  return (
+    <div className={toastStyle} role="status" data-toast>
+      <Icon name="circleCheck" size="sm" />
+      {text}
+      {action ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          tone="neutral"
+          className={toastActionStyle}
+          onClick={onDone}
+        >
+          {action}
+        </Button>
+      ) : null}
+    </div>
+  );
+};
