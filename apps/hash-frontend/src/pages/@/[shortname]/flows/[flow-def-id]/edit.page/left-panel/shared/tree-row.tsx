@@ -1,7 +1,7 @@
 import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { ActionIoTooltip } from "../../shared/action-io-tooltip";
+import { ActionIoTooltip } from "../../shared/action-io";
 import { countSteps } from "../../shared/step-display";
 import { StepIconTile } from "../../shared/step-icon-tile";
 
@@ -75,7 +75,7 @@ export const TreeRow = ({
   expander?: ReactNode;
   /** Shown at the end of a group's row. */
   stepCount?: number;
-  /** An action whose inputs and outputs show while the row is hovered. */
+  /** An action whose inputs and outputs show while the row is hovered or focused. */
   actionDefinitionId?: FlowActionDefinitionId;
   onClick?: () => void;
 }) => {
