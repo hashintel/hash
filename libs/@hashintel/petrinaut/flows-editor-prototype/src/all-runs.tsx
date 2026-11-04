@@ -12,7 +12,6 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Button, Icon, Menu, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { RunGlyph } from "./run-glyph";
 import {
   factsOf,
   minutes,
@@ -26,6 +25,7 @@ import {
   stepRuns,
   triggerLabel,
 } from "./run-history";
+import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
@@ -49,29 +49,68 @@ const tabs: { value: Tab; label: string }[] = [
   { value: "abandoned", label: "Abandoned" },
 ];
 
-/** The Status column: the run's glyph and its counts ("18 ✓ · 2 ×", "14 of 20", "Timed out"). */
-const statusText = (run: RunRecord, now: number) => {
+/** "… timed out after 48 h" → "Timed out after 48 h". */
+const timeoutReason = (run: RunRecord) => {
+  const after = /timed out (after .+)$/i.exec(run.ending ?? "")?.[1];
+  return after ? `Timed out ${after}` : "Timed out";
+};
+
+/**
+ * The Status column, one status cell per run: the glyph, and text only where it adds something ("18", "6 of 20",
+ * "Timed out", "Needs review"). The glyph's tooltip names the state and its detail.
+ */
+const statusCellOf = (
+  run: RunRecord,
+  now: number,
+): React.ComponentProps<typeof StatusCell> => {
   const outcome = outcomeOf(run, now);
   const facts = factsOf(run, now);
-  const steps = stepRuns(facts);
+  const progress = runProgress(run, now);
+  const state = outcomeState[outcome];
   if (facts.find === "failed") {
-    return "Timed out";
+    return {
+      state,
+      text: "Timed out",
+      detail: `${timeoutReason(run)} at Find active suppliers`,
+    };
   }
   switch (outcome) {
     case "running":
       return facts.find === "running"
-        ? "at Find active suppliers"
-        : (steps.eachSupplier?.count ?? "");
+        ? {
+            state,
+            text: "at Find active suppliers",
+            detail: "at Find active suppliers",
+          }
+        : {
+            state,
+            progress,
+            text: progress ? `${progress.done} of ${progress.total}` : undefined,
+          };
     case "needsReview":
-      return "Waiting for review";
-    case "warnings":
-      return steps.eachSupplier?.count ?? "";
+      return { state, text: "Needs review", detail: "Quality sign-off" };
     case "error":
-      return steps.qualitySignOff?.count ?? "Error";
+      return {
+        state,
+        text: "Timed out",
+        detail: `${timeoutReason(run)} at Quality sign-off`,
+      };
     case "abandoned":
-      return steps.eachSupplier?.count ?? "";
+      return {
+        state,
+        progress,
+        text: progress
+          ? `Abandoned · ${progress.done} of ${progress.total}`
+          : "Abandoned",
+      };
+    case "warnings":
+      return {
+        state,
+        progress,
+        text: progress ? `${progress.done} of ${progress.total}` : undefined,
+      };
     default:
-      return `${facts.n} ✓`;
+      return { state, progress, text: String(facts.n) };
   }
 };
 
@@ -296,19 +335,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                   Run {run.id} · {run.when}
                 </td>
                 <td>
-                  <span
-                    className={css({
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "2",
-                    })}
-                  >
-                    <RunGlyph
-                      state={outcomeState[outcomeOf(run, now)]}
-                      progress={runProgress(run, now)}
-                    />
-                    {statusText(run, now)}
-                  </span>
+                  <StatusCell {...statusCellOf(run, now)} />
                 </td>
                 <td>
                   {run.trigger.kind === "manual"

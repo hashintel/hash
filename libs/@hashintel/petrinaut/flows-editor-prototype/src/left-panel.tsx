@@ -30,7 +30,7 @@ import {
   stepTitle,
 } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
-import { RunGlyph } from "./run-glyph";
+import { cellText, StatusCell } from "./status-cell";
 import { tileColor } from "./status-colors";
 
 import type { StepRun } from "./run-history";
@@ -168,13 +168,23 @@ const FlowList = ({
   statusFor?: (stepId: string) => StepRun;
 }) => {
   const { document, ui, setUi } = useEditor();
-  const mark = (stepId: string) =>
-    statusFor ? (
-      <RunGlyph
-        state={statusFor(stepId).state}
-        progress={statusFor(stepId).progress}
+  // One status cell per row: the count or reason only where it adds something, then the glyph at the right edge.
+  const mark = (stepId: string) => {
+    if (!statusFor) {
+      return null;
+    }
+    const status = statusFor(stepId);
+    return (
+      <StatusCell
+        state={status.state}
+        progress={status.progress}
+        text={cellText(status)}
+        detail={status.state === "failed" ? status.count : undefined}
+        textFirst
+        small
       />
-    ) : null;
+    );
+  };
   // Shared with the canvas: a For each closed here folds its box there too (J1.13).
   const closed = ui.collapsed ?? [];
   const setClosed = (next: string[] | ((current: string[]) => string[])) =>
@@ -238,10 +248,13 @@ const FlowList = ({
             </span>
             <Tile icon={look.icon} tone={look.tone} />
             <span className={labelStyle}>{stepLabel(step)}</span>
-            <span className={countStyle}>
-              {inside === 1 ? "1 step" : `${inside} steps`}
-            </span>
-            {mark(step.stepId)}
+            {statusFor ? (
+              mark(step.stepId)
+            ) : (
+              <span className={countStyle}>
+                {inside === 1 ? "1 step" : `${inside} steps`}
+              </span>
+            )}
           </button>
         );
         return open ? [row, ...nested(step.steps, depth + 1)] : [row];

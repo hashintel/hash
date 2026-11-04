@@ -1,11 +1,12 @@
 /**
  * Run marks, decided 4 Nov ("run marks B"): a state glyph for steps that run once, a segmented bar along the card's
- * bottom edge for steps inside a For each. No colour dots. Blue = in progress, orange = needs review, and red is
- * pushed deeper (Figma Red/solid/s110) so it reads apart from orange.
+ * bottom edge for steps inside a For each. No colour dots. Blue = in progress, orange = needs review; the colours
+ * are matched by how strong they look (`status-colors.ts`). Every mark has a tooltip with its state and detail.
  *
  * The glyphs follow the local Figma set 1196:88872. DS gap: ds-components has no run-state icons (no filled
  * check-circle, no half-filled ring), so they are drawn here.
  */
+import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { barColor, statusColor } from "./status-colors";
@@ -39,7 +40,38 @@ const glyphLabel: Record<StepState, string> = {
   needsReview: "Needs review",
   skipped: "Skipped",
   abandoned: "Abandoned",
-  doneWithFailures: "Done with failures",
+  doneWithFailures: "Partly done",
+};
+
+/** The counts behind a mark, for its tooltip: "18 of 20 · 2 failed". */
+const progressDetail = (state: StepState, progress?: GlyphProgress) => {
+  if (!progress || progress.total <= 1) {
+    return undefined;
+  }
+  const { done, failed, total } = progress;
+  const failedPart = failed > 0 ? ` · ${failed} failed` : "";
+  switch (state) {
+    case "done":
+    case "doneWithFailures": {
+      const skipped = total - done - failed;
+      return `${done} of ${total}${failedPart}${skipped > 0 ? ` · ${skipped} skipped` : ""}`;
+    }
+    case "running":
+    case "abandoned":
+      return `${done} of ${total}${failedPart}`;
+    default:
+      return undefined;
+  }
+};
+
+/** A mark's hover text: the state, then what it adds. "Done · 18 of 18", "Failed · Timed out after 48 h". */
+export const glyphTooltip = (
+  state: StepState,
+  progress?: GlyphProgress,
+  detail?: string,
+) => {
+  const extra = detail ?? progressDetail(state, progress);
+  return extra ? `${glyphLabel[state]} · ${extra}` : glyphLabel[state];
 };
 
 /**
@@ -284,7 +316,9 @@ const BareGlyph = ({
         />
       );
     case "running":
-      return (
+      return showsProgress(state, progress) ? (
+        <BareGlyph state="doneWithFailures" progress={progress} />
+      ) : (
         <>
           {track}
           <path d="M8 4 A4 4 0 0 1 11.939 8.695" />
@@ -304,7 +338,8 @@ const BareGlyph = ({
     case "skipped":
       return <path d="M10.75 5.25 L5.25 10.75" />;
     case "abandoned":
-      return <rect x="5.5" y="5.5" width="5" height="5" rx="0.75" />;
+      // A short dash: stopped part way. (Was a 5 px rounded box, which read as nothing.)
+      return <path d="M5.25 8H10.75" />;
     case "doneWithFailures": {
       const { done, failed, total } = progress;
       if (done >= total) {
@@ -346,66 +381,104 @@ const spinStyle = css({
   "@media (prefers-reduced-motion: reduce)": { animation: "none" },
 });
 
+/** Running with items under way draws the progress ring, not the spinner. */
+const showsProgress = (state: StepState, progress?: GlyphProgress) =>
+  state === "running" &&
+  progress !== undefined &&
+  progress.done + progress.failed > 0;
+
+/** Partly done with no counts given: 17 of 20 done, 1 failed. */
+const sampleProgress: GlyphProgress = { done: 17, failed: 1, total: 20 };
+
+const tooltipTriggerStyle = css({
+  display: "inline-flex",
+  flexShrink: 0,
+  alignItems: "center",
+});
+
 /**
- * One state's glyph, 12 px by default. `progress` draws partly done (`doneWithFailures`) from real counts in the new
- * sets; without it the mark shows 17 of 20 done, 1 failed.
+ * One state's glyph, 12 px by default, with a hover tooltip naming the state and its detail ("Done · 18 of 18",
+ * "Failed · Timed out after 48 h"). `progress` draws partly done and running from real counts and fills the detail;
+ * `detail` overrides it. `tooltip={false}` only where the glyph sits inside something that already says its state.
  */
 export const RunGlyph = ({
   state,
   size = 12,
-  progress = { done: 17, failed: 1, total: 20 },
+  progress,
+  detail,
+  tooltip = true,
 }: {
   state: StepState;
   size?: number;
   progress?: GlyphProgress;
-}) =>
-  glyphSet === "old" ? (
-    <OldRunGlyph state={state} size={size} />
-  ) : (
-    <svg
-      width={glyphSet === "bare" ? Math.max(size, bareMinSize) : size}
-      height={glyphSet === "bare" ? Math.max(size, bareMinSize) : size}
-      viewBox="0 0 16 16"
-      role="img"
-      aria-label={glyphLabel[state]}
-      data-run-glyph={state}
-      data-glyph-set={glyphSet}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={SW}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ color: glyphColor[state] }}
-      className={`${css({ flexShrink: 0, overflow: "visible" })}${
-        state === "running" ? ` ${spinStyle}` : ""
-      }`}
+  detail?: string;
+  tooltip?: boolean;
+}) => {
+  const label = glyphTooltip(state, progress, detail);
+  const mark =
+    glyphSet === "old" ? (
+      <OldRunGlyph state={state} size={size} label={label} />
+    ) : (
+      <svg
+        width={glyphSet === "bare" ? Math.max(size, bareMinSize) : size}
+        height={glyphSet === "bare" ? Math.max(size, bareMinSize) : size}
+        viewBox="0 0 16 16"
+        role="img"
+        aria-label={label}
+        data-run-glyph={state}
+        data-glyph-set={glyphSet}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={SW}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ color: glyphColor[state] }}
+        className={`${css({ flexShrink: 0, overflow: "visible" })}${
+          state === "running" && !showsProgress(state, progress)
+            ? ` ${spinStyle}`
+            : ""
+        }`}
+      >
+        {glyphSet === "bare" ? (
+          <BareGlyph state={state} progress={progress ?? sampleProgress} />
+        ) : (
+          <OutlineGlyph
+            state={state}
+            progress={progress ?? sampleProgress}
+            filled={glyphSet === "filled"}
+          />
+        )}
+      </svg>
+    );
+  return tooltip ? (
+    <Tooltip
+      content={label}
+      openDelay="fast"
+      className={tooltipTriggerStyle}
     >
-      {glyphSet === "bare" ? (
-        <BareGlyph state={state} progress={progress} />
-      ) : (
-        <OutlineGlyph
-          state={state}
-          progress={progress}
-          filled={glyphSet === "filled"}
-        />
-      )}
-    </svg>
+      {mark}
+    </Tooltip>
+  ) : (
+    mark
   );
+};
 
 /** The filled 12 px set (Figma 1196:88872). */
 const OldRunGlyph = ({
   state,
   size = 12,
+  label,
 }: {
   state: StepState;
   size?: number;
+  label: string;
 }) => (
   <svg
     width={size}
     height={size}
     viewBox="0 0 12 12"
     role="img"
-    aria-label={glyphLabel[state]}
+    aria-label={label}
     data-run-glyph={state}
     className={css({ flexShrink: 0, overflow: "visible" })}
   >

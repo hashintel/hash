@@ -87,13 +87,15 @@ const failedLinkStyle = css({
   "&[class]:hover": { color: "neutral.fg.heading" },
 });
 
-/** A log row's mark: the run glyph, or a red cross for a failure. */
+/** A log row's mark: the run glyph, the F3 cross for a failure; its tooltip names the state and the row's note. */
 const Mark = ({
   glyph,
   progress,
+  detail,
 }: {
   glyph: LogRow["glyph"];
   progress?: ItemProgress;
+  detail?: string;
 }) => (
   <span
     className={css({
@@ -101,14 +103,14 @@ const Mark = ({
       alignItems: "center",
       justifyContent: "center",
       height: "[18px]",
-      color: "[var(--flows-failed-text)]",
     })}
   >
-    {glyph === "cross" ? (
-      <Icon name="close" size="sm" />
-    ) : (
-      <RunGlyph state={glyph} size={12} progress={progress} />
-    )}
+    <RunGlyph
+      state={glyph === "cross" ? "failed" : glyph}
+      size={12}
+      progress={progress}
+      detail={detail}
+    />
   </span>
 );
 
@@ -151,7 +153,11 @@ const LogLine = ({
     onClick={onToggle}
   >
     <span className={monoStyle}>{time ?? ""}</span>
-    <Mark glyph={glyph} progress={progress} />
+    <Mark
+      glyph={glyph}
+      progress={progress}
+      detail={progress ? undefined : note}
+    />
     <span
       className={css({
         display: "flex",

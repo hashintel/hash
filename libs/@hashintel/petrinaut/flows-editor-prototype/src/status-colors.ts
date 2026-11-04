@@ -85,8 +85,10 @@ const subtleStates: Palette["states"] = {
     badgeBg: "green.s20",
     badgeFg: "green.s110",
   },
+  // Marks matched by how strong they look, not by step (4 Nov: "the red reads a lot brighter than everything else"):
+  // red is the most saturated hue, so its mark sits at s85 beside green, orange and blue at s80.
   failed: {
-    mark: "red.s90",
+    mark: "red.s85",
     bar: "red.s60",
     chart: "red.s70",
     text: "red.s110",
@@ -180,8 +182,9 @@ export const palettes: Record<PaletteId, Palette> = {
         badgeBg: "green.s20",
         badgeFg: "green.s100",
       },
+      // Red and blue marks at s85, so neither reads louder than the grey done tick or the s80 orange.
       failed: {
-        mark: "red.s90",
+        mark: "red.s85",
         bar: "neutral.a20",
         chart: "red.s90",
         text: "red.s90",
@@ -189,7 +192,7 @@ export const palettes: Record<PaletteId, Palette> = {
         badgeFg: "red.s110",
       },
       running: {
-        mark: "blue.s90",
+        mark: "blue.s85",
         bar: "neutral.a10",
         chart: "blue.s90",
         text: "blue.s90",

@@ -32,7 +32,7 @@ export type StepRun = {
   state: StepState;
   /** For each steps and the steps inside one: their items, for the partly done mark. */
   progress?: ItemProgress;
-  /** The grey count in the step list: "20", "14 of 20", "12 ✓ · 1 ×", "Waiting". */
+  /** The grey count in the step list: "20", "14 of 20", "Timed out", "Waiting". */
   count?: string;
   /** For each steps: the bar along the card's bottom edge. */
   bar?: BarSegment[];
@@ -245,7 +245,7 @@ const loopStepRun = (facts: RunFacts, stage: number): StepRun => {
   ].filter((segment) => segment.count > 0);
   const count =
     failed > 0
-      ? `${done} ✓ · ${failed} ×`
+      ? `${done} of ${n}`
       : skipped > 0 && processed === n
         ? `${done} of ${n}`
         : processed === 0 && running === 0
@@ -311,21 +311,28 @@ export const stepRuns = (facts: RunFacts): Record<string, StepRun> => {
             state: "abandoned",
             count: `${finished} of ${n}`,
             bar: forEachBar,
+            progress: forEachProgress,
           }
         : finished < n
           ? {
               state: "running",
               count: `${facts.processed[0]} of ${n}`,
               bar: forEachBar,
+              progress: forEachProgress,
             }
           : failed > 0
             ? {
                 state: "doneWithFailures",
-                count: `${n - failed} ✓ · ${failed} ×`,
+                count: `${n - failed} of ${n}`,
                 bar: forEachBar,
                 progress: forEachProgress,
               }
-            : { state: "done", count: `${n} of ${n}`, bar: forEachBar };
+            : {
+                state: "done",
+                count: `${n} of ${n}`,
+                bar: forEachBar,
+                progress: forEachProgress,
+              };
   runs[signOffId] =
     facts.signOff === "waiting"
       ? facts.abandoned
