@@ -30,15 +30,14 @@ export const CanvasToolbar = ({
   onAddStep,
   emptyFlow,
   onOrganize,
-  canOrganize,
   fitPadding,
 }: {
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
   onAddStep: (actionDefinitionId: string) => void;
+  /** Whether the flow has no steps yet, when the add menu recommends some and there's nothing to organize. */
   emptyFlow: boolean;
   onOrganize: () => void;
-  canOrganize: boolean;
   /** Keeps Zoom to fit clear of a panel covering the canvas. */
   fitPadding: FitViewOptions["padding"];
 }) => {
@@ -146,7 +145,7 @@ export const CanvasToolbar = ({
           size="md"
           iconName="list"
           tooltip="Organize"
-          disabled={!canOrganize}
+          disabled={emptyFlow}
           onClick={onOrganize}
         />
       </ButtonGroup>

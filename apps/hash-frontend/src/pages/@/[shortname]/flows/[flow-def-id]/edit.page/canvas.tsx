@@ -741,6 +741,8 @@ const FlowCanvas = ({
     [],
   );
 
+  const emptyFlow = flowDefinition.steps.length === 0;
+
   return (
     <CanvasActionsContext value={canvasActions}>
       <div ref={containerRef} className={canvas}>
@@ -811,18 +813,17 @@ const FlowCanvas = ({
             tool={tool}
             onToolChange={setTool}
             onAddStep={addStepInView}
-            emptyFlow={flowDefinition.steps.length === 0}
+            emptyFlow={emptyFlow}
             onOrganize={() => {
               void organize();
             }}
-            canOrganize={flowDefinition.steps.length > 0}
             fitPadding={fitPadding}
           />
         </Panel>
         {addMenu && (
           <AddStepMenuAt
             anchor={addMenu.anchor}
-            emptyFlow={flowDefinition.steps.length === 0}
+            emptyFlow={emptyFlow}
             onPick={addMenu.addStep}
             onClose={() => setAddMenu(null)}
           />
