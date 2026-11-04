@@ -1355,6 +1355,13 @@ const fitOptions = {
   minZoom: 0.6,
 } as const;
 
+/** A run (or a past version) shows the whole flow between the side panels, 48 px in, above the bottom bar. */
+const wholeFlowFit = {
+  padding: { top: "48px", left: "48px", bottom: "96px", right: "48px" },
+  maxZoom: 1,
+  minZoom: 0.2,
+} as const;
+
 export const FlowCanvas = ({
   onInit,
   mode = "select",
@@ -1447,7 +1454,8 @@ export const FlowCanvas = ({
     if (savedViewport) {
       return savedViewport;
     }
-    return ui.viewport
+    // Read-only: fit the whole flow instead of a set framing (the J6 framing cut off the last step).
+    return ui.viewport && !readOnly
       ? {
           x: ui.viewport.left - start.x * ui.viewport.zoom,
           y: ui.viewport.top - start.y * ui.viewport.zoom,
@@ -1819,7 +1827,9 @@ export const FlowCanvas = ({
         }
         onInit(
           () => {
-            instance.fitView(fitOptions).catch(() => undefined);
+            instance
+              .fitView(readOnly ? wholeFlowFit : fitOptions)
+              .catch(() => undefined);
           },
           (by) => {
             instance.zoomTo(instance.getZoom() * by).catch(() => undefined);
@@ -1835,7 +1845,7 @@ export const FlowCanvas = ({
         }
       }}
       fitView={!startViewport}
-      fitViewOptions={fitOptions}
+      fitViewOptions={readOnly ? wholeFlowFit : fitOptions}
       defaultViewport={startViewport}
       // A run has nothing to select, so a drag pans; right-click stays free for the browser's menu.
       panOnDrag={readOnly || mode === "hand" ? true : [1, 2]}
