@@ -25,6 +25,15 @@ use tempfile::NamedTempFile;
 use super::{SourceError, http};
 use crate::SourceCapture;
 
+/// Pages fetched before a source without `maxPages` is treated as not terminating.
+///
+/// Reaching it is an error rather than a stop, so an endpoint that keeps issuing new pages cannot
+/// spool without bound or silently drop the rows beyond the ceiling.
+#[cfg(not(test))]
+const PAGE_CEILING: u64 = 10_000;
+#[cfg(test)]
+const PAGE_CEILING: u64 = 3;
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct StoredToken {
@@ -88,7 +97,14 @@ async fn capture_with_client(
     let mut offset = 0_u64;
     let mut page = 0_u64;
     let mut seen = BTreeSet::new();
+    let mut previous: Option<Arc<Vec<Value>>> = None;
     loop {
+        if endpoint.max_pages.is_none() && page >= PAGE_CEILING {
+            return Err(Report::new(SourceError::Pagination).attach(format!(
+                "pagination did not end within {PAGE_CEILING} pages; set `maxPages` to capture \
+                 fewer"
+            )));
+        }
         let url = page_url(&current, endpoint, offset);
         if !seen.insert(url.clone()) {
             return Err(Report::new(SourceError::Pagination));
@@ -108,7 +124,17 @@ async fn capture_with_client(
         if count == 0 {
             break;
         }
-        let rows = rows.clone();
+        // An endpoint that ignores the pagination parameters, such as one paging by `page` when
+        // offset pagination is configured, keeps returning the same rows under new URLs.
+        if previous
+            .as_deref()
+            .is_some_and(|previous| previous.as_slice() == rows.as_slice())
+        {
+            return Err(Report::new(SourceError::Pagination)
+                .attach("a page repeats the previous page's rows"));
+        }
+        let rows = Arc::new(rows.clone());
+        previous = Some(Arc::clone(&rows));
         spool = tokio::task::spawn_blocking(move || {
             spool.append(&rows)?;
             Ok::<_, Report<SourceError>>(spool)
@@ -482,6 +508,94 @@ mod tests {
                 .count(),
             0,
             "should remove spooled rows on failure"
+        );
+    }
+
+    /// Pages forever, with distinct rows and a fresh cursor on every page.
+    async fn endless(Query(query): Query<BTreeMap<String, String>>) -> Json<JsonValue> {
+        let cursor: u64 = query
+            .get("cursor")
+            .map_or(0, |cursor| cursor.parse().expect("should parse the cursor"));
+        Json(json!({
+            "results": [{"id": cursor}],
+            "next": format!("?cursor={}", cursor + 1),
+        }))
+    }
+
+    #[tokio::test]
+    async fn pagination_rejects_ignored_offset() {
+        let server = server(
+            Router::new().route("/", get(|| async { Json(json!({"results": [{"id": 1}]})) })),
+        )
+        .await;
+        let (client, url) = public_client(&server);
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "offset"},
+            "pageSize": 1,
+        }))
+        .expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let target = directory.path().join("rows.parquet");
+        let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
+            .await
+            .expect_err("should reject an endpoint that ignores the offset");
+        assert!(
+            matches!(error.current_context(), SourceError::Pagination),
+            "should report the repeated page"
+        );
+        assert!(!target.exists(), "should publish only a complete capture");
+    }
+
+    #[tokio::test]
+    async fn pagination_stops_at_the_page_ceiling() {
+        let server = server(Router::new().route("/", get(endless))).await;
+        let (client, url) = public_client(&server);
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "next-link", "field": "next"},
+        }))
+        .expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let target = directory.path().join("rows.parquet");
+        let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
+            .await
+            .expect_err("should reject pagination that does not end");
+        assert!(
+            matches!(error.current_context(), SourceError::Pagination),
+            "should report the unbounded pagination"
+        );
+        assert!(!target.exists(), "should publish only a complete capture");
+    }
+
+    #[tokio::test]
+    async fn pagination_honours_max_pages_beyond_the_ceiling() {
+        let server = server(Router::new().route("/", get(endless))).await;
+        let (client, url) = public_client(&server);
+        let max_pages = super::PAGE_CEILING + 2;
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "next-link", "field": "next"},
+            "maxPages": max_pages,
+        }))
+        .expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let capture = capture_with_client(
+            &endpoint,
+            &key(),
+            None,
+            directory.path().join("rows.parquet"),
+            &client,
+        )
+        .await
+        .expect("should capture up to the configured page limit");
+        assert_eq!(
+            capture.rows(),
+            max_pages,
+            "should capture one row per configured page"
         );
     }
 
