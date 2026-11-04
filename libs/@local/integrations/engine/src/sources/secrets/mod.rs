@@ -251,6 +251,8 @@ impl SecretStore for GraphVaultSecretStore {
             .change_context(SourceError::SecretRequest {
                 service: SecretService::Vault,
             })?;
+        // TODO(BE-1094): the response body, the decoded map, and the intermediate byte buffer
+        //   below hold plaintext copies that are not wiped; only the returned `Secret` is.
         let body: VaultResponse<Map<String, Value>> =
             secret_response(response, SecretService::Vault).await?;
         let data = body.data.data;
