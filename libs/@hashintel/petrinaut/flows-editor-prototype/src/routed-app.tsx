@@ -7,11 +7,13 @@ import { useEffect, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Editor } from "./app";
-import { archiveFlow, createFlow, useAppState } from "./app-store";
+import { archiveFlow, createFlow, runsOf, useAppState } from "./app-store";
 import { type EditorUi, initialUi } from "./editor-context";
 import { Home } from "./home";
 import { navigate, routePath, useLocation } from "./router";
+import { outcomeOf, outcomeState } from "./run-history";
 import { monthlyReviewId } from "./seed-flows";
+import { versionLabel } from "./versions";
 
 /** The supplier review opens as J6 draws it: Start 148 px in, at 45% (zoom 0.46), so the whole flow shows. */
 const reviewViewport: Partial<EditorUi> = {
@@ -113,6 +115,8 @@ export const RoutedApp = () => {
   const { route, query } = useLocation();
   const state = useAppState();
   const [search, setSearch] = useState("");
+  // The flows list reads each newest run once, when it opens.
+  const [listedAt] = useState(() => Date.now());
   useOpenMenu(query.get("menu"));
 
   switch (route.page) {
@@ -122,11 +126,23 @@ export const RoutedApp = () => {
           flows={
             route.empty
               ? []
-              : state.flows.map((flow) => ({
-                  id: flow.id,
-                  document: flow.document,
-                  lastEdited: flow.meta.updated,
-                }))
+              : state.flows.map((flow) => {
+                  const runs = runsOf(state, flow.id);
+                  const newest = runs[0];
+                  return {
+                    id: flow.id,
+                    document: flow.document,
+                    lastEdited: flow.meta.updated,
+                    version: versionLabel(flow.meta.version),
+                    runCount: runs.length,
+                    lastRun: newest
+                      ? {
+                          state: outcomeState[outcomeOf(newest, listedAt)],
+                          label: `Run ${newest.id} · ${newest.when.replace(", ", " ")}`,
+                        }
+                      : undefined,
+                  };
+                })
           }
           search={search}
           onSearch={setSearch}

@@ -2,14 +2,21 @@ import { Avatar, Button, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import hashLockup from "./assets/hash-lockup.svg";
+import { RunGlyph } from "./run-glyph";
 
 import type { EditorDocument } from "./document";
+import type { StepState } from "./run-history";
 
 export type FlowListEntry = {
   id: string;
   document: EditorDocument;
   /** J0.2's "Last edited" column. */
   lastEdited: string;
+  /** "v6 · Draft" or "v5 · Live" (V0–V7). */
+  version?: string;
+  /** The newest run: its mark and "Run 17 · Today 10:42", or none yet. */
+  lastRun?: { state: StepState; label: string };
+  runCount?: number;
 };
 
 /** The HASH app header on J0.1: 56 px, the lockup, and the search box (here it searches flows). */
@@ -247,6 +254,9 @@ export const Home = ({
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th className={css({ width: "[128px]" })}>Version</th>
+                  <th className={css({ width: "[240px]" })}>Last run</th>
+                  <th className={css({ width: "[96px]" })}>Runs</th>
                   <th className={css({ width: "[143px]" })}>Last edited</th>
                   <th
                     className={css({ width: "[56px]" })}
@@ -269,6 +279,32 @@ export const Home = ({
                   >
                     <td className={css({ color: "neutral.fg.heading" })}>
                       {flow.document.name}
+                    </td>
+                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                      {flow.version ?? ""}
+                    </td>
+                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                      {flow.lastRun ? (
+                        <span
+                          className={css({
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "2",
+                          })}
+                        >
+                          <RunGlyph state={flow.lastRun.state} />
+                          {flow.lastRun.label}
+                        </span>
+                      ) : (
+                        <span className={css({ color: "neutral.fg.subtle" })}>
+                          No runs yet
+                        </span>
+                      )}
+                    </td>
+                    <td className={css({ color: "neutral.fg.muted.hover" })}>
+                      {flow.runCount
+                        ? `${flow.runCount} ${flow.runCount === 1 ? "run" : "runs"}`
+                        : "–"}
                     </td>
                     <td className={css({ color: "neutral.fg.muted.hover" })}>
                       {flow.lastEdited}
