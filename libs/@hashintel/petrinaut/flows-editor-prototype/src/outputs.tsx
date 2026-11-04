@@ -177,18 +177,32 @@ export const OutputRows = ({
         <PropertyRow
           key={output.name}
           label={
+            // A flex row that can shrink, so a long name ends in an ellipsis instead of being cut off (an
+            // inline-flex child never takes the key's ellipsis). The full name is in the hover.
             <span
               className={css({
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
                 gap: "1",
+                minWidth: "[0]",
               })}
             >
-              <Icon name={kindIcon(kind)} size="sm" />
-              {output.label}
+              <span className={css({ display: "flex", flexShrink: 0 })}>
+                <Icon name={kindIcon(kind)} size="sm" />
+              </span>
+              <span
+                className={css({
+                  minWidth: "[0]",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                })}
+              >
+                {output.label}
+              </span>
             </span>
           }
-          hover={kind ?? "Kind is known when it runs"}
+          hover={`${output.label} · ${kind ?? "Kind is known when it runs"}`}
         >
           <UsedByTree
             iconOf={iconOf}
