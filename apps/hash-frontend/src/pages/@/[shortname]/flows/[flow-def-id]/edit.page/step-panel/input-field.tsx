@@ -13,6 +13,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { getNameLabel } from "../shared/name-label";
 import {
   getInputTarget,
   getNewFlowInput,
@@ -22,12 +23,7 @@ import {
   getTypedConstant,
   getTypedKind,
 } from "./input-sources";
-import {
-  getKindIcon,
-  getKindLabel,
-  getNameLabel,
-  withArticle,
-} from "./shared/value-display";
+import { getKindIcon, getKindLabel, withArticle } from "./shared/value-display";
 
 import type { SourceOption } from "./input-sources";
 import type { MenuItem, ItemOrGroup } from "@hashintel/ds-components";

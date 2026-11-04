@@ -3,9 +3,9 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
+import { getNameLabel } from "../shared/name-label";
 import { getStepsBefore } from "../shared/step-order";
 import { findStep, getStepName } from "./shared/find-step";
-import { getNameLabel } from "./shared/value-display";
 
 import type {
   ConnectionSource,

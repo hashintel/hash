@@ -1,10 +1,5 @@
-import { lowerCase, upperFirst } from "lodash";
-
 import type { IconName } from "@hashintel/ds-components";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
-
-/** An input or output's name as people read it, e.g. `entityTypeIds` as "Entity type ids". */
-export const getNameLabel = (name: string) => upperFirst(lowerCase(name));
 
 const kindDisplays: Record<PayloadKind, { label: string; icon: IconName }> = {
   ActorType: { label: "actor type", icon: "user" },

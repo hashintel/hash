@@ -41,6 +41,7 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
+import type { CanvasHandle } from "./edit.page/canvas";
 import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
@@ -194,6 +195,7 @@ const FlowEditor = ({
   }
 
   const { selectedStepIds, startSelected, focusRequest } = session;
+  const canvasRef = useRef<CanvasHandle>(null);
   const setSelection = ({
     stepIds,
     start,
@@ -296,6 +298,9 @@ const FlowEditor = ({
           collapsedGroupIds={collapsedStepIds}
           onToggleGroup={toggleCollapsed}
           onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
+          onAddStep={(actionDefinitionId) =>
+            canvasRef.current?.addStepInView(actionDefinitionId)
+          }
         />
         <div className={canvasArea}>
           {(saveRefusedReason !== null || changedElsewhere) && (
@@ -329,6 +334,7 @@ const FlowEditor = ({
           )}
           <Canvas
             key={session.key}
+            ref={canvasRef}
             editor={editor}
             selectedStepIds={selectedStepIds}
             startSelected={startSelected}
