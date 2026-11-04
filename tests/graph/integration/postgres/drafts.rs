@@ -168,6 +168,15 @@ async fn initial_draft() {
             .draft_id
             .is_some()
     );
+    assert_eq!(
+        updated_entity
+            .metadata
+            .provenance
+            .edition
+            .created_from_draft_id,
+        None,
+        "an edit that keeps the entity a draft should not record a published draft"
+    );
     assert!(
         updated_entity
             .metadata
@@ -234,6 +243,15 @@ async fn initial_draft() {
             .entity_id
             .draft_id
             .is_none()
+    );
+    assert_eq!(
+        updated_live_entity
+            .metadata
+            .provenance
+            .edition
+            .created_from_draft_id,
+        updated_entity.metadata.record_id.entity_id.draft_id,
+        "publishing should record the draft the live edition was created from"
     );
 
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) = updated_live_entity
@@ -571,6 +589,7 @@ async fn multiple_drafts() {
         drafts.push(updated_entity.metadata.record_id.entity_id);
     }
 
+    let mut publications = Vec::new();
     for draft in drafts {
         let updated_live_entity = api
             .patch_entity(
@@ -608,6 +627,12 @@ async fn multiple_drafts() {
         assert!(
             check_entity_exists(&mut api, updated_live_entity.metadata.record_id.entity_id).await
         );
+        let ClosedTemporalBound::Inclusive(published_at) = updated_live_entity
+            .metadata
+            .temporal_versioning
+            .transaction_time
+            .start();
+        publications.push((*published_at, draft.draft_id));
 
         assert!(
             (updated_live_entity
@@ -628,6 +653,28 @@ async fn multiple_drafts() {
                 - *undraft_decision_time)
                 .abs()
                 < Duration::milliseconds(1)
+        );
+    }
+
+    for (published_at, draft_id) in publications {
+        let published_entity = api
+            .get_entity_by_id(
+                Some(api.account_id),
+                entity.metadata.record_id.entity_id,
+                Some(published_at),
+                None,
+            )
+            .await
+            .expect("should query the entity")
+            .expect("published edition should exist at its transaction time");
+        assert_eq!(
+            published_entity
+                .metadata
+                .provenance
+                .edition
+                .created_from_draft_id,
+            draft_id,
+            "each published edition should keep its draft reference after later publications"
         );
     }
 }
