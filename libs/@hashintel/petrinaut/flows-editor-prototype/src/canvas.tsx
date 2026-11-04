@@ -541,14 +541,24 @@ const nodeStatusTake: NodeStatusTake = (() => {
  *    neutral drop shadow; the state stays in the bar.
  * 3. A reflective bar: each segment fades up from the edge and casts a faint reflection of itself up the card.
  * 4. A halo on the card's edge (Fuser's selected ring): the border tinted by the state, with a 3 px wash outside.
+ *
+ * Round 2, subtler than take 1 (4 Nov: "some of these might be too overkill for our app ... more subtle this time").
+ * Done and not-reached cards draw nothing in all four; only failed, running and needs review do.
+ * 5. Faint glow: take 1 at about half the strength and a third of the spread.
+ * 6. Inner hairline: a 1 px state-tinted line just inside the border; nothing outside the card.
+ * 7. Edge tint: a soft tint rising a few px from the bottom edge, as if the bar lit the card's foot.
+ * 8. Running and needs review only: take 5's glow with a 1 px ring, breathing slowly (4 s); still under reduced
+ *    motion. Failed stays bar-only.
  */
-type NodeGlowTake = 0 | 1 | 2 | 3 | 4;
+type NodeGlowTake = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 const nodeGlowTake: NodeGlowTake = (() => {
   const take = Number(
     new URLSearchParams(globalThis.location.search).get("nodeglow"),
   );
-  return take === 1 || take === 2 || take === 3 || take === 4 ? take : 0;
+  return Number.isInteger(take) && take >= 1 && take <= 8
+    ? (take as NodeGlowTake)
+    : 0;
 })();
 
 type GlowTone = "done" | "failed" | "running" | "review";
@@ -599,6 +609,18 @@ const glowShadow = (take: NodeGlowTake, tone: GlowTone | null) => {
       return done
         ? `inset 0 0 0 1px ${tint(color, 18)}`
         : `inset 0 0 0 1px ${tint(color, 55)}, 0 0 0 3px ${tint(color, 12)}`;
+    case 5:
+      return color && !done ? `0 3px 10px -4px ${tint(color, 30)}` : undefined;
+    case 6:
+      return color && !done ? `inset 0 0 0 1px ${tint(color, 28)}` : undefined;
+    case 7:
+      return color && !done
+        ? `inset 0 -10px 12px -10px ${tint(color, 22)}`
+        : undefined;
+    case 8:
+      return color && (tone === "running" || tone === "review")
+        ? `0 0 0 1px ${tint(color, 20)}, 0 3px 12px -4px ${tint(color, 35)}`
+        : undefined;
     default:
       return undefined;
   }
@@ -608,6 +630,13 @@ const glowLayerStyle = css({
   position: "absolute",
   borderRadius: "[inherit]",
   pointerEvents: "none",
+});
+
+/** Take 8's slow breath; none under reduced motion. */
+const breatheStyle = css({
+  animation: "pulse",
+  animationDuration: "[4s]",
+  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
 });
 
 /** The ?nodeglow= layer over a run card: its shadows, and the glassy take's shade. */
@@ -624,7 +653,9 @@ const RunGlow = ({ mark, radius }: { mark: StepRun; radius: "lg" | "xl" }) => {
     <span
       aria-hidden
       data-run-glow={nodeGlowTake}
-      className={glowLayerStyle}
+      className={
+        nodeGlowTake === 8 ? cx(glowLayerStyle, breatheStyle) : glowLayerStyle
+      }
       style={
         nodeGlowTake === 4
           ? // Over the card's 1 px border, so the tint recolours the border itself.
