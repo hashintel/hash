@@ -258,6 +258,67 @@
     + .api-part[data-part="declaration"] {
     grid-column: 2;
   }
+
+  /* Parameters, returns and throws follow the description in its column, beside a declaration that spans both rows, so a long signature leaves no empty column beside it. The second row takes what the declaration needs beyond the description, so nothing opens between the description and what follows it. */
+
+  .api-export-body:has(
+    > .api-part[data-part="description"]
+      + .api-part[data-part="declaration"]
+      + .api-part[data-part="details"]
+  ) {
+    grid-template-rows: auto 1fr;
+  }
+
+  .api-export-body
+    > .api-part[data-part="description"]
+    + .api-part[data-part="declaration"]:has(+ .api-part[data-part="details"]) {
+    grid-row: span 2;
+  }
+
+  .api-export-body
+    > .api-part[data-part="description"]
+    + .api-part[data-part="declaration"]
+    + .api-part[data-part="details"] {
+    grid-column: 1;
+  }
+}
+
+/* Where the browser has grid lanes, the parameters, returns and throws go into whichever column is shorter, under the description or under the declaration. Elsewhere they stay under the description. */
+
+@supports (display: grid-lanes) {
+  @container (min-width: 64rem) {
+    .api-export-body:has(> .api-part) {
+      display: grid-lanes;
+      grid-template-rows: none;
+    }
+
+    .api-export-body
+      > .api-part[data-part="description"]
+      + .api-part[data-part="declaration"]:has(
+        + .api-part[data-part="details"]
+      ) {
+      grid-row: auto;
+    }
+
+    .api-export-body
+      > .api-part[data-part="description"]
+      + .api-part[data-part="declaration"]
+      + .api-part[data-part="details"] {
+      grid-column: auto;
+    }
+
+    /* A lane takes no subgrid, so the relation groups get the entry's own columns. */
+    .api-export-body > .api-part[data-part="references"] {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+      column-gap: 2.5rem;
+    }
+  }
+}
+
+/* A signature shows whole, so a long one makes its column longer rather than scrolling inside it. */
+
+.api-part[data-part="declaration"] figure > div {
+  max-height: none;
 }
 
 .prose .api-part > :first-child,
@@ -358,25 +419,42 @@
   padding-bottom: 0.25rem;
 }
 
-/* Lists: an export's parameters, what it returns and throws, and its members. Each item is a line of code over its description, with no table and no rules. */
+/* Lists: an export's parameters, what it returns and throws, and its members. Each item is a line of code over its description, with no table, and a short line at the left edge between items, so a description of several paragraphs reads as one item. */
 
 .api-list {
   margin-top: 1.5rem;
 }
 
 .api-item {
+  position: relative;
   scroll-margin-top: 5rem;
-  border-radius: 0.375rem;
 }
 
 .api-item + .api-item {
-  margin-top: 1.25rem;
+  margin-top: 1.75rem;
 }
 
-.api-item:target {
-  background: color-mix(in srgb, var(--color-fd-primary) 8%, transparent);
-  box-shadow: 0 0 0 0.375rem
-    color-mix(in srgb, var(--color-fd-primary) 8%, transparent);
+.api-item + .api-item::after {
+  content: "";
+  position: absolute;
+  top: -0.875rem;
+  left: 0;
+  width: 1.5rem;
+  height: 1px;
+  background: var(--color-fd-border);
+}
+
+/* The member a link lands on carries a mark in the margin beside its first line, so nothing in the list moves. */
+
+.api-item:target::before {
+  content: "#";
+  position: absolute;
+  top: 0;
+  left: -1.125rem;
+  font-family: var(--api-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-fd-muted-foreground);
 }
 
 .api-item-term {
@@ -415,7 +493,8 @@
 }
 
 .api-item-description,
-.api-note-body {
+.api-note-body,
+.api-member > p {
   max-width: 68ch;
 }
 
