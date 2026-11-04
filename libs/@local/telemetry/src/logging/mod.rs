@@ -324,24 +324,24 @@ pub struct LoggingConfig {
     pub file: FileConfig,
 }
 
+/// Builds the filter of a logging output.
+///
+/// `level` takes precedence over `directives`, which take precedence over `RUST_LOG`. Without
+/// any of them, debug builds log at `DEBUG` and release builds at `INFO`.
 #[must_use]
-pub fn env_filter(level: Option<Level>) -> EnvFilter {
+pub fn env_filter(level: Option<Level>, directives: Option<&str>) -> EnvFilter {
     level.map_or_else(
         || {
-            // Both environment variables are supported but `HASH_GRAPH_LOG_LEVEL` takes precedence
-            // over `RUST_LOG`. If `RUST_LOG` is set we emit a warning at the end of this function.
-            std::env::var("HASH_GRAPH_LOG_LEVEL")
-                .or_else(|_| std::env::var("RUST_LOG"))
-                .map_or_else(
-                    |_| {
-                        if cfg!(debug_assertions) {
-                            EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
-                        } else {
-                            EnvFilter::default().add_directive(Directive::from(LevelFilter::INFO))
-                        }
-                    },
-                    EnvFilter::new,
-                )
+            directives
+                .map(EnvFilter::new)
+                .or_else(|| std::env::var("RUST_LOG").ok().map(EnvFilter::new))
+                .unwrap_or_else(|| {
+                    if cfg!(debug_assertions) {
+                        EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
+                    } else {
+                        EnvFilter::default().add_directive(Directive::from(LevelFilter::INFO))
+                    }
+                })
         },
         |log_level| EnvFilter::default().add_directive(Directive::from(log_level)),
     )
@@ -357,6 +357,7 @@ pub fn env_filter(level: Option<Level>) -> EnvFilter {
 fn layer<S, W, F>(
     format: LogFormat,
     level: Option<Level>,
+    directives: Option<&str>,
     writer: W,
     fields: F,
     ansi: AnsiSupport,
@@ -373,15 +374,16 @@ where
         .fmt_fields(fields)
         .with_ansi(ansi == AnsiSupport::Always)
         .with_writer(writer)
-        .with_filter(env_filter(level))
+        .with_filter(env_filter(level, directives))
 }
 
 fn delegate_to_correct_layer<S, W>(
     format: LogFormat,
     level: Option<Level>,
+    directives: Option<&str>,
     writer: W,
     ansi: AnsiSupport,
-) -> impl Layer<S>
+) -> impl Layer<S> + use<S, W>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
     W: for<'writer> MakeWriter<'writer> + 'static,
@@ -400,11 +402,25 @@ where
     match format {
         LogFormat::Json => <Left<S, W> as Layer<S>>::and_then(
             None,
-            Right::<S, W>::Some(layer(format, level, writer, JsonFields::new(), ansi)),
+            Right::<S, W>::Some(layer(
+                format,
+                level,
+                directives,
+                writer,
+                JsonFields::new(),
+                ansi,
+            )),
         ),
         LogFormat::Full | LogFormat::Pretty | LogFormat::Compact => {
             <Left<S, W> as Layer<S>>::and_then(
-                Some(layer(format, level, writer, DefaultFields::new(), ansi)),
+                Some(layer(
+                    format,
+                    level,
+                    directives,
+                    writer,
+                    DefaultFields::new(),
+                    ansi,
+                )),
                 Right::<S, W>::None,
             )
         }
@@ -413,14 +429,24 @@ where
 
 pub(crate) fn file_layer<S>(
     config: FileConfig,
-) -> (impl Layer<S>, tracing_appender::non_blocking::WorkerGuard)
+    directives: Option<&str>,
+) -> (
+    impl Layer<S> + use<S>,
+    tracing_appender::non_blocking::WorkerGuard,
+)
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
     let appender = config.rotation.appender(config.output);
     let (writer, guard) = tracing_appender::non_blocking(appender);
 
-    let layer = delegate_to_correct_layer(config.format, config.level, writer, AnsiSupport::Never);
+    let layer = delegate_to_correct_layer(
+        config.format,
+        config.level,
+        directives,
+        writer,
+        AnsiSupport::Never,
+    );
 
     (layer, guard)
 }
@@ -431,7 +457,7 @@ where
 // = impl Layer<S>;
 
 #[must_use]
-pub fn console_layer<S>(config: &ConsoleConfig) -> impl Layer<S> + use<S>
+pub fn console_layer<S>(config: &ConsoleConfig, directives: Option<&str>) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -451,6 +477,7 @@ where
     delegate_to_correct_layer(
         config.format,
         config.level,
+        directives,
         config.stream.make_writer(),
         if ansi_output {
             AnsiSupport::Always

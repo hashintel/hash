@@ -33,7 +33,10 @@ pub(crate) fn provider(
 }
 
 #[must_use]
-pub(crate) fn layer<S>(provider: &SdkTracerProvider) -> impl Layer<S> + use<S>
+pub(crate) fn layer<S>(
+    provider: &SdkTracerProvider,
+    directives: Option<&str>,
+) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -46,5 +49,5 @@ where
         ))
         .with_error_events_to_status(false)
         .with_error_events_to_exceptions(false)
-        .with_filter(crate::logging::env_filter(None))
+        .with_filter(crate::logging::env_filter(None, directives))
 }

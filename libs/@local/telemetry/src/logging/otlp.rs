@@ -70,9 +70,13 @@ pub(crate) fn provider(
 }
 
 #[must_use]
-pub(crate) fn layer<S>(provider: &SdkLoggerProvider) -> impl Layer<S> + use<S>
+pub(crate) fn layer<S>(
+    provider: &SdkLoggerProvider,
+    directives: Option<&str>,
+) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    OpenTelemetryTracingBridge::new(provider).with_filter(crate::logging::env_filter(None))
+    OpenTelemetryTracingBridge::new(provider)
+        .with_filter(crate::logging::env_filter(None, directives))
 }
