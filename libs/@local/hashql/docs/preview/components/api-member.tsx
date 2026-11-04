@@ -1,14 +1,11 @@
 import { Facts } from "./facts.js";
-import { Glyph } from "./glyph.js";
 
 import type * as Components from "../../lib/components.js";
 import type { ReactNode } from "react";
 
-/** One row of a members table: the member's name, then its declaration and documentation. */
+/** A member as an item of a list, with its declaration as the item's line of code and its documentation under it. */
 export function ApiMember({
   name,
-  title,
-  kind,
   since,
   stability,
   internal,
@@ -16,20 +13,13 @@ export function ApiMember({
   children,
 }: Components.MemberProps): ReactNode {
   return (
-    <div className="api-member" id={name} data-kind={kind}>
-      <div className="api-member-header">
-        <a className="api-member-name" href={`#${name}`}>
-          <Glyph kind={kind} />
-          <span
-            className="api-name"
-            data-deprecated={deprecated === true ? "" : undefined}
-          >
-            {title}
-          </span>
-        </a>
-        <Facts since={since} stability={stability} internal={internal} />
-      </div>
-      <div className="api-member-body">{children}</div>
+    <div
+      className="api-item api-member"
+      id={name}
+      data-deprecated={deprecated === true ? "" : undefined}
+    >
+      <Facts since={since} stability={stability} internal={internal} />
+      {children}
     </div>
   );
 }
