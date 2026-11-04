@@ -91,7 +91,7 @@ export type SourceOption = {
   source: Extract<StepInputSource, { kind: "flow-input" | "step-output" }>;
   /** The value's own name, e.g. "Certificate link". */
   label: string;
-  /** Where the value comes from: "Flow inputs", or the step that gives it. */
+  /** Where the value comes from: "Start · Flow inputs", or the step that gives it. */
   from: string;
   shape: ConnectionSource;
 };
@@ -144,7 +144,7 @@ export const getSourceOptions = ({
             {
               source: { kind: "flow-input", inputName: name },
               label: label ?? getNameLabel(name),
-              from: flowInputsLabel,
+              from: `Start · ${flowInputsLabel}`,
               shape,
             },
           ]
