@@ -66,11 +66,16 @@ export const useRecentActions = () => {
 
   return {
     recentActions: getRecentActions(stored),
+    /** Best effort: a full or blocked storage loses the record, not the step being added. */
     recordAddedAction: (actionDefinitionId: string) => {
-      localStorage.setItem(
-        key,
-        addRecentAction(localStorage.getItem(key), actionDefinitionId),
-      );
+      try {
+        localStorage.setItem(
+          key,
+          addRecentAction(localStorage.getItem(key), actionDefinitionId),
+        );
+      } catch {
+        return;
+      }
 
       for (const listener of listeners) {
         listener();
