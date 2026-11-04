@@ -663,6 +663,10 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
       <div
         ref={boxRef}
         data-runs-chart
+        // Squares: the plot shrinks to the tallest stack (10 px a run) plus 16 px, over the 20 px axis row.
+        style={
+          squares ? { height: 20 + max * 10 + 16, paddingTop: 16 } : undefined
+        }
         className={css({
           position: "relative",
           height: "[192px]",

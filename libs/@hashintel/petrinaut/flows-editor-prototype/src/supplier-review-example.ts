@@ -270,6 +270,26 @@ export const supplierReviewRunExample = (): EditorDocument => {
       },
     ],
     positions: { ...base.positions, qualitySignOff: { x: 1932, y: 332 } },
+    // The sign-off is filled in (Maya Patel, with instructions), so the review's v6 draft can be published (V2).
+    lists: {
+      ...base.lists,
+      [fieldKey("qualitySignOff", "people")]: [
+        {
+          kind: "constant",
+          payload: {
+            kind: "EntityId",
+            value:
+              "00000000-0000-4000-8000-0000000000aa~5b1d0000-0000-4000-8000-000000000021" as never,
+          },
+        },
+      ],
+    },
+    templates: {
+      ...base.templates,
+      [fieldKey("qualitySignOff", "instructions")]: [
+        { kind: "text", text: "Check this month's certificates and sign off." },
+      ],
+    },
     wires: [
       ...base.wires,
       {

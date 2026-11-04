@@ -217,8 +217,13 @@ const PublishDialog = ({
           </span>
           {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the DS input is inside */}
           <label className={fieldStyle}>
-            Version name
-            <TextInput value={name} onChange={setName} size="sm" />
+            Name (optional)
+            <TextInput
+              value={name}
+              onChange={setName}
+              size="sm"
+              placeholder={`v${next}`}
+            />
           </label>
           {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the DS input is inside */}
           <label className={fieldStyle}>

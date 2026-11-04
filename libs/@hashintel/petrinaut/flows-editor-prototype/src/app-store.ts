@@ -23,10 +23,10 @@ import {
 
 import type { EditorDocument } from "./document";
 
-// v2: flows carry versions (V0–V7). Flows saved under v1 are dropped for the reseeded workspace.
-const storageKey = "flows-proto:v2";
+// v3: flows carry versions (V0–V7) and the review's sign-off is filled in. Older saves are dropped for the reseed.
+const storageKey = "flows-proto:v3";
 
-type Persisted = { version: 2; flows: FlowEntry[] };
+type Persisted = { version: 3; flows: FlowEntry[] };
 
 type State = {
   flows: FlowEntry[];
@@ -44,7 +44,7 @@ const load = (): FlowEntry[] => {
     const raw = globalThis.localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw) as Persisted;
-      if (parsed.version === 2 && Array.isArray(parsed.flows)) {
+      if (parsed.version === 3 && Array.isArray(parsed.flows)) {
         return parsed.flows;
       }
     }
@@ -90,7 +90,7 @@ const save = () => {
   clearTimeout(store.saveTimer);
   store.saveTimer = setTimeout(() => {
     try {
-      const persisted: Persisted = { version: 2, flows: store.state.flows };
+      const persisted: Persisted = { version: 3, flows: store.state.flows };
       globalThis.localStorage.setItem(storageKey, JSON.stringify(persisted));
     } catch {
       // Full or blocked storage: the session keeps working, unsaved.
