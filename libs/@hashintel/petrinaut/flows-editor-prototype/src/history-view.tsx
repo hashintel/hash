@@ -6,7 +6,6 @@
 import { createContext, Fragment, use, useEffect, useState } from "react";
 
 import {
-  BreadCrumbs,
   Button,
   Chip,
   type ChipColor,
@@ -226,124 +225,127 @@ const runPickerStyle = css({
 });
 
 /** ‹ older run, the run picker (a DS Menu), › newer run (off on the newest). */
-export const RunSwitcher = ({ history }: { history: HistoryValue }) => {
+export const RunSwitcher = ({
+  history,
+  arrows = true,
+  picker = true,
+  bordered = false,
+  withTime = false,
+  allRunsFirst = false,
+  trigger,
+}: {
+  history: HistoryValue;
+  /** ‹ › beside the picker. */
+  arrows?: boolean;
+  /** The picker itself (off for top bar 2's arrows, whose picker sits in its one control). */
+  picker?: boolean;
+  /** The picker in a hairline box (Figma 1172:586), not a ghost button. */
+  bordered?: boolean;
+  /** "Run 16 · Today, 08:15" on the picker, not "Run 16". */
+  withTime?: boolean;
+  /** All runs heads the menu (top bar 2: the picker is the only way to the list). */
+  allRunsFirst?: boolean;
+  /** A picker of its own (top bar 2's compound control); it gets `data-run-picker`. */
+  trigger?: React.ReactElement;
+}) => {
   const { run, runs, now } = history;
   if (!run) {
     return null;
   }
+  const runsGroup = {
+    id: "runs",
+    label: "Runs · newest first",
+    // The six newest, as J6.8 lists them, and the open run if it is older.
+    items: runs
+      .filter((candidate, index) => index < 6 || candidate.id === run.id)
+      .map((candidate) => ({
+        id: `run-${candidate.id}`,
+        text: (
+          <span className={menuRowStyle}>
+            <RunGlyph
+              state={outcomeState[outcomeOf(candidate, now)]}
+              size={14}
+            />
+            <span>{runMenuLabel(candidate, now)}</span>
+          </span>
+        ),
+        suffix: <span className={menuTimeStyle}>{candidate.when}</span>,
+        selected: candidate.id === run.id,
+        selectedStyle: "tick" as const,
+        onClick: () => history.open(candidate.id),
+      })),
+  };
+  const allRunsGroup = {
+    id: "all",
+    label: "",
+    items: [
+      {
+        id: "all-runs",
+        text: "All runs",
+        icon: "list" as const,
+        suffix: <span className={menuTimeStyle}>Esc</span>,
+        onClick: () => history.open(null),
+      },
+    ],
+  };
   const older = neighbour(history, -1);
   const newer = neighbour(history, 1);
   return (
     <div className={css({ display: "flex", alignItems: "center", gap: "0.5" })}>
-      <Button
-        size="sm"
-        variant="ghost"
-        tone="neutral"
-        iconName="chevronLeft"
-        className={runArrowStyle}
-        aria-label="Older run"
-        tooltip="Older run"
-        disabled={!older}
-        onClick={() => older && history.open(older.id)}
-      />
-      <Menu
-        position="bottom-start"
-        className={css({ width: "[320px]" })}
-        items={[
-          {
-            id: "runs",
-            label: "Runs · newest first",
-            // The six newest, as J6.8 lists them, and the open run if it is older.
-            items: runs
-              .filter(
-                (candidate, index) => index < 6 || candidate.id === run.id,
-              )
-              .map((candidate) => ({
-                id: `run-${candidate.id}`,
-                text: (
-                  <span className={menuRowStyle}>
-                    <RunGlyph
-                      state={outcomeState[outcomeOf(candidate, now)]}
-                      size={14}
-                    />
-                    <span>{runMenuLabel(candidate, now)}</span>
-                  </span>
-                ),
-                suffix: <span className={menuTimeStyle}>{candidate.when}</span>,
-                selected: candidate.id === run.id,
-                selectedStyle: "tick" as const,
-                onClick: () => history.open(candidate.id),
-              })),
-          },
-          {
-            id: "all",
-            label: "",
-            items: [
-              {
-                id: "all-runs",
-                text: "All runs",
-                icon: "list" as const,
-                suffix: <span className={menuTimeStyle}>Esc</span>,
-                onClick: () => history.open(null),
-              },
-            ],
-          },
-        ]}
-        trigger={
-          <Button
-            size="sm"
-            variant="ghost"
-            tone="neutral"
-            iconName="chevronDown"
-            iconPosition="right"
-            className={runPickerStyle}
-            tooltip={run.when}
-            data-run-picker
-          >
-            {`Run ${run.id}`}
-          </Button>
-        }
-      />
-      <Button
-        size="sm"
-        variant="ghost"
-        tone="neutral"
-        iconName="chevronRight"
-        className={runArrowStyle}
-        aria-label="Newer run"
-        tooltip="Newer run"
-        disabled={!newer}
-        onClick={() => newer && history.open(newer.id)}
-      />
+      {arrows ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          tone="neutral"
+          iconName="chevronLeft"
+          className={runArrowStyle}
+          aria-label="Older run"
+          tooltip="Older run"
+          disabled={!older}
+          onClick={() => older && history.open(older.id)}
+        />
+      ) : null}
+      {picker ? (
+        <Menu
+          position="bottom-start"
+          className={css({ width: "[320px]" })}
+          items={
+            allRunsFirst ? [allRunsGroup, runsGroup] : [runsGroup, allRunsGroup]
+          }
+          trigger={
+            trigger ?? (
+              <Button
+                size="sm"
+                variant={bordered ? "subtle" : "ghost"}
+                tone="neutral"
+                iconName="chevronDown"
+                iconPosition="right"
+                className={runPickerStyle}
+                tooltip={withTime ? undefined : run.when}
+                data-run-picker
+              >
+                {withTime ? `Run ${run.id} · ${run.when}` : `Run ${run.id}`}
+              </Button>
+            )
+          }
+        />
+      ) : null}
+      {arrows ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          tone="neutral"
+          iconName="chevronRight"
+          className={runArrowStyle}
+          aria-label="Newer run"
+          tooltip="Newer run"
+          disabled={!newer}
+          onClick={() => newer && history.open(newer.id)}
+        />
+      ) : null}
     </div>
   );
 };
-
-const breadcrumbStyle = css({ minWidth: "[0]" });
-
-/**
- * The minimal run top bar's breadcrumb (Aakarsh, 4 Nov): "Monthly supplier review › All runs › ‹ Run 16 ▾ ›". The
- * flow name opens the editor, All runs opens History's list, and the arrows and the picker switch runs.
- */
-export const RunBreadcrumb = ({
-  history,
-  flowName,
-  onEditor,
-}: {
-  history: HistoryValue;
-  flowName: string;
-  onEditor: () => void;
-}) => (
-  <BreadCrumbs size="md" aria-label="Run" className={breadcrumbStyle}>
-    <BreadCrumbs.Item onClick={onEditor} maxWidth="280px" noCollapse>
-      {flowName}
-    </BreadCrumbs.Item>
-    <BreadCrumbs.Item onClick={() => history.open(null)} noCollapse>
-      All runs
-    </BreadCrumbs.Item>
-    <RunSwitcher history={history} />
-  </BreadCrumbs>
-);
 
 /* ----------------------------------------------------------------------------------------------------------------
  * Canvas banner

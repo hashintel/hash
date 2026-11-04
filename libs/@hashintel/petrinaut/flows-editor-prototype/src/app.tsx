@@ -24,7 +24,6 @@ import {
   RunBanner,
   RunStepList,
   RunStepPanel,
-  RunBreadcrumb,
   useHistory,
   useRunKeys,
 } from "./history-view";
@@ -34,6 +33,7 @@ import { PropertiesPanel } from "./properties-panel";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
 import { RunLog, RunViewSwitch } from "./run-log";
+import { RunTopBar, topBarVariant } from "./run-top-bar";
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, organize } from "./toolbar";
@@ -522,181 +522,175 @@ export const Editor = ({
             <HashSidebarStrip />
             <div className={workspaceStyle}>
               <header className={topBarStyle}>
-                <div
-                  className={css({
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "3",
-                    flex: "1",
-                    minWidth: "[0]",
-                  })}
-                >
-                  {openRun && history ? (
-                    <RunBreadcrumb
-                      history={history}
-                      flowName={document.name}
-                      onEditor={toEditor}
-                    />
-                  ) : (
-                    <>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        iconName="arrowLeft"
-                        className={backStyle}
-                        aria-label="Back to flows"
-                        tooltip="Back to flows"
-                        disabled={!onBack}
-                        onClick={() => onBack?.(document)}
-                      />
-                      <FlowTitle
-                        name={document.name}
-                        onRename={(name) =>
-                          setDocumentState((current) => ({ ...current, name }))
-                        }
-                      />
-                    </>
-                  )}
-                </div>
-                {/*
+                {openRun && history ? (
+                  <RunTopBar
+                    variant={topBarVariant(location.query)}
+                    history={history}
+                    flowName={document.name}
+                    onEditor={toEditor}
+                    canRun={hasManualStart}
+                  />
+                ) : (
+                  <>
+                    <div
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "3",
+                        flex: "1",
+                        minWidth: "[0]",
+                      })}
+                    >
+                      {
+                        <>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            iconName="arrowLeft"
+                            className={backStyle}
+                            aria-label="Back to flows"
+                            tooltip="Back to flows"
+                            disabled={!onBack}
+                            onClick={() => onBack?.(document)}
+                          />
+                          <FlowTitle
+                            name={document.name}
+                            onRename={(name) =>
+                              setDocumentState((current) => ({
+                                ...current,
+                                name,
+                              }))
+                            }
+                          />
+                        </>
+                      }
+                    </div>
+                    {/*
                   History is selected on All runs and the older run view. Inside a J6 run the top bar is minimal
                   (Aakarsh, 4 Nov): no switch; All runs and Return to editor are the ways back.
                 */}
-                <div
-                  className={viewSwitchStyle}
-                  style={openRun ? { display: "none" } : undefined}
-                >
-                  <SegmentedControl<"editor" | "history">
-                    size="md"
-                    className={viewSwitchSizeStyle}
-                    aria-label="Flow view"
-                    items={[
-                      { value: "editor", label: "Editor" },
-                      {
-                        value: "history",
-                        label: "History",
-                        disabled: latestRun === undefined,
-                      },
-                    ]}
-                    value={showingRun || inHistory ? "history" : "editor"}
-                    onChange={(view) =>
-                      history
-                        ? view === "history"
-                          ? history.open(null)
-                          : toEditor()
-                        : setUiState((current) => ({
-                            ...current,
-                            ...(view === "history"
-                              ? {
-                                  viewRunId: latestRun?.id ?? null,
-                                  selectedId: null,
-                                  selectedIds: [],
-                                  picker: null,
-                                  openField: null,
-                                }
-                              : { viewRunId: null, run: false }),
-                          }))
-                    }
-                  />
-                </div>
-                <div
-                  className={css({
-                    flex: "1",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    gap: "2",
-                  })}
-                >
-                  {openRun ? (
-                    <Button
-                      size="sm"
-                      variant="subtle"
-                      tone="neutral"
-                      onClick={toEditor}
+                    <div className={viewSwitchStyle}>
+                      <SegmentedControl<"editor" | "history">
+                        size="md"
+                        className={viewSwitchSizeStyle}
+                        aria-label="Flow view"
+                        items={[
+                          { value: "editor", label: "Editor" },
+                          {
+                            value: "history",
+                            label: "History",
+                            disabled: latestRun === undefined,
+                          },
+                        ]}
+                        value={showingRun || inHistory ? "history" : "editor"}
+                        onChange={(view) =>
+                          history
+                            ? view === "history"
+                              ? history.open(null)
+                              : toEditor()
+                            : setUiState((current) => ({
+                                ...current,
+                                ...(view === "history"
+                                  ? {
+                                      viewRunId: latestRun?.id ?? null,
+                                      selectedId: null,
+                                      selectedIds: [],
+                                      picker: null,
+                                      openField: null,
+                                    }
+                                  : { viewRunId: null, run: false }),
+                              }))
+                        }
+                      />
+                    </div>
+                    <div
+                      className={css({
+                        flex: "1",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: "2",
+                      })}
                     >
-                      Return to editor
-                    </Button>
-                  ) : null}
-                  {/* T1 (4 Nov): Simulate, Run, Publish, ⋮. A run's top bar is minimal: Return to editor only. */}
-                  {openRun ? null : (
-                    <>
-                      {/* Simulate: a dry run without the trigger. Its form opens under it. */}
-                      <span
-                        ref={runRef}
-                        className={css({ display: "inline-flex" })}
-                      >
+                      {/* T1 (4 Nov): Simulate, Run, Publish, ⋮. */}
+                      <>
+                        {/* Simulate: a dry run without the trigger. Its form opens under it. */}
+                        <span
+                          ref={runRef}
+                          className={css({ display: "inline-flex" })}
+                        >
+                          <Button
+                            size="sm"
+                            variant="subtle"
+                            tone="neutral"
+                            className={simulateStyle}
+                            prefix={<StartGlyph />}
+                            tooltip={
+                              errorCount > 0
+                                ? allMessages.slice(0, 6).join(" · ") ||
+                                  "Some steps are not set up yet"
+                                : mockCount > 0
+                                  ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
+                                  : "The engine's validator finds no errors"
+                            }
+                            onClick={() =>
+                              setUiState((current) => ({
+                                ...current,
+                                runOpen: true,
+                              }))
+                            }
+                          >
+                            Simulate
+                          </Button>
+                        </span>
+                        {/*
+                    T1 (4 Nov) always has Run. It starts a live run and opens it; it is off while manual runs are off
+                    in the flow's Triggers panel (the 14 Oct rule was "Run only when a manual start is allowed").
+                  */}
                         <Button
                           size="sm"
                           variant="subtle"
                           tone="neutral"
                           className={simulateStyle}
-                          prefix={<StartGlyph />}
+                          iconName="play"
+                          disabled={!hasManualStart}
                           tooltip={
-                            errorCount > 0
-                              ? allMessages.slice(0, 6).join(" · ") ||
-                                "Some steps are not set up yet"
-                              : mockCount > 0
-                                ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
-                                : "The engine's validator finds no errors"
+                            hasManualStart
+                              ? "Start a run now"
+                              : "Manual runs are off for this flow. Turn them on in Triggers."
                           }
-                          onClick={() =>
-                            setUiState((current) => ({
-                              ...current,
-                              runOpen: true,
-                            }))
-                          }
+                          onClick={() => history?.start()}
                         >
-                          Simulate
+                          Run
                         </Button>
-                      </span>
-                      {/*
-                    T1 (4 Nov) always has Run. It starts a live run and opens it; it is off while manual runs are off
-                    in the flow's Triggers panel (the 14 Oct rule was "Run only when a manual start is allowed").
-                  */}
-                      <Button
-                        size="sm"
-                        variant="subtle"
-                        tone="neutral"
-                        className={simulateStyle}
-                        iconName="play"
-                        disabled={!hasManualStart}
-                        tooltip={
-                          hasManualStart
-                            ? "Start a run now"
-                            : "Manual runs are off for this flow. Turn them on in Triggers."
-                        }
-                        onClick={() => history?.start()}
-                      >
-                        Run
-                      </Button>
-                      <Button size="sm" variant="solid" tone="neutral">
-                        Publish
-                      </Button>
-                      {/* J0.12 (2 Nov): flows are archived, never deleted, so ⋮ holds Archive only. */}
-                      <Menu
-                        position="bottom-end"
-                        className={css({ minWidth: "[208px]" })}
-                        items={[
-                          {
-                            id: "archive",
-                            text: "Archive",
-                            onClick: () => (onArchive ?? onBack)?.(document),
-                          },
-                        ]}
-                        trigger={
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            iconName="ellipsisVertical"
-                            className={cx(barButtonStyle, squareStyle)}
-                            aria-label="More"
-                          />
-                        }
-                      />
-                    </>
-                  )}
-                </div>
+                        <Button size="sm" variant="solid" tone="neutral">
+                          Publish
+                        </Button>
+                        {/* J0.12 (2 Nov): flows are archived, never deleted, so ⋮ holds Archive only. */}
+                        <Menu
+                          position="bottom-end"
+                          className={css({ minWidth: "[208px]" })}
+                          items={[
+                            {
+                              id: "archive",
+                              text: "Archive",
+                              onClick: () => (onArchive ?? onBack)?.(document),
+                            },
+                          ]}
+                          trigger={
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              iconName="ellipsisVertical"
+                              className={cx(barButtonStyle, squareStyle)}
+                              aria-label="More"
+                            />
+                          }
+                        />
+                      </>
+                    </div>
+                  </>
+                )}
               </header>
               <main
                 className={css({
