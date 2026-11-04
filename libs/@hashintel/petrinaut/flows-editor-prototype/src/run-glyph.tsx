@@ -506,10 +506,12 @@ export const RunBar = ({
   segments,
   height = 2,
   gap = 2,
+  colors = barColor,
 }: {
   segments: BarSegment[];
   height?: number;
   gap?: number;
+  colors?: Record<BarSegment["state"], string>;
 }) => {
   const items = segments.reduce((sum, segment) => sum + segment.count, 0);
   // One segment per item while each stays at least 4 px on a 200 px card.
@@ -552,7 +554,7 @@ export const RunBar = ({
             flexGrow: part.grow,
             flexBasis: 0,
             minWidth: 2,
-            backgroundColor: barColor[part.state],
+            backgroundColor: colors[part.state],
           }}
           className={part.state === "running" ? pulseStyle : undefined}
         />

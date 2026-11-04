@@ -45,6 +45,34 @@ type Palette = {
   selection: { border: string; rowBg: string; halo: string };
   tiles: Record<TileKind, { bg: string; icon: string }>;
   ghost: { border: string; tileBg: string; tileIcon: string };
+  node: NodeStatusRoles;
+};
+
+/**
+ * The run-view card status takes (?nodestatus=1..4, 4 Nov: the subtle bar was "a bit too hard to read"): a stronger
+ * bar at about s80, a quiet done bar for take 3, and the faint red outline round a failed card for take 4.
+ */
+type NodeStatusRoles = {
+  doneBar: string;
+  failedBar: string;
+  runningBar: string;
+  reviewBar: string;
+  skippedBar: string;
+  restBar: string;
+  quietDoneBar: string;
+  failedOutline: string;
+};
+
+const nodeStatusRoles: NodeStatusRoles = {
+  doneBar: "green.s80",
+  // Red one step deeper, as the glyphs have it, so it reads apart from orange.
+  failedBar: "red.s90",
+  runningBar: "blue.s80",
+  reviewBar: "orange.s80",
+  skippedBar: "neutral.s60",
+  restBar: "neutral.s30",
+  quietDoneBar: "neutral.a10",
+  failedOutline: "red.s60",
 };
 
 /** Shared by O2 and O4. */
@@ -227,6 +255,7 @@ export const palettes: Record<PaletteId, Palette> = {
       tileBg: "blue.s20",
       tileIcon: "neutral.s100",
     },
+    node: nodeStatusRoles,
   },
   o2: {
     states: subtleStates,
@@ -243,6 +272,7 @@ export const palettes: Record<PaletteId, Palette> = {
       "neutral.s100",
     ),
     ghost: neutralGhost,
+    node: nodeStatusRoles,
   },
   o4: {
     states: subtleStates,
@@ -259,6 +289,7 @@ export const palettes: Record<PaletteId, Palette> = {
       "neutral.s100",
     ),
     ghost: neutralGhost,
+    node: nodeStatusRoles,
   },
 };
 
@@ -284,6 +315,9 @@ const variablesOf = (palette: Palette): Record<string, string> => {
   variables["--flows-ghost-border"] = tokenVar(palette.ghost.border);
   variables["--flows-ghost-tile-bg"] = tokenVar(palette.ghost.tileBg);
   variables["--flows-ghost-tile-icon"] = tokenVar(palette.ghost.tileIcon);
+  for (const [role, token] of Object.entries(palette.node)) {
+    variables[`--flows-node-${role}`] = tokenVar(token);
+  }
   return variables;
 };
 
@@ -387,6 +421,25 @@ export const barColor = {
   skipped: flowsVar("skipped-bar"),
   rest: flowsVar("notRun-bar"),
 } as const;
+
+/** Take 1 and 2's card bar: each state at about s80. */
+export const strongBarColor = {
+  done: flowsVar("node-doneBar"),
+  failed: flowsVar("node-failedBar"),
+  running: flowsVar("node-runningBar"),
+  review: flowsVar("node-reviewBar"),
+  skipped: flowsVar("node-skippedBar"),
+  rest: flowsVar("node-restBar"),
+} as const;
+
+/** Take 3's card bar: colour only where attention is needed; done stays a faint neutral. */
+export const quietBarColor = {
+  ...strongBarColor,
+  done: flowsVar("node-quietDoneBar"),
+} as const;
+
+/** Take 4: the faint red outline round a failed card. */
+export const failedOutlineColor = flowsVar("node-failedOutline");
 
 /** Which tile tint a step gets, from its icon (the catalog's kinds: Start, Fetch, If, Ask a person, AI, the rest). */
 export const tileKindOf = (icon: string): TileKind => {
