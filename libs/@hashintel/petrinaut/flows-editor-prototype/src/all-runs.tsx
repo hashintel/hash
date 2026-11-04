@@ -7,7 +7,7 @@
  * no stacked bar chart; the DS Filter is one property's chip, not a Sort / Filter ribbon, so Sort and Filter are DS
  * subtle buttons that do nothing yet.
  */
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -30,6 +30,7 @@ import {
   stepRuns,
   triggerLabel,
 } from "./run-history";
+import { statusColor } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
 
@@ -419,12 +420,12 @@ const monthOf = (run: RunRecord) =>
 type Bucket = { label: string; runs: RunRecord[] };
 
 const chartColour: Record<RunOutcome, string> = {
-  completed: "var(--colors-green-bg-solid)",
-  warnings: "var(--colors-green-bg-solid)",
-  error: "var(--colors-red-s110)",
-  abandoned: "var(--colors-neutral-fg-subtle)",
-  running: "var(--colors-blue-bg-solid)",
-  needsReview: "var(--colors-orange-bg-solid)",
+  completed: statusColor.done,
+  warnings: statusColor.done,
+  error: statusColor.failed,
+  abandoned: statusColor.quiet,
+  running: statusColor.running,
+  needsReview: statusColor.review,
 };
 
 const stackOrder: RunOutcome[] = [
@@ -436,10 +437,31 @@ const stackOrder: RunOutcome[] = [
   "running",
 ];
 
+const chartHeight = 124;
+
+/** The bucket a bar shows, and where its tooltip anchors: the bar's centre and top, in the chart's own pixels. */
+type ChartHover = { label: string; x: number; top: number };
+
+const tipStyle = css({
+  position: "absolute",
+  zIndex: "[1]",
+  paddingX: "2",
+  paddingY: "1",
+  borderRadius: "md",
+  backgroundColor: "neutral.fg.heading",
+  color: "neutral.fg.onSolid",
+  textStyle: "xs",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+  transform: "[translateY(calc(-100% - 6px))]",
+});
+
 const RunsChart = ({ history }: { history: HistoryValue }) => {
   const { runs, now } = history;
   const [period, setPeriod] = useState<"30d" | "6m" | "1y">("6m");
-  const [hover, setHover] = useState<string | null>("Nov");
+  const [hover, setHover] = useState<ChartHover | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
   const recent = runs.filter((run) => !run.when.includes("2025"));
   const buckets: Bucket[] =
     period === "30d"
@@ -454,30 +476,38 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
               ? runs.filter((run) => run.when.startsWith("1 Dec"))
               : recent.filter((run) => monthOf(run) === month),
         }));
-  const max = 4;
-  const hovered = buckets.find((bucket) => bucket.label === hover);
-  const summary = (bucket: Bucket) => {
-    const count = (outcome: RunOutcome) =>
-      bucket.runs.filter((run) => outcomeOf(run, now) === outcome).length;
-    const completed = count("completed") + count("warnings");
-    return [
-      [
-        completed ? `${completed} completed` : "",
-        count("warnings") ? `${count("warnings")} with warnings` : "",
-      ]
-        .filter(Boolean)
-        .join(", "),
-      [
-        count("error") ? `${count("error")} error` : "",
-        count("abandoned") ? `${count("abandoned")} abandoned` : "",
-        count("running") + count("needsReview")
-          ? `${count("running") + count("needsReview")} running`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    ].filter(Boolean);
+  const max = Math.max(1, ...buckets.map((bucket) => bucket.runs.length));
+  // GitHub-style axis on the right: 0, the midpoint when it is a whole number, and the max.
+  const ticks = [max, ...(max % 2 === 0 && max > 2 ? [max / 2] : []), 0];
+  const hovered = hover
+    ? buckets.find((bucket) => bucket.label === hover.label)
+    : undefined;
+  const tipText = (bucket: Bucket) => {
+    const failed = bucket.runs.filter(
+      (run) => outcomeOf(run, now) === "error",
+    ).length;
+    const runsText = `${bucket.runs.length} ${bucket.runs.length === 1 ? "run" : "runs"}`;
+    return [bucket.label, runsText, failed > 0 ? `${failed} failed` : ""]
+      .filter(Boolean)
+      .join(" · ");
   };
+
+  // The tooltip centres on its bar, clamped inside the chart so it never clips at either edge.
+  useLayoutEffect(() => {
+    const tip = tipRef.current;
+    const box = boxRef.current;
+    if (!hover || !tip || !box) {
+      return;
+    }
+    const width = tip.offsetWidth;
+    const left = Math.min(
+      Math.max(hover.x - width / 2, 0),
+      box.clientWidth - width,
+    );
+    tip.style.left = `${left}px`;
+    tip.style.top = `${hover.top}px`;
+  }, [hover]);
+
   return (
     <section
       className={css({ display: "flex", flexDirection: "column", gap: "3" })}
@@ -502,56 +532,35 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
           { value: "1y", label: "1 year" },
         ]}
       />
+      {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- leaving the chart hides its tooltip */}
       <div
+        ref={boxRef}
+        data-runs-chart
         className={css({
           position: "relative",
-          height: "[216px]",
+          height: "[192px]",
           display: "flex",
           gap: "2",
-          paddingLeft: "5",
-          paddingTop: "[72px]",
+          paddingRight: "6",
+          paddingTop: "[48px]",
         })}
+        onMouseLeave={() => setHover(null)}
       >
         {hovered && hovered.runs.length > 0 ? (
-          <div
-            className={css({
-              position: "absolute",
-              top: "[0]",
-              right: "[0]",
-              padding: "2",
-              borderRadius: "md",
-              borderWidth: "thin",
-              borderStyle: "solid",
-              borderColor: "neutral.bd.subtle",
-              backgroundColor: "neutral.bgSolid.min",
-              textStyle: "xs",
-              color: "neutral.fg.muted",
-              zIndex: "[1]",
-            })}
-          >
-            <div
-              className={css({
-                fontWeight: "medium",
-                color: "neutral.fg.heading",
-              })}
-            >
-              {hovered.label} · {hovered.runs.length} runs
-            </div>
-            {summary(hovered).map((line) => (
-              <div key={line}>{line}</div>
-            ))}
+          <div ref={tipRef} className={tipStyle} data-chart-tip>
+            {tipText(hovered)}
           </div>
         ) : null}
-        {[4, 2, 0].map((tick) => (
+        {ticks.map((tick) => (
           <span
             key={tick}
             className={css({
               position: "absolute",
-              left: "[0]",
-              textStyle: "xs",
-              color: "neutral.fg.subtle",
+              right: "[0]",
+              textStyle: "xxs",
+              color: "neutral.fg.muted",
             })}
-            style={{ bottom: 20 + (tick / max) * 124 - 7 }}
+            style={{ bottom: 20 + (tick / max) * chartHeight - 7 }}
           >
             {tick}
           </span>
@@ -560,6 +569,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
           // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- hover shows the bucket's counts
           <div
             key={bucket.label}
+            data-hovered={hover?.label === bucket.label || undefined}
             className={css({
               flex: "1",
               display: "flex",
@@ -567,8 +577,24 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
               alignItems: "center",
               gap: "1",
               justifyContent: "flex-end",
+              borderRadius: "sm",
+              "&[data-hovered]": {
+                backgroundColor: "neutral.bg.surface.active",
+              },
             })}
-            onMouseEnter={() => setHover(bucket.label)}
+            onMouseEnter={(event) => {
+              const box = boxRef.current?.getBoundingClientRect();
+              const stack = event.currentTarget.firstElementChild;
+              const bar = stack?.getBoundingClientRect();
+              if (!box || !bar) {
+                return;
+              }
+              setHover({
+                label: bucket.label,
+                x: bar.left - box.left + bar.width / 2,
+                top: (bar.height > 0 ? bar.top : bar.bottom) - box.top,
+              });
+            }}
           >
             <div
               className={css({
@@ -587,7 +613,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
                   <span
                     key={outcome}
                     style={{
-                      height: (count / max) * 124 - 1.5,
+                      height: (count / max) * chartHeight - 1.5,
                       backgroundColor: chartColour[outcome],
                       borderRadius: 2,
                     }}
