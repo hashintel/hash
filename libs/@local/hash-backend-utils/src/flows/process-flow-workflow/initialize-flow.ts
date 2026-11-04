@@ -36,7 +36,7 @@ const getInitialSourcePayload = ({
 }: {
   source: StepInputSource;
   flowInputs: FlowInputValues;
-  existingStepsById?: ReadonlyMap<string, FlowStep>;
+  existingStepsById: ReadonlyMap<string, FlowStep>;
   item?: Payload;
 }): Payload | undefined => {
   switch (source.kind) {
@@ -44,7 +44,7 @@ const getInitialSourcePayload = ({
       return flowInputs[source.inputName];
 
     case "step-output": {
-      const sourceStep = existingStepsById?.get(source.stepId);
+      const sourceStep = existingStepsById.get(source.stepId);
 
       const sourceStepOutputs =
         sourceStep?.kind === "action"
@@ -77,7 +77,7 @@ export const initializeActionStep = (params: {
   stepDefinition: ActionStepDefinition;
   overrideStepId?: string;
   /** The run's steps so far, by id, to take the outputs of steps that have already run. */
-  existingStepsById?: ReadonlyMap<string, FlowStep>;
+  existingStepsById: ReadonlyMap<string, FlowStep>;
   /** The item of the for-each step branch this step is in, if any. */
   item?: Payload;
 }): ActionStep => {
@@ -142,7 +142,7 @@ export const initializeForEachStep = (params: {
   stepDefinition: ForEachStepDefinition;
   overrideStepId?: string;
   /** The run's steps so far, by id, to take the outputs of steps that have already run. */
-  existingStepsById?: ReadonlyMap<string, FlowStep>;
+  existingStepsById: ReadonlyMap<string, FlowStep>;
   /** The item of the enclosing for-each step's branch, if this step is nested in one. */
   item?: Payload;
 }): ForEachStep => {
@@ -191,8 +191,16 @@ export const initializeFlow = (params: {
     flowDefinitionEntityId,
     steps: flowDefinition.steps.map<FlowStep>((stepDefinition) =>
       stepDefinition.kind === "action"
-        ? initializeActionStep({ flowInputs, stepDefinition })
-        : initializeForEachStep({ flowInputs, stepDefinition }),
+        ? initializeActionStep({
+            flowInputs,
+            stepDefinition,
+            existingStepsById: new Map(),
+          })
+        : initializeForEachStep({
+            flowInputs,
+            stepDefinition,
+            existingStepsById: new Map(),
+          }),
     ),
   };
 };
