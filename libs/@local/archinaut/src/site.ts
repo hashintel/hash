@@ -151,7 +151,7 @@ export const buildSite = async (options: {
       await readFile(join(options.bundleRoot, "manifest.json"), "utf8"),
     ) as BundleManifest,
     // Every deck at its first slide, so a link to one lands on a complete
-    // page, its print layout for `--pdf`, and its presenter window.
+    // page, its print layout, and its presenter window.
     extraPaths: [
       "/slides",
       ...listDecks(slidesRoot(options.config)).flatMap((deck) => [

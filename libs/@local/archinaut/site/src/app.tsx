@@ -80,7 +80,7 @@ const deckRoute = createRoute({
   component: lazyRouteComponent(deckRoutes, "DeckRoute"),
 });
 
-/** Every slide at its last step, one per page, for print and `--pdf`. */
+/** Every slide at its last step, one per page, for print. */
 const deckPrintRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/slides/$deck/print",

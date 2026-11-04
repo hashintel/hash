@@ -8,5 +8,4 @@
 
 export { listDecks, slidesRoot, type DeckFolder } from "./slides/folders";
 export { scaffoldDeck } from "./slides/scaffold";
-export { exportDeckPdfs } from "./slides/pdf";
 export { typecheckDecks } from "./slides/typecheck";

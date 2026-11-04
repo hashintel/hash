@@ -18,8 +18,7 @@ const usage = `usage: archinaut <check|bundle|build|dev> [--config <file>]
   dev    [--port n]   serve the website and rebuild the bundle on change
   slides new <name>   start a deck
   slides check        type-check the decks
-    dev, build and slides take --slides <dir> to use another slides directory;
-    build takes --pdf to print every deck to <out>/slides/<deck>.pdf
+    dev, build and slides take --slides <dir> to use another slides directory
 `;
 
 const option = (args: string[], name: string, fallback: string): string => {
@@ -82,17 +81,6 @@ const main = async (): Promise<number> => {
       }
       const outDir = resolve(option(args, "--out", "dist"));
       await buildSite({ config, bundleRoot: result.bundleRoot, outDir });
-      if (args.includes("--pdf")) {
-        const { exportDeckPdfs, listDecks, slidesRoot } =
-          await import("./slides");
-        const written = await exportDeckPdfs({
-          outDir,
-          deckIds: listDecks(slidesRoot(config)).map((deck) => deck.id),
-        });
-        for (const path of written) {
-          process.stdout.write(`printed ${path}\n`);
-        }
-      }
       return 0;
     }
     case "dev": {

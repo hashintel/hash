@@ -1,7 +1,6 @@
 /**
  * The deck laid out for paper: every slide at its last step, one per page,
- * with its notes under it. `archinaut build --pdf` prints this route; a
- * browser's print dialog does the same.
+ * with its notes under it, for a browser's print dialog.
  */
 
 import { MDXProvider } from "@mdx-js/react";
