@@ -56,6 +56,7 @@ export const AddTab = ({
       key={action.actionDefinitionId}
       depth={depth}
       icon={action.icon}
+      tone={action.tone}
       label={action.label}
       actionDefinitionId={action.actionDefinitionId}
       onClick={() => {
