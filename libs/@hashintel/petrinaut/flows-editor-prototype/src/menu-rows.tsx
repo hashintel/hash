@@ -54,6 +54,47 @@ export const tiledRowsStyle = css({
   },
 });
 
+/**
+ * `?srcicons=` (inbox source-menu-icons): how value menus (the @ / source menu, the later-steps menu, the entity type
+ * menu) draw their leading tiles. URL only, never remembered.
+ * - a (default): every row gets a 32 px tile, 6 px corners; current-item rows show their property type's icon.
+ * - b: no tiles anywhere, text only, flush left.
+ * - c: tiles only on rows with a second line; one-line rows flush left.
+ * - old: as before (28 px tiles on two-line rows, a 24 px tile or an empty 32 px slot on one-line rows).
+ */
+export type SourceIconsTake = "old" | "a" | "b" | "c";
+
+export const srcIconsTake: SourceIconsTake = (() => {
+  const value = new URLSearchParams(globalThis.location.search).get("srcicons");
+  return value === "old" || value === "b" || value === "c" ? value : "a";
+})();
+
+/** The tile mode a value menu's rows take: all rows, none, two-line rows only, or the old layout (undefined). */
+export type TileMode = "all" | "none" | "twoLine";
+
+export const valueTiles: TileMode | undefined =
+  srcIconsTake === "old"
+    ? undefined
+    : srcIconsTake === "b"
+      ? "none"
+      : srcIconsTake === "c"
+        ? "twoLine"
+        : "all";
+
+/** The value menus' tile (approved-parts G77): 32 px, 6 px corners, a 16 px icon, across both lines of a two-line row. */
+const sourceTileStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  width: "[32px]",
+  height: "[32px]",
+  borderRadius: "md",
+  backgroundColor: "neutral.a25",
+  color: "neutral.fg.muted",
+  "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
+});
+
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
@@ -181,6 +222,7 @@ export const MenuRow = ({
   description,
   lines = "value",
   tint,
+  tiles,
 }: {
   icon?: IconName | React.ReactElement;
   title: React.ReactNode;
@@ -188,12 +230,21 @@ export const MenuRow = ({
   lines?: RowLines;
   /** `?pickercolour=` takes only: the step kind's tile colours, on the same tile at the same size. */
   tint?: React.CSSProperties;
+  /** A value menu's tiles (`?srcicons=`); without it, the layout from before. */
+  tiles?: TileMode;
 }) => {
   const twoLine = description !== undefined && description !== null && description !== "";
   const glyph = typeof icon === "string" ? <Icon name={icon} size="sm" /> : icon;
+  const tiled = tiles === "all" || (tiles === "twoLine" && twoLine);
   return (
     <span className={rowStyle} data-menu-row={twoLine ? "two" : "one"}>
-      {twoLine ? (
+      {tiles ? (
+        tiled ? (
+          <span className={sourceTileStyle} style={tint} aria-hidden="true">
+            {glyph}
+          </span>
+        ) : null
+      ) : twoLine ? (
         <span className={tileColumnStyle} aria-hidden="true">
           <span className={tileStyle({ lines })} style={tint}>
             {glyph}
@@ -251,7 +302,9 @@ export const tileMenu = (
   lines: RowLines = "value",
 ): Array<ItemOrGroup<MenuItem>> => {
   const rows = entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]));
-  const tiled = rows.some(hasDescription);
+  // A value menu with `?srcicons=` a, b or c lays out every row itself, so no row falls back to the DS layout.
+  const tiles = lines === "value" ? valueTiles : undefined;
+  const tiled = tiles !== undefined || rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
     const { glyph, tint, tooltip, ...rest } = item;
     const withTooltip = (row: React.ReactNode) =>
@@ -284,11 +337,13 @@ export const tileMenu = (
       id: rest.id ?? (typeof rest.text === "string" ? rest.text : undefined),
       text: withTooltip(
         <MenuRow
-          icon={glyph ?? rest.icon}
+          // Every tile holds an icon: a row with none (a "nothing here" line) gets the info glyph.
+          icon={glyph ?? rest.icon ?? (tiles === "all" ? "info" : undefined)}
           title={rest.text}
           description={rest.description}
           lines={lines}
           tint={tint}
+          tiles={tiles}
         />,
       ),
       icon: undefined,

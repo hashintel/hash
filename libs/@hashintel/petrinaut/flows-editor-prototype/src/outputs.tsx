@@ -482,7 +482,7 @@ const FlowOutputMenu = ({
 };
 
 /** An output's type as the icon left of its name (2 Nov): its kind decides it. */
-const kindIcon = (kind: string | null): IconName => {
+export const kindIcon = (kind: string | null): IconName => {
   const name = (kind ?? "").replace(/^List of /, "");
   const list = kind?.startsWith("List of ") ?? false;
   if (/entity/i.test(name)) {

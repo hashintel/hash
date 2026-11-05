@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Link, Phone } from "lucide-react";
+
 import {
   Icon,
   type IconName,
   type ItemOrGroup,
-  type MenuItem,
   Popover,
   TextInput,
   Tooltip,
@@ -33,9 +34,18 @@ import {
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
 import { findEntityType, mockEntities } from "./mock-graph";
-import { MenuRow, tileMenu, tiledRowsStyle } from "./menu-rows";
+import {
+  MenuRow,
+  srcIconsTake,
+  type TiledItem,
+  tileMenu,
+  tiledRowsStyle,
+  valueTiles,
+} from "./menu-rows";
 import { OpenMenu } from "./open-menu";
+import { kindIcon } from "./outputs";
 import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
+import { iconStroke } from "./thin-icons";
 import { kindLabel } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -276,6 +286,8 @@ type SourceGroup = {
     text: React.ReactNode;
     description?: string;
     icon?: IconName;
+    /** A type glyph the DS icon set lacks (Link for a URL). */
+    glyph?: React.ReactElement;
     selected?: boolean;
     disabled?: boolean;
     hint?: string;
@@ -306,8 +318,31 @@ const GROUP_ROWS = 4;
 
 const showMoreTextStyle = css({ color: "neutral.fg.muted" });
 
+/** Every row draws a tile (`?srcicons=a`): rows that had none take a type or kind icon. */
+const iconsEverywhere = valueTiles === "all";
+
+/**
+ * A property's type as its row's icon (`?srcicons=a`): the output types' icons (`kindIcon`, K3), plus Link for a
+ * URL, @ for an email and a phone for a phone number, which the kinds alone don't tell apart.
+ */
+const typeGlyph = (
+  types: readonly string[],
+): { icon?: IconName; glyph?: React.ReactElement } => {
+  const first = types[0] ?? "";
+  if (/url|link/i.test(first)) {
+    return { glyph: <Link strokeWidth={iconStroke} /> };
+  }
+  if (/phone/i.test(first)) {
+    return { glyph: <Phone strokeWidth={iconStroke} /> };
+  }
+  if (/email/i.test(first)) {
+    return { icon: "at" };
+  }
+  return { icon: kindIcon(first) };
+};
+
 /** The model as DS Menu groups and items. A tick marks a picked value; a disabled row says why a list is empty. */
-const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
+const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
   groups.map((group) => ({
     id: group.id,
     label: group.label ?? "",
@@ -316,6 +351,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
       text: item.text,
       description: item.description,
       icon: item.icon,
+      glyph: item.glyph,
       selected: item.selected,
       suffix: item.suffix,
       selectedStyle: "tick" as const,
@@ -344,6 +380,21 @@ const sourceMenuWidthStyle = css({
 /** The For each list menu: 268 px, its right edge on the select's (Figma J1.7, 3 Nov). A long name is clipped. */
 const listMenuWidthStyle = css({
   "&[class]": { width: "[268px]", minWidth: "[268px]", maxWidth: "[268px]" },
+});
+
+/**
+ * The search row as Figma X draws it (770:33030): 32 px, edge to edge, its hairline across the whole menu, the
+ * search icon over the rows' tile icons. It cancels the DS Menu's own 4 px and its header's 5 / 8 px insets.
+ * `?srcicons=old` keeps the inset 26 px field.
+ */
+const searchRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[32px]",
+  marginTop: "[-9px]",
+  marginBottom: "[-5px]",
+  marginX: "[-12px]",
+  paddingX: "[14px]",
 });
 
 /** A DS Menu's search: the DS TextInput at sm with a search icon, pinned above the items. */
@@ -379,13 +430,16 @@ export const SearchHeader = ({
   return (
     <div
       ref={ref}
-      className={css({
-        borderBottomWidth: "thin",
-        borderBottomStyle: "solid",
-        borderBottomColor: "neutral.bd.subtle",
-        // A full-width row, not a boxed input: the focus and hover outline stay off.
-        "& *::before": { borderColor: "[transparent !important]" },
-      })}
+      className={cx(
+        css({
+          borderBottomWidth: "thin",
+          borderBottomStyle: "solid",
+          borderBottomColor: "neutral.bd.subtle",
+          // A full-width row, not a boxed input: the focus and hover outline stay off.
+          "& *::before": { borderColor: "[transparent !important]" },
+        }),
+        srcIconsTake !== "old" && searchRowStyle,
+      )}
     >
       <TextInput
         value={value}
@@ -609,6 +663,7 @@ export const SourceMenu = ({
     text: property.title,
     hint: `${itemName(document, loopId!)} › ${property.title} · ${typesOf(property).join(", ")}`,
     suffix: showTypes ? <TypeLabel types={typesOf(property)} /> : undefined,
+    ...(iconsEverywhere ? typeGlyph(typesOf(property)) : {}),
     selected: currentProperty?.baseUrl === property.baseUrl,
     onPick: () => onPick(itemPropertySource(property.baseUrl)),
   }));
@@ -628,7 +683,8 @@ export const SourceMenu = ({
         ...thisItem.map((row) => ({
           ...row,
           description: undefined,
-          icon: undefined,
+          // The item itself is an entity: the entity type's icon, as its outputs show it.
+          icon: iconsEverywhere ? ("cube" as const) : undefined,
         })),
         ...propertyItems,
       ];
@@ -666,6 +722,13 @@ export const SourceMenu = ({
             items: typed.map((choice) => ({
               id: `typed:${choice.label}`,
               text: choice.label,
+              icon: iconsEverywhere
+                ? typedGroupLabel === "People"
+                  ? ("user" as const)
+                  : kinds.includes("EntityId")
+                    ? ("cube" as const)
+                    : ("list" as const)
+                : undefined,
               selected: choice.selected,
               hint: choice.hint,
               onPick: () => onPick(choice.source),
@@ -803,6 +866,7 @@ export const SourceMenu = ({
             {
               id: `more:${group.id}`,
               text: <span className={showMoreTextStyle}>Show more</span>,
+              icon: iconsEverywhere ? ("ellipsis" as const) : undefined,
               hint: `${group.items.length - GROUP_ROWS} more`,
               keepOpen: true,
               onPick: () => setExpanded((open) => [...open, group.id]),
@@ -834,9 +898,9 @@ export const SourceMenu = ({
     );
   }
 
-  const tiledPopover = groupsModel.some((group) =>
-    group.items.some((item) => !!item.description),
-  );
+  const tiledPopover =
+    valueTiles !== undefined ||
+    groupsModel.some((group) => group.items.some((item) => !!item.description));
 
   // "@" typed in a field: the field keeps focus while the list filters, which the DS Menu cannot do (it takes focus
   // and closes when focus leaves it). DS gap: no mention input (audit section 3 item 6). Same rows, DS Menu look.
@@ -863,7 +927,15 @@ export const SourceMenu = ({
               {group.items.map((item) =>
                 item.disabled ? (
                   <div key={item.id} className={menuEmptyRowStyle}>
-                    {item.text}
+                    {valueTiles ? (
+                      <MenuRow
+                        icon={item.icon ?? "info"}
+                        title={item.text}
+                        tiles={valueTiles}
+                      />
+                    ) : (
+                      item.text
+                    )}
                   </div>
                 ) : (
                   <button
@@ -883,9 +955,10 @@ export const SourceMenu = ({
                   >
                     {tiledPopover ? (
                       <MenuRow
-                        icon={item.icon}
+                        icon={item.glyph ?? item.icon}
                         title={item.text}
                         description={item.description}
+                        tiles={valueTiles}
                       />
                     ) : (
                       <>
