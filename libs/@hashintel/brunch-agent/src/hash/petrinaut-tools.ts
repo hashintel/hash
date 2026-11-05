@@ -75,11 +75,21 @@ const operationCall = (
     ),
   }) as PetrinautOperationCall;
 
-/** A tool that runs one canonical operation, with the operation's input and description. */
-const mapped = (operation: PetrinautAiMutationToolName): HashPetrinautTool => {
-  const zInput = mutationActionInputSchemas[operation].extend({
+/**
+ * A tool that runs one canonical operation, with the operation's input and
+ * description, and `check`'s further rules on that input.
+ */
+const mapped = (
+  operation: PetrinautAiMutationToolName,
+  check?: (
+    input: Readonly<Record<string, unknown>>,
+    context: z.RefinementCtx,
+  ) => void,
+): HashPetrinautTool => {
+  const base = mutationActionInputSchemas[operation].extend({
     editor_id: zEditorId,
   });
+  const zInput = check ? base.superRefine(check) : base;
   return {
     operations: [operation],
     description: petrinautAiTools[operation].description,
@@ -181,6 +191,36 @@ const merged = <Shape extends z.core.$ZodShape>({
 };
 
 const schemas = mutationActionInputSchemas;
+
+/**
+ * Refuses an ad-hoc initial state set at `path`. Petrinaut evaluates an
+ * ad-hoc state's expressions in the page itself, so the agent leaves that
+ * variant to the in-app form; an existing ad-hoc scenario's other fields stay
+ * editable, and it can be switched to per-place state.
+ */
+const refuseAdHocInitialState =
+  (path: readonly string[]) =>
+  (input: Readonly<Record<string, unknown>>, context: z.RefinementCtx) => {
+    const initialState = path.reduce<unknown>(
+      (value, key) =>
+        typeof value === "object" && value !== null
+          ? (value as Record<string, unknown>)[key]
+          : undefined,
+      input,
+    );
+    if (
+      typeof initialState === "object" &&
+      initialState !== null &&
+      (initialState as { type?: unknown }).type === "adhoc"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: [...path, "type"],
+        message:
+          'You cannot author an "adhoc" initial state; it belongs to the in-app form. Use `initialState.type` "per_place", with `content` keyed by place ID.',
+      });
+    }
+  };
 
 const zNodeIds = {
   placeId: schemas.updatePlace.shape.placeId,
@@ -428,8 +468,14 @@ export const hashPetrinautTools = {
   petrinaut_create_parameter: mapped("addParameter"),
   petrinaut_update_parameter: mapped("updateParameter"),
   petrinaut_remove_parameter: mapped("removeParameter"),
-  petrinaut_create_scenario: mapped("addScenario"),
-  petrinaut_update_scenario: mapped("updateScenario"),
+  petrinaut_create_scenario: mapped(
+    "addScenario",
+    refuseAdHocInitialState(["initialState"]),
+  ),
+  petrinaut_update_scenario: mapped(
+    "updateScenario",
+    refuseAdHocInitialState(["update", "initialState"]),
+  ),
   petrinaut_remove_scenario: mapped("removeScenario"),
   petrinaut_create_metric: mapped("addMetric"),
   petrinaut_update_metric: mapped("updateMetric"),
