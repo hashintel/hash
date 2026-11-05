@@ -154,7 +154,7 @@ describe("getVersionGraphLayout", () => {
 
     it("summarises every version for screen readers", () => {
       expect(layout.summary).toBe(
-        "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v3 doesn't extend Company now; v4 extends Company v2. Company has versions newer than v2. Shell Company has newer versions that don't extend Company now.",
+        "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v3 doesn't extend Company, or is archived; v4 extends Company v2. Company has versions newer than v2. Its newer versions don't extend Company, or are archived.",
       );
     });
   });
