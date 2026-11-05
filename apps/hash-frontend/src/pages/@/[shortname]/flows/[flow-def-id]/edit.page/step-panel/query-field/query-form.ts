@@ -67,12 +67,10 @@ export const sortOrders = {
 
 export type SortOrder = keyof typeof sortOrders;
 
-/** A query as the panel edits it. */
 export type QueryForm = {
   /** None means entities of any type. */
   entityTypeBaseUrls: BaseUrl[];
   conditions: QueryCondition[];
-  /** Whether an entity must meet every condition or any of them. */
   join: "all" | "any";
   sort: SortOrder;
   limit?: number;
@@ -151,8 +149,6 @@ export const toEntityQuery = ({
     ...(limit !== undefined && { limit }),
   };
 };
-
-/* Reading a saved query back checks every part of it, since it may have been made outside the panel. */
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);

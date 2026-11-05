@@ -52,10 +52,7 @@ const hasDateFormat = (
   );
 };
 
-/**
- * The kind of value of a data type, from its own constraints or those it inherits: a date, a status (text that is
- * one of a fixed set), or `undefined` for any other, including a type that allows several sets of constraints.
- */
+/** A date, a status (text that is one of a fixed set), or `undefined` for any other kind of value. */
 const getValueKind = (
   dataTypeId: VersionedUrl,
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,

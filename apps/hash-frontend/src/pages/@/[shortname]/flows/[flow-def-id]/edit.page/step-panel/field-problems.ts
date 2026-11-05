@@ -19,7 +19,7 @@ const getInputPath = ({ path }: Problem) => {
     : undefined;
 };
 
-/** Where in an input's source a problem with the input is, e.g. `["payload", "value", "limit"]`, or `[]` for all of it. */
+/** `[]` when the problem is about the whole input. */
 export const getPathInSource = (problem: Problem) =>
   getInputPath(problem)?.pathInSource ?? [];
 
