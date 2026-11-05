@@ -144,6 +144,27 @@ export const integrationIconCatalog = [
     logoRaster: false,
   },
   {
+    name: "amazon",
+    slug: "amazon",
+    label: "Amazon",
+    integrationNames: ["Amazon"],
+    source: "https://sustainability.aboutamazon.com/",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource: "https://sustainability.aboutamazon.com/",
+    logoNotes:
+      "Native SVG of Amazon's current corporate logo from its Sustainability site, with navigation padding removed. Marks use its Smile Orange (#FF6200) smile; full logos preserve the complete wordmark and smile. Squid Ink (#161D26) light-mode lettering is verified against the official press asset and becomes white in dark mode. Separate from Amazon Redshift.",
+    logoRaster: false,
+  },
+  {
     name: "amazonRedshift",
     slug: "aws-redshift",
     label: "Amazon Redshift",

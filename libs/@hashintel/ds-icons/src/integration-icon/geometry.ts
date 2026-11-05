@@ -1,3 +1,4 @@
+import * as amazon from "./geometry/amazon";
 import * as anaplan from "./geometry/anaplan";
 import * as apple from "./geometry/apple";
 import * as appleHealth from "./geometry/apple-health";
@@ -94,6 +95,13 @@ export const integrationGeometry = {
     markViewBox: "0 0 26 26",
     logoViewBox: "0 0 110 37.545",
     ratio: 2.46,
+    alignment: "center",
+  },
+  amazon: {
+    ...amazon,
+    markViewBox: "14.83596 39.41500 58.77356 16.08470",
+    logoViewBox: "3.50000 20.50000 102.99700 34.99970",
+    ratio: 1.35,
     alignment: "center",
   },
   amazonRedshift: {
