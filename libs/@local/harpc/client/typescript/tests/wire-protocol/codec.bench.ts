@@ -1,4 +1,4 @@
-import { Either, FastCheck, pipe } from "effect";
+import { Arbitrary, Effect, pipe, Result } from "effect";
 import { describe, test } from "vitest";
 
 import { MutableBuffer, MutableBytes } from "@local/harpc-client/binary";
@@ -6,30 +6,26 @@ import { Request } from "@local/harpc-client/wire-protocol/models/request";
 import { Response } from "@local/harpc-client/wire-protocol/models/response";
 
 // using the same seed ensures that the same request is generated
-const request = FastCheck.sample(Request.arbitrary(FastCheck), {
-  seed: 1662493168,
-  // eslint-disable-next-line unicorn/prevent-abbreviations
-  numRuns: 1,
-});
+const request = await Effect.runPromise(
+  Arbitrary.sampleEffect(Request.arbitrary, { seed: 1662493168, count: 1 }),
+);
 
 const requestEncoded = pipe(
   Request.encode(MutableBuffer.makeWrite(), request[0]!),
-  Either.andThen(MutableBuffer.take),
-  Either.getOrThrowWith((error) => {
+  Result.andThen(MutableBuffer.take),
+  Result.getOrThrowWith((error) => {
     return error;
   }),
 );
 
-const response = FastCheck.sample(Response.arbitrary(FastCheck), {
-  seed: 1662493168,
-  // eslint-disable-next-line unicorn/prevent-abbreviations
-  numRuns: 1,
-});
+const response = await Effect.runPromise(
+  Arbitrary.sampleEffect(Response.arbitrary, { seed: 1662493168, count: 1 }),
+);
 
 const responseEncoded = pipe(
   Response.encode(MutableBuffer.makeWrite(), response[0]!),
-  Either.andThen(MutableBuffer.take),
-  Either.getOrThrowWith((error) => {
+  Result.andThen(MutableBuffer.take),
+  Result.getOrThrowWith((error) => {
     return error;
   }),
 );
@@ -39,14 +35,14 @@ describe("request", () => {
   test("codec", async ({ bench }) => {
     await bench("encode", () => {
       Request.encode(MutableBuffer.makeWrite(), request[0]!).pipe(
-        Either.getOrThrow,
+        Result.getOrThrow,
       );
     }).run();
 
     await bench("decode", () => {
       const buffer = MutableBuffer.makeRead(MutableBytes.from(requestEncoded));
 
-      Request.decode(buffer).pipe(Either.getOrThrow);
+      Request.decode(buffer).pipe(Result.getOrThrow);
     }).run();
   });
 });
@@ -56,14 +52,14 @@ describe("response", () => {
   test("codec", async ({ bench }) => {
     await bench("encode", () => {
       Response.encode(MutableBuffer.makeWrite(), response[0]!).pipe(
-        Either.getOrThrow,
+        Result.getOrThrow,
       );
     }).run();
 
     await bench("decode", () => {
       const buffer = MutableBuffer.makeRead(MutableBytes.from(responseEncoded));
 
-      Response.decode(buffer).pipe(Either.getOrThrow);
+      Response.decode(buffer).pipe(Result.getOrThrow);
     }).run();
   });
 });

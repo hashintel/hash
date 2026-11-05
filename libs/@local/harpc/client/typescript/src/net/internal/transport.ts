@@ -13,10 +13,8 @@ import {
 import {
   Array,
   Cache,
-  Chunk,
   Data,
   Effect,
-  Either,
   flow,
   Match,
   Option,
@@ -122,7 +120,7 @@ const resolveDnsMultiaddrSegment = Effect.fn("resolveDnsMultiaddrSegment")(
             { type: "AAAA" },
             ({ address }) => [IPV6_PROTOCOL.code, address] as const,
           ),
-          Match.option,
+          Match.result,
         ),
       ),
     );
@@ -142,7 +140,7 @@ const resolveDnsMultiaddr = Effect.fn("resolveDnsMultiaddr")(
         concurrency: "unbounded",
       }),
       Stream.runFold(
-        [] as (number | string | undefined)[][],
+        (): (number | string | undefined)[][] => [],
         (accumulator, segments) => {
           // we basically have a fan out approach here, meaning that if our output is:
           // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
@@ -187,11 +185,11 @@ const resolveDnsMultiaddr = Effect.fn("resolveDnsMultiaddr")(
 const resolveMultiaddr = Effect.fn("resolveMultiaddr")((address: Multiaddr) =>
   pipe(
     Stream.make(address),
-    Stream.flatMap((multiaddr) => resolveDnsMultiaddr(multiaddr), {
-      concurrency: "unbounded",
-    }),
+    Stream.flatMap(
+      (multiaddr) => Stream.fromEffect(resolveDnsMultiaddr(multiaddr)),
+      { concurrency: "unbounded" },
+    ),
     Stream.runCollect,
-    Effect.map(Chunk.toReadonlyArray),
     Effect.map(Array.flatten),
   ),
 );
@@ -221,7 +219,7 @@ const lookupPeer = Effect.fn("lookupPeer")(function* (
       flow(
         Struct.get("addresses"),
         Array.intersectionWith<Multiaddr>((a, b) => a.equals(b))(resolved),
-        Array.isNonEmptyArray,
+        Array.isArrayNonEmpty,
       ),
     ),
   );
@@ -254,20 +252,19 @@ const resolvePeer = Effect.fn("resolvePeer")(function* (
   }
 
   const key = HashableMultiaddr.make(address);
-  const peerIdEither = yield* cache.getEither(key);
+  const isCached = yield* Cache.has(cache, key);
+  const peerId = yield* Cache.get(cache, key);
 
-  if (Either.isLeft(peerIdEither)) {
+  if (isCached) {
     yield* Effect.logTrace("retrieved PeerID from cache");
   } else {
     yield* Effect.logTrace("resolved and matched multiaddr to PeerID");
   }
 
-  const peerId = Either.merge(peerIdEither);
-
   if (Option.isNone(peerId)) {
     yield* Effect.logDebug("PeerID lookup failed, invalidating cache entry");
 
-    yield* cache.invalidate(key);
+    yield* Cache.invalidate(cache, key);
   }
 
   return peerId;
@@ -342,7 +339,8 @@ export const connect = Effect.fn("connect")(function* (
   // We already try to lookup the peer ID before dialing, if it doesn't exist in libp2p, associate the resolved address with the peer ID we just dialed,
   // this means that the next time we dial the same peer, we can reuse the connection.
   if (!isPeerId(address)) {
-    yield* transport.services.state.cache.set(
+    yield* Cache.set(
+      transport.services.state.cache,
       HashableMultiaddr.make(address),
       Option.some(connection.remotePeer),
     );
@@ -350,7 +348,8 @@ export const connect = Effect.fn("connect")(function* (
 
   if (!isPeerId(resolved)) {
     for (const resolvedAddress of resolved) {
-      yield* transport.services.state.cache.set(
+      yield* Cache.set(
+        transport.services.state.cache,
         HashableMultiaddr.make(resolvedAddress),
         Option.some(connection.remotePeer),
       );

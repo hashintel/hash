@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Hash,
   HashSet,
@@ -9,6 +7,8 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { MutableBuffer } from "../../../binary/index.js";
@@ -44,11 +44,7 @@ const RequestFlagsProto: Omit<RequestFlags, "flags"> = {
   },
 
   [Hash.symbol](this: RequestFlags) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.flags)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.flags)));
   },
 
   toString(this: RequestFlags) {
@@ -105,29 +101,29 @@ export const repr = (flags: RequestFlags) => {
   return value;
 };
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, flags: RequestFlags) =>
   MutableBuffer.putU8(buffer, repr(flags)),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const value = yield* MutableBuffer.getU8(buffer);
 
-    const flags = HashSet.empty<Flag>().pipe(HashSet.beginMutation);
+    const flags: Flag[] = [];
 
     if ((value & 0b1000_0000) === 0b1000_0000) {
-      HashSet.add(flags, "beginOfRequest");
+      flags.push("beginOfRequest");
     }
 
     if ((value & 0b0000_0001) === 0b0000_0001) {
-      HashSet.add(flags, "endOfRequest");
+      flags.push("endOfRequest");
     }
 
-    return makeUnchecked(flags.pipe(HashSet.endMutation));
+    return makeUnchecked(HashSet.fromIterable(flags));
   }),
 );
 
@@ -143,9 +139,8 @@ export const isEndOfRequest = (flags: RequestFlags) =>
 export const withEndOfRequest = (flags: RequestFlags) =>
   HashSet.add(flags.flags, "endOfRequest").pipe(makeUnchecked);
 
-export const arbitrary = (fc: typeof FastCheck) => {
-  return fc
-    .uniqueArray(fc.constantFrom<Flag>("beginOfRequest", "endOfRequest"))
-    .map(HashSet.fromIterable)
-    .map(makeUnchecked);
-};
+export const arbitrary = Arbitrary.schema(
+  Schema.Array(Schema.Literals(["beginOfRequest", "endOfRequest"])),
+).pipe(
+  Arbitrary.map((flags) => makeUnchecked(HashSet.fromIterable<Flag>(flags))),
+);

@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
@@ -9,6 +7,7 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
@@ -47,7 +46,6 @@ const RequestProto: Omit<Request, "header" | "body"> = {
       Hash.hash(this[TypeId]),
       Hash.combine(Hash.hash(this.header)),
       Hash.combine(Hash.hash(this.body)),
-      Hash.cached(this),
     );
   },
 
@@ -92,10 +90,10 @@ export const prepare = (self: Request) => {
   return make(header, self.body);
 };
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, request: Request) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const variant = RequestBody.variant(request.body);
     const header = RequestHeader.applyBodyVariant(request.header, variant);
 
@@ -106,10 +104,10 @@ export const encode = implEncode((buffer, request: Request) =>
   }),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const header = yield* RequestHeader.decode(buffer);
     const isBegin = RequestFlags.isBeginOfRequest(header.flags);
 
@@ -124,7 +122,7 @@ export const decode = implDecode((buffer) =>
 export const isRequest = (value: unknown): value is Request =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(RequestHeader.arbitrary(fc), RequestBody.arbitrary(fc))
-    .map(Function.tupled(make));
+export const arbitrary = Arbitrary.all([
+  RequestHeader.arbitrary,
+  RequestBody.arbitrary,
+]).pipe(Arbitrary.map(Function.tupled(make)));
