@@ -41,6 +41,8 @@ import {
   runTriggerId,
   triggerLabel,
 } from "./run-history";
+import { openFlowTriggers } from "./flow-triggers";
+import { triggerFiredTake } from "./trigger-flags";
 import {
   HeaderTitle,
   HueHeader,
@@ -406,6 +408,72 @@ type Detail = {
   inputs: [string, string][];
 };
 
+/** `?triggerfired=3`: the fired trigger, selected, and the panel tells who or what started the run. */
+const FiredTriggerPanel = ({ run }: { run: RunRecord }) => {
+  const { document } = useEditor();
+  const manual = run.trigger.kind === "manual";
+  const rows: [string, string][] = manual
+    ? [
+        ["Started by", run.trigger.by],
+        ["When", run.when],
+        ["From", "Run button in the editor"],
+        ["Web", "@hash"],
+      ]
+    : [
+        ["Schedule", "1st of every month at 09:00"],
+        ["When", run.when],
+        ["Web", "@aakarsh"],
+        ["Created by", "Dora"],
+      ];
+  return (
+    <aside className={runPanelStyle} aria-label="Trigger in this run">
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.5",
+        })}
+      >
+        <HeaderTitle icon={manual ? "user" : "calendarClock"}>
+          <span className={strongLineStyle}>
+            {manual ? "Manual run" : "Schedule"}
+          </span>
+        </HeaderTitle>
+        <span
+          className={css({
+            textStyle: "sm",
+            color: "neutral.fg.muted",
+            paddingLeft: "6",
+          })}
+        >
+          Started Run {run.id}
+        </span>
+      </div>
+      <Section title="Trigger">
+        {rows.map(([key, value]) => (
+          <PropertyRow key={key} label={key}>
+            <span className={valueStyle}>{value}</span>
+          </PropertyRow>
+        ))}
+        <span className={css({ gridColumn: "1 / -1", paddingTop: "1" })}>
+          <button
+            type="button"
+            className={css({
+              textStyle: "sm",
+              color: "neutral.fg.muted",
+              textDecoration: "underline",
+              cursor: "pointer",
+            })}
+            onClick={() => openFlowTriggers(document.name)}
+          >
+            Edit flow triggers
+          </button>
+        </span>
+      </Section>
+    </aside>
+  );
+};
+
 /** The status mark for a chip: the F3 glyph beside the label, in place of a coloured pill. */
 const chipState = (chip: Detail["chips"][number]): StepState => {
   switch (chip.color) {
@@ -665,6 +733,9 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
       ? getCatalogEntry(step.actionDefinitionId)
       : undefined;
   const outputs = plainOutputs(stepId, state);
+  if (triggerFiredTake === 3 && stepId === runTriggerId) {
+    return <FiredTriggerPanel run={run} />;
+  }
   return (
     <aside className={runPanelStyle} aria-label="Step in this run">
       {oldPanelHeader ? (

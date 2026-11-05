@@ -3,7 +3,7 @@
  * as you edit, with no "Draft saved" text (Aakarsh, 4 Nov); what it should say is open, ?draftsaved=dora|dei|steady.
  * Publish makes the draft live and moves this web's triggers to it. Picking a past version opens it read-only (V6).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -18,6 +18,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { publishFlow } from "./app-store";
 import { setQuery, useLocation } from "./router";
+import { triggerNoneTake } from "./trigger-flags";
+import { NoTriggerWarning } from "./trigger-none";
 import { Toast } from "./ui";
 
 import type { FlowVersion } from "./seed-flows";
@@ -551,6 +553,8 @@ export const PublishButton = ({
   liveRun: number | null;
 }) => {
   const [open, setOpen] = useState(false);
+  const [warning, setWarning] = useState(false);
+  const publishRef = useRef<HTMLButtonElement>(null);
   const [toast, setToast] = useState<string | null>(null);
   const draft = version.state === "draft";
   const disabled = !draft || problems > 0 || viewing !== null;
@@ -573,10 +577,24 @@ export const PublishButton = ({
         disabled={disabled}
         tooltip={tooltip}
         data-publish
-        onClick={() => setOpen(true)}
+        ref={publishRef}
+        // ?triggernone=2: nothing can start the flow, so Publish asks first.
+        onClick={() =>
+          triggerNoneTake === 2 ? setWarning(true) : setOpen(true)
+        }
       >
         Publish
       </Button>
+      {warning ? (
+        <NoTriggerWarning
+          triggerRef={publishRef}
+          onClose={() => setWarning(false)}
+          onPublish={() => {
+            setWarning(false);
+            setOpen(true);
+          }}
+        />
+      ) : null}
       {open ? (
         <PublishDialog
           version={version}

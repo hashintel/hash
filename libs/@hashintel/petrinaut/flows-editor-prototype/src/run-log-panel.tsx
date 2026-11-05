@@ -29,6 +29,7 @@ import {
 } from "./run-history";
 import { type LogRow, logRows, secondsText } from "./run-log";
 import { BusinessRunLog, runLogTake } from "./run-log-business";
+import { triggerFiredTake } from "./trigger-flags";
 import { doneTone } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
@@ -528,11 +529,27 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         </span>
         <span className={css({ textStyle: "sm" })}>
           <span className={mutedStyle}>
-            {[duration, trigger, run.when.replace(", ", " ")]
+            {[
+              duration,
+              // ?triggerfired=2 names the trigger on its own line below.
+              triggerFiredTake === 2 ? "" : trigger,
+              run.when.replace(", ", " "),
+            ]
               .filter(Boolean)
               .join(" · ")}
           </span>
         </span>
+        {/* ?triggerfired=2: the summary names what started the run, beside the green path on the canvas. */}
+        {triggerFiredTake === 2 ? (
+          <span
+            className={css({ textStyle: "sm", color: "neutral.fg.heading" })}
+          >
+            Triggered by{" "}
+            {run.trigger.kind === "manual"
+              ? `Manual · ${run.trigger.by}`
+              : "Schedule · 1st of month at 09:00"}
+          </span>
+        ) : null}
       </div>
       <div className={css({ paddingY: "3" })}>
         <div

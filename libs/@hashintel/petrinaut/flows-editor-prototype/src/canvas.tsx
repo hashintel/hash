@@ -56,6 +56,8 @@ import {
   ghostKindOf,
   ghostKinds,
   ghostSummary,
+  ghostTakeSummary,
+  openFlowTriggers,
   useFlowTriggers,
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
@@ -74,6 +76,7 @@ import {
 import { flashLogRows } from "./run-log-panel";
 import {
   barOf,
+  type RunRecord,
   type StepRun,
   type StepState,
   runTriggerId,
@@ -87,6 +90,13 @@ import {
   strongBarColor,
   tileColor,
 } from "./status-colors";
+import {
+  ghostLayout,
+  triggerDistinctTake,
+  triggerFiredTake,
+  triggerNoneTake,
+  useShowTriggers,
+} from "./trigger-flags";
 import { InlineRename, Toast } from "./ui";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
@@ -99,7 +109,15 @@ const GROUP_PADDING = 32;
 type StepData = { stepId: string };
 type StepNode = Node<
   StepData,
-  "step" | "forEach" | "start" | "trigger" | "ghost" | "flowOutputs"
+  | "step"
+  | "forEach"
+  | "start"
+  | "trigger"
+  | "ghost"
+  | "ghostTake"
+  | "ghostSingle"
+  | "ghostNote"
+  | "flowOutputs"
 >;
 
 const portRows = (step: DraftStep) =>
@@ -1294,6 +1312,456 @@ const GhostTriggerView = ({ id, selected }: NodeProps<StepNode>) => {
   );
 };
 
+/* ----------------------------------------------------------------------------------------------------------------
+ * Trigger takes (`trigger-flags.ts`): the ghost layouts, the number-based nodes and the no-trigger warning
+ * ------------------------------------------------------------------------------------------------------------- */
+
+/** Take 3's rail and Q4 Take 2: one line, 40 px, the count at the right. */
+const RAIL_HEIGHT = 40;
+const RAIL_WIDTH = 176;
+
+/** Q4 Take 4: the Triggers head, then three 28 px rows; the wire leaves from the Schedule row. */
+const SINGLE_HANDLE_TOP = 90;
+
+/** A take's ghost: on is 70%, off 25% (4 Nov call), Start's card otherwise; `?triggerdistinct` sets it apart. */
+const ghostTakeStyle = cva({
+  base: {
+    position: "relative",
+    width: "[200px]",
+    backgroundColor: "neutral.bgSolid.min",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.bd.subtle",
+    borderRadius: "lg",
+    cursor: "pointer",
+    opacity: "[0.25]",
+    transition: "[opacity 0.15s ease, border-color 0.15s ease]",
+    "&[data-on]": { opacity: "[0.7]" },
+    _hover: { opacity: "[0.9]" },
+    "&[data-selected]": {
+      opacity: "[1]",
+      borderStyle: "solid",
+      borderColor: "[var(--flows-sel-border)]",
+      boxShadow: "[inset 0 0 0 0.5px var(--flows-sel-border)]",
+    },
+  },
+  variants: {
+    distinct: {
+      none: {},
+      // 1: a dashed outline.
+      dashed: {
+        borderStyle: "dashed",
+        borderColor: "[var(--flows-ghost-border)]",
+      },
+      // 2: no card, the tile and the words only.
+      bare: {
+        backgroundColor: "[transparent]",
+        borderColor: "[transparent]",
+      },
+      // 3: a pill.
+      pill: { borderRadius: "full", paddingX: "1" },
+      // 4: a lighter tone with a "Trigger" eyebrow: the card stays, a step fainter than the other takes.
+      tone: { "&[data-on]": { opacity: "[0.5]" } },
+    },
+    rail: {
+      true: { width: "[176px]", height: "[40px]" },
+      false: {},
+    },
+  },
+  defaultVariants: { distinct: "none", rail: false },
+});
+
+const distinctVariant = {
+  1: "dashed",
+  2: "bare",
+  3: "pill",
+  4: "tone",
+  5: "none",
+} as const;
+
+const GhostTakeView = ({ id, selected }: NodeProps<StepNode>) => {
+  const triggers = useFlowTriggers();
+  const kind = ghostKindOf(id);
+  if (!kind) {
+    return null;
+  }
+  const summary = ghostTakeSummary(triggers, kind);
+  const rail = ghostLayout === "rail";
+  return (
+    <div
+      className={ghostTakeStyle({
+        distinct: triggerDistinctTake
+          ? distinctVariant[triggerDistinctTake as keyof typeof distinctVariant]
+          : "none",
+        rail,
+      })}
+      data-on={summary.on || undefined}
+      data-selected={selected || undefined}
+      data-ghost-trigger={kind}
+    >
+      {rail ? (
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "2",
+            height: "[100%]",
+            paddingX: "2",
+          })}
+        >
+          <CardTile icon={summary.icon} tone="neutral" ghost />
+          <span
+            className={cx(
+              oneLineStyle({ tone: "title" }),
+              css({ flex: "1", fontWeight: "normal" }),
+            )}
+          >
+            {summary.title}
+          </span>
+          <span
+            className={cx(
+              oneLineStyle({ tone: "muted" }),
+              css({ fontVariantNumeric: "tabular-nums", paddingRight: "1" }),
+            )}
+          >
+            {summary.count}
+          </span>
+        </div>
+      ) : (
+        <div className={cardHeadStyle}>
+          <CardTile icon={summary.icon} tone="neutral" ghost />
+          {triggerDistinctTake === 4 ? (
+            <span
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                minWidth: "[0]",
+                flex: "1",
+              })}
+            >
+              <span
+                className={css({
+                  textStyle: "xxs",
+                  lineHeight: "tight",
+                  color: "neutral.fg.subtle",
+                  paddingBottom: "0.5",
+                })}
+              >
+                Trigger
+              </span>
+              <CardText title={summary.title} description={summary.line} />
+            </span>
+          ) : (
+            <CardText title={summary.title} description={summary.line} />
+          )}
+        </div>
+      )}
+      <Handle
+        id="next"
+        type="source"
+        position={Position.Right}
+        className={handleStyle}
+        style={{
+          top: rail ? RAIL_HEIGHT / 2 : STEP_HEIGHT / 2,
+          ...(ghostLayout === "fan" ? { opacity: 0 } : {}),
+        }}
+        isConnectable={false}
+      />
+    </div>
+  );
+};
+
+/** Q4 Take 4: one Triggers node, three number rows. A kind that is off reads fainter. */
+const GhostSingleView = ({ selected }: NodeProps<StepNode>) => {
+  const triggers = useFlowTriggers();
+  return (
+    <div
+      className={ghostTakeStyle({})}
+      data-on
+      data-selected={selected || undefined}
+      data-ghost-trigger="single"
+    >
+      <div className={cardHeadStyle}>
+        <CardTile icon="lightning" tone="neutral" ghost />
+        <span
+          className={cx(
+            oneLineStyle({ tone: "title" }),
+            css({ fontWeight: "normal" }),
+          )}
+        >
+          Triggers
+        </span>
+      </div>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          paddingX: "3",
+          paddingBottom: "2.5",
+        })}
+      >
+        {ghostKinds.map((kind) => {
+          const row = ghostTakeSummary(triggers, kind);
+          return (
+            <span
+              key={kind}
+              className={css({
+                display: "flex",
+                alignItems: "center",
+                gap: "2",
+                height: "[28px]",
+                color: "neutral.fg.muted",
+              })}
+              style={row.on ? undefined : { opacity: 0.5 }}
+            >
+              <span
+                className={css({
+                  display: "inline-flex",
+                  width: "[24px]",
+                  justifyContent: "center",
+                })}
+              >
+                <Icon name={row.icon} size="sm" />
+              </span>
+              <span
+                className={cx(
+                  oneLineStyle({ tone: "title" }),
+                  css({ flex: "1", fontWeight: "normal" }),
+                )}
+              >
+                {row.title}
+              </span>
+              <span
+                className={cx(
+                  oneLineStyle({ tone: "muted" }),
+                  css({ fontVariantNumeric: "tabular-nums" }),
+                )}
+              >
+                {row.count}
+              </span>
+            </span>
+          );
+        })}
+      </div>
+      <Handle
+        id="next"
+        type="source"
+        position={Position.Right}
+        className={handleStyle}
+        style={{ top: SINGLE_HANDLE_TOP }}
+        isConnectable={false}
+      />
+    </div>
+  );
+};
+
+/** `?triggernone=1`: one quiet line under the ghosts, in the DS orange at a muted step, with the way to fix it. */
+const GhostNoteView = () => {
+  const { document } = useEditor();
+  return (
+    <div
+      className={css({
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "1.5",
+        width: "[200px]",
+        paddingX: "1",
+        textStyle: "xs",
+        lineHeight: "tight",
+        color: "orange.fg.subtle",
+      })}
+      data-trigger-none
+    >
+      <span className={css({ display: "inline-flex", paddingTop: "[1px]" })}>
+        <Icon name="warning" size="xs" />
+      </span>
+      <span
+        className={css({ display: "flex", flexDirection: "column", gap: "1" })}
+      >
+        <span>Nothing can start this flow</span>
+        <button
+          type="button"
+          className={cx(
+            "nodrag nopan",
+            css({
+              alignSelf: "flex-start",
+              color: "neutral.fg.muted",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }),
+          )}
+          onClick={() => openFlowTriggers(document.name)}
+        >
+          Edit flow triggers
+        </button>
+      </span>
+    </div>
+  );
+};
+
+/** Take 3's rail: each wire bends into one point just before Start and runs in from there as one. */
+const GhostMergeEdge = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  style,
+}: EdgeProps) => {
+  const mergeX = targetX - 56;
+  const bend = (mergeX - sourceX) / 2;
+  const path = `M ${sourceX} ${sourceY} C ${sourceX + bend} ${sourceY}, ${mergeX - bend} ${targetY}, ${mergeX} ${targetY} L ${targetX} ${targetY}`;
+  return <BaseEdge id={id} path={path} style={style} />;
+};
+
+/** The take's ghost nodes left of Start (`trigger-flags.ts`); take 4's toolbar toggle can hide them. */
+const ghostTakeNodes = (
+  start: { x: number; y: number },
+  selectedId: string | null | undefined,
+  show: boolean,
+): StepNode[] => {
+  if (!show) {
+    return [];
+  }
+  const ghost = (
+    kind: (typeof ghostKinds)[number],
+    type: "ghostTake" | "ghostSingle",
+    x: number,
+    y: number,
+  ): StepNode => ({
+    id: ghostId(kind),
+    type,
+    position: { x, y },
+    data: { stepId: ghostId(kind) },
+    selected: selectedId === ghostId(kind),
+    draggable: false,
+    deletable: false,
+  });
+  if (ghostLayout === "single") {
+    return [
+      ghost(
+        "schedule",
+        "ghostSingle",
+        start.x - 300,
+        start.y + STEP_HEIGHT / 2 - SINGLE_HANDLE_TOP,
+      ),
+    ];
+  }
+  const nodes = ghostKinds.map((kind, index) => {
+    switch (ghostLayout) {
+      case "rail":
+        return ghost(
+          kind,
+          "ghostTake",
+          start.x - 100 - RAIL_WIDTH,
+          start.y + (STEP_HEIGHT - RAIL_HEIGHT) / 2 + (index - 1) * 52,
+        );
+      case "fan":
+        return ghost(
+          kind,
+          "ghostTake",
+          index === 1 ? start.x - 300 : start.x - 272,
+          start.y + (index - 1) * 104,
+        );
+      default:
+        // Take 4's eyebrow makes each card taller, so the column opens up.
+        return ghost(
+          kind,
+          "ghostTake",
+          start.x - 300,
+          start.y + (index - 1) * (triggerDistinctTake === 4 ? 92 : 80),
+        );
+    }
+  });
+  return triggerNoneTake === 1
+    ? [
+        ...nodes,
+        {
+          id: "ghost:none",
+          type: "ghostNote",
+          position: { x: start.x - 300, y: start.y + 80 + STEP_HEIGHT + 14 },
+          data: { stepId: "ghost:none" },
+          draggable: false,
+          deletable: false,
+          selectable: false,
+        },
+      ]
+    : nodes;
+};
+
+/** The take's wires into Start: three, a bracket, merged, none (the fan) or one (Q4 Take 4). */
+const ghostTakeEdges = (
+  triggers: ReturnType<typeof useFlowTriggers>,
+  show: boolean,
+): Edge[] => {
+  if (!show || ghostLayout === "fan") {
+    return [];
+  }
+  const wire = (kind: (typeof ghostKinds)[number], on: boolean): Edge => ({
+    id: `ghost-wire:${kind}`,
+    source: ghostId(kind),
+    sourceHandle: "next",
+    target: START_ID,
+    targetHandle: "in",
+    selectable: false,
+    focusable: false,
+    ...(ghostLayout === "bracket"
+      ? { type: "step" }
+      : ghostLayout === "rail"
+        ? { type: "ghostMerge" }
+        : {}),
+    style: {
+      stroke: "var(--colors-neutral-bd-strong)",
+      strokeWidth: 1,
+      // One bracket reads as one line, so its parts share a weight.
+      opacity: on || ghostLayout === "bracket" ? 0.7 : 0.3,
+      ...(triggerDistinctTake === 5
+        ? { strokeDasharray: "0.5 4", strokeLinecap: "round", strokeWidth: 1.5 }
+        : {}),
+    },
+  });
+  if (ghostLayout === "single") {
+    return [wire("schedule", true)];
+  }
+  return ghostKinds.map((kind) =>
+    wire(kind, ghostTakeSummary(triggers, kind).on),
+  );
+};
+
+/** `?triggerfired`: what the fired trigger's node says, per take. */
+const firedTrigger = (run: RunRecord) => {
+  const manual = run.trigger.kind === "manual";
+  const title = manual ? "Manual" : "Schedule";
+  // Who pressed Run, or which schedule it was.
+  const who = manual ? run.trigger.by : "1st of month at 09:00";
+  switch (triggerFiredTake) {
+    case 3:
+      return { title, lines: ["Started this run"] };
+    case 4:
+      return { title, lines: [who, run.when] };
+    default:
+      return { title, lines: [who] };
+  }
+};
+
+const FiredText = ({ fired }: { fired: ReturnType<typeof firedTrigger> }) => (
+  <span
+    className={css({
+      display: "flex",
+      flexDirection: "column",
+      minWidth: "[0]",
+      flex: "1",
+    })}
+  >
+    <span className={oneLineStyle({ tone: "title" })}>{fired.title}</span>
+    {fired.lines.map((line) => (
+      <span key={line} className={oneLineStyle({ tone: "body" })}>
+        {line}
+      </span>
+    ))}
+  </span>
+);
+
 /** J6: in a run, only the trigger that fired shows, highlighted, left of Start. */
 const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
   const runView = useRunView();
@@ -1301,6 +1769,7 @@ const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
     return null;
   }
   const label = triggerLabel(runView.run);
+  const fired = triggerFiredTake ? firedTrigger(runView.run) : null;
   return (
     <div
       className={cx(
@@ -1319,7 +1788,11 @@ const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
           }
           tone="neutral"
         />
-        <CardText title={label.title} description={label.line} />
+        {fired ? (
+          <FiredText fired={fired} />
+        ) : (
+          <CardText title={label.title} description={label.line} />
+        )}
       </div>
       <Handle
         id="next"
@@ -1329,7 +1802,10 @@ const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
         style={{ top: STEP_HEIGHT / 2 }}
         isConnectable={false}
       />
-      <RunMark mark={runView.steps?.[runTriggerId]} />
+      {/* Take 2's path and take 3's selection carry the highlight; the others keep the done bar. */}
+      {triggerFiredTake === 2 || triggerFiredTake === 3 ? null : (
+        <RunMark mark={runView.steps?.[runTriggerId]} />
+      )}
     </div>
   );
 };
@@ -1512,6 +1988,9 @@ const nodeTypes = {
   forEach: GroupNodeView,
   trigger: RunTriggerView,
   ghost: GhostTriggerView,
+  ghostTake: GhostTakeView,
+  ghostSingle: GhostSingleView,
+  ghostNote: GhostNoteView,
   flowOutputs: ({ selected }: NodeProps<StepNode>) => (
     <FlowOutputsCard selected={selected} />
   ),
@@ -1604,7 +2083,7 @@ const FlowEdge = ({
   );
 };
 
-const edgeTypes = { flow: FlowEdge };
+const edgeTypes = { flow: FlowEdge, ghostMerge: GhostMergeEdge };
 
 /** Wires touching any of these steps. */
 const touching =
@@ -2021,6 +2500,8 @@ export const FlowCanvas = ({
     ui.selectedIds,
   );
   const start = document.positions[START_ID] ?? { x: 360, y: 220 };
+  const flowTriggers = useFlowTriggers();
+  const showTriggers = useShowTriggers();
   // A run is read-only, and shows the trigger that fired left of Start (J6).
   const nodes: StepNode[] = readOnly
     ? [
@@ -2036,15 +2517,17 @@ export const FlowCanvas = ({
       ]
     : [
         // Stacked 1.33 cards apart, centred on Start, half a card width left of it.
-        ...ghostKinds.map((kind, index) => ({
-          id: ghostId(kind),
-          type: "ghost" as const,
-          position: { x: start.x - 300, y: start.y + (index - 1) * 80 },
-          data: { stepId: ghostId(kind) },
-          selected: ui.selectedId === ghostId(kind),
-          draggable: false,
-          deletable: false,
-        })),
+        ...(ghostLayout
+          ? ghostTakeNodes(start, ui.selectedId, showTriggers)
+          : ghostKinds.map((kind, index) => ({
+              id: ghostId(kind),
+              type: "ghost" as const,
+              position: { x: start.x - 300, y: start.y + (index - 1) * 80 },
+              data: { stepId: ghostId(kind) },
+              selected: ui.selectedId === ghostId(kind),
+              draggable: false,
+              deletable: false,
+            }))),
         ...stepNodes,
         // ?flowoutput=5: the Outputs card, one card width after the right-most top-level step.
         ...(flowTake === 5
@@ -2080,23 +2563,29 @@ export const FlowCanvas = ({
             target: START_ID,
             targetHandle: "in",
             type: "flow",
-            style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
+            // ?triggerfired=2: the path the run took, in the done colour.
+            style:
+              triggerFiredTake === 2
+                ? { stroke: "var(--flows-node-doneBar)", strokeWidth: 2 }
+                : { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
           },
         ]
-      : ghostKinds.map((kind) => ({
-          id: `ghost-wire:${kind}`,
-          source: ghostId(kind),
-          sourceHandle: "next",
-          target: START_ID,
-          targetHandle: "in",
-          selectable: false,
-          focusable: false,
-          style: {
-            stroke: "rgba(0, 0, 0, 0.2)",
-            strokeWidth: 1,
-            strokeDasharray: "3 2",
-          },
-        }))),
+      : ghostLayout
+        ? ghostTakeEdges(flowTriggers, showTriggers)
+        : ghostKinds.map((kind) => ({
+            id: `ghost-wire:${kind}`,
+            source: ghostId(kind),
+            sourceHandle: "next",
+            target: START_ID,
+            targetHandle: "in",
+            selectable: false,
+            focusable: false,
+            style: {
+              stroke: "rgba(0, 0, 0, 0.2)",
+              strokeWidth: 1,
+              strokeDasharray: "3 2",
+            },
+          }))),
     ...toEdges(document, ui.collapsed),
   ];
 
