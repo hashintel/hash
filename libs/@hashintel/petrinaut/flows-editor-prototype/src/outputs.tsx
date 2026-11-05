@@ -28,6 +28,7 @@ import { useEditor } from "./editor-context";
 import { useRunView } from "./history-view";
 import { useLocation } from "./router";
 import { PropertyRow, SourceChip } from "./ui";
+import { UsedInBlock, useOldUsedIn } from "./used-in";
 
 import type { StepInputSource } from "./engine";
 
@@ -505,6 +506,14 @@ const kindIcon = (kind: string | null): IconName => {
   return list ? "list" : "text";
 };
 
+/** The outputs one under another, 24 px apart (playground spacing 40 / 36 / 24), across both panel columns. */
+const outputsStackStyle = css({
+  gridColumn: "1 / -1",
+  display: "flex",
+  flexDirection: "column",
+  gap: "6",
+});
+
 export const OutputRows = ({
   stepId,
   outputs,
@@ -523,6 +532,48 @@ export const OutputRows = ({
   const viewingVersion = useLocation().query.has("version");
   const readOnly = Boolean(runView) || viewingVersion || !!ui.run;
   const take = useFlowOutputTake();
+  const oldUsedIn = useOldUsedIn();
+  if (!oldUsedIn) {
+    return (
+      <div className={outputsStackStyle}>
+        {outputs.map((output) => {
+          const kind = kindOf(output.name);
+          return (
+            <UsedInBlock
+              key={output.name}
+              stepId={stepId}
+              outputName={output.name}
+              label={output.label}
+              kind={kind}
+              typeIcon={kindIcon(kind)}
+              readOnly={readOnly}
+              iconOf={iconOf}
+              end={
+                <>
+                  {take !== null &&
+                  take >= 3 &&
+                  isOutputFlagged(document, stepId, output.name) ? (
+                    <FlowOutputTag />
+                  ) : null}
+                  {take === 2 && !readOnly ? (
+                    <FlowOutputCheck stepId={stepId} outputName={output.name} />
+                  ) : take === 3 && !readOnly ? (
+                    <FlowOutputMenu stepId={stepId} outputName={output.name} />
+                  ) : take === 4 || take === 5 ? null : (
+                    <OutputFlag
+                      stepId={stepId}
+                      outputName={output.name}
+                      readOnly={readOnly}
+                    />
+                  )}
+                </>
+              }
+            />
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <>
       {outputs.map((output) => {
