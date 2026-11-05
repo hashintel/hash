@@ -25,6 +25,7 @@ import {
   runClock,
   runTriggerId,
   signOffId,
+  warningsText,
 } from "./run-history";
 import { type LogRow, logRows, secondsText } from "./run-log";
 
@@ -310,14 +311,8 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
     ? Math.min(facts.processed[3], facts.n)
     : facts.n - failed;
 
-  const statusWord =
-    outcome === "error"
-      ? "Failed"
-      : outcome === "warnings"
-        ? failed > 0
-          ? "Failed"
-          : outcomeLabel[outcome]
-        : outcomeLabel[outcome];
+  // Binary: a run with warnings is Completed, its warnings counted on the right (5 Nov).
+  const statusWord = outcomeLabel[outcome];
   const statusTone =
     statusWord === "Failed"
       ? "var(--flows-failed-text)"
@@ -497,13 +492,13 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
               variant="ghost"
               tone="neutral"
               className={failedLinkStyle}
-              tooltip="Show the failed items"
+              tooltip="Show the items that failed"
               data-log-failed
               onClick={() =>
                 setOpenIds((current) => ({ ...current, loop: true }))
               }
             >
-              {`${failed} failed`}
+              {outcome === "warnings" ? warningsText(failed) : `${failed} failed`}
             </Button>
           ) : null}
         </div>

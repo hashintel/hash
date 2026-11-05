@@ -706,7 +706,7 @@ export const figmaScreens: FigmaScreen[] = [
   },
   {
     id: "J6.4",
-    name: "Past run · Run 16 · completed with warnings (proposed)",
+    name: "Past run · Run 16 · completed, 2 warnings",
     nodeId: "1196:89161",
     section: "J6 · Run view · 4 Nov sync",
     tag: "None",

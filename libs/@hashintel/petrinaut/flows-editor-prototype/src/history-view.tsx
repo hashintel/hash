@@ -27,7 +27,7 @@ import {
   factsOf,
   findSpan,
   forEachId,
-  outcomeLabel,
+  statusText,
   outcomeOf,
   outcomeState,
   runProgress,
@@ -181,7 +181,7 @@ const runMenuLabel = (run: RunRecord, now: number) => {
     run.kind === "past" && run.facts.signOff === "timedOut"
       ? " · timed out"
       : "";
-  return `Run ${run.id} · ${outcomeLabel[outcome]}${timedOut}`;
+  return `Run ${run.id} · ${statusText(run, now)}${outcome === "error" ? timedOut : ""}`;
 };
 
 const menuRowStyle = css({

@@ -308,9 +308,9 @@ export const logRows = (
   const ending =
     outcome === "warnings"
       ? {
-          title: `Run ${run.id} completed with warnings (proposed)`,
-          note: `${facts.failures.length} of ${facts.n} suppliers failed at Fetch certificate`,
-          glyph: "cross" as const,
+          title: `Run ${run.id} completed`,
+          note: `${facts.failures.length === 1 ? "1 warning" : `${facts.failures.length} warnings`} · ${facts.failures.length} of ${facts.n} suppliers failed at Fetch certificate`,
+          glyph: "done" as const,
         }
       : outcome === "error"
         ? {
@@ -339,7 +339,7 @@ export const logRows = (
     title: ending.title,
     note: ending.note,
     duration: `${secondsText(total)} total`,
-    failure: outcome !== "completed",
+    failure: outcome !== "completed" && outcome !== "warnings",
   });
   return rows;
 };

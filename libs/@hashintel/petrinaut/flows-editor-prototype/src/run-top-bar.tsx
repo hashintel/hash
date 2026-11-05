@@ -22,7 +22,7 @@ import { BreadCrumbs, Button, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { type HistoryValue, RunSwitcher } from "./history-view";
-import { bannerAction, factsOf, outcomeLabel, outcomeOf } from "./run-history";
+import { bannerAction, factsOf, outcomeOf, statusText } from "./run-history";
 
 export type RunBarVariant = 1 | 2 | 3 | 4;
 export type EditorBarVariant = 1 | 2 | 3;
@@ -352,7 +352,7 @@ export const RunTopBar = ({
             </Button>
             <span className={runTitleStyle}>Run {run.id}</span>
             <span className={runMetaStyle}>
-              {outcomeLabel[outcome]} · {run.when}
+              {statusText(run, now)} · {run.when}
             </span>
             <RunSwitcher
               history={history}

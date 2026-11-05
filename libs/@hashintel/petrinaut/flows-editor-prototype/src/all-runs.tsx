@@ -19,10 +19,12 @@ import {
   outcomeState,
   type RunOutcome,
   type RunRecord,
-  outcomeLabel,
   runClock,
   runProgress,
+  statusText,
   triggerLabel,
+  warningsOf,
+  warningsText,
 } from "./run-history";
 import { RunOutputsCell } from "./run-outputs";
 import { StatusCell } from "./status-cell";
@@ -30,23 +32,26 @@ import { chartColor, statusColor } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
 
-type Tab = "all" | "running" | "completed" | "error" | "abandoned";
+/**
+ * A run ends in success or failure, with warnings counted apart (Ciarán 4 Nov, Dei 5 Nov): a run with warnings is
+ * Completed, and an abandoned run is one way of Failed (its cell still says "Abandoned").
+ */
+type Tab = "all" | "running" | "completed" | "failed";
 
 const tabOf: Record<RunOutcome, Exclude<Tab, "all">> = {
   running: "running",
   needsReview: "running",
   completed: "completed",
   warnings: "completed",
-  error: "error",
-  abandoned: "abandoned",
+  error: "failed",
+  abandoned: "failed",
 };
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "all", label: "All" },
   { value: "running", label: "Running" },
   { value: "completed", label: "Completed" },
-  { value: "error", label: "Error" },
-  { value: "abandoned", label: "Abandoned" },
+  { value: "failed", label: "Failed" },
 ];
 
 /** "… timed out after 48 h" → "Timed out after 48 h". */
@@ -103,12 +108,15 @@ const statusCellOf = (
           ? `Abandoned · ${progress.done} of ${progress.total}`
           : "Abandoned",
       };
-    case "warnings":
+    case "warnings": {
+      // Success, so the tick; the warnings are a count beside it, not a partly done mark.
+      const warnings = warningsText(warningsOf(run, now));
       return {
         state,
-        progress,
-        text: progress ? `${progress.done} of ${progress.total}` : undefined,
+        text: progress ? `${progress.done} · ${warnings}` : warnings,
+        detail: `${warnings} · ${facts.failures.length} of ${facts.n} certificates not fetched`,
       };
+    }
     default:
       return { state, progress, text: String(facts.n) };
   }
@@ -802,7 +810,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
                             }
                             setHover({
                               key: `run:${run.id}`,
-                              text: `Run ${run.id} · ${run.when.replace(", ", " ")} · ${outcomeLabel[outcome]}`,
+                              text: `Run ${run.id} · ${run.when.replace(", ", " ")} · ${statusText(run, now)}`,
                               x: square.left - box.left + square.width / 2,
                               top: square.top - box.top,
                             });
@@ -906,7 +914,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
           {
             runId: run.id,
             title: `Fetch certificate · ${facts.failures.length} of ${facts.n} failed`,
-            line: `Run ${run.id} · ${run.when} · with warnings`,
+            line: `Run ${run.id} · ${run.when} · completed, ${warningsText(facts.failures.length)}`,
           },
         ];
       }
@@ -918,7 +926,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
               facts.find === "failed"
                 ? "Find entities · timed out"
                 : "Quality sign-off · timed out",
-            line: `Run ${run.id} · ${run.when} · error`,
+            line: `Run ${run.id} · ${run.when} · failed`,
           },
         ];
       }
@@ -963,13 +971,13 @@ const Overview = ({ history }: { history: HistoryValue }) => {
           <Tile value={String(runs.length)} label="runs since 18 Nov 2025" />
           <Tile
             value={String(errors + abandoned)}
-            label={`didn't finish: ${errors} errors, ${abandoned} abandoned`}
+            label={`failed: ${errors} timed out, ${abandoned} abandoned`}
             alert
           />
           <Tile value="1m 44s" label="typical run (median of completed runs)" />
           <Tile
             value={String(warnings)}
-            label="completed with warnings (proposed)"
+            label="completed with warnings"
           />
         </div>
       </section>
@@ -984,7 +992,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             color: "neutral.fg.heading",
           })}
         >
-          Recent failures · click to open the run
+          Recent failures and warnings
         </span>
         {failures.map((failure) => (
           <button

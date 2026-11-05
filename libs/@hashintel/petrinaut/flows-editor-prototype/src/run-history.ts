@@ -16,7 +16,7 @@ export type StepState =
   | "needsReview"
   | "skipped"
   | "abandoned"
-  /** A For each with some items failed; at run level, "completed with warnings" (proposed). */
+  /** A For each with some items failed. A step state only: a run is Completed with a warnings count (5 Nov). */
   | "doneWithFailures";
 
 /** A run mark bar segment: one per state, in proportion to its item count. */
@@ -368,7 +368,8 @@ export const runProgress = (run: RunRecord, now: number) =>
 export const outcomeState: Record<RunOutcome, StepState> = {
   running: "running",
   needsReview: "needsReview",
-  warnings: "doneWithFailures",
+  // Flow status is binary, success or failure, with warnings counted apart (Ciarán 4 Nov, Dei 5 Nov).
+  warnings: "done",
   error: "failed",
   completed: "done",
   abandoned: "abandoned",
@@ -377,8 +378,8 @@ export const outcomeState: Record<RunOutcome, StepState> = {
 export const outcomeLabel: Record<RunOutcome, string> = {
   running: "Running",
   needsReview: "Needs review",
-  warnings: "Completed with warnings",
-  error: "Error",
+  warnings: "Completed",
+  error: "Failed",
   completed: "Completed",
   abandoned: "Abandoned",
 };
@@ -445,6 +446,20 @@ export const bannerDetail = (
       : `${failed} of ${facts.n} certificates not fetched`;
   }
   return run.ending ?? `${facts.n} of ${facts.n} suppliers reviewed`;
+};
+
+/** A completed run's warnings: the items that failed without failing the run. 0 for any other run. */
+export const warningsOf = (run: RunRecord, now: number) =>
+  outcomeOf(run, now) === "warnings" ? factsOf(run, now).failures.length : 0;
+
+export const warningsText = (count: number) =>
+  `${count} ${count === 1 ? "warning" : "warnings"}`;
+
+/** "Completed · 2 warnings", "Failed", "Running". */
+export const statusText = (run: RunRecord, now: number) => {
+  const warnings = warningsOf(run, now);
+  const label = outcomeLabel[outcomeOf(run, now)];
+  return warnings > 0 ? `${label} · ${warningsText(warnings)}` : label;
 };
 
 /** The banner's one button. */
