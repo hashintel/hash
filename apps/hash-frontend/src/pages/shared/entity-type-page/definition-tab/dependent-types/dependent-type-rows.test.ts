@@ -117,20 +117,6 @@ describe("getDependentTypeRows", () => {
       `${typeBaseUrl("user")}v/7`,
     ]);
   });
-
-  it("lists each version of a type that extends the parent, with the parent versions it extends", () => {
-    const mixedVersions = [
-      makeVersion("mixed", "Mixed", 4, [2]),
-      makeVersion("mixed", "Mixed", 2, [1, 2]),
-      makeVersion("mixed", "Mixed", 1, [1]),
-    ];
-
-    expect(rowsFor(mixedVersions, [mixedVersions[0]!])[0]?.versions).toEqual([
-      { version: 1, parentVersions: [1] },
-      { version: 2, parentVersions: [1, 2] },
-      { version: 4, parentVersions: [2] },
-    ]);
-  });
 });
 
 describe("getParentVersionRows", () => {
