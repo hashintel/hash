@@ -121,10 +121,13 @@ const getRefusalReason = (error: unknown) =>
 
 const FlowEditor = ({
   flowDefinitionEntityId,
+  shortname,
   flow,
   reloadFlow,
 }: {
   flowDefinitionEntityId: EntityId;
+  /** The shortname of the web the flow is in, for the paths of its runs. */
+  shortname: string;
   flow: FlowDefinitionToEdit;
   reloadFlow: () => Promise<FlowDefinitionToEdit | null>;
 }) => {
@@ -283,10 +286,7 @@ const FlowEditor = ({
     }
 
     await router.push(
-      generateWorkerRunPath({
-        shortname: router.query.shortname as string,
-        flowRunEntityId: data.startFlow,
-      }),
+      generateWorkerRunPath({ shortname, flowRunEntityId: data.startFlow }),
     );
   };
 
@@ -428,8 +428,10 @@ const EditorLoading = () => (
 
 const FlowEditorLoader = ({
   flowDefinitionEntityId,
+  shortname,
 }: {
   flowDefinitionEntityId: EntityId;
+  shortname: string;
 }) => {
   const { flow, loading, reload } = useFlowDefinitionToEdit(
     flowDefinitionEntityId,
@@ -443,6 +445,7 @@ const FlowEditorLoader = ({
     return (
       <FlowEditor
         flowDefinitionEntityId={flowDefinitionEntityId}
+        shortname={shortname}
         flow={flow}
         reloadFlow={reload}
       />
@@ -461,7 +464,7 @@ const FlowEditorPage: NextPageWithLayout = () => {
   /* The path has the uuid of the definition's entity, and its shortname names the web the definition is in. */
   const { loading, routeNamespace } = useRouteNamespace();
 
-  if (!routeNamespace) {
+  if (!routeNamespace?.shortname) {
     return loading ? <EditorLoading /> : <NotFound />;
   }
 
@@ -474,6 +477,7 @@ const FlowEditorPage: NextPageWithLayout = () => {
     <FlowEditorLoader
       key={flowDefinitionEntityId}
       flowDefinitionEntityId={flowDefinitionEntityId}
+      shortname={routeNamespace.shortname}
     />
   );
 };
