@@ -42,7 +42,7 @@ export const IntegrationIcon = ({
   const artwork: Artwork = integrationGeometry[name];
   const logo = variant.startsWith("logo");
   const dark = variant.endsWith("dark");
-  const mono = variant.endsWith("mono");
+  const mono = variant === "mark-mono";
   const app = variant.startsWith("app");
   const Geometry = logo
     ? dark

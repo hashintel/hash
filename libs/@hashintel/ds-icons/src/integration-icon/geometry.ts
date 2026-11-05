@@ -58,7 +58,7 @@ export const integrationGeometry = {
   celonis: {
     ...celonis,
     markViewBox: "0 0 50 34",
-    logoViewBox: "0 0 107 25",
+    logoViewBox: "0 0 424.8962352284291 100",
     ratio: 1.3,
     alignment: "center",
   },
@@ -115,7 +115,7 @@ export const integrationGeometry = {
   veevaVault: {
     ...veevaVault,
     markViewBox: "0 0 32 32",
-    logoViewBox: "0 0 120 39",
+    logoViewBox: "0 0 376.1538461538462 100",
     ratio: 2,
     alignment: "center",
   },
@@ -143,7 +143,7 @@ export const integrationGeometry = {
   kinaxis: {
     ...kinaxis,
     markViewBox: "0 0 42 24",
-    logoViewBox: "0 0 146 20",
+    logoViewBox: "0 0 684.5 100",
     ratio: 1.52,
     alignment: "center",
   },
@@ -171,7 +171,7 @@ export const integrationGeometry = {
   oracle: {
     ...oracle,
     markViewBox: "0 0 40 24",
-    logoViewBox: "0 0 512 67",
+    logoViewBox: "0 0 726.1802525832377 100",
     ratio: 1.64,
     alignment: "center",
   },
@@ -255,14 +255,14 @@ export const integrationGeometry = {
   messenger: {
     ...messenger,
     markViewBox: "0 0 34 34",
-    logoViewBox: "0 0 888.71948 132.42526",
+    logoViewBox: "0 0 599.7771678907785 100",
     ratio: 2,
     alignment: "center",
   },
   instagram: {
     ...instagram,
     markViewBox: "0 0 36 36",
-    logoViewBox: "0 0 792 224.7",
+    logoViewBox: "0 0 429.59946595460616 100",
     ratio: 2,
     alignment: "center",
   },
@@ -290,14 +290,14 @@ export const integrationGeometry = {
   zoom: {
     ...zoom,
     markViewBox: "0 0 32 20",
-    logoViewBox: "0 0 512 117",
+    logoViewBox: "0 0 545.0854700854701 100",
     ratio: 1.88,
     alignment: "center",
   },
   github: {
     ...github,
     markViewBox: "0 0 36 36",
-    logoViewBox: "0 0 512 139",
+    logoViewBox: "0 0 387.841726618705 100",
     ratio: 2,
     alignment: "center",
   },

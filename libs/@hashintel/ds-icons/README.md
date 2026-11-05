@@ -194,22 +194,23 @@ The same exports are available from the package root for applications using lega
 | `mark-dark`  | Backgroundless brand colors adjusted for a dark background.                                                            |
 | `app-light`  | Brand artwork on a rounded, partly transparent light tile.                                                             |
 | `app-dark`   | Brand artwork on a rounded, partly transparent dark tile.                                                              |
-| `logo-mono`  | Full wordmark or lock-up in one hue, with alpha tones where the artwork needs them.                                    |
 | `logo-light` | Full wordmark or lock-up in brand colors for a light background.                                                       |
 | `logo-dark`  | Full wordmark or lock-up adjusted for a dark background.                                                               |
 
 `size` is the height in pixels. Marks and app tiles are square; full logos use their natural aspect ratio. SVG props such as `width`, `height`, `className`, and `style` remain available. App tiles preserve the catalogue's brand sizing and SAP's left alignment. Every instance gets unique gradient, mask, clip, filter, and title IDs.
 
-Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. Mono variants apply the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
+Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-38 brands have all eight variants. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback also has only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+38 brands have all seven variants. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback also has only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
-Gmail and Microsoft Teams full logos embed authentic PNG artwork. All other full logos are vectors. Veeva Vault uses Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
+Gmail and Microsoft Teams full logos embed authentic PNG artwork. All other full logos are vectors. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
 Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 
+Where a source provides only a wordmark, the full logo pairs it with the sourced brand mark. These composed lock-ups are identified in `logoNotes`; brands whose mark is already their wordmark keep that artwork.
+
 ### Maintaining the artwork
 
-Edit the reviewed SVGs in `src/integration-icon/artwork` and the source, alias, sizing, and palette metadata in `src/integration-icon/brands.json`. Then run `yarn generate:integrations` and the package checks. The generator writes both React geometry and standalone variants from those sources.
+Edit the reviewed SVGs in `src/integration-icon/artwork` and the source, alias, sizing, and palette metadata in `src/integration-icon/brands.json`. Then run `yarn generate:integrations` and the package checks. The generator writes both React geometry and standalone variants from those sources and removes obsolete SVG variants. `logoLayout` controls the wordmark height and gap when composing a lock-up; an optional `logo-mark.svg` supplies a mark without embedded lettering.
 
 After building the package, run `node scripts/preview-integrations.ts /path/to/integration-icons.html` to create a self-contained review grid. It includes light and dark backgrounds, a transparency toggle, and a mono color toggle.

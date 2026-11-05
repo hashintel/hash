@@ -41,7 +41,11 @@
     "markDarkColors": {},
     "logoDarkColors": {},
     "logoSource": "https://www.celonis.com/src/assets/icons/logo.svg",
-    "logoNotes": "Official site metadata logo"
+    "logoNotes": "Official site metadata logo. Lock-up composed from the sourced brand mark and wordmark.",
+    "logoLayout": {
+      "wordmarkHeight": 0.7,
+      "gap": 0.3
+    }
   },
   {
     "name": "databricks",
@@ -151,7 +155,11 @@
     "markDarkColors": {},
     "logoDarkColors": {},
     "logoSource": "https://www.veeva.com/wp-content/themes/veeva2015/assets/veeva-2024/veeva-logo-white.svg",
-    "logoNotes": "Official Veeva corporate wordmark; no separate Vault lock-up was verified."
+    "logoNotes": "Official Veeva corporate wordmark; no separate Vault lock-up was verified. Lock-up composed from the sourced brand mark and wordmark.",
+    "logoLayout": {
+      "wordmarkHeight": 0.8,
+      "gap": 0.3
+    }
   },
   {
     "name": "pasX",
@@ -217,7 +225,11 @@
     "markDarkColors": {},
     "logoDarkColors": {},
     "logoSource": "https://www.kinaxis.com/themes/custom/ka/src/images/logo.svg",
-    "logoNotes": "Official site header logo"
+    "logoNotes": "Official site header logo. Lock-up composed from the sourced brand mark and wordmark.",
+    "logoLayout": {
+      "wordmarkHeight": 0.65,
+      "gap": 0.35
+    }
   },
   {
     "name": "coupa",
@@ -279,7 +291,12 @@
       "white": "#C74634"
     },
     "markDarkColors": {},
-    "logoDarkColors": {}
+    "logoDarkColors": {},
+    "logoLayout": {
+      "wordmarkHeight": 0.68,
+      "gap": 0.45
+    },
+    "logoNotes": "Lock-up composed from the sourced brand mark and wordmark."
   },
   {
     "name": "sap",
@@ -447,7 +464,11 @@
     "markDarkColors": {},
     "logoDarkColors": {},
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Facebook_Messenger_wordmark_2025.svg",
-    "logoNotes": "https://commons.wikimedia.org/wiki/File:Facebook_Messenger_wordmark_2025.svg"
+    "logoNotes": "https://commons.wikimedia.org/wiki/File:Facebook_Messenger_wordmark_2025.svg. Lock-up composed from the sourced brand mark and wordmark.",
+    "logoLayout": {
+      "wordmarkHeight": 0.7,
+      "gap": 0.3
+    }
   },
   {
     "name": "instagram",
@@ -462,7 +483,12 @@
     "markDarkColors": {},
     "logoDarkColors": {
       "#780cff": "#B48CFF"
-    }
+    },
+    "logoLayout": {
+      "wordmarkHeight": 0.85,
+      "gap": 0.3
+    },
+    "logoNotes": "Lock-up composed from the sourced brand mark and wordmark."
   },
   {
     "name": "notion",
@@ -518,7 +544,12 @@
     "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/zoom.svg",
     "markLightColors": {},
     "markDarkColors": {},
-    "logoDarkColors": {}
+    "logoDarkColors": {},
+    "logoLayout": {
+      "wordmarkHeight": 0.8,
+      "gap": 0.35
+    },
+    "logoNotes": "Lock-up composed from the sourced brand mark and wordmark."
   },
   {
     "name": "github",
@@ -533,7 +564,12 @@
       "white": "#181717"
     },
     "markDarkColors": {},
-    "logoDarkColors": {}
+    "logoDarkColors": {},
+    "logoLayout": {
+      "wordmarkHeight": 0.7,
+      "gap": 0.3
+    },
+    "logoNotes": "Lock-up composed from the sourced brand mark and wordmark."
   },
   {
     "name": "figma",

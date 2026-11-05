@@ -8,7 +8,7 @@ root = Path(__file__).resolve().parent.parent
 source = root / "src/integration-icon"
 ET.register_namespace("", "http://www.w3.org/2000/svg")
 svg_ns = "{http://www.w3.org/2000/svg}"
-variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "logo-mono", "logo-light", "logo-dark"]
+variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "logo-light", "logo-dark"]
 
 
 def tag_name(element):
@@ -27,9 +27,11 @@ def color_rgb(value):
     return [int(value[index:index + 2], 16) / 255 for index in (0, 2, 4)]
 
 
-def themed_artwork(brand, kind, dark):
+def themed_artwork(brand, kind, dark, for_logo=False):
     path = source / "artwork" / brand["slug"] / f"{kind}.svg"
-    override = path.with_name(f"{kind}-{'dark' if dark else 'light'}.svg")
+    if for_logo and path.with_name("logo-mark.svg").exists():
+        path = path.with_name("logo-mark.svg")
+    override = path.with_name(f"{path.stem}-{'dark' if dark else 'light'}.svg")
     document = ET.fromstring((override if override.exists() else path).read_text())
     document.attrib.pop("width", None)
     document.attrib.pop("height", None)
@@ -82,6 +84,29 @@ def themed_artwork(brand, kind, dark):
             if tag_name(element) == "image":
                 element.set("filter", "url(#logo-contrast)")
         document.insert(0, definitions)
+    if kind == "logo" and brand.get("logoLayout"):
+        return compose_logo(themed_artwork(brand, "mark", dark, for_logo=True), document, brand["logoLayout"])
+    return document
+
+
+def compose_logo(mark, wordmark, layout):
+    document = ET.Element(svg_ns + "svg", {"fill": "none"})
+    x = 0
+    for name, artwork, height in (("mark", mark, 100), ("wordmark", wordmark, layout["wordmarkHeight"] * 100)):
+        viewbox = [float(value) for value in artwork.get("viewBox").replace(",", " ").split()]
+        width = height * viewbox[2] / viewbox[3]
+        artwork.attrib.update({"x": str(x), "y": str((100 - height) / 2), "width": str(width), "height": str(height)})
+        for element in artwork.iter():
+            for key, value in list(element.attrib.items()):
+                if key == "id":
+                    element.set(key, f"{name}-{value}")
+                elif "url(#" in value:
+                    element.set(key, value.replace("url(#", f"url(#{name}-"))
+                elif key.endswith("href") and value.startswith("#"):
+                    element.set(key, f"#{name}-{value[1:]}")
+        document.append(artwork)
+        x += width + (layout["gap"] * 100 if name == "mark" else 0)
+    document.set("viewBox", f"0 0 {x} 100")
     return document
 
 
@@ -134,7 +159,7 @@ def variant_svg(brand, variant):
     kind = "logo" if variant.startswith("logo") else "mark"
     dark = variant.endswith("dark")
     app = variant.startswith("app")
-    mono = variant.endswith("mono")
+    mono = variant == "mark-mono"
     artwork = themed_artwork(brand, kind, dark)
     viewbox = [float(value) for value in artwork.get("viewBox").replace(",", " ").split()]
     if kind == "logo":
@@ -195,6 +220,9 @@ def generate():
     for path, contents in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(contents)
+    for path in (root / "assets/integrations").glob("*/*.svg"):
+        if path not in files:
+            path.unlink()
     print(f'Generated {len(brands)} icons and {sum(len(icon["variants"]) for icon in catalog)} SVG variants.')
 
 
