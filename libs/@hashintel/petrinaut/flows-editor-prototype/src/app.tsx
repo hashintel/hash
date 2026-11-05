@@ -533,7 +533,7 @@ export const Editor = ({
                           { value: "editor", label: "Editor" },
                           {
                             value: "history",
-                            label: "History",
+                            label: "Logs",
                             disabled: latestRun === undefined,
                           },
                         ]}

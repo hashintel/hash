@@ -17,7 +17,7 @@ const screens: Record<string, string> = {
   "J4.1": `${review}?step=start`,
   "J4.3": `${review}?step=ghost:schedule`,
   "J4.4": review,
-  "J6.0": `${review}/history`,
+  "J6.0": `${review}/logs`,
   "J6.1": `${review}/runs/17`,
   "J6.2": `${review}/runs/17?at=62&pin`,
   "J6.3": `${review}/runs/17?at=140&pin`,
@@ -39,7 +39,7 @@ const fromState = (query: URLSearchParams): string | undefined => {
     case "editor":
       return `/flows/${flow}`;
     case "history":
-      return `/flows/${flow}/history`;
+      return `/flows/${flow}/logs`;
     case "run":
       return `/flows/${flow}/runs/${run ?? "17"}`;
     case "triggers":

@@ -348,7 +348,7 @@ export const RunTopBar = ({
               tooltip="All runs of this flow"
               onClick={() => history.open(null)}
             >
-              History
+              Logs
             </Button>
             <span className={runTitleStyle}>Run {run.id}</span>
             <span className={runMetaStyle}>

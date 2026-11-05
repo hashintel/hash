@@ -238,7 +238,10 @@ const flagStyle = css({
     backgroundColor: "neutral.bg.surface.hover",
     color: "neutral.fg.heading",
   },
-  "&[data-readonly]": { cursor: "default", _hover: { background: "[transparent]" } },
+  "&[data-readonly]": {
+    cursor: "default",
+    _hover: { background: "[transparent]" },
+  },
 });
 
 const OutputFlag = ({
@@ -256,11 +259,11 @@ const OutputFlag = ({
     return null;
   }
   return (
-    <Tooltip content={readOnly ? "Shown in run history" : "Show in run history"}>
+    <Tooltip content={readOnly ? "Shown in Logs" : "Show in Logs"}>
       <button
         type="button"
         className={flagStyle}
-        aria-label="Show in run history"
+        aria-label="Show in Logs"
         aria-pressed={flagged}
         data-output-flag={`${stepId}.${outputName}`}
         data-flagged={flagged || undefined}
@@ -370,35 +373,35 @@ export const OutputRows = ({
                 minWidth: "[0]",
               })}
             >
-            <UsedByTree
-              iconOf={iconOf}
-              action={
-                readOnly
-                  ? undefined
-                  : {
-                      anchor: `${stepId}:${output.name}`,
-                      open,
-                      onOpen: () =>
-                        setUi((current) => ({
-                          ...current,
-                          openField: null,
-                          picker: {
-                            anchor: "output",
-                            after: { stepId, port: "next" },
-                            feed: {
-                              outputName: output.name,
-                              label: output.label,
+              <UsedByTree
+                iconOf={iconOf}
+                action={
+                  readOnly
+                    ? undefined
+                    : {
+                        anchor: `${stepId}:${output.name}`,
+                        open,
+                        onOpen: () =>
+                          setUi((current) => ({
+                            ...current,
+                            openField: null,
+                            picker: {
+                              anchor: "output",
+                              after: { stepId, port: "next" },
+                              feed: {
+                                outputName: output.name,
+                                label: output.label,
+                              },
                             },
-                          },
-                        })),
-                    }
-              }
-              match={(source) =>
-                source.kind === "step-output" &&
-                source.stepId === stepId &&
-                source.outputName === output.name
-              }
-            />
+                          })),
+                      }
+                }
+                match={(source) =>
+                  source.kind === "step-output" &&
+                  source.stepId === stepId &&
+                  source.outputName === output.name
+                }
+              />
               <OutputFlag
                 stepId={stepId}
                 outputName={output.name}

@@ -5,7 +5,7 @@
  * - `/flows`: the flows list.
  * - `/flows/new`: makes a flow and replaces itself with `/flows/<id>`.
  * - `/flows/:flowId`: the editor.
- * - `/flows/:flowId/history`: the flow's runs.
+ * - `/flows/:flowId/logs`: the flow's runs, the Logs page (named History before 5 Nov; `/history` redirects here).
  * - `/flows/:flowId/runs/:runId`: one run.
  * - `/flows/:flowId/triggers`, `/flows/triggers`: the Flows › Triggers page.
  * - `/runs`: runs across every flow.
@@ -45,7 +45,7 @@ export const parseRoute = (pathname: string, search: string): Route => {
   if (flowId === "triggers") {
     return { page: "triggers", flowId: null };
   }
-  if (section === "history") {
+  if (section === "logs" || section === "history") {
     return { page: "history", flowId };
   }
   if (section === "runs" && runId && Number.isFinite(Number(runId))) {
@@ -66,7 +66,7 @@ export const routePath = (route: Route): string => {
     case "editor":
       return `/flows/${route.flowId}`;
     case "history":
-      return `/flows/${route.flowId}/history`;
+      return `/flows/${route.flowId}/logs`;
     case "run":
       return `/flows/${route.flowId}/runs/${route.runId}`;
     case "triggers":
@@ -81,6 +81,22 @@ export const routePath = (route: Route): string => {
 };
 
 const changeEvent = "flows-proto:navigate";
+
+/** Old `/flows/:flowId/history` links land on `/flows/:flowId/logs`, query kept. */
+const redirectHistoryPath = () => {
+  const { pathname, search } = globalThis.location;
+  const match = /^\/flows\/([^/]+)\/history\/?$/.exec(pathname);
+  if (match) {
+    globalThis.history.replaceState(
+      null,
+      "",
+      `/flows/${match[1]}/logs${search}`,
+    );
+  }
+};
+
+redirectHistoryPath();
+globalThis.addEventListener("popstate", redirectHistoryPath);
 
 export const navigate = (path: string, options: { replace?: boolean } = {}) => {
   const current = `${globalThis.location.pathname}${globalThis.location.search}`;
