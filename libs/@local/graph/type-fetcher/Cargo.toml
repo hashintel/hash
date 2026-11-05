@@ -26,7 +26,6 @@ hash-temporal-client           = { workspace = true }
 
 # Private third-party dependencies
 derive_more           = { workspace = true, features = ["display", "error"] }
-futures               = { workspace = true }
 include_dir           = { workspace = true, features = ["glob"] }
 opentelemetry         = { workspace = true }
 reqwest               = { workspace = true, features = ["json", "stream"] }
