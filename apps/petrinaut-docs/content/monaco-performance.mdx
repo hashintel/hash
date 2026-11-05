@@ -33,7 +33,8 @@ objects, so reference equality cannot distinguish code edits.
   while another editor remains attached.
 - An idle task warms the exact font and theme once, then disposes its temporary
   editor and model. It skips warming when a real editor has already opened and
-  cancels pending work when its provider unmounts.
+  cancels pending work when its provider unmounts. Environments without font
+  loading or idle callbacks skip this optional task.
 - Every keystroke reaches the document handle immediately. Local Visualizer text
   replacements delay only the UI snapshot, using a 120 ms quiet period and a
   500 ms maximum wait. Pointer interaction, blur, and navigation/save keyboard
@@ -99,7 +100,7 @@ Safari, IME, screen-reader behavior, and slower physical devices still need chec
 Browser verification passed for real typing and undo, completion suggestions,
 type-error markers, Canvas → Definitions → Canvas source preservation, and real
 pointer resizing. No page errors were reported. The updated unit suite passes
-1,427 tests across 178 files. It covers real document mutations, pending-update
+1,428 tests across 178 files. It covers real document mutations, pending-update
 flush/cancellation, subnet edits, remote snapshots, retained sections, model
 ownership, warmup cleanup, and the fade transition.
 

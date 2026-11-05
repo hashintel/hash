@@ -5,7 +5,38 @@ import { warmEditor } from "./warm-editor";
 
 import type { MonacoContextValue } from "./context";
 
-afterEach(() => vi.unstubAllGlobals());
+const originalFonts = Object.getOwnPropertyDescriptor(document, "fonts");
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  if (originalFonts) Object.defineProperty(document, "fonts", originalFonts);
+  else Reflect.deleteProperty(document, "fonts");
+});
+
+it("skips warmup when font loading or idle callbacks are unavailable", () => {
+  const idle = vi.fn();
+  const load = vi.fn();
+  const create = vi.fn();
+  const monaco = {
+    editor: { create, getEditors: () => [] },
+  } as unknown as MonacoContextValue["monaco"];
+  vi.stubGlobal("requestIdleCallback", idle);
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: undefined,
+  });
+  warmEditor(monaco)();
+  expect(idle).not.toHaveBeenCalled();
+
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: { load },
+  });
+  vi.stubGlobal("requestIdleCallback", undefined);
+  warmEditor(monaco)();
+  expect(load).not.toHaveBeenCalled();
+  expect(create).not.toHaveBeenCalled();
+});
 
 it("cancels before idle work and skips warming an editor that already opened", async () => {
   const idle = vi.fn();

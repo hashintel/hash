@@ -6,6 +6,13 @@ import type { editor } from "monaco-editor";
 const warmed = new WeakSet<MonacoContextValue["monaco"]>();
 
 export const warmEditor = (monaco: MonacoContextValue["monaco"]) => {
+  if (
+    warmed.has(monaco) ||
+    typeof document.fonts === "undefined" ||
+    typeof window.requestIdleCallback !== "function"
+  )
+    return () => {};
+
   let active = true;
   let idle: number | undefined;
   let frame: number | undefined;
@@ -22,12 +29,7 @@ export const warmEditor = (monaco: MonacoContextValue["monaco"]) => {
   // Match the real font before Monaco caches its first text measurements.
   void document.fonts.load(`12px ${CODE_FONT_FAMILY}`).then(
     () => {
-      if (
-        !active ||
-        warmed.has(monaco) ||
-        typeof window.requestIdleCallback !== "function"
-      )
-        return;
+      if (!active || warmed.has(monaco)) return;
       idle = window.requestIdleCallback(() => {
         if (warmed.has(monaco)) return;
         warmed.add(monaco);
