@@ -672,6 +672,12 @@ const pickerColourFlag = () => {
   return value >= 1 && value <= 3 ? value : null;
 };
 
+/** A group row's icon in its group's hue (`?pickercolour=1`): the step icons' s100, so a group and its steps match. */
+export const groupIconColour = (group: string) => {
+  const hue = groupHues.find((entry) => entry.group === group)?.hue;
+  return hue ? tokenVar(`${hue}.s100`) : undefined;
+};
+
 /** A group's small swatch (`?pickercolour=2`). */
 export const groupSwatch = (group: string) => {
   const hue = groupHues.find((entry) => entry.group === group)?.hue;
