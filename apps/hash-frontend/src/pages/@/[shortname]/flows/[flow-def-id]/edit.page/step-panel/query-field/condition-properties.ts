@@ -6,6 +6,7 @@ import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  SingleValueConstraints,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
@@ -16,9 +17,31 @@ export type ConditionProperty = {
   valueKind: ConditionValueKind;
 };
 
+/** The kind of value a single set of constraints allows: a date, a status (text that is one of a fixed set), or neither. */
+const getConstrainedValueKind = (
+  constraints: SingleValueConstraints | undefined,
+): ConditionValueKind | undefined => {
+  if (!constraints) {
+    return undefined;
+  }
+
+  if ("format" in constraints && constraints.format === "date") {
+    return { kind: "date" };
+  }
+
+  if (
+    "enum" in constraints &&
+    constraints.enum.every((option) => typeof option === "string")
+  ) {
+    return { kind: "status", options: constraints.enum };
+  }
+
+  return undefined;
+};
+
 /**
- * The kind of value of a data type, from its own constraints or those it inherits: a date, a status (text that is one
- * of a fixed set), or `undefined` for any other.
+ * The kind of value of a data type, from its own constraints or those it inherits: a date, a status, or `undefined`
+ * for any other, including a type that allows several sets of constraints.
  */
 const getValueKind = (
   dataTypeId: VersionedUrl,
@@ -33,15 +56,16 @@ const getValueKind = (
 
   seen.add(dataTypeId);
 
-  if ("format" in schema && schema.format === "date") {
-    return { kind: "date" };
+  if ("anyOf" in schema) {
+    return schema.anyOf.length === 1
+      ? getConstrainedValueKind(schema.anyOf[0])
+      : undefined;
   }
 
-  if (
-    "enum" in schema &&
-    schema.enum.every((option) => typeof option === "string")
-  ) {
-    return { kind: "status", options: schema.enum };
+  const own = getConstrainedValueKind(schema);
+
+  if (own) {
+    return own;
   }
 
   for (const { $ref } of schema.allOf ?? []) {

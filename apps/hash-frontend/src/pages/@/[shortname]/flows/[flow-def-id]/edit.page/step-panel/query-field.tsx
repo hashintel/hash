@@ -494,7 +494,13 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           invalid={limitErrors.length > 0}
           disabled={readOnly}
           aria-label="Limit"
-          onChange={(limit) => save({ ...form, limit: limit ?? undefined })}
+          /* A negative is rejected for the whole query, not reported here, so it isn't saved. */
+          onChange={(limit) =>
+            save({
+              ...form,
+              limit: limit !== null && limit >= 0 ? limit : undefined,
+            })
+          }
         />
       </Form.Field>
     </>
