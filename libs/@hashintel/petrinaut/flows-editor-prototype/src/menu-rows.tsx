@@ -9,6 +9,19 @@
 import { Icon, type IconName, type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+/**
+ * A two-line row's leading icon, outside the tiled menus: a box one 22 px title line tall that centres the icon on
+ * the first line, not on the row (B′, ledger 2 Nov "Menu rows").
+ */
+export const firstLineIconStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: "0",
+  alignSelf: "flex-start",
+  height: "[22px]",
+});
+
 /** A row with a second line: 8 px above and below, 6 px in; a one-line row: 6 px all round (36 px); 4 px between rows. */
 export const tiledRowsStyle = css({
   "& [role=menuitem]:has([data-menu-row])": {

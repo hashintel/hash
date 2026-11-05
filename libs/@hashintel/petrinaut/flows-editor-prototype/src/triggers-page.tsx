@@ -34,6 +34,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyDocument } from "./document";
 import { flowTriggersOf } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
+import { firstLineIconStyle } from "./menu-rows";
 import { navigate } from "./router";
 import { monthlyReviewId } from "./seed-flows";
 
@@ -1033,7 +1034,7 @@ const Take1 = ({ page }: { page: Page }) => {
                   paddingY: "2",
                 })}
               >
-                <span className={iconCell}>
+                <span className={cx(iconCell, firstLineIconStyle)}>
                   <Icon name="user" size="sm" />
                 </span>
                 <TwoLine
@@ -1055,7 +1056,7 @@ const Take1 = ({ page }: { page: Page }) => {
                         page.open(open ? null : trigger.id),
                       )}
                     >
-                      <span className={iconCell}>
+                      <span className={cx(iconCell, firstLineIconStyle)}>
                         <Icon name={iconFor[trigger.kind]} size="sm" />
                       </span>
                       <TwoLine top={trigger.label} bottom={metaOf(trigger)} />
@@ -1091,7 +1092,7 @@ const Take1 = ({ page }: { page: Page }) => {
               padding: "5",
             })}
           >
-            <span className={cx(iconCell, css({ paddingTop: "[1px]" }))}>
+            <span className={cx(iconCell, firstLineIconStyle)}>
               <Icon
                 name={
                   iconFor[openTrigger?.kind ?? page.draft?.kind ?? "schedule"]
@@ -1711,7 +1712,7 @@ const Take4 = ({ page }: { page: Page }) => {
             maxWidth: "[880px]",
           })}
         >
-          <span className={cx(iconCell, css({ paddingTop: "[1px]" }))}>
+          <span className={cx(iconCell, firstLineIconStyle)}>
             <Icon name="user" size="sm" />
           </span>
           <TwoLine
@@ -1765,7 +1766,7 @@ const Take4 = ({ page }: { page: Page }) => {
               paddingBottom: "5",
             })}
           >
-            <span className={cx(iconCell, css({ paddingTop: "[1px]" }))}>
+            <span className={cx(iconCell, firstLineIconStyle)}>
               <Icon
                 name={
                   iconFor[openTrigger?.kind ?? page.draft?.kind ?? "schedule"]
@@ -1842,7 +1843,7 @@ const Take4 = ({ page }: { page: Page }) => {
                   data-trigger-row={row.id}
                   {...rowProps(false, () => page.open(row.id))}
                 >
-                  <span className={iconCell}>
+                  <span className={cx(iconCell, firstLineIconStyle)}>
                     <Icon name="user" size="sm" />
                   </span>
                   <TwoLine
@@ -1861,7 +1862,7 @@ const Take4 = ({ page }: { page: Page }) => {
                 data-trigger-row={row.id}
                 {...rowProps(false, () => page.open(trigger.id))}
               >
-                <span className={iconCell}>
+                <span className={cx(iconCell, firstLineIconStyle)}>
                   <Icon name={iconFor[trigger.kind]} size="sm" />
                 </span>
                 <TwoLine

@@ -91,23 +91,28 @@ const failedLinkStyle = css({
   "&[class]:hover": { color: "neutral.fg.heading" },
 });
 
-/** A log row's mark: the run glyph, the F3 cross for a failure; its tooltip names the state and the row's note. */
+/**
+ * A log row's mark: the run glyph, the F3 cross for a failure; its tooltip names the state and the row's note. A row
+ * with a note centres it on the 22 px title line (B′, ledger 2 Nov "Menu rows"), with its time.
+ */
 const Mark = ({
   glyph,
   progress,
   detail,
+  twoLine,
 }: {
   glyph: LogRow["glyph"];
   progress?: ItemProgress;
   detail?: string;
+  twoLine?: boolean;
 }) => (
   <span
     className={css({
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      height: "[18px]",
     })}
+    style={{ height: twoLine ? 22 : 18 }}
   >
     <RunGlyph
       state={glyph === "cross" ? "failed" : glyph}
@@ -156,11 +161,17 @@ const LogLine = ({
     data-toggle={onToggle ? true : undefined}
     onClick={onToggle}
   >
-    <span className={monoStyle}>{time ?? ""}</span>
+    <span
+      className={monoStyle}
+      style={note ? { lineHeight: "22px" } : undefined}
+    >
+      {time ?? ""}
+    </span>
     <Mark
       glyph={glyph}
       progress={progress}
       detail={progress ? undefined : note}
+      twoLine={Boolean(note)}
     />
     <span
       className={css({

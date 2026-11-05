@@ -26,6 +26,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { type EditorDocument } from "./document";
 import { useEditor } from "./editor-context";
+import { firstLineIconStyle } from "./menu-rows";
 import {
   formatCount,
   ghostLayout,
@@ -437,11 +438,10 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
         className={css({ display: "flex", gap: "2", alignItems: "flex-start" })}
       >
         <span
-          className={css({
-            display: "inline-flex",
-            color: "neutral.fg.muted",
-            paddingTop: "[1px]",
-          })}
+          className={cx(
+            firstLineIconStyle,
+            css({ color: "neutral.fg.muted" }),
+          )}
         >
           <Icon name="lightning" size="sm" />
         </span>
@@ -811,11 +811,10 @@ const TriggersPanelAtScale = () => {
         className={css({ display: "flex", gap: "2", alignItems: "flex-start" })}
       >
         <span
-          className={css({
-            display: "inline-flex",
-            color: "neutral.fg.muted",
-            paddingTop: "[1px]",
-          })}
+          className={cx(
+            firstLineIconStyle,
+            css({ color: "neutral.fg.muted" }),
+          )}
         >
           <Icon name="lightning" size="sm" />
         </span>

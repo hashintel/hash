@@ -297,7 +297,8 @@ const stepTileStyle = css({
   height: "[14px]",
   marginRight: "2",
   borderRadius: "[3px]",
-  verticalAlign: "[-2px]",
+  // Centred on the name's 20 px line (B′, ledger 2 Nov "Menu rows"): 3 px above and below, where the K3 lines meet it.
+  verticalAlign: "[0]",
   textIndent: "[0]",
   "& svg": { width: "[10px]", height: "[10px]" },
 });

@@ -50,6 +50,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { flaggedOutputsOf, flattenSteps, outputKey } from "./document";
 import { useEditor } from "./editor-context";
 import { MixedFileOutputs, useFileTypes } from "./file-types";
+import { firstLineIconStyle } from "./menu-rows";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
@@ -1335,7 +1336,13 @@ const EntityOutput = ({
       data-output-entities={label}
       onClick={onOpen}
     >
-      <Icon name={icon} size="sm" />
+      {names.length > 0 ? (
+        <span className={firstLineIconStyle}>
+          <Icon name={icon} size="sm" />
+        </span>
+      ) : (
+        <Icon name={icon} size="sm" />
+      )}
       <span className={css({ flex: "1", minWidth: "[0]" })}>
         <span className={titleLineStyle}>{count}</span>
         {names.length > 0 ? (
@@ -2640,7 +2647,7 @@ const EntityLine = ({
   columns?: Column[];
 }) => (
   <div className={entityLineStyle} data-output-entity={row.type}>
-    <span>
+    <span className={firstLineIconStyle}>
       <Icon name="cube" size="sm" />
     </span>
     <span>

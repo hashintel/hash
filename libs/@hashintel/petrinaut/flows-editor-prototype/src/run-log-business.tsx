@@ -92,6 +92,10 @@ const lineStyle = css({
   color: "neutral.fg.body",
   "&[data-toggle]": { cursor: "pointer" },
   "&[data-toggle]:hover": { backgroundColor: "neutral.bg.surface.hover" },
+  // A line with a second line centres its mark on the 22 px first line (B′, ledger 2 Nov "Menu rows").
+  "&:has(> span:nth-child(2) > :nth-child(2)) > span:first-child": {
+    height: "[22px]",
+  },
 });
 
 const markStyle = css({
