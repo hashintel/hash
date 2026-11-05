@@ -1,5 +1,4 @@
 import { memo, useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -14,6 +13,7 @@ import { VoiceInputProvenance } from "./brunch-transcript/voice-input-provenance
 import { ExperimentCard } from "./experiment-card";
 import { getMessageRenderItems } from "./get-message-render-items";
 import { AiAssistantReasoning } from "./reasoning";
+import { AssistantMarkdown } from "./shared/assistant-markdown";
 import { errorNotification } from "./shared/error-notification";
 import { markdownStyle } from "./shared/markdown-style";
 import { SentUsingVoiceMark } from "./shared/sent-using-voice-mark";
@@ -255,7 +255,7 @@ const BrunchMessage = memo(
         >
           {answers.map((item) => (
             <div className={markdownStyle} key={item.key}>
-              <ReactMarkdown>{item.part.text}</ReactMarkdown>
+              <AssistantMarkdown>{item.part.text}</AssistantMarkdown>
             </div>
           ))}
         </div>

@@ -1,10 +1,10 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { AssistantMarkdown } from "./shared/assistant-markdown";
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { markdownStyle } from "./shared/markdown-style";
 import { StreamingEllipsis } from "./shared/streaming-ellipsis";
@@ -345,7 +345,7 @@ export const AiAssistantReasoning = ({
           {body ? (
             <div className={markdownStyle}>
               {isBrunch && heading && <strong>{heading}</strong>}
-              <ReactMarkdown>{body}</ReactMarkdown>
+              <AssistantMarkdown>{body}</AssistantMarkdown>
             </div>
           ) : isStreaming ? (
             <div
