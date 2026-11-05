@@ -16,7 +16,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon, type IconName } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { type CatalogEntry, catalog, groupEntries, stepGroups } from "./catalog";
+import { type CatalogEntry, groupEntries, stepGroups } from "./catalog";
 import { tileColor } from "./status-colors";
 
 export type PickerTake = 1 | 2 | 3 | 4;
@@ -73,10 +73,9 @@ export const KindTile = ({ icon }: { icon: IconName }) => (
   </span>
 );
 
-/** A group's hue: its first step's tile icon colour, faint. */
-export const groupHue = (group: (typeof stepGroups)[number]) => ({
-  color: tileColor(groupEntries(group, catalog)[0]?.icon ?? group.icon).color,
-  opacity: 0.75,
+/** A group's own icon stays neutral: the group gives its steps' tiles their hue, not itself (Aakarsh, 5 Nov). */
+export const groupHue = (_group: (typeof stepGroups)[number]) => ({
+  color: "var(--colors-neutral-fg-subtle)",
 });
 
 type Section = {
@@ -139,7 +138,7 @@ const searchStyle = css({
   "&[data-size=lg]": {
     height: "[48px]",
     paddingX: "4",
-    "& input": { textStyle: "md" },
+    "& input": { textStyle: "base" },
   },
   "&[data-boxed]": {
     borderWidth: "thin",

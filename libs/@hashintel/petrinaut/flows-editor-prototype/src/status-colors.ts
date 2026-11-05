@@ -637,6 +637,62 @@ export const tileKindOf = (icon: string): TileKind => {
   }
 };
 
+/**
+ * `?pickercolour=` only: the group a step is listed under gives its tile hue wherever the tile shows (canvas, Steps
+ * panel, add menu). Keyed by the step's icon, as `tileColor` is; a step in no group keeps its kind tint.
+ */
+export const groupHues: { group: string; hue: string; icons: string[] }[] = [
+  { group: "People", hue: "yellow", icons: ["user"] },
+  { group: "Messages", hue: "blue", icons: ["at"] },
+  { group: "Documents", hue: "orange", icons: ["download"] },
+  {
+    group: "Entities",
+    hue: "green",
+    icons: ["search", "eye", "squarePlus", "pencil"],
+  },
+  {
+    group: "Flow control",
+    hue: "purple",
+    icons: [
+      "diagramSubtask",
+      "rotate",
+      "filter",
+      "bullseye",
+      "sortDown",
+      "list",
+      "function",
+    ],
+  },
+];
+
+const pickerColourFlag = () => {
+  const value = Number(
+    new URLSearchParams(globalThis.location.search).get("pickercolour"),
+  );
+  return value >= 1 && value <= 3 ? value : null;
+};
+
+/** A group's small swatch (`?pickercolour=2`). */
+export const groupSwatch = (group: string) => {
+  const hue = groupHues.find((entry) => entry.group === group)?.hue;
+  return hue ? tokenVar(`${hue}.s70`) : undefined;
+};
+
+const groupTileColor = (icon: string) => {
+  const colour = pickerColourFlag();
+  const hue =
+    colour === null
+      ? undefined
+      : groupHues.find((entry) => entry.icons.includes(icon))?.hue;
+  if (hue === undefined) {
+    return null;
+  }
+  return {
+    backgroundColor: tokenVar(colour === 3 ? "neutral.s20" : `${hue}.s20`),
+    color: tokenVar(`${hue}.s100`),
+  };
+};
+
 /** A tile's background and icon colour, as inline style. `ghost` for the editor's ghost trigger nodes. */
 export const tileColor = (icon: string, ghost = false) =>
   ghost
@@ -644,7 +700,7 @@ export const tileColor = (icon: string, ghost = false) =>
         backgroundColor: flowsVar("ghost-tile-bg"),
         color: flowsVar("ghost-tile-icon"),
       }
-    : {
+    : (groupTileColor(icon) ?? {
         backgroundColor: flowsVar(`tile-${tileKindOf(icon)}-bg`),
         color: flowsVar(`tile-${tileKindOf(icon)}-icon`),
-      };
+      });

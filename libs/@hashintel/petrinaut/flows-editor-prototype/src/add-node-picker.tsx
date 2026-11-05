@@ -27,7 +27,7 @@ import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { getSourceShape, sourceOptions } from "./shapes";
 import { SearchHeader } from "./source-menu";
-import { tileColor } from "./status-colors";
+import { groupSwatch, tileColor } from "./status-colors";
 import {
   FloatingStepPicker,
   groupHue,
@@ -134,12 +134,20 @@ const pickerWidthStyle = css({
   "& [role=menuitem] > svg:last-child": { marginLeft: "auto" },
 });
 
-/** `?pickercolour=2`: a Browse all group's icon in its hue, 8 px from its name, as a DS Menu item lays them. */
+/** `?pickercolour=`: a Browse all group's neutral icon, 8 px from its name, as a DS Menu item lays them. */
 const groupRowStyle = css({
   display: "inline-flex",
   alignItems: "center",
   gap: "2",
   "& svg": { width: "[14px]", height: "[14px]" },
+});
+
+/** `?pickercolour=2`: the hue a group's steps take, as a 6 px swatch after its name. */
+const swatchStyle = css({
+  width: "[6px]",
+  height: "[6px]",
+  borderRadius: "full",
+  flexShrink: 0,
 });
 
 /** A submenu of steps: 288 px (Figma J0.6). */
@@ -362,18 +370,25 @@ export const AddNodePicker = ({
     const groupSteps = groupEntries(group, available);
     return {
       id: `group:${group.name}`,
-      ...(colour === 2
-        ? {
+      // `?pickercolour=` only: the group's icon stays neutral; 2 adds a small swatch of the hue its steps take.
+      ...(colour === null
+        ? { text: group.name, icon: group.icon }
+        : {
             text: (
               <span className={groupRowStyle}>
                 <span style={groupHue(group)}>
                   <Icon name={group.icon} size="sm" />
                 </span>
                 {group.name}
+                {colour === 2 ? (
+                  <span
+                    className={swatchStyle}
+                    style={{ backgroundColor: groupSwatch(group.name) }}
+                  />
+                ) : null}
               </span>
             ),
-          }
-        : { text: group.name, icon: group.icon }),
+          }),
       menuClassName: cx(stepSubmenuStyle, tiledRowsStyle),
       subItems:
         groupSteps.length > 0
