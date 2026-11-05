@@ -41,7 +41,7 @@ export const markDark = ({ id }: { id: string }) => (
   </svg>
 );
 export const logoLight = ({ id }: { id: string }) => (
-  <svg viewBox="0 0 1801 864" fill="none">
+  <svg viewBox="0 0 2504 485.5" fill="none">
     <svg
       viewBox="78.3479995727539 84 67.10730743408203 32.65771484375"
       fill="none"
@@ -326,8 +326,8 @@ export const logoLight = ({ id }: { id: string }) => (
       </g>
     </svg>
     <svg
-      x="434"
-      y="461"
+      x="1137"
+      y="41.25"
       width="1336"
       height="223"
       viewBox="72.00029754638672 119.21748352050781 89.99921417236328 14.997482299804688"
@@ -371,8 +371,8 @@ export const logoLight = ({ id }: { id: string }) => (
       </g>
     </svg>
     <svg
-      x="1103"
-      y="782"
+      x="1806"
+      y="362.25"
       width="91"
       height="82"
       viewBox="94.55811309814453 140.89671325683594 6.126190185546875 5.4734649658203125"
@@ -391,8 +391,8 @@ export const logoLight = ({ id }: { id: string }) => (
       </g>
     </svg>
     <svg
-      x="1220"
-      y="770"
+      x="1923"
+      y="350.25"
       width="581"
       height="80"
       viewBox="102.50299835205078 139.99545288085938 39.08007049560547 5.3673248291015625"
@@ -453,7 +453,7 @@ export const logoLight = ({ id }: { id: string }) => (
   </svg>
 );
 export const logoDark = ({ id }: { id: string }) => (
-  <svg viewBox="0 0 1801 864" fill="none">
+  <svg viewBox="0 0 2504 485.5" fill="none">
     <svg
       viewBox="78.3479995727539 84 67.10730743408203 32.65771484375"
       fill="none"
@@ -738,8 +738,8 @@ export const logoDark = ({ id }: { id: string }) => (
       </g>
     </svg>
     <svg
-      x="434"
-      y="461"
+      x="1137"
+      y="41.25"
       width="1336"
       height="223"
       viewBox="72.00029754638672 119.21748352050781 89.99921417236328 14.997482299804688"
@@ -783,8 +783,8 @@ export const logoDark = ({ id }: { id: string }) => (
       </g>
     </svg>
     <svg
-      x="1103"
-      y="782"
+      x="1806"
+      y="362.25"
       width="91"
       height="82"
       viewBox="94.55811309814453 140.89671325683594 6.126190185546875 5.4734649658203125"
@@ -803,8 +803,8 @@ export const logoDark = ({ id }: { id: string }) => (
       </g>
     </svg>
     <svg
-      x="1220"
-      y="770"
+      x="1923"
+      y="350.25"
       width="581"
       height="80"
       viewBox="102.50299835205078 139.99545288085938 39.08007049560547 5.3673248291015625"

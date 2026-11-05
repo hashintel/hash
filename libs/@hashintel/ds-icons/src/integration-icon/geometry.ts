@@ -151,7 +151,7 @@ export const integrationGeometry = {
   kinaxisMaestro: {
     ...kinaxisMaestro,
     markViewBox: "0 0 42 24",
-    logoViewBox: "0 0 1801 864",
+    logoViewBox: "0 0 2504 485.5",
     ratio: 1.52,
     alignment: "center",
   },

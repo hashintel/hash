@@ -361,7 +361,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://www.kinaxis.com/sites/default/files/2026-01/knx-28926_identity_logo_rgb_horz_color-full.png",
     logoNotes:
-      "Maestro by Kinaxis lock-up. Native vector contours and outlined lettering extracted from the official Demand Planning brochure, page 8, and positioned to match the January 2026 media-kit PNG. The PDF mesh gradient is represented by vector color patches; no raster artwork or font dependencies are embedded. Dark-mode lettering is white.",
+      "Custom horizontal Maestro by Kinaxis lock-up, with the emblem to the left of the outlined wordmark. Native contours and lettering come from the official Demand Planning brochure, page 8; text proportions follow the January 2026 media-kit artwork. The PDF mesh gradient is represented by vector color patches; no raster artwork or font dependencies are embedded. Dark-mode lettering is white.",
     logoRaster: false,
   },
   {
