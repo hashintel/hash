@@ -60,7 +60,14 @@ export const useRecentActions = () => {
   const key = `${localStorageKeys.recentFlowActions}:${authenticatedUser.accountId}`;
   const stored = useSyncExternalStore(
     subscribe,
-    () => localStorage.getItem(key),
+    () => {
+      /* A browser blocking storage throws on reading it too; Recent is then empty. */
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
     () => null,
   );
 
