@@ -28,6 +28,7 @@ import {
   warningsText,
 } from "./run-history";
 import { type LogRow, logRows, secondsText } from "./run-log";
+import { BusinessRunLog, runLogTake } from "./run-log-business";
 import { doneTone } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
@@ -456,6 +457,20 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         duration={row.id === "trigger" ? "–" : tight(row.duration)}
         failure={row.failure}
       />,
+    );
+  }
+
+  const businessTake = runLogTake();
+  if (businessTake) {
+    return (
+      <aside className={panelStyle} aria-label="Run log" data-run-log-panel>
+        <BusinessRunLog
+          take={businessTake}
+          run={run}
+          now={now}
+          technical={lines}
+        />
+      </aside>
     );
   }
 
