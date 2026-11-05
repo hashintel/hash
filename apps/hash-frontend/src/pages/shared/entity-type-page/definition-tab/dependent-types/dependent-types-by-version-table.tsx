@@ -3,7 +3,7 @@ import { Box, ButtonBase, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { EntityOrTypeIcon, FontAwesomeIcon } from "@hashintel/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import {
   cellSx,
@@ -170,40 +170,13 @@ const ParentVersionTableRow = ({
             },
           })}
         >
-          <Box
-            sx={{
-              ...cellSx,
-              maxWidth: 1,
-              display: "flex",
-              alignItems: "center",
-              gap: 0.5,
-            }}
-          >
-            <EntityOrTypeIcon
-              entity={null}
-              fontSize={14}
-              fill={({ palette }) => palette.blue[70]}
+          <Box sx={{ ...cellSx, maxWidth: 1 }}>
+            <TypeLabel
+              entityType={parent}
+              former={false}
               isLink={isLinkType(parent)}
-              icon={parent.schema.icon}
-              sx={{ mr: 0.5 }}
+              version={parentVersion}
             />
-            <Typography
-              component="span"
-              noWrap
-              sx={({ palette }) => ({
-                fontSize: "inherit",
-                fontWeight: 600,
-                color: palette.black,
-              })}
-            >
-              {parentTitle}
-            </Typography>
-            <Box
-              component="span"
-              sx={({ palette }) => ({ fontSize: 13, color: palette.gray[70] })}
-            >
-              {`v${parentVersion}`}
-            </Box>
           </Box>
           <Box
             sx={{
