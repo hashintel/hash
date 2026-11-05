@@ -28,7 +28,7 @@ pub enum SecretService {
 }
 
 /// Reports why a live source could not be captured or restored.
-#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[derive(Debug, Clone, Copy, derive_more::Display, derive_more::Error)]
 pub enum SourceError {
     #[display("source configuration is invalid")]
     Configuration,
@@ -260,7 +260,17 @@ impl SourceReader {
             };
             let capture = match result {
                 Ok(capture) => capture,
-                Err(error) => recovered(&target)?.ok_or(error)?,
+                Err(error) => match recovered(&target) {
+                    Ok(capture) => capture.ok_or(error)?,
+                    // Keep the capture failure, which explains why the source was contacted,
+                    // alongside the failure to read a capture another attempt published.
+                    Err(recovery) => {
+                        let context = *error.current_context();
+                        let mut failures = error.expand();
+                        failures.push(recovery);
+                        return Err(failures.change_context(context));
+                    }
+                },
             };
             captures.insert(name.clone(), capture);
         }

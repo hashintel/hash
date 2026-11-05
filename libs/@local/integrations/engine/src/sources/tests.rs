@@ -1,11 +1,15 @@
 use core::future::ready;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use axum::Router;
 use duckdb::types::Value;
 use error_stack::Report;
+use hash_crypto::Secret;
 use hash_integrations_definition::{Definition, SecretReference};
 use reqwest::{
     Client, Url,
@@ -90,6 +94,47 @@ impl SecretStore for NoSecrets {
     ) -> impl Future<Output = Result<SecretValue, Report<SourceError>>> + Send {
         ready(Err(Report::new(SourceError::Secret)))
     }
+}
+
+/// Publishes something other than a capture at `target` while handing out malformed credentials,
+/// so the live capture fails and recovering a concurrently published capture fails too.
+struct ConflictingSecrets {
+    target: PathBuf,
+}
+
+impl SecretStore for ConflictingSecrets {
+    fn read(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: SecretReference,
+    ) -> impl Future<Output = Result<SecretValue, Report<SourceError>>> + Send {
+        fs::create_dir_all(&self.target).expect("should occupy the capture target");
+        ready(Ok(Secret::from_vec(b"{}".to_vec())))
+    }
+}
+
+fn postgres_definition() -> Definition {
+    Definition::from_yaml(&format!(
+        "
+        connector: test
+        sources:
+          items:
+            postgres:
+              connection: postgresql://database.example/demo
+              schema: public
+              table: items
+              credentials:
+                secretEntityUuid: {}
+            primaryKey: [id]
+        pipelines:
+          entities:
+            - source: items
+              steps: []
+        ",
+        Uuid::new_v4(),
+    ))
+    .expect("should parse a PostgreSQL source")
 }
 
 fn sql_definition() -> Definition {
@@ -237,6 +282,37 @@ async fn capture_run_isolation(#[case] change_identity: fn(CaptureRun) -> Captur
     assert!(
         matches!(error.current_context(), SourceError::Secret),
         "a new identity should resolve the live source credentials"
+    );
+    workspace.close().await.expect("should close the workspace");
+}
+
+#[tokio::test]
+async fn failed_recovery_keeps_the_capture_error() {
+    let directory = TempDir::new().expect("should create source storage");
+    let workspace = open_workspace(directory.path(), "run.duckdb").await;
+    let run = run();
+    let secrets = ConflictingSecrets {
+        target: directory
+            .path()
+            .join("captures")
+            .join(run.web.to_string())
+            .join(run.id.to_string())
+            .join("items.parquet"),
+    };
+    let error = reader(directory.path())
+        .capture_sources(&workspace, &postgres_definition(), run, &secrets)
+        .await
+        .expect_err("should fail both the capture and its recovery");
+    assert!(
+        matches!(error.current_context(), SourceError::Secret),
+        "should report the capture failure"
+    );
+    assert!(
+        error
+            .frames()
+            .filter_map(|frame| frame.downcast_ref::<SourceError>())
+            .any(|context| matches!(context, SourceError::Read)),
+        "should keep the recovery failure in the report"
     );
     workspace.close().await.expect("should close the workspace");
 }
