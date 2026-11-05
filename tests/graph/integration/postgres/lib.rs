@@ -310,6 +310,7 @@ impl DatabaseTestWrapper {
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
+                        fetched_from_origin: false,
                     }
                 }),
             )

@@ -1061,6 +1061,7 @@ where
 
         let mut inserted_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
+        let mut inserted_fetched_from_origin = Vec::new();
         let mut entity_type_reference_ids = Vec::new();
 
         let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
@@ -1098,6 +1099,10 @@ where
                         .map(|(reference, _)| EntityTypeUuid::from_url(&reference.url)),
                 );
                 inserted_entity_types.push((entity_type_id, Arc::new(parameters.schema)));
+                inserted_fetched_from_origin.push(
+                    parameters.fetched_from_origin
+                        && matches!(parameters.ownership, OntologyOwnership::Remote { .. }),
+                );
                 inserted_entity_type_metadata.push(EntityTypeMetadata {
                     record_id,
                     ownership: parameters.ownership,
@@ -1219,12 +1224,12 @@ where
             })
             .collect::<Result<Vec<_>, Report<_>>>()?;
 
-        // Remote types are copies of definitions owned elsewhere, so their inheritance is not
-        // chosen by the actor.
-        for ((closed_schema, _), metadata) in
-            closed_schemas.iter().zip(&inserted_entity_type_metadata)
+        // A type fetched from where it is published inherits what its owner defined there, which
+        // the actor cannot change.
+        for ((closed_schema, _), fetched_from_origin) in
+            closed_schemas.iter().zip(&inserted_fetched_from_origin)
         {
-            if matches!(metadata.ownership, OntologyOwnership::Local { .. }) {
+            if !fetched_from_origin {
                 ensure_ancestors_are_instantiable(
                     &policy_set,
                     &policy_components,

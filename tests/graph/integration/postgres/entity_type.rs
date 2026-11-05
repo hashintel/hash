@@ -14,6 +14,7 @@ use hash_graph_store::{
 use hash_graph_test_data::{data_type, entity_type, property_type};
 use hash_status::StatusCode;
 use serde_json::json;
+use time::OffsetDateTime;
 use type_system::{
     ontology::{
         VersionedUrl,
@@ -73,6 +74,7 @@ async fn insert() {
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
+            fetched_from_origin: false,
         },
     )
     .await
@@ -107,6 +109,7 @@ async fn query() {
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
+            fetched_from_origin: false,
         },
     )
     .await
@@ -189,6 +192,7 @@ async fn update() {
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
+            fetched_from_origin: false,
         },
     )
     .await
@@ -298,6 +302,7 @@ fn create_params(schema: EntityType, web_id: WebId, actor: ActorId) -> CreateEnt
         ownership: OntologyOwnership::Local { web_id },
         conflict_behavior: ConflictBehavior::Fail,
         provenance: api_provenance(actor),
+        fetched_from_origin: false,
     }
 }
 
@@ -496,6 +501,59 @@ async fn update_grandparent_not_instantiable() {
     assert_instantiation_denied(result, ACTOR_V1);
 }
 
+const REMOTE_CHILD_V1: &str = "https://remote.example/@bob/types/entity-type/child/v/1";
+
+fn remote_params(
+    schema: EntityType,
+    actor: ActorId,
+    fetched_from_origin: bool,
+) -> CreateEntityTypeParams {
+    CreateEntityTypeParams {
+        schema,
+        ownership: OntologyOwnership::Remote {
+            fetched_at: OffsetDateTime::now_utc(),
+        },
+        conflict_behavior: ConflictBehavior::Fail,
+        provenance: api_provenance(actor),
+        fetched_from_origin,
+    }
+}
+
+/// A caller supplying the schema of a remote type chooses what it inherits from.
+#[tokio::test]
+async fn create_remote_parent_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+
+    let result = api
+        .create_entity_type(
+            user,
+            remote_params(
+                entity_type_schema(REMOTE_CHILD_V1, &[ACTOR_V1]),
+                user,
+                false,
+            ),
+        )
+        .await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
+}
+
+#[tokio::test]
+async fn create_fetched_parent_not_instantiable_accepted() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+
+    api.create_entity_type(
+        user,
+        remote_params(entity_type_schema(REMOTE_CHILD_V1, &[ACTOR_V1]), user, true),
+    )
+    .await
+    .expect("a type fetched from its origin should not require instantiating its parents");
+}
+
 fn befriending_type_id(version: u32) -> VersionedUrl {
     format!("https://blockprotocol.org/@alice/types/entity-type/befriending/v/{version}")
         .parse()
@@ -556,6 +614,7 @@ async fn insert_link_destination_link() {
                 },
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: provenance(),
+                fetched_from_origin: false,
             },
         )
         .await
@@ -589,6 +648,7 @@ async fn insert_link_destination_link_root() {
                 },
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: provenance(),
+                fetched_from_origin: false,
             },
         )
         .await
@@ -634,6 +694,7 @@ async fn insert_link_destination_link_batch() {
                 },
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: provenance(),
+                fetched_from_origin: false,
             }),
         )
         .await
@@ -682,6 +743,7 @@ async fn insert_link_type_links() {
                 },
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: provenance(),
+                fetched_from_origin: false,
             },
         )
         .await
@@ -714,6 +776,7 @@ async fn update_link_destination_link() {
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: provenance(),
+            fetched_from_origin: false,
         },
     )
     .await
