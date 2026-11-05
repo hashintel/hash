@@ -298,6 +298,15 @@ svg.deck-head__logo {
   font-size: inherit;
 }
 
+/* Shiki's colours: the light theme's by default, the dark theme's with the document's. */
+.deck-mdx pre.shiki span {
+  color: var(--shiki-light);
+}
+
+[data-theme="dark"] .deck-mdx pre.shiki span {
+  color: var(--shiki-dark);
+}
+
 /* A table copied from a docs page: rules between rows, nothing else. */
 .deck-mdx table {
   align-self: stretch;
