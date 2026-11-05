@@ -201,6 +201,9 @@ export const VersionButton = ({
  * 1. A faint 28 px ghost icon button, tooltip "Retry".
  * 2. The icon inline, right after the error text.
  * 3. The icon button, with a muted "Retry" that shows only on hover.
+ *
+ * The error text's red, open: ?errortext=s85 draws it in the status marks' red (`--flows-failed-mark`, s85) instead of
+ * today's stronger failed-text red. URL only.
  * ------------------------------------------------------------------------------------------------------------- */
 
 const saveNoteStyle = css({
@@ -360,7 +363,16 @@ export const DraftSaveNote = ({ document }: { document: unknown }) => {
   }
   if (phase === "failed") {
     return (
-      <span className={saveErrorStyle} role="alert" data-draft-save="error">
+      <span
+        className={saveErrorStyle}
+        style={
+          query.get("errortext") === "s85"
+            ? { color: "var(--flows-failed-mark)" }
+            : undefined
+        }
+        role="alert"
+        data-draft-save="error"
+      >
         <Icon name="warning" size="sm" />
         Couldn&apos;t save your changes
         <RetryControl
