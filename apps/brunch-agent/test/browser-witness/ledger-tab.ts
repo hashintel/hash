@@ -660,6 +660,130 @@ const ledgerLatestTurnHighlights = async () => {
   assert.deepEqual(observed.turnThreeDone, []);
 };
 
+/** Submission intent clears old marks before admission, and refusal does not restore them. */
+const ledgerSubmissionClearsHighlights = async () => {
+  const page = await fixture.openAssistant();
+  const observed: Record<string, unknown> = {};
+  let release = () => {};
+  const admissionGate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let holdNext = true;
+  let refuseNext = false;
+  try {
+    await recordReservoir(page);
+    const ledgerTab = page.getByRole("tab", { name: "Ledger" });
+    const chatTab = page.getByRole("tab", { name: "Chat" });
+    const composer = page.getByRole("textbox", {
+      name: "Message AI assistant",
+      exact: true,
+    });
+    const stop = page.getByRole("button", {
+      name: "Stop AI response",
+      exact: true,
+    });
+    await ledgerTab.click();
+    observed.beforeSubmission = await marksSettleOn(page, [
+      'e1 added "New"',
+      'c1 added "New"',
+    ]);
+    assert.deepEqual(observed.beforeSubmission, [
+      'e1 added "New"',
+      'c1 added "New"',
+    ]);
+    await page.route("**/agents/**", async (route) => {
+      if (route.request().method() === "POST") {
+        if (holdNext) {
+          holdNext = false;
+          await admissionGate;
+        } else if (refuseNext) {
+          refuseNext = false;
+          await route.fulfill({
+            status: 403,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "Witness admission refused" }),
+          });
+          return;
+        }
+      }
+      await route.fallback();
+    });
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "intent-pump",
+      ),
+      fauxAssistantMessage([fauxText("Recorded the pump after admission.")]),
+    ]);
+    await chatTab.click();
+    await composer.fill("A booster pump fills it.");
+    const submitted = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname.startsWith("/agents/"),
+      { timeout: 10_000 },
+    );
+    await composer.press("Enter");
+    await submitted;
+    await ledgerTab.click();
+    observed.pendingAdmission = await latestTurnMarks(page);
+    observed.pendingStopVisible = await stop.isVisible();
+    assert.deepEqual(observed.pendingAdmission, []);
+    assert.equal(observed.pendingStopVisible, true);
+    release();
+    await chatTab.click();
+    await page
+      .getByText("Recorded the pump after admission.", { exact: true })
+      .waitFor();
+    await ledgerTab.click();
+    observed.afterAdmission = await marksSettleOn(page, ['e2 added "New"']);
+    assert.deepEqual(observed.afterAdmission, ['e2 added "New"']);
+
+    // Refusal leaves the canonical turn unchanged, but does not undo the user's intent.
+    refuseNext = true;
+    await chatTab.click();
+    await composer.fill("A submission the server will refuse.");
+    const refused = page.waitForResponse(
+      (response) =>
+        response.status() === 403 &&
+        new URL(response.url()).pathname.startsWith("/agents/"),
+      { timeout: 10_000 },
+    );
+    await composer.press("Enter");
+    await refused;
+    await stop.waitFor({ state: "hidden" });
+    await ledgerTab.click();
+    observed.afterRefusal = await latestTurnMarks(page);
+    observed.recordsAfterRefusal = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address]')
+      .count();
+    assert.deepEqual(observed.afterRefusal, []);
+    assert.equal(observed.recordsAfterRefusal, 3);
+    await chatTab.click();
+    await ledgerTab.click();
+    assert.deepEqual(await latestTurnMarks(page), []);
+  } finally {
+    release();
+    process.stdout.write(
+      `OBSERVED ledgerSubmissionClearsHighlights ${JSON.stringify(observed)}\n`,
+    );
+    await page.close();
+  }
+};
+
 const baseRequest = {
   scenarioId: "summer_nights_levers",
   runCount: 1,
@@ -778,6 +902,7 @@ const witnesses = [
   ledgerTabShowsCommit,
   ledgerReviewControls,
   ledgerLatestTurnHighlights,
+  ledgerSubmissionClearsHighlights,
   experimentTimings,
 ];
 const selected = process.argv.slice(2);

@@ -353,6 +353,12 @@ export const createBrunchPanelTransport = (
     /** The host's canonical count, shared with the estimate above the composer. */
     readonly interviewRepliesAsked?: number;
     readonly onAdmission?: (admission: AgentSendResult) => void;
+    /**
+     * The user sent a turn of their own, typed or of comments: called once its
+     * payload is built and before Flue is asked to admit it, so whether Flue
+     * admits it or not. A continuation after client tool results is no turn.
+     */
+    readonly onSubmission?: () => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
     readonly onReattach?: FlueChatTransportOptions["onReattach"];
@@ -387,8 +393,14 @@ export const createBrunchPanelTransport = (
           options?.adapter ?? canonicalBrunchFlueAdapter
         ).chatTransport({
           client,
-          submittedUserMessage: (messages) =>
-            brunchSubmittedUserMessage(messages, submissionContext),
+          submittedUserMessage: (messages) => {
+            const submitted = brunchSubmittedUserMessage(
+              messages,
+              submissionContext,
+            );
+            options?.onSubmission?.();
+            return submitted;
+          },
           initialData: options?.initialData,
           liveToolStream: options?.liveToolStream,
           onAdmission: (event) => {

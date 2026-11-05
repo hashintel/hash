@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { ledgerCommentsMessage } from "./comments";
+import { latestLedgerTurnId } from "./commits";
 import { latestTurnChanges } from "./latest-turn-changes";
 
 import type { LedgerHistoryMessage } from "./commits";
@@ -264,4 +265,18 @@ test("a Retry submission opens a new turn even with the same words", () => {
       ),
     ),
   ).toEqual({ e2: "updated" });
+});
+
+test("the latest turn is named by the message that opened it, a typed turn or a comment batch", () => {
+  const turnOf = (...messages: LedgerHistoryMessage[]) =>
+    latestLedgerTurnId({ messages });
+  expect(turnOf()).toBeUndefined();
+  expect(turnOf(reply("before"))).toBeUndefined();
+  expect(turnOf(...firstTurn, reply("reply-1"))).toBe("user-1");
+  expect(
+    turnOf(...firstTurn, commentBatch("n1", "It is a pump."), reply("r")),
+  ).toBe("n1");
+  expect(
+    turnOf(...firstTurn, commentBatch("n1", "It is a pump."), user("u2", "Ok")),
+  ).toBe("u2");
 });

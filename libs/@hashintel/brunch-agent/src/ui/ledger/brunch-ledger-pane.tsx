@@ -212,6 +212,7 @@ export const BrunchLedgerPane = ({
   selection = [],
   onSelectNetElements,
   comments,
+  highlightChanges = true,
 }: {
   messages: readonly LedgerHistoryMessage[];
   /** The editor's selection, when the pane sits beside a canvas. */
@@ -219,6 +220,8 @@ export const BrunchLedgerPane = ({
   onSelectNetElements?: (items: SelectionItem[]) => void;
   /** The editor's pending comments, which the composer sends to Brunch. */
   comments?: PendingComments;
+  /** Mark what the latest turn changed; off once the user has moved past it. */
+  highlightChanges?: boolean;
 }) => {
   const id = useId();
   const paneRef = useRef<HTMLElement>(null);
@@ -231,7 +234,10 @@ export const BrunchLedgerPane = ({
     comments?.get ?? readNoPending,
   );
   const { ledger } = foldBrunchLedgerHistory(messages);
-  const changed = ledger && latestTurnChanges({ messages }, ledger);
+  const changed =
+    highlightChanges && ledger
+      ? latestTurnChanges({ messages }, ledger)
+      : undefined;
   const trace = ledger && traceCanvasSelection(ledger, selection);
   const projection = ledger && projectLedger(ledger);
 

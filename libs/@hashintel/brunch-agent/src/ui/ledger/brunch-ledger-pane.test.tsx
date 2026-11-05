@@ -642,6 +642,16 @@ test("marks every occurrence the latest turn added or changed, but not what a re
   expect(latestTurnMarks()).toEqual(expected);
   unmountAgain();
 
+  // A dismissed latest turn keeps its records and drops only their marks.
+  const { unmount: unmountDismissed } = render(
+    <BrunchLedgerPane messages={latestTurn} highlightChanges={false} />,
+  );
+  expect(latestTurnMarks()).toEqual([]);
+  expect(screen.getByTestId("brunch-ledger-document").textContent).toContain(
+    "Booster pump",
+  );
+  unmountDismissed();
+
   // A next turn clears the marks until it changes something.
   render(
     <BrunchLedgerPane

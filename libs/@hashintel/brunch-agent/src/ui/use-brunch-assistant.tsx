@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { latestLedgerTurnId } from "@hashintel/brunch-agent";
 import { ErrorTrackerContext } from "@hashintel/petrinaut/react";
 
 import { createBrunchFlueAdapter } from "../client/brunch-flue-adapter";
@@ -418,6 +419,20 @@ export const useBrunchAssistant = ({
   const interviewClosing = isInterviewClosing(
     flueHistory.snapshot ?? { messages: [] },
   );
+  // The user moves past the latest turn's highlights when they send the next
+  // turn, before Flue admits it; a refused send does not bring them back. Only
+  // a new canonical turn in the same conversation marks its own changes again.
+  const latestTurnId = latestLedgerTurnId(
+    flueHistory.snapshot ?? { messages: [] },
+  );
+  const [highlightDismissal, setHighlightDismissal] = useState<{
+    readonly tracker: BrunchPanelConversationTracker;
+    readonly turnId: string | undefined;
+  }>();
+  const highlightChanges = !(
+    highlightDismissal?.tracker === conversationTracker &&
+    highlightDismissal.turnId === latestTurnId
+  );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
     : undefined;
@@ -518,6 +533,11 @@ export const useBrunchAssistant = ({
                 }),
             adapter: flueAdapter,
             onAdmission: flueHistory.refresh,
+            onSubmission: () =>
+              setHighlightDismissal({
+                tracker: conversationTracker,
+                turnId: latestTurnId,
+              }),
             onToolOutputError: (event) =>
               reportBrunchFailure("server-tool", new Error(event.errorText), {
                 submissionId: event.submissionId,
@@ -540,6 +560,7 @@ export const useBrunchAssistant = ({
       flueHistory.refresh,
       interviewBudgetLevel,
       interviewRepliesAsked,
+      latestTurnId,
       ownerKey,
       hostFetch,
       readWords,
@@ -628,6 +649,7 @@ export const useBrunchAssistant = ({
               <BrunchLedgerTab
                 conversationId={constructionBrowser.binding.conversationId}
                 messages={flueHistory.snapshot?.messages ?? []}
+                highlightChanges={highlightChanges}
               />
             ),
           }
@@ -764,6 +786,7 @@ export const useBrunchAssistant = ({
     flueHistory.phase,
     flueHistory.ready,
     flueHistory.snapshot,
+    highlightChanges,
     inBandBrowserTools,
     interviewBudgetEnabled,
     interviewBudgetLevel,

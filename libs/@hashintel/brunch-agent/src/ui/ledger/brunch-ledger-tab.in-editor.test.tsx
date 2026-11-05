@@ -349,7 +349,7 @@ test("the Ledger marks the latest turn's changes as they are accepted, and keeps
   const handle = createJsonDocHandle({
     initial: { places: [], transitions: [] },
   });
-  const editor = (history: LedgerHistoryMessage[]) => (
+  const editor = (history: LedgerHistoryMessage[], highlightChanges = true) => (
     <BrunchAssistantContext
       value={fixedBrunchAssistant({
         messages: [],
@@ -363,7 +363,11 @@ test("the Ledger marks the latest turn's changes as they are accepted, and keeps
         additionalTab: {
           label: "Ledger",
           content: (
-            <BrunchLedgerTab conversationId="conversation" messages={history} />
+            <BrunchLedgerTab
+              conversationId="conversation"
+              messages={history}
+              highlightChanges={highlightChanges}
+            />
           ),
         },
       })}
@@ -426,4 +430,11 @@ test("the Ledger marks the latest turn's changes as they are accepted, and keeps
     fireEvent.click(screen.getByRole("tab", { name: /Ledger/u })),
   );
   expect(marks()).toEqual(["e1 updated", "e2 added"]);
+
+  // Once the user submits again, the marks clear while the records stay.
+  rerender(editor(renamed, false));
+  expect(marks()).toEqual([]);
+  expect(screen.getByTestId("brunch-ledger-document").textContent).toContain(
+    "Booster pump",
+  );
 });

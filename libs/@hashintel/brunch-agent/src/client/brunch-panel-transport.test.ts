@@ -4,6 +4,7 @@ import { expect, test, vi } from "vitest";
 
 import {
   interviewBudgetLevels,
+  ledgerCommentsMessage,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
   readPetrinautSubmissionContext,
@@ -106,6 +107,71 @@ test("captures words before waiting for the client and retains them for the same
   expect(
     send.mock.calls.map(([submission]) => submission.message.body),
   ).toEqual([expected, expected]);
+});
+
+test("announces a typed or comment submission before Flue admits it, but not an internal continuation", async () => {
+  const events: string[] = [];
+  const send = vi.fn<FlueClient["send"]>(async ({ message }) => {
+    events.push(`send ${message.kind}`);
+    throw new FlueApiError(403, "Refused");
+  });
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as unknown as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { onSubmission: () => events.push("submission") },
+  );
+  const submit = (messages: PetrinautAiMessage[]) =>
+    transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "one",
+      messageId: messages.at(-1)?.id,
+      messages,
+      abortSignal: undefined,
+    });
+  const typed: PetrinautAiMessage = {
+    id: "user-one",
+    role: "user",
+    parts: [{ type: "text", text: "A pump fills it." }],
+  };
+  await expect(submit([typed])).rejects.toMatchObject({
+    failure: { kind: "rejected", status: 403 },
+  });
+  await expect(
+    submit([
+      typed,
+      {
+        id: "comments",
+        role: "user",
+        parts: [
+          {
+            type: "text",
+            text: ledgerCommentsMessage([
+              { id: "n1", records: ["e1"], text: "It is a pump." },
+            ]).body,
+          },
+        ],
+      },
+    ]),
+  ).rejects.toMatchObject({ failure: { kind: "rejected" } });
+  expect(events).toEqual([
+    "submission",
+    "send user",
+    "submission",
+    "send signal",
+  ]);
+
+  // Petrinaut continues a turn after client tool results; that is no new turn.
+  await expect(
+    submit([
+      typed,
+      {
+        id: "assistant-one",
+        role: "assistant",
+        parts: [{ type: "text", text: "Placed it." }],
+      },
+    ]),
+  ).rejects.toThrow("The submitted user message has no text.");
+  expect(events).toHaveLength(4);
 });
 
 test("an empty words snapshot without an allowance sends an ordinary message", async () => {

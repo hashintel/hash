@@ -14,6 +14,7 @@ export {
 export {
   foldCommits,
   isRefusedLedgerCommit,
+  latestLedgerTurnId,
   ledgerAppendOutputSchema,
   prepareAppend,
   type FoldedLedger,

@@ -1,9 +1,10 @@
 /** @vitest-environment jsdom */
+import { FlueApiError } from "@flue/sdk";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { Children, isValidElement, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools, ledgerCommentsMessage } from "@hashintel/brunch-agent";
 import {
   createExperimentToolName,
   createJsonDocHandle,
@@ -994,3 +995,155 @@ test.each(["standard", "thorough", "off"] as const)(
     expectBudget(false);
   },
 );
+
+test("a submission clears the Ledger's highlights before admission, until a new canonical turn opens", async () => {
+  const user = (id: string, text: string) => ({
+    id,
+    role: "user",
+    purpose: "user",
+    parts: [{ type: "text", text }],
+  });
+  const comments = ledgerCommentsMessage([
+    { id: "n1", records: ["e1"], text: "It is a pump." },
+  ]);
+  const firstTurn = [
+    user("user-1", "The reservoir holds a day of supply."),
+    {
+      id: "assistant-1",
+      role: "assistant",
+      purpose: "assistant",
+      parts: [
+        {
+          type: "dynamic-tool",
+          toolName: brunchTools.ledgerCommit,
+          toolCallId: "ledger-1",
+          state: "output-available",
+          input: {
+            entries: [
+              [
+                "entity/create",
+                {
+                  name: "Reservoir",
+                  kind: "resource",
+                  origin: "stated",
+                  status: "confirmed",
+                },
+              ],
+            ],
+          },
+          output: {
+            status: "recorded",
+            commitId: "ledger-1",
+            revision: 1,
+            ids: ["e1"],
+          },
+        },
+      ],
+    },
+  ];
+  const snapshotOf = (
+    messages: readonly unknown[],
+  ): AgentConversationObservationSnapshot => ({
+    conversation: {
+      conversationId: "conversation-highlights",
+      settlements: [],
+      messages: messages as never,
+    },
+    offset: `offset-${messages.length}`,
+    phase: "live",
+    error: undefined,
+  });
+  let snapshot = snapshotOf(firstTurn);
+  const subscribers = new Set<() => void>();
+  const publish = (messages: readonly unknown[]) =>
+    act(() => {
+      snapshot = snapshotOf(messages);
+      for (const subscriber of subscribers) subscriber();
+    });
+  const refusals: (() => void)[] = [];
+  const send = vi.fn(
+    () =>
+      new Promise<never>((_resolve, reject) => {
+        refusals.push(() => reject(new FlueApiError(403, "Refused")));
+      }),
+  );
+  flueClientMock.current = {
+    send,
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => snapshot,
+      refresh: vi.fn(),
+      subscribe: (subscriber: () => void) => {
+        subscribers.add(subscriber);
+        return () => subscribers.delete(subscriber);
+      },
+    }),
+  };
+
+  const rendered = renderAssistant();
+  const ledgerTab = () => {
+    const content = rendered.assistant().additionalTab?.content;
+    if (
+      !isValidElement<{ highlightChanges?: boolean; messages: unknown[] }>(
+        content,
+      )
+    )
+      throw new Error("Missing Ledger tab");
+    return content.props;
+  };
+  const highlighted = () => ledgerTab().highlightChanges ?? true;
+  let submissions = 0;
+  /**
+   * Submit through the panel transport: the highlights clear while Flue holds
+   * the admission, and stay cleared once it refuses.
+   */
+  const submitRefused = async (id: string, text: string) => {
+    submissions += 1;
+    const refused = expect(
+      rendered.assistant().transport.sendMessages({
+        trigger: "submit-message",
+        chatId: "chat",
+        messageId: id,
+        messages: [{ id, role: "user", parts: [{ type: "text", text }] }],
+        abortSignal: undefined,
+      }),
+    ).rejects.toMatchObject({ failure: { kind: "rejected" } });
+    await waitFor(() => expect(highlighted()).toBe(false));
+    expect(send).toHaveBeenCalledTimes(submissions);
+    await act(async () => {
+      refusals.at(-1)?.();
+      await refused;
+    });
+    expect(highlighted()).toBe(false);
+  };
+  await waitFor(() => expect(ledgerTab().messages).toHaveLength(2));
+  expect(highlighted()).toBe(true);
+
+  await submitRefused("draft-2", "A pump fills it.");
+  // A refresh to the same history still has no new turn.
+  publish([...firstTurn]);
+  expect(highlighted()).toBe(false);
+
+  // A comment turn opens canonically, wherever it was sent from.
+  const commented = [
+    ...firstTurn,
+    {
+      id: "comments-2",
+      role: "system",
+      purpose: "dispatch",
+      signal: { tagName: comments.tagName },
+      parts: [{ type: "text", text: comments.body }],
+    },
+  ];
+  publish(commented);
+  expect(highlighted()).toBe(true);
+
+  await submitRefused("draft-3", "And a valve.");
+  publish([...commented, user("user-3", "And a valve.")]);
+  expect(highlighted()).toBe(true);
+
+  // A replaced conversation does not inherit the dismissal.
+  await submitRefused("draft-4", "Start over.");
+  act(() => rendered.assistant().onClearMessages?.());
+  await waitFor(() => expect(highlighted()).toBe(true));
+});
