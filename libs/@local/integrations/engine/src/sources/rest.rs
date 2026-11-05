@@ -44,7 +44,7 @@ struct StoredToken {
     value: Pin<Box<Secret<str>>>,
 }
 
-fn headers(
+pub(super) fn headers(
     auth: Option<&RestAuth>,
     secret: Option<&Secret<[u8]>>,
 ) -> Result<HeaderMap, Report<SourceError>> {
@@ -529,6 +529,20 @@ mod tests {
                 .count(),
             0,
             "should remove spooled rows on failure"
+        );
+    }
+
+    #[test]
+    fn empty_token() {
+        let auth =
+            serde_json::from_value(json!({"type": "bearer", "secretEntityUuid": Uuid::new_v4()}))
+                .expect("should describe bearer authentication");
+        let secret = Secret::from_vec(br#"{"value":""}"#.to_vec());
+        let error =
+            super::headers(Some(&auth), Some(&secret)).expect_err("should reject an empty token");
+        assert!(
+            matches!(error.current_context(), SourceError::Secret),
+            "should identify the invalid secret"
         );
     }
 

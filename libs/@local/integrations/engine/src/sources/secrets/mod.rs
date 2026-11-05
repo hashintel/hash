@@ -40,6 +40,11 @@ pub(super) fn deserialize_secret<'de, D: Deserializer<'de>>(
 }
 
 /// Resolves a User Secret using the run owner's permissions and web.
+///
+/// [`read`] returns the stored secret object as JSON, such as `{"value": "<token>"}` for an API
+/// key, and each source parses the fields it needs from it.
+///
+/// [`read`]: Self::read
 pub trait SecretStore: Send + Sync {
     fn read(
         &self,
@@ -271,13 +276,10 @@ impl SecretStore for GraphVaultSecretStore {
         let body: VaultResponse<Map<String, Value>> =
             secret_response(response, SecretService::Vault).await?;
         let data = body.data.data;
-        let bytes = match data.get("value") {
-            Some(Value::String(value)) if data.len() == 1 => value.as_bytes().to_vec(),
-            _ => serde_json::to_vec(&data).change_context(SourceError::SecretValue)?,
-        };
-        if bytes.is_empty() {
+        if data.is_empty() {
             return Err(Report::new(SourceError::SecretValue));
         }
+        let bytes = serde_json::to_vec(&data).change_context(SourceError::SecretValue)?;
         Ok(Secret::from_vec(bytes))
     }
 }
