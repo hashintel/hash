@@ -131,6 +131,9 @@ test("records each utterance's peak microphone level from the second before its 
   expect(levels.peak("yes")).toBeUndefined();
 });
 
+/** Teardowns for conversations created by `setup()` in the current test. */
+const openConversations: (() => Promise<void>)[] = [];
+
 const setup = ({
   audioSettings,
   audioMuted = false,
@@ -236,6 +239,11 @@ const setup = ({
     channels[connection].dispatchEvent(
       new MessageEvent("message", { data: JSON.stringify(data) }),
     );
+  openConversations.push(() => {
+    const stopped = conversation.stop();
+    emit(0, { type: "session.closed" });
+    return stopped;
+  });
   return {
     conversation,
     emit,
@@ -256,7 +264,12 @@ const setup = ({
   };
 };
 
-afterEach(() => {
+afterEach(async () => {
+  // Stop every conversation this test created before restoring real timers.
+  // A conversation left running keeps its 100 ms activity-sampling loop on
+  // real timers; once a later test installs fake timers, that loop re-arms
+  // onto the fake clock, where the later test's own `stop()` cannot clear it.
+  await Promise.all(openConversations.splice(0).map((stop) => stop()));
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
