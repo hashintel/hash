@@ -944,7 +944,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://upload.wikimedia.org/wikipedia/commons/d/d0/Facebook_Messenger_wordmark_2025.svg",
     logoNotes:
-      "Composed lock-up pairing Meta\u2019s official February 2025 blue Messenger mark with the sourced Messenger wordmark. Both use Facebook Blue (#0866FF); the earlier multicolor mark remains available as messengerLegacy.",
+      "Composed lock-up pairing Meta\u2019s official February 2025 blue Messenger mark with the sourced Messenger wordmark. Both use Facebook Blue (#0866FF); the earlier multicolor mark remains available as messengerLegacy. The main letter shapes are optically centered with the speech bubble.",
     logoRaster: false,
   },
   {
@@ -967,7 +967,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://upload.wikimedia.org/wikipedia/commons/d/d0/Facebook_Messenger_wordmark_2025.svg",
     logoNotes:
-      "Previous multicolor Messenger mark retained in all seven variants. Full logos preserve the previous composition with the sourced Messenger wordmark.",
+      "Previous multicolor Messenger mark retained in all seven variants. Full logos pair the mark with black lettering in light mode and white lettering in dark mode. The main letter shapes are optically centered with the speech bubble.",
     logoRaster: false,
   },
   {

@@ -106,7 +106,8 @@ def compose_logo(mark, wordmark, layout):
     for name, artwork, height in (("mark", mark, 100), ("wordmark", wordmark, layout["wordmarkHeight"] * 100)):
         viewbox = [float(value) for value in artwork.get("viewBox").replace(",", " ").split()]
         width = height * viewbox[2] / viewbox[3]
-        artwork.attrib.update({"x": str(x), "y": str((100 - height) / 2), "width": str(width), "height": str(height)})
+        offset_y = layout.get("wordmarkOffsetY", 0) * 100 if name == "wordmark" else 0
+        artwork.attrib.update({"x": str(x), "y": str((100 - height) / 2 + offset_y), "width": str(width), "height": str(height)})
         for element in artwork.iter():
             for key, value in list(element.attrib.items()):
                 if key == "id":

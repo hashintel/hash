@@ -57,7 +57,7 @@ export const logoLight = ({ id }: { id: string }) => (
       viewBox="0 0 888.71948 132.42526"
       fill="#000000"
       x="130.0"
-      y="15.0"
+      y="23.5"
       width="469.7771678907785"
       height="70.0"
     >
@@ -164,7 +164,7 @@ export const logoDark = ({ id }: { id: string }) => (
       viewBox="0 0 888.71948 132.42526"
       fill="#F5F7FA"
       x="130.0"
-      y="15.0"
+      y="23.5"
       width="469.7771678907785"
       height="70.0"
     >

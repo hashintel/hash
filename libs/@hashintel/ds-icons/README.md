@@ -219,7 +219,7 @@ Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<va
 
 `appleHealth` provides a backgroundless heart vectorized from Apple's current App Store artwork, with its pink-to-red gradient and subtle bevel. Its app variants use the shared translucent tiles; the “Apple Health” integration alias resolves to this set.
 
-`messenger` uses Meta’s current Facebook Blue mark in all variants, including the full logos. `messengerLegacy` preserves the previous multicolor artwork in all seven variants; the “Messenger” integration alias resolves to the current blue set.
+`messenger` uses Meta’s current Facebook Blue mark in all variants, including the full logos. `messengerLegacy` preserves the previous multicolor mark in all seven variants, with black lettering in `logo-light` and white lettering in `logo-dark`. Current Messenger wordmarks stay blue in both modes. Both full-logo compositions optically center the main letter shapes with the speech bubble. The “Messenger” integration alias resolves to the current blue set.
 
 `granola` uses the current swirl identity. `granolaLegacy` preserves the retired g-and-cursor mark; the “Granola” integration alias always resolves to the current artwork.
 
