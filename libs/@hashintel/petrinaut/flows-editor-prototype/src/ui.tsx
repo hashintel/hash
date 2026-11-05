@@ -10,7 +10,7 @@ import {
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { useSourceHover } from "./editor-context";
-import { panelTileColor, tileColor } from "./status-colors";
+import { groupHues, panelTileColor, tileColor } from "./status-colors";
 
 import type { StepInputSource } from "./engine";
 import type { EditorPayloadKind } from "./mock-action-definitions";
@@ -491,6 +491,31 @@ export const HeaderTitle = ({
 /** `?panelheader=old`: the two headers from before H4, read from the URL only and never remembered. */
 export const oldPanelHeader =
   new URLSearchParams(globalThis.location.search).get("panelheader") === "old";
+
+/**
+ * `?panelkind=k1..k4` (inbox panel-header-kind, open): what the header's second line says about the step's kind,
+ * read from the URL only. k1 (default) "Action · description"; k2 no kind word; k3 the group word of the tile's hue,
+ * "Documents · description"; k4 the description as the title, with the type under it, as in the Steps tree.
+ */
+export const panelKindTake = (() => {
+  const value = new URLSearchParams(globalThis.location.search).get(
+    "panelkind",
+  );
+  return value === "k2" || value === "k3" || value === "k4" ? value : "k1";
+})();
+
+/** The P-a group an icon's tile takes its hue from (Documents, Entities, Messages, People, Flow control). */
+export const kindGroupOf = (icon: string) =>
+  groupHues.find((entry) => entry.icons.includes(icon))?.group;
+
+/** k4's title line when it is the description field: the title's size, weight and colour, the type as placeholder. */
+export const titleFieldStyle = css({
+  "&[class]": {
+    fontWeight: "medium",
+    color: "neutral.fg.heading",
+    _placeholder: { color: "neutral.fg.heading" },
+  },
+});
 
 const hueHeaderStyle = css({
   display: "grid",

@@ -46,7 +46,9 @@ import { triggerFiredTake } from "./trigger-flags";
 import {
   HeaderTitle,
   HueHeader,
+  kindGroupOf,
   oldPanelHeader,
+  panelKindTake,
   PropertyRow,
   Section,
 } from "./ui";
@@ -707,6 +709,46 @@ const plainOutputs = (stepId: string, state: StepRun): [string, string][] =>
         : []
     : [];
 
+/**
+ * The run panel's H4 header. `?panelkind=k2..k4` (inbox panel-header-kind) as in the editor; with no description,
+ * k2 shows the type alone, k3 the group word alone, k4 the type over the group word.
+ */
+const RunHeader = ({
+  icon,
+  kind,
+  group,
+  description,
+  today,
+}: {
+  icon: IconName;
+  kind: string;
+  group?: string;
+  description: string;
+  today: string;
+}) => {
+  const described = description.trim() ? description : "";
+  const second =
+    panelKindTake === "k1"
+      ? today
+      : panelKindTake === "k2"
+        ? described
+        : panelKindTake === "k3"
+          ? [group, described].filter(Boolean).join(" · ")
+          : described
+            ? kind
+            : (group ?? "");
+  return (
+    <HueHeader
+      icon={icon}
+      title={
+        <span>{panelKindTake === "k4" && described ? described : kind}</span>
+      }
+    >
+      {second ? <span className={headerLineStyle}>{second}</span> : null}
+    </HueHeader>
+  );
+};
+
 export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
   const { document, ui } = useEditor();
   const { run, steps, now } = history;
@@ -762,16 +804,27 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
           </span>
         </div>
       ) : (
-        <HueHeader
+        <RunHeader
           icon={entry?.icon ?? detail.icon}
-          title={<span>{entry?.title ?? detail.type}</span>}
-        >
-          <span className={headerLineStyle}>
-            {step?.kind === "action" && step.description.trim()
+          kind={entry?.title ?? detail.type}
+          group={
+            stepId === runTriggerId
+              ? "Trigger"
+              : kindGroupOf(entry?.icon ?? detail.icon)
+          }
+          description={
+            stepId === runTriggerId
+              ? (document.triggers.find(
+                  (trigger) => trigger.kind === run.trigger.kind,
+                )?.description ?? "")
+              : (step?.description ?? "")
+          }
+          today={
+            step?.kind === "action" && step.description.trim()
               ? `Action · ${step.description}`
-              : label}
-          </span>
-        </HueHeader>
+              : label
+          }
+        />
       )}
       <Section title="Status">
         <div

@@ -83,6 +83,7 @@ import {
   descriptionInputStyle,
   HeaderTitle,
   HueHeader,
+  kindGroupOf,
   keyHoverStyle,
   keyStyle,
   kindLabel,
@@ -90,11 +91,13 @@ import {
   OriginMark,
   oldPanelHeader,
   panelHeaderStyle,
+  panelKindTake,
   PropertyRow,
   Section,
   ChipRow,
   SourceChip,
   SourceSelectTrigger,
+  titleFieldStyle,
   type Tone,
   typeLineStyle,
 } from "./ui";
@@ -274,15 +277,19 @@ const DescriptionInput = ({
   value,
   label,
   onChange,
+  className,
+  placeholder = "Add a description…",
 }: {
   value: string;
   label: string;
   onChange: (next: string) => void;
+  className?: string;
+  placeholder?: string;
 }) => (
   <input
-    className={descriptionInputStyle}
+    className={cx(descriptionInputStyle, className)}
     value={value}
-    placeholder="Add a description…"
+    placeholder={placeholder}
     aria-label={label}
     onChange={(event) => onChange(event.target.value)}
   />
@@ -296,6 +303,102 @@ const headerActionStyle = css({
   transition: "[opacity 0.15s ease]",
 });
 
+/** The field after a kind word: the same 3 px inset and −3 px margin as k1's "Action · ", so the gap matches. */
+const afterPrefixStyle = css({
+  flex: "1",
+  minWidth: "0",
+  display: "grid",
+  "& input": {
+    marginLeft: "[-3px]",
+    paddingLeft: "[2px]",
+    width: "[calc(100% + 10px)]",
+  },
+});
+
+const kindWordStyle = css({
+  flexShrink: 0,
+  whiteSpace: "pre",
+  textStyle: "sm",
+  color: "neutral.fg.muted.hover",
+});
+
+/**
+ * `?panelkind=k2..k4` (inbox panel-header-kind). With no description: k2 shows the type and "Add a description…";
+ * k3 "Documents · Add a description…"; k4 the type as the title (the field's placeholder, as the Steps tree names an
+ * undescribed step) with the group word under it.
+ */
+const KindTakeHeader = ({
+  icon,
+  kind,
+  group,
+  origin,
+  field,
+}: {
+  icon: IconName;
+  kind: string;
+  group?: string;
+  origin?: React.ReactNode;
+  field: {
+    label: string;
+    value: string;
+    onChange: (next: string) => void;
+  } | null;
+}) => {
+  const described = !!field?.value.trim();
+  if (panelKindTake === "k4") {
+    return (
+      <HueHeader
+        icon={icon}
+        title={
+          <>
+            {field ? (
+              // A div, not a span: the title line clips a leading span for its ellipsis, which would cut the
+              // field's fill and ring.
+              <div
+                className={css({ flex: "1", minWidth: "0", display: "grid" })}
+              >
+                <DescriptionInput
+                  {...field}
+                  className={titleFieldStyle}
+                  placeholder={kind}
+                />
+              </div>
+            ) : (
+              <span>{kind}</span>
+            )}
+            {origin}
+          </>
+        }
+      >
+        {described || group ? (
+          <span className={kindWordStyle}>{described ? kind : group}</span>
+        ) : null}
+      </HueHeader>
+    );
+  }
+  const input = field ? <DescriptionInput {...field} /> : null;
+  return (
+    <HueHeader
+      icon={icon}
+      title={
+        <>
+          <span>{kind}</span>
+          {origin}
+        </>
+      }
+    >
+      {panelKindTake === "k3" && group ? (
+        <span className={css({ display: "flex", alignItems: "baseline" })}>
+          <span className={kindWordStyle}>{`${group} · `}</span>
+          {input ? <span className={afterPrefixStyle}>{input}</span> : null}
+        </span>
+      ) : (
+        input
+      )}
+    </HueHeader>
+  );
+};
+
 const PanelHeader = ({
   icon,
   type,
@@ -304,6 +407,8 @@ const PanelHeader = ({
   description,
   trigger,
   subtitle,
+  kind,
+  group,
 }: {
   icon: IconName;
   type: string;
@@ -314,6 +419,10 @@ const PanelHeader = ({
   trigger?: TriggerNode;
   /** Static text under the title, in place of the description field. */
   subtitle?: string;
+  /** `?panelkind=k2..k4`: the step's type when `type` is its description (For each, triggers). */
+  kind?: string;
+  /** `?panelkind=k3`: the kind word, when the icon's P-a group isn't it (triggers). */
+  group?: string;
 }) => {
   const { setDocument, setUi } = useEditor();
   const onDelete = trigger
@@ -413,6 +522,40 @@ const PanelHeader = ({
           </HeaderTitle>
           {second}
         </>
+      ) : panelKindTake !== "k1" ? (
+        <KindTakeHeader
+          icon={icon}
+          kind={kind ?? type}
+          group={group ?? kindGroupOf(icon)}
+          origin={origin}
+          field={
+            trigger
+              ? {
+                  label: "Trigger description",
+                  value: trigger.description,
+                  onChange: (next) =>
+                    setDocument((document) =>
+                      updateTrigger(document, trigger.id, (current) => ({
+                        ...current,
+                        description: next,
+                      })),
+                    ),
+                }
+              : stepId && description !== undefined
+                ? {
+                    label: "Step description",
+                    value: description,
+                    onChange: (next) =>
+                      setDocument((document) =>
+                        updateStep(document, stepId, (step) => ({
+                          ...step,
+                          description: next,
+                        })),
+                      ),
+                  }
+                : null
+          }
+        />
       ) : (
         <HueHeader
           icon={icon}
@@ -667,6 +810,8 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
       <PanelHeader
         icon="rotate"
         type={step.description || "For each"}
+        kind="For each"
+        description={step.description}
         subtitle={
           step.description.startsWith("For each ")
             ? `Runs its steps once per ${step.description.slice("For each ".length)}`
@@ -1530,6 +1675,8 @@ const TriggerPanel = ({ trigger }: { trigger: TriggerNode }) => {
         type={trigger.description || definition.title}
         subtitle="Trigger"
         trigger={trigger}
+        kind={definition.title}
+        group="Trigger"
       />
       {trigger.kind === "schedule" ? (
         <ScheduleSettings trigger={trigger} />
