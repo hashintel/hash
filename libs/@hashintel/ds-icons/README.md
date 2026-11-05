@@ -164,6 +164,7 @@ Every name also has a named component, such as `SortDownShapesIcon` or
 alphabetical, and numeric exports remain available. Related-icon metadata links
 each opposite and alternative sort family. Sort icons use the same one-time
 hover feedback as the rest of the set; continuous effects remain opt-in.
+
 ## Integrations
 
 `IntegrationIcon` provides a separate **Integrations** category for the 39 brands used by HASH's 43 integration listings. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
