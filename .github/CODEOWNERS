@@ -1,8 +1,8 @@
 # Rust
 *.rs @hashintel/rust
 Cargo.toml @hashintel/rust
-/libs/@local/hashql/ @hashintel/backend-rust
-/libs/@local/harpc/ @hashintel/backend-rust
+/libs/@local/hashql/ @hashintel/hashql
+/libs/@local/harpc/ @hashintel/harpc
 
 # Design system
 /apps/hashdotdesign/ @hashintel/design-system
@@ -17,13 +17,18 @@ Cargo.toml @hashintel/rust
 /apps/hash-api/ @hashintel/backend-ts
 /apps/hash-ai-worker-ts/ @hashintel/backend-ts
 /apps/hash-integration-worker/ @hashintel/backend-ts
-/apps/hash-graph/ @hashintel/backend-rust
-/libs/@local/graph/ @hashintel/backend-rust
+/apps/hash-graph/ @hashintel/graph
+/libs/@local/graph/ @hashintel/graph
+/tests/graph/ @hashintel/graph
 /libs/@local/graph/*/typescript/ @hashintel/backend-ts
 
 # Database migrations
-/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend-rust
-/libs/@local/graph/migrations/graph-migrations/ @hashintel/backend-rust
+/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/graph
+/libs/@local/graph/migrations/graph-migrations/ @hashintel/graph
+
+# Integrations
+/apps/hash-integrations/ @hashintel/integrations
+/libs/@local/integrations/ @hashintel/integrations
 
 # Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins
