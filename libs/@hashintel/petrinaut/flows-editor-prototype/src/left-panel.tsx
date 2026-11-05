@@ -150,8 +150,9 @@ const labelStyle = css({
 const countStyle = css({ textStyle: "xxs", color: "neutral.fg.subtle" });
 
 /**
- * The text at a Steps-tree row's right ("6 steps", "19 of 20", "Needs review"), inbox `picks/row-text`, open:
- * ?rowtext=a|b|c|d, URL only; no param keeps today's text on every row.
+ * The text at a Steps-tree row's right ("6 steps", "19 of 20", "Needs review"), inbox `picks/row-text`: a is the
+ * default (Aakarsh, 5 Nov: "push this no text thing"). ?rowtext=b|c|d shows the other takes and ?rowtext=today the
+ * text on every row, URL only.
  * - a: the text shows only while the row is hovered or selected.
  * - b: no text; the mark's tooltip carries the count or reason.
  * - c: no text, and a step done for only some items draws the progress ring, so the mark itself says "not all".
@@ -161,9 +162,10 @@ type RowTextTake = "a" | "b" | "c" | "d";
 
 const useRowTextTake = (): RowTextTake | null => {
   const value = useLocation().query.get("rowtext");
-  return value === "a" || value === "b" || value === "c" || value === "d"
-    ? value
-    : null;
+  if (value === "today") {
+    return null;
+  }
+  return value === "b" || value === "c" || value === "d" ? value : "a";
 };
 
 /** Hidden until its row is hovered or selected (takes a and d). */
@@ -197,7 +199,8 @@ const listHeadStyle = css({
   justifyContent: "space-between",
   height: "[32px]",
   paddingLeft: "3",
-  paddingRight: "4",
+  // 14 px, not 16: centres the 21 px Collapse all button on the rows' 16 px run marks (5 Nov: "misaligned").
+  paddingRight: "[14px]",
   textStyle: "xs",
   color: "neutral.fg.muted",
 });
