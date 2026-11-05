@@ -1,6 +1,9 @@
+import { type NextRouter, useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { isProcessEditorPath } from "../../../../lib/csp";
+
+type RouterEvents = Pick<NextRouter["events"], "on" | "off">;
 
 /**
  * Probes whether this document's Content Security Policy lets scripts
@@ -66,11 +69,63 @@ export const runStringEvaluationGate = ({
 };
 
 /**
+ * Reloads a document loaded at an editor path once a client-side navigation
+ * has taken it to any other route, so that route runs under its own policy
+ * rather than the editor's. Reloading after the route change completes,
+ * rather than cancelling it, treats links, programmatic navigation and the
+ * browser's back and forward buttons alike.
+ *
+ * @returns a function that stops watching for route changes. A reload
+ *   already armed by one still runs: it fires after the editor unmounts.
+ */
+export const reloadOnLeavingEditorPolicy = ({
+  events,
+  documentPathname,
+  origin,
+  reload,
+}: {
+  events: RouterEvents;
+  documentPathname: () => string | null;
+  origin: string;
+  reload: () => void;
+}): (() => void) => {
+  const loadedAt = documentPathname();
+  if (loadedAt === null || !isProcessEditorPath(loadedAt)) {
+    return () => {};
+  }
+
+  const onRouteChangeStart = (url: string) => {
+    if (isProcessEditorPath(new URL(url, origin).pathname)) {
+      return;
+    }
+    let disarm = () => {};
+    const onRouteChangeComplete = () => {
+      disarm();
+      reload();
+    };
+    // A route change that is cancelled or fails leaves the editor in place.
+    const onRouteChangeError = () => disarm();
+    disarm = () => {
+      events.off("routeChangeComplete", onRouteChangeComplete);
+      events.off("routeChangeError", onRouteChangeError);
+    };
+    events.on("routeChangeComplete", onRouteChangeComplete);
+    events.on("routeChangeError", onRouteChangeError);
+  };
+
+  events.on("routeChangeStart", onRouteChangeStart);
+  return () => events.off("routeChangeStart", onRouteChangeStart);
+};
+
+/**
  * Whether the process editor may render Petrinaut yet: `false` while the
  * gate is deciding (and for good once it has started a reload), `true` after.
- * See {@link runStringEvaluationGate}.
+ * See {@link runStringEvaluationGate}. Once Petrinaut may render, leaving the
+ * editor for another route reloads the document; see
+ * {@link reloadOnLeavingEditorPolicy}.
  */
 export const useStringEvaluationGate = (): boolean => {
+  const { events } = useRouter();
   const [canRender, setCanRender] = useState(false);
 
   useEffect(() => {
@@ -79,10 +134,22 @@ export const useStringEvaluationGate = (): boolean => {
       documentPathname: readDocumentPathname,
       reload: () => window.location.reload(),
     });
-    if (shouldRender) {
-      setCanRender(true);
+    if (!shouldRender) {
+      return undefined;
     }
-  }, []);
+    setCanRender(true);
+
+    // Development's policy allows evaluation on every route.
+    if (process.env.NODE_ENV === "development") {
+      return undefined;
+    }
+    return reloadOnLeavingEditorPolicy({
+      events,
+      documentPathname: readDocumentPathname,
+      origin: window.location.origin,
+      reload: () => window.location.reload(),
+    });
+  }, [events]);
 
   return canRender;
 };
