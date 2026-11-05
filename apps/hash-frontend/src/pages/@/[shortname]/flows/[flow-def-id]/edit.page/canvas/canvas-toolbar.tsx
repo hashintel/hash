@@ -5,6 +5,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { getAddStepMenuItems } from "../shared/step-display";
 
+import type { FitViewOptions } from "@xyflow/react";
+
 export type CanvasTool = "hand" | "select";
 
 const toolbar = css({
@@ -28,12 +30,15 @@ export const CanvasToolbar = ({
   onAddStep,
   onOrganize,
   canOrganize,
+  fitPadding,
 }: {
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
   onAddStep: (actionDefinitionId: string) => void;
   onOrganize: () => void;
   canOrganize: boolean;
+  /** Keeps Zoom to fit clear of a panel covering the canvas. */
+  fitPadding: FitViewOptions["padding"];
 }) => {
   const { zoom } = useViewport();
   const { zoomIn, zoomOut, fitView, zoomTo } = useReactFlow();
@@ -87,7 +92,7 @@ export const CanvasToolbar = ({
                   text: "Zoom to fit",
                   icon: "expand",
                   onClick: () => {
-                    void fitView();
+                    void fitView({ padding: fitPadding });
                   },
                 },
                 {

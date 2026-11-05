@@ -36,13 +36,21 @@ const takesEntityQuery = (input: InputDefinition) =>
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
 
+/** The panel floats over the canvas's right edge, so opening it doesn't resize the canvas or move what's on it. */
+export const stepPanelWidth = 384;
+
 const panel = css({
+  position: "absolute",
+  zIndex: "docked",
+  top: "0",
+  right: "0",
+  bottom: "0",
   display: "flex",
   flexDirection: "column",
   gap: "8",
-  flexShrink: "0",
   width: "[384px]",
   p: "4",
+  bg: "bgSolid.min",
   overflowY: "auto",
   borderLeftWidth: "1px",
   borderLeftStyle: "solid",
@@ -197,13 +205,14 @@ const SelectedStepPanel = ({
           }
         />
       </PanelHeader>
+      {/* Problems with the step as a whole, shown even when it has no inputs, e.g. an action that doesn't exist. */}
+      {stepProblems.length > 0 && (
+        <Form.Field.Errors
+          errors={stepProblems.map(({ message }) => message)}
+        />
+      )}
       {step.kind === "action" && actionDefinition && (
         <PanelSection title="Inputs">
-          {stepProblems.length > 0 && (
-            <Form.Field.Errors
-              errors={stepProblems.map(({ message }) => message)}
-            />
-          )}
           <Form.Section>
             {actionDefinition.inputs.map((input) => {
               const Field = takesEntityQuery(input) ? QueryField : InputField;
