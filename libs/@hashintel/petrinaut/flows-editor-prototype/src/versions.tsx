@@ -1,7 +1,7 @@
 /**
  * Versions and publish (V0–V7, Figma 1185:88322, Isaac's storyboard 12). The draft carries the next number and saves
- * as you edit, with no "Draft saved" text (Aakarsh, 4 Nov); whether it should say so is open, ?draftsaved=dora|dei. Publish makes the
- * draft live and moves this web's triggers to it. Picking a past version opens it read-only (V6).
+ * as you edit, with no "Draft saved" text (Aakarsh, 4 Nov); what it should say is open, ?draftsaved=dora|dei|steady.
+ * Publish makes the draft live and moves this web's triggers to it. Picking a past version opens it read-only (V6).
  */
 import { useEffect, useState } from "react";
 
@@ -163,10 +163,12 @@ export const VersionButton = ({
 );
 
 /* ----------------------------------------------------------------------------------------------------------------
- * "Draft saved", open (5 Nov, inbox `picks/draft-saved`): ?draftsaved=dora|dei, from the URL only; no param shows
- * nothing, as before.
- * - Dora: no "Draft saved"; only a failed save shows, and stays until it saves. ?savefail makes every save fail.
- * - Dei: "Draft saved" flashes after each edit, then fades.
+ * What the bar says about saving (5 Nov, inbox `picks/draft-saved`): ?draftsaved=dora|dei|steady, from the URL only;
+ * no param shows nothing, as before. A failed save is the same in every take: "Couldn't save your changes" and Retry,
+ * until it saves (?savefail makes every save fail). The takes differ only in what a good save shows:
+ * - Dora: nothing.
+ * - Dei: "Draft saved" flashes after each save, then fades.
+ * - Steady: a muted "Saved" that reads "Saving…" while it saves.
  * ------------------------------------------------------------------------------------------------------------- */
 
 const saveNoteStyle = css({
@@ -188,32 +190,50 @@ const saveErrorStyle = css({
   whiteSpace: "nowrap",
 });
 
+/** MOCK: how long a save takes. */
+const savingMs = 600;
 /** How long Dei's "Draft saved" stays before it fades. */
 const flashMs = 1400;
+
+type SavePhase = "idle" | "saving" | "saved" | "failed";
 
 export const DraftSaveNote = ({ document }: { document: unknown }) => {
   const { query } = useLocation();
   const take = query.get("draftsaved")?.toLowerCase();
   const failing = query.has("savefail");
   const [seen, setSeen] = useState(document);
-  const [editedAt, setEditedAt] = useState<number | null>(null);
-  const [shown, setShown] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [phase, setPhase] = useState<SavePhase>("idle");
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [flash, setFlash] = useState(false);
   if (document !== seen) {
     setSeen(document);
-    setEditedAt(Date.now());
-    setShown(true);
-    setFailed(failing);
+    setPhase("saving");
   }
   useEffect(() => {
-    if (editedAt === null) {
+    if (phase !== "saving") {
       return;
     }
-    const timer = setTimeout(() => setShown(false), flashMs);
+    const timer = setTimeout(() => {
+      setPhase(failing ? "failed" : "saved");
+      if (!failing) {
+        setSavedAt(Date.now());
+        setFlash(true);
+      }
+    }, savingMs);
     return () => clearTimeout(timer);
-  }, [editedAt]);
-  if (take === "dora") {
-    return failed ? (
+  }, [phase, failing]);
+  useEffect(() => {
+    if (savedAt === null) {
+      return;
+    }
+    const timer = setTimeout(() => setFlash(false), flashMs);
+    return () => clearTimeout(timer);
+  }, [savedAt]);
+  if (take !== "dora" && take !== "dei" && take !== "steady") {
+    return null;
+  }
+  if (phase === "failed") {
+    return (
       <span className={saveErrorStyle} role="alert" data-draft-save="error">
         <Icon name="warning" size="sm" />
         Couldn&apos;t save your changes
@@ -221,14 +241,27 @@ export const DraftSaveNote = ({ document }: { document: unknown }) => {
           size="sm"
           variant="ghost"
           tone="neutral"
-          onClick={() => setFailed(false)}
+          // MOCK: a retry saves.
+          onClick={() => {
+            setPhase("saved");
+            setSavedAt(Date.now());
+            setFlash(true);
+          }}
         >
           Retry
         </Button>
       </span>
-    ) : null;
+    );
+  }
+  if (take === "steady") {
+    return (
+      <span className={saveNoteStyle} aria-live="polite" data-draft-save={phase}>
+        {phase === "saving" ? "Saving…" : "Saved"}
+      </span>
+    );
   }
   if (take === "dei") {
+    const shown = phase === "saved" && flash;
     return (
       <span
         className={saveNoteStyle}
