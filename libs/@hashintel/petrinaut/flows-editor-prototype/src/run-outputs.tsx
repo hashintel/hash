@@ -1,4 +1,3 @@
-import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { useReactFlow, type Viewport } from "@xyflow/react";
 import { Mail, Paperclip } from "lucide-react";
 /**
@@ -50,6 +49,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { flaggedOutputsOf, flattenSteps, outputKey } from "./document";
 import { useEditor } from "./editor-context";
+import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
@@ -104,17 +104,17 @@ export const useEdgeCase = (): number | null => {
 };
 
 /**
- * ?entityswitch=a|b|c (inbox `picks/entity-types`, Aakarsh 5 Nov: "it's not clear how one switches between the types"):
- * how the inline column moves between types in a list of several. URL only; no param is today's stacked sections.
+ * How a list of more than one type moves between types (inbox `picks/entity-types`). Decided 5 Nov: b, type tabs
+ * ("Suppliers 14 · Distributors 6") above the list, in every container (inline column, side sheet, modal); a single
+ * type draws no tabs. The two not picked stay behind ?entityswitch=a|c, read from the URL only:
  * a. Stacked sections: a heading and count per type, scroll moves between them, each with "+ N more".
- * b. Type tabs at the top: "Suppliers 14 · Distributors 6", each tab its own list.
- * c. A type filter in the list header: "All types ▾", or one type.
+ * c. A type filter in the list header: "All types ▾", or one type (the inline column only).
  */
-export type EntitySwitchTake = "a" | "b" | "c" | null;
+export type EntitySwitchTake = "a" | "b" | "c";
 
 export const useEntitySwitch = (): EntitySwitchTake => {
   const value = useLocation().query.get("entityswitch")?.toLowerCase();
-  return value === "a" || value === "b" || value === "c" ? value : null;
+  return value === "a" || value === "c" ? value : "b";
 };
 
 export type EntityTypesTake = "a" | "b";
@@ -1714,6 +1714,93 @@ const tableStyle = css({
   "& tbody tr:last-child td": { borderBottomWidth: "[0]" },
 });
 
+const groupLabel: Record<OutputGroup["type"], [string, string]> = {
+  Supplier: ["supplier", "Suppliers"],
+  Distributor: ["distributor", "Distributors"],
+  Certificate: ["certificate", "Certificates"],
+  Email: ["email", "Emails"],
+  Failed: ["failed", "Failed"],
+};
+
+const groupSize = (group: OutputGroup) =>
+  "rows" in group
+    ? group.rows.length
+    : "files" in group
+      ? group.files.length
+      : group.failures.length;
+
+/** The type tabs (picked: `picks/entity-types` switch-b), the status tabs' family at list size: regular weight, faint fill when on. */
+const typeTabsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  marginLeft: "[-8px]",
+});
+
+const typeTabStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  height: "[28px]",
+  paddingX: "2",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  textStyle: "sm",
+  color: "neutral.fg.muted",
+  cursor: "pointer",
+  "& > span": { color: "neutral.fg.subtle" },
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  "&[aria-selected=true]": {
+    color: "neutral.fg.heading",
+    backgroundColor: "neutral.a10",
+  },
+  _focusVisible: {
+    outline: "none",
+    boxShadow: "[0 0 0 2px var(--colors-neutral-a20)]",
+  },
+});
+
+/**
+ * Above a list of more than one type: one tab per type with its count ("Suppliers 14 · Distributors 6"), each showing
+ * only its own rows. A single type draws no tabs.
+ */
+const TypeTabs = ({
+  tabs,
+  current,
+  onPick,
+  className,
+}: {
+  tabs: { type: OutputGroup["type"]; count: number }[];
+  current: string;
+  onPick: (type: OutputGroup["type"]) => void;
+  className?: string;
+}) => (
+  <div
+    role="tablist"
+    aria-label="Types"
+    className={cx(typeTabsStyle, className)}
+  >
+    {tabs.map((tab) => (
+      <button
+        key={tab.type}
+        type="button"
+        role="tab"
+        aria-selected={tab.type === current}
+        className={typeTabStyle}
+        data-type-tab={tab.type}
+        onClick={() => onPick(tab.type)}
+      >
+        {groupLabel[tab.type][1]}
+        <span>{tab.count}</span>
+      </button>
+    ))}
+  </div>
+);
+
+/** Wide lists (modal, side sheet): the tabs sit over the tables' first column, 12 px in. */
+const wideTabsStyle = css({ marginLeft: "[4px]", marginBottom: "2" });
+
 /** A table wider than its sheet scrolls sideways; cells never wrap. */
 const tableScrollStyle = css({ overflowX: "auto" });
 
@@ -1817,8 +1904,15 @@ const EntityBody = ({
   onChange: (next: ViewerState) => void;
 }) => {
   const take = useEntityTypesTake();
-  const groups = byType(view.rows);
-  const mixed = groups.length > 1;
+  const tabbed = useEntitySwitch() === "b";
+  const allGroups = byType(view.rows);
+  const mixed = allGroups.length > 1;
+  const [picked, setPicked] = useState<string | null>(null);
+  const current = picked ?? allGroups[0]?.type ?? "";
+  // Tabs: only the picked type's table; otherwise every type stacked.
+  const groups = tabbed
+    ? allGroups.filter((group) => group.type === current)
+    : allGroups;
   // B: one table, the Type column after the first; a column only some types have stays, blank for the rest.
   const typeColumn: Column = { label: "Type", cell: (row) => row.type };
   const flatColumns =
@@ -1827,14 +1921,27 @@ const EntityBody = ({
       : view.columns.filter((column) => !column.types || mixed);
   return (
     <div data-entity-table={mixed ? take : undefined}>
+      {mixed && take === "a" && tabbed ? (
+        <TypeTabs
+          className={wideTabsStyle}
+          tabs={allGroups.map((group) => ({
+            type: group.type,
+            count: group.rows.length,
+          }))}
+          current={current}
+          onPick={setPicked}
+        />
+      ) : null}
       {mixed && take === "a" ? (
         // A: one table per type, each with only the columns its type has.
         groups.map((group) => (
           <section key={group.type} data-entity-group={group.type}>
-            <div className={groupTitleStyle}>
-              {group.type}
-              <span>{group.rows.length}</span>
-            </div>
+            {tabbed ? null : (
+              <div className={groupTitleStyle}>
+                {group.type}
+                <span>{group.rows.length}</span>
+              </div>
+            )}
             <EntityTable
               rows={group.rows}
               columns={view.columns.filter(
@@ -1913,21 +2020,6 @@ const FileTable = ({
   );
 };
 
-const groupLabel: Record<OutputGroup["type"], [string, string]> = {
-  Supplier: ["supplier", "Suppliers"],
-  Distributor: ["distributor", "Distributors"],
-  Certificate: ["certificate", "Certificates"],
-  Email: ["email", "Emails"],
-  Failed: ["failed", "Failed"],
-};
-
-const groupSize = (group: OutputGroup) =>
-  "rows" in group
-    ? group.rows.length
-    : "files" in group
-      ? group.files.length
-      : group.failures.length;
-
 /** "18 suppliers · 18 certificates · 18 emails" */
 export const groupsCount = (groups: OutputGroup[]) =>
   groups
@@ -1999,7 +2091,14 @@ const MixedBody = ({
   onChange: (next: ViewerState) => void;
 }) => {
   const take = useEntityTypesTake();
+  const tabbed = useEntitySwitch() === "b" && view.groups.length > 1;
   const [shownAll, setShownAll] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string | null>(null);
+  const current =
+    picked ??
+    view.groups.find((group) => group.type === view.focus)?.type ??
+    view.groups[0]?.type ??
+    "";
   if (take === "b" && view.groups.length > 1) {
     type FlatRow = {
       key: string;
@@ -2090,10 +2189,24 @@ const MixedBody = ({
       </div>
     );
   }
-  // A: every type in view at once, each table cut to a few rows until "+ N more".
+  // A: one table per type, cut to a few rows until "+ N more"; with tabs, only the picked type's.
   return (
     <div data-entity-table="a">
-      {view.groups.map((group) => {
+      {tabbed ? (
+        <TypeTabs
+          className={wideTabsStyle}
+          tabs={view.groups.map((group) => ({
+            type: group.type,
+            count: groupSize(group),
+          }))}
+          current={current}
+          onPick={setPicked}
+        />
+      ) : null}
+      {(tabbed
+        ? view.groups.filter((group) => group.type === current)
+        : view.groups
+      ).map((group) => {
         const all = shownAll.includes(group.type);
         const size = groupSize(group);
         const shown = all ? size : Math.min(size, widePeek);
@@ -2103,10 +2216,12 @@ const MixedBody = ({
             data-entity-group={group.type}
             data-output-group={group.type}
           >
-            <div className={groupTitleStyle}>
-              {groupLabel[group.type][1]}
-              <span>{size}</span>
-            </div>
+            {tabbed ? null : (
+              <div className={groupTitleStyle}>
+                {groupLabel[group.type][1]}
+                <span>{size}</span>
+              </div>
+            )}
             {"rows" in group ? (
               <EntityTable
                 rows={group.rows.slice(0, shown)}
@@ -2149,10 +2264,10 @@ const MixedBody = ({
                 hidden={size - shown}
                 open={all}
                 onToggle={() =>
-                  setShownAll((current) =>
-                    current.includes(group.type)
-                      ? current.filter((other) => other !== group.type)
-                      : [...current, group.type],
+                  setShownAll((open) =>
+                    open.includes(group.type)
+                      ? open.filter((other) => other !== group.type)
+                      : [...open, group.type],
                   )
                 }
               />
@@ -2601,38 +2716,6 @@ const listStackStyle = css({
 /** How many rows a group shows before "+ N more". */
 const groupPeek = 5;
 
-/** ?entityswitch=b: the type tabs, the status tabs' family at the column's size (regular weight, faint fill when on). */
-const typeTabsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  marginLeft: "[-8px]",
-});
-
-const typeTabStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-  height: "[28px]",
-  paddingX: "2",
-  border: "none",
-  borderRadius: "md",
-  background: "[transparent]",
-  textStyle: "sm",
-  color: "neutral.fg.muted",
-  cursor: "pointer",
-  "& > span": { color: "neutral.fg.subtle" },
-  _hover: { backgroundColor: "neutral.bg.surface.hover" },
-  "&[aria-selected=true]": {
-    color: "neutral.fg.heading",
-    backgroundColor: "neutral.a10",
-  },
-  _focusVisible: {
-    outline: "none",
-    boxShadow: "[0 0 0 2px var(--colors-neutral-a20)]",
-  },
-});
-
 /** ?entityswitch=c: the filter trigger reads as the list's header, a quiet chevron after it. */
 const typeFilterStyle = css({
   display: "inline-flex",
@@ -2675,12 +2758,12 @@ const ColumnList = ({
   const listRef = useRef<HTMLDivElement>(null);
   const focus = view.kind === "mixed" ? view.focus : undefined;
   useEffect(() => {
-    if (focus) {
+    if (focus && switchTake !== "b") {
       listRef.current
         ?.querySelector(`[data-output-group="${focus}"]`)
         ?.scrollIntoView({ block: "start" });
     }
-  }, [focus]);
+  }, [focus, switchTake]);
   const toggle = (key: string) =>
     setShownAll((current) =>
       current.includes(key)
@@ -2725,9 +2808,10 @@ const ColumnList = ({
       </div>
     );
   }
-  const switching = groups.length > 1 && switchTake !== null;
+  const switching = groups.length > 1;
   const tabbed = switching && switchTake === "b";
-  const current = tabbed ? (picked ?? groups[0]!.type) : picked;
+  const opening = groups.find((group) => group.type === focus)?.type;
+  const current = tabbed ? (picked ?? opening ?? groups[0]!.type) : picked;
   const visible =
     switching && switchTake !== "a" && current
       ? groups.filter((group) => group.type === current)
@@ -2741,22 +2825,14 @@ const ColumnList = ({
       data-entity-switch={switching ? switchTake : undefined}
     >
       {tabbed ? (
-        <div role="tablist" aria-label="Types" className={typeTabsStyle}>
-          {groups.map((group) => (
-            <button
-              key={group.type}
-              type="button"
-              role="tab"
-              aria-selected={group.type === current}
-              className={typeTabStyle}
-              data-type-tab={group.type}
-              onClick={() => setPicked(group.type)}
-            >
-              {groupLabel[group.type][1]}
-              <span>{groupSize(group)}</span>
-            </button>
-          ))}
-        </div>
+        <TypeTabs
+          tabs={groups.map((group) => ({
+            type: group.type,
+            count: groupSize(group),
+          }))}
+          current={current ?? ""}
+          onPick={setPicked}
+        />
       ) : null}
       {switching && switchTake === "c" ? (
         <Menu
