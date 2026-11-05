@@ -121,8 +121,11 @@ export const utilityGeometry = {
   link: <g fill="none">{chainLink}</g>,
   linkCopy: (
     <g fill="none">
-      <path data-link-part="copy" d="M3 15V5a2 2 0 0 1 2-2h10" />
-      <g data-link-part="chain" transform="translate(5 5) scale(0.75)">
+      <g data-link-part="copy">
+        <path d="M6 16H3V3h13v3" />
+        <rect x="7" y="7" width="14" height="14" rx="1.5" />
+      </g>
+      <g data-link-part="chain" transform="translate(8 8) scale(0.5)">
         {chainLink}
       </g>
     </g>
