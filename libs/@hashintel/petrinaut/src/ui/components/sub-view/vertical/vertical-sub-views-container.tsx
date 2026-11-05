@@ -431,6 +431,30 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+const SubViewContent: React.FC<{ subView: SubView; visible: boolean }> = ({
+  subView,
+  visible,
+}) => {
+  const [visited, setVisited] = useState(visible);
+  if (visible && !visited) setVisited(true);
+  if (!visible && !(subView.retainOnCollapse && visited)) return null;
+  const Component = subView.component;
+
+  return (
+    <div
+      id={`subview-content-${subView.id}`}
+      className={sectionContentStyle}
+      style={visible ? undefined : { display: "none" }}
+      inert={!visible}
+      aria-hidden={!visible || undefined}
+    >
+      <ScrollableContent>
+        <Component />
+      </ScrollableContent>
+    </div>
+  );
+};
+
 interface SubViewHeaderProps {
   id: string;
   title: string;
@@ -681,7 +705,6 @@ export const VerticalSubViewsContainer: React.FC<
         const isMain = subView.main ?? false;
         const isCollapsible = !isMain && (subView.collapsible ?? true);
         const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
-        const Component = subView.component;
         const minSize =
           subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
@@ -739,16 +762,10 @@ export const VerticalSubViewsContainer: React.FC<
                   }
                 />
 
-                {(fillsContainer || isExpanded) && (
-                  <div
-                    id={`subview-content-${subView.id}`}
-                    className={sectionContentStyle}
-                  >
-                    <ScrollableContent>
-                      <Component />
-                    </ScrollableContent>
-                  </div>
-                )}
+                <SubViewContent
+                  subView={subView}
+                  visible={fillsContainer || isExpanded}
+                />
               </div>
             </Panel>
 
