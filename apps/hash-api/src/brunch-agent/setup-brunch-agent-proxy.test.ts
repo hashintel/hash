@@ -30,18 +30,12 @@ const listen = async (server: Server) => {
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 };
 
-/** The secret the proxy is configured with in these tests. */
-// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
-const brunchSecret = "hash-api-test-secret";
-
 const startProxy = async ({
   configured = true,
-  secret = brunchSecret,
   signedIn = true,
   appJsonParser = true,
 }: {
   configured?: boolean;
-  secret?: string | null;
   signedIn?: boolean;
   appJsonParser?: boolean;
 } = {}) => {
@@ -92,7 +86,6 @@ const startProxy = async ({
   }
   setupBrunchAgentProxy(app, {
     origin: configured ? new URL(upstreamOrigin) : null,
-    secret,
     publicOrigin: "https://app-api.example",
     logger: { warn: vi.fn() },
   });
@@ -239,17 +232,18 @@ test("refuses a non-agents POST with 404 before reading its body", async () => {
   expect(upstreamRequests).toEqual([]);
 });
 
-test("forwards an agents request with the account's actor key and points its URLs at the public origin", async () => {
+test("forwards an agents request with the session cookie and points its URLs at the public origin", async () => {
   const { send, upstreamRequests } = await startProxy();
 
   const response = await send("/api/brunch/agents/hash/instance", {
     method: "POST",
+    headers: { cookie: "ory_kratos_session=session-1" },
   });
 
   expect(upstreamRequests).toMatchObject([
     {
       path: "/agents/hash/instance",
-      headers: { "x-brunch-actor": "hash:account-1" },
+      headers: { cookie: "ory_kratos_session=session-1" },
     },
   ]);
   expect(response.status).toBe(202);
@@ -272,54 +266,70 @@ test("forwards an agents request with the account's actor key and points its URL
   });
 });
 
-test("overwrites an actor key forged by the browser with the account's, under either header name", async () => {
+test("states no identity of its own: no actor header and no authorization, whatever the browser sent", async () => {
+  const { send, upstreamRequests } = await startProxy();
+
+  await Promise.all([
+    send("/api/brunch/agents/hash/instance", {
+      method: "POST",
+      headers: {
+        cookie: "ory_kratos_session=session-1",
+        "x-brunch-actor": "hash:someone-else",
+        "x-brunch-principal": "hash:someone-else",
+        authorization: "HASH-Service forged-by-the-browser",
+      },
+    }),
+    send("/api/brunch/agents/hash/instance?live=sse", {
+      headers: {
+        cookie: "ory_kratos_session=session-1",
+        authorization: "Bearer forged-by-the-browser",
+      },
+    }),
+    send("/api/brunch/agents/hash/instance/browser-calls/call-1", {
+      headers: { cookie: "ory_kratos_session=session-1" },
+    }),
+  ]);
+
+  expect(upstreamRequests).toHaveLength(3);
+  for (const { headers } of upstreamRequests) {
+    expect(headers.authorization).toBeUndefined();
+    expect(headers["x-brunch-actor"]).toBeUndefined();
+    expect(headers["x-brunch-principal"]).toBeUndefined();
+  }
+});
+
+test("forwards only the session cookie's pair, dropping every other cookie", async () => {
   const { send, upstreamRequests } = await startProxy();
 
   await send("/api/brunch/agents/hash/instance", {
     method: "POST",
     headers: {
-      "x-brunch-actor": "hash:someone-else",
-      "x-brunch-principal": "hash:someone-else",
+      cookie: "other=1; ory_kratos_session=session-1; csrf_token=abc",
     },
   });
+  await send("/api/brunch/agents/hash/instance", {
+    method: "POST",
+    headers: { cookie: "other=1; csrf_token=abc" },
+  });
 
-  expect(upstreamRequests).toMatchObject([
-    { headers: { "x-brunch-actor": "hash:account-1" } },
+  expect(upstreamRequests.map(({ headers }) => headers.cookie)).toEqual([
+    "ory_kratos_session=session-1",
+    undefined,
   ]);
-  expect(upstreamRequests[0]?.headers["x-brunch-principal"]).toBeUndefined();
 });
 
-test("authenticates to Brunch with its own secret on every request, never the browser's, and returns it to no one", async () => {
-  const { send, upstreamRequests } = await startProxy();
-
-  const responses = await Promise.all([
-    send("/api/brunch/agents/hash/instance", {
-      method: "POST",
-      headers: { authorization: "HASH-Service forged-by-the-browser" },
-    }),
-    send("/api/brunch/agents/hash/instance?live=sse", {
-      headers: { authorization: "Bearer forged-by-the-browser" },
-    }),
-    send("/api/brunch/agents/hash/instance/browser-calls/call-1"),
-  ]);
-
-  expect(upstreamRequests.map(({ headers }) => headers.authorization)).toEqual(
-    Array.from({ length: 3 }, () => `HASH-Service ${brunchSecret}`),
-  );
-  for (const response of responses) {
-    expect(JSON.stringify(response)).not.toContain(brunchSecret);
-  }
-});
-
-test("never forwards the browser's cookie", async () => {
+test("forwards a session token in its own header", async () => {
   const { send, upstreamRequests } = await startProxy();
 
   await send("/api/brunch/agents/hash/instance", {
     method: "POST",
-    headers: { cookie: "ory_kratos_session=secret" },
+    headers: { "x-session-token": "token-1", cookie: "other=1" },
   });
 
   expect(upstreamRequests).toHaveLength(1);
+  expect(upstreamRequests[0]?.headers).toMatchObject({
+    "x-session-token": "token-1",
+  });
   expect(upstreamRequests[0]?.headers.cookie).toBeUndefined();
 });
 
@@ -367,6 +377,7 @@ test("limits each account's turn submissions, counting nothing else", async () =
       headers: {
         "content-type": "application/json",
         "x-test-account": account,
+        cookie: `ory_kratos_session=${account}`,
       },
       body: JSON.stringify({ message: "hello" }),
     });
@@ -413,7 +424,7 @@ test("limits each account's turn submissions, counting nothing else", async () =
   expect(otherAccount.status).toBe(202);
   expect(otherAccount.headers["ratelimit-remaining"]).toBe("29");
   expect(upstreamRequests.at(-1)?.headers).toMatchObject({
-    "x-brunch-actor": "hash:account-2",
+    cookie: "ory_kratos_session=account-2",
   });
 
   // A limited account still reads its streams.
@@ -450,31 +461,24 @@ test.each(["/api/brunch/identity", "/api/brunch/agents/hash/instance"])(
   },
 );
 
-test.each([
-  ["no Brunch origin", { configured: false }],
-  ["no Brunch secret", { secret: null }],
-  ["an empty Brunch secret", { secret: "" }],
-])(
-  "answers identity and agent routes with 503 when %s is configured",
-  async (_missing, configuration) => {
-    const { send, upstreamRequests } = await startProxy(configuration);
+test("answers identity and agent routes with 503 when no Brunch origin is configured", async () => {
+  const { send, upstreamRequests } = await startProxy({ configured: false });
 
-    for (const path of [
-      "/api/brunch/identity",
-      "/api/brunch/agents/hash/instance",
-    ]) {
-      const response = await send(path);
+  for (const path of [
+    "/api/brunch/identity",
+    "/api/brunch/agents/hash/instance",
+  ]) {
+    const response = await send(path);
 
-      expect(response.status, path).toBe(503);
-      expect(JSON.parse(response.body)).toEqual({
-        error: "Brunch agent is not configured",
-      });
-    }
-    expect(upstreamRequests).toEqual([]);
-  },
-);
+    expect(response.status, path).toBe(503);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "Brunch agent is not configured",
+    });
+  }
+  expect(upstreamRequests).toEqual([]);
+});
 
-test("answers identity with the account's actor key when configured", async () => {
+test("answers identity with the account's actor key when only the origin is configured", async () => {
   const { send } = await startProxy();
 
   const response = await send("/api/brunch/identity");

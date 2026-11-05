@@ -15,21 +15,21 @@ export const brunchHeaders = {
    * The actor header's former name, which Brunch still reads when `actor` is
    * absent, so a browser client and Brunch can deploy in either order.
    * Temporary: remove once the Petrinaut website sends `actor` from its own
-   * server-side hop and no client sends this name.
+   * server-side hop and no client sends this name. The HASH agent's route
+   * reads neither: its actor comes from the session credential.
    */
   legacyPrincipal: "x-brunch-principal",
 } as const;
 
 /**
- * How a server-side caller proves to Brunch which caller it is:
- * `<header>: <scheme> <secret>`, with a secret per caller. Brunch accepts a
- * caller's secret only on that caller's own agent route. hash-api is the HASH
- * caller and uses the scheme it already authenticates to the graph with.
- * Browsers never send it: Brunch's CORS does not allow the header.
+ * Where a signed-in HASH user's Kratos session travels: the session cookie,
+ * or the session-token header a token-authenticated client sends. hash-api
+ * forwards only this credential on the HASH agent's route, and Brunch asks
+ * Kratos who it belongs to, so neither hop asserts an actor of its own.
  */
-export const brunchCallerAuthorization = {
-  header: "authorization",
-  hashScheme: "HASH-Service",
+export const hashSessionCredential = {
+  cookie: "ory_kratos_session",
+  tokenHeader: "x-session-token",
 } as const;
 
 /**

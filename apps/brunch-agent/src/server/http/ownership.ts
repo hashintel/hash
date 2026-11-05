@@ -18,9 +18,23 @@ const requestActorKey = (context: Context): string | undefined =>
   )?.trim();
 
 export const agentOwnershipGuard =
-  (mountPrefix: string, _agentName: string): MiddlewareHandler =>
+  (
+    mountPrefix: string,
+    _agentName: string,
+    {
+      sessionActor = false,
+    }: {
+      /**
+       * Take the actor only from the session `hashSessionActor` resolved,
+       * ignoring any actor header the request carries.
+       */
+      readonly sessionActor?: boolean;
+    } = {},
+  ): MiddlewareHandler =>
   async (context, next) => {
-    const actorKey = requestActorKey(context);
+    const actorKey = sessionActor
+      ? context.get("hashSessionActorKey")
+      : requestActorKey(context);
     const conversationId = context.req
       .header(brunchHeaders.conversation)
       ?.trim();
