@@ -54,6 +54,7 @@ const subscribe = (listener: () => void) => {
   };
 };
 
+// TODO(FE-2185): store recent actions in the graph instead of local storage
 /** The actions the signed-in user added most recently, in any flow, kept in this browser. */
 export const useRecentActions = () => {
   const { authenticatedUser } = useAuthenticatedUser();

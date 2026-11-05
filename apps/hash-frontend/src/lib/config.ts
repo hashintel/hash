@@ -6,6 +6,7 @@ export const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
  */
 export const localStorageKeys = {
   workspaceWebId: "workspaceWebId",
+  // TODO(FE-2185): store recent actions in the graph instead of local storage
   /** Suffixed with the user's account ID, so it's kept for each user after signing out. */
   recentFlowActions: "recentFlowActions",
 } as const;
