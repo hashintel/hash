@@ -1,0 +1,30 @@
+---
+title: Frontmatter describes the slide
+label: MDX · Frontmatter
+align: center
+notes:
+  default: >-
+    This slide's own frontmatter: the label replaces the title in the corner,
+    and align center puts the body in the middle of the space under the
+    heading.
+  byStep:
+    1: >-
+      byStep notes replace the default note on their step. A value holding a
+      colon needs quotes or a block scalar, as these notes use.
+---
+
+## Frontmatter describes the slide
+
+```yaml
+---
+title: Frontmatter describes the slide
+label: MDX · Frontmatter
+align: center
+notes:
+  default: Said on every step.
+  byStep:
+    1: Said on step 1.
+---
+```
+
+<Reveal at={1}>Notes show in the presenter view, beside the slide.</Reveal>

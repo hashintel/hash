@@ -5,15 +5,11 @@
  * import of the player resolves as a neighbour's would.
  */
 
-import { relative } from "node:path";
-
 import { codeLiteral } from "../code-literal.ts";
+import { deckFileSpecifier } from "../deck-specifier.ts";
 
 import type { DeckFolder } from "../../../../src/slides/folders.ts";
 import type { SlideShape } from "../../slides/deck/slide-shape.ts";
-
-const deckSpecifier = (slidesRoot: string, file: string): string =>
-  codeLiteral(`@decks/${relative(slidesRoot, file)}`);
 
 export const exportEntrySource = ({
   deck,
@@ -21,20 +17,22 @@ export const exportEntrySource = ({
   shape,
 }: {
   deck: DeckFolder;
-  slidesRoot: string;
+  slidesRoot: string | null;
   shape: SlideShape;
 }): string => {
+  const deckSpecifier = (file: string): string =>
+    codeLiteral(deckFileSpecifier(deck, slidesRoot, file));
   const imports = [
     `import { mountExportedDeck } from "./mount.tsx";`,
     ...(deck.stylesheet === null
       ? []
-      : [`import ${deckSpecifier(slidesRoot, deck.stylesheet)};`]),
+      : [`import ${deckSpecifier(deck.stylesheet)};`]),
     ...(deck.logo.kind === "file"
-      ? [`import logo from ${deckSpecifier(slidesRoot, deck.logo.file)};`]
+      ? [`import logo from ${deckSpecifier(deck.logo.file)};`]
       : []),
     ...deck.slides.map(
       (slide, index) =>
-        `import * as slide${index} from ${deckSpecifier(slidesRoot, slide.file)};`,
+        `import * as slide${index} from ${deckSpecifier(slide.file)};`,
     ),
   ];
   const logo =

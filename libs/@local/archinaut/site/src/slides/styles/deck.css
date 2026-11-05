@@ -748,6 +748,11 @@ svg.deck-head__logo {
   color: var(--sl-color-gray-3);
 }
 
+.deck-list h2 {
+  margin-top: 3rem;
+  font-size: 1.1rem;
+}
+
 /* `LayerCard`. */
 .deck-layer {
   display: grid;

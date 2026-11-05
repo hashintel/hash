@@ -5,7 +5,7 @@
  * the settings panel offers the export in development alone.
  */
 
-import { listDecks } from "../../../../src/slides/folders.ts";
+import { listAllDecks } from "../../../../src/slides/folders.ts";
 import { parseSlideShape } from "../../slides/deck/slide-shape.ts";
 import { deckExportRoute } from "../../slides/export/route.ts";
 import { buildDeckExport } from "./build.ts";
@@ -22,15 +22,11 @@ export const deckExportPlugin = (slidesRoot: string | null): Plugin => ({
   configureServer(server) {
     server.middlewares.use(deckExportRoute, (request, response) => {
       const query = new URL(request.url ?? "", "http://localhost").searchParams;
-      const deck = listDecks(slidesRoot).find(
+      const deck = listAllDecks(slidesRoot).find(
         (candidate) => candidate.id === query.get("deck"),
       );
       const configFile = server.config.configFile;
-      if (
-        deck === undefined ||
-        slidesRoot === null ||
-        configFile === undefined
-      ) {
+      if (deck === undefined || configFile === undefined) {
         response.statusCode = 404;
         response.end(`no deck "${query.get("deck") ?? ""}" to export`);
         return;

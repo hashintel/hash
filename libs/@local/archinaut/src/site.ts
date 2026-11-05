@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { listFiles, syncDirectory } from "./shared/sync-directory";
 import { checkBuiltCss } from "./site/check-built-css";
-import { listDecks, slidesRoot } from "./slides";
+import { listAllDecks, slidesRoot } from "./slides";
 
 import type { BundleManifest } from "./bundle/outputs";
 import type { ArchinautConfig } from "./config";
@@ -154,7 +154,7 @@ export const buildSite = async (options: {
     // page, its print layout, and its presenter window.
     extraPaths: [
       "/slides",
-      ...listDecks(slidesRoot(options.config)).flatMap((deck) => [
+      ...listAllDecks(slidesRoot(options.config)).flatMap((deck) => [
         `/slides/${deck.id}`,
         `/slides/${deck.id}/print`,
         `/slides/${deck.id}/presenter`,

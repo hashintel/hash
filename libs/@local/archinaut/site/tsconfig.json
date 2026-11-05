@@ -13,8 +13,11 @@
     "skipLibCheck": true,
     "types": ["vite/client", "node"],
     "rootDir": "..",
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@archinaut/slides": ["./src/slides/index.ts"]
+    }
   },
-  "include": ["src", "vite.config.ts", "prerender.ts", "prerender"],
+  "include": ["src", "examples", "vite.config.ts", "prerender.ts", "prerender"],
   "exclude": ["src/content", "dist"]
 }

@@ -3,9 +3,10 @@
  * directory, each with a `deck.json` and numbered slides, `<n>-<name>.tsx`
  * or `.mdx`, shown in file order. Decks are not part of the bundle: the site
  * reads the folder where it is, so it may be committed, git-ignored, or
- * outside the repository.
+ * outside the repository. The site also lists the examples in
+ * `site/examples`, which every instance gets.
  */
 
-export { listDecks, slidesRoot, type DeckFolder } from "./slides/folders";
+export { listAllDecks, slidesRoot, type DeckFolder } from "./slides/folders";
 export { scaffoldDeck } from "./slides/scaffold";
 export { typecheckDecks } from "./slides/typecheck";

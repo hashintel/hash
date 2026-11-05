@@ -1,0 +1,27 @@
+---
+title: Parts appear with at-n
+align: center
+notes:
+  default: >-
+    A d2 shape with the class at-1 shows from step 1. A connection appears
+    with the later of its two ends, so it needs no class of its own.
+  byStep:
+    1: Compile carries at-1, and its connection comes with it.
+    2: Bundle carries at-2.
+    3: Serve carries at-3.
+---
+
+## Parts appear with `at-n`
+
+```d2 A pipeline: slide files are compiled, bundled and served
+direction: right
+
+source: Slide files
+compile: Compile {class: at-1}
+bundle: Bundle {class: at-2}
+serve: Serve {class: at-3}
+
+source -> compile
+compile -> bundle
+bundle -> serve
+```

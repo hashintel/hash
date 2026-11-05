@@ -1,7 +1,7 @@
 /**
- * The instance's decks, as the `archinaut-decks` plugin listed them from the
- * slides directory, and a deck loaded whole: every slide's module at once,
- * so stepping never waits on the network.
+ * The instance's decks and the examples, as the `archinaut-decks` plugin
+ * listed them, and a deck loaded whole: every slide's module at once, so
+ * stepping never waits on the network.
  */
 
 import decksJson from "virtual:archinaut-decks";
@@ -20,6 +20,8 @@ export type DeckLogo =
 
 export interface DeckSummary {
   id: string;
+  /** The instance's own deck, or an example archinaut ships. */
+  origin: "instance" | "example";
   title: string;
   description: string;
   logo: DeckLogo;

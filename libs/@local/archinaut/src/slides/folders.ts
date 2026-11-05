@@ -2,6 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type { ArchinautConfig } from "../config";
 
@@ -23,8 +24,13 @@ export type DeckFolderLogo =
   | { kind: "none" }
   | { kind: "file"; file: string };
 
+/** Whose deck it is: the instance's, from its slides directory, or an example archinaut ships. */
+export type DeckOrigin = "instance" | "example";
+
 export interface DeckFolder {
+  /** The folder's name; an example's is prefixed `example-`, so it never takes an instance deck's id. */
   id: string;
+  origin: DeckOrigin;
   title: string;
   description: string;
   logo: DeckFolderLogo;
@@ -40,6 +46,11 @@ export const slidesRoot = (config: ArchinautConfig): string | null =>
   config.slidesDirectory === undefined
     ? null
     : resolve(config.root, config.slidesDirectory);
+
+/** The example decks, beside the slide API they are written against. */
+export const examplesRoot = fileURLToPath(
+  new URL("../../site/examples", import.meta.url),
+);
 
 const slidePattern = /^(\d+[a-z]*)-([^.]+)\.(tsx|mdx)$/u;
 
@@ -102,7 +113,10 @@ const slidesIn = (directory: string): DeckSlideFile[] =>
     });
 
 /** Every deck under `root` with at least one slide; none when the folder is absent. */
-export const listDecks = (root: string | null): DeckFolder[] => {
+export const listDecks = (
+  root: string | null,
+  origin: DeckOrigin = "instance",
+): DeckFolder[] => {
   if (root === null || !existsSync(root)) {
     return [];
   }
@@ -116,14 +130,30 @@ export const listDecks = (root: string | null): DeckFolder[] => {
     .map((entry) => {
       const directory = join(root, entry.name);
       const stylesheet = join(directory, "deck.css");
+      const id = origin === "example" ? `example-${entry.name}` : entry.name;
       return {
-        id: entry.name,
+        id,
+        origin,
         directory,
-        ...readDeckMeta(directory, entry.name),
+        ...readDeckMeta(directory, id),
         stylesheet: existsSync(stylesheet) ? stylesheet : null,
         slides: slidesIn(directory),
       };
     })
     .filter((deck) => deck.slides.length > 0)
     .sort((left, right) => left.id.localeCompare(right.id));
+};
+
+/** The instance's decks, then the examples. */
+export const listAllDecks = (instanceRoot: string | null): DeckFolder[] => {
+  const instance = listDecks(instanceRoot);
+  const examples = listDecks(examplesRoot, "example");
+  const exampleIds = new Set(examples.map((deck) => deck.id));
+  const clash = instance.find((deck) => exampleIds.has(deck.id));
+  if (clash !== undefined) {
+    throw new Error(
+      `${clash.directory} has an example deck's id, "${clash.id}"; rename the folder`,
+    );
+  }
+  return [...instance, ...examples];
 };

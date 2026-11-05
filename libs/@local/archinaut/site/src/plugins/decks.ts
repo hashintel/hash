@@ -1,8 +1,9 @@
 /**
- * Serves the instance's decks to the site as `virtual:archinaut-decks`: one
- * entry per deck folder, each slide a lazy import of its module through the
- * `@decks` alias, so Vite compiles slides wherever the folder lives and
- * hot-swaps an edited one like any other module.
+ * Serves the instance's decks and the examples to the site as
+ * `virtual:archinaut-decks`: one entry per deck folder, each slide a lazy
+ * import of its module through the deck's alias, so Vite compiles slides
+ * wherever the folder lives and hot-swaps an edited one like any other
+ * module.
  *
  * The folder is watched through the dev server, not `addWatchFile`: a file
  * added in `load` is recorded as an import of the module, and a directory
@@ -11,10 +12,13 @@
  * A deck's logo, when it names one, is imported as a URL.
  */
 
-import { relative } from "node:path";
-
-import { listDecks, type DeckFolderLogo } from "../../../src/slides/folders.ts";
+import {
+  examplesRoot,
+  listAllDecks,
+  type DeckFolderLogo,
+} from "../../../src/slides/folders.ts";
 import { codeLiteral } from "./code-literal.ts";
+import { deckFileSpecifier } from "./deck-specifier.ts";
 
 import type { Plugin } from "vite";
 
@@ -22,19 +26,19 @@ const moduleId = "virtual:archinaut-decks";
 const resolvedId = `\0${moduleId}`;
 
 const sourceOf = (root: string | null): string => {
-  const specifier = (file: string): string =>
-    codeLiteral(`@decks/${relative(root ?? "", file)}`);
   // A deck's own logo is an asset import, so Vite serves and fingerprints it.
   const logoImports: string[] = [];
-  const logoOf = (logo: DeckFolderLogo): string => {
-    if (logo.kind !== "file") {
-      return codeLiteral(logo);
-    }
-    const name = `logo${logoImports.length}`;
-    logoImports.push(`import ${name} from ${specifier(`${logo.file}?url`)};`);
-    return `{ kind: "image", src: ${name} }`;
-  };
-  const decks = listDecks(root).map((deck) => {
+  const decks = listAllDecks(root).map((deck) => {
+    const specifier = (file: string): string =>
+      codeLiteral(deckFileSpecifier(deck, root, file));
+    const logoOf = (logo: DeckFolderLogo): string => {
+      if (logo.kind !== "file") {
+        return codeLiteral(logo);
+      }
+      const name = `logo${logoImports.length}`;
+      logoImports.push(`import ${name} from ${specifier(`${logo.file}?url`)};`);
+      return `{ kind: "image", src: ${name} }`;
+    };
     const slides = deck.slides.map(
       (slide) =>
         `{ id: ${codeLiteral(slide.id)}, kind: ${codeLiteral(slide.kind)}, load: () => import(${specifier(slide.file)}) }`,
@@ -43,7 +47,7 @@ const sourceOf = (root: string | null): string => {
       deck.stylesheet === null
         ? "null"
         : `() => import(${specifier(deck.stylesheet)})`;
-    return `{ id: ${codeLiteral(deck.id)}, title: ${codeLiteral(deck.title)}, description: ${codeLiteral(deck.description)}, logo: ${logoOf(deck.logo)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
+    return `{ id: ${codeLiteral(deck.id)}, origin: ${codeLiteral(deck.origin)}, title: ${codeLiteral(deck.title)}, description: ${codeLiteral(deck.description)}, logo: ${logoOf(deck.logo)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
   });
   return `${logoImports.join("\n")}\nexport default [${decks.join(", ")}];`;
 };
@@ -53,12 +57,10 @@ export const decksPlugin = (root: string | null): Plugin => ({
   resolveId: (id) => (id === moduleId ? resolvedId : null),
   load: (id) => (id === resolvedId ? sourceOf(root) : null),
   configureServer(server) {
-    if (root === null) {
-      return;
-    }
-    server.watcher.add(root);
+    const roots = root === null ? [examplesRoot] : [root, examplesRoot];
+    server.watcher.add(roots);
     const relist = (file: string): void => {
-      if (!file.startsWith(root)) {
+      if (!roots.some((watched) => file.startsWith(watched))) {
         return;
       }
       const module = server.moduleGraph.getModuleById(resolvedId);

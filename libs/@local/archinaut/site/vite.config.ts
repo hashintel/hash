@@ -19,8 +19,10 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { defineConfig, searchForWorkspaceRoot } from "vite";
 
+import { examplesRoot } from "../src/slides/folders.ts";
 import { resolveDiffCompareContext } from "./src/diff-context.ts";
 import { deckExportPlugin } from "./src/plugins/deck-export/index.ts";
+import { deckAliases } from "./src/plugins/deck-specifier.ts";
 import { decksPlugin } from "./src/plugins/decks.ts";
 import { rehypeFormulas } from "./src/plugins/formulas.mjs";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
@@ -145,8 +147,8 @@ export default defineConfig(async () => ({
     deckExportPlugin(slidesRoot),
   ],
   resolve: {
-    // What a deck may import (`src/slides/index.ts` is the list), and the
-    // deck folder itself, wherever it is.
+    // What a deck may import (`src/slides/index.ts` is the list), the
+    // deck folder itself, wherever it is, and the examples.
     alias: [
       {
         find: /^@archinaut\/slides$/u,
@@ -154,7 +156,8 @@ export default defineConfig(async () => ({
       },
       ...(slidesRoot === null
         ? []
-        : [{ find: "@decks", replacement: slidesRoot }]),
+        : [{ find: deckAliases.instance, replacement: slidesRoot }]),
+      { find: deckAliases.example, replacement: examplesRoot },
     ],
     // A deck outside the workspace resolves React from its own folder up;
     // there must be one React.

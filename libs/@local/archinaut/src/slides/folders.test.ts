@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { listDecks } from "./folders";
+import { examplesRoot, listAllDecks, listDecks } from "./folders";
 
 const fixture = (): string => {
   const root = mkdtempSync(join(tmpdir(), "archinaut-decks-"));
@@ -69,5 +69,27 @@ describe("listDecks", () => {
   it("has no decks without a slides directory", () => {
     expect(listDecks(null)).toEqual([]);
     expect(listDecks(join(tmpdir(), "archinaut-no-such-folder"))).toEqual([]);
+  });
+});
+
+describe("listAllDecks", () => {
+  it("lists the instance's decks, then the examples under prefixed ids", () => {
+    const decks = listAllDecks(fixture());
+    expect(decks[0]).toMatchObject({ id: "tour", origin: "instance" });
+    const examples = decks.filter((deck) => deck.origin === "example");
+    expect(examples.length).toBeGreaterThan(0);
+    for (const deck of examples) {
+      expect(deck.id).toMatch(/^example-/u);
+      expect(deck.directory.startsWith(examplesRoot)).toBe(true);
+    }
+  });
+
+  it("refuses an instance deck that takes an example's id", () => {
+    const root = fixture();
+    const [example] = listDecks(examplesRoot, "example");
+    const clash = join(root, example?.id ?? "example-missing");
+    mkdirSync(clash);
+    writeFileSync(join(clash, "0-title.mdx"), "");
+    expect(() => listAllDecks(root)).toThrow(/an example deck's id/u);
   });
 });

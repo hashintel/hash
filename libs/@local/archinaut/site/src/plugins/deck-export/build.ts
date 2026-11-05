@@ -77,7 +77,7 @@ export const buildDeckExport = async ({
 }: {
   configFile: string;
   siteRoot: string;
-  slidesRoot: string;
+  slidesRoot: string | null;
   deck: DeckFolder;
   shape: SlideShape;
 }): Promise<string> => {
