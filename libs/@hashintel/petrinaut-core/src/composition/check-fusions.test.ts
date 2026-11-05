@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkFusions } from "./check-fusions";
+import { checkComposition, checkFusions } from "./check-fusions";
 
 import type { Color, Fusion, Place, SDCPN, Subnet } from "../types/sdcpn";
 
@@ -494,5 +494,54 @@ describe("token flow through fused ports", () => {
     expect(
       checkFusions(sdcpn).filter(({ code }) => code === "color-mismatch"),
     ).toHaveLength(1);
+  });
+
+  it("takes a declared direction over the arcs", () => {
+    const sink = subnet("sink", {
+      places: [place("in", { isPort: true, portDirection: "inout" })],
+      transitions: [transition("absorb", ["in"], [])],
+    });
+    const sdcpn = net({
+      subnets: [sink],
+      componentInstances: [instance("k1", "sink"), instance("k2", "sink")],
+      fusions: [
+        { id: "f1", members: [portOf("k1", "in"), portOf("k2", "in")] },
+      ],
+    });
+
+    expect(checkFusions(sdcpn)).toEqual([]);
+  });
+
+  it("reports a port declared input that its subnet writes to", () => {
+    const sdcpn = net({
+      subnets: [
+        subnet("loop", {
+          places: [place("pool", { isPort: true, portDirection: "in" })],
+          transitions: [transition("cycle", ["pool"], ["pool"])],
+        }),
+      ],
+    });
+
+    expect(checkComposition(sdcpn)).toMatchObject([
+      { kind: "port", subnetId: "loop", placeId: "pool", severity: "warning" },
+    ]);
+  });
+
+  it("tags fusion and port problems by kind", () => {
+    const sdcpn = net({
+      subnets: [
+        subnet("loop", {
+          places: [place("pool", { isPort: true, portDirection: "out" })],
+          transitions: [transition("cycle", ["pool"], ["pool"])],
+        }),
+      ],
+      componentInstances: [instance("l1", "loop")],
+      fusions: [{ id: "f1", members: [portOf("l1", "pool")] }],
+    });
+
+    const kinds = checkComposition(sdcpn).map(({ kind }) => kind);
+    expect(kinds).toContain("fusion");
+    expect(kinds).toContain("port");
+    expect(kinds.indexOf("port")).toBeGreaterThan(kinds.lastIndexOf("fusion"));
   });
 });

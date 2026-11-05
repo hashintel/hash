@@ -1531,6 +1531,28 @@ describe("Petrinaut core fusion actions", () => {
     expect(document.transitions[0]?.outputArcs).toEqual([]);
   });
 
+  test("unmarking a port clears its direction", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.updatePlace({
+      placeId: "in",
+      targetSubnetId: "machine",
+      update: { portDirection: "in" },
+    });
+    expect(
+      instance.definition.get().subnets?.[0]?.places[0]?.portDirection,
+    ).toBe("in");
+
+    instance.mutations.updatePlace({
+      placeId: "in",
+      targetSubnetId: "machine",
+      update: { isPort: false },
+    });
+    expect(
+      instance.definition.get().subnets?.[0]?.places[0]?.portDirection,
+    ).toBeUndefined();
+  });
+
   test("deleting items by id removes fusions and their dangling members", () => {
     const instance = createInstance(composed());
     instance.mutations.addFusion({

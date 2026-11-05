@@ -1,6 +1,6 @@
 ---
 title: Composition by place fusion
-description: How components join a net through fused places, the checks on a fusion, how flattening merges fused places, and where the model stops today.
+description: How components join a net through fused places, what a port's direction promises, the checks on a fusion, how flattening merges fused places, and where the model stops today.
 sidebar_order: 10
 ---
 
@@ -50,18 +50,38 @@ so the two mechanisms compose. The two differ only in what the canvas shows,
 a place of the net that the user can mark, watch and measure, against a port
 reachable through its instance alone. Nothing forbids using both on one port.
 
-## Ports
+## Ports and their directions
 
-A port is a place of a component marked `isPort`. A port has no direction of
-its own: it is a place, and a fusion may join it with any other place of the
-right token type. What the checks read is how the component's transitions
-touch it, a port they only consume from takes tokens in, one they only
-produce into hands tokens on, and one no transition touches passes tokens
-through for the net outside to use.
+A port is a place of a component marked `isPort`. A port may also declare a
+direction, `in`, `out` or `inout`, which is a promise about how the
+component uses it, seen from inside the component:
 
-- `out` to `in`, so to speak, is the pipe. Two ports both only consumed from
-  make a shared source that something else has to fill; two ports both only
-  produced into make a place that accumulates. Both are allowed, and the
+| Direction | The component's transitions… | Typical use                       |
+| --------- | ---------------------------- | --------------------------------- |
+| `in`      | only consume from the port   | what the component works on       |
+| `out`     | only produce into the port   | what it hands on                  |
+| `inout`   | both                         | a shared resource pool, a counter |
+
+A port without a declaration takes the direction its arcs give it, `inout`
+when no transition touches it. The checks hold a declaration against the
+arcs and report a port written to that declares `in`. The direction has no
+effect on what a fusion may join: a port is a place, and a place has no
+direction. It decides three things.
+
+- **Where the port draws**: an input port's dot and label sit on the left of
+  the instance, an output port's on the right, a two-way port's on both.
+- **Dataflow checks**: a fusion in which every member only consumes gets a
+  warning, nothing puts tokens into it; one in which every member only
+  produces gets a note, it accumulates. Arcs of the containing net on the
+  anchor, and port arcs on the member ports, count as producers and
+  consumers too.
+- **Interfaces, later**: a component's ports with their directions and token
+  types are its signature, which the interfaces proposal builds on.
+
+What two ports can and cannot be joined:
+
+- `out` to `in` is the pipe. `out` to `out` is a merge; `in` to `in` is a
+  shared source that something else has to fill. Both are allowed, and the
   dataflow checks say what is missing.
 - Two ports of the same instance may be fused; it closes a loop through the
   component. Allowed, and it flattens unless a transition inside the
@@ -133,9 +153,6 @@ its fusion is called.
 
 ## Where the model stops today
 
-- **Port directions**: a port could declare what its component promises,
-  `in`, `out` or `inout`, checked against the arcs, drawn on its side of the
-  instance, and the signature an interface would be made of.
 - **Component libraries**: ready-made components a host or a plugin offers,
   copied into the document with a record of where they came from, and a
   root net marked as composed from components alone.
@@ -150,6 +167,6 @@ its fusion is called.
 - **Clipboard**: copying instances copies no fusion. Fusions among copied
   instances could come along.
 - **Interfaces**: binding an instance to an interface, and choosing
-  an implementation per scenario, needs the port signature first.
+  an implementation per scenario, is the next proposal.
 - **Layout**: fusion links are edges for auto-layout, so fused nodes land
   near each other, but a port's side is not yet a layout constraint.
