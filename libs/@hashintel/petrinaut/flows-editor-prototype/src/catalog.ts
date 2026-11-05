@@ -329,8 +329,34 @@ export const catalog: CatalogEntry[] = [
   forEachEntry,
 ];
 
+/**
+ * MOCK, `?nodepaths=` (5 Nov): a Switch for the `node-paths` demo flow only. The engine has no Switch yet and the
+ * picker does not list it: one condition per case, checked top to bottom, then Default (Ciarán, 5 Nov). The demo's
+ * cases route a batch by its supplier's region.
+ */
+export const switchEntry: CatalogEntry = {
+  id: "switch",
+  title: "Switch",
+  description:
+    "Send the run down the first path whose condition matches, or Default when none does.",
+  category: "Logic",
+  icon: "diagramNested",
+  tone: "orange",
+  origin: { kind: "mock", why: "The engine has no Switch yet." },
+  inputs: [],
+  outputs: [],
+  ports: [
+    { outputName: "europe", label: "Europe" },
+    { outputName: "americas", label: "Americas" },
+    { outputName: "asia", label: "Asia" },
+    { outputName: "africa", label: "Africa" },
+    { outputName: "default", label: "Default" },
+  ],
+};
+
 export const getCatalogEntry = (id: string): CatalogEntry | undefined =>
-  catalog.find((entry) => entry.id === id);
+  catalog.find((entry) => entry.id === id) ??
+  (id === switchEntry.id ? switchEntry : undefined);
 
 /**
  * "Recommended" on an empty flow: popular first steps (Dei, 20 Oct). The real rule belongs in a PRD; this list is

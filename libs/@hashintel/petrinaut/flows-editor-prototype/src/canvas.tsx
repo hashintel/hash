@@ -18,7 +18,7 @@ import {
   ReactFlow,
   useReactFlow,
 } from "@xyflow/react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import {
   Icon,
@@ -62,6 +62,7 @@ import {
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
+import { demoRun, nodePathsRun, nodePathsTake } from "./node-paths";
 import { pathsTake } from "./paths-flags";
 import { navigate, setQuery, useLocation } from "./router";
 import {
@@ -107,7 +108,8 @@ const PORT_ROW = 26;
 const GROUP_HEADER = 48;
 const GROUP_PADDING = 32;
 
-type StepData = { stepId: string };
+/** A path pill (`?nodepaths=pills`) also carries its port and name. */
+type StepData = { stepId: string; port?: string; label?: string };
 type StepNode = Node<
   StepData,
   | "step"
@@ -119,6 +121,7 @@ type StepNode = Node<
   | "ghostSingle"
   | "ghostNote"
   | "flowOutputs"
+  | "pathPill"
 >;
 
 /** `?paths=i2`: Ask a person's card also draws the Otherwise port its Paths section ends on. */
@@ -134,10 +137,44 @@ const portRows = (step: DraftStep) => {
     : ports;
 };
 
+/** `?paths=attio`, `?nodepaths=rows|count`: a hollow ring for an open path, a filled dot for a connected one. */
+const attioPorts =
+  pathsTake === "attio" ||
+  nodePathsTake === "rows" ||
+  nodePathsTake === "count";
+
+/** `?nodepaths=chips`: 18 px chips, 4 px apart, 6 px from the card's top and bottom. */
+const PATH_CHIP = 18;
+const PATH_CHIP_GAP = 4;
+const chipsHeight = (count: number) =>
+  Math.max(STEP_HEIGHT, count * (PATH_CHIP + PATH_CHIP_GAP) + 8);
+
 const stepHeight = (step: DraftStep) => {
   const ports = portRows(step);
-  return ports ? STEP_HEIGHT + ports.length * PORT_ROW : STEP_HEIGHT;
+  if (!ports) {
+    return STEP_HEIGHT;
+  }
+  switch (nodePathsTake) {
+    case "wires":
+    case "pills":
+      return STEP_HEIGHT;
+    case "chips":
+      return chipsHeight(ports.length);
+    case "count":
+      return STEP_HEIGHT + PORT_ROW;
+    default:
+      return STEP_HEIGHT + ports.length * PORT_ROW;
+  }
 };
+
+/** `?nodepaths=pills`: a path pill's node id, and where it sits from its step's top-left. */
+const pillId = (stepId: string, port: string) => `pill:${stepId}:${port}`;
+const PATH_PILL = 20;
+const PATH_PILL_STEP = 26;
+const pillPosition = (index: number, count: number) => ({
+  x: STEP_WIDTH + 40,
+  y: STEP_HEIGHT / 2 - PATH_PILL / 2 + (index - (count - 1) / 2) * PATH_PILL_STEP,
+});
 
 const groupSize = (document: EditorDocument, step: DraftStep) => {
   if (step.kind !== "for-each" || step.steps.length === 0) {
@@ -274,10 +311,33 @@ const toNodes = (
       if (step.kind === "for-each" && !folded) {
         visit(step.steps, step.stepId);
       }
+      const ports = nodePathsTake === "pills" ? portRows(step) : null;
+      ports?.forEach((port, index) => {
+        nodes.push({
+          id: pillId(step.stepId, port.outputName),
+          type: "pathPill",
+          parentId: step.stepId,
+          position: pillPosition(index, ports.length),
+          data: { stepId: step.stepId, port: port.outputName, label: port.label },
+          draggable: false,
+          selectable: false,
+          deletable: false,
+        });
+      });
     }
   };
   visit(document.steps);
   return nodes;
+};
+
+const wireStyle = { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 };
+
+/** `?nodepaths=…&run`: the run's wires in the DS success tone; the rest faint and dashed. */
+const ranWireStyle = { stroke: "var(--colors-green-s70)", strokeWidth: 1.5 };
+const untakenWireStyle = {
+  stroke: "rgba(0, 0, 0, 0.14)",
+  strokeWidth: 1.5,
+  strokeDasharray: "4 3",
 };
 
 const toEdges = (
@@ -285,17 +345,63 @@ const toEdges = (
   collapsed: string[] = [],
 ): Edge[] => {
   const hidden = hiddenSteps(document, collapsed);
-  return document.wires
+  const run = nodePathsRun ? demoRun(document) : null;
+  const runStyle = (ran: boolean) => (ran ? ranWireStyle : untakenWireStyle);
+  const portsOf = (stepId: string) => {
+    const step = findStep(document, stepId)?.step;
+    return step ? portRows(step) : null;
+  };
+  const wires: Edge[] = document.wires
     .filter((wire) => !hidden.has(wire.source) && !hidden.has(wire.target))
-    .map((wire) => ({
-      id: wire.id,
-      source: wire.source,
-      sourceHandle: wire.sourcePort,
-      target: wire.target,
+    .map((wire) => {
+      const port = portsOf(wire.source)?.find(
+        (candidate) => candidate.outputName === wire.sourcePort,
+      );
+      const fromPill = nodePathsTake === "pills" && port;
+      return {
+        id: wire.id,
+        source: fromPill ? pillId(wire.source, wire.sourcePort) : wire.source,
+        sourceHandle: wire.sourcePort,
+        target: wire.target,
+        targetHandle: "in",
+        type: "flow",
+        // `?nodepaths=wires`: the wire carries its path's name.
+        ...(nodePathsTake === "wires" && port
+          ? {
+              data: {
+                label: port.label,
+                faint: run ? !run.ranWires.has(wire.id) : false,
+              },
+            }
+          : {}),
+        style: run ? runStyle(run.ranWires.has(wire.id)) : wireStyle,
+      };
+    });
+  if (nodePathsTake !== "pills") {
+    return wires;
+  }
+  // `?nodepaths=pills`: a short wire from the card to each of its pills.
+  const pills: Edge[] = flattenSteps(document.steps).flatMap(({ step }) => {
+    if (hidden.has(step.stepId)) {
+      return [];
+    }
+    return (portRows(step) ?? []).map((port) => ({
+      id: `${pillId(step.stepId, port.outputName)}:in`,
+      source: step.stepId,
+      sourceHandle: "paths",
+      target: pillId(step.stepId, port.outputName),
       targetHandle: "in",
-      type: "flow",
-      style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
+      selectable: false,
+      focusable: false,
+      style: run
+        ? runStyle(
+            run.ran.has(step.stepId) &&
+              run.takenPort(step.stepId) === port.outputName,
+          )
+        : wireStyle,
     }));
+  });
+  return [...wires, ...pills];
 };
 
 const cardStyle = cva({
@@ -309,6 +415,10 @@ const cardStyle = cva({
     borderRadius: "lg",
     transition: "[border-color 0.15s ease, box-shadow 0.3s ease]",
     "&:hover [data-port-add]": { opacity: "[1]" },
+    // `?nodepaths=…&run`: a step the run did not reach, faint; a path it did not take, fainter than the one it took.
+    "&[data-run-faint]": { opacity: "[0.45]" },
+    "& [data-path-taken]": { color: "neutral.fg.body" },
+    "& [data-path-untaken]": { opacity: "[0.55]" },
     // Read-only in a run: nothing to add from a port.
     "&[data-read-only] [data-port-add]": { display: "none" },
     // A reference to this step is hovered in the panel: the soft ring a new step glows with, and the +, as on hover.
@@ -401,6 +511,17 @@ const handleStyle = css({
     borderWidth: "thin",
     borderColor: "neutral.bd.strong",
   },
+  // `?paths=attio`, `?nodepaths=`: a connected path's port is a filled dot; an open one stays a hollow ring.
+  "&.react-flow__handle[data-connected]": {
+    backgroundColor: "neutral.fg.subtle",
+    borderColor: "neutral.fg.subtle",
+  },
+  // `&run`: the path the run took, in the DS success tone; the others faint.
+  "&.react-flow__handle[data-taken]": {
+    backgroundColor: "[var(--colors-green-s70)]",
+    borderColor: "[var(--colors-green-s70)]",
+  },
+  "&.react-flow__handle[data-untaken]": { opacity: "[0.5]" },
   // J1.21: the port whose menu is open shows the selection colour.
   "&.react-flow__handle[data-highlight]": {
     backgroundColor: "[var(--flows-sel-border)]",
@@ -484,7 +605,7 @@ const portAddStyle = css({
 const PortAdd = ({ stepId, port }: { stepId: string; port: string }) => {
   const { document, ui, setUi } = useEditor();
   // A run is read-only: no + on its ports.
-  if (useRunView()) {
+  if (useRunView() || nodePathsRun) {
     return null;
   }
   const dangling = !document.wires.some(
@@ -1091,9 +1212,335 @@ const useEnterAnimation = (id: string) => {
   return ref;
 };
 
+/** A path port's state: open or connected (`?paths=attio`, `?nodepaths=`), and taken or not in the demo run. */
+const pathPortState = (
+  document: EditorDocument,
+  run: ReturnType<typeof demoRun> | null,
+  stepId: string,
+  port: string,
+) => {
+  const state: Record<string, true> = {};
+  if (attioPorts || nodePathsTake) {
+    const connected = document.wires.some(
+      (wire) => wire.source === stepId && wire.sourcePort === port,
+    );
+    if (connected) {
+      state["data-connected"] = true;
+    }
+  }
+  if (run?.ran.has(stepId)) {
+    state[run.takenPort(stepId) === port ? "data-taken" : "data-untaken"] =
+      true;
+  }
+  return state;
+};
+
+const pathFootStyle = css({
+  position: "relative",
+  height: "[26px]",
+  display: "flex",
+  alignItems: "center",
+  paddingX: "3",
+  borderTopWidth: "thin",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.bd.subtle",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+});
+
+/** `?nodepaths=wires`: an open path's name beside its hollow port, where its wire would start. */
+const openPathLabelStyle = css({
+  position: "absolute",
+  left: "[calc(100% + 10px)]",
+  transform: "[translateY(-50%)]",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+});
+
+const pathChipsStyle = css({
+  position: "absolute",
+  top: "[0]",
+  bottom: "[0]",
+  left: "[calc(100% - 8px)]",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "flex-start",
+  gap: "[4px]",
+});
+
+/** `?nodepaths=chips`: a path on the card's edge; dashed while it leads nowhere. */
+const pathChipStyle = css({
+  position: "relative",
+  display: "inline-flex",
+  alignItems: "center",
+  height: "[18px]",
+  paddingLeft: "1.5",
+  paddingRight: "[10px]",
+  borderWidth: "thin",
+  borderStyle: "dashed",
+  borderColor: "neutral.bd.subtle.hover",
+  borderRadius: "full",
+  backgroundColor: "neutral.bgSolid.min",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
+  whiteSpace: "nowrap",
+  "&[data-connected]": { borderStyle: "solid", borderColor: "neutral.bd.subtle" },
+});
+
+/**
+ * A branching card's paths under `?nodepaths=` (`node-paths.ts`). `rows` and an open `count` card draw the rows the
+ * card has today, with hollow and filled ports; this draws the other takes.
+ */
+const NodePaths = ({
+  stepId,
+  ports,
+}: {
+  stepId: string;
+  ports: { outputName: string; label: string }[];
+}) => {
+  const { document } = useEditor();
+  const run = nodePathsRun ? demoRun(document) : null;
+  const state = (port: string) => pathPortState(document, run, stepId, port);
+  const connected = (port: string) =>
+    document.wires.some(
+      (wire) => wire.source === stepId && wire.sourcePort === port,
+    );
+  const runText = (port: string) =>
+    run?.ran.has(stepId)
+      ? run.takenPort(stepId) === port
+        ? { "data-path-taken": true }
+        : { "data-path-untaken": true }
+      : {};
+
+  if (nodePathsTake === "rows") {
+    return (
+      <div
+        className={css({
+          borderTopWidth: "thin",
+          borderTopStyle: "solid",
+          borderTopColor: "neutral.bd.subtle",
+        })}
+      >
+        {ports.map((port) => (
+          <div
+            key={port.outputName}
+            className={css({
+              position: "relative",
+              height: "[26px]",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              paddingRight: "3",
+              textStyle: "xs",
+              color: "neutral.fg.subtle",
+            })}
+            {...runText(port.outputName)}
+          >
+            {port.label}
+            <PortHandle
+              stepId={stepId}
+              id={port.outputName}
+              type="source"
+              position={Position.Right}
+              className={handleStyle}
+              style={{ top: PORT_ROW / 2 }}
+              {...state(port.outputName)}
+            >
+              <PortAdd stepId={stepId} port={port.outputName} />
+            </PortHandle>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (nodePathsTake === "count") {
+    const taken = run?.ran.has(stepId)
+      ? ports.find((port) => port.outputName === run.takenPort(stepId))
+      : undefined;
+    const open = ports.filter((port) => !connected(port.outputName)).length;
+    return (
+      <div className={pathFootStyle}>
+        {taken ? (
+          <span data-path-taken>Took {taken.label}</span>
+        ) : (
+          <span>
+            {ports.length} paths
+            {open > 0 ? ` · ${open} open` : ""}
+          </span>
+        )}
+        {/* Every path leaves one port while the card is closed. */}
+        {ports.map((port) => (
+          <PortHandle
+            key={port.outputName}
+            stepId={stepId}
+            id={port.outputName}
+            type="source"
+            position={Position.Right}
+            className={handleStyle}
+            style={{ top: PORT_ROW / 2 }}
+            {...state(port.outputName)}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (nodePathsTake === "chips") {
+    return (
+      <div className={pathChipsStyle}>
+        {ports.map((port) => (
+          <span
+            key={port.outputName}
+            className={pathChipStyle}
+            data-connected={connected(port.outputName) || undefined}
+            {...runText(port.outputName)}
+          >
+            {port.label}
+            <PortHandle
+              stepId={stepId}
+              id={port.outputName}
+              type="source"
+              position={Position.Right}
+              className={handleStyle}
+              style={{ top: "50%" }}
+              {...state(port.outputName)}
+            >
+              <PortAdd stepId={stepId} port={port.outputName} />
+            </PortHandle>
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  if (nodePathsTake === "pills") {
+    return (
+      <PortHandle
+        stepId={stepId}
+        id="paths"
+        type="source"
+        position={Position.Right}
+        className={handleStyle}
+        style={{ top: STEP_HEIGHT / 2 }}
+        isConnectable={false}
+        data-connected
+      />
+    );
+  }
+
+  // `wires`: the ports spread down the card's right edge, at most 14 px apart.
+  const spacing =
+    ports.length > 1 ? Math.min(14, (STEP_HEIGHT - 16) / (ports.length - 1)) : 0;
+  const topOf = (index: number) =>
+    STEP_HEIGHT / 2 + (index - (ports.length - 1) / 2) * spacing;
+  return (
+    <>
+      {ports.map((port, index) => (
+        <Fragment key={port.outputName}>
+          <PortHandle
+            stepId={stepId}
+            id={port.outputName}
+            type="source"
+            position={Position.Right}
+            className={handleStyle}
+            style={{ top: topOf(index) }}
+            {...state(port.outputName)}
+          >
+            <PortAdd stepId={stepId} port={port.outputName} />
+          </PortHandle>
+          {connected(port.outputName) ? null : (
+            <span
+              className={openPathLabelStyle}
+              style={{ top: topOf(index) }}
+              {...runText(port.outputName)}
+            >
+              {port.label}
+            </span>
+          )}
+        </Fragment>
+      ))}
+    </>
+  );
+};
+
+/** `?nodepaths=pills`: a path as a small node after its card; its wire leaves the pill. Moves with the card. */
+const pathPillStyle = css({
+  position: "relative",
+  display: "inline-flex",
+  alignItems: "center",
+  height: "[20px]",
+  paddingX: "2",
+  borderWidth: "thin",
+  borderStyle: "dashed",
+  borderColor: "neutral.bd.subtle.hover",
+  borderRadius: "full",
+  backgroundColor: "neutral.bgSolid.min",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
+  whiteSpace: "nowrap",
+  "&[data-connected]": { borderStyle: "solid", borderColor: "neutral.bd.subtle" },
+  "&:hover [data-port-add]": { opacity: "[1]" },
+  "&[data-path-taken]": { color: "neutral.fg.body" },
+  "&[data-path-untaken], &[data-run-faint]": { opacity: "[0.55]" },
+});
+
+const PathPillNodeView = ({ data }: NodeProps<StepNode>) => {
+  const { document } = useEditor();
+  const run = nodePathsRun ? demoRun(document) : null;
+  const port = data.port ?? "next";
+  const connected = document.wires.some(
+    (wire) => wire.source === data.stepId && wire.sourcePort === port,
+  );
+  const runState = run
+    ? run.ran.has(data.stepId)
+      ? run.takenPort(data.stepId) === port
+        ? { "data-path-taken": true }
+        : { "data-path-untaken": true }
+      : { "data-run-faint": true }
+    : {};
+  return (
+    <span
+      className={pathPillStyle}
+      data-connected={connected || undefined}
+      {...runState}
+    >
+      <Handle
+        id="in"
+        type="target"
+        position={Position.Left}
+        className={handleStyle}
+        style={{ visibility: "hidden" }}
+        isConnectable={false}
+      />
+      {data.label}
+      <PortHandle
+        stepId={data.stepId}
+        id={port}
+        type="source"
+        position={Position.Right}
+        className={handleStyle}
+        style={{ top: "50%" }}
+        isConnectable={false}
+        {...pathPortState(document, run, data.stepId, port)}
+      >
+        <PortAdd stepId={data.stepId} port={port} />
+      </PortHandle>
+    </span>
+  );
+};
+
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document, ui, setDocument } = useEditor();
   const editable = !useReadOnlyCanvas();
+  const [hovered, setHovered] = useState(false);
+  const run = nodePathsRun ? demoRun(document) : null;
   const runView = useRunView();
   const enterRef = useEnterAnimation(id);
   const step = flatFind(document, id);
@@ -1104,10 +1551,32 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   // A run draws the editor's own card (Aakarsh, 4 Nov): same size, rows and type; only the bar is added.
   const ports = portRows(step);
   const mark = runView?.steps?.[id];
+  // `?nodepaths=count`: the rows open while the card is hovered or selected.
+  const open = nodePathsTake === "count" && (hovered || selected);
+  const portState = (port: string) => pathPortState(document, run, id, port);
+  const pathRun = (port: string) =>
+    run?.ran.has(id)
+      ? run.takenPort(id) === port
+        ? { "data-path-taken": true }
+        : { "data-path-untaken": true }
+      : {};
   return (
     <div
       ref={enterRef}
       className={cardStyle({ selected })}
+      data-run-faint={run && !run.ran.has(id) ? true : undefined}
+      // `?nodepaths=chips`: the card grows to hold its chips.
+      style={
+        nodePathsTake === "chips" && ports
+          ? { minHeight: chipsHeight(ports.length) }
+          : undefined
+      }
+      onPointerEnter={
+        nodePathsTake === "count" ? () => setHovered(true) : undefined
+      }
+      onPointerLeave={
+        nodePathsTake === "count" ? () => setHovered(false) : undefined
+      }
       data-run-state={mark?.state}
       data-read-only={runView ? true : undefined}
       data-flash={ui.flashId === id || undefined}
@@ -1145,7 +1614,9 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
           }
         />
       </div>
-      {ports ? (
+      {ports && nodePathsTake && !(nodePathsTake === "count" && open) ? (
+        <NodePaths stepId={id} ports={ports} />
+      ) : ports ? (
         <div
           className={css({
             borderTopWidth: "thin",
@@ -1166,6 +1637,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
                 textStyle: "xs",
                 color: "neutral.fg.subtle",
               })}
+              {...pathRun(port.outputName)}
             >
               {port.label}
               <PortHandle
@@ -1175,6 +1647,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
                 position={Position.Right}
                 className={handleStyle}
                 style={{ top: PORT_ROW / 2 }}
+                {...portState(port.outputName)}
               >
                 {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
                 <PortAdd stepId={id} port={port.outputName} />
@@ -2003,7 +2476,24 @@ const nodeTypes = {
   flowOutputs: ({ selected }: NodeProps<StepNode>) => (
     <FlowOutputsCard selected={selected} />
   ),
+  pathPill: PathPillNodeView,
 };
+
+const wireLabelStyle = css({
+  position: "absolute",
+  paddingX: "1",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "sm",
+  backgroundColor: "neutral.bgSolid.min",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+  "&[data-faint]": { opacity: "[0.55]" },
+});
 
 const edgeCloseStyle = css({
   position: "absolute",
@@ -2035,6 +2525,7 @@ const FlowEdge = ({
   sourcePosition,
   targetPosition,
   style,
+  data,
 }: EdgeProps) => {
   const { ui, setUi, setDocument } = useEditor();
   const [path, labelX, labelY] = getBezierPath({
@@ -2060,6 +2551,20 @@ const FlowEdge = ({
             : style
         }
       />
+      {/* `?nodepaths=wires`: the path's name on its wire; the × takes its place while hovered. */}
+      {typeof data?.label === "string" && !(hovered && !menuOpen) ? (
+        <EdgeLabelRenderer>
+          <span
+            className={wireLabelStyle}
+            data-faint={data.faint === true || undefined}
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+          >
+            {data.label}
+          </span>
+        </EdgeLabelRenderer>
+      ) : null}
       {hovered && !menuOpen ? (
         <EdgeLabelRenderer>
           <button

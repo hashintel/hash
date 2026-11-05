@@ -15,6 +15,7 @@ import {
 } from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
 import { mockEntityTypes } from "./mock-graph";
+import { nodePathsExample } from "./node-paths";
 import { addLookupStep } from "./source-menu";
 import { purityCheckExample } from "./purity-check-example";
 import {
@@ -756,6 +757,19 @@ const figmaStates: ScreenState[] = [
     },
   },
   {
+    id: "node-paths",
+    journey: 3,
+    row: "Branching · 5 Nov",
+    title: "Branching · Paths on the canvas card",
+    caption:
+      "Ask a person, an If and a Switch with four cases and Default; Africa leads nowhere. Pick a take with ?nodepaths=wires|rows|chips|count|pills, add &run for the run.",
+    create: () => ({
+      document: nodePathsExample(),
+      // Ask a person at the canvas's left edge, 100%: the branching steps fill the canvas.
+      ui: { ...initialUi, viewport: { left: -552, top: 220, zoom: 1 } },
+    }),
+  },
+  {
     id: "run-a",
     journey: 3,
     row: "Run view · 26 Oct",
@@ -1006,7 +1020,8 @@ export const screenStates: ScreenState[] = figmaStates.map((state) => {
         ui: {
           ...created.ui,
           plainQuery,
-          viewport,
+          // A state's own framing (node-paths) stands when no Figma frame sets one.
+          viewport: viewport ?? created.ui.viewport,
           quietPortAdd,
           zoomBase,
         },
