@@ -15,6 +15,10 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
  * Whether `pathname` is the process editor (`/processes/<uuid>` or
  * `/processes/draft`, with an optional trailing slash), the one route whose
  * policy lets Petrinaut evaluate strings and load its `data:` fonts.
+ *
+ * The policy belongs to the document, not the route: a document loaded here
+ * keeps these allowances on every route it then reaches by client-side
+ * navigation.
  */
 export const isProcessEditorPath = (pathname: string): boolean =>
   /^\/processes\/[^/]+\/?$/.test(pathname);
