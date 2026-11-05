@@ -35,7 +35,6 @@ import { tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { useLocation } from "./router";
 import { sourceOptions } from "./shapes";
-import { tileColor } from "./status-colors";
 import { kindLabel } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -123,9 +122,25 @@ const loopsOf = (document: EditorDocument, stepId: string): string[] => {
   return loops;
 };
 
+/**
+ * The playground's step tile colours (`.k-action`, `.k-orange`, `.k-start`): action steps green s20 / s100, Fetch file,
+ * If and Ask a person orange s20 / s100, Start blue s20 with a neutral s100 icon.
+ */
+const kTile = (document: EditorDocument, id: string): React.CSSProperties => {
+  const step = findStep(document, id)?.step;
+  const tone =
+    step?.kind === "action" ? getCatalogEntry(step.actionDefinitionId)?.tone : undefined;
+  return tone === "orange"
+    ? { backgroundColor: "var(--colors-orange-s20)", color: "var(--colors-orange-s100)" }
+    : step
+      ? { backgroundColor: "var(--colors-green-s20)", color: "var(--colors-green-s100)" }
+      : { backgroundColor: "var(--colors-blue-s20)", color: "var(--colors-neutral-s100)" };
+};
+
 /** Faint connector colour: the playground's 12 % wire for the tree, 18 % for the K3 line. */
-const treeWire = "neutral.a20";
-const k3Wire = "neutral.a25";
+// token-guard: allow the playground's exact alphas; no DS step is .12 or .18 (a20 .10, a25 .125, a35 .176).
+const treeWire = "[rgba(0, 0, 0, 0.12)]";
+const k3Wire = "[rgba(0, 0, 0, 0.18)]";
 
 const blockStyle = css({
   gridColumn: "1 / -1",
@@ -146,14 +161,30 @@ const headStyle = css({
   textStyle: "sm",
   lineHeight: "[20px]",
   color: "neutral.fg.heading",
-  "& > [data-type-icon]": { display: "flex", flexShrink: 0, color: "neutral.fg.muted" },
+  "& > [data-type-icon]": { display: "flex", flexShrink: 0, color: "neutral.fg.heading" },
 });
 
 const headNameStyle = css({
-  flex: "1",
+  display: "block",
   minWidth: "[0]",
+  lineHeight: "[20px]",
   overflow: "hidden",
   textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+/** The output's type as a chip after its name (playground `.tb`): 16 px, 4 px in, 4 px corners, faint fill, 12 px muted. */
+const typeChipStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  flexShrink: 0,
+  height: "[16px]",
+  paddingX: "1",
+  borderRadius: "sm",
+  backgroundColor: "neutral.a10",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
   whiteSpace: "nowrap",
 });
 
@@ -252,8 +283,7 @@ const loopsLineStyle = css({
     position: "absolute",
     left: "[7px]",
     top: "[8px]",
-    // Down to the top of the step's tile: 2 px gap, then 3 px of the 20 px line above the 14 px tile.
-    bottom: "[-5px]",
+    bottom: "[-2px]",
     width: "[1px]",
     backgroundColor: k3Wire,
   },
@@ -271,9 +301,8 @@ const inputsLineStyle = css({
     content: '""',
     position: "absolute",
     left: "[7px]",
-    // Up to the bottom of the step's tile.
-    top: "[-5px]",
-    height: "[13px]",
+    top: "[0]",
+    height: "[8px]",
     width: "[1px]",
     backgroundColor: k3Wire,
   },
@@ -297,10 +326,15 @@ const stepTileStyle = css({
   height: "[14px]",
   marginRight: "2",
   borderRadius: "[3px]",
-  // Centred on the name's 20 px line (B′, ledger 2 Nov "Menu rows"): 3 px above and below, where the K3 lines meet it.
-  verticalAlign: "[0]",
+  // The playground K3 value (outputs playground v26 `.lt.tk .t1 .st`), ported as is.
+  verticalAlign: "[-2px]",
   textIndent: "[0]",
-  "& svg": { width: "[10px]", height: "[10px]" },
+  "& svg": {
+    width: "[10px !important]",
+    minWidth: "[10px]",
+    maxWidth: "[10px]",
+    height: "[10px !important]",
+  },
 });
 
 const Names = ({ names }: { names: string[] }) => (
@@ -363,8 +397,10 @@ const addRowStyle = css({
 const addStyle = css({
   display: "inline-flex",
   alignItems: "center",
+  flex: "1",
   gap: "2",
-  height: "[36px]",
+  height: "[28px]",
+  marginY: "1",
   paddingX: "1.5",
   border: "none",
   borderRadius: "md",
@@ -372,10 +408,12 @@ const addStyle = css({
   cursor: "pointer",
   textStyle: "sm",
   lineHeight: "[20px]",
-  color: "neutral.fg.subtle",
-  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
-  "&[data-open]": { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
-  "& > svg": { width: "[14px !important]", height: "[14px !important]" },
+  color: "neutral.fg.muted",
+  // Playground `.add .link`: 70 % until hovered.
+  opacity: "[0.7]",
+  _hover: { opacity: "[1]", color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
+  "&[data-open]": { opacity: "[1]", color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
+  "& > svg": { width: "[16px !important]", height: "[16px !important]" },
 });
 
 const menuWidthStyle = css({ "&[class]": { minWidth: "[260px]" }, maxWidth: "[380px]" });
@@ -774,6 +812,7 @@ export const UsedInBlock = ({
         <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
           <span className={headNameStyle}>{label}</span>
         </Tooltip>
+        {kind ? <span className={typeChipStyle}>{kind}</span> : null}
         <span className={headEndStyle}>{end}</span>
       </div>
       {rows > 0 ? (
@@ -803,7 +842,7 @@ export const UsedInBlock = ({
                     </span>
                   ) : null}
                   <span className={stepLineStyle}>
-                    <span className={stepTileStyle} style={tileColor(icon)}>
+                    <span className={stepTileStyle} style={kTile(document, use.stepId)}>
                       <Icon name={icon} size="sm" />
                     </span>
                     {step ? stepLabel(step) : use.stepId}
