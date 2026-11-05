@@ -12,6 +12,7 @@ import {
   Icon,
   Menu,
   TextInput,
+  Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -189,12 +190,17 @@ export const VersionButton = ({
 };
 
 /* ----------------------------------------------------------------------------------------------------------------
- * What the bar says about saving (5 Nov, inbox `picks/draft-saved`): ?draftsaved=dora|dei|steady, from the URL only;
- * no param shows nothing, as before. A failed save is the same in every take: "Couldn't save your changes" and Retry,
- * until it saves (?savefail makes every save fail). The takes differ only in what a good save shows:
+ * What the bar says about saving (inbox `picks/draft-saved`, decided 5 Nov: Steady). A failed save is the same in every
+ * take: "Couldn't save your changes" and Retry, until it saves (?savefail makes every save fail). The takes differ only
+ * in what a good save shows; ?draftsaved=dora|dei, from the URL only, keeps the others for comparison:
+ * - Steady (default): a muted "Saved" that reads "Saving…" while it saves.
  * - Dora: nothing.
  * - Dei: "Draft saved" flashes after each save, then fades.
- * - Steady: a muted "Saved" that reads "Saving…" while it saves.
+ *
+ * Retry as a subtler icon (Aakarsh, 5 Nov), open: ?retryicon=1..3, URL only; no param keeps the text "Retry".
+ * 1. A faint 28 px ghost icon button, tooltip "Retry".
+ * 2. The icon inline, right after the error text.
+ * 3. The icon button, with a muted "Retry" that shows only on hover.
  * ------------------------------------------------------------------------------------------------------------- */
 
 const saveNoteStyle = css({
@@ -216,6 +222,100 @@ const saveErrorStyle = css({
   whiteSpace: "nowrap",
 });
 
+/** Retry 2: the icon in the text's flow and colour, no chrome, as part of the message. */
+const inlineRetryStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "[0]",
+  border: "none",
+  background: "[transparent]",
+  // The bar's control size (28 px, 8 px corners) with no visible box, so the icon still sits in the line.
+  height: "[28px]",
+  borderRadius: "lg",
+  fontWeight: "medium",
+  color: "[inherit]",
+  cursor: "pointer",
+  textStyle: "sm",
+  _hover: { color: "neutral.fg.heading" },
+});
+
+/** Retry 1 and 3: a ghost button at the bar's control size (28 px), faint until hovered. */
+const iconRetryStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  height: "[28px]",
+  minWidth: "[28px]",
+  justifyContent: "center",
+  paddingX: "1.5",
+  border: "none",
+  borderRadius: "lg",
+  background: "[transparent]",
+  color: "neutral.fg.subtle",
+  cursor: "pointer",
+  textStyle: "sm",
+  fontWeight: "medium",
+  _hover: {
+    backgroundColor: "neutral.bg.surface.hover",
+    color: "neutral.fg.heading",
+  },
+  "& [data-retry-label]": { display: "none", color: "neutral.fg.muted" },
+  "&:hover [data-retry-label]": { display: "inline" },
+});
+
+const RetryControl = ({ onRetry }: { onRetry: () => void }) => {
+  const take = useLocation().query.get("retryicon");
+  if (take === "1") {
+    return (
+      <Tooltip content="Retry">
+        <button
+          type="button"
+          className={iconRetryStyle}
+          aria-label="Retry"
+          data-retry-icon="1"
+          onClick={onRetry}
+        >
+          <Icon name="rotate" size="sm" />
+        </button>
+      </Tooltip>
+    );
+  }
+  if (take === "2") {
+    return (
+      <Tooltip content="Retry">
+        <button
+          type="button"
+          className={inlineRetryStyle}
+          aria-label="Retry"
+          data-retry-icon="2"
+          onClick={onRetry}
+        >
+          <Icon name="rotate" size="sm" />
+        </button>
+      </Tooltip>
+    );
+  }
+  if (take === "3") {
+    return (
+      <button
+        type="button"
+        className={iconRetryStyle}
+        aria-label="Retry"
+        data-retry-icon="3"
+        onClick={onRetry}
+      >
+        <Icon name="rotate" size="sm" />
+        <span data-retry-label>Retry</span>
+      </button>
+    );
+  }
+  return (
+    <Button size="sm" variant="ghost" tone="neutral" onClick={onRetry}>
+      Retry
+    </Button>
+  );
+};
+
 /** MOCK: how long a save takes. */
 const savingMs = 600;
 /** How long Dei's "Draft saved" stays before it fades. */
@@ -225,7 +325,7 @@ type SavePhase = "idle" | "saving" | "saved" | "failed";
 
 export const DraftSaveNote = ({ document }: { document: unknown }) => {
   const { query } = useLocation();
-  const take = query.get("draftsaved")?.toLowerCase();
+  const take = query.get("draftsaved")?.toLowerCase() ?? "steady";
   const failing = query.has("savefail");
   const [seen, setSeen] = useState(document);
   const [phase, setPhase] = useState<SavePhase>("idle");
@@ -263,19 +363,14 @@ export const DraftSaveNote = ({ document }: { document: unknown }) => {
       <span className={saveErrorStyle} role="alert" data-draft-save="error">
         <Icon name="warning" size="sm" />
         Couldn&apos;t save your changes
-        <Button
-          size="sm"
-          variant="ghost"
-          tone="neutral"
+        <RetryControl
           // MOCK: a retry saves.
-          onClick={() => {
+          onRetry={() => {
             setPhase("saved");
             setSavedAt(Date.now());
             setFlash(true);
           }}
-        >
-          Retry
-        </Button>
+        />
       </span>
     );
   }
