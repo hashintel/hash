@@ -3,7 +3,11 @@ import { useState } from "react";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
 
-import { cellSx, formatVersions } from "./dependent-types-table-layout";
+import {
+  cellSx,
+  formatVersions,
+  toggleRowSx,
+} from "./dependent-types-table-layout";
 import {
   ExpandChevron,
   HeaderRow,
@@ -11,7 +15,6 @@ import {
   OpenTypeButton,
   RowToggle,
   TableCard,
-  toggleRowSx,
   TypeLabel,
 } from "./dependent-types-table-parts";
 
