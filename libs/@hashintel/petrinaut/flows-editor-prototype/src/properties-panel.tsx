@@ -123,8 +123,8 @@ const panelStyle = css({
 const panelBodyStyle = css({
   display: "flex",
   flexDirection: "column",
-  // J2.51: 24 px between the header and each section.
-  gap: "6",
+  // Picked panel 748:30752 and the step outputs playground: 32 px between the header and each section.
+  gap: "8",
   padding: "4",
 });
 
@@ -1007,7 +1007,7 @@ const nextInputNumber = (document: EditorDocument) => {
 const inputBlockStyle = css({
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(88px, min(30%, 120px)) minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
   columnGap: "2",
   rowGap: "2",
   alignItems: "baseline",

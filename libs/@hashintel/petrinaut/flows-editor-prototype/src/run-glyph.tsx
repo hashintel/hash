@@ -347,14 +347,17 @@ const BareGlyph = ({
       const failStart = failed
         ? Math.min(doneEnd, failEnd - bareMinFail)
         : doneEnd;
-      const arcEnd = failed ? failStart - bareGap : doneEnd;
+      // F3 partial-failed.svg: with failures, each segment is inset by half a gap at both ends, so a gap shows
+      // between done and failed and again at 12 o'clock.
+      const inset = failed ? bareGap / 2 : 0;
+      const arcEnd = failed ? failStart - inset : doneEnd;
       return (
         <>
           {track}
-          {done > 0 && <path d={bareArc(bareCap, arcEnd - bareCap)} />}
+          {done > 0 && <path d={bareArc(bareCap + inset, arcEnd - bareCap)} />}
           {failed > 0 && (
             <path
-              d={bareArc(failStart + bareCap, failEnd - bareCap)}
+              d={bareArc(failStart + inset + bareCap, failEnd - inset - bareCap)}
               style={{ stroke: red }}
             />
           )}
