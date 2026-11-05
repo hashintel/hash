@@ -1,6 +1,10 @@
 import { useState } from "react";
 
-import { Icon, type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
+import {
+  Icon,
+  type ItemOrGroup,
+  type MenuItem,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -31,6 +35,7 @@ import { groupSwatch, tileColor } from "./status-colors";
 import {
   FloatingStepPicker,
   stepLine,
+  GroupRowTint,
   groupHue,
   pickerColour,
   pickerTake,
@@ -359,7 +364,7 @@ export const AddNodePicker = ({
         ? { text: group.name, icon: group.icon }
         : {
             text: (
-              <span className={groupRowStyle}>
+              <span className={groupRowStyle} data-group-row={group.name}>
                 <span style={groupHue(group)}>
                   <Icon name={group.icon} size="sm" />
                 </span>
@@ -543,62 +548,68 @@ export const AddNodePicker = ({
             .slice(0, 4)
         : [];
     return (
-      <FloatingStepPicker
-        take={take}
-        anchor={anchor}
-        above={picker.anchor === "toolbar"}
-        title={feed ? `Use ${feed.label} in a step` : "Add a step"}
-        context={context}
-        entries={feed ? usable : available}
-        recent={feed ? [] : recent}
-        suggested={
-          feed
-            ? undefined
-            : picker.anchor === "port" && document.steps.length === 0
-              ? recommended
-              : fromOutputSuggestions
-        }
-        allLabel={feed ? `Steps that take ${feed.label}` : undefined}
-        onPick={pick}
-        onClose={close}
-      />
+      <>
+        <GroupRowTint />
+        <FloatingStepPicker
+          take={take}
+          anchor={anchor}
+          above={picker.anchor === "toolbar"}
+          title={feed ? `Use ${feed.label} in a step` : "Add a step"}
+          context={context}
+          entries={feed ? usable : available}
+          recent={feed ? [] : recent}
+          suggested={
+            feed
+              ? undefined
+              : picker.anchor === "port" && document.steps.length === 0
+                ? recommended
+                : fromOutputSuggestions
+          }
+          allLabel={feed ? `Steps that take ${feed.label}` : undefined}
+          onPick={pick}
+          onClose={close}
+        />
+      </>
     );
   }
 
   return (
-    <OpenMenu
-      anchor={anchor}
-      label={feed ? `Use ${feed.label} in a step` : "Add node"}
-      position={
-        picker.anchor === "toolbar"
-          ? "top"
-          : feed
-            ? "bottom-end"
-            : "bottom-start"
-      }
-      // From the panel: under the row's action, its right edge on the panel's.
-      alignToPanel={!!feed}
-      // From a port it opens beside the + when there is room (J0.10), else below it (J1.4).
-      besideWhenFits={picker.anchor === "port"}
-      className={cx(pickerWidthStyle, tiledRowsStyle)}
-      keepInCanvasWidth={
-        picker.anchor === "toolbar" || feed
-          ? undefined
-          : query || recent.length > 0 || document.steps.length === 0
-            ? 288
-            : 240
-      }
-      onClose={close}
-      header={
-        <SearchHeader
-          value={search}
-          onChange={setSearch}
-          placeholder="Search"
-          focusOnOpen
-        />
-      }
-      items={tileMenu(items, "step")}
-    />
+    <>
+      <GroupRowTint />
+      <OpenMenu
+        anchor={anchor}
+        label={feed ? `Use ${feed.label} in a step` : "Add node"}
+        position={
+          picker.anchor === "toolbar"
+            ? "top"
+            : feed
+              ? "bottom-end"
+              : "bottom-start"
+        }
+        // From the panel: under the row's action, its right edge on the panel's.
+        alignToPanel={!!feed}
+        // From a port it opens beside the + when there is room (J0.10), else below it (J1.4).
+        besideWhenFits={picker.anchor === "port"}
+        className={cx(pickerWidthStyle, tiledRowsStyle)}
+        keepInCanvasWidth={
+          picker.anchor === "toolbar" || feed
+            ? undefined
+            : query || recent.length > 0 || document.steps.length === 0
+              ? 288
+              : 240
+        }
+        onClose={close}
+        header={
+          <SearchHeader
+            value={search}
+            onChange={setSearch}
+            placeholder="Search"
+            focusOnOpen
+          />
+        }
+        items={tileMenu(items, "step")}
+      />
+    </>
   );
 };
 

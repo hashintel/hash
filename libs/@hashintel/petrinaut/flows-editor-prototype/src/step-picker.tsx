@@ -17,7 +17,12 @@ import { Icon, type IconName } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { type CatalogEntry, groupEntries, stepGroups } from "./catalog";
-import { groupIconColour, tileColor } from "./status-colors";
+import {
+  groupIconColour,
+  groupRowColour,
+  pickerPalette,
+  tileColor,
+} from "./status-colors";
 
 export type PickerTake = 1 | 2 | 3 | 4;
 
@@ -34,7 +39,11 @@ export const pickerColour = (): 1 | 2 | 3 | null => {
   const value = Number(
     new URLSearchParams(globalThis.location.search).get("pickercolour"),
   );
-  return value >= 1 && value <= 3 ? (value as 1 | 2 | 3) : null;
+  return value >= 1 && value <= 3
+    ? (value as 1 | 2 | 3)
+    : pickerPalette()
+      ? 1
+      : null;
 };
 
 /** Each step row's second line (Figma, 3 Nov), from the engine's action definitions. */
@@ -180,7 +189,11 @@ const SearchField = ({
   boxed?: boolean;
   autoFocus?: boolean;
 }) => (
-  <label className={searchStyle} data-size={size} data-boxed={boxed || undefined}>
+  <label
+    className={searchStyle}
+    data-size={size}
+    data-boxed={boxed || undefined}
+  >
     <Icon name="search" size="sm" />
     <input
       value={value}
@@ -204,6 +217,7 @@ const headingStyle = css({
   flexShrink: 0,
   textStyle: "xs",
   color: "neutral.fg.subtle",
+  borderRadius: "md",
   "&:first-child": { paddingTop: "1" },
 });
 
@@ -422,7 +436,9 @@ const GroupedList = ({
   const keys = useKeys(flat, onPick, onClose);
   return (
     <>
-      <div className={boxed ? css({ paddingX: "2", paddingTop: "2" }) : undefined}>
+      <div
+        className={boxed ? css({ paddingX: "2", paddingTop: "2" }) : undefined}
+      >
         <SearchField
           value={search}
           onChange={setSearch}
@@ -438,7 +454,12 @@ const GroupedList = ({
           sections.map((section) => (
             <div key={section.id} className={css({ display: "contents" })}>
               {section.label ? (
-                <div className={headingStyle}>{section.label}</div>
+                <div
+                  className={headingStyle}
+                  data-group-row-heading={section.id}
+                >
+                  {section.label}
+                </div>
               ) : null}
               {section.entries.map((entry) => (
                 <StepRow
@@ -495,7 +516,11 @@ const categoryStyle = css({
     backgroundColor: "neutral.bg.surface.hover",
     color: "neutral.fg.heading",
   },
-  "&[data-narrow]": { justifyContent: "center", paddingX: "0", width: "[32px]" },
+  "&[data-narrow]": {
+    justifyContent: "center",
+    paddingX: "0",
+    width: "[32px]",
+  },
 });
 
 /** K2: groups on the left, the hovered group's steps on the right, in one surface. */
@@ -537,7 +562,10 @@ const TwoPane = ({
         autoFocus={autoFocus}
       />
       <div className={panesStyle}>
-        <div className={categoryColumnStyle} style={{ width: narrow ? 48 : 168 }}>
+        <div
+          className={categoryColumnStyle}
+          style={{ width: narrow ? 48 : 168 }}
+        >
           {sections.map((section) => (
             <button
               key={section.id}
@@ -612,7 +640,13 @@ const Palette = ({
     stepGroups.find((group) => group.ids.includes(entry.id))?.name ?? "Other";
   const all = sectionsOf(entries).flatMap((section) => section.entries);
   const sections = query
-    ? [{ id: "results", label: "", entries: all.filter((entry) => matchesQuery(entry, query)) }]
+    ? [
+        {
+          id: "results",
+          label: "",
+          entries: all.filter((entry) => matchesQuery(entry, query)),
+        },
+      ]
     : [
         ...(suggested && suggested.length > 0
           ? [{ id: "suggested", label: "Suggested", entries: suggested }]
@@ -641,7 +675,12 @@ const Palette = ({
           sections.map((section) => (
             <div key={section.id} className={css({ display: "contents" })}>
               {section.label ? (
-                <div className={headingStyle}>{section.label}</div>
+                <div
+                  className={headingStyle}
+                  data-group-row-heading={section.id}
+                >
+                  {section.label}
+                </div>
               ) : null}
               {section.entries.map((entry, index) => (
                 <StepRow
@@ -703,7 +742,10 @@ const closeStyle = css({
   borderRadius: "md",
   color: "neutral.fg.subtle",
   cursor: "pointer",
-  _hover: { backgroundColor: "neutral.bg.surface.hover", color: "neutral.fg.heading" },
+  _hover: {
+    backgroundColor: "neutral.bg.surface.hover",
+    color: "neutral.fg.heading",
+  },
 });
 
 /** K4: "Add a step" in the right panel's place: where it goes, a search, then every group with each step's line. */
@@ -770,7 +812,9 @@ const sidePanelStyle = css({
 const rightPanelRect = () => {
   const asides = [...globalThis.document.querySelectorAll("aside")]
     .map((element) => element.getBoundingClientRect())
-    .filter((rect) => rect.width > 200 && rect.left > globalThis.innerWidth / 2);
+    .filter(
+      (rect) => rect.width > 200 && rect.left > globalThis.innerWidth / 2,
+    );
   return asides[0] ?? null;
 };
 
@@ -802,7 +846,9 @@ export const FloatingStepPicker = ({
   above?: boolean;
 }) => {
   const surface = useRef<HTMLDivElement>(null);
-  const [place, setPlace] = useState<React.CSSProperties>({ visibility: "hidden" });
+  const [place, setPlace] = useState<React.CSSProperties>({
+    visibility: "hidden",
+  });
   useLayoutEffect(() => {
     const width = widthOf[take];
     if (take === 3) {
@@ -818,7 +864,12 @@ export const FloatingStepPicker = ({
       const rect = rightPanelRect();
       setPlace(
         rect
-          ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
+          ? {
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height,
+            }
           : { top: 56, right: 0, bottom: 0, width },
       );
       return;
@@ -889,8 +940,28 @@ export const InlineStepPicker = ({
 }: BodyProps & { take: PickerTake }) => (
   <div
     data-step-picker={take}
-    className={css({ display: "flex", flexDirection: "column", minHeight: "[0]" })}
+    className={css({
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "[0]",
+    })}
   >
     <Body take={take} {...props} narrow />
   </div>
 );
+
+/** `?grouprow=1`: each group row (Browse all, K1's headings) faintly tinted in its group's hue. */
+export const GroupRowTint = () => {
+  if (new URLSearchParams(globalThis.location.search).get("grouprow") !== "1") {
+    return null;
+  }
+  const rules = stepGroups
+    .map((group) => {
+      const colour = groupRowColour(group.name);
+      return colour
+        ? `[role=menuitem]:has([data-group-row="${group.name}"]), [data-group-row-heading="${group.name}"] { background-color: ${colour}; }`
+        : "";
+    })
+    .join("\n");
+  return <style>{rules}</style>;
+};

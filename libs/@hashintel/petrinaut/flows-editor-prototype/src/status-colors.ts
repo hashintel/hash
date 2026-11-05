@@ -651,26 +651,119 @@ export const groupHues: { group: string; hue: string; icons: string[] }[] = [
   },
 ];
 
+/**
+ * `?palette=a..d` (add-picker card, 5 Nov): which hue each group takes, at DS steps of equal perceived lightness — tile
+ * L* ≈ 96, icon L* ≈ 49, so no hue reads weaker than another (the s20 / s100 yellow was 1.3:1, near invisible).
+ * a: meaning (people yellow, messages blue, documents orange, entities green, flow control purple);
+ * b: clear of the run-state hues (pink, purple, yellow, then neutral);
+ * c: a's hues on the icon only, on a neutral tile;
+ * d: colour only where it matters (people pink, flow control purple), the rest neutral.
+ * A palette turns the group colours on as `?pickercolour=1` does.
+ */
+const equalSteps: Record<string, { tile: string; icon: string }> = {
+  yellow: { tile: "yellow.s35", icon: "yellow.s110" },
+  blue: { tile: "blue.s25", icon: "blue.s110" },
+  orange: { tile: "orange.s25", icon: "orange.s110" },
+  green: { tile: "green.s25", icon: "green.s110" },
+  purple: { tile: "purple.s25", icon: "purple.s90" },
+  pink: { tile: "pink.s25", icon: "pink.s100" },
+  neutral: { tile: "neutral.s25", icon: "neutral.s105" },
+};
+
+const meaning: Record<string, string> = {
+  People: "yellow",
+  Messages: "blue",
+  Documents: "orange",
+  Entities: "green",
+  "Flow control": "purple",
+};
+
+export const groupPalettes: Record<
+  "a" | "b" | "c" | "d",
+  Record<string, string>
+> = {
+  a: meaning,
+  b: {
+    People: "pink",
+    Messages: "purple",
+    Documents: "yellow",
+    Entities: "neutral",
+    "Flow control": "neutral",
+  },
+  c: meaning,
+  d: {
+    People: "pink",
+    Messages: "neutral",
+    Documents: "neutral",
+    Entities: "neutral",
+    "Flow control": "purple",
+  },
+};
+
+export const pickerPalette = (): "a" | "b" | "c" | "d" | null => {
+  const value = new URLSearchParams(globalThis.location.search).get("palette");
+  return value === "a" || value === "b" || value === "c" || value === "d"
+    ? value
+    : null;
+};
+
+/** A group's tile and icon tokens in the `?palette=` take, or null without one. */
+const paletteSwatch = (group: string) => {
+  const palette = pickerPalette();
+  const hue = palette ? groupPalettes[palette][group] : undefined;
+  const steps = hue ? equalSteps[hue] : undefined;
+  if (!palette || !steps) {
+    return null;
+  }
+  return palette === "c" ? { tile: "neutral.s25", icon: steps.icon } : steps;
+};
+
+/** `?grouprow=1`: a group row's faint tint, its palette tile step (or the s20 step without a palette). */
+export const groupRowColour = (group: string) => {
+  const swatch = paletteSwatch(group);
+  if (swatch) {
+    return swatch.tile === "neutral.s25" ? undefined : tokenVar(swatch.tile);
+  }
+  const hue = groupHues.find((entry) => entry.group === group)?.hue;
+  return hue ? tokenVar(`${hue}.s20`) : undefined;
+};
+
 const pickerColourFlag = () => {
   const value = Number(
     new URLSearchParams(globalThis.location.search).get("pickercolour"),
   );
-  return value >= 1 && value <= 3 ? value : null;
+  return value >= 1 && value <= 3 ? value : pickerPalette() ? 1 : null;
 };
 
 /** A group row's icon in its group's hue (`?pickercolour=1`): the step icons' s100, so a group and its steps match. */
 export const groupIconColour = (group: string) => {
+  const swatch = paletteSwatch(group);
+  if (swatch) {
+    return tokenVar(swatch.icon);
+  }
   const hue = groupHues.find((entry) => entry.group === group)?.hue;
   return hue ? tokenVar(`${hue}.s100`) : undefined;
 };
 
 /** A group's small swatch (`?pickercolour=2`). */
 export const groupSwatch = (group: string) => {
+  const swatch = paletteSwatch(group);
+  if (swatch) {
+    return tokenVar(swatch.icon);
+  }
   const hue = groupHues.find((entry) => entry.group === group)?.hue;
   return hue ? tokenVar(`${hue}.s70`) : undefined;
 };
 
 const groupTileColor = (icon: string) => {
+  const group = groupHues.find((entry) => entry.icons.includes(icon))?.group;
+  const swatch = group ? paletteSwatch(group) : null;
+  if (swatch) {
+    return {
+      backgroundColor: tokenVar(swatch.tile),
+      color: tokenVar(swatch.icon),
+    };
+  }
   const colour = pickerColourFlag();
   const hue =
     colour === null
