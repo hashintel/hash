@@ -101,6 +101,7 @@ fn entity(web: Uuid, id: Uuid) -> Entity {
                 edition: EntityEditionProvenance {
                     created_by_id: ActorEntityUuid::new(web),
                     archived_by_id: None,
+                    created_from_draft_id: None,
                     provided: ProvidedEntityEditionProvenance {
                         sources: Vec::new(),
                         actor_type: ActorType::User,

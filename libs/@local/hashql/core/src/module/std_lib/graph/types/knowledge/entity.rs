@@ -213,8 +213,8 @@ pub mod types {
 
     // newtype EntityEditionProvenance = Unknown
     //
-    // JSONB blob in `entity_editions.provenance`. Contains optional `archived_by_id`,
-    // `actor_type`, `OriginProvenance`, and `Vec<SourceProvenance>`.
+    // JSONB blob in `entity_editions.provenance`. Contains the optional `archived_by_id` and
+    // `created_from_draft_id`, plus `actor_type`, `OriginProvenance`, and `Vec<SourceProvenance>`.
     #[must_use]
     pub fn entity_edition_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::EntityEditionProvenance, ty.unknown())

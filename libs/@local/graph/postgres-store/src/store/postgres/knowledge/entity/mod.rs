@@ -1470,6 +1470,7 @@ where
                 edition: EntityEditionProvenance {
                     created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
+                    created_from_draft_id: None,
                     provided: params.provenance,
                 },
             });
