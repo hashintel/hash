@@ -1,3 +1,4 @@
+import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { useReactFlow, type Viewport } from "@xyflow/react";
 import { Mail, Paperclip } from "lucide-react";
 /**
@@ -3434,6 +3435,10 @@ export const StepOutputs = ({
   const names = (rows: SupplierEntity[]) => rows.map((row) => row.name);
   const edge = useEdgeCase();
   const edgeCase = edge ? edgeCaseOf(edge, outputs, typesTake) : null;
+  const fileTypes = useFileTypes();
+  if (fileTypes && stepId === "fetchCertificate") {
+    return <MixedFileOutputs />;
+  }
   let body: React.ReactNode = null;
   if (edgeCase && edgeCase.stepId === stepId) {
     const { view } = edgeCase;
