@@ -21,7 +21,10 @@ export type ConditionProperty = {
   valueKind: ConditionValueKind;
 };
 
-/** Whether a data type, or one it inherits from, has format `date`. */
+/**
+ * Whether a data type, or one it inherits from, has format `date`. Only for a data type `resolveDataTypeValueKind`
+ * resolves to a single kind, so any `anyOf` it meets has one entry.
+ */
 const hasDateFormat = (
   dataTypeId: VersionedUrl,
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
@@ -36,8 +39,8 @@ const hasDateFormat = (
   seen.add(dataTypeId);
 
   if ("anyOf" in schema) {
-    const [only, ...others] = schema.anyOf;
-    return others.length === 0 && "format" in only && only.format === "date";
+    const [only] = schema.anyOf;
+    return "format" in only && only.format === "date";
   }
 
   if ("format" in schema && schema.format === "date") {
