@@ -498,7 +498,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/logo_gmail_lockup_default_2x_r5.png",
     logoNotes:
-      "Official Google header lockup raster (218 x 80); transparent PNG embedded in SVG",
+      "Official Google header lockup raster (218 x 80); transparent PNG embedded in SVG. Dark mode preserves the original icon colors and uses the same light wordmark color as Google Drive and Calendar.",
     logoRaster: true,
   },
   {

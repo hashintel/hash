@@ -74,7 +74,7 @@ def themed_artwork(brand, kind, dark, for_logo=False):
     visit(document)
     if dark and kind == "logo" and document.get("fill") is None:
         document.set("fill", "#F5F7FA")
-    if dark and kind == "logo" and brand.get("logoRaster") and not brand.get("logoRasterDarkOriginal"):
+    if dark and kind == "logo" and brand.get("logoRaster") and not brand.get("logoRasterDarkOriginal") and not override.exists():
         definitions = ET.Element(svg_ns + "defs")
         contrast_filter = ET.SubElement(definitions, svg_ns + "filter", {"id": "logo-contrast", "color-interpolation-filters": "sRGB"})
         transfer = ET.SubElement(contrast_filter, svg_ns + "feComponentTransfer")
