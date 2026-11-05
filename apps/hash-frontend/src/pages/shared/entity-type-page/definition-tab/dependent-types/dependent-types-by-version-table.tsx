@@ -1,21 +1,17 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, ButtonBase, Tooltip, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 
+import { cellSx, formatVersions } from "./dependent-types-table-layout";
 import {
-  cellSx,
-  formatVersions,
-  openColumnWidth,
-  rowHeight,
-} from "./dependent-types-table-layout";
-import {
+  ExpandChevron,
   HeaderRow,
+  NestedRow,
   OpenTypeButton,
+  RowToggle,
   TableCard,
-  TreeLines,
+  toggleRowSx,
   TypeLabel,
 } from "./dependent-types-table-parts";
 
@@ -52,61 +48,43 @@ const DependentTypeSubRow = ({
   const { title, description } = entityType.schema;
 
   return (
-    <Box
-      sx={({ palette }) => ({
-        position: "relative",
-        height: rowHeight,
-        borderRadius: 1,
-        "&:hover": { background: palette.gray[10] },
-      })}
+    <NestedRow
+      gridTemplateColumns={gridTemplateColumns}
+      last={last}
+      openButton={
+        <OpenTypeButton
+          label={`Open ${title} v${highestVersion}, the highest version that extends ${parentLabel}`}
+          description={description}
+          onClick={() => onOpenType(highestVersionId)}
+          onFocusVisible={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+      }
     >
-      <Box
-        sx={({ palette }) => ({
-          height: rowHeight,
-          pr: `${openColumnWidth}px`,
-          display: "grid",
-          gridTemplateColumns,
-          alignItems: "center",
-          fontSize: 14,
-          lineHeight: "18px",
-          color: palette.gray[80],
-        })}
-      >
-        <Box sx={cellSx} />
-        <Box sx={{ ...innerCellSx, maxWidth: 1, display: "flex" }}>
-          <Tooltip
-            title={description}
-            open={hovered || focused}
-            onOpen={() => setHovered(true)}
-            onClose={() => setHovered(false)}
-          >
-            <Box component="span" sx={{ display: "flex", minWidth: 0 }}>
-              <TypeLabel
-                entityType={entityType}
-                former={former}
-                isLink={isLink}
-                version={row.version}
-              />
-            </Box>
-          </Tooltip>
-        </Box>
-        <Box sx={innerCellSx}>
-          {ranges
-            .map((range) =>
-              formatVersions(range.firstVersion, range.lastVersion),
-            )
-            .join(", ")}
-        </Box>
+      <Box sx={cellSx} />
+      <Box sx={{ ...innerCellSx, maxWidth: 1, display: "flex" }}>
+        <Tooltip
+          title={description}
+          open={hovered || focused}
+          onOpen={() => setHovered(true)}
+          onClose={() => setHovered(false)}
+        >
+          <Box component="span" sx={{ display: "flex", minWidth: 0 }}>
+            <TypeLabel
+              entityType={entityType}
+              former={former}
+              isLink={isLink}
+              version={row.version}
+            />
+          </Box>
+        </Tooltip>
       </Box>
-      <OpenTypeButton
-        label={`Open ${title} v${highestVersion}, the highest version that extends ${parentLabel}`}
-        description={description}
-        onClick={() => onOpenType(highestVersionId)}
-        onFocusVisible={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      />
-      <TreeLines last={last} />
-    </Box>
+      <Box sx={innerCellSx}>
+        {ranges
+          .map((range) => formatVersions(range.firstVersion, range.lastVersion))
+          .join(", ")}
+      </Box>
+    </NestedRow>
   );
 };
 
@@ -131,17 +109,9 @@ const ParentVersionTableRow = ({
 
   return (
     <Box>
-      <Box
-        sx={({ palette }) => ({
-          position: "relative",
-          height: rowHeight,
-          "&:hover .dependent-type-row-toggle": {
-            background: palette.gray[10],
-          },
-        })}
-      >
-        <ButtonBase
-          className="dependent-type-row-toggle"
+      <Box sx={toggleRowSx}>
+        <RowToggle
+          gridTemplateColumns={gridTemplateColumns}
           aria-expanded={empty ? undefined : expanded}
           aria-label={
             empty
@@ -149,26 +119,7 @@ const ParentVersionTableRow = ({
               : `${parentLabel}, extended by ${count}: ${titles}`
           }
           disabled={empty}
-          disableRipple
           onClick={() => setExpanded(!expanded)}
-          sx={({ palette }) => ({
-            width: 1,
-            height: rowHeight,
-            pr: `${openColumnWidth}px`,
-            borderRadius: 1,
-            display: "grid",
-            gridTemplateColumns,
-            alignItems: "center",
-            justifyItems: "start",
-            textAlign: "left",
-            fontSize: 14,
-            lineHeight: "18px",
-            color: palette.gray[80],
-            "&.Mui-focusVisible": {
-              outline: `2px solid ${palette.blue[70]}`,
-              outlineOffset: 2,
-            },
-          })}
         >
           <Box sx={{ ...cellSx, maxWidth: 1 }}>
             <TypeLabel
@@ -206,7 +157,7 @@ const ParentVersionTableRow = ({
               {titles}
             </Box>
           </Box>
-        </ButtonBase>
+        </RowToggle>
         <OpenTypeButton
           label={`Open ${parentLabel}`}
           onClick={() =>
@@ -215,34 +166,7 @@ const ParentVersionTableRow = ({
             )
           }
         />
-        {empty ? null : (
-          <Box
-            aria-hidden
-            sx={({ palette }) => ({
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: 28,
-              height: rowHeight,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: palette.gray[60],
-              pointerEvents: "none",
-            })}
-          >
-            <FontAwesomeIcon
-              icon={faChevronRight}
-              sx={({ transitions }) => ({
-                fontSize: 10,
-                transform: expanded ? "rotate(90deg)" : "none",
-                transition: transitions.create("transform", {
-                  duration: 300,
-                }),
-              })}
-            />
-          </Box>
-        )}
+        {empty ? null : <ExpandChevron expanded={expanded} />}
       </Box>
       {expanded ? (
         <Box role="group" aria-label={`Types that extend ${parentLabel}`}>
