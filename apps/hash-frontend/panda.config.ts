@@ -60,8 +60,8 @@ export default defineConfig({
    * Styles used inside ds-components itself, plus Petrinaut's shipped style
    * usage and that of the ds-icons set it renders, plus this app's own
    * sources that author Panda `css()` calls against the ds-components preset
-   * tokens: the supply-chain tool and its route pages, and the tiled network
-   * graph.
+   * tokens: the supply-chain tool and its route pages, the tiled network
+   * graph, and the flows page and flow editor.
    */
   include: [
     resolvePandaBuildInfoPath(
@@ -78,6 +78,8 @@ export default defineConfig({
     ),
     "./src/pages/supply-chain/**/*.{ts,tsx}",
     "./src/components/tiled-network-graph/**/*.{ts,tsx}",
+    "./src/pages/flows.page/**/*.{ts,tsx}",
+    "./src/pages/@/*/flows/**/*.{ts,tsx}",
     "./src/pages/shared/filter-bar/filter-chip-pill-chrome.ts",
     "./src/pages/shared/sort-menu-chrome.ts",
   ],

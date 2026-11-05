@@ -27,6 +27,9 @@ export type FlowDefinitionDiagnosticCode =
   | "duplicateStepId"
   | "duplicateInputName"
   | "duplicateOutputName"
+  | "unnamedInput"
+  /** A flow output, or a for-each step's `collect.as`, with no name. */
+  | "unnamedOutput"
   | "unknownAction"
   | "unknownInput"
   | "missingInput"
@@ -158,20 +161,26 @@ export const validateFlowDefinition = (
     diagnostics.push({ severity, code, message, path });
   };
 
-  const reportDuplicateNames = (
+  const reportNameProblems = (
     items: { name: string }[],
-    code: "duplicateInputName" | "duplicateOutputName",
     collection: "inputs" | "outputs",
   ) => {
+    const noun = collection === "inputs" ? "input" : "output";
     const seen = new Set<string>();
 
     for (const [index, { name }] of items.entries()) {
-      if (seen.has(name)) {
+      if (name === "") {
         report(
-          code,
-          `The flow has more than one ${
-            collection === "inputs" ? "input" : "output"
-          } named "${name}"`,
+          collection === "inputs" ? "unnamedInput" : "unnamedOutput",
+          `A flow ${noun} has no name`,
+          [collection, index, "name"],
+        );
+      } else if (seen.has(name)) {
+        report(
+          collection === "inputs"
+            ? "duplicateInputName"
+            : "duplicateOutputName",
+          `The flow has more than one ${noun} named "${name}"`,
           [collection, index, "name"],
         );
       }
@@ -180,12 +189,8 @@ export const validateFlowDefinition = (
     }
   };
 
-  reportDuplicateNames(flowDefinition.inputs, "duplicateInputName", "inputs");
-  reportDuplicateNames(
-    flowDefinition.outputs,
-    "duplicateOutputName",
-    "outputs",
-  );
+  reportNameProblems(flowDefinition.inputs, "inputs");
+  reportNameProblems(flowDefinition.outputs, "outputs");
 
   const stepsById = new Map<string, StepEntry>();
 
@@ -494,6 +499,14 @@ export const validateFlowDefinition = (
       addDependency(step.stepId, child.stepId);
     }
 
+    if (step.collect.as === "") {
+      report(
+        "unnamedOutput",
+        `The output for-each step "${step.stepId}" collects into has no name`,
+        [...entry.path, "collect", "as"],
+      );
+    }
+
     const collected = getCollectedStep(step);
     const collectPath = [...entry.path, "collect"];
 
@@ -660,6 +673,31 @@ export const validateFlowDefinition = (
   for (const entry of entries) {
     if (entry.step.kind === "action") {
       checkActionStep(entry, entry.step);
+    }
+  }
+
+  for (const { step, path, scope } of entries) {
+    for (const [index, { stepId }] of (step.runAfter ?? []).entries()) {
+      const runAfterPath = [...path, "runAfter", index, "stepId"];
+      const before = stepsById.get(stepId);
+
+      if (!before) {
+        report("unknownStep", `There is no step "${stepId}"`, runAfterPath);
+      } else if (stepId === step.stepId) {
+        report(
+          "selfReference",
+          `Step "${stepId}" cannot run after itself`,
+          runAfterPath,
+        );
+      } else if (!isInScope(before.scope, scope)) {
+        report(
+          "stepNotInScope",
+          `Step "${stepId}" runs once per item of a for-each step, so only steps inside that step can run after it`,
+          runAfterPath,
+        );
+      } else {
+        addDependency(step.stepId, stepId);
+      }
     }
   }
 

@@ -23,14 +23,14 @@ The launcher opens a dedicated Chrome window, pauses for recording readiness, th
 
 By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
-The mounted Flue URL `/agents/petrinaut/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
+The mounted Flue URL `/agents/petrinaut/:instanceId` requires the owner key and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
 Provider admission bounds a dispatch with no model event at 60 seconds and bounds both newly opened and active reasoning silence at 120 seconds. These phase-specific limits tolerate supported reasoning models that legitimately pause for tens of seconds: an observed valid continuation exceeded the former 15-second first-reasoning-delta limit, then its sole retry exceeded the former 10-second between-delta limit. On expiry Brunch cancels the invocation, requires cancellation acknowledgement within two seconds, and permits at most one retry only before any tool call completed; completed tool work is never replayed. Tests may shorten these bounds with `BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS`, and `BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS`; non-test deployments always use the production policy.
 
 Print a human-readable transcript of one conversation from that same Flue history (server already running):
 
 ```sh
-yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
+yarn workspace @apps/brunch-agent transcript -- --owner-key <key> --id <conversationId>
 ```
 
 ## Agents
@@ -55,6 +55,16 @@ VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/brunch-agent test:ma
 ```
 
 The transport-failure case starts with an unanswered ordinary composer turn. It reproduces the stale-panel failure at the persona helper's entrypoint; it does not claim that a sequence made exclusively of persona turns reaches that starting state.
+
+`test:manual:browser:experiment-results` runs a reviewed experiment through the real editor, sends its results to Brunch, and asks a follow-up in the same conversation. The fixture has seven waiting orders and three completed orders, with no transitions. Scripted mode checks the computed results, their delivery to the model, follow-up context, and that answering neither runs another experiment nor changes the net. It costs no model calls.
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:experiment-results
+# Only with explicit model and spend approval; up to three conversation turns:
+BRUNCH_CHAT_MODEL=openai/gpt-5.5-2026-04-23 BRUNCH_CHAT_THINKING=medium yarn workspace @apps/brunch-agent test:manual:browser:experiment-results --live
+```
+
+Live mode uses the configured model, or Brunch's default, and retains the actual results, replies, history and screenshots in the printed temporary directory. Review the replies against the results: seven waiting, three completed, 30% completed, and no evidence of processing speed from a static snapshot. The live completion marker means evidence was recorded, not that explanation quality passed. Neither mode establishes retrieval of a saved experiment in a different conversation.
 
 ## Local Postgres
 
@@ -149,7 +159,7 @@ registered agent route fits. Keep `GET /health` as a process-local /
 load-balancer-private probe, not a public hostname path. Deny `/` and `/assets/*`. Stock
 Petrinaut `/api/chat` stays on the website; the accepted later website path is `/api/brunch/:id`.
 Releasing `/agents/*` to production browser ingress requires separate authentication,
-authorization, ingress, and rate/spend gates. CORS, caller-supplied principals, and conversation
+authorization, ingress, and rate/spend gates. CORS, caller-supplied owner keys, and conversation
 hashes are not authentication. Desired count remains one until same-conversation ownership
 across replicas is separately proven. The direct browser-result handoff is ephemeral in that single owner: its one-use issued-call capability and existing conversation ownership headers do not authenticate a user or route callbacks across replicas. A lost result after a possible document effect is unknown; Stop aborts an active wait, while silent browser disappearance is detected only after the renewable 25-second lease expires. Production release still requires the external ingress authentication, authorization, routing and spend gates described above.
 

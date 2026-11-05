@@ -13,6 +13,7 @@
       "!**/pkg",
       "!**/.venv",
       "!**/.build",
+      "!**/_scratch/**",
       "apps/**",
       "libs/**",
       "tests/**"
@@ -93,6 +94,7 @@
     "@earendil-works/pi-ai@npm:^1.2.0": "patch:@earendil-works/pi-ai@npm%3A1.2.0#~/.yarn/patches/@earendil-works-pi-ai-npm-1.2.0-brunch-anthropic-schema.patch",
     "@flue/runtime/@modelcontextprotocol/client": "^2.3.0",
     "@flue/runtime@npm:2.3.0": "patch:@flue/runtime@npm%3A2.3.0#~/.yarn/patches/@flue-runtime-npm-2.3.0-brunch.patch",
+    "@joshwooding/vite-plugin-react-docgen-typescript@npm:^0.7.0": "patch:@joshwooding/vite-plugin-react-docgen-typescript@npm%3A0.7.0#~/.yarn/patches/@joshwooding-vite-plugin-react-docgen-typescript-npm-0.7.0-d43736dfc5.patch",
     "@pandacss/core/browserslist": "^4.28.7",
     "@pandacss/core/postcss-selector-parser": "^7.1.6",
     "@pandacss/node/browserslist": "^4.28.7",
@@ -112,6 +114,7 @@
     "http-proxy-middleware@npm:^2.0.9": "patch:http-proxy-middleware@npm%3A3.0.7#~/.yarn/patches/http-proxy-middleware-npm-3.0.7-89cd070ac6.patch",
     "jsondiffpatch": "0.7.6",
     "lodash": "4.18.1",
+    "micromark-extension-math/katex": "0.19.1",
     "next/postcss": "8.5.26",
     "next/sharp": "0.35.5",
     "postcss@npm:8.5.14": "8.5.26",
@@ -121,6 +124,7 @@
     "prosemirror-view": "1.42.6",
     "qs": "6.16.1",
     "react": "19.2.6",
+    "react-docgen-typescript@npm:^2.2.2": "patch:react-docgen-typescript@npm%3A2.2.2#~/.yarn/patches/react-docgen-typescript-npm-2.2.2-afb9698a32.patch",
     "react-dom": "19.2.6",
     "tsup/esbuild": "^0.28.1",
     "underscore": "1.13.8"

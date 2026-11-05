@@ -13,8 +13,8 @@ size it: how many bins a shader gets, and which value range those bins cover.
 
 ## The problem
 
-The bin count was a fixed constant, 256, and bins were zero-anchored: bin `i`
-meant count `i`. That coupled the representable range to the bin budget and
+The bin count was a fixed constant, 256, and bins were zero-anchored: bin $i$
+meant count $i$. That coupled the representable range to the bin budget and
 produced four distinct failures:
 
 - A sampled count past the bins landed in the top bin. The distribution was
@@ -25,7 +25,7 @@ produced four distinct failures:
 - A place living in a narrow high band — counts between 1000 and 1200, say —
   wasted every bin below the band while still failing the range check on the
   absolute count.
-- Seventeen or more metrics made `local_hist` — `bins × metrics` u32 atomics
+- Seventeen or more metrics made `local_hist` — $\mathit{bins} \times \mathit{metrics}$ u32 atomics
   in workgroup storage — exceed the 16 KB `maxComputeWorkgroupStorageSize`
   that WebGPU guarantees, and pipeline creation failed.
 
@@ -41,7 +41,7 @@ same value.
 ![How the bin count is chosen](./gpu-histogram-sizing.d2)
 
 - **The workgroup-storage budget divides among metrics.**
-  `bins = min(1024, ⌊(16384 − 8 × metricCount) / (4 × metricCount)⌋)` — the
+  $\mathit{bins} = \min\bigl(1024,\ \lfloor (16384 - 8\,\mathit{metricCount}) / (4\,\mathit{metricCount}) \rfloor\bigr)$ — the
   observed-range atomics share the budget. Up to three metrics get the full
   1024 bins, four times the old range; more metrics get proportionally fewer
   bins each, and `local_hist` plus the range reduction fit the 16 KB budget
@@ -49,7 +49,7 @@ same value.
 - **A known count ceiling shrinks the histogram to fit it.** A typed place's
   count cannot exceed its slot capacity, and a declared capacity on any place
   is enforced by the shader's eligibility constraints. When every metric is a
-  place count with such a ceiling, `bins = ceiling + 1` — capacity 16 gets 17
+  place count with such a ceiling, $\mathit{bins} = \mathit{ceiling} + 1$ — capacity 16 gets 17
   bins, and the per-frame loops shrink accordingly. An expression metric has
   no ceiling, so any expression metric gives the shader the full budget.
 
@@ -63,24 +63,24 @@ are linear in the bin count — 600 frames × 1024 bins × 3 metrics is 7.4 MB �
 and the merge loop skips empty slots, so unused range costs little; the cap
 mainly bounds the decode and the buffer for long experiments.
 
-**Window** — bin `i` covers values `[lo + i × stride, lo + (i+1) × stride)`,
+**Window** — bin $i$ covers values $[\mathit{lo} + i \cdot \mathit{stride},\ \mathit{lo} + (i+1) \cdot \mathit{stride})$,
 and `lo`/`stride` are f32 _uniforms_ in the shader's config — the same two
 words per metric for every kind of metric (`metric-windows.ts` plans them), so
 moving the window needs no recompile. Every sample, a place count included, is
 an f32 binned through the one `window_bin` helper. A window carries an
 `integer` flag: integer windows keep integer strides and label a bin by its
 middle integer, so counts bin and label exactly as a u32 path would below
-2^24 (above it a count rounds in f32 before binning, so a label can be off by
-one); real windows label a bin by its centre with a `stride / 2` extent on
+$2^{24}$ (above it a count rounds in f32 before binning, so a label can be off by
+one); real windows label a bin by its centre with a $\mathit{stride} / 2$ extent on
 each side, and a constant real-valued metric gets one bin centred on its
 value. `window_bin` divides once and then settles the quotient against the
 exact edges the host labels by, because an f32 division carries up to 2.5 ULP
 and a sample on an edge must land where the decoder says it does. The window
 calibrates itself instead of warning:
 
-1. The first attempt is exact for a ceiling-bounded place count (`lo = 0`,
-   `stride = 1` when the capacity fits the bins) and a blind `lo 0, stride 1`
-   window otherwise, which the probe always replans — a wider window is a
+1. The first attempt is exact for a ceiling-bounded place count ($\mathit{lo} = 0$,
+   $\mathit{stride} = 1$ when the capacity fits the bins) and a blind $\mathit{lo} = 0$,
+   $\mathit{stride} = 1$ window otherwise, which the probe always replans — a wider window is a
    larger stride over the same bins, so a window costs resolution, never
    memory.
 2. The shader tracks each metric's observed min and max on the device
@@ -100,17 +100,17 @@ calibrates itself instead of warning:
    clamped.
 
 Frame 0 is sampled on the device before the first step, like every later
-frame: the sample sits at the top of the frame iteration, so row `f` holds the
-state after `f` steps. Frame 0 reuses the row the old scheme left empty (every
+frame: the sample sits at the top of the frame iteration, so row $f$ holds the
+state after $f$ steps. Frame 0 reuses the row the old scheme left empty (every
 run still going took its completed status at the frame limit, before it could
-be sampled there), and the buffer gains one row, `frameLimit + 1` rows in all,
+be sampled there), and the buffer gains one row, $\mathit{frameLimit} + 1$ rows in all,
 so row `frame_limit` holds the CPU's final frame for `completed` and `all`
 metrics, matching `runner/histogram-frames.ts`'s "(frameLimit + 1) × metrics ×
 bins".
 
 A count past the old fixed range is therefore no longer an error, a warning,
 or a refusal — a 1,030-token initial marking runs with a window that covers
-it, and a place living in [1000, 1200] gets bin-exact resolution across its
+it, and a place living in $[1000, 1200]$ gets bin-exact resolution across its
 actual span. The clamped edge bins of a blind first attempt are only ever an
 intermediate picture on screen during calibration.
 

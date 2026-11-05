@@ -31,28 +31,43 @@ export const useGetOwnerForEntity = () => {
         return {
           webId,
           shortname: "",
+          name: "",
+          isOrg: false,
         };
       }
 
-      const owner =
-        users.find((user) => webId === user.accountId) ??
-        orgs.find((org) => webId === org.webId);
+      const user = users.find(({ accountId }) => webId === accountId);
 
-      if (!owner) {
-        Sentry.captureException(
-          new Error(
-            `Owner with accountId ${webId} not found in entities table – possibly a caching issue if it has been created mid-session`,
-          ),
-        );
+      if (user) {
         return {
           webId,
-          shortname: "unknown",
+          shortname: user.shortname ?? "incomplete-user-account",
+          name: user.displayName ?? "Unknown",
+          isOrg: false,
         };
       }
 
+      const org = orgs.find((candidate) => webId === candidate.webId);
+
+      if (org) {
+        return {
+          webId,
+          shortname: org.shortname,
+          name: org.name,
+          isOrg: true,
+        };
+      }
+
+      Sentry.captureException(
+        new Error(
+          `Owner with accountId ${webId} not found in entities table – possibly a caching issue if it has been created mid-session`,
+        ),
+      );
       return {
         webId,
-        shortname: owner.shortname ?? "incomplete-user-account",
+        shortname: "unknown",
+        name: "Unknown",
+        isOrg: false,
       };
     },
     [loading, orgs, users],

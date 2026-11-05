@@ -58,7 +58,7 @@ export const make = Effect.fn("make")(function* <E, R>(
     subsystem,
     procedure,
     body,
-  }) as Request<E, R>;
+  });
 });
 
 interface Scratch {

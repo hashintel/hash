@@ -8,6 +8,7 @@ import { questionStatuses } from "../shared/epistemics";
 
 import type {
   ClaimRecord,
+  CommentRecord,
   EntityRecord,
   LedgerState,
   ObligationRecord,
@@ -23,6 +24,10 @@ export const owedObligations = (ledger: LedgerState): ObligationRecord[] => {
     (obligation) => !discharged.has(obligation.address),
   );
 };
+
+/** The user's comments no entry has resolved, in the order they were sent. */
+export const openComments = (ledger: LedgerState): CommentRecord[] =>
+  ledger.comments.filter((comment) => comment.resolvedBy === undefined);
 
 export interface ProjectedClaim {
   record: ClaimRecord;
@@ -77,6 +82,7 @@ export interface LedgerProjection {
   questions: ProjectedQuestion[];
   owed: ProjectedObligation[];
   met: ProjectedMetObligation[];
+  openComments: CommentRecord[];
 }
 
 const stageTitles: Record<EntityStage, string> = {
@@ -236,6 +242,7 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     questions,
     owed,
     met,
+    openComments: openComments(ledger),
   };
 };
 

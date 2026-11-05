@@ -161,12 +161,12 @@ export const submitPersonaBrowserTurn = async (
         request.kind === "user",
       "Persona utterance must be a user submission",
     );
-    const principalKey = headers[brunchHeaders.principal];
+    const ownerKey = headers[brunchHeaders.ownerKey];
     const conversationId = headers[brunchHeaders.conversation];
-    assert(principalKey && conversationId && admission.uid);
+    assert(ownerKey && conversationId && admission.uid);
     const session: PersonaBrowserSession = {
       url: first.url(),
-      principalKey,
+      ownerKey,
       conversationId,
       uid: admission.uid,
       initialData:
@@ -175,12 +175,7 @@ export const submitPersonaBrowserTurn = async (
           : options.session?.initialData,
     };
     if (options.session) {
-      for (const key of [
-        "url",
-        "principalKey",
-        "conversationId",
-        "uid",
-      ] as const)
+      for (const key of ["url", "ownerKey", "conversationId", "uid"] as const)
         assert.equal(
           session[key],
           options.session[key],

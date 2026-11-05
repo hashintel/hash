@@ -5,7 +5,7 @@ Visual editor for Stochastic Dynamic Colored Petri Nets (SDCPN). Published npm p
 ## Stack
 
 - React 19 with React Compiler (oxc-transform-react)
-- TypeScript (type-checked with `tsgo`)
+- TypeScript (type-checked with `tsc`)
 - Vite 8 + Rolldown (library build + demo site)
 - Panda CSS for styling
 - oxlint for linting
@@ -34,7 +34,7 @@ Compiler errors fail the build unless the function opts out. The options are in 
 yarn dev              # Dev server (demo site)
 yarn build            # Library build
 yarn lint:eslint      # Lint with oxlint
-yarn lint:tsc         # Type check with tsgo
+yarn lint:tsc         # Type check with tsc
 yarn test:unit        # Unit tests (vitest)
 ```
 
@@ -79,7 +79,7 @@ When you change structure in `petrinaut-core` or `petrinaut`, you MUST add a dec
 
 Verify with `yarn workspace @apps/petrinaut-docs lint:arch-docs`. To read the docs, `turbo run doc:architecture --filter @apps/petrinaut-docs` writes the bundle to `apps/petrinaut-docs/bundle/` (git-ignored). Full reference: `libs/@local/archinaut/README.md`. Browse with `turbo run dev --filter @apps/petrinaut-docs`.
 
-Hand-written MDX in `apps/petrinaut-docs/content/` is optional. Give such a page `attachTo: <layer id>` in its frontmatter. Link with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
+A hand-written guide about a layer is an `.mdx` file beside that layer's code, in the folder that declares the layer or beneath it, with `title`, `description` and `sidebar_order` in its frontmatter; pages about the docs themselves stay under `apps/petrinaut-docs/content/`. Link with `[text](layer:core.simulation.engine)` or `[text](doc:core.simulation/memory-model)`; an unresolved target fails CI. Write a formula between `$` signs: KaTeX renders it when the site builds, and a formula it cannot parse fails that build, which `lint:arch-docs` does not run.
 
 ## Shipping conventions
 

@@ -281,6 +281,85 @@ describe("validateFlowDefinition", () => {
         ],
       }),
     ).toEqual([{ severity: "error", code: "cycle", path: ["steps", 0] }]);
+
+    expect(
+      diagnosticsOf({
+        ...baseDefinition,
+        steps: [
+          { ...answerStep("a"), runAfter: [{ stepId: "b" }] },
+          { ...answerStep("b"), runAfter: [{ stepId: "a" }] },
+        ],
+      }),
+    ).toEqual([{ severity: "error", code: "cycle", path: ["steps", 0] }]);
+  });
+
+  it("reports unnamed inputs and outputs, without rejecting the definition", () => {
+    const result = validateFlowDefinition({
+      ...baseDefinition,
+      inputs: [
+        { name: "", payloadKind: "Text", array: false, required: true },
+        { name: "", payloadKind: "Text", array: false, required: true },
+      ],
+      steps: [
+        answerStep("answer", {
+          question: { kind: "flow-input", inputName: "" },
+        }),
+      ],
+      outputs: [{ name: "", stepId: "answer", outputName: "answer" }],
+    });
+
+    expect(result.flowDefinition).not.toBeNull();
+    expect(
+      result.diagnostics.map(({ code, path }) => ({ code, path })),
+    ).toEqual([
+      { code: "unnamedInput", path: ["inputs", 0, "name"] },
+      { code: "unnamedInput", path: ["inputs", 1, "name"] },
+      { code: "unnamedOutput", path: ["outputs", 0, "name"] },
+    ]);
+  });
+
+  it("accepts steps that run after others, and keeps their positions", () => {
+    const flowDefinition = {
+      ...baseDefinition,
+      steps: [
+        { ...answerStep("first"), position: { x: 0, y: 0 } },
+        {
+          ...answerStep("second"),
+          position: { x: 240, y: -80.5 },
+          runAfter: [{ stepId: "first" }],
+        },
+      ],
+    };
+
+    const result = validateFlowDefinition(flowDefinition);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.flowDefinition).toEqual(flowDefinition);
+  });
+
+  it("reports a step run after that doesn't exist, or is the step itself", () => {
+    expect(
+      diagnosticsOf({
+        ...baseDefinition,
+        steps: [
+          {
+            ...answerStep("answer"),
+            runAfter: [{ stepId: "missing" }, { stepId: "answer" }],
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        severity: "error",
+        code: "unknownStep",
+        path: ["steps", 0, "runAfter", 0, "stepId"],
+      },
+      {
+        severity: "error",
+        code: "selfReference",
+        path: ["steps", 0, "runAfter", 1, "stepId"],
+      },
+    ]);
   });
 
   describe("for-each steps", () => {
@@ -326,6 +405,44 @@ describe("validateFlowDefinition", () => {
 
     it("accepts a valid for-each step", () => {
       expect(diagnosticsOf(forEachDefinition({}))).toEqual([]);
+    });
+
+    it("reports a collected output with no name yet", () => {
+      expect(
+        diagnosticsOf(
+          forEachDefinition({
+            collect: { stepId: "answer", outputName: "explanation", as: "" },
+          }),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "unnamedOutput",
+          path: ["steps", 1, "collect", "as"],
+        },
+      ]);
+    });
+
+    it("only lets steps inside a for-each step run after steps inside it", () => {
+      expect(
+        diagnosticsOf(
+          forEachDefinition({
+            after: [
+              {
+                ...answerStep("afterAnswer"),
+                runAfter: [{ stepId: "answer" }],
+              },
+              { ...answerStep("afterEach"), runAfter: [{ stepId: "each" }] },
+            ],
+          }),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "stepNotInScope",
+          path: ["steps", 2, "runAfter", 0, "stepId"],
+        },
+      ]);
     });
 
     it("rejects iterating over a singular value", () => {

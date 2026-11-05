@@ -1,10 +1,14 @@
 import { useQuery } from "@apollo/client";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import { validateFlowDefinitionEntity } from "@local/hash-isomorphic-utils/flows/mappings";
+import {
+  getUnvalidatedFlowDefinitionFromEntity,
+  validateFlowDefinitionEntity,
+} from "@local/hash-isomorphic-utils/flows/mappings";
+import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import {
   currentTimeInstantTemporalAxes,
   generateTimeInstantTemporalAxes,
@@ -19,12 +23,17 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import type { EntityRootType } from "@blockprotocol/graph";
-import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import type {
+  EntityEditionId,
+  EntityId,
+  Timestamp,
+} from "@blockprotocol/type-system";
 import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
 /**
@@ -33,7 +42,14 @@ import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorp
  */
 export type LoadedFlowDefinition = {
   flowDefinitionEntityId: EntityId;
+  /** Whether the graph lets the user update the entity. */
+  userCanUpdate: boolean;
 } & ReturnType<typeof validateFlowDefinitionEntity>;
+
+const userCanUpdateEntity = (
+  data: QueryEntitySubgraphQuery,
+  entityId: EntityId,
+) => !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update;
 
 const flowDefinitionsQueryVariables = (
   filter: Filter,
@@ -56,7 +72,7 @@ const flowDefinitionsQueryVariables = (
     traversalPaths: [],
     temporalAxes,
     includeDrafts: false,
-    includePermissions: false,
+    includePermissions: true,
   },
 });
 
@@ -76,8 +92,21 @@ const getFlowDefinitionsFromQueryResult = (
 
   return getRoots(subgraph).map((entity) => ({
     flowDefinitionEntityId: entity.metadata.recordId.entityId,
+    userCanUpdate: userCanUpdateEntity(data, entity.metadata.recordId.entityId),
     ...validateFlowDefinitionEntity(entity),
   }));
+};
+
+/**
+ * The query for every flow definition the user can view. Creating or archiving a flow refetches it, so that the flows
+ * list doesn't first show the cached list from before.
+ */
+export const flowDefinitionsQuery = {
+  query: queryEntitySubgraphQuery,
+  variables: flowDefinitionsQueryVariables(
+    { all: [] },
+    currentTimeInstantTemporalAxes,
+  ),
 };
 
 /**
@@ -90,11 +119,8 @@ export const useFlowDefinitions = (): {
   const { data, loading } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    variables: flowDefinitionsQueryVariables(
-      { all: [] },
-      currentTimeInstantTemporalAxes,
-    ),
+  >(flowDefinitionsQuery.query, {
+    variables: flowDefinitionsQuery.variables,
     fetchPolicy: "cache-and-network",
   });
 
@@ -144,4 +170,80 @@ export const useFlowDefinitionAtTime = (params: {
   );
 
   return { flowDefinition, loading };
+};
+
+/**
+ * A flow's definition as last saved, to edit, with the edition it's from, to give as `expectedEditionId` when saving
+ * it. It doesn't need to be valid, only to have the shape of a definition, so that a half-built flow can be finished.
+ */
+export type FlowDefinitionToEdit = {
+  flowDefinition: FlowDefinition<string>;
+  editionId: EntityEditionId;
+  userCanUpdate: boolean;
+};
+
+const getFlowDefinitionToEdit = (
+  data: QueryEntitySubgraphQuery | undefined,
+): FlowDefinitionToEdit | null => {
+  if (!data) {
+    return null;
+  }
+
+  const [entity] = getRoots(
+    deserializeSubgraph<EntityRootType<HashEntity<FlowDefinitionEntity>>>(
+      data.queryEntitySubgraph.subgraph,
+    ),
+  );
+
+  if (!entity) {
+    return null;
+  }
+
+  const { flowDefinition } = validateFlowDefinition(
+    getUnvalidatedFlowDefinitionFromEntity(entity),
+  );
+
+  return (
+    flowDefinition && {
+      flowDefinition,
+      editionId: entity.metadata.recordId.editionId,
+      userCanUpdate: userCanUpdateEntity(
+        data,
+        entity.metadata.recordId.entityId,
+      ),
+    }
+  );
+};
+
+/**
+ * The current edition of a flow definition, to edit. `flow` is null when the flow doesn't exist, is archived, or
+ * doesn't have the shape of a definition. `reload` fetches the current edition again, e.g. after someone else saved it.
+ */
+export const useFlowDefinitionToEdit = (flowDefinitionEntityId: EntityId) => {
+  const [webId, entityUuid] = splitEntityId(flowDefinitionEntityId);
+
+  const { data, loading, refetch } = useQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
+    variables: flowDefinitionsQueryVariables(
+      {
+        all: [
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+        ],
+      },
+      currentTimeInstantTemporalAxes,
+    ),
+    fetchPolicy: "network-only",
+  });
+
+  const flow = useMemo(() => getFlowDefinitionToEdit(data), [data]);
+
+  const reload = useCallback(
+    async () => getFlowDefinitionToEdit((await refetch()).data),
+    [refetch],
+  );
+
+  return { flow, loading, reload };
 };

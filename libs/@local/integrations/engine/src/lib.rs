@@ -12,6 +12,7 @@
     type_info,
     variant_count
 )]
+#![cfg_attr(test, feature(ip))]
 
 extern crate alloc;
 
@@ -20,6 +21,7 @@ mod capture;
 mod entity_id;
 mod pipeline;
 mod progress;
+mod sources;
 mod sql;
 mod variant_name;
 mod workspace;
@@ -33,6 +35,10 @@ pub use self::{
         TableAssertions,
     },
     progress::{Progress, ProgressSnapshot},
+    sources::{
+        CaptureLimits, GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue,
+        SourceError,
+    },
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,
