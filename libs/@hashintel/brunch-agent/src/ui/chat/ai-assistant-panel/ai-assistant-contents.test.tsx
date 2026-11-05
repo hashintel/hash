@@ -15,6 +15,7 @@ import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
+import { resolveBrunchToolPresentation } from "../../tools/brunch-tool-presentation";
 import { definePetrinautAiInteractiveTool } from "../ai-interactive-tool";
 import {
   createTestEditorApi,
@@ -4012,14 +4013,15 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /Added place Buffer/u })
         .getAttribute("data-tone"),
     ).toBe("success");
+    // Still running, the removal names its request rather than an outcome.
     expect(
       screen
-        .getByRole("button", { name: /Deleted 1 item/u })
+        .getByRole("button", { name: /Delete 1 item/u })
         .getAttribute("data-tone"),
     ).toBe("danger");
     expect(
       screen
-        .getByRole("button", { name: /Deleted 1 item/u })
+        .getByRole("button", { name: /Delete 1 item/u })
         .getAttribute("aria-busy"),
     ).toBe("true");
   });
@@ -5318,7 +5320,11 @@ describe("interactive ending", () => {
         />,
       );
       await expandWork();
-      const row = screen.getByRole("button", { name: /Removed scenario/u });
+      // Without a result, the row names the requested action, not an outcome.
+      const row = screen.getByRole("button", {
+        name: /Remove scenario /u,
+      });
+      expect(screen.queryByText(/Removed scenario/u)).toBeNull();
       expect(row.textContent).toContain("No result — response failed");
       expect(row.getAttribute("data-tone")).toBe("neutral");
       expect(row.textContent).not.toContain("Running…");
@@ -5333,6 +5339,35 @@ describe("interactive ending", () => {
           .textContent,
       ).not.toContain("No result");
       expect(screen.queryByText("Response stopped")).toBeNull();
+    },
+  );
+
+  test.each(["brunch", "stock"] as const)(
+    "interactive ending: a %s call still awaiting its result names the requested action",
+    async (presentation) => {
+      render(
+        <AiAssistantContents
+          input=""
+          presentation={presentation}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="streaming"
+          messages={[
+            {
+              id: "pending-response",
+              role: "assistant",
+              parts: [removeScenarioPart("input-available")],
+            },
+          ]}
+        />,
+      );
+      await expandWork();
+      const row = screen.getByRole("button", {
+        name: /Remove scenario /u,
+      });
+      expect(screen.queryByText(/Removed scenario/u)).toBeNull();
+      expect(row.textContent).not.toContain("No result");
     },
   );
 
@@ -5356,9 +5391,106 @@ describe("interactive ending", () => {
       />,
     );
     await expandWork();
-    const row = screen.getByRole("button", { name: /Removed scenario/u });
+    const row = screen.getByRole("button", {
+      name: /Removed scenario Baseline/u,
+    });
     expect(row.querySelector('[data-tool-status="ok"]')).not.toBeNull();
     expect(row.textContent).not.toContain("No result");
+  });
+
+  test("interactive ending: a net rename names its request until its result confirms it", async () => {
+    const renamePart = (
+      toolCallId: string,
+      state: "input-available" | "output-available",
+      title: string,
+    ): PetrinautAiMessage["parts"][number] =>
+      state === "input-available"
+        ? {
+            type: "dynamic-tool",
+            toolName: "setNetTitle",
+            toolCallId,
+            state,
+            input: { title },
+          }
+        : {
+            type: "dynamic-tool",
+            toolName: "setNetTitle",
+            toolCallId,
+            state,
+            input: { title },
+            output: {
+              applied: true,
+              title: `Renamed net to "${title}"`,
+              detail: "Previous title: Draft",
+            },
+          };
+    render(
+      <AiAssistantContents
+        input=""
+        presentation="brunch"
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "renamed",
+            role: "assistant",
+            parts: [renamePart("rename-ok", "output-available", "Clinic")],
+          },
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [renamePart("rename-lost", "input-available", "Ward")],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const renamed = screen.getByRole("button", {
+      name: /Renamed net to "Clinic"/u,
+    });
+    expect(renamed.textContent).toContain("Previous title: Draft");
+    const unanswered = screen.getByRole("button", {
+      name: /Rename net to "Ward"/u,
+    });
+    expect(unanswered.textContent).toContain("No result — response failed");
+    expect(screen.queryByText(/Renaming/u)).toBeNull();
+  });
+
+  test("interactive ending: a Brunch-titled call left unanswered by a failed response names its request", async () => {
+    render(
+      <AiAssistantContents
+        input=""
+        presentation="brunch"
+        resolveToolPresentation={resolveBrunchToolPresentation}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "ledger_commit",
+                toolCallId: "commit-call",
+                state: "input-available",
+                input: { entries: [] },
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const row = screen.getByRole("button", { name: /Record in the Ledger/u });
+    expect(row.textContent).toContain("No result — response failed");
+    expect(row.getAttribute("data-tone")).toBe("neutral");
   });
 
   test.each(["work", "card"] as const)(

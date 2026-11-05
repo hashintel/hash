@@ -157,11 +157,23 @@ export const getToolSummaryFromPart = (
   part: RenderableToolPart,
 ): AiToolSummary => {
   const toolName = getToolName(part);
+  // Until a successful result exists, a row names the requested action: an
+  // unanswered or failed call may or may not have run.
+  const succeeded =
+    part.state === "output-available" && !isNotAppliedResult(part);
   if (toolName === getLatestNetDefinitionToolName) {
-    return { title: "Checked latest net definition" };
+    return {
+      title: succeeded
+        ? "Checked latest net definition"
+        : "Check latest net definition",
+    };
   }
   if (toolName === getNetCompilationErrorsToolName) {
-    return { title: "Checked net compilation errors" };
+    return {
+      title: succeeded
+        ? "Checked net compilation errors"
+        : "Check net compilation errors",
+    };
   }
   if (toolName === readPetrinautDocToolName) {
     const docName =
@@ -186,17 +198,6 @@ export const getToolSummaryFromPart = (
           ? output.reason
           : "No change was applied.",
     };
-  }
-  if (toolName === setNetTitleToolName) {
-    const proposedTitle =
-      typeof part.input === "object" &&
-      part.input !== null &&
-      typeof (part.input as { title?: unknown }).title === "string"
-        ? (part.input as { title: string }).title
-        : undefined;
-    if (proposedTitle) {
-      return { title: `Renaming net to "${proposedTitle}"` };
-    }
   }
 
   const output = part.output;
@@ -224,14 +225,31 @@ export const getToolSummaryFromPart = (
     }
   }
 
+  if (toolName === setNetTitleToolName) {
+    const proposedTitle =
+      typeof part.input === "object" &&
+      part.input !== null &&
+      typeof (part.input as { title?: unknown }).title === "string"
+        ? (part.input as { title: string }).title
+        : undefined;
+    if (proposedTitle) {
+      return {
+        title: `${succeeded ? "Renamed" : "Rename"} net to "${proposedTitle}"`,
+      };
+    }
+  }
+
   if (!(toolName in petrinautAiMutationTools)) {
     return { title: toolName };
   }
   try {
-    return summarizePetrinautAiToolCall({
-      toolName: toolName as never,
-      input: part.input as never,
-    });
+    return summarizePetrinautAiToolCall(
+      {
+        toolName: toolName as never,
+        input: part.input as never,
+      },
+      { wording: succeeded ? "result" : "action" },
+    );
   } catch {
     return { title: toolName };
   }

@@ -345,8 +345,10 @@ test("a call left unanswered by a failed response reads as no result, live and r
     await send("Add then remove a baseline scenario.");
 
     const expectRemovalWithoutResult = async () => {
-      const removal = await findNoResultRow("Removed scenario");
+      // Without a result, the row names the requested removal, not an outcome.
+      const removal = await findNoResultRow("Remove scenario ");
       expect(removal?.text).toContain(noResultLabel);
+      expect(rowContaining("Removed scenario")).toBeUndefined();
       expect(removal?.busy).toBeNull();
       expect(rowContaining("Added scenario Baseline")?.status).toBe("ok");
       await waitFor(expectNotWaiting);

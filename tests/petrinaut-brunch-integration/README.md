@@ -14,9 +14,8 @@ The tests import website modules as `@apps/petrinaut-website/src/...` and reach 
 turbo run test:integration --filter @tests/petrinaut-brunch-integration
 ```
 
-The corresponding manual Chrome witness also checks Stop and later-message usability. It uses only synthetic responses and an owned loopback server; like the app's other browser witnesses, it requires local macOS Chrome. From the repository root:
+The corresponding manual Chrome witness also checks Stop and later-message usability. It uses only synthetic responses and an owned loopback server; like the app's other browser witnesses, it requires local macOS Chrome. It builds both apps first; see [the app's manual tests](../../apps/brunch-agent/README.md#tests).
 
 ```sh
-VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose
-node --experimental-strip-types apps/brunch-agent/test/browser-witness/reliable-chat-endings.ts
+yarn workspace @apps/brunch-agent test:manual:browser:reliable-chat-endings
 ```

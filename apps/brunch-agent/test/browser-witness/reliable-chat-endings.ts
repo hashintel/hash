@@ -1,7 +1,7 @@
 /**
  * Manual Chrome witness against the built website and Brunch server. No paid
  * model: inject scripted provider events, including a call followed by failure.
- * Build as for test:manual:browser, then run this file with node --experimental-strip-types.
+ * Run: yarn workspace @apps/brunch-agent test:manual:browser:reliable-chat-endings
  */
 import assert from "node:assert/strict";
 import { join } from "node:path";
@@ -84,6 +84,9 @@ const failedRemoval = async () => {
   const row = page.locator('button:has([data-tool-status="no-result"])');
   await expect(row).toHaveCount(1, { timeout: 30_000 });
   await expect(row).toContainText("No result — response failed");
+  // Without a result, the row names the requested removal, not an outcome.
+  await expect(row).toContainText("Remove scenario ");
+  await expect(row).not.toContainText("Removed scenario");
   await expect(row).toHaveAttribute("data-tone", "neutral");
   await expect(row).not.toHaveAttribute("aria-busy", "true");
   await expectReady(page);
