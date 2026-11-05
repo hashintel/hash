@@ -32,10 +32,9 @@ const summary = css({
   _groupHover: { display: "none" },
   _groupFocusWithin: { display: "none" },
 });
+const stepChips = css({ display: "flex", flexWrap: "wrap", gap: "1" });
 const chips = css({
   display: "none",
-  flexWrap: "wrap",
-  gap: "1",
   _groupHover: { display: "flex" },
   _groupFocusWithin: { display: "flex" },
 });
@@ -53,6 +52,27 @@ const usedByRow = css({
   "&:focus-within [data-flow-output]": { opacity: "1" },
 });
 const flowOutputToggle = css({ display: "flex" });
+
+/** A chip per step, with the step's icon and name. */
+export const StepChips = ({
+  steps,
+  className,
+}: {
+  steps: StepDefinition<string>[];
+  className?: string;
+}) => (
+  <span className={cx(stepChips, className)}>
+    {steps.map((step) => (
+      <Chip
+        key={step.stepId}
+        size="md"
+        prefix={{ iconName: getStepDisplay(step).icon }}
+      >
+        {getStepName(step)}
+      </Chip>
+    ))}
+  </span>
+);
 
 const getUsedBySummary = (names: string[]) => {
   const named = names.slice(0, namedStepCount).join(", ");
@@ -140,17 +160,7 @@ export const UsedByField = ({
           <span className={cx(usedByText, summary)}>
             {getUsedBySummary(usedByNames)}
           </span>
-          <span className={chips}>
-            {usedBy.map((step) => (
-              <Chip
-                key={step.stepId}
-                size="md"
-                prefix={{ iconName: getStepDisplay(step).icon }}
-              >
-                {getStepName(step)}
-              </Chip>
-            ))}
-          </span>
+          <StepChips steps={usedBy} className={chips} />
         </span>
       )}
     </Form.Field>

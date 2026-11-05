@@ -128,6 +128,8 @@ describe("createFlowEditor", () => {
     });
     editor.markFlowOutput("second", "explanation");
     editor.unmarkFlowOutput("each", "explanations");
+    editor.updateFlowInput("question", { label: "Question", required: false });
+    editor.removeFlowInput("questions");
     editor.removeStep("first");
     editor.disconnectStep("each");
 
@@ -475,6 +477,69 @@ describe("createFlowEditor", () => {
     });
   });
 
+  describe("changing a flow input", () => {
+    it("renames an input by its label, keeping the name the steps that use it refer to", () => {
+      const editor = loadFlow();
+
+      editor.updateFlowInput("question", { label: "First question" });
+
+      expect(editor.getState().flowDefinition.inputs).toStrictEqual([
+        { ...flowDefinition.inputs[0], label: "First question" },
+        flowDefinition.inputs[1],
+      ]);
+      expect(stepOf(editor, "first")).toStrictEqual(flowDefinition.steps[0]);
+      expect(editor.getState().problemsByStepId.size).toBe(0);
+    });
+
+    it("changes only what's given, listing a type the steps using it can't take as their problem", () => {
+      const editor = loadFlow();
+
+      editor.updateFlowInput("question", { payloadKind: "Number" });
+      editor.updateFlowInput("questions", { array: false });
+
+      expect(editor.getState().flowDefinition.inputs).toStrictEqual([
+        { ...flowDefinition.inputs[0], payloadKind: "Number" },
+        { ...flowDefinition.inputs[1], array: false },
+      ]);
+      expect(stepOf(editor, "first")).toStrictEqual(flowDefinition.steps[0]);
+      expect(problemCodesOf(editor, "first")).toEqual([
+        "incompatibleConnection",
+      ]);
+      expect(problemCodesOf(editor, "each")).toEqual(["overNotArray"]);
+    });
+
+    it("lists an optional input given to a step input that's required as the step's problem", () => {
+      const editor = loadFlow();
+
+      editor.updateFlowInput("question", { required: false });
+
+      expect(editor.getState().flowDefinition.inputs[0]?.required).toBe(false);
+      expect(problemCodesOf(editor, "first")).toEqual([
+        "incompatibleConnection",
+      ]);
+
+      editor.updateFlowInput("question", { required: true });
+
+      expect(editor.getState().problemsByStepId.size).toBe(0);
+    });
+  });
+
+  describe("removing a flow input", () => {
+    it("keeps the sources of the steps that used it, and lists them as problems of those steps", () => {
+      const editor = loadFlow();
+
+      editor.removeFlowInput("question");
+
+      expect(editor.getState().flowDefinition.inputs).toStrictEqual([
+        flowDefinition.inputs[1],
+      ]);
+      expect(stepOf(editor, "first")).toStrictEqual(flowDefinition.steps[0]);
+      expect(problemCodesOf(editor, "first")).toEqual(["unknownFlowInput"]);
+      expect(editor.getState().problemsByStepId.size).toBe(1);
+      expect(editor.getState().flowProblems).toEqual([]);
+    });
+  });
+
   describe("connections", () => {
     it("adds a connection once", () => {
       const editor = loadFlow();
@@ -549,6 +614,15 @@ describe("createFlowEditor", () => {
     ).toThrow('Step "each" is a for-each step, with no inputs');
     expect(() => editor.markFlowOutput("answer", "explanation")).toThrow(
       'The flow has no top-level step "answer"',
+    );
+    expect(() =>
+      editor.updateFlowInput("Question", { label: "Question" }),
+    ).toThrow('The flow has no input "Question"');
+    expect(() => editor.removeFlowInput("deadline")).toThrow(
+      'The flow has no input "deadline"',
+    );
+    expect(editor.getState().flowDefinition.inputs).toStrictEqual(
+      flowDefinition.inputs,
     );
   });
 
