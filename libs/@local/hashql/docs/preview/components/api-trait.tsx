@@ -1,27 +1,23 @@
 import { Header } from "./header.js";
+import * as Slots from "./slots.js";
 
 import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
-const declarationLabel = "Declaration";
-
-/** A trait, headed like an entry, with a link to the declaration it is when the reference documents it. */
+/** A trait, headed like an entry, with its type hierarchy on its heading's line. */
 export function ApiTrait({
   name,
   title,
-  declaration,
   children,
 }: Components.TraitProps): ReactNode {
+  const { slot: tools, rest: body } = Slots.slotted(children, "header");
+
   return (
     <section className="api-export" data-depth={0} data-kind="trait">
       <Header id={name} kind="trait" owner="" name={title}>
-        {declaration === undefined ? null : (
-          <a className="api-declaration-link" href={declaration}>
-            {declarationLabel}
-          </a>
-        )}
+        {tools}
       </Header>
-      <div className="api-export-body">{children}</div>
+      <div className="api-export-body">{body}</div>
     </section>
   );
 }
