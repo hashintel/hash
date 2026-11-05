@@ -167,7 +167,7 @@ hover feedback as the rest of the set; continuous effects remain opt-in.
 
 ## Integrations
 
-`IntegrationIcon` provides a separate **Integrations** category with 92 current brands, four legacy identities, and a generic fallback. It covers HASH's integration listings and additional company and product brands. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
+`IntegrationIcon` provides a separate **Integrations** category with 99 current brands, four legacy identities, and a generic fallback. It covers HASH's integration listings and additional company and product brands. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
 
 ```tsx
 import {
@@ -207,7 +207,7 @@ Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. T
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with outlined Segoe UI Semibold lettering, matching the other Microsoft product logos. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
-The package includes 665 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
+The package includes 714 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 
 `microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
@@ -237,4 +237,4 @@ Edit the reviewed SVGs in `src/integration-icon/artwork` and the source, alias, 
 
 After building the package, run `node scripts/preview-integrations.ts /path/to/integration-icons.html` to create a self-contained review grid. It includes light and dark backgrounds, a transparency toggle, and a mono color toggle.
 
-OpenAI and ChatGPT, Anthropic and Claude, and Amazon, AWS, and Amazon S3 have distinct catalogue entries. `luma` is the events platform. `twitterLegacy` preserves the former blue bird separately from `x`. The new Google Workspace product marks use the current 2026 artwork; their full logos use outlined Google Sans. Amazon S3 uses outlined Amazon Ember. Clay’s raster mark from its official kit has been vectorized, with the kit’s native wordmark preserved. Source metadata records these compositions and conversions.
+OpenAI and ChatGPT, Anthropic and Claude, and Amazon, AWS, and Amazon S3 have distinct catalogue entries. `luma` is the events platform. `twitterLegacy` preserves the former blue bird separately from `x`. The new Google Workspace product marks use the current 2026 artwork; their full logos use outlined Google Sans. Amazon S3, EC2, DynamoDB, RDS, CloudFront, Lambda, Amplify, and Amazon Q use outlined Amazon Ember in composed full logos. The AWS products use standalone product identities, including archived dimensional marks for DynamoDB, RDS, and CloudFront, rather than the current architecture tiles. Clay’s raster mark from its official kit has been vectorized, with the kit’s native wordmark preserved. Source metadata records these compositions and conversions.

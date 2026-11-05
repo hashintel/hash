@@ -1,5 +1,10 @@
 import * as airtable from "./geometry/airtable";
 import * as amazon from "./geometry/amazon";
+import * as amazonCloudFront from "./geometry/amazon-cloudfront";
+import * as amazonDynamoDb from "./geometry/amazon-dynamodb";
+import * as amazonEc2 from "./geometry/amazon-ec2";
+import * as amazonQ from "./geometry/amazon-q";
+import * as amazonRds from "./geometry/amazon-rds";
 import * as amazonS3 from "./geometry/amazon-s3";
 import * as anaplan from "./geometry/anaplan";
 import * as anthropic from "./geometry/anthropic";
@@ -10,6 +15,8 @@ import * as appleNotes from "./geometry/apple-notes";
 import * as asana from "./geometry/asana";
 import * as attio from "./geometry/attio";
 import * as aws from "./geometry/aws";
+import * as awsAmplify from "./geometry/aws-amplify";
+import * as awsLambda from "./geometry/aws-lambda";
 import * as amazonRedshift from "./geometry/aws-redshift";
 import * as azure from "./geometry/azure";
 import * as bigQuery from "./geometry/bigquery";
@@ -770,6 +777,55 @@ export const integrationGeometry = {
     ...clay,
     markViewBox: "3.783102 6.053333 595.460277 447.946667",
     logoViewBox: "3.166667 0 196.666667 63",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonEc2: {
+    ...amazonEc2,
+    markViewBox: "5.833333 5.133333 58.8 59.966667",
+    logoViewBox: "0 0 558.3172680773675 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonDynamoDb: {
+    ...amazonDynamoDb,
+    markViewBox: "0 0 256 289",
+    logoViewBox: "0 0 662.0610075243374 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonRds: {
+    ...amazonRds,
+    markViewBox: "0 0 256 289",
+    logoViewBox: "0 0 556.9123493616514 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonCloudFront: {
+    ...amazonCloudFront,
+    markViewBox: "0 0 256 308",
+    logoViewBox: "0 0 770.1301281499957 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  awsLambda: {
+    ...awsLambda,
+    markViewBox: "-0.856926 -0.220321 418.756926 433.540321",
+    logoViewBox: "0 0 560.5596930139059 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  awsAmplify: {
+    ...awsAmplify,
+    markViewBox: "0 1.063333 23.12 18.443333",
+    logoViewBox: "0 0 491.1851407798432 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonQ: {
+    ...amazonQ,
+    markViewBox: "210.227091 64.490833 420.454181 464.334",
+    logoViewBox: "0 0 415.8430483155481 100",
     ratio: 1.8,
     alignment: "center",
   },

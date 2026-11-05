@@ -2053,6 +2053,165 @@ export const integrationIconCatalog = [
     logoRaster: false,
   },
   {
+    name: "amazonEc2",
+    slug: "amazon-ec2",
+    label: "Amazon EC2",
+    integrationNames: ["Amazon EC2"],
+    source:
+      "https://i.logos-download.com/83771/19725-1f916044b9903dcb9a0f1cd9d64d2a69.svg/Amazon_Elastic_Compute_Cloud_%28Amazon_EC2%29_Logo.svg?dl",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoNotes:
+      "Standalone orange stacked-square EC2 product mark, rather than the processor architecture glyph or the generic three-dimensional Compute category symbol. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+    logoRaster: false,
+  },
+  {
+    name: "amazonDynamoDb",
+    slug: "amazon-dynamodb",
+    label: "Amazon DynamoDB",
+    integrationNames: ["Amazon DynamoDB"],
+    source:
+      "https://raw.githubusercontent.com/gilbarbara/logos/36efdf2f90096686a81a74c56de9f86c0b5f2436/logos/aws-dynamodb.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoNotes:
+      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+    logoRaster: false,
+  },
+  {
+    name: "amazonRds",
+    slug: "amazon-rds",
+    label: "Amazon RDS",
+    integrationNames: ["Amazon RDS"],
+    source:
+      "https://raw.githubusercontent.com/gilbarbara/logos/36efdf2f90096686a81a74c56de9f86c0b5f2436/logos/aws-rds.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoNotes:
+      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+    logoRaster: false,
+  },
+  {
+    name: "amazonCloudFront",
+    slug: "amazon-cloudfront",
+    label: "Amazon CloudFront",
+    integrationNames: ["Amazon CloudFront"],
+    source:
+      "https://raw.githubusercontent.com/gilbarbara/logos/36efdf2f90096686a81a74c56de9f86c0b5f2436/logos/aws-cloudfront.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoNotes:
+      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+    logoRaster: false,
+  },
+  {
+    name: "awsLambda",
+    slug: "aws-lambda",
+    label: "AWS Lambda",
+    integrationNames: ["AWS Lambda"],
+    source: "https://cdn.worldvectorlogo.com/logos/aws-lambda-1.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoNotes:
+      "Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+    logoRaster: false,
+  },
+  {
+    name: "awsAmplify",
+    slug: "aws-amplify",
+    label: "AWS Amplify",
+    integrationNames: ["AWS Amplify"],
+    source: "https://docs.amplify.aws/",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoNotes:
+      "Native Amplify product mark from the official documentation header, using its purple primary-60 token. Dark mode uses the lighter purple token. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+    logoRaster: false,
+  },
+  {
+    name: "amazonQ",
+    slug: "amazon-q",
+    label: "Amazon Q",
+    integrationNames: ["Amazon Q"],
+    source:
+      "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/amazon-q.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoNotes:
+      "Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+    logoRaster: false,
+  },
+  {
     name: "genericApp",
     slug: "generic-app",
     label: "Other integration",
