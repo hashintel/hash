@@ -6956,7 +6956,6 @@ dependencies = [
  "axum",
  "derive_more",
  "error-stack",
- "futures",
  "hash-graph-authorization",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
