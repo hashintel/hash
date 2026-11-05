@@ -806,6 +806,13 @@ const stackOrder: RunOutcome[] = [
 
 const chartHeight = 124;
 
+/** The smallest 1, 2 or 5 × 10ⁿ at or above `value`, so the y axis reads in round numbers. */
+const niceStep = (value: number) => {
+  const power = 10 ** Math.floor(Math.log10(Math.max(1, value)));
+  const step = [1, 2, 5, 10].find((factor) => factor * power >= value) ?? 10;
+  return step * power;
+};
+
 /**
  * Below this many runs in the period, the chart shows one square per run instead of count bars (Aakarsh, 4 Nov:
  * "under about 30"). Set to 8 so the seed's 30D (5 runs) shows squares while 6M (11) and 1Y (16) show bars; the
@@ -864,9 +871,12 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
   const squares =
     buckets.reduce((total, bucket) => total + bucket.runs.length, 0) <
     squaresBelow;
-  const max = Math.max(1, ...buckets.map((bucket) => bucket.runs.length));
-  // GitHub-style axis on the right: 0, the midpoint when it is a whole number, and the max.
-  const ticks = [max, ...(max % 2 === 0 && max > 2 ? [max / 2] : []), 0];
+  const most = Math.max(1, ...buckets.map((bucket) => bucket.runs.length));
+  // Y1 (inbox history-xaxis, picked 5 Nov): a fixed 28 px right gutter with faint lines at 0, one nice step and two
+  // nice steps (0 / 100 / 200 for the hourly flow), the step taken from the data. Squares keep no y axis.
+  const step = niceStep(most / 2);
+  const max = squares ? most : step * 2;
+  const ticks = [max, step, 0];
   const tipText = (bucket: Bucket) => {
     const failed = bucket.runs.filter(
       (run) => outcomeOf(run, now) === "error",
@@ -963,7 +973,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
           height: "[192px]",
           display: "flex",
           gap: "[2px]",
-          paddingRight: "6",
+          paddingRight: "[28px]",
           paddingTop: "[48px]",
         })}
         onMouseLeave={() => setHover(null)}
@@ -974,6 +984,21 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
           </div>
         ) : null}
         {/* No y axis for squares: each one is a run. */}
+        {(squares ? [] : ticks).map((tick) => (
+          <span
+            key={`line-${tick}`}
+            aria-hidden="true"
+            className={css({
+              position: "absolute",
+              left: "[0]",
+              right: "[28px]",
+              height: "[1px]",
+              backgroundColor: "neutral.a05",
+              pointerEvents: "none",
+            })}
+            style={{ bottom: 20 + (tick / max) * chartHeight }}
+          />
+        ))}
         {(squares ? [] : ticks).map((tick) => (
           <span
             key={tick}
