@@ -121,6 +121,7 @@ async fn capture_pages(
     let mut page = 0_u64;
     let mut seen = BTreeSet::new();
     let mut previous: Option<Arc<Vec<Value>>> = None;
+    let mut pacing = http::Pacing::new(Duration::from_millis(endpoint.rate_limit_ms));
     loop {
         if endpoint.max_pages.is_none() && page >= page_ceiling {
             return Err(Report::new(SourceError::Pagination).attach(format!(
@@ -132,13 +133,8 @@ async fn capture_pages(
         if !seen.insert(url.clone()) {
             return Err(Report::new(SourceError::Pagination));
         }
-        let body = http::fetch(
-            client,
-            &url,
-            &headers,
-            Duration::from_millis(endpoint.rate_limit_ms),
-        )
-        .await?;
+        pacing.wait().await?;
+        let body = http::fetch(client, &url, &headers).await?;
         let rows = extract(&body, endpoint.results_field.as_deref())
             .and_then(Value::as_array)
             .ok_or_else(|| Report::new(SourceError::Response))?;

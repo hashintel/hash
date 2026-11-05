@@ -1,9 +1,6 @@
-use alloc::{collections::BTreeMap, sync::Arc};
+use alloc::sync::Arc;
 use core::{net::IpAddr, time::Duration};
-use std::{
-    io,
-    sync::{Mutex, OnceLock},
-};
+use std::io;
 
 use backon::{ExponentialBuilder, Retryable as _};
 use error_stack::Report;
@@ -82,37 +79,33 @@ pub(super) fn validate(url: &Url) -> Result<(), Report<SourceError>> {
     Ok(())
 }
 
-#[derive(Default)]
-/// The last reserved request slot for each host.
+/// Spaces the requests of one capture by the interval its definition configures.
 ///
-/// Each caller is spaced by its own interval only, so a definition with a long interval cannot
-/// delay other runs that request the same host.
-struct Pacer(Mutex<BTreeMap<String, Instant>>);
+/// Each capture owns its own instance, so a definition's interval never delays another run, and
+/// cancelling a capture leaves no reservation behind.
+pub(super) struct Pacing {
+    interval: Duration,
+    next: Option<Instant>,
+}
 
-impl Pacer {
-    async fn wait(&self, host: &str, interval: Duration) -> Result<(), Report<SourceError>> {
-        let slot = {
-            let mut slots = self
-                .0
-                .lock()
-                .map_err(|_error| Report::new(SourceError::Request))?;
-            let now = Instant::now();
-            if slots.len() > 64 {
-                slots.retain(|_, last| {
-                    now.saturating_duration_since(*last) < Duration::from_hours(24)
-                });
-            }
-            let slot = match slots.get(host) {
-                Some(last) => last
-                    .checked_add(interval)
-                    .ok_or_else(|| Report::new(SourceError::Configuration))?
-                    .max(now),
-                None => now,
-            };
-            slots.insert(host.to_owned(), slot);
-            slot
-        };
-        sleep_until(slot).await;
+impl Pacing {
+    pub(super) const fn new(interval: Duration) -> Self {
+        Self {
+            interval,
+            next: None,
+        }
+    }
+
+    /// Waits until the interval has passed since the previous request, then starts a new one.
+    pub(super) async fn wait(&mut self) -> Result<(), Report<SourceError>> {
+        if let Some(next) = self.next {
+            sleep_until(next).await;
+        }
+        self.next = Some(
+            Instant::now()
+                .checked_add(self.interval)
+                .ok_or_else(|| Report::new(SourceError::Configuration))?,
+        );
         Ok(())
     }
 }
@@ -121,18 +114,9 @@ pub(super) async fn fetch(
     client: &Client,
     url: &Url,
     headers: &HeaderMap,
-    interval: Duration,
 ) -> Result<Value, Report<SourceError>> {
-    static PACER: OnceLock<Pacer> = OnceLock::new();
     validate(url)?;
-    let host = url
-        .host_str()
-        .ok_or_else(|| Report::new(SourceError::Destination))?;
     let mut response = (|| async {
-        PACER
-            .get_or_init(Pacer::default)
-            .wait(host, interval)
-            .await?;
         let response = client
             .get(url.clone())
             .headers(headers.clone())
