@@ -15,6 +15,12 @@ are preserved at `eae0520065`. The current branch implements the prototype below
 its benchmark configuration adds timing hooks without replacing product behavior.
 Measurements describe one host and browser.
 
+Panel motion is restored after the measured prototype: code sections animate
+collapse, expansion, maximization, and restoration again. Editor readiness,
+retention, model cleanup, idle warmup, and coalesced UI updates remain enabled.
+The measurements below describe the earlier revisions named in each section,
+including their animation behavior.
+
 ## Implemented prototype
 
 The production prototype at `688d898aff` contains separate commits for editor
@@ -41,8 +47,10 @@ objects, so reference equality cannot distinguish code edits.
   shortcuts flush the snapshot. Structural edits, toggles, remote updates, and
   handles without patches publish immediately. Completion still sends current
   model text directly to the language server.
-- Code sections use a 120 ms fade and change dimensions once during maximize and
-  restore. Collapse/expand avoids repeated flex-size changes in these panels.
+- The measured revision used a 120 ms fade and changed dimensions once during
+  maximize and restore. That experiment was reverted to preserve panel motion.
+  Keeping editor dimensions stable while animating the surrounding panel remains
+  an unmeasured alternative.
 
 ### Production comparison
 
@@ -100,9 +108,9 @@ Safari, IME, screen-reader behavior, and slower physical devices still need chec
 Browser verification passed for real typing and undo, completion suggestions,
 type-error markers, Canvas → Definitions → Canvas source preservation, and real
 pointer resizing. No page errors were reported. The updated unit suite passes
-1,428 tests across 178 files. It covers real document mutations, pending-update
+1,427 tests across 178 files. It covers real document mutations, pending-update
 flush/cancellation, subnet edits, remote snapshots, retained sections, model
-ownership, warmup cleanup, and the fade transition.
+ownership, warmup cleanup, and panel transitions.
 
 Run the current prototype with:
 

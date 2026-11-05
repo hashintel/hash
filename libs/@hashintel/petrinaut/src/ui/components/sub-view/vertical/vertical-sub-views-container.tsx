@@ -671,7 +671,7 @@ export const VerticalSubViewsContainer: React.FC<
     useTransientTransition(200);
 
   const toggleSection = (sv: SubView) => {
-    if (showAnimations && !subViews.some((subView) => subView.stableLayout)) {
+    if (showAnimations) {
       triggerTransition();
     }
     updateSubViewSection(name, sv.id, { collapsed: !isSectionCollapsed(sv) });
@@ -721,9 +721,7 @@ export const VerticalSubViewsContainer: React.FC<
                 className={cx(
                   sectionWrapperStyle,
                   showAnimations && sectionMotionStyle,
-                  fillsContainer &&
-                    !(isRestoring && subView.stableLayout) &&
-                    expandedSectionStyle,
+                  fillsContainer && expandedSectionStyle,
                 )}
                 style={isHidden && !isRestoring ? { opacity: 0 } : undefined}
                 data-subview-section
@@ -736,9 +734,7 @@ export const VerticalSubViewsContainer: React.FC<
                   (fillsContainer && !isRestoring) ||
                   undefined
                 }
-                data-subview-animate={
-                  (showAnimations && !subView.stableLayout) || undefined
-                }
+                data-subview-animate={showAnimations || undefined}
               >
                 <SubViewHeader
                   id={subView.id}
