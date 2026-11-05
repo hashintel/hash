@@ -1,5 +1,6 @@
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, ButtonBase, Typography } from "@mui/material";
+import { useId } from "react";
 
 import { EntityOrTypeIcon, FontAwesomeIcon } from "@hashintel/design-system";
 
@@ -8,6 +9,7 @@ import {
   openColumnWidth,
   rowHeight,
   rowToggleClassName,
+  visuallyHidden,
 } from "./dependent-types-table-layout";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
@@ -57,19 +59,31 @@ export const HeaderRow = ({
 
 export const OpenTypeButton = ({
   label,
+  description,
   onClick,
+  onFocusVisible,
+  onBlur,
 }: {
   label: string;
+  /** Read out after the label, for a description shown elsewhere only on hover. */
+  description?: string;
   onClick: () => void;
+  onFocusVisible?: () => void;
+  onBlur?: () => void;
 }) => {
+  const descriptionId = useId();
+
   return (
     <ButtonBase
       aria-label={label}
+      aria-describedby={description ? descriptionId : undefined}
       disableRipple
       onClick={(event) => {
         event.stopPropagation();
         onClick();
       }}
+      onFocusVisible={onFocusVisible}
+      onBlur={onBlur}
       sx={({ palette }) => ({
         position: "absolute",
         right: 0,
@@ -102,6 +116,11 @@ export const OpenTypeButton = ({
       <span className="open-type-button-dot">
         <ArrowUpRightRegularIcon sx={{ fontSize: 14 }} />
       </span>
+      {description ? (
+        <Box component="span" id={descriptionId} sx={visuallyHidden}>
+          {description}
+        </Box>
+      ) : null}
     </ButtonBase>
   );
 };
