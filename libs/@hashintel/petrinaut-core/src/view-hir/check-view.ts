@@ -1,7 +1,7 @@
 /**
  * Checks a lowered visualizer against its place: the elements, attributes
  * and style properties it draws are in the allowlists, their values are
- * text-like, literal values reference no remote URL, and the picture itself
+ * text-like, literal values load no resource, and the picture itself
  * is an element. Every expression is typed by the expression HIR's checker
  * under the `visualizer` surface, with the props and callback parameters
  * bound as the view tree introduces them.
@@ -89,7 +89,8 @@ class ViewChecker {
             `An element can contain text, numbers and elements, not ${formatHirType(type)}.`,
           );
         }
-        this.checkLiteralValue(node.expr);
+        // Children are written as text, never read as CSS, so a literal
+        // child may say anything.
         return;
       }
       case "cond":
@@ -138,7 +139,7 @@ class ViewChecker {
 
   /**
    * An element may only use the allowlisted tags, attributes and style
-   * properties, and a literal value may not reference a remote URL. The
+   * properties, and a literal value may not load a resource. The
    * lowering already refused names outside the sets; this check guards
    * trees built elsewhere, and types the values. Dynamic values are checked
    * again by the renderer.
@@ -225,14 +226,14 @@ class ViewChecker {
     }
   }
 
-  /** A literal string with a remote `url(...)` is reported where it is
+  /** A literal string that could load a resource is reported where it is
    * written; computed strings are checked when rendered. */
   private checkLiteralValue(value: HirExpr): void {
     if (value.kind === "stringLit" && !isSafeViewValue(value.value)) {
       this.expressions.report(
         value.span,
         "hir:unsafe-value",
-        "`url(...)` may only reference an element of this picture, like `url(#marker)`.",
+        "This value could load a resource from another host. Values may use colour, gradient, math and transform functions, and `url(...)` only to reference an element of this picture, like `url(#marker)`.",
       );
     }
   }
