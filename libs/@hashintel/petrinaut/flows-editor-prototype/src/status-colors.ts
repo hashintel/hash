@@ -423,6 +423,74 @@ const amberWarnings = {
   text: "yellow.s110",
 };
 
+/**
+ * `?statusstep=b|c|d` (inbox status-colour-steps, open): how loud done, failed, needs review and warnings read beside
+ * the P-a tiles. Unset or `a` is O2 as it is. b: bars and charts one step lighter, marks at the lightest step that
+ * keeps 3:1 on white; c: marks at a mid step, bars and charts at a faint step; d: O2's steps mixed halfway toward
+ * neutral, so the status hues sit below the tile tints. Warnings take yellow in b–d.
+ */
+type StatusStep = "b" | "c" | "d";
+
+export const statusStep = (): StatusStep | null => {
+  const value = new URLSearchParams(globalThis.location.search).get(
+    "statusstep",
+  );
+  return value === "b" || value === "c" || value === "d" ? value : null;
+};
+
+const statusSteps: Record<
+  "b" | "c",
+  Record<
+    "done" | "failed" | "needsReview" | "warnings",
+    { mark: string; bar: string; chart: string; node: string }
+  >
+> = {
+  b: {
+    done: { mark: "green.s90", bar: "green.s40", chart: "green.s50", node: "green.s60" },
+    failed: { mark: "red.s85", bar: "red.s50", chart: "red.s60", node: "red.s70" },
+    needsReview: { mark: "orange.s95", bar: "orange.s40", chart: "orange.s50", node: "orange.s60" },
+    warnings: { mark: "yellow.s110", bar: "yellow.s50", chart: "yellow.s70", node: "yellow.s70" },
+  },
+  c: {
+    done: { mark: "green.s90", bar: "green.s30", chart: "green.s40", node: "green.s40" },
+    failed: { mark: "red.s90", bar: "red.s30", chart: "red.s40", node: "red.s50" },
+    needsReview: { mark: "orange.s90", bar: "orange.s30", chart: "orange.s40", node: "orange.s40" },
+    warnings: { mark: "yellow.s110", bar: "yellow.s40", chart: "yellow.s60", node: "yellow.s60" },
+  },
+};
+
+const towardNeutral = (token: string) =>
+  `color-mix(in oklab, ${tokenVar(token)} 50%, ${tokenVar(`neutral.${token.split(".")[1] ?? "s80"}`)})`;
+
+const statusStepVariables = (): Record<string, string> => {
+  const step = statusStep();
+  if (!step) {
+    return {};
+  }
+  const variables: Record<string, string> = {};
+  const nodeRole = { done: "doneBar", failed: "failedBar", needsReview: "reviewBar" } as const;
+  if (step === "d") {
+    for (const state of ["done", "failed", "needsReview"] as const) {
+      for (const role of ["mark", "bar", "chart"] as const) {
+        variables[`--flows-${state}-${role}`] = towardNeutral(subtleStates[state][role]);
+      }
+      variables[`--flows-node-${nodeRole[state]}`] = towardNeutral(subtleNodeRoles[nodeRole[state]]);
+    }
+    variables["--flows-warnings-mark"] = towardNeutral("yellow.s105");
+    variables["--flows-warnings-chart"] = towardNeutral("yellow.s80");
+    return variables;
+  }
+  for (const [state, roles] of Object.entries(statusSteps[step])) {
+    variables[`--flows-${state}-mark`] = tokenVar(roles.mark);
+    variables[`--flows-${state}-chart`] = tokenVar(roles.chart);
+    if (state !== "warnings") {
+      variables[`--flows-${state}-bar`] = tokenVar(roles.bar);
+      variables[`--flows-node-${nodeRole[state as keyof typeof nodeRole]}`] = tokenVar(roles.node);
+    }
+  }
+  return variables;
+};
+
 /** The done-tone overrides, written after the palette's own variables so they win. */
 const doneToneVariables = (tone: DoneTone): Record<string, string> => {
   const variables: Record<string, string> = {};
@@ -503,6 +571,7 @@ export const applyPalette = (id: PaletteId) => {
     ...variablesOf(palettes[id]),
     ...doneToneVariables(doneTone),
     ...reviewToneVariables(),
+    ...statusStepVariables(),
   })
     .map(([name, value]) => `${name}: ${value};`)
     .join(" ");
