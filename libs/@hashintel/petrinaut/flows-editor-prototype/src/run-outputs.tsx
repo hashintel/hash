@@ -2115,6 +2115,24 @@ const MixedBody = ({
               />
             ) : "failures" in group ? (
               <FailureTable failures={group.failures.slice(0, shown)} />
+            ) : group.type === "Email" ? (
+              // Emails as E1 rows (inbox `picks/email-rows`, decided 5 Nov), as in the inline list: initials,
+              // recipient, subject and time, "Bounced" when one bounced.
+              <div className={css({ paddingX: "3" })} data-email-rows>
+                {group.files.slice(0, shown).map((file, index) => (
+                  <FileRow
+                    key={file.supplier}
+                    file={file}
+                    onOpen={() =>
+                      openFilesIn(
+                        onChange,
+                        group.files,
+                        groupLabel[group.type][1],
+                      )(index)
+                    }
+                  />
+                ))}
+              </div>
             ) : (
               <FileTable
                 files={group.files.slice(0, shown)}
