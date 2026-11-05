@@ -691,8 +691,8 @@ export const integrationGeometry = {
   },
   amazonS3: {
     ...amazonS3,
-    markViewBox: "40.96 37.973333 173.226667 180.053333",
-    logoViewBox: "0 0 508.3257725482391 100",
+    markViewBox: "97 64 318 384",
+    logoViewBox: "0 0 494.9297413793104 100",
     ratio: 1.8,
     alignment: "center",
   },

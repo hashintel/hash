@@ -1807,7 +1807,7 @@ export const integrationIconCatalog = [
     label: "Amazon S3",
     integrationNames: ["Amazon S3"],
     source:
-      "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws-s3.svg",
+      "https://raw.githubusercontent.com/edent/SuperTinyIcons/master/images/svg/amazon_s3.svg",
     category: "Integrations",
     variants: [
       "mark-mono",
@@ -1821,7 +1821,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
     logoNotes:
-      "Composed product lock-up using the AWS S3 bucket mark and Amazon Ember Regular outlines. The architecture-icon background is removed for backgroundless marks. Not a downloaded official full lock-up.",
+      "Red geometric Amazon S3 brand mark from SuperTinyIcons (MIT), matching the supplied Jitterbit reference at https://www.jitterbit.com/wp-content/uploads/Amazon-S3.png. The source\u2019s white square is removed. Dark mode modestly lifts the shadow faces while preserving the red palette. Full logos compose this mark with Amazon Ember Regular outlines; they are not downloaded official lock-ups.",
     logoRaster: false,
   },
   {
