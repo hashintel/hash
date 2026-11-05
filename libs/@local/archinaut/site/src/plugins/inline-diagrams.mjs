@@ -19,6 +19,8 @@ import { dirname, resolve } from "node:path";
 import { fromHtml } from "hast-util-from-html";
 import { visit } from "unist-util-visit";
 
+import { prepareD2Parts } from "./d2-parts.ts";
+import { svgHasSteps } from "./step-markers.mjs";
 import { wrapSteppedParts } from "./svg-steps.ts";
 
 /**
@@ -33,10 +35,12 @@ const isDiagram = (src) =>
 /**
  * `diagramsDirectory` answers `@diagrams/<name>.svg`, the form a slide uses
  * since it sits outside the bundle and cannot reach a diagram relatively.
- * On a slide, outside `docsDirectory`, the elements of a drawing that carry
- * step classes such as `at-2` step; see `step-classes.mjs`.
+ * The elements of a drawing that carry step classes such as `at-2` step,
+ * on a slide or on a docs page; see `step-classes.mjs`. A d2 drawing is
+ * readied first, so a connection waits for its ends; a drawing without
+ * step classes is inlined as it is.
  *
- * @param {{ diagramsDirectory?: string, docsDirectory?: string }} [options]
+ * @param {{ diagramsDirectory?: string }} [options]
  * @returns {(tree: import("hast").Root, file: import("vfile").VFile) => void}
  */
 export const rehypeInlineDiagrams =
@@ -106,11 +110,11 @@ export const rehypeInlineDiagrams =
         ...(typeof alt === "string" && alt !== "" ? { "aria-label": alt } : {}),
       };
 
-      const onSlide =
-        options.docsDirectory !== undefined &&
-        !file.path.startsWith(options.docsDirectory);
-      if (onSlide) {
+      if (svgHasSteps(markup)) {
         try {
+          if (svg.properties.dataD2Version !== undefined) {
+            prepareD2Parts(svg);
+          }
           wrapSteppedParts(svg);
         } catch (error) {
           throw new Error(

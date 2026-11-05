@@ -9,15 +9,15 @@
  * the dependency review rejects; calling KaTeX here keeps the site on the
  * patched release.
  *
- * On a slide, `\step{n}{…}` shows part of a formula from step `n`, and
+ * `\step{n}{…}` shows part of a formula from step `n`, and
  * `\swap{n}{before}{after}` shows `before` until step `n` and `after` from
  * it, in the same place. Both expand to KaTeX's `\htmlData`, the one HTML
  * extension trusted, and each tagged span becomes an inline reveal. A
  * `\step` part keeps its space while hidden, so the formula never shifts; a
  * swap reflows once, at its step. `\morph{name}{…}` marks a part that keeps
  * its identity across steps: where a step moves it, it glides to its new
- * place. On a docs page none of these is defined, and using one fails the
- * compile.
+ * place. They step with the slide they are on, or on a docs page with the
+ * `Steps` block around the formula.
  */
 
 import { fromHtml } from "hast-util-from-html";
@@ -48,11 +48,11 @@ const formulaOf = (element) => {
 };
 
 /**
- * KaTeX settings for a slide: `\step`, `\swap`, `\morph` and the one HTML
- * extension they need. A function, because KaTeX writes a formula's own definitions
+ * KaTeX settings for stepped formulas: `\step`, `\swap`, `\morph` and the
+ * one HTML extension they need. A function, because KaTeX writes a formula's own definitions
  * into `macros`, and one formula's must not reach the next.
  */
-const slideOptions = () => ({
+const stepOptions = () => ({
   macros: {
     "\\step": "\\htmlData{at=#1}{#2}",
     "\\swap": "\\htmlData{until=#1, swap=1}{#2}\\htmlData{at=#1, swap=1}{#3}",
@@ -84,7 +84,7 @@ const stepOf = (value) => {
  *
  * @param {import("hast").Root} fragment
  */
-const wrapSlideParts = (fragment) => {
+const wrapSteppedParts = (fragment) => {
   visit(fragment, "element", (element, index, parent) => {
     if (parent === undefined || index === undefined) {
       return;
@@ -118,42 +118,33 @@ const wrapSlideParts = (fragment) => {
 };
 
 /**
- * @param {{ docsDirectory?: string }} [options]
  * @returns {(tree: import("hast").Root, file: import("vfile").VFile) => void}
  */
-export const rehypeFormulas =
-  (options = {}) =>
-  (tree, file) => {
-    const slide =
-      options.docsDirectory !== undefined &&
-      typeof file.path === "string" &&
-      !file.path.startsWith(options.docsDirectory);
-    visit(tree, "element", (element, index, parent) => {
-      const formula = formulaOf(element);
-      if (formula === null || parent === undefined || index === undefined) {
-        return;
-      }
-      let html;
-      try {
-        html = katex.renderToString(formula.tex, {
-          displayMode: formula.display,
-          output: "htmlAndMathml",
-          throwOnError: true,
-          ...(slide ? slideOptions() : {}),
-        });
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        const line = element.position?.start.line ?? "?";
-        throw new Error(
-          `KaTeX could not render a formula:\n${file.path ?? "page"}:${line}: ${reason}`,
-        );
-      }
-      const fragment = fromHtml(html, { fragment: true });
-      if (slide) {
-        wrapSlideParts(fragment);
-      }
-      const rendered = fragment.children;
-      parent.children.splice(index, 1, ...rendered);
-      return [SKIP, index + rendered.length];
-    });
-  };
+export const rehypeFormulas = () => (tree, file) => {
+  visit(tree, "element", (element, index, parent) => {
+    const formula = formulaOf(element);
+    if (formula === null || parent === undefined || index === undefined) {
+      return;
+    }
+    let html;
+    try {
+      html = katex.renderToString(formula.tex, {
+        displayMode: formula.display,
+        output: "htmlAndMathml",
+        throwOnError: true,
+        ...stepOptions(),
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      const line = element.position?.start.line ?? "?";
+      throw new Error(
+        `KaTeX could not render a formula:\n${file.path ?? "page"}:${line}: ${reason}`,
+      );
+    }
+    const fragment = fromHtml(html, { fragment: true });
+    wrapSteppedParts(fragment);
+    const rendered = fragment.children;
+    parent.children.splice(index, 1, ...rendered);
+    return [SKIP, index + rendered.length];
+  });
+};
