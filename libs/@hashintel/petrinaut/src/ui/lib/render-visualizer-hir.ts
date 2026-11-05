@@ -38,14 +38,16 @@ const unsafeValue = (name: string): Error =>
 
 const toStyle = (
   value: HirValue,
+  root: boolean,
 ): Record<string, string | number> | undefined => {
   if (!isRecord(value)) {
     return undefined;
   }
   const style: Record<string, string | number> = {};
   for (const [property, raw] of Object.entries(value)) {
-    if (VIEW_LEGACY_STYLE_PROPERTIES.has(property)) continue;
-    if (!VIEW_STYLE_PROPERTIES.has(property)) {
+    const legacy = VIEW_LEGACY_STYLE_PROPERTIES.has(property);
+    if (root && legacy) continue;
+    if (!legacy && !VIEW_STYLE_PROPERTIES.has(property)) {
       throw new Error(
         `\`${property}\` is not a style property a visualizer can set.`,
       );
@@ -67,9 +69,10 @@ const toStyle = (
 const toAttributeValue = (
   name: string,
   raw: HirValue,
+  root: boolean,
 ): string | number | boolean | Record<string, string | number> | undefined => {
   if (name === "style") {
-    return toStyle(raw);
+    return toStyle(raw, root);
   }
   switch (typeof raw) {
     case "string":
@@ -88,13 +91,16 @@ const toAttributeValue = (
   }
 };
 
-const elementProps = (element: ViewElementValue): Record<string, unknown> => {
+const elementProps = (
+  element: ViewElementValue,
+  root = false,
+): Record<string, unknown> => {
   const props: Record<string, unknown> = {};
   for (const [name, raw] of element.attributes) {
     if (!VIEW_ELEMENT_ATTRIBUTES.has(name)) {
       throw new Error(`\`${name}\` is not an attribute a visualizer can set.`);
     }
-    const value = toAttributeValue(name, raw);
+    const value = toAttributeValue(name, raw, root);
     if (value !== undefined) {
       props[name] = value;
     }
@@ -168,7 +174,8 @@ export const renderVisualizerHir = (
       "A visualizer must return a single `<Visualizer.Svg>…</Visualizer.Svg>` element.",
     );
   }
-  const legacyProps = picture.tag === "svg" ? elementProps(picture) : undefined;
+  const legacyProps =
+    picture.tag === "svg" ? elementProps(picture, true) : undefined;
   const parsed = parseVisualizerSvgOptions(
     legacyProps
       ? new Map(

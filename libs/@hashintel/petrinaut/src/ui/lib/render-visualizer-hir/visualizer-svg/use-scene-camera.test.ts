@@ -13,13 +13,10 @@ const options = {
 const size = { width: 400, height: 300 };
 const frames = new Map<number, FrameRequestCallback>();
 let frameId = 0;
-let now = 0;
 
 beforeEach(() => {
-  now = 0;
   frameId = 0;
   frames.clear();
-  vi.spyOn(performance, "now").mockImplementation(() => now);
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
     frames.set(++frameId, callback);
     return frameId;
@@ -35,7 +32,6 @@ afterEach(() => {
 });
 
 const advanceFrame = (time: number) => {
-  now = time;
   const callbacks = [...frames.values()];
   frames.clear();
   act(() => {
@@ -44,6 +40,27 @@ const advanceFrame = (time: number) => {
 };
 
 describe("scene camera reset", () => {
+  it("keeps an untouched top-left origin aligned on resize and preserves a user camera", () => {
+    const responsive = { origin: "top-left", navigation: "pan-zoom" } as const;
+    const { result, rerender } = renderHook(
+      (viewport) => useSceneCamera(responsive, viewport, false),
+      { initialProps: size },
+    );
+    const resized = { width: 600, height: 400 };
+    rerender(resized);
+    expect(result.current.camera).toEqual(fitCamera(responsive, resized));
+    expect(result.current.changed).toBe(false);
+    act(() =>
+      result.current.navigate((camera) => panCamera(camera, { x: 20, y: 0 })),
+    );
+    const moved = result.current.camera;
+    rerender(size);
+    expect(result.current.camera).toEqual(moved);
+    expect(result.current.changed).toBe(true);
+    act(() => result.current.reset());
+    expect(result.current.camera).toEqual(fitCamera(responsive, size));
+    expect(result.current.changed).toBe(false);
+  });
   it("becomes available only after navigation, not resize or a click without movement", () => {
     const { result, rerender } = renderHook(
       (viewport) => useSceneCamera(options, viewport, true),
@@ -87,6 +104,7 @@ describe("scene camera reset", () => {
     const target = fitCamera(options, resized);
     act(() => result.current.reset());
     expect(result.current.camera).toEqual(moved);
+    advanceFrame(0);
     advanceFrame(90);
     expect(result.current.camera.x).toBeGreaterThan(moved.x);
     expect(result.current.camera.x).toBeLessThan(target.x);
@@ -106,6 +124,7 @@ describe("scene camera reset", () => {
       result.current.navigate((camera) => panCamera(camera, { x: 80, y: 0 })),
     );
     act(() => result.current.reset());
+    advanceFrame(0);
     advanceFrame(70);
     const interrupted = result.current.camera;
     act(() =>

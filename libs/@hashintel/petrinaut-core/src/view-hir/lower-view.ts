@@ -490,7 +490,7 @@ export function lowerViewHir(code: string): LowerViewResult {
       lowering.fail(node, diagnosticCode, message),
     );
     const view = new ViewLowering(sourceFile, lowering);
-    return detectUserCodeForm(code, ts.ScriptKind.TSX) === "module"
+    return detectUserCodeForm(sourceFile) === "module"
       ? view.lowerModule()
       : view.lowerBody();
   });

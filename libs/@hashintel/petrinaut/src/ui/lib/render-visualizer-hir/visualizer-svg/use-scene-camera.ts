@@ -10,10 +10,9 @@ export const useSceneCamera = (
   size: Size,
   animated: boolean,
 ) => {
-  const [view, setView] = useState(() => {
-    const camera = fitCamera(options, size);
-    return { camera, home: camera };
-  });
+  const [view, setView] = useState<Camera | null>(null);
+  const home = fitCamera(options, size);
+  const camera = view ?? home;
   const animationFrame = useRef<number | null>(null);
 
   const cancelAnimation = () => {
@@ -27,31 +26,31 @@ export const useSceneCamera = (
 
   const navigate = (update: (camera: Camera) => Camera) => {
     cancelAnimation();
-    setView((previous) => ({ ...previous, camera: update(previous.camera) }));
+    setView((previous) => {
+      const next = update(previous ?? home);
+      return camerasMatch(next, home) ? null : next;
+    });
   };
 
   const reset = () => {
     cancelAnimation();
-    const home = fitCamera(options, size);
     if (
-      camerasMatch(view.camera, home) ||
+      camerasMatch(camera, home) ||
       !animated ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
-      setView({ camera: home, home });
+      setView(null);
       return;
     }
-    const startedAt = performance.now();
+    let startedAt: number | undefined;
     const tick = (now: number) => {
+      if (startedAt === undefined) startedAt = now;
       const progress = Math.max(0, Math.min(1, (now - startedAt) / 180));
       if (progress === 1) {
         animationFrame.current = null;
-        setView({ camera: home, home });
+        setView(null);
       } else {
-        setView({
-          ...view,
-          camera: interpolateCamera(view.camera, home, progress),
-        });
+        setView(interpolateCamera(camera, home, progress));
         animationFrame.current = requestAnimationFrame(tick);
       }
     };
@@ -59,8 +58,9 @@ export const useSceneCamera = (
   };
 
   return {
-    camera: view.camera,
-    changed: !camerasMatch(view.camera, view.home),
+    camera,
+    homeZoom: home.zoom,
+    changed: !camerasMatch(camera, home),
     navigate,
     reset,
   };

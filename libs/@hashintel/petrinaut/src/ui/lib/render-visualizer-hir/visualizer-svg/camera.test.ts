@@ -12,6 +12,23 @@ const size = { width: 400, height: 200 };
 const options = { origin: "top-left", navigation: "none" } as const;
 
 describe("SVG scene camera", () => {
+  it.each([0.0004, 4000])(
+    "zooms in the requested direction from a fitted scale of %s",
+    (zoom) => {
+      const camera = { x: 0, y: 0, zoom };
+      const anchor = { x: 200, y: 100 };
+      expect(zoomCamera(camera, 1 / 1.2, anchor, size, zoom).zoom).toBeLessThan(
+        zoom,
+      );
+      expect(zoomCamera(camera, 1.2, anchor, size, zoom).zoom).toBeGreaterThan(
+        zoom,
+      );
+      expect(zoomCamera(camera, 0, anchor, size, zoom).zoom).toBe(zoom * 0.01);
+      expect(zoomCamera(camera, Infinity, anchor, size, zoom).zoom).toBe(
+        zoom * 1000,
+      );
+    },
+  );
   it("uses viewport pixels by default, with an optional centered origin", () => {
     expect(cameraViewBox(fitCamera(options, size), size)).toBe("0 0 400 200");
     expect(

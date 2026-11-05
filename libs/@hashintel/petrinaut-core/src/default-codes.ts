@@ -13,7 +13,7 @@ export function generateDefaultVisualizerCode(type: Color): string {
 // \`tokens\` and \`parameters\` hold the model state. \`width\` and \`height\` track the window.
 const columns = Math.max(1, Math.floor(width / 40));
 return <Visualizer.Svg>
-  {tokens.map(({ ${type.elements.map((el) => el.name).join(", ")} }, index) => (
+  {tokens.map((_token, index) => (
     // Example: simple circle for each token
     <circle key={index} cx={20 + (index % columns) * 40} cy={20 + Math.floor(index / columns) * 40} r={14} fill="#2563eb" />
   ))}

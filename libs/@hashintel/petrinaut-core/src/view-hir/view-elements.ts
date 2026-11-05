@@ -159,7 +159,7 @@ export const VIEW_STYLE_PROPERTIES: ReadonlySet<string> = new Set([
   "transformOrigin",
 ]);
 
-/** Accepted in saved code but ignored: Petrinaut owns window layout and interaction. */
+/** Preserved on children but ignored on the root, whose layout Petrinaut owns. */
 export const VIEW_LEGACY_STYLE_PROPERTIES: ReadonlySet<string> = new Set([
   "width",
   "height",

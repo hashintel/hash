@@ -7,7 +7,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import {
   cameraViewBox,
-  fitCamera,
   panCamera,
   pointerFrame,
   zoomCamera,
@@ -71,7 +70,7 @@ export const VisualizerSvg = ({
   legacyProps?: SVGProps<SVGSVGElement>;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
-  const { camera, changed, navigate, reset } = useSceneCamera(
+  const { camera, homeZoom, changed, navigate, reset } = useSceneCamera(
     options,
     size,
     showAnimations,
@@ -82,7 +81,6 @@ export const VisualizerSvg = ({
   const panRef = useRef<HTMLButtonElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const navigable = options.navigation === "pan-zoom";
-  const displayedCamera = navigable ? camera : fitCamera(options, size);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -100,12 +98,13 @@ export const VisualizerSvg = ({
           Math.exp(-Math.max(-200, Math.min(200, delta)) * 0.005),
           anchor,
           size,
+          homeZoom,
         ),
       );
     };
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => svg.removeEventListener("wheel", onWheel);
-  }, [exploring, size, navigate]);
+  }, [exploring, size, homeZoom, navigate]);
 
   const endPointer = (event: PointerEvent<SVGSVGElement>) => {
     if (!pointers.current.delete(event.pointerId)) return;
@@ -134,7 +133,7 @@ export const VisualizerSvg = ({
         ref={svgRef}
         width="100%"
         height="100%"
-        viewBox={cameraViewBox(displayedCamera, size)}
+        viewBox={cameraViewBox(camera, size)}
         preserveAspectRatio="xMidYMid meet"
         style={{
           ...legacyProps?.style,
@@ -144,7 +143,7 @@ export const VisualizerSvg = ({
           cursor: exploring ? (dragging ? "grabbing" : "grab") : undefined,
           touchAction: exploring ? "none" : undefined,
         }}
-        role={exploring ? "application" : "img"}
+        role={exploring ? "application" : undefined}
         tabIndex={exploring ? 0 : -1}
         aria-label={exploring ? "Pan and zoom SVG scene" : undefined}
         onPointerDown={(event) => {
@@ -179,6 +178,7 @@ export const VisualizerSvg = ({
                   next.distance / previous.distance,
                   next.center,
                   size,
+                  homeZoom,
                 )
               : panned;
           });
@@ -204,6 +204,7 @@ export const VisualizerSvg = ({
                 event.key === "-" ? 1 / 1.2 : 1.2,
                 { x: size.width / 2, y: size.height / 2 },
                 size,
+                homeZoom,
               ),
             );
           else if (event.key === "0") reset();

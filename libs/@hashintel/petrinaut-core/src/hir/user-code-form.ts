@@ -61,16 +61,19 @@ function isExportStatement(statement: ts.Statement): boolean {
  * the errors for whichever form was detected.
  */
 export function detectUserCodeForm(
-  code: string,
+  code: string | ts.SourceFile,
   scriptKind = ts.ScriptKind.TS,
 ): UserCodeForm {
-  const sourceFile = ts.createSourceFile(
-    "detect-form.ts",
-    code,
-    ts.ScriptTarget.ES2020,
-    false,
-    scriptKind,
-  );
+  const sourceFile =
+    typeof code === "string"
+      ? ts.createSourceFile(
+          "detect-form.ts",
+          code,
+          ts.ScriptTarget.ES2020,
+          false,
+          scriptKind,
+        )
+      : code;
   return sourceFile.statements.some(isExportStatement) ? "module" : "body";
 }
 

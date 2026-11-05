@@ -65,9 +65,11 @@ describe("renderVisualizerHir", () => {
   it("retains nested SVG viewports in existing drawings", () => {
     expect(
       render(
-        'return <svg><svg x={10} viewBox="0 0 20 20"><circle r={4} /></svg></svg>;',
+        'return <svg><svg x={10} viewBox="0 0 20 20" style={{ width: 20, height: 20, overflow: "hidden" }}><circle r={4} /></svg></svg>;',
       ),
-    ).toContain('<svg x="10" viewBox="0 0 20 20">');
+    ).toContain(
+      '<svg x="10" viewBox="0 0 20 20" style="width:20px;height:20px;overflow:hidden">',
+    );
   });
 
   it("owns SVG dimensions, preserves proportions, and fills the window background", () => {
@@ -78,6 +80,7 @@ describe("renderVisualizerHir", () => {
       'width="100%" height="100%" viewBox="0 -20 400 240" preserveAspectRatio="xMidYMid meet"',
     );
     expect(markup).toContain("background-color:#eff6ff");
+    expect(markup).not.toContain('role="img"');
   });
   it("omits a null legacy viewBox and still validates computed legacy paint", () => {
     expect(

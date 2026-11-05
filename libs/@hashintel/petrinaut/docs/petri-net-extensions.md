@@ -82,7 +82,7 @@ return input.Queue[0].priority > parameters.threshold;
 
 If the callback renamed or destructured its arguments, keep equivalent local bindings using the ambient variables before the body. For example, replace a kernel parameter `{ Queue: queue }` with `const { Queue: queue } = input;`.
 
-For visualizers, replace the root `<svg>` and its closing tag with `<Visualizer.Svg>`. Move `style.backgroundColor` to the `backgroundColor` property, retain an explicit `viewBox` when the drawing needs fixed coordinates, and remove root `width`, `height`, `style`, `borderRadius`, and `preserveAspectRatio`. Move inherited paint or text styles such as `fill` and `fontSize` to a child `<g>`. Nested legacy SVG viewports need their coordinate and clipping behavior expressed with drawing groups, transforms, and clip paths; do not nest `Visualizer.Svg`.
+For visualizers, replace the root `<svg>` and its closing tag with `<Visualizer.Svg>`. Move `style.backgroundColor` to the `backgroundColor` property, retain an explicit `viewBox` when the drawing needs fixed coordinates, and remove root `width`, `height`, `style`, `borderRadius`, and `preserveAspectRatio`. Move inherited paint or text styles such as `fill` and `fontSize` to a child `<g>`. Nested legacy SVG viewports retain their sizing and clipping; do not nest `Visualizer.Svg`.
 
 Use function bodies and `Visualizer.Svg` for new code, including AI-generated code. Preserve the drawing’s behavior when migrating older code.
 
@@ -146,7 +146,7 @@ This example expects token coordinates between 0 and 1.
 
 Without `viewBox`, one drawing unit is one screen pixel. Use `width` and `height` for layouts that adapt to resizing, or `viewBox` for fixed drawings. Petrinaut controls the root SVG’s size and window styling; use drawing attributes and styles on child elements.
 
-With `navigation="pan-zoom"`, activate the hand button to drag the scene and scroll or pinch to zoom. Drag the top strip to move the window instead. Arrow keys pan, +/− zoom, and **Reset view** or 0 restores the initial framing. Escape exits navigation. The camera stays where you left it through simulation updates, edits, and resizing.
+With `navigation="pan-zoom"`, activate the hand button to drag the scene and scroll or pinch to zoom. Drag the top strip to move the window instead. Arrow keys pan, +/− zoom, and **Reset view** or 0 restores the initial framing. Escape exits navigation. Before navigation, the drawing fits the window as it resizes. After navigation, the camera stays where you left it through simulation updates, edits, and resizing.
 
 ### Supported code
 

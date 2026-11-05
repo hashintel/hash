@@ -34,8 +34,12 @@ export const zoomCamera = (
   factor: number,
   anchor: Point,
   size: Size,
+  homeZoom = 1,
 ): Camera => {
-  const zoom = Math.max(0.01, Math.min(1000, camera.zoom * factor));
+  const zoom = Math.max(
+    Math.min(camera.zoom, homeZoom * 0.01),
+    Math.min(Math.max(camera.zoom, homeZoom * 1000), camera.zoom * factor),
+  );
   const offset = {
     x: anchor.x - size.width / 2,
     y: anchor.y - size.height / 2,

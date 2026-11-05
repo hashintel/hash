@@ -68,6 +68,39 @@ const asElement = (value: ViewValue): ViewElementValue => {
 };
 
 describe("the view HIR", () => {
+  it("keeps token fields out of the default template's grid coordinates", () => {
+    const gridContext: HirVisualizerContext = {
+      surface: "visualizer",
+      parameters: [],
+      elements: [{ name: "columns", type: "real" }],
+    };
+    const result = lowerVisualizerToHir(
+      generateDefaultVisualizerCode({
+        id: "grid",
+        name: "Grid",
+        iconSlug: "circle",
+        displayColor: "#000000",
+        elements: [{ elementId: "columns", name: "columns", type: "real" }],
+      }),
+      gridContext,
+    );
+    if (!result.ok) throw new Error(JSON.stringify(result.diagnostics));
+    const picture = asElement(
+      interpretViewHir(result.view, {
+        tokens: [{ columns: 0 }, { columns: 1 }],
+        parameters: {},
+        width: 400,
+        height: 240,
+      }),
+    );
+    const circles = picture.children.flat().map(asElement);
+    expect(circles.map((circle) => circle.attributes.get("cx"))).toEqual([
+      20, 60,
+    ]);
+    expect(circles.map((circle) => circle.attributes.get("cy"))).toEqual([
+      20, 20,
+    ]);
+  });
   it("compiles both default templates as function bodies", () => {
     for (const code of [
       DEFAULT_VISUALIZER_CODE,
