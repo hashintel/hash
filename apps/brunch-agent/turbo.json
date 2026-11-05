@@ -52,12 +52,10 @@
       "dependsOn": ["build"]
     },
     "test:integration": {
-      "dependsOn": ["build", "codegen", "^build"],
-      "env": ["TEST_COVERAGE"]
+      "dependsOn": ["build", "codegen", "^build"]
     },
     "test:unit": {
       "dependsOn": ["codegen", "^build", "@hashintel/petrinaut#manifest"],
-      "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/libs/@hashintel/petrinaut/docs/**"

@@ -53,8 +53,7 @@
       "dependsOn": ["build:storybook"]
     },
     "test:unit": {
-      "dependsOn": ["build:buildinfo"],
-      "env": ["TEST_COVERAGE"]
+      "dependsOn": ["build:buildinfo"]
     }
   }
 }
