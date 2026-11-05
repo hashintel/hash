@@ -171,10 +171,10 @@ export const keyStyle = css({
   // A block, not an inline-block: an inline-block that clips takes its bottom edge as its baseline.
   display: "block",
   maxWidth: "[100%]",
-  // J1.1, J2.51: field labels are 13 px regular, subtle grey.
+  // J1.1, J2.51: field labels are 13 px regular; muted grey, as the playground and Figma 748:30752 draw them.
   fontSize: "[13px]", // token-guard: allow Figma panel labels are 13 px, between the DS xs and sm steps
   lineHeight: "[16px]",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -267,6 +267,11 @@ export const PropertyRow = ({
           display: "flex",
           flexDirection: "column",
           gap: "1.5",
+          // Panel selects and inputs are 32 px (playground and Figma 748:30752): the DS `sm` keeps its 14 px text and
+          // takes 4 px instead of 2 px above and below, and so does any `sm` button beside the field.
+          "& [class~='--form-padding-y_spacing.0.5']": {
+            "--form-padding-y": "spacing.1",
+          },
         })}
       >
         {children}
@@ -395,15 +400,15 @@ export const OriginMark = ({
 );
 
 /**
- * The DS Select Trigger's look at `sm` (field kinds v2: every side-panel control is 28 px), for pickers the DS has no
- * part for yet: 8 px corners, 14 px, a chevron on the right.
+ * The DS Select Trigger's look at `sm` (every side-panel control is 32 px, as the playground and Figma draw them), for
+ * pickers the DS has no part for yet: 8 px corners, 14 px, a chevron on the right.
  */
 export const selectTriggerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1.5",
   width: "[100%]",
-  height: "[28px]",
+  height: "[32px]",
   paddingLeft: "2.5",
   paddingRight: "2.5",
   borderWidth: "thin",
@@ -412,7 +417,8 @@ export const selectTriggerStyle = css({
   borderRadius: "lg",
   backgroundColor: "neutral.bgSolid.min",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  // The value reads #404040, as the DS Select's does (playground: "For each › supplier").
+  color: "neutral.fg.heading",
   textAlign: "left",
   cursor: "pointer",
   "& > span": {

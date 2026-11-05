@@ -966,7 +966,7 @@ const ConditionRowView = ({
           {
             id: "typed",
             text: "Type a value instead",
-            icon: "pencil" as const,
+            icon: "text" as const,
             onClick: () => onChange({ valueSource: undefined }),
           },
         ]

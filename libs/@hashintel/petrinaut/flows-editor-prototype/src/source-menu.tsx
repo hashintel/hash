@@ -196,7 +196,7 @@ const ownerIcon = (document: EditorDocument, option: SourceOption) => {
       tone: entry?.tone ?? ("green" as const),
     };
   }
-  return { icon: "pencil" as const, tone: "neutral" as const };
+  return { icon: kindIcon("Text"), tone: "neutral" as const };
 };
 
 /**
@@ -520,7 +520,7 @@ export const SourceMenu = ({
   focusRef,
   searchAlways = false,
   typeValueLabel = "Type a value",
-  typeValueIcon = "pencil",
+  typeValueIcon = kindIcon("Text"),
   typeValueSource = "Manual input",
   position = "bottom-end",
   alignToPanel = false,

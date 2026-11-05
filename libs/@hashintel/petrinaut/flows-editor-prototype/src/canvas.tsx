@@ -2697,7 +2697,7 @@ const useCanvasMenuItems = (
         },
         {
           id: "copy-link",
-          text: "Copy link to this step",
+          text: "Copy link",
           icon: "copy",
           onClick: () => {
             close();

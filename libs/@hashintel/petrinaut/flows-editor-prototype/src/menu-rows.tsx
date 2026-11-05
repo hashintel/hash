@@ -22,7 +22,10 @@ export const firstLineIconStyle = css({
   height: "[22px]",
 });
 
-/** A row with a second line: 8 px above and below, 6 px in; a one-line row: 6 px all round (36 px); 4 px between rows. */
+/**
+ * A row with a second line: 8 px above and below (6 px in a value menu, 48 px in all), 6 px in; a one-line row: 6 px
+ * all round (36 px); 4 px between rows.
+ */
 export const tiledRowsStyle = css({
   "& [role=menuitem]:has([data-menu-row])": {
     "--selectable-list-item-padding-x": "6px",
@@ -32,6 +35,9 @@ export const tiledRowsStyle = css({
   },
   "& [role=menuitem]:has([data-menu-row=two])": {
     "--selectable-list-item-padding-y": "8px",
+  },
+  "& [role=menuitem]:has([data-menu-row=two][data-lines=value])": {
+    "--selectable-list-item-padding-y": "6px",
   },
   "& [role=menuitem]:has([data-menu-row]) + [role=menuitem]": {
     marginTop: "[4px]",
@@ -92,6 +98,8 @@ const sourceTileStyle = css({
   borderRadius: "md",
   backgroundColor: "neutral.a25",
   color: "neutral.fg.muted",
+  // Centred on the row: across both lines of a two-line row.
+  alignSelf: "center",
   "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
 });
 
@@ -138,7 +146,7 @@ const tileColumnStyle = css({
 
 /**
  * The tile runs from the title's cap height to the description's baseline (Figma, 3 Nov): 28 px, 1 px down, in a
- * value menu (12 px title line, 16 px description line); 30 px, 2 px down, for a step (14 px and 18 px lines).
+ * value menu (`?srcicons=old`); 30 px, 2 px down, for a step (14 px and 18 px lines).
  * 8 px corners, the step-tile grey, a 16 px icon.
  */
 const tileStyle = cva({
@@ -159,11 +167,19 @@ const tileStyle = cva({
   },
 });
 
-const textStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  minWidth: "[0]",
+/** A value menu's lines touch (20 + 16 px, playground and Figma 770:33030); a step's sit 4 px apart. */
+const textStyle = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    minWidth: "[0]",
+  },
+  variants: {
+    lines: {
+      value: { gap: "0" },
+      step: { gap: "1" },
+    },
+  },
 });
 
 const ellipsis = {
@@ -179,7 +195,7 @@ const titleStyle = css({
   color: "neutral.fg.heading",
 });
 
-/** A two-line row's title: a 12 px line in a value menu (with 1 px of room for the glyphs), 14 px for a step. */
+/** A two-line row's title: a 20 px line in a value menu, 14 px for a step. */
 const twoLineTitleStyle = cva({
   base: {
     ...ellipsis,
@@ -188,7 +204,7 @@ const twoLineTitleStyle = cva({
   },
   variants: {
     lines: {
-      value: { lineHeight: "[12px]", paddingY: "[1px]", marginY: "[-1px]" },
+      value: { lineHeight: "[20px]" },
       step: { lineHeight: "[14px]" },
     },
   },
@@ -203,17 +219,17 @@ const descriptionStyle = cva({
     // Figma sets the line with no tracking; the DS xs style's 0.12 px clips the longest step line.
     letterSpacing: "[0]",
     fontWeight: "normal",
-    color: "neutral.fg.subtle",
   },
   variants: {
     lines: {
-      value: { lineHeight: "[16px]" },
-      step: { lineHeight: "[18px]" },
+      // #8d8d8d in a value menu (playground and Figma 770:33030).
+      value: { lineHeight: "[16px]", color: "neutral.fg.muted" },
+      step: { lineHeight: "[18px]", color: "neutral.fg.subtle" },
     },
   },
 });
 
-/** How a two-line row sets its lines: a value menu's (12 / 16 px) or a step picker's (14 / 18 px). */
+/** How a two-line row sets its lines: a value menu's (20 / 16 px) or a step picker's (14 / 18 px). */
 export type RowLines = "value" | "step";
 
 export const MenuRow = ({
@@ -237,7 +253,11 @@ export const MenuRow = ({
   const glyph = typeof icon === "string" ? <Icon name={icon} size="sm" /> : icon;
   const tiled = tiles === "all" || (tiles === "twoLine" && twoLine);
   return (
-    <span className={rowStyle} data-menu-row={twoLine ? "two" : "one"}>
+    <span
+      className={rowStyle}
+      data-menu-row={twoLine ? "two" : "one"}
+      data-lines={lines}
+    >
       {tiles ? (
         tiled ? (
           <span className={sourceTileStyle} style={tint} aria-hidden="true">
@@ -259,7 +279,7 @@ export const MenuRow = ({
           ) : null}
         </span>
       )}
-      <span className={textStyle}>
+      <span className={textStyle({ lines })}>
         <span className={twoLine ? twoLineTitleStyle({ lines }) : titleStyle}>
           {title}
         </span>

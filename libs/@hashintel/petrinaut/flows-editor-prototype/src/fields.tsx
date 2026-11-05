@@ -828,14 +828,14 @@ export const listModeOf = (input: InputView): ListMode => {
   return "reference";
 };
 
-/** The DS input frame at `sm` (1 px border, 8 px corners), holding chips and the "+" action. */
+/** The DS input frame at `sm` (1 px border, 8 px corners, 32 px tall), holding chips and the "+" action. */
 const listFieldStyle = css({
   display: "flex",
   flexWrap: "nowrap",
   alignItems: "center",
   gap: "1",
   minWidth: "[0]",
-  minHeight: "[28px]",
+  minHeight: "[32px]",
   "& > *": { minWidth: "[0]" },
   "&[data-all]": { flexWrap: "wrap" },
   // Spec Error state: a red border with the one line under the field.
@@ -1302,7 +1302,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           typeValueLabel={
             mode === "email" ? "Type an address" : "Upload a file"
           }
-          typeValueIcon={mode === "email" ? "pencil" : "file"}
+          typeValueIcon={mode === "email" ? "text" : "file"}
           typeValueSource={mode === "file" ? "File upload" : "Manual input"}
           typedGroupLabel={
             mode === "email" ? "People" : mode === "file" ? "Files" : undefined
