@@ -5,7 +5,7 @@ use alloc::{
 use core::{pin::Pin, time::Duration};
 use std::{
     fs::File,
-    io::{BufRead as _, BufReader, Seek as _, Write as _},
+    io::{BufRead as _, BufReader, Seek as _, Write},
     path::{Path, PathBuf},
 };
 
@@ -33,6 +33,10 @@ const PAGE_CEILING: u64 = 10_000;
 
 /// Distinct fields a source may produce before its responses are rejected.
 const MAX_COLUMNS: usize = 1_024;
+
+/// Spooled JSON buffered before a batch is written, and encoded Parquet buffered before its row
+/// group is flushed, as for SQL captures.
+const BUFFER_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -332,6 +336,20 @@ impl Spool {
         .change_context(SourceError::Write)
     }
 
+    fn write_batch<W: Write + Send>(
+        &self,
+        writer: &mut ArrowWriter<W>,
+        rows: &[BTreeMap<String, Option<String>>],
+    ) -> Result<(), Report<SourceError>> {
+        writer
+            .write(&self.batch(rows)?)
+            .change_context(SourceError::Write)?;
+        if writer.in_progress_size() >= BUFFER_BYTES {
+            writer.flush().change_context(SourceError::Write)?;
+        }
+        Ok(())
+    }
+
     fn publish(mut self, target: &Path) -> Result<SourceCapture, Report<SourceError>> {
         let mut partial = SourceCapture::stage(target).change_context(SourceError::Write)?;
         let schema = self.batch(&[])?.schema();
@@ -347,22 +365,21 @@ impl Spool {
             .change_context(SourceError::Write)?;
         let input: File = self.file.reopen().change_context(SourceError::Write)?;
         let mut rows = Vec::with_capacity(1024);
+        let mut buffered = 0_usize;
         for line in BufReader::new(input).lines() {
             let line = line.change_context(SourceError::Write)?;
+            buffered = buffered.saturating_add(line.len());
             rows.push(
                 serde_json::from_str(&line).map_err(|_error| Report::new(SourceError::Write))?,
             );
-            if rows.len() == 1024 {
-                writer
-                    .write(&self.batch(&rows)?)
-                    .change_context(SourceError::Write)?;
+            if rows.len() == 1024 || buffered >= BUFFER_BYTES {
+                self.write_batch(&mut writer, &rows)?;
                 rows.clear();
+                buffered = 0;
             }
         }
         if !rows.is_empty() {
-            writer
-                .write(&self.batch(&rows)?)
-                .change_context(SourceError::Write)?;
+            self.write_batch(&mut writer, &rows)?;
         }
         writer.close().change_context(SourceError::Write)?;
         SourceCapture::publish(partial, target, self.rows).change_context(SourceError::Write)
@@ -707,6 +724,34 @@ mod schema_tests {
         assert!(
             matches!(error.current_context(), SourceError::Response),
             "should identify an invalid response schema"
+        );
+    }
+
+    #[test]
+    fn publish_bounds_buffered_rows_by_size() {
+        use parquet::file::reader::{FileReader as _, SerializedFileReader};
+
+        let directory = TempDir::new().expect("should create spool storage");
+        let mut spool = Spool::new(directory.path(), BTreeSet::from(["id".to_owned()]))
+            .expect("should create the spool");
+        // Incompressible values, so the encoded row group grows with the spooled bytes.
+        let value: String = core::iter::repeat_with(|| uuid::Uuid::new_v4().simple().to_string())
+            .take(160 * 1024)
+            .collect();
+        for id in 0..3 {
+            spool
+                .append(&[json!({"id": id, "value": value})])
+                .expect("should spool a large row");
+        }
+        let target = directory.path().join("rows.parquet");
+        spool.publish(&target).expect("should publish the rows");
+        let reader = SerializedFileReader::new(
+            std::fs::File::open(&target).expect("should open the published capture"),
+        )
+        .expect("should read the Parquet metadata");
+        assert!(
+            reader.metadata().num_row_groups() > 1,
+            "should flush row groups by size rather than buffering every large row"
         );
     }
 
