@@ -72,6 +72,14 @@ sources:
       credentials:
         secretEntityUuid: 22222222-2222-4222-8222-222222222222
     primaryKey: [id]
+  hostaddr:
+    postgres:
+      connection: postgresql://database.example/demo?hostaddr=127.0.0.1
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
 pipelines:
   entities:
     - source: scheme
@@ -91,4 +99,6 @@ pipelines:
     - source: socket-abstract
       steps: []
     - source: socket-list
+      steps: []
+    - source: hostaddr
       steps: []

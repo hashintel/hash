@@ -60,6 +60,8 @@ impl PostgresSource {
                 "user" | "password" | "passfile" | "service" | "servicefile" => {
                     return Err("connection credentials must come from the referenced User Secret");
                 }
+                // The engine resolves and checks each host, then pins the address it connects to.
+                "hostaddr" => return Err("connection must not set hostaddr"),
                 "host" => {
                     if value.split(',').any(|entry| socket(entry.bytes().next())) {
                         return Err(SOCKET_HOST);

@@ -50,7 +50,7 @@ impl Resolve for PublicResolver {
     }
 }
 
-fn public(address: IpAddr) -> bool {
+pub(super) fn public(address: IpAddr) -> bool {
     match address {
         IpAddr::V4(address) => address.is_global() && !address.is_multicast(),
         IpAddr::V6(address) => address.to_ipv4_mapped().map_or_else(

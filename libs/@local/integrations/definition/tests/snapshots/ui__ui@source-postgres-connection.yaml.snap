@@ -12,3 +12,4 @@ input_file: libs/@local/integrations/definition/tests/ui/source-postgres-connect
 51:3: sources.socket-authority: connection must use a network host, not a Unix socket
 59:3: sources.socket-abstract: connection must use a network host, not a Unix socket
 67:3: sources.socket-list: connection must use a network host, not a Unix socket
+75:3: sources.hostaddr: connection must not set hostaddr
