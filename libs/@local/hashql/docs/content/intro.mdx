@@ -1,0 +1,354 @@
+# Introduction to HashQL
+
+HashQL is unlike other query languages you may be familiar with, such as SQL. It is a functional, strongly typed, side-effect-free language designed specifically to query the HASH graph.
+
+That is a lot to unpack! What does it mean? Let's break it down piece by piece.
+
+> **Note.** The examples throughout this guide use three different notations: TypeScript, using the Draft API; HashQL's functional notation, which is similar to Lisp; and HashQL's reference notation, which is similar to other functional languages.
+
+## Functional programming
+
+In HashQL, you build a query by combining expressions, each of which produces a value. Fundamentally, HashQL consists of only three parts: function calls, literals and paths. Everything else follows from these. This includes control flow: an `if` expression is a function call that returns a value, with a little compiler magic attached.
+
+These compiler-recognised functions are called special forms. Unlike regular functions, they receive special treatment from the compiler, and their behaviour cannot be recreated using regular HashQL code. Everything else builds on them, which is why SDKs expose them as function calls.
+
+> **Note.** Nothing stops you from calling these special forms directly! They are all available in the `::kernel::special_form` module and preloaded in the prelude. You can even give them different names if you want.
+
+### Naming a value with `let`
+
+The `let` special form gives a value a name within an expression. Here, the name is `foo`, the value is the integer `2`, and the expression's result is the value bound to `foo`:
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const foo = $.let("foo", 2n);
+
+  return foo;
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo 2 foo)
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let foo = 2 in
+foo
+```
+
+This HashQL expression evaluates to `2`. The name `foo` is available in the body of the `let`, which is the expression following the binding. In the reference notation, `in` separates the binding from its body.
+
+In the TypeScript Draft API, `program` constructs a HashQL expression; it does not execute it. The callback passed to `program` receives the construction context (`$`) and returns the expression to use as the program's result. An expression that is not included in that result, either directly or through a `let` binding, is omitted from the generated program and is therefore not executed on the server.
+
+Draft also makes HashQL expressions easier to write by converting TypeScript values automatically: BigInt literals become HashQL integers, numbers become HashQL numbers, booleans become HashQL booleans, and strings become HashQL strings.
+
+Because a HashQL binding is referenced by name, you must supply that name explicitly. By convention, it matches the TypeScript variable holding the binding: in the example above, both are named `foo`.
+
+> **Note.** A `let` binding is available within its body. If a nested binding uses the same name, it shadows the outer binding. Referring to the outer binding through its Draft handle from within that inner scope causes the Draft program to fail compilation.
+
+You can think of a binding as similar to `const` in JavaScript, but HashQL's immutability goes further. A JavaScript `const` can hold a list whose contents you can change. In HashQL, the values themselves are immutable. Adding an item to a list produces a new list and leaves the original unchanged.
+
+### Choosing a value with `if`
+
+If the language has only three primitives, how do we express control flow? With another special form: `if`. It takes three expressions: a condition that evaluates to a Boolean value and two branches to choose between. If the condition evaluates to `true`, the second expression is evaluated and its value returned; otherwise, the third expression is evaluated and its value returned.
+
+Unlike JavaScript's `if` statement, HashQL's `if` expression produces a result that another expression can use. Let's extend the previous example: if `foo` equals `2`, return `foo`; otherwise, return `0`.
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const foo = $.let("foo", 2n);
+
+  return $.if($.eq(foo, 2n), {
+    then: () => foo,
+    else: () => 0n,
+  });
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo 2
+  (if (eq foo 2)
+    foo
+    0))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let foo = 2 in
+if foo == 2
+then foo
+else 0
+```
+
+The comparison is true, so the `if` expression evaluates to `2`, the value of `foo`. Change the binding to `3` and the comparison becomes false: the result is now `0`. Neither branch changes `foo`.
+
+In Draft, `$.eq(foo, 2n)` constructs the HashQL comparison. The `then` and `else` callbacks construct the branch expressions. Both callbacks run while Draft builds the program, but HashQL evaluates only the selected branch when the program runs.
+
+> **Note.** In JavaScript and Python, `if` is a statement, so it does not need to produce a value: its branches can perform side effects instead. In HashQL, an expression contributes to the query's result through the value it produces. However, there are still legitimate uses for an `if` without an `else` branch. HashQL supports this by returning an `Option`: when the condition is true, the branch's result is automatically wrapped in `Some`; otherwise, the expression returns `None`.
+
+### Receiving a value with `input`
+
+So far, `foo` has always come from a literal written into the program. In many languages, programs receive values through arguments to a main function. Query programs often need a different approach: values supplied at query time should be available wherever they are needed, without being passed through every intervening function call.
+
+HashQL provides `input` for this purpose. It lets an expression request a named value supplied to the program rather than to the enclosing function. You can think of it as a global `const` whose value is supplied for each execution.
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({ foo: BigInt }, ($, inputs) => {
+  const foo = $.let("foo", inputs.foo);
+
+  return $.if($.eq(foo, 2n), {
+    then: () => foo,
+    else: () => 0n,
+  });
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo (input foo Integer)
+  (if (eq foo 2)
+    foo
+    0))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let foo = input(foo, Integer) in
+if foo == 2
+then foo
+else 0
+```
+
+The program now returns `2` when the caller supplies `2`, and `0` when the caller supplies any other integer. The input is fixed for that execution. Reading it again does not ask the caller for a new value. Think of inputs as an immutable dictionary keyed by name: reading a value repeatedly neither changes it nor requires the caller to supply it more than once.
+
+Inputs are strongly typed: you must specify the type of each value you request. In the Draft API, you declare inputs upfront and access them through the program-building callback's arguments. This is a convenience for constructing the query and does not change how HashQL inputs work. The second argument to the `Draft.program` callback contains the reference to the input values that will need to be supplied by the caller before sending the query to execute on the server.
+
+> **Note.** An `input` can also specify a default value. For example, `input(foo, Integer, 2)` in the reference notation uses `2` when the caller does not supply `foo`. Without a default, the caller must supply the input if execution needs it.
+
+### Defining a function with `fn`
+
+We have called functions throughout these examples. The `fn` special form lets us define one of our own. Let's give our comparison a name so that we can call it with different values:
+
+```text tab="TypeScript" tab-group="hashql-language"
+// Draft cannot construct HashQL closures yet.
+// The functional and reference tabs show the HashQL program.
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo 2
+  (let matches_foo
+    (fn [] {value: Integer} Boolean
+      (eq value foo))
+    (matches_foo 2)))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let foo = 2
+    matches_foo = (value: Integer): Boolean -> value == foo
+in
+matches_foo(2)
+```
+
+`fn` produces a closure, and `let` gives that closure the name `matches_foo`. A closure does not need a name, though: it can also be invoked immediately. Here, its parameter, `value`, is an integer, and its result is a Boolean. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
+
+> **Note.** HashQL closures fully participate in the type system. You can also use `_` in any type position to indicate a type that should be inferred as a concrete type at call time. This makes HashQL closures easy to use in functional composition.
+
+The closure also refers to `foo`, which was defined outside its body. Closures can “pull in” values from the surrounding scope; this is called capturing a binding. We do not need to pass `foo` as another argument. This is safe because bindings are immutable: the value of `foo` cannot change after the closure captures it. The empty `[]` in the functional notation means that this closure declares no generic type parameters.
+
+> **Note.** HashQL closures are values: they can be passed to other functions or returned as results. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015/build-typed-hashql-functions-in-draft). A TypeScript callback used to build a Draft program is not itself a HashQL closure.
+
+### Bringing names into scope with `use`
+
+The `eq` function we have been using comes from the standard library. Its full path is `::core::cmp::eq`, but the prelude makes it available without spelling that path each time. The `use` special form brings items from a module into the scope of an expression. It can also give an imported item a different local name:
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const { same } = $.import($.modules().cmp, { eq: "same" });
+  const foo = $.let("foo", 2n);
+
+  return same(foo, 2n);
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(use ::core::cmp {eq: same}
+  (let foo 2
+    (same foo 2)))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+use(::core::cmp, {eq: same},
+  let foo = 2 in
+  same(foo, 2))
+```
+
+This still evaluates to `true`. The name `same` refers to the existing `eq` function rather than defining a new one. Like a `let` binding, the imported name is available within the body of the `use` expression. The import does not rename the function in its original module.
+
+> **Note.** Why do we need a dedicated syntax if we can't just use `let`? The reason is `*`, it allows you to import everything from a module under the same name. It also allows you to import modules, which you otherwise cannot reference via either `let` or `type`.
+
+Draft spells this operation `$.import`. `$.modules().cmp` selects the comparison module, and `{ eq: "same" }` selects `eq` under its new local name.
+
+> **Important.** The SDKs use the `import` function to import, it is different to imports in the language itself. Imports are only scoped to the HashQL program body and have nothing to do with the host language and do not interact with it in any way.
+
+### Reading a field with `access`
+
+Values need not be individual numbers. A struct groups fields into one value. Let's make `foo` a struct containing our integer and a label, then read the integer back:
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const foo = $.let(
+    "foo",
+    Program.Structural.struct({ value: 2n, label: "two" }),
+  );
+
+  return foo.value;
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo {value: 2, label: "two"}
+  (access foo value))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let foo = (value: 2, label: "two") in
+foo.value
+```
+
+The result is `2`. The `access` special form selects a field whose name is known when the program is compiled. The compiler checks that the field exists in the struct's type. Asking for `foo.missing` would be a type error, not a lookup returning `null`.
+
+In Draft, `Program.Structural.struct` constructs the struct expression. Reading `foo.value` constructs its HashQL field access, rather than reading the integer in TypeScript. The reference notation uses the same dot spelling for the language's `access` operation.
+
+> **Note.** Tuples use `access` too, but select a position instead of a field name. Positions start at zero: `pair.0` in the reference notation selects the first element. A field name or tuple position must be fixed in the expression. For a lookup whose key is itself computed, use `index`.
+
+### Looking up an element with `index`
+
+A list may contain a different number of elements on each execution, and the position we want may come from another expression. The `index` special form handles this kind of lookup. Here, `foo` is a list and `position` selects an element:
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const foo = $.let("foo", Program.Structural.list(BigInt, [2n, 3n]));
+  const position = $.let("position", 0n);
+
+  return foo.$index(position);
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo [2, 3]
+  (let position 0
+    (index foo position)))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let foo = [2, 3] in
+let position = 0 in
+foo[position]
+```
+
+Unlike a field in a struct, an element at a computed position might not exist. The language therefore gives `index` an `Option` result: `Some(2)` for position `0`, `Some(3)` for position `1`, and `None()` for position `2`, which is past the end of this list. A missing element is a result to handle rather than a panic.
+
+Draft uses `Program.Structural.list` to construct the list and `$index` to construct the lookup. Its `BigInt` argument specifies the element type, including when the list is empty. Dictionaries use the same special form to look up an entry by key instead of an integer position.
+
+## Strong typing
+
+The comparison in the example produces a Boolean, which is the type `if` expects for its condition. Supplying an integer directly as the condition is a type error. HashQL does not treat `0` as false or other integers as true.
+
+Every HashQL expression has a type, and the compiler checks how expressions fit together before executing the query. Draft represents these types in TypeScript too, so your editor can catch many of these mistakes while you construct the program.
+
+### Stating a type with `as`
+
+The compiler can usually infer an expression's type. When we want to state one explicitly, the `as` special form checks that the expression fits that type. It can broaden the type, but it does not convert the value or let us claim an incompatible type:
+
+```text tab="TypeScript" tab-group="hashql-language"
+// Draft has no builder for the HashQL `as` special form yet.
+// The functional and reference tabs show the HashQL program.
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo (as 2 Number)
+  foo)
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let foo = 2 as Number in
+foo
+```
+
+An integer is also a number in HashQL, so the assertion is valid and the result remains `2`. Asserting `String` instead would fail type checking. This differs from a TypeScript `as` assertion: the HashQL compiler verifies the relationship between the expression's inferred type and the asserted type.
+
+### Naming a type with `type`
+
+Just as `let` gives a value a name, `type` gives a type a name. Suppose our integer represents a count. We can call its type `Count` and use that name in the binding's annotation:
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const Count = $.type("Count", BigInt);
+  const foo = $.let("foo", 2n, Count);
+
+  return foo;
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(type Count Integer
+  (let foo (as 2 Count)
+    foo))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+type Count = Integer in
+let foo = 2 as Count in
+foo
+```
+
+`Count` is an alias for `Integer`, not a distinct type. An integer fits wherever this alias is expected, and calling it a count does not add a non-negative constraint. The alias is available within the body of the `type` expression.
+
+In Draft, `$.type` returns a handle for the HashQL type. It is not a TypeScript `type` declaration: it contributes a declaration to the generated HashQL program.
+
+### Making a distinct type with `newtype`
+
+An alias helps explain what a value means, but sometimes we need the compiler to distinguish values with the same underlying representation. The `newtype` special form creates a distinct type and a constructor with the same name:
+
+```ts tab="TypeScript" tab-group="hashql-language"
+import * as Draft from "@local/hashql/Draft";
+
+Draft.program({}, ($) => {
+  const Count = $.newtype("Count", BigInt);
+  const foo = $.let("foo", Count(2n));
+
+  return foo;
+});
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(newtype Count Integer
+  (let foo (Count 2)
+    foo))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+newtype Count = Integer in
+let foo = Count(2) in
+foo
+```
+
+This time, the result is a `Count` value constructed from `2`. A plain integer is not automatically a `Count`, and another newtype over `Integer` is a different type again. This distinction is called nominal typing: the declared identity matters, not only the underlying structure.
+
+The name `Count` has two uses here. In a type annotation it names the new type, and in `Count(2)` it names the constructor. Draft's `$.newtype` returns a handle supporting both uses. Creating a distinct type does not itself impose a range constraint, so a `Count` can still contain a negative integer.
+
+## Queries without side effects
+
+Side-effect freedom does not mean that HashQL must be read-only. HASH records when each change was stored, its transaction time. If a program's graph reads stay at or before the program's start time on that axis, later writes cannot change the graph view those reads observe. Even backdated changes have a later transaction time. This lets HashQL support graph updates while preserving the results of expressions over that earlier view.
