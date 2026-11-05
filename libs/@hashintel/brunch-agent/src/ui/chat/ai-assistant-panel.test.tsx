@@ -4323,6 +4323,32 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toEqual(endedWithoutReply);
   });
 
+  test("ends the turn when the follow-up to a completed browser tool is an empty step published by metadata", async () => {
+    // The SDK holds an empty step back until a later chunk writes the message;
+    // a metadata chunk publishes it, leaving only a step marker after the tool.
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "start-step" },
+        { type: "message-metadata", messageMetadata: {} },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual(endedWithoutReply);
+  });
+
+  test("recognizes a reply before an empty step published by metadata after the follow-up to a completed browser tool", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        ...textChunks("answer", "The net has one place"),
+        { type: "finish-step" },
+        { type: "start-step" },
+        { type: "message-metadata", messageMetadata: {} },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+  });
+
   test("ends the turn when the follow-up to a completed browser tool answers", async () => {
     expect(
       await runBrowserToolThenFollowUp([

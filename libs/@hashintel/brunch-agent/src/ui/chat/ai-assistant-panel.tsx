@@ -691,8 +691,8 @@ const ConversationAiAssistantPanel = ({
   // Stop withholds it.
   const [continuationPending, setContinuationPending] = useState(false);
   // A completed tool step gets one follow-up. When that follow-up finishes
-  // cleanly but leaves the same step last, nothing replied: the turn ends with
-  // a neutral note rather than asking again.
+  // cleanly but adds nothing after that step except empty step markers,
+  // nothing replied: the turn ends with a neutral note rather than asking again.
   const continuedToolStepRef = useRef<{
     key: string;
     parts: string;
@@ -1335,12 +1335,21 @@ const ConversationAiAssistantPanel = ({
         continuedToolStepRef.current !== null &&
         completedToolStepOf(finishedMessages) ===
           continuedToolStepRef.current.key;
-      // A reply may append content without opening another step. The tool
-      // IDs still prevent a repeat send, but only unchanged parts mean no reply.
+      // A reply may append content without opening another step, and a clean
+      // follow-up may publish an empty step with its metadata. The tool IDs
+      // prevent a repeat send; only the continued parts, followed by nothing
+      // but step markers, mean no reply.
+      const finishedParts = finishedMessages.at(-1)?.parts ?? [];
       const noReplyToToolStep =
-        alreadyContinuedToolStep &&
-        JSON.stringify(finishedMessages.at(-1)?.parts) ===
-          continuedToolStepRef.current?.parts;
+        completedNormally &&
+        continuedToolStepRef.current !== null &&
+        JSON.stringify(
+          finishedParts.slice(
+            0,
+            finishedParts.findLastIndex((part) => part.type !== "step-start") +
+              1,
+          ),
+        ) === continuedToolStepRef.current.parts;
       // In-band tools continue on the server, not through sendAutomaticallyWhen.
       // A clean finish with only step markers after their result has no reply.
       const lastReplyPart = finishedMessages
