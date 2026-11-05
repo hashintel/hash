@@ -102,17 +102,24 @@ export const mockEntityTypes = [
     "Acme Metals · quality@acme.example · Active",
     [
       propertyType("name", "Name", "Text"),
-      { ...propertyType("contact-email", "Contact email", "Text"), dataTypes: ["Email"] },
+      {
+        ...propertyType("contact-email", "Contact email", "Text"),
+        dataTypes: ["Email"],
+      },
       {
         ...propertyType("contact", "Contact", "Text"),
-        dataTypes: ["Email", "Phone number"],
+        dataTypes: ["Email", "Phone number", "Postal address"],
       },
       propertyType("status", "Status", "Text", [
         "Active",
         "On hold",
         "Offboarded",
       ]),
-      { ...propertyType("certificate-url", "Certificate link", "Text"), dataTypes: ["URL"] },
+      {
+        ...propertyType("certificate-url", "Certificate link", "Text"),
+        dataTypes: ["URL"],
+      },
+      { ...propertyType("website", "Website", "Text"), dataTypes: ["URL"] },
       propertyType("last-reviewed", "Last reviewed", "Date"),
       link("shipments", "Shipment", "shipment"),
     ],
