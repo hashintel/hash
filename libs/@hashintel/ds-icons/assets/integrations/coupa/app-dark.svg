@@ -6,15 +6,15 @@
       <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
     </linearGradient>
     <radialGradient id="coupa-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="coupa-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity=".75" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".04" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
     </linearGradient>
   </defs>
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#coupa-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />

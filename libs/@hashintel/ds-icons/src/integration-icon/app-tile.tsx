@@ -9,9 +9,9 @@ export const AppTileLight = ({ id }: { id: string }) => (
         y2="64"
         gradientUnits="userSpaceOnUse"
       >
-        <stop offset="0" stopColor="#F3F7FA" stopOpacity=".82" />
-        <stop offset=".48" stopColor="#DCE5ED" stopOpacity=".64" />
-        <stop offset="1" stopColor="#E8EFF5" stopOpacity=".78" />
+        <stop offset="0" stopColor="#FBFCFD" stopOpacity=".78" />
+        <stop offset=".48" stopColor="#EFF3F6" stopOpacity=".50" />
+        <stop offset="1" stopColor="#F7F9FB" stopOpacity=".68" />
       </linearGradient>
       <radialGradient
         id={`${id}-sheen`}
@@ -20,7 +20,7 @@ export const AppTileLight = ({ id }: { id: string }) => (
         r="62"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stopColor="#FFFFFF" stopOpacity=".64" />
+        <stop stopColor="#FFFFFF" stopOpacity=".45" />
         <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
       </radialGradient>
       <linearGradient
@@ -31,11 +31,11 @@ export const AppTileLight = ({ id }: { id: string }) => (
         y2="64"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stopColor="#FFFFFF" stopOpacity=".98" />
-        <stop offset=".23" stopColor="#FFFFFF" stopOpacity=".25" />
+        <stop stopColor="#FFFFFF" stopOpacity=".64" />
+        <stop offset=".23" stopColor="#FFFFFF" stopOpacity=".12" />
         <stop offset=".5" stopColor="#FFFFFF" stopOpacity="0" />
-        <stop offset=".78" stopColor="#FFFFFF" stopOpacity=".18" />
-        <stop offset="1" stopColor="#FFFFFF" stopOpacity=".8" />
+        <stop offset=".78" stopColor="#FFFFFF" stopOpacity=".08" />
+        <stop offset="1" stopColor="#FFFFFF" stopOpacity=".45" />
       </linearGradient>
     </defs>
     <rect
@@ -45,8 +45,8 @@ export const AppTileLight = ({ id }: { id: string }) => (
       height="63"
       rx="10"
       fill={`url(#${id}-surface)`}
-      stroke="#526E86"
-      strokeOpacity=".28"
+      stroke="#9EADBB"
+      strokeOpacity=".22"
     />
     <rect
       x=".5"
@@ -89,7 +89,7 @@ export const AppTileDark = ({ id }: { id: string }) => (
         r="62"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stopColor="#FFFFFF" stopOpacity=".18" />
+        <stop stopColor="#FFFFFF" stopOpacity="0.09" />
         <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
       </radialGradient>
       <linearGradient
@@ -100,11 +100,11 @@ export const AppTileDark = ({ id }: { id: string }) => (
         y2="64"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stopColor="#FFFFFF" stopOpacity=".75" />
-        <stop offset=".23" stopColor="#FFFFFF" stopOpacity=".08" />
+        <stop stopColor="#FFFFFF" stopOpacity="0.375" />
+        <stop offset=".23" stopColor="#FFFFFF" stopOpacity="0.04" />
         <stop offset=".5" stopColor="#FFFFFF" stopOpacity="0" />
-        <stop offset=".78" stopColor="#FFFFFF" stopOpacity=".04" />
-        <stop offset="1" stopColor="#FFFFFF" stopOpacity=".45" />
+        <stop offset=".78" stopColor="#FFFFFF" stopOpacity="0.02" />
+        <stop offset="1" stopColor="#FFFFFF" stopOpacity="0.225" />
       </linearGradient>
     </defs>
     <rect
