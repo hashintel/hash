@@ -116,7 +116,7 @@ export default Visualization(({ tokens, parameters }) => (
 
 Petrinaut sizes the SVG to the window and preserves its `viewBox` proportions. Put the background on the SVG’s style so it fills the window.
 
-Visualizers support the [expression subset](#expression-subset), token collection methods (`map`, `filter`, `slice`, `reduce`), template literals, and `toFixed`, with SVG drawing elements. Types are inferred, and the [code editor](code-editor.md) reports errors as you type. Imports, hooks, arbitrary function calls, scripts, event handlers, and external URLs are rejected. Visualizer errors do not stop simulation.
+Visualizers support the [expression subset](#supported-code-subset), token collection methods (`map`, `filter`, `slice`, `reduce`), template literals, and `toFixed`, with SVG drawing elements. Types are inferred, and the [code editor](code-editor.md) reports errors as you type. Imports, hooks, arbitrary function calls, scripts, event handlers, and external URLs are rejected. Visualizer errors do not stop simulation.
 
 See [Satellites](examples.md#probabilistic-satellite-launcher) and [Supply Chain](examples.md#supply-chain-with-disruption) for examples.
 
