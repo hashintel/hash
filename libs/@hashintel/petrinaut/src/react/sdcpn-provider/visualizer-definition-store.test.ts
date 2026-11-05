@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { createReadableStore } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  createReadableStore,
+} from "@hashintel/petrinaut-core";
 
 import { createVisualizerDefinitionStore } from "./visualizer-definition-store";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { DocChangeEvent, SDCPN } from "@hashintel/petrinaut-core";
 
 const initial: SDCPN = {
   places: [
@@ -23,94 +27,136 @@ const initial: SDCPN = {
   differentialEquations: [],
   parameters: [],
 };
-const edit = (code: string): SDCPN => ({
-  ...initial,
-  places: initial.places.map((place) => ({ ...place, visualizerCode: code })),
-});
+const setup = (definition = initial) => {
+  const instance = createPetrinaut({
+    document: createJsonDocHandle({ initial: definition }),
+  });
+  const view = createVisualizerDefinitionStore(
+    instance.definition,
+    instance.handle,
+  );
+  const listener = vi.fn();
+  const unsubscribe = view.subscribe(listener);
+  const edit = (visualizerCode: string) =>
+    instance.mutations.updatePlace({
+      placeId: instance.definition.get().places[0]!.id,
+      update: { visualizerCode },
+    });
+  return { instance, view, listener, unsubscribe, edit };
+};
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-it("keeps each edit in the source while coalescing UI snapshots", () => {
-  const source = createReadableStore(initial);
-  const view = createVisualizerDefinitionStore(source);
-  const listener = vi.fn();
-  const unsubscribe = view.subscribe(listener);
+it("keeps each real document mutation while coalescing sanitized UI snapshots", () => {
+  const { instance, view, listener, unsubscribe, edit } = setup();
+  const before = view.get();
   for (let index = 0; index < 20; index++) {
-    const next = edit(`code ${index}`);
-    source.set(next);
-    expect(source.get()).toBe(next);
+    edit(`code ${index}`);
+    expect(instance.handle.doc()?.places[0]?.visualizerCode).toBe(
+      `code ${index}`,
+    );
+    expect(instance.definition.get().places[0]?.visualizerCode).toBe(
+      `code ${index}`,
+    );
     vi.advanceTimersByTime(10);
   }
-  expect(view.get()).toBe(initial);
+  expect(view.get()).toBe(before);
   expect(listener).not.toHaveBeenCalled();
   vi.advanceTimersByTime(120);
-  expect(view.get()).toBe(source.get());
+  expect(view.get()).toBe(instance.definition.get());
   expect(listener).toHaveBeenCalledTimes(1);
   unsubscribe();
+  instance.dispose();
 });
 
-it("flushes on interaction and immediately publishes structural changes and visualizer toggles", () => {
-  const source = createReadableStore(initial);
-  const view = createVisualizerDefinitionStore(source);
-  const unsubscribe = view.subscribe(vi.fn());
-  source.set(edit("draft"));
+it("flushes on interaction, structural changes, and visualizer toggles", () => {
+  const { instance, view, unsubscribe, edit } = setup();
+  edit("draft");
   view.flush();
-  expect(view.get()).toBe(source.get());
-  source.set(edit("new draft"));
-  source.set({
-    ...source.get(),
-    places: source.get().places.map((place) => ({ ...place, x: 20 })),
+  expect(view.get()).toBe(instance.definition.get());
+  edit("new draft");
+  const placeId = instance.definition.get().places[0]!.id;
+  instance.mutations.updatePlace({ placeId, update: { name: "Renamed" } });
+  expect(view.get()).toBe(instance.definition.get());
+  instance.mutations.updatePlace({
+    placeId,
+    update: { visualizerCode: undefined },
   });
-  expect(view.get()).toBe(source.get());
-  source.set({
-    ...source.get(),
-    places: source
-      .get()
-      .places.map((place) => ({ ...place, visualizerCode: undefined })),
-  });
-  expect(view.get()).toBe(source.get());
+  expect(view.get()).toBe(instance.definition.get());
   unsubscribe();
+  instance.dispose();
 });
 
-it("bounds the wait during continuous typing and cancels pending work on unsubscribe", () => {
-  const source = createReadableStore(initial);
-  const view = createVisualizerDefinitionStore(source);
-  const listener = vi.fn();
-  const unsubscribe = view.subscribe(listener);
+it("bounds continuous typing latency and cancels work on unsubscribe", () => {
+  const { instance, view, listener, unsubscribe, edit } = setup();
   for (let index = 0; index < 50; index++) {
-    source.set(edit(`code ${index}`));
+    edit(`code ${index}`);
     vi.advanceTimersByTime(10);
   }
   expect(listener).toHaveBeenCalledTimes(1);
-  expect(view.get()).toBe(source.get());
-  source.set(edit("last edit"));
+  expect(view.get()).toBe(instance.definition.get());
+  edit("last edit");
   unsubscribe();
   vi.advanceTimersByTime(1000);
   expect(listener).toHaveBeenCalledTimes(1);
   const unsubscribeAgain = view.subscribe(listener);
-  expect(view.get()).toBe(source.get());
+  expect(view.get()).toBe(instance.definition.get());
   unsubscribeAgain();
+  instance.dispose();
 });
 
 it("coalesces component visualizers and flushes changes to other component fields", () => {
-  const component = { ...initial, id: "component", name: "Component" };
-  const source = createReadableStore<SDCPN>({
+  const { instance, view, unsubscribe } = setup({
     ...initial,
-    components: [component],
+    components: [{ ...initial, id: "component", name: "Component" }],
   });
-  const view = createVisualizerDefinitionStore(source);
-  const unsubscribe = view.subscribe(vi.fn());
-  const previous = view.get();
-  source.set({
-    ...source.get(),
-    components: [{ ...component, places: edit("component code").places }],
+  const before = view.get();
+  const component = instance.definition.get().components![0]!;
+  instance.mutations.updatePlace({
+    targetComponentId: component.id,
+    placeId: component.places[0]!.id,
+    update: { visualizerCode: "component code" },
   });
-  expect(view.get()).toBe(previous);
-  source.set({
-    ...source.get(),
-    components: [{ ...component, name: "Renamed" }],
+  expect(view.get()).toBe(before);
+  instance.mutations.updatePlace({
+    targetComponentId: component.id,
+    placeId: component.places[0]!.id,
+    update: { name: "Renamed" },
   });
-  expect(view.get()).toBe(source.get());
+  expect(view.get()).toBe(instance.definition.get());
   unsubscribe();
+  instance.dispose();
 });
+
+it.each([undefined, "remote"] as const)(
+  "immediately publishes snapshots without local patches (%s)",
+  (source) => {
+    const definition = createReadableStore(initial);
+    let notify = (_event: DocChangeEvent) => {};
+    const view = createVisualizerDefinitionStore(definition, {
+      subscribe: (listener) => {
+        notify = listener;
+        return () => {};
+      },
+    });
+    const unsubscribe = view.subscribe(vi.fn());
+    const next = structuredClone(initial);
+    definition.set(next);
+    notify({
+      next,
+      source,
+      patches: source
+        ? [
+            {
+              op: "replace",
+              path: ["places", 0, "visualizerCode"],
+              value: "remote code",
+            },
+          ]
+        : undefined,
+    });
+    expect(view.get()).toBe(next);
+    unsubscribe();
+  },
+);
