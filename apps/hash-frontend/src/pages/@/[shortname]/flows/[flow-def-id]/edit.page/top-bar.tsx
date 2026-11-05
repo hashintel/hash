@@ -71,7 +71,8 @@ const SaveStatus = ({
 };
 
 /**
- * The flow's name, editable when clicked. Escape, or leaving it blank, keeps the name it had.
+ * The flow's name, editable when clicked. Escape, or leaving it blank or unchanged, keeps the name the flow has, which
+ * a reload after a conflict may have changed meanwhile.
  */
 const FlowName = ({
   name,
@@ -80,7 +81,10 @@ const FlowName = ({
   name: string;
   onRename: (name: string) => void;
 }) => {
-  const [typed, setTyped] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{
+    from: string;
+    typed: string;
+  } | null>(null);
   const cancelledRef = useRef(false);
 
   return (
@@ -92,9 +96,11 @@ const FlowName = ({
       aria-label="Flow name"
       placeholder="Untitled flow"
       className={flowName}
-      value={typed ?? name}
-      onFocus={() => setTyped(name)}
-      onChange={setTyped}
+      value={editing?.typed ?? name}
+      onFocus={() => setEditing({ from: name, typed: name })}
+      onChange={(typed) =>
+        setEditing((current) => current && { ...current, typed })
+      }
       onKeyDown={(event) => {
         if (
           (event.key !== "Enter" && event.key !== "Escape") ||
@@ -110,14 +116,14 @@ const FlowName = ({
         }
       }}
       onBlur={() => {
-        const renamed = typed?.trim();
+        const renamed = editing?.typed.trim();
 
-        if (!cancelledRef.current && renamed) {
+        if (!cancelledRef.current && renamed && renamed !== editing?.from) {
           onRename(renamed);
         }
 
         cancelledRef.current = false;
-        setTyped(null);
+        setEditing(null);
       }}
     />
   );
