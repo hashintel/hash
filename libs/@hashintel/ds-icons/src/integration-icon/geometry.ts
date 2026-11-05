@@ -292,7 +292,7 @@ export const integrationGeometry = {
   microsoftTeams: {
     ...microsoftTeams,
     markViewBox: "4 4 36 38",
-    logoViewBox: "0 0 683.7612323491655 100",
+    logoViewBox: "0 0 726.6715829881806 100",
     ratio: 2,
     alignment: "center",
   },
@@ -348,7 +348,7 @@ export const integrationGeometry = {
   microsoftTeamsLegacy: {
     ...microsoftTeamsLegacy,
     markViewBox: "0 0 32 30",
-    logoViewBox: "0 0 695.6910569105692 100",
+    logoViewBox: "0 0 738.6014075495841 100",
     ratio: 2,
     alignment: "center",
   },

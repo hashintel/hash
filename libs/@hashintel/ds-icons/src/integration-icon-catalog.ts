@@ -736,9 +736,9 @@ export const integrationIconCatalog = [
       "logo-dark",
     ],
     logoSource:
-      "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
     logoNotes:
-      "Composed lock-up pairing the current Teams product mark (October 2025 redesign) with the Microsoft Teams wordmark vectorized from page 1 of the official Microsoft PDF. The Microsoft corporate square is excluded. Charcoal lettering in light mode and near-white lettering in dark mode; no embedded raster artwork.",
+      "Composed lock-up pairing the current Teams product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Uses the same lettering, spacing, and charcoal/light, near-white/dark text treatment as the other Microsoft product logos. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
   },
   {
@@ -920,9 +920,9 @@ export const integrationIconCatalog = [
       "logo-dark",
     ],
     logoSource:
-      "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
     logoNotes:
-      "Previous Teams product mark, retained as an explicit legacy option. Full logos pair it with the Microsoft Teams wordmark vectorized from an official Microsoft PDF. Charcoal/light and near-white/dark lettering.",
+      "Composed lock-up pairing the previous Teams product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Uses the same lettering, spacing, and charcoal/light, near-white/dark text treatment as the other Microsoft product logos. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
   },
   {
