@@ -1778,7 +1778,17 @@ const Checklist = ({
                 }))
               }
             >
-              <Icon name="warning" size="sm" />
+              {/* Two-line row: the icon centres on the title's line, not the row's top. */}
+              <span
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: "0",
+                  height: "[22px]",
+                })}
+              >
+                <Icon name="warning" size="sm" />
+              </span>
               <span
                 className={css({ display: "flex", flexDirection: "column" })}
               >
