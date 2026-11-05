@@ -3,11 +3,12 @@
  * has, and where it is in playing them. It starts `still` on its last step,
  * so a page rendered ahead of time, or read without motion, shows the whole
  * figure. Out of view it rewinds and waits (`armed`); in view it plays one
- * step at a time (`playing`) and stops on the last (`done`), from where it
- * can play again.
+ * step at a time (`playing`) and stops on the last (`done`). A step the
+ * reader picks stops it where they put it (`paused`). From `done` or
+ * `paused` it can play again.
  */
 
-export type PlayerPhase = "still" | "armed" | "playing" | "done";
+export type PlayerPhase = "still" | "armed" | "playing" | "done" | "paused";
 
 export interface PlayerState {
   step: number;
@@ -44,6 +45,13 @@ export const completePlayerStep = (
   state: PlayerState,
   step: number,
 ): PlayerState => (step === state.step ? advancePlayer(state) : state);
+
+/** Shows the step the reader picked, and stops playing. */
+export const seekPlayer = (state: PlayerState, step: number): PlayerState => ({
+  ...state,
+  step: Math.min(Math.max(Math.round(step), 0), state.count - 1),
+  phase: "paused",
+});
 
 export const replayPlayer = (state: PlayerState): PlayerState =>
   state.count > 1 ? { ...state, step: 0, phase: "playing" } : state;

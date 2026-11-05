@@ -145,37 +145,171 @@
 }
 
 /*
- * A docs page's `Steps` block, which plays itself. Its replay button shows
- * once it has played, when the pointer is over the block or the button has
- * focus.
+ * A docs page's `Steps` block, which plays itself, and its controls: a
+ * slider through the steps with a mark for each, and a replay button at
+ * its right. The controls stay faint until the pointer is over the block
+ * or one of them has focus, and fade in over 300ms. Replay fades out while
+ * the block plays.
  */
 .steps {
   position: relative;
 }
 
-.steps__replay {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  padding: 0.2rem 0.6rem;
-  border: 1px solid var(--sl-color-hairline-light, currentColor);
-  border-radius: 999px;
-  background: var(--sl-color-bg, Canvas);
-  color: var(--sl-color-gray-2, currentColor);
-  font: inherit;
-  font-size: 0.8rem;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 150ms ease;
+.steps__controls {
+  --steps-thumb: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--sl-color-gray-3, currentColor);
+  opacity: 0.18;
+  transition: opacity 300ms ease;
 }
 
-.steps:hover .steps__replay,
-.steps__replay:focus-visible {
+.steps:hover .steps__controls,
+.steps__controls:focus-within {
   opacity: 1;
 }
 
+/* The docs' spacing between blocks of prose would push the button down. */
+.steps__controls > :is(.steps__track, .steps__replay) {
+  margin: 0;
+}
+
+.steps__track {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  height: 1.5rem;
+}
+
+/* A mark per step, under the slider, centred where the thumb stops. */
+.steps__marks {
+  position: absolute;
+  inset: 0 calc(var(--steps-thumb) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.steps__marks span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--sl-color-bg, Canvas);
+  box-shadow: inset 0 0 0 1px currentColor;
+  transition: background-color 200ms ease;
+}
+
+.steps__marks span[data-reached="true"] {
+  background: currentColor;
+}
+
+.steps__slider {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.steps__slider:focus-visible {
+  outline: none;
+}
+
+.steps__slider::-webkit-slider-runnable-track {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    currentColor var(--steps-progress),
+    color-mix(in srgb, currentColor 40%, transparent) var(--steps-progress)
+  );
+}
+
+.steps__slider::-moz-range-track {
+  height: 1px;
+  background: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.steps__slider::-moz-range-progress {
+  height: 1px;
+  background: currentColor;
+}
+
+.steps__slider::-webkit-slider-thumb {
+  width: var(--steps-thumb);
+  height: var(--steps-thumb);
+  margin-top: calc(var(--steps-thumb) / -2 + 0.5px);
+  border-radius: 50%;
+  background: currentColor;
+  appearance: none;
+  transition: transform 150ms ease;
+}
+
+.steps__slider::-moz-range-thumb {
+  width: var(--steps-thumb);
+  height: var(--steps-thumb);
+  border: none;
+  border-radius: 50%;
+  background: currentColor;
+  transition: transform 150ms ease;
+}
+
+.steps__slider:is(:hover, :focus-visible)::-webkit-slider-thumb {
+  transform: scale(1.3);
+}
+
+.steps__slider:is(:hover, :focus-visible)::-moz-range-thumb {
+  transform: scale(1.3);
+}
+
+.steps__slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.steps__slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.steps__replay {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    opacity 250ms ease,
+    visibility 0s,
+    background-color 150ms ease;
+}
+
+.steps__replay:hover,
+.steps__replay:focus-visible {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  outline: none;
+}
+
+.steps__replay[data-available="false"] {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 250ms ease,
+    visibility 0s 250ms;
+}
+
 @media print {
-  .steps__replay {
+  .steps__controls {
     display: none;
   }
 }

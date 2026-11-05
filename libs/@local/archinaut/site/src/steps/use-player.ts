@@ -3,7 +3,8 @@
  * rewinds to its first step, so the reader never sees it empty itself;
  * when half of it, or half the window, is in view, it plays. Each step
  * holds until its animations have ended and a beat more, then the next
- * comes. Without motion the block stays on its last step.
+ * comes. Without motion the block stays on its last step. The reader can
+ * pick a step, which stops the block there, or play it again.
  */
 
 import { useEffect, useState, type RefObject } from "react";
@@ -14,6 +15,7 @@ import {
   completePlayerStep,
   registerPlayerSteps,
   replayPlayer,
+  seekPlayer,
   startPlayer,
   stillPlayer,
   type PlayerState,
@@ -44,6 +46,7 @@ export const usePlayer = (
   block: RefObject<HTMLDivElement | null>,
 ): {
   state: PlayerState;
+  seek: (step: number) => void;
   replay: () => void;
   register: (scope: string, total: number) => void;
   complete: (scope: string, step: number) => void;
@@ -94,6 +97,7 @@ export const usePlayer = (
 
   return {
     state,
+    seek: (step) => setState((current) => seekPlayer(current, step)),
     replay: () => setState(replayPlayer),
     register: (_scope, total) =>
       setState((current) => registerPlayerSteps(current, total)),

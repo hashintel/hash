@@ -6,6 +6,7 @@ import {
   completePlayerStep,
   registerPlayerSteps,
   replayPlayer,
+  seekPlayer,
   startPlayer,
   stillPlayer,
   type PlayerState,
@@ -50,9 +51,25 @@ describe("the Steps player", () => {
     expect(completePlayerStep(playing, 1)).toBe(playing);
   });
 
+  it("shows the step the reader picks and stops playing there", () => {
+    const playing = startPlayer(armPlayer(stillPlayer(4)));
+    const picked = seekPlayer(playing, 2);
+    expect(picked).toEqual({ step: 2, count: 4, phase: "paused" });
+    expect(advancePlayer(picked)).toBe(picked);
+    expect(completePlayerStep(picked, 2)).toBe(picked);
+    expect(armPlayer(picked)).toBe(picked);
+    expect(seekPlayer(picked, 9).step).toBe(3);
+    expect(seekPlayer(picked, -1).step).toBe(0);
+  });
+
   it("replays from the first step", () => {
     const done: PlayerState = { step: 2, count: 3, phase: "done" };
     expect(replayPlayer(done)).toEqual({ step: 0, count: 3, phase: "playing" });
+    expect(replayPlayer(seekPlayer(done, 1))).toEqual({
+      step: 0,
+      count: 3,
+      phase: "playing",
+    });
   });
 
   it("takes a larger step count a component declares", () => {
