@@ -1,4 +1,4 @@
-import { isEqual } from "lodash";
+import { isEqual, memoize } from "lodash";
 import { Fragment, useMemo, useState } from "react";
 
 import {
@@ -23,7 +23,10 @@ import { usePropertyTypes } from "../../../../../../../shared/property-types-con
 import { useDataTypesContext } from "../../../../../../shared/data-types-context";
 import { getPathInSource } from "./field-problems";
 import { InputField } from "./input-field";
-import { getConditionProperties } from "./query-field/condition-properties";
+import {
+  getConditionProperties,
+  getLatestDataTypeIds,
+} from "./query-field/condition-properties";
 import {
   operatorsByKind,
   readQueryForm,
@@ -42,7 +45,7 @@ import type {
   QueryForm,
   SortOrder,
 } from "./query-field/query-form";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   FilterChange,
   FilterOperator,
@@ -274,7 +277,9 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
             entityTypes,
             entityTypeParentIds,
             propertyTypes,
-            latestPropertyTypes: Object.values(latestPropertyTypes),
+            latestDataTypeIds: getLatestDataTypeIds(
+              Object.values(latestPropertyTypes),
+            ),
             dataTypes,
           }
         : null,
@@ -299,6 +304,17 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
         ).map((property) => [property.baseUrl, property]),
       ),
     [ontology, latestEntityTypes],
+  );
+
+  const getPropertiesOfTypes = useMemo(
+    () =>
+      ontology &&
+      memoize(
+        (entityTypeIds: VersionedUrl[]) =>
+          getConditionProperties(ontology, entityTypeIds),
+        (entityTypeIds) => entityTypeIds.join(" "),
+      ),
+    [ontology],
   );
 
   const typeItems = useMemo(() => {
@@ -337,7 +353,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
     .filter((problem) => !isAboutLimit(problem))
     .map(({ message }) => message);
 
-  if (!ontology || !latestEntityTypes || !conditionProperties) {
+  if (!latestEntityTypes || !conditionProperties || !getPropertiesOfTypes) {
     return (
       <Form.Field layout="inline" label="Query">
         <LoadingSpinner size="sm" />
@@ -514,8 +530,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
                   properties={
                     form.entityTypeBaseUrls.length === 0
                       ? [...conditionProperties.values()]
-                      : getConditionProperties(
-                          ontology,
+                      : getPropertiesOfTypes(
                           latestEntityTypes
                             .filter(({ metadata }) =>
                               form.entityTypeBaseUrls.includes(

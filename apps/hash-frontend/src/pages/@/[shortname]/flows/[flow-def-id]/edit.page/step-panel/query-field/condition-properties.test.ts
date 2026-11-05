@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { getConditionProperties } from "./condition-properties";
+import {
+  getConditionProperties,
+  getLatestDataTypeIds,
+} from "./condition-properties";
 
 import type { ConditionOntology } from "./condition-properties";
 import type {
@@ -92,7 +95,7 @@ const ontologyOf = (
   propertyTypes: Object.fromEntries(
     propertyTypes.map((type) => [type.schema.$id, type]),
   ),
-  latestPropertyTypes: propertyTypes,
+  latestDataTypeIds: getLatestDataTypeIds(propertyTypes),
   dataTypes,
 });
 
@@ -158,5 +161,17 @@ describe("getConditionProperties", () => {
       "state",
     ]);
     expect(valueKindsOf(ontology, ["report"])).toEqual({});
+  });
+
+  it("offers a property one type has as a single value even when a type before it has it as a list", () => {
+    const properties = [propertyType("sent", ["date"])];
+    const ontology = ontologyOf(properties, [
+      entityType("report", ["sent"], ["sent"]),
+      entityType("letter", ["sent"]),
+    ]);
+
+    expect(valueKindsOf(ontology, ["report", "letter"])).toEqual({
+      sent: { kind: "date" },
+    });
   });
 });
