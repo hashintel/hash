@@ -151,7 +151,7 @@ export const getVersionGraphLayout = ({
 
   const versionParts = pills.map(({ version, gap }) =>
     gap
-      ? `v${version} doesn't extend ${parentTitle} now`
+      ? `v${version} doesn't extend ${parentTitle}, or is archived`
       : `v${version} extends ${parentTitle} ${formatList(parentVersionsByVersion.get(version) ?? [])}`,
   );
   const summary = [
@@ -160,7 +160,7 @@ export const getVersionGraphLayout = ({
       ? [`${parentTitle} has versions newer than v${parentTo}.`]
       : []),
     ...(row.former
-      ? [`${title} has newer versions that don't extend ${parentTitle} now.`]
+      ? [`Its newer versions don't extend ${parentTitle}, or are archived.`]
       : []),
   ].join(" ");
 

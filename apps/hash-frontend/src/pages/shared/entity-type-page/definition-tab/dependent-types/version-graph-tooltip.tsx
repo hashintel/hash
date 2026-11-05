@@ -265,7 +265,7 @@ const VersionGraphCard = ({
               border: `1.5px dotted ${palette.gray[50]}`,
             })}
           />
-          <span>{`version that doesn't extend ${parentTitle} now`}</span>
+          <span>{`version that doesn't extend ${parentTitle}, or is archived`}</span>
         </Box>
       ) : null}
     </Box>

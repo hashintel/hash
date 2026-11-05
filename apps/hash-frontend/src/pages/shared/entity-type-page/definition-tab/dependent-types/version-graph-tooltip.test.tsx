@@ -28,7 +28,7 @@ const shellCompany = makeRow(
   true,
 );
 const shellCompanySummary =
-  "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v3 doesn't extend Company now; v4 extends Company v2. Company has versions newer than v2. Shell Company has newer versions that don't extend Company now.";
+  "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v3 doesn't extend Company, or is archived; v4 extends Company v2. Company has versions newer than v2. Its newer versions don't extend Company, or are archived.";
 
 const machine = makeRow("Machine", 2, [
   [1, 1, 1],
@@ -259,7 +259,9 @@ describe("VersionGraphTooltip", () => {
       "dotted",
     );
     within(tooltip).getByText("Company");
-    within(tooltip).getByText("version that doesn't extend Company now");
+    within(tooltip).getByText(
+      "version that doesn't extend Company, or is archived",
+    );
   });
 
   it("shows no key when every version extends the parent", () => {
@@ -269,7 +271,7 @@ describe("VersionGraphTooltip", () => {
 
     expect(
       within(screen.getByRole("tooltip")).queryByText(
-        "version that doesn't extend Company now",
+        "version that doesn't extend Company, or is archived",
       ),
     ).toBeNull();
   });
