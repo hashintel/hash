@@ -39,7 +39,12 @@ import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, isTyping, organize } from "./toolbar";
 import { InlineRename, Toast } from "./ui";
-import { PublishButton, VersionBanner, VersionButton } from "./versions";
+import {
+  DraftSaveNote,
+  PublishButton,
+  VersionBanner,
+  VersionButton,
+} from "./versions";
 
 import type { EditorDocument } from "./document";
 
@@ -490,6 +495,9 @@ export const Editor = ({
                               version={version}
                               viewing={viewingVersion}
                             />
+                          ) : null}
+                          {version && viewingVersion === null ? (
+                            <DraftSaveNote document={document} />
                           ) : null}
                           {/* Take 3: one muted line, "v6 · Draft ▾ · 17 runs"; each part opens its own place. */}
                           {version && editorBar === 3 ? (

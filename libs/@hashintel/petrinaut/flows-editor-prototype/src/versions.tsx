@@ -1,9 +1,9 @@
 /**
  * Versions and publish (V0–V7, Figma 1185:88322, Isaac's storyboard 12). The draft carries the next number and saves
- * as you edit, with no "Draft saved" text (Aakarsh, 4 Nov: only a save error shows; not mocked). Publish makes the
+ * as you edit, with no "Draft saved" text (Aakarsh, 4 Nov); whether it should say so is open, ?draftsaved=dora|dei. Publish makes the
  * draft live and moves this web's triggers to it. Picking a past version opens it read-only (V6).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Button,
@@ -16,7 +16,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { publishFlow } from "./app-store";
-import { setQuery } from "./router";
+import { setQuery, useLocation } from "./router";
 import { Toast } from "./ui";
 
 import type { FlowVersion } from "./seed-flows";
@@ -161,6 +161,88 @@ export const VersionButton = ({
     }
   />
 );
+
+/* ----------------------------------------------------------------------------------------------------------------
+ * "Draft saved", open (5 Nov, inbox `picks/draft-saved`): ?draftsaved=dora|dei, from the URL only; no param shows
+ * nothing, as before.
+ * - Dora: no "Draft saved"; only a failed save shows, and stays until it saves. ?savefail makes every save fail.
+ * - Dei: "Draft saved" flashes after each edit, then fades.
+ * ------------------------------------------------------------------------------------------------------------- */
+
+const saveNoteStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  textStyle: "sm",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+  transition: "[opacity 600ms ease-out]",
+});
+
+const saveErrorStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  textStyle: "sm",
+  color: "[var(--flows-failed-text)]",
+  whiteSpace: "nowrap",
+});
+
+/** How long Dei's "Draft saved" stays before it fades. */
+const flashMs = 1400;
+
+export const DraftSaveNote = ({ document }: { document: unknown }) => {
+  const { query } = useLocation();
+  const take = query.get("draftsaved")?.toLowerCase();
+  const failing = query.has("savefail");
+  const [seen, setSeen] = useState(document);
+  const [editedAt, setEditedAt] = useState<number | null>(null);
+  const [shown, setShown] = useState(false);
+  const [failed, setFailed] = useState(false);
+  if (document !== seen) {
+    setSeen(document);
+    setEditedAt(Date.now());
+    setShown(true);
+    setFailed(failing);
+  }
+  useEffect(() => {
+    if (editedAt === null) {
+      return;
+    }
+    const timer = setTimeout(() => setShown(false), flashMs);
+    return () => clearTimeout(timer);
+  }, [editedAt]);
+  if (take === "dora") {
+    return failed ? (
+      <span className={saveErrorStyle} role="alert" data-draft-save="error">
+        <Icon name="warning" size="sm" />
+        Couldn&apos;t save your changes
+        <Button
+          size="sm"
+          variant="ghost"
+          tone="neutral"
+          onClick={() => setFailed(false)}
+        >
+          Retry
+        </Button>
+      </span>
+    ) : null;
+  }
+  if (take === "dei") {
+    return (
+      <span
+        className={saveNoteStyle}
+        // In at once, out over 600 ms.
+        style={{ opacity: shown ? 1 : 0, transition: shown ? "none" : undefined }}
+        aria-live="polite"
+        data-draft-save={shown ? "saved" : "idle"}
+      >
+        Draft saved
+      </span>
+    );
+  }
+  return null;
+};
 
 /* ----------------------------------------------------------------------------------------------------------------
  * Publish: the button, the V4 dialog and the V7 toast
