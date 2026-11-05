@@ -8,7 +8,7 @@ use reqwest::{
 use rstest::rstest;
 use tokio::time::Instant;
 
-use super::{Pacer, client, retry_after, validate};
+use super::{Pacing, client, retry_after, validate};
 use crate::sources::{SourceError, tests::server};
 
 #[tokio::test]
@@ -49,58 +49,36 @@ fn destinations_invalid_url(#[case] address: &str) {
 }
 
 #[tokio::test(start_paused = true)]
-async fn pacing_across_callers() {
-    let pacer = Pacer::default();
+async fn pacing_spaces_one_capture() {
     let start = Instant::now();
-    pacer
-        .wait("one.test", Duration::from_millis(50))
-        .await
-        .expect("should reserve a request");
-    let ((), ()) = tokio::join!(
-        async {
-            pacer
-                .wait("one.test", Duration::from_millis(50))
-                .await
-                .expect("should reserve the second request");
-        },
-        async {
-            pacer
-                .wait("other.test", Duration::from_millis(50))
-                .await
-                .expect("should allow another host immediately");
-            assert_eq!(
-                start.elapsed(),
-                Duration::ZERO,
-                "another host should be independent"
-            );
-        }
-    );
-    pacer
-        .wait("one.test", Duration::from_millis(50))
-        .await
-        .expect("should reserve the third request");
+    let mut pacing = Pacing::new(Duration::from_millis(50));
+    for _ in 0..3 {
+        pacing.wait().await.expect("should pace the request");
+    }
     assert_eq!(
         start.elapsed(),
         Duration::from_millis(100),
-        "callers should share the host interval"
+        "should space each request after the first by the interval"
     );
-    pacer
-        .wait("one.test", Duration::from_millis(200))
-        .await
-        .expect("should apply a longer requested interval");
+}
+
+#[tokio::test(start_paused = true)]
+async fn pacing_is_not_shared_between_captures() {
+    let start = Instant::now();
+    let mut slow = Pacing::new(Duration::from_hours(24));
+    slow.wait().await.expect("should start the slow capture");
+    // The slow capture's next request waits a day; cancelling it must leave nothing behind.
+    let pending = tokio::spawn(async move { slow.wait().await });
+    tokio::task::yield_now().await;
+    pending.abort();
+    let mut fast = Pacing::new(Duration::ZERO);
+    for _ in 0..2 {
+        fast.wait().await.expect("should pace the fast capture");
+    }
     assert_eq!(
         start.elapsed(),
-        Duration::from_millis(300),
-        "should honor the current caller's longer interval"
-    );
-    pacer
-        .wait("one.test", Duration::ZERO)
-        .await
-        .expect("should not wait for another caller's interval");
-    assert_eq!(
-        start.elapsed(),
-        Duration::from_millis(300),
-        "a caller should not be held to a longer interval requested by another caller"
+        Duration::ZERO,
+        "another capture's interval and cancelled wait should not delay this one"
     );
 }
 

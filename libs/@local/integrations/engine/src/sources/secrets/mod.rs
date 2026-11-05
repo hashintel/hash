@@ -12,9 +12,7 @@ use reqwest::{
     Client, Url,
     header::{AUTHORIZATION, HeaderValue},
 };
-#[cfg(test)]
-use serde::Deserializer;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned};
 use serde_json::{Map, Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use type_system::{
@@ -32,7 +30,6 @@ use super::{SecretService, SourceError};
 /// Pinned secret bytes whose storage is zeroed when dropped.
 pub type SecretValue = Pin<Box<Secret<[u8]>>>;
 
-#[cfg(test)]
 pub(super) fn deserialize_secret<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Pin<Box<Secret<str>>>, D::Error> {
