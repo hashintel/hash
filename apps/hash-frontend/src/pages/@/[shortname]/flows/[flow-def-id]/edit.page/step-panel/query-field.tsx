@@ -249,6 +249,14 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
   const [newConditionProperty, setNewConditionProperty] =
     useState<ConditionProperty>();
 
+  /*
+   * A key for each condition's row, kept across removals, so that a chip that collapses as it's removed isn't reused for
+   * the condition after it. Rows past `keys` haven't needed one kept yet, and count on from `next`.
+   */
+  const [rowKeys, setRowKeys] = useState({ keys: [] as number[], next: 0 });
+  const getRowKey = (index: number) =>
+    rowKeys.keys[index] ?? rowKeys.next + index - rowKeys.keys.length;
+
   const { entityTypes, entityTypeParentIds } = useEntityTypesContextRequired();
   const { latestEntityTypes } = useLatestEntityTypesOptional();
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
@@ -322,7 +330,11 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
       <Form.Field
         layout="inline"
         label="Query"
-        errors={queryErrors.length > 0 ? queryErrors : undefined}
+        errors={
+          problems.length > 0
+            ? problems.map(({ message }) => message)
+            : undefined
+        }
       >
         <div className={unreadable}>
           <span className={note}>
@@ -365,6 +377,19 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
       : []),
   ];
 
+  const forgetRowKey = (index: number) =>
+    setRowKeys(({ keys, next }) => {
+      const kept = Array.from(
+        { length: rows.length },
+        (_, rowIndex) => keys[rowIndex] ?? next + rowIndex - keys.length,
+      );
+
+      return {
+        keys: kept.toSpliced(index, 1),
+        next: next + Math.max(0, rows.length - keys.length),
+      };
+    });
+
   const commitCondition = (index: number, condition: QueryCondition | null) => {
     if (index === form.conditions.length) {
       if (condition) {
@@ -372,6 +397,10 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
         save({ ...form, conditions: [...form.conditions, condition] });
       }
       return;
+    }
+
+    if (!condition) {
+      forgetRowKey(index);
     }
 
     save({
@@ -383,6 +412,8 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
   };
 
   const removeCondition = (index: number) => {
+    forgetRowKey(index);
+
     if (index === form.conditions.length) {
       setNewConditionProperty(undefined);
     } else {
@@ -414,9 +445,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           <div className={conditionGroup}>
             <FilterGroup dismissAbandoned>
               {rows.map(({ condition, property }, index) => (
-                /* Keyed by position, so a new condition's chip isn't remounted once it's saved. */
-                // eslint-disable-next-line react/no-array-index-key
-                <Fragment key={index}>
+                <Fragment key={getRowKey(index)}>
                   {index > 0 && (
                     <div className={groupLine}>
                       {index === 1 && !readOnly ? (
@@ -440,7 +469,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
                   {property && (
                     <div className={groupLine}>
                       <ConditionFilter
-                        rowKey={`condition-${index}`}
+                        rowKey={`condition-${getRowKey(index)}`}
                         property={property}
                         condition={condition}
                         readOnly={readOnly}
@@ -494,13 +523,14 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           invalid={limitErrors.length > 0}
           disabled={readOnly}
           aria-label="Limit"
-          /* A negative is rejected for the whole query, not reported here, so it isn't saved. */
-          onChange={(limit) =>
-            save({
-              ...form,
-              limit: limit !== null && limit >= 0 ? limit : undefined,
-            })
-          }
+          onChange={(limit) => {
+            /* A negative would be rejected for the whole query, not reported here, so it isn't saved. */
+            if (limit !== null && limit < 0) {
+              return;
+            }
+
+            save({ ...form, limit: limit ?? undefined });
+          }}
         />
       </Form.Field>
     </>
