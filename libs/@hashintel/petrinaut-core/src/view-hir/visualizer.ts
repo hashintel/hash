@@ -23,7 +23,7 @@ export type VisualizerHir =
   | { ok: false; diagnostics: HirDiagnostic[] };
 
 /**
- * Lowers one visualizer's module and checks it against its place's colour
+ * Lowers one visualizer's code and checks it against its place's colour
  * and the net's parameters. Only errors stop the picture.
  */
 export const lowerVisualizerToHir = (

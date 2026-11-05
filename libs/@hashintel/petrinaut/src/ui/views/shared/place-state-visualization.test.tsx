@@ -1,5 +1,12 @@
 /** @vitest-environment jsdom */
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { use } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -31,7 +38,7 @@ const place: Place = {
   differentialEquationId: null,
 };
 const source = (label: string) =>
-  `export default Visualization(() => <svg viewBox="0 0 400 200"><text>${label}</text></svg>);`;
+  `return <Visualizer.Svg viewBox="0 0 400 200"><text>${label}</text></Visualizer.Svg>;`;
 
 const setup = () => {
   const compilations = new Map<string, (result: VisualizerHir) => void>();
@@ -54,6 +61,7 @@ const setup = () => {
           <PlaceStateVisualization
             place={{ ...place, visualizerCode: code }}
             placeType={color}
+            size={{ width: 400, height: 240 }}
           />
         </SDCPNContext>
       </LanguageClientContext>
@@ -74,7 +82,10 @@ const setup = () => {
   return { Harness, complete };
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 it("keeps the last drawing visible until the newest compilation completes", async () => {
   const { Harness, complete } = setup();
@@ -108,7 +119,7 @@ it("keeps the last drawing visible until the newest compilation completes", asyn
 it("shows a compilation error only when ready and recovers on the next edit", async () => {
   const { Harness, complete } = setup();
   const first = source("First picture");
-  const invalid = "export default Visualization(() => <svg";
+  const invalid = "export default Visualization(() => <Visualizer.Svg";
   const fixed = source("Fixed picture");
   const { rerender } = await act(() => render(<Harness code={first} />));
   await complete(first);
@@ -120,4 +131,65 @@ it("shows a compilation error only when ready and recovers on the next edit", as
   await act(async () => rerender(<Harness code={fixed} />));
   await complete(fixed);
   expect(screen.getByText("Fixed picture")).toBeDefined();
+});
+
+it("preserves the scene camera while new code compiles", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+  const { Harness, complete } = setup();
+  const first = source("First scene").replace(
+    'viewBox="0 0 400 200"',
+    'navigation="pan-zoom" origin="center"',
+  );
+  const second = first.replace("First scene", "Updated scene");
+  const { rerender } = await act(() => render(<Harness code={first} />));
+  await complete(first);
+  expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Pan and zoom" }));
+  expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+  const scene = screen.getByLabelText("Pan and zoom SVG scene");
+  const original = scene.getAttribute("viewBox");
+  fireEvent.keyDown(scene, { key: "+" });
+  fireEvent.keyDown(scene, { key: "ArrowLeft" });
+  const navigated = scene.getAttribute("viewBox");
+  expect(navigated).not.toBe(original);
+  await act(async () => rerender(<Harness code={second} />));
+  await complete(second);
+  expect(
+    screen.getByText("Updated scene").closest("svg")?.getAttribute("viewBox"),
+  ).toBe(navigated);
+  fireEvent.keyDown(scene, { key: "Escape" });
+  expect(screen.queryByLabelText("Pan and zoom SVG scene")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
+  await waitFor(() => expect(scene.getAttribute("viewBox")).toBe(original));
+  expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "Pan and zoom" }),
+  );
+});
+
+it("recovers from a computed root-property error on the next edit", async () => {
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const { Harness, complete } = setup();
+    const invalid =
+      'return <Visualizer.Svg viewBox={"0 0 " + tokens.length + " 20"} />;';
+    const fixed = source("Recovered picture");
+    const { rerender } = await act(() => render(<Harness code={invalid} />));
+    await complete(invalid);
+    expect(screen.getByText("Visualizer Runtime Error")).toBeDefined();
+    await act(async () => rerender(<Harness code={fixed} />));
+    await complete(fixed);
+    expect(screen.getByText("Recovered picture")).toBeDefined();
+    expect(screen.queryByText("Visualizer Runtime Error")).toBeNull();
+  } finally {
+    consoleError.mockRestore();
+  }
 });

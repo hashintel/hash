@@ -1,6 +1,10 @@
 import { Suspense, use, useEffect, useRef } from "react";
 
-import { type Diagnostic, DiagnosticSeverity } from "@hashintel/petrinaut-core";
+import {
+  type Diagnostic,
+  DiagnosticSeverity,
+  DiagnosticTag,
+} from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 import { MonacoContext } from "./context";
@@ -44,6 +48,9 @@ function diagnosticsToMarkers(
     endLineNumber: diag.range.end.line + 1,
     endColumn: diag.range.end.character + 1,
     code: diag.code != null ? String(diag.code) : undefined,
+    tags: diag.tags?.includes(DiagnosticTag.Deprecated)
+      ? [monaco.MarkerTag.Deprecated]
+      : undefined,
   }));
 }
 

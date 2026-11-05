@@ -39,30 +39,56 @@ export const deploymentPipelineSDCPN: {
         visualizerCode: `// Release queue: one card per deployment waiting to start. Card colour goes
 // green -> amber -> red with the deployment's risk, and width scales with its
 // size, so a glance shows how risky/large the backlog is.
-export default Visualization(({ tokens }) => {
-  const width = 380;
-  const height = 170;
-  const visible = tokens.slice(0, 20);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#eff6ff" }}>
-      <text x="18" y="28" fill="#1e3a8a" fontSize="18" fontWeight="700">Release queue</text>
-      <text x="18" y="50" fill="#2563eb" fontSize="13">{tokens.length} waiting; hotter cards are riskier</text>
-      {visible.map((deployment, index) => {
-        const risk = Math.max(0, Math.min(1, deployment.risk));
-        const size = Math.max(0.4, Math.min(2.2, deployment.size));
-        const x = 18 + (index % 10) * 34;
-        const y = 68 + Math.floor(index / 10) * 42;
-        const fill = risk < 0.25 ? "#22c55e" : risk < 0.55 ? "#f59e0b" : "#ef4444";
-        return (
-          <g key={index}>
-            <rect x={x} y={y} width={22 * size} height="28" rx="4" fill={fill} stroke="#1e3a8a" strokeWidth="1" opacity="0.9" />
-            <text x={x + 5} y={y + 19} fill="white" fontSize="12" fontWeight="700">{Math.round(risk * 100)}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-});`,
+
+const width = 380;
+const height = 170;
+
+const visible = tokens.slice(0, 20);
+
+return (
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#eff6ff">
+    <text x="18" y="28" fill="#1e3a8a" fontSize="18" fontWeight="700">
+      Release queue
+    </text>
+    <text x="18" y="50" fill="#2563eb" fontSize="13">
+      {tokens.length} waiting; hotter cards are riskier
+    </text>
+
+    {visible.map((deployment, index) => {
+      const risk = Math.max(0, Math.min(1, deployment.risk));
+      const size = Math.max(0.4, Math.min(2.2, deployment.size));
+      const x = 18 + (index % 10) * 34;
+      const y = 68 + Math.floor(index / 10) * 42;
+      const fill =
+        risk < 0.25 ? "#22c55e" : risk < 0.55 ? "#f59e0b" : "#ef4444";
+
+      return (
+        <g key={index}>
+          <rect
+            x={x}
+            y={y}
+            width={22 * size}
+            height="28"
+            rx="4"
+            fill={fill}
+            stroke="#1e3a8a"
+            strokeWidth="1"
+            opacity="0.9"
+          />
+          <text
+            x={x + 5}
+            y={y + 19}
+            fill="white"
+            fontSize="12"
+            fontWeight="700"
+          >
+            {Math.round(risk * 100)}
+          </text>
+        </g>
+      );
+    })}
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
       },
       {
@@ -78,30 +104,57 @@ export default Visualization(({ tokens }) => {
         visualizerCode: `// Incident bridge: one bar per open incident, taller and darker with severity.
 // Because this place feeds an inhibitor arc into Start Deployment, any bar
 // shown here means the deployment gate is currently closed.
-export default Visualization(({ tokens }) => {
-  const width = 380;
-  const height = 170;
-  const visible = tokens.slice(0, 10);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#fff1f2" }}>
-      <text x="18" y="30" fill="#991b1b" fontSize="18" fontWeight="700">Incident bridge</text>
-      <text x="18" y="52" fill="#dc2626" fontSize="13">Inhibits new deployments while any card is present</text>
-      {visible.length === 0 && <text x="18" y="98" fill="#16a34a" fontSize="18">No active incident — deploy gate open</text>}
-      {visible.map((incident, index) => {
-        const sev = Math.max(0, Math.min(1, incident.severity));
-        const x = 20 + index * 34;
-        const h = 24 + sev * 52;
-        const y = 142 - h;
-        return (
-          <g key={index}>
-            <rect x={x} y={y} width="24" height={h} rx="5" fill={sev < 0.35 ? "#fb923c" : sev < 0.7 ? "#ef4444" : "#7f1d1d"} />
-            <text x={x + 6} y={y - 5} fill="#991b1b" fontSize="11" fontWeight="700">S{Math.ceil(sev * 5)}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-});`,
+
+const width = 380;
+const height = 170;
+
+const visible = tokens.slice(0, 10);
+
+return (
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#fff1f2">
+    <text x="18" y="30" fill="#991b1b" fontSize="18" fontWeight="700">
+      Incident bridge
+    </text>
+    <text x="18" y="52" fill="#dc2626" fontSize="13">
+      Inhibits new deployments while any card is present
+    </text>
+
+    {visible.length === 0 && (
+      <text x="18" y="98" fill="#16a34a" fontSize="18">
+        No active incident — deploy gate open
+      </text>
+    )}
+
+    {visible.map((incident, index) => {
+      const sev = Math.max(0, Math.min(1, incident.severity));
+      const x = 20 + index * 34;
+      const h = 24 + sev * 52;
+      const y = 142 - h;
+
+      return (
+        <g key={index}>
+          <rect
+            x={x}
+            y={y}
+            width="24"
+            height={h}
+            rx="5"
+            fill={sev < 0.35 ? "#fb923c" : sev < 0.7 ? "#ef4444" : "#7f1d1d"}
+          />
+          <text
+            x={x + 6}
+            y={y - 5}
+            fill="#991b1b"
+            fontSize="11"
+            fontWeight="700"
+          >
+            S{Math.ceil(sev * 5)}
+          </text>
+        </g>
+      );
+    })}
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
       },
       {
@@ -117,30 +170,74 @@ export default Visualization(({ tokens }) => {
         visualizerCode: `// Deployment lane: shows the single in-progress deployment as a progress bar
 // (estimated from its age relative to size), coloured by risk. Empty when the
 // lane is idle — the inhibitor arc allows only one deployment at a time.
-export default Visualization(({ tokens }) => {
-  const width = 380;
-  const height = 170;
-  const deployment = tokens[0];
-  const risk = deployment ? Math.max(0, Math.min(1, deployment.risk)) : 0;
-  const age = deployment ? deployment.age : 0;
-  const size = deployment ? deployment.size : 0;
-  const progress = deployment ? Math.max(0.08, Math.min(1, age / Math.max(1, size * 6))) : 0;
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#ecfeff" }}>
-      <text x="18" y="30" fill="#155e75" fontSize="18" fontWeight="700">Deployment lane</text>
-      {!deployment && <text x="18" y="88" fill="#0891b2" fontSize="18">Idle — ready for next safe release</text>}
-      {deployment && (
-        <g>
-          <rect x="24" y="70" width="318" height="30" rx="15" fill="#cffafe" stroke="#0891b2" />
-          <rect x="24" y="70" width={318 * progress} height="30" rx="15" fill={risk < 0.35 ? "#06b6d4" : risk < 0.65 ? "#f59e0b" : "#ef4444"} />
-          <circle cx={24 + 318 * progress} cy="85" r="19" fill="#ffffff" stroke="#155e75" strokeWidth="3" />
-          <text x={24 + 318 * progress - 8} y="91" fill="#155e75" fontSize="18" fontWeight="700">▶</text>
-          <text x="24" y="130" fill="#155e75" fontSize="14">size {size.toFixed(2)} · risk {Math.round(risk * 100)}% · age {age.toFixed(1)}s</text>
-        </g>
-      )}
-    </svg>
-  );
-});`,
+
+const width = 380;
+const height = 170;
+
+const deployment = tokens[0];
+const risk = deployment ? Math.max(0, Math.min(1, deployment.risk)) : 0;
+const age = deployment ? deployment.age : 0;
+const size = deployment ? deployment.size : 0;
+const progress = deployment
+  ? Math.max(0.08, Math.min(1, age / Math.max(1, size * 6)))
+  : 0;
+
+return (
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#ecfeff">
+    <text x="18" y="30" fill="#155e75" fontSize="18" fontWeight="700">
+      Deployment lane
+    </text>
+
+    {!deployment && (
+      <text x="18" y="88" fill="#0891b2" fontSize="18">
+        Idle — ready for next safe release
+      </text>
+    )}
+
+    {deployment && (
+      <g>
+        <rect
+          x="24"
+          y="70"
+          width="318"
+          height="30"
+          rx="15"
+          fill="#cffafe"
+          stroke="#0891b2"
+        />
+        <rect
+          x="24"
+          y="70"
+          width={318 * progress}
+          height="30"
+          rx="15"
+          fill={risk < 0.35 ? "#06b6d4" : risk < 0.65 ? "#f59e0b" : "#ef4444"}
+        />
+        <circle
+          cx={24 + 318 * progress}
+          cy="85"
+          r="19"
+          fill="#ffffff"
+          stroke="#155e75"
+          strokeWidth="3"
+        />
+        <text
+          x={24 + 318 * progress - 8}
+          y="91"
+          fill="#155e75"
+          fontSize="18"
+          fontWeight="700"
+        >
+          ▶
+        </text>
+        <text x="24" y="130" fill="#155e75" fontSize="14">
+          size {size.toFixed(2)} · risk {Math.round(risk * 100)}% · age{" "}
+          {age.toFixed(1)}s
+        </text>
+      </g>
+    )}
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
       },
       {
@@ -155,27 +252,49 @@ export default Visualization(({ tokens }) => {
         y: 210,
         visualizerCode: `// Successful releases: a tally of completed deployments (most recent last).
 // Each green check is one deployment that finished without causing an incident.
-export default Visualization(({ tokens }) => {
-  const width = 360;
-  const height = 160;
-  const visible = tokens.slice(-24);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#f0fdf4" }}>
-      <text x="18" y="30" fill="#166534" fontSize="18" fontWeight="700">Successful releases</text>
-      <text x="18" y="54" fill="#16a34a" fontSize="13">{tokens.length} completed deployments</text>
-      {visible.map((deployment, index) => {
-        const x = 18 + (index % 12) * 27;
-        const y = 74 + Math.floor(index / 12) * 31;
-        return (
-          <g key={index}>
-            <rect x={x} y={y} width="21" height="23" rx="4" fill="#22c55e" stroke="#166534" />
-            <path d={\`M \${x + 5} \${y + 12} L \${x + 9} \${y + 17} L \${x + 17} \${y + 7}\`} fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          </g>
-        );
-      })}
-    </svg>
-  );
-});`,
+
+const width = 360;
+const height = 160;
+
+const visible = tokens.slice(-24);
+
+return (
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#f0fdf4">
+    <text x="18" y="30" fill="#166534" fontSize="18" fontWeight="700">
+      Successful releases
+    </text>
+    <text x="18" y="54" fill="#16a34a" fontSize="13">
+      {tokens.length} completed deployments
+    </text>
+
+    {visible.map((deployment, index) => {
+      const x = 18 + (index % 12) * 27;
+      const y = 74 + Math.floor(index / 12) * 31;
+
+      return (
+        <g key={index}>
+          <rect
+            x={x}
+            y={y}
+            width="21"
+            height="23"
+            rx="4"
+            fill="#22c55e"
+            stroke="#166534"
+          />
+          <path
+            d={\`M \${x + 5} \${y + 12} L \${x + 9} \${y + 17} L \${x + 17} \${y + 7}\`}
+            fill="none"
+            stroke="white"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
+      );
+    })}
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
       },
       {
@@ -189,27 +308,49 @@ export default Visualization(({ tokens }) => {
         x: 1170,
         y: 510,
         visualizerCode: `// Closed incidents: a tally of resolved incident tickets (most recent last).
-export default Visualization(({ tokens }) => {
-  const width = 340;
-  const height = 150;
-  const visible = tokens.slice(-18);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#f8fafc" }}>
-      <text x="18" y="30" fill="#334155" fontSize="18" fontWeight="700">Closed incidents</text>
-      <text x="18" y="52" fill="#64748b" fontSize="13">{tokens.length} resolved tickets</text>
-      {visible.map((incident, index) => {
-        const x = 18 + (index % 9) * 34;
-        const y = 72 + Math.floor(index / 9) * 30;
-        return (
-          <g key={index}>
-            <rect x={x} y={y} width="25" height="20" rx="3" fill="#e2e8f0" stroke="#64748b" />
-            <line x1={x + 5} y1={y + 10} x2={x + 20} y2={y + 10} stroke="#64748b" strokeWidth="2" />
-          </g>
-        );
-      })}
-    </svg>
-  );
-});`,
+
+const width = 340;
+const height = 150;
+
+const visible = tokens.slice(-18);
+
+return (
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#f8fafc">
+    <text x="18" y="30" fill="#334155" fontSize="18" fontWeight="700">
+      Closed incidents
+    </text>
+    <text x="18" y="52" fill="#64748b" fontSize="13">
+      {tokens.length} resolved tickets
+    </text>
+
+    {visible.map((incident, index) => {
+      const x = 18 + (index % 9) * 34;
+      const y = 72 + Math.floor(index / 9) * 30;
+
+      return (
+        <g key={index}>
+          <rect
+            x={x}
+            y={y}
+            width="25"
+            height="20"
+            rx="3"
+            fill="#e2e8f0"
+            stroke="#64748b"
+          />
+          <line
+            x1={x + 5}
+            y1={y + 10}
+            x2={x + 20}
+            y2={y + 10}
+            stroke="#64748b"
+            strokeWidth="2"
+          />
+        </g>
+      );
+    })}
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
       },
       {
@@ -223,29 +364,59 @@ export default Visualization(({ tokens }) => {
         visualizerCode: `// Failed releases: deployments that rolled back and opened an incident. The
 // red cross marks each failure and its outline thickens with the deployment's
 // risk, so the riskiest failures stand out.
-export default Visualization(({ tokens }) => {
-  const width = 360;
-  const height = 160;
-  const visible = tokens.slice(-18);
-  return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#1f2937" }}>
-      <text x="18" y="30" fill="#fecaca" fontSize="18" fontWeight="700">Failed releases</text>
-      <text x="18" y="54" fill="#fca5a5" fontSize="13">{tokens.length} rollback / incident-generating deploys</text>
-      {visible.map((deployment, index) => {
-        const x = 18 + (index % 9) * 36;
-        const y = 76 + Math.floor(index / 9) * 34;
-        const risk = Math.max(0, Math.min(1, deployment.risk));
-        return (
-          <g key={index}>
-            <rect x={x} y={y} width="26" height="22" rx="4" fill="#991b1b" stroke="#fecaca" strokeWidth={1 + risk * 2} />
-            <line x1={x + 7} y1={y + 6} x2={x + 19} y2={y + 16} stroke="#fee2e2" strokeWidth="2" />
-            <line x1={x + 19} y1={y + 6} x2={x + 7} y2={y + 16} stroke="#fee2e2" strokeWidth="2" />
-          </g>
-        );
-      })}
-    </svg>
-  );
-});`,
+
+const width = 360;
+const height = 160;
+
+const visible = tokens.slice(-18);
+
+return (
+  <Visualizer.Svg viewBox={\`0 0 \${width} \${height}\`} backgroundColor="#1f2937">
+    <text x="18" y="30" fill="#fecaca" fontSize="18" fontWeight="700">
+      Failed releases
+    </text>
+    <text x="18" y="54" fill="#fca5a5" fontSize="13">
+      {tokens.length} rollback / incident-generating deploys
+    </text>
+
+    {visible.map((deployment, index) => {
+      const x = 18 + (index % 9) * 36;
+      const y = 76 + Math.floor(index / 9) * 34;
+      const risk = Math.max(0, Math.min(1, deployment.risk));
+
+      return (
+        <g key={index}>
+          <rect
+            x={x}
+            y={y}
+            width="26"
+            height="22"
+            rx="4"
+            fill="#991b1b"
+            stroke="#fecaca"
+            strokeWidth={1 + risk * 2}
+          />
+          <line
+            x1={x + 7}
+            y1={y + 6}
+            x2={x + 19}
+            y2={y + 16}
+            stroke="#fee2e2"
+            strokeWidth="2"
+          />
+          <line
+            x1={x + 19}
+            y1={y + 6}
+            x2={x + 7}
+            y2={y + 16}
+            stroke="#fee2e2"
+            strokeWidth="2"
+          />
+        </g>
+      );
+    })}
+  </Visualizer.Svg>
+);`,
         showAsInitialState: true,
         x: 870,
         y: 330,

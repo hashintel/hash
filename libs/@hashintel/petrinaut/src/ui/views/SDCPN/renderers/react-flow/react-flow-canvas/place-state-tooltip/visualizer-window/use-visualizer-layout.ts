@@ -103,7 +103,6 @@ export const useVisualizerLayout = (
     onPointerCancel: endGesture,
     onLostPointerCapture: endGesture,
     onKeyDown: (event) => {
-      event.stopPropagation();
       if (event.target !== event.currentTarget) return;
       const step = event.shiftKey ? 20 : 5;
       const deltas: Record<string, { x: number; y: number }> = {
@@ -114,6 +113,7 @@ export const useVisualizerLayout = (
       };
       const delta = deltas[event.key];
       if (!delta) return;
+      event.stopPropagation();
       event.preventDefault();
       onKeepOpen();
       setPlacement((previous) =>

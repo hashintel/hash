@@ -31,6 +31,8 @@ export type ViewValue = HirValue | ViewElementValue | readonly ViewValue[];
 
 /** The component's props for one frame. */
 export type ViewProps = {
+  width: number;
+  height: number;
   tokens: readonly Readonly<Record<string, HirValue>>[];
   parameters: HirInterpretBindings["parameters"];
 };
@@ -121,6 +123,8 @@ export function interpretViewHir(view: ViewHir, props: ViewProps): ViewValue {
   const locals = new Map<string, HirValue>();
   if (view.props) {
     locals.set(view.props.name, {
+      width: props.width,
+      height: props.height,
       tokens: props.tokens as HirValue,
       parameters: props.parameters as HirValue,
     });

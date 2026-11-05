@@ -422,9 +422,8 @@ function freeze<T extends Record<string, unknown>>(record: T): T {
 }
 
 /**
- * Evaluates one expression as raw JavaScript in the hardened new-Function
- * shape the place visualizer shares (`SHADOWED_GLOBALS` + `runSandboxed`) —
- * used here because synthesis runs synchronously, where HIR lowering (which
+ * Evaluates one expression as raw JavaScript with best-effort hardening.
+ * Synthesis runs synchronously, where HIR lowering (which
  * needs the TypeScript compiler, worker-only in the browser) is unavailable.
  * The non-optimized top-level Variables are in scope as `scenario.<name>`,
  * built in declaration order so later Variables may read earlier ones. Used

@@ -9,11 +9,20 @@ import { createLanguageServers, syncLanguageServers } from "./language-servers";
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 
-/** Create the servers, sync the SDCPN, and run diagnostics. */
+/** Check semantics; legacy-user-code.test.ts covers the independent migration hints. */
 function check(sdcpn: SDCPN, extensions?: PetrinautExtensionSettings) {
   const servers = createLanguageServers();
   syncLanguageServers(servers, sdcpn, extensions);
-  return checkSDCPN(sdcpn, servers, extensions);
+  const result = checkSDCPN(sdcpn, servers, extensions);
+  return {
+    ...result,
+    itemDiagnostics: result.itemDiagnostics.flatMap((item) => {
+      const diagnostics = item.diagnostics.filter(
+        (diagnostic) => !diagnostic.reportsDeprecated,
+      );
+      return diagnostics.length ? [{ ...item, diagnostics }] : [];
+    }),
+  };
 }
 
 describe("checkSDCPN", () => {
@@ -1690,13 +1699,13 @@ return true;`;
 
     it("passes a visualizer that draws the place's tokens with its parameters", () => {
       const result = check(
-        withVisualizer(`export default Visualization(({ tokens, parameters }) => (
-          <svg viewBox="0 0 10 10">
+        withVisualizer(`return (
+          <Visualizer.Svg viewBox="0 0 10 10">
             {tokens.map((token, index) => (
               <circle key={index} cx={token.x} cy={token.y} r={parameters.radius} />
             ))}
-          </svg>
-        ));`),
+          </Visualizer.Svg>
+        );`),
       );
 
       expect(result.isValid).toBe(true);
@@ -1705,9 +1714,9 @@ return true;`;
 
     it("reports a visualizer's type errors under the place without invalidating the net", () => {
       const result = check(
-        withVisualizer(`export default Visualization(({ tokens }) => (
-          <svg>{tokens.map((token) => <circle cx={token.z} />)}</svg>
-        ));`),
+        withVisualizer(`return (
+          <Visualizer.Svg>{tokens.map((token) => <circle cx={token.z} />)}</Visualizer.Svg>
+        );`),
       );
 
       // A broken picture never stops a run.
@@ -1727,10 +1736,11 @@ return true;`;
 
     it("skips visualizers when the colours extension is off", () => {
       const result = check(
-        withVisualizer(
-          `export default Visualization(() => <svg>{fetch("x")}</svg>);`,
-        ),
-        { ...DEFAULT_PETRINAUT_EXTENSIONS, colors: false },
+        withVisualizer(`return <Visualizer.Svg>{fetch("x")}</Visualizer.Svg>;`),
+        {
+          ...DEFAULT_PETRINAUT_EXTENSIONS,
+          colors: false,
+        },
       );
 
       expect(result.isValid).toBe(true);
