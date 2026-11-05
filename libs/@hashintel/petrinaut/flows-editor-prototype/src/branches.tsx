@@ -24,12 +24,19 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { getCatalogEntry } from "./catalog";
-import { findStep, flattenSteps, START_ID, stepLabel } from "./document";
+import {
+  findStep,
+  flattenSteps,
+  START_ID,
+  stepLabel,
+  updateStep,
+} from "./document";
 import { useEditor } from "./editor-context";
 import { useRunView } from "./history-view";
 import { pathsTake } from "./paths-flags";
 import { useLocation } from "./router";
-import { PropertyRow, Section, SourceChip } from "./ui";
+import { pathRenamable } from "./switch-flags";
+import { InlineRename, PropertyRow, Section, SourceChip } from "./ui";
 import { UsedInBlock, useOldUsedIn } from "./used-in";
 
 /** The output a step branches on, per action. The engine models the values as ports. */
@@ -283,6 +290,54 @@ const IfTarget = ({
   );
 };
 
+/** In-place names sit where plain text would: the field's 8 px inset is pulled back out. */
+const ifRenameStyle = css({
+  "&[class]": {
+    marginLeft: "[-8px]",
+    marginRight: "[-8px]",
+    fontWeight: "normal",
+    color: "neutral.s120",
+  },
+  "&[data-rename-input]": { minWidth: "[96px]" },
+});
+
+/**
+ * `?ifrename=a|b` (inbox `if-rename-description`): a path's name, renamed in place on hover (Attio), no pen. The card's
+ * port takes the name. No, the catch-all, stays fixed text with `a`.
+ */
+const IfPathName = ({
+  stepId,
+  port,
+}: {
+  stepId: string;
+  port: { outputName: string; label: string };
+}) => {
+  const { setDocument } = useEditor();
+  const readOnly = useReadOnlyPanel();
+  if (readOnly || !pathRenamable(port.outputName)) {
+    return <span>{port.label}</span>;
+  }
+  return (
+    <InlineRename
+      value={port.label}
+      label={`${port.label} path name`}
+      className={ifRenameStyle}
+      onSave={(next) =>
+        setDocument((document) =>
+          updateStep(document, stepId, (step) =>
+            step.kind === "action"
+              ? {
+                  ...step,
+                  pathNames: { ...step.pathNames, [port.outputName]: next },
+                }
+              : step,
+          ),
+        )
+      }
+    />
+  );
+};
+
 type ExtraPath = { id: string };
 
 export const BranchRows = ({
@@ -328,7 +383,7 @@ export const BranchRows = ({
       <div className={ifPathsStyle} data-if-paths="i1">
         {ports.map((port) => (
           <Fragment key={port.outputName}>
-            <span>{port.label}</span>
+            <IfPathName stepId={stepId} port={port} />
             <span className={pathValueStyle}>{port.outputName}</span>
             <span data-path-target>
               <IfTarget

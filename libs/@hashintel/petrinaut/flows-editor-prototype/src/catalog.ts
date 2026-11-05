@@ -10,6 +10,7 @@ import {
 } from "./mock-action-definitions";
 import { mockSenders } from "./mock-graph";
 import { prdBlocks, type PrdSource } from "./mock-prd-ports";
+import { switchPorts, switchTake } from "./switch-flags";
 
 import type { IconName } from "@hashintel/ds-components";
 
@@ -345,13 +346,11 @@ export const switchEntry: CatalogEntry = {
   origin: { kind: "mock", why: "The engine has no Switch yet." },
   inputs: [],
   outputs: [],
-  ports: [
-    { outputName: "europe", label: "Europe" },
-    { outputName: "americas", label: "Americas" },
-    { outputName: "asia", label: "Asia" },
-    { outputName: "africa", label: "Africa" },
-    { outputName: "default", label: "Default" },
-  ],
+  ports: switchPorts(switchTake),
+  // `?switch=s4`: no Switch step; the step in its place finds the batch's supplier and splits by Region.
+  ...(switchTake === "s4"
+    ? { title: "Find entities", icon: "search", tone: "green" as const }
+    : {}),
 };
 
 export const getCatalogEntry = (id: string): CatalogEntry | undefined =>

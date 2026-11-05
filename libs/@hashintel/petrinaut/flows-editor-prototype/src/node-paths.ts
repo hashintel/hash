@@ -18,6 +18,7 @@
  * the run did not take faint and dashed.
  */
 import { addStep, type EditorDocument, START_ID } from "./document";
+import { switchTake } from "./switch-flags";
 
 export type NodePathsTake = "wires" | "rows" | "chips" | "count" | "pills";
 
@@ -141,7 +142,8 @@ export const nodePathsExample = (): EditorDocument => {
   const route = add(
     "switch",
     { stepId: check, port: "false" },
-    "Route by supplier region",
+    // `?switch=s4`: no Switch; the step here finds the batch's supplier and splits by Region.
+    switchTake === "s4" ? "Batch supplier" : "Route by supplier region",
     { x: 1392, y: 240 },
   );
   add("sendEmail", { stepId: route, port: "europe" }, "EU quality desk", {

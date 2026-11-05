@@ -64,6 +64,7 @@ import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
 import { demoRun, nodePathsRun, nodePathsTake } from "./node-paths";
 import { pathsTake } from "./paths-flags";
+import { namedPorts } from "./switch-flags";
 import { navigate, setQuery, useLocation } from "./router";
 import {
   type BarMotion,
@@ -134,7 +135,9 @@ const portRows = (step: DraftStep) => {
   const ports = getCatalogEntry(step.actionDefinitionId)?.ports ?? null;
   return ports && pathsTake === "i2" && step.actionDefinitionId !== "if"
     ? [...ports, otherwisePort]
-    : ports;
+    : ports && (step.pathNames !== undefined || step.noDefault === true)
+      ? namedPorts(step, ports)
+      : ports;
 };
 
 /** `?paths=attio`, `?nodepaths=rows|count`: a hollow ring for an open path, a filled dot for a connected one. */

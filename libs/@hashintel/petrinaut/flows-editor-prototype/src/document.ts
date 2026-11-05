@@ -32,6 +32,10 @@ export type DraftActionStep = {
   actionDefinitionId: string;
   description: string;
   inputs: Record<string, StepInputSource>;
+  /** `?ifrename=`, `?switch=`: a path renamed in place, by port; the card's port shows the name. */
+  pathNames?: Record<string, string>;
+  /** `?switch=s3`: Default turned off, so the card has no Default port. */
+  noDefault?: boolean;
 };
 
 export type DraftForEachStep = {

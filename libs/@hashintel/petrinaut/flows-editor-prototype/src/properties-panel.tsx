@@ -13,7 +13,14 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { BranchRows, PathsSection } from "./branches";
-import { forEachEntry, getCatalogEntry, type InputView } from "./catalog";
+import { namedPorts, switchTake } from "./switch-flags";
+import { SwitchSections } from "./switch-panel";
+import {
+  type CatalogEntry,
+  forEachEntry,
+  getCatalogEntry,
+  type InputView,
+} from "./catalog";
 import {
   START_ID,
   type DraftActionStep,
@@ -625,36 +632,18 @@ const fieldFor = (
   return <ValueField {...props} />;
 };
 
-const ActionPanel = ({ step }: { step: DraftActionStep }) => {
+const ActionSections = ({
+  step,
+  entry,
+  visibleInputs,
+}: {
+  step: DraftActionStep;
+  entry: CatalogEntry;
+  visibleInputs: InputView[];
+}) => {
   const { document, validation } = useEditor();
-  const entry = getCatalogEntry(step.actionDefinitionId);
-  if (!entry) {
-    return null;
-  }
-  const origin = !showDebug ? null : entry.origin.kind === "open-pr" ? (
-    <OriginMark
-      label={`#${entry.origin.pr}`}
-      hover={`Defined in open PR #${entry.origin.pr}, not on main yet`}
-    />
-  ) : entry.origin.kind === "mock" ? (
-    <OriginMark label="mock" hover={entry.origin.why} />
-  ) : null;
-
-  const hidden = showFull ? [] : (trimmedInputs[step.actionDefinitionId] ?? []);
-  // A trimmed input shows once it holds a value (one wired from an output's "Use in a step").
-  const visibleInputs = entry.inputs.filter(
-    (input) => !hidden.includes(input.name) || !!step.inputs[input.name],
-  );
-
   return (
     <>
-      <PanelHeader
-        icon={entry.icon}
-        type={entry.title}
-        origin={origin}
-        stepId={step.stepId}
-        description={step.description}
-      />
       {visibleInputs.length > 0 ? (
         <Section
           title="Inputs"
@@ -757,7 +746,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
           <BranchRows
             stepId={step.stepId}
             actionDefinitionId={step.actionDefinitionId}
-            ports={entry.ports}
+            ports={namedPorts(step, entry.ports)}
             iconOf={(id) => nodeLook(document, id).icon}
           />
         ) : null}
@@ -771,6 +760,53 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         />
       ) : null}
       <Checks stepId={step.stepId} />
+    </>
+  );
+};
+
+const ActionPanel = ({ step }: { step: DraftActionStep }) => {
+  const { document } = useEditor();
+  const entry = getCatalogEntry(step.actionDefinitionId);
+  if (!entry) {
+    return null;
+  }
+  const origin = !showDebug ? null : entry.origin.kind === "open-pr" ? (
+    <OriginMark
+      label={`#${entry.origin.pr}`}
+      hover={`Defined in open PR #${entry.origin.pr}, not on main yet`}
+    />
+  ) : entry.origin.kind === "mock" ? (
+    <OriginMark label="mock" hover={entry.origin.why} />
+  ) : null;
+
+  const hidden = showFull ? [] : (trimmedInputs[step.actionDefinitionId] ?? []);
+  // A trimmed input shows once it holds a value (one wired from an output's "Use in a step").
+  const visibleInputs = entry.inputs.filter(
+    (input) => !hidden.includes(input.name) || !!step.inputs[input.name],
+  );
+
+  return (
+    <>
+      <PanelHeader
+        icon={entry.icon}
+        type={entry.title}
+        origin={origin}
+        stepId={step.stepId}
+        description={step.description}
+      />
+      {/* `?switch=`: the demo Switch's panel per take (`switch-panel.tsx`). */}
+      {switchTake && step.actionDefinitionId === "switch" && entry.ports ? (
+        <>
+          <SwitchSections
+            step={step}
+            ports={entry.ports}
+            iconOf={(id) => nodeLook(document, id).icon}
+          />
+          <Checks stepId={step.stepId} />
+        </>
+      ) : (
+        <ActionSections step={step} entry={entry} visibleInputs={visibleInputs} />
+      )}
     </>
   );
 };
