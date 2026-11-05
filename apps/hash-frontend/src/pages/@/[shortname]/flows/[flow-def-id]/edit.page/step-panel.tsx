@@ -1,6 +1,6 @@
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
-import { Form, Icon, TextInput } from "@hashintel/ds-components";
+import { Button, Form, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
@@ -8,14 +8,19 @@ import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/va
 import { getNameLabel } from "./shared/name-label";
 import { getStepDisplay, startDisplay } from "./shared/step-display";
 import { getFieldProblems } from "./step-panel/field-problems";
+import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
-import { getActionDefinition } from "./step-panel/input-sources";
+import {
+  getActionDefinition,
+  getNewFlowInput,
+} from "./step-panel/input-sources";
 import { QueryField } from "./step-panel/query-field";
 import { findStep } from "./step-panel/shared/find-step";
 import { UsedByField } from "./step-panel/used-by-field";
 import { indexValueUses } from "./step-panel/value-uses";
 
 import type { IconName } from "@hashintel/ds-components";
+import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
   FlowEditor,
   FlowEditorState,
@@ -108,13 +113,25 @@ const PanelSection = ({
   </section>
 );
 
+/** What "Add input" adds: a required text input, which any step input that takes text can use. */
+const newInputTarget: ConnectionTarget = {
+  oneOfPayloadKinds: ["Text"],
+  array: false,
+  required: true,
+};
+
 const StartPanel = ({
+  editor,
   flowDefinition,
   stepsUsing,
 }: {
+  editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
   stepsUsing: StepsUsing;
 }) => {
+  /* The input "Add input" added last, whose label is ready to type in. */
+  const [addedName, setAddedName] = useState<string | null>(null);
+
   /* Names should be unique, but a loaded flow may repeat one (reported as `duplicateInputName`), so a repeat is
    * keyed by how many times its name came before. */
   const timesSeen = new Map<string, number>();
@@ -128,28 +145,40 @@ const StartPanel = ({
     };
   });
 
+  const addInput = () => {
+    const input = getNewFlowInput({
+      flowDefinition,
+      inputName: "newInput",
+      target: newInputTarget,
+    });
+
+    if (input) {
+      editor.addFlowInput(input);
+      setAddedName(input.name);
+    }
+  };
+
   return (
     <aside className={panel} aria-label="Start">
       <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
         <span className={fixedDescription}>{startDisplay.description}</span>
       </PanelHeader>
       <PanelSection title="Inputs">
-        {inputs.length === 0 ? (
-          <span className={empty}>No inputs yet</span>
-        ) : (
-          <Form.Section>
-            {inputs.map(
-              ({ input: { name, label, payloadKind, array }, key }) => (
-                <UsedByField
-                  key={key}
-                  name={label ?? getNameLabel(name)}
-                  shape={{ payloadKind, array }}
-                  usedBy={stepsUsing({ kind: "flow-input", inputName: name })}
-                />
-              ),
-            )}
-          </Form.Section>
-        )}
+        {inputs.length === 0 && <span className={empty}>No inputs yet</span>}
+        {inputs.map(({ input, key }) => (
+          <FlowInputCard
+            key={key}
+            editor={editor}
+            input={input}
+            usedBy={stepsUsing({ kind: "flow-input", inputName: input.name })}
+            autoFocus={input.name === addedName}
+          />
+        ))}
+        <span>
+          <Button variant="subtle" size="sm" iconName="plus" onClick={addInput}>
+            Add input
+          </Button>
+        </span>
       </PanelSection>
     </aside>
   );
@@ -311,7 +340,11 @@ export const StepPanel = ({
 
   if ("start" in subject) {
     return (
-      <StartPanel flowDefinition={flowDefinition} stepsUsing={stepsUsing} />
+      <StartPanel
+        editor={editor}
+        flowDefinition={flowDefinition}
+        stepsUsing={stepsUsing}
+      />
     );
   }
 

@@ -256,6 +256,14 @@ const canBeTyped = {
 
 const typedKinds = typedKeys(canBeTyped).filter((kind) => canBeTyped[kind]);
 
+/**
+ * The types a flow input can be given on Start: the kinds a value can be typed in, one value or a list of them.
+ * A flow input of another type, e.g. one added from a step's input, keeps it until it's changed.
+ */
+export const flowInputTypes = [false, true].flatMap((array) =>
+  typedKinds.map((payloadKind) => ({ payloadKind, array })),
+);
+
 /** A fixed value that can be typed in its field, as it reads there: one text, number or date. */
 export const getTypedConstant = (
   source: StepInputSource | undefined,
