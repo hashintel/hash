@@ -1,15 +1,9 @@
-/** What an MDX slide may use without importing it, in the deck and in print. */
+/**
+ * What an MDX slide may use without importing it, in the deck and in print:
+ * the stepped components a docs page gets too, and the slides' own.
+ */
 
-import { DiagramPart } from "./diagram-part";
+import { stepComponents } from "../steps/components";
 import { LayerCard } from "./docs/layer-card";
-import { Morph } from "./morph";
-import { OnlyInline, Reveal, RevealInline } from "./reveal";
 
-export const slideMdxComponents = {
-  DiagramPart,
-  LayerCard,
-  Morph,
-  OnlyInline,
-  Reveal,
-  RevealInline,
-};
+export const slideMdxComponents = { ...stepComponents, LayerCard };

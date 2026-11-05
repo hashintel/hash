@@ -43,7 +43,7 @@ export interface LoadedSlide {
   label: string | null;
   layout: SlideLayout;
   notes: StepNotes;
-  /** Null when the slide registers its steps with `useSlideStepper` as it renders. */
+  /** Null when the slide registers its steps with `useSteps` as it renders. */
   declaredSteps: number | null;
   Content: ComponentType;
 }

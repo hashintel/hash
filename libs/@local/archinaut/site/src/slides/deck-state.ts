@@ -5,7 +5,7 @@
  *
  * A slide's step count is either declared up front (MDX `steps`, a static
  * `steps`) or registered when the slide renders and calls
- * `useSlideStepper(n)`. Going back to a slide whose count is not known yet
+ * `useSteps(n)`. Going back to a slide whose count is not known yet
  * lands on step 0 with `landOnLastStep` set, and the registration moves it
  * to the last step before the browser paints.
  */

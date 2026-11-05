@@ -11,7 +11,8 @@
  * `\swap{n}{before}{after}` compiles to that pair.
  */
 
-import { useStep } from "./stepper";
+import { useStep } from "./hooks";
+import "./steps.css";
 
 import type { ReactNode } from "react";
 

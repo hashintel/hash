@@ -6,8 +6,8 @@
 
 import { MDXProvider } from "@mdx-js/react";
 
+import { StepContext } from "../../steps/context";
 import { slideMdxComponents } from "../mdx-components";
-import { SlideStepContext } from "../step-context";
 import { SlideContent } from "./slide-content";
 import { SlideHead } from "./slide-head";
 
@@ -35,9 +35,9 @@ export const DeckStage = ({
         data-overflowing={overflowing}
       >
         <MDXProvider components={slideMdxComponents}>
-          <SlideStepContext
+          <StepContext
             value={{
-              slideId: slide.id,
+              scope: slide.id,
               step: state.step,
               mode: "live",
               registerSteps,
@@ -46,7 +46,7 @@ export const DeckStage = ({
           >
             <SlideHead logo={logo} label={slide.label} />
             <SlideContent key={slide.id} slide={slide} />
-          </SlideStepContext>
+          </StepContext>
         </MDXProvider>
       </div>
     </div>

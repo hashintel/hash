@@ -21,8 +21,8 @@ import {
 import { runViewTransition } from "../view-transition";
 import { slideMorphs } from "./morph-names";
 
+import type { StepContextValue } from "../../steps/context";
 import type { LoadedSlide } from "../slide-module";
-import type { SlideStepContextValue } from "../step-context";
 
 export interface DeckControls {
   state: DeckState;
@@ -30,8 +30,8 @@ export interface DeckControls {
   /** The next step, or the next slide after the last one; what a click does. */
   forward: () => void;
   back: () => void;
-  registerSteps: SlideStepContextValue["registerSteps"];
-  completeStep: SlideStepContextValue["completeStep"];
+  registerSteps: StepContextValue["registerSteps"];
+  completeStep: StepContextValue["completeStep"];
 }
 
 const hashIndex = (slides: readonly LoadedSlide[]): number =>

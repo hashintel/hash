@@ -4,8 +4,8 @@
  * slide animates as one.
  */
 
+import { useStep } from "../steps/hooks";
 import { Slide } from "./slide";
-import { useStep } from "./stepper";
 
 import type { ReactNode } from "react";
 
