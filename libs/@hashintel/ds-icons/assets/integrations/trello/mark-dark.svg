@@ -2,11 +2,11 @@
     <rect x="5.5" y="4.5" width="21" height="21" fill="url(#trello-mark-dark-paint0_linear_8505_21895)" />
     <path fill-rule="evenodd" clip-rule="evenodd" d="M28.2012 0H3.80396C1.70512 0 0.00289041 1.70103 3.06652e-05 3.80122V28.1783C-0.00402793 29.1904 0.394932 30.1626 1.10874 30.8797C1.82256 31.5969 2.79243 32 3.80396 32H28.2012C29.2118 31.9986 30.1804 31.5949 30.8931 30.8779C31.6058 30.1609 32.004 29.1895 32 28.1783V3.80122C31.9971 1.70304 30.298 0.00282584 28.2012 0ZM13.8007 23.0484C13.7994 23.3867 13.6634 23.7105 13.4229 23.9483C13.1824 24.1861 12.8572 24.3182 12.5191 24.3155H7.18747C6.49014 24.3127 5.92634 23.7462 5.92634 23.0484V7.17153C5.92634 6.47374 6.49014 5.90728 7.18747 5.90446H12.5191C13.2172 5.90727 13.7825 6.47291 13.7853 7.17153L13.8007 23.0484ZM26.1044 15.7589C26.1044 16.0976 25.9689 16.4223 25.7281 16.6603C25.4873 16.8984 25.1613 17.0301 24.8228 17.0261H19.4912C18.793 17.0232 18.2277 16.4575 18.2249 15.7589V7.17153C18.2277 6.47291 18.793 5.90727 19.4912 5.90446H24.8228C25.5201 5.90728 26.0839 6.47374 26.0839 7.17153L26.1044 15.7589Z" fill="url(#trello-mark-dark-paint1_linear_8505_21895)" />
     <defs>
-      <linearGradient id="trello-mark-dark-paint0_linear_8505_21895" x1="5" y1="7" x2="31" y2="32.5" gradient-units="userSpaceOnUse">
+      <linearGradient id="trello-mark-dark-paint0_linear_8505_21895" x1="5" y1="7" x2="31" y2="32.5" gradientUnits="userSpaceOnUse">
         <stop stop-color="white" />
         <stop offset="1" stop-color="#BFE2FF" />
       </linearGradient>
-      <linearGradient id="trello-mark-dark-paint1_linear_8505_21895" x1="24" y1="30.5" x2="12.5" y2="-8.82543e-07" gradient-units="userSpaceOnUse">
+      <linearGradient id="trello-mark-dark-paint1_linear_8505_21895" x1="24" y1="30.5" x2="12.5" y2="-8.82543e-07" gradientUnits="userSpaceOnUse">
         <stop stop-color="#0052CC" />
         <stop offset="1" stop-color="#2684FF" />
       </linearGradient>

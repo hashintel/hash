@@ -1,5 +1,5 @@
 export const markLight = ({ id: _id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 32 32">
+  <g fill="none">
     <path
       d="M24.4211 7.5789L16.8423 6.73682L7.57906 7.5789L6.73682 16L7.5789 24.4211L16 25.4738L24.4211 24.4211L25.2632 15.7896L24.4211 7.5789Z"
       fill="white"
@@ -36,10 +36,10 @@ export const markLight = ({ id: _id }: { id: string }) => (
       d="M32 7.57888V2.52624C32 1.1304 30.8695 0 29.4738 0H24.4211V7.57888H32Z"
       fill="#1967D2"
     />
-  </svg>
+  </g>
 );
 export const markDark = ({ id: _id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 32 32">
+  <g fill="none">
     <path
       d="M24.4211 7.5789L16.8423 6.73682L7.57906 7.5789L6.73682 16L7.5789 24.4211L16 25.4738L24.4211 24.4211L25.2632 15.7896L24.4211 7.5789Z"
       fill="white"
@@ -76,7 +76,7 @@ export const markDark = ({ id: _id }: { id: string }) => (
       d="M32 7.57888V2.52624C32 1.1304 30.8695 0 29.4738 0H24.4211V7.57888H32Z"
       fill="#1967D2"
     />
-  </svg>
+  </g>
 );
 export const logoLight = ({ id: _id }: { id: string }) => (
   <svg viewBox="0 0 1000 223.673" fill="none">

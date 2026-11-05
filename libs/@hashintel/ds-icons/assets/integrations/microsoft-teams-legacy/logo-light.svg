@@ -14,7 +14,7 @@
     <path d="M1.36409 6.75H15.008C15.7614 6.75 16.3721 7.3655 16.3721 8.12474V21.8752C16.3721 22.6345 15.7613 23.25 15.008 23.25H1.36409C0.610716 23.25 0 22.6345 0 21.8752V8.12474C0 7.3655 0.61073 6.75 1.36409 6.75Z" fill="url(#microsoft-teams-legacy-logo-light-mark-paint0_linear_8481_20521)" />
     <path d="M11.776 11.9835H9.04852V19.4685H7.31086V11.9835H4.59607V10.5315H11.776V11.9835Z" fill="white" />
     <defs>
-      <linearGradient id="microsoft-teams-legacy-logo-light-mark-paint0_linear_8481_20521" x1="2.84416" y1="5.6758" x2="13.6531" y2="24.2514" gradient-units="userSpaceOnUse">
+      <linearGradient id="microsoft-teams-legacy-logo-light-mark-paint0_linear_8481_20521" x1="2.84416" y1="5.6758" x2="13.6531" y2="24.2514" gradientUnits="userSpaceOnUse">
         <stop stop-color="#5A62C3" />
         <stop offset="0.5" stop-color="#4D55BD" />
         <stop offset="1" stop-color="#3940AB" />

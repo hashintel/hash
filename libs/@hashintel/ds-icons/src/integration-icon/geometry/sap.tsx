@@ -1,5 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 50 26">
+  <g fill="none">
     <path
       d="M50 0.637451H0V25.3627H25.2747"
       fill={`url(#${id}-paint0_linear_8474_23875)`}
@@ -21,10 +21,10 @@ export const markLight = ({ id }: { id: string }) => (
         <stop offset="1" stopColor="#0055AA" />
       </linearGradient>
     </defs>
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 50 26">
+  <g fill="none">
     <path
       d="M50 0.637451H0V25.3627H25.2747"
       fill={`url(#${id}-paint0_linear_8474_23875)`}
@@ -46,7 +46,7 @@ export const markDark = ({ id }: { id: string }) => (
         <stop offset="1" stopColor="#0055AA" />
       </linearGradient>
     </defs>
-  </svg>
+  </g>
 );
 export const logoLight = ({ id }: { id: string }) => (
   <svg

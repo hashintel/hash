@@ -21,7 +21,7 @@
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-drive-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#google-drive-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="google-drive-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#google-drive-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 28" x="16.0" y="16.0" width="32.0" height="32.0">
-    <mask id="google-drive-app-dark-mask0_8474_23522" mask-units="userSpaceOnUse" x="0" y="0" width="32" height="28" mask-type="luminance">
+    <mask id="google-drive-app-dark-mask0_8474_23522" x="0" y="0" width="32" height="28" maskUnits="userSpaceOnUse" mask-type="luminance">
       <path d="M31.978 0H0V28H31.978V0Z" fill="white" />
     </mask>
     <g mask="url(#google-drive-app-dark-mask0_8474_23522)">

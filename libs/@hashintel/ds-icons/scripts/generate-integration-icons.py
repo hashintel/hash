@@ -44,7 +44,17 @@ def themed_artwork(brand, kind, dark, for_logo=False):
                 for name in selector.split(","):
                     declarations[name.strip().lstrip(".")] = body
     paint_properties = {"fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "fill-rule", "clip-rule", "mask-type", "stop-color", "stop-opacity"}
+    svg_attributes = {
+        "gradient-units": "gradientUnits",
+        "gradient-transform": "gradientTransform",
+        "mask-units": "maskUnits",
+        "filter-units": "filterUnits",
+        "std-deviation": "stdDeviation",
+    }
     for element in document.iter():
+        for attribute, svg_attribute in svg_attributes.items():
+            if attribute in element.attrib:
+                element.set(svg_attribute, element.attrib.pop(attribute))
         style = ";".join(declarations.get(name, "") for name in element.attrib.pop("class", "").split()) + ";" + element.attrib.pop("style", "")
         for declaration in style.split(";"):
             if ":" in declaration:
@@ -215,6 +225,10 @@ def generate():
             for dark in (False, True):
                 artwork = themed_artwork(brand, kind, dark)
                 name = kind + ("Dark" if dark else "Light")
+                if kind == "mark":
+                    artwork.tag = svg_ns + "g"
+                    for attribute in ("viewBox", "version", "preserveAspectRatio"):
+                        artwork.attrib.pop(attribute, None)
                 markup = jsx(artwork)
                 binding = "id" if "${id}" in markup else "id: _id"
                 geometries.append(f'export const {name} = ({{ {binding} }}: {{ id: string }}) => ({markup});')

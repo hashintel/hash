@@ -26,18 +26,18 @@
     <path d="M8.02926 0.772469C7.79137 0.771556 7.55943 0.846731 7.3673 0.987012C7.17517 1.12729 7.03294 1.32533 6.96136 1.5522L0.151801 21.7277C0.0909931 21.8972 0.0719027 22.0788 0.0961445 22.2572C0.120386 22.4357 0.187247 22.6056 0.291071 22.7528C0.394895 22.8999 0.532627 23.0198 0.692616 23.1025C0.852606 23.1851 1.03015 23.228 1.21022 23.2275H6.84003C7.04971 23.1901 7.24569 23.0976 7.40794 22.9596C7.5702 22.8216 7.69292 22.6431 7.76357 22.4421L9.12153 18.44L13.9722 22.9643C14.1754 23.1324 14.4304 23.2254 14.6942 23.2275H21.0027L18.2359 15.3208L10.1702 15.3227L15.1067 0.772469H8.02926Z" fill="url(#azure-app-dark-paint1_linear_8474_23501)" />
     <path d="M17.0364 1.53621C16.9613 1.3136 16.8183 1.12015 16.6274 0.983136C16.4366 0.846119 16.2075 0.772434 15.9726 0.772461H8.11328C8.34821 0.772474 8.57723 0.846175 8.76807 0.983187C8.95891 1.1202 9.10198 1.31362 9.17711 1.53621L15.9978 21.7458C16.0548 21.9147 16.0708 22.0948 16.0444 22.2711C16.018 22.4474 15.95 22.6149 15.8461 22.7597C15.7421 22.9045 15.6052 23.0225 15.4465 23.1039C15.2879 23.1853 15.1122 23.2278 14.9339 23.2278H22.7935C22.9718 23.2277 23.1475 23.1853 23.306 23.1038C23.4646 23.0224 23.6015 22.9044 23.7055 22.7596C23.8094 22.6148 23.8774 22.4473 23.9037 22.271C23.9301 22.0947 23.9141 21.9147 23.8571 21.7458L17.0364 1.53621Z" fill="url(#azure-app-dark-paint2_linear_8474_23501)" />
     <defs>
-      <linearGradient id="azure-app-dark-paint0_linear_8474_23501" x1="10.5989" y1="2.43649" x2="3.27534" y2="24.0723" gradient-units="userSpaceOnUse">
+      <linearGradient id="azure-app-dark-paint0_linear_8474_23501" x1="10.5989" y1="2.43649" x2="3.27534" y2="24.0723" gradientUnits="userSpaceOnUse">
         <stop stop-color="#114A8B" />
         <stop offset="1" stop-color="#0669BC" />
       </linearGradient>
-      <linearGradient id="azure-app-dark-paint1_linear_8474_23501" x1="12.8872" y1="12.5193" x2="11.1931" y2="13.0921" gradient-units="userSpaceOnUse">
+      <linearGradient id="azure-app-dark-paint1_linear_8474_23501" x1="12.8872" y1="12.5193" x2="11.1931" y2="13.0921" gradientUnits="userSpaceOnUse">
         <stop stop-opacity="0.3" />
         <stop offset="0.071" stop-opacity="0.2" />
         <stop offset="0.321" stop-opacity="0.1" />
         <stop offset="0.623" stop-opacity="0.05" />
         <stop offset="1" stop-opacity="0" />
       </linearGradient>
-      <linearGradient id="azure-app-dark-paint2_linear_8474_23501" x1="11.9556" y1="1.80542" x2="19.9947" y2="23.2232" gradient-units="userSpaceOnUse">
+      <linearGradient id="azure-app-dark-paint2_linear_8474_23501" x1="11.9556" y1="1.80542" x2="19.9947" y2="23.2232" gradientUnits="userSpaceOnUse">
         <stop stop-color="#3CCBF4" />
         <stop offset="1" stop-color="#2892DF" />
       </linearGradient>

@@ -1,5 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg version="1.1" viewBox="60 90.4 570.02 539.67">
+  <g>
     <defs>
       <linearGradient
         id={`${id}-linear0`}
@@ -377,10 +377,10 @@ export const markLight = ({ id }: { id: string }) => (
         fillOpacity="1"
       />
     </g>
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg version="1.1" viewBox="60 90.4 570.02 539.67">
+  <g>
     <defs>
       <linearGradient
         id={`${id}-linear0`}
@@ -758,7 +758,7 @@ export const markDark = ({ id }: { id: string }) => (
         fillOpacity="1"
       />
     </g>
-  </svg>
+  </g>
 );
 export const logoLight = ({ id }: { id: string }) => (
   <svg fill="none" viewBox="0 0 802.1765902508063 100">

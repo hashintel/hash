@@ -1,12 +1,12 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 32 24">
+  <g fill="none">
     <mask
       id={`${id}-mask0_8474_23719`}
-      maskUnits="userSpaceOnUse"
       x="0"
       y="0"
       width="32"
       height="24"
+      maskUnits="userSpaceOnUse"
       style={{ maskType: "luminance" }}
     >
       <path d="M31.8407 0H0V24H31.8407V0Z" fill="white" />
@@ -33,17 +33,17 @@ export const markLight = ({ id }: { id: string }) => (
         fill="#C5221F"
       />
     </g>
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 32 24">
+  <g fill="none">
     <mask
       id={`${id}-mask0_8474_23719`}
-      maskUnits="userSpaceOnUse"
       x="0"
       y="0"
       width="32"
       height="24"
+      maskUnits="userSpaceOnUse"
       style={{ maskType: "luminance" }}
     >
       <path d="M31.8407 0H0V24H31.8407V0Z" fill="white" />
@@ -70,7 +70,7 @@ export const markDark = ({ id }: { id: string }) => (
         fill="#C5221F"
       />
     </g>
-  </svg>
+  </g>
 );
 export const logoLight = ({ id: _id }: { id: string }) => (
   <svg viewBox="0 13 218 51" fill="#000000">

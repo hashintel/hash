@@ -21,7 +21,7 @@
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-mail-app-light-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#google-mail-app-light-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="google-mail-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#google-mail-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 24" x="16.0" y="16.0" width="32.0" height="32.0">
-    <mask id="google-mail-app-light-mask0_8474_23719" mask-units="userSpaceOnUse" x="0" y="0" width="32" height="24" mask-type="luminance">
+    <mask id="google-mail-app-light-mask0_8474_23719" x="0" y="0" width="32" height="24" maskUnits="userSpaceOnUse" mask-type="luminance">
       <path d="M31.8407 0H0V24H31.8407V0Z" fill="white" />
     </mask>
     <g mask="url(#google-mail-app-light-mask0_8474_23719)">

@@ -1,8 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg
-    id={`${id}-uuid-70d351c3-9d52-4d9c-bf87-a1f0a8eb5856`}
-    viewBox="0 0 35 36"
-  >
+  <g id={`${id}-uuid-70d351c3-9d52-4d9c-bf87-a1f0a8eb5856`}>
     <defs>
       <radialGradient
         id={`${id}-uuid-ed2a8eb8-fce0-4bde-952b-86ec8e241ee9`}
@@ -155,13 +152,10 @@ export const markLight = ({ id }: { id: string }) => (
       d="M13.49,20.43l-1.97,9.14h-2.35s-1.16-5.48-1.16-5.48l-1.22,5.49h-2.38l-1.89-9.14h1.94l1.17,6.03,1.16-6.03h2.38l1.21,6.03,1.14-6.03h1.97Z"
       fill="#fff"
     />
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg
-    id={`${id}-uuid-70d351c3-9d52-4d9c-bf87-a1f0a8eb5856`}
-    viewBox="0 0 35 36"
-  >
+  <g id={`${id}-uuid-70d351c3-9d52-4d9c-bf87-a1f0a8eb5856`}>
     <defs>
       <radialGradient
         id={`${id}-uuid-ed2a8eb8-fce0-4bde-952b-86ec8e241ee9`}
@@ -314,7 +308,7 @@ export const markDark = ({ id }: { id: string }) => (
       d="M13.49,20.43l-1.97,9.14h-2.35s-1.16-5.48-1.16-5.48l-1.22,5.49h-2.38l-1.89-9.14h1.94l1.17,6.03,1.16-6.03h2.38l1.21,6.03,1.14-6.03h1.97Z"
       fill="#fff"
     />
-  </svg>
+  </g>
 );
 export const logoLight = ({ id }: { id: string }) => (
   <svg fill="none" viewBox="0 0 694.487737257411 100">

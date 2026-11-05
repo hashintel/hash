@@ -30,6 +30,11 @@ describe("IntegrationIcon", () => {
         expect(
           document.querySelector("parsererror, script, foreignObject"),
         ).toBeNull();
+        expect(
+          document.querySelector(
+            "[gradient-units], [gradient-transform], [mask-units], [filter-units], [std-deviation]",
+          ),
+        ).toBeNull();
         const ids = new Set(
           Array.from(document.querySelectorAll("[id]"), (node) => node.id),
         );

@@ -1,5 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 40 18">
+  <g fill="none">
     <g clipPath={`url(#${id}-clip0_8474_23847)`}>
       <path
         d="M39.1482 13.1539H37.091C36.9146 13.1539 36.7383 13.0061 36.7383 12.7991V10.7295C36.7383 10.5521 36.8852 10.3748 37.091 10.3748H39.1482C39.3246 10.3748 39.5009 10.5226 39.5009 10.7295V12.7991C39.5009 13.0061 39.354 13.1539 39.1482 13.1539Z"
@@ -32,10 +32,10 @@ export const markLight = ({ id }: { id: string }) => (
         />
       </clipPath>
     </defs>
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 40 18">
+  <g fill="none">
     <g clipPath={`url(#${id}-clip0_8474_23847)`}>
       <path
         d="M39.1482 13.1539H37.091C36.9146 13.1539 36.7383 13.0061 36.7383 12.7991V10.7295C36.7383 10.5521 36.8852 10.3748 37.091 10.3748H39.1482C39.3246 10.3748 39.5009 10.5226 39.5009 10.7295V12.7991C39.5009 13.0061 39.354 13.1539 39.1482 13.1539Z"
@@ -68,7 +68,7 @@ export const markDark = ({ id }: { id: string }) => (
         />
       </clipPath>
     </defs>
-  </svg>
+  </g>
 );
 export const logoLight = ({ id }: { id: string }) => (
   <svg viewBox="0 0 40 18" fill="#000000">

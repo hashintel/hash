@@ -1,9 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg
-    id={`${id}-Copilot_Icons`}
-    data-name="Copilot Icons"
-    viewBox="-1 15 513 481"
-  >
+  <g id={`${id}-Copilot_Icons`} data-name="Copilot Icons">
     <defs>
       <radialGradient
         id={`${id}-radial-gradient`}
@@ -74,14 +70,10 @@ export const markLight = ({ id }: { id: string }) => (
       d="M164.7,396.83l5.16-20.63h49.62c36.77,0,68.82-25.03,77.74-60.7l44.92-179.7h89.69c52.13,0,90.38,48.99,77.74,99.57l-45.02,180.1c-11.89,47.56-54.63,80.93-103.66,80.93h-118.45c-52.13,0-90.38-48.99-77.74-99.57Z"
       fill={`url(#${id}-linear-gradient-2)`}
     />
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg
-    id={`${id}-Copilot_Icons`}
-    data-name="Copilot Icons"
-    viewBox="-1 15 513 481"
-  >
+  <g id={`${id}-Copilot_Icons`} data-name="Copilot Icons">
     <defs>
       <radialGradient
         id={`${id}-radial-gradient`}
@@ -152,7 +144,7 @@ export const markDark = ({ id }: { id: string }) => (
       d="M164.7,396.83l5.16-20.63h49.62c36.77,0,68.82-25.03,77.74-60.7l44.92-179.7h89.69c52.13,0,90.38,48.99,77.74,99.57l-45.02,180.1c-11.89,47.56-54.63,80.93-103.66,80.93h-118.45c-52.13,0-90.38-48.99-77.74-99.57Z"
       fill={`url(#${id}-linear-gradient-2)`}
     />
-  </svg>
+  </g>
 );
 export const logoLight = ({ id }: { id: string }) => (
   <svg fill="none" viewBox="0 0 770.242169787135 100">

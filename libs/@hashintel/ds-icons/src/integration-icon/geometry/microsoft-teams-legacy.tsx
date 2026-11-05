@@ -1,5 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 32 30">
+  <g fill="none">
     <path
       d="M22.3204 11.25H30.5861C31.367 11.25 32 11.888 32 12.675V20.2627C32 23.1552 29.6734 25.5 26.8034 25.5H26.7788C23.9088 25.5004 21.5818 23.1559 21.5814 20.2635C21.5814 20.2632 21.5814 20.263 21.5814 20.2627V11.9948C21.5814 11.5834 21.9123 11.25 22.3204 11.25Z"
       fill="#5059C9"
@@ -78,10 +78,10 @@ export const markLight = ({ id }: { id: string }) => (
         <stop offset="1" stopColor="#3940AB" />
       </linearGradient>
     </defs>
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 32 30">
+  <g fill="none">
     <path
       d="M22.3204 11.25H30.5861C31.367 11.25 32 11.888 32 12.675V20.2627C32 23.1552 29.6734 25.5 26.8034 25.5H26.7788C23.9088 25.5004 21.5818 23.1559 21.5814 20.2635C21.5814 20.2632 21.5814 20.263 21.5814 20.2627V11.9948C21.5814 11.5834 21.9123 11.25 22.3204 11.25Z"
       fill="#5059C9"
@@ -160,7 +160,7 @@ export const markDark = ({ id }: { id: string }) => (
         <stop offset="1" stopColor="#3940AB" />
       </linearGradient>
     </defs>
-  </svg>
+  </g>
 );
 export const logoLight = ({ id }: { id: string }) => (
   <svg fill="none" viewBox="0 0 695.6910569105692 100">

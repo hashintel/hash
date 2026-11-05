@@ -1,5 +1,5 @@
 export const markLight = ({ id: _id }: { id: string }) => (
-  <svg viewBox="0 0 24 24" fill="none">
+  <g fill="none">
     <rect
       x="3"
       y="3"
@@ -36,10 +36,10 @@ export const markLight = ({ id: _id }: { id: string }) => (
       stroke="currentColor"
       strokeWidth="2"
     />
-  </svg>
+  </g>
 );
 export const markDark = ({ id: _id }: { id: string }) => (
-  <svg viewBox="0 0 24 24" fill="none">
+  <g fill="none">
     <rect
       x="3"
       y="3"
@@ -76,5 +76,5 @@ export const markDark = ({ id: _id }: { id: string }) => (
       stroke="currentColor"
       strokeWidth="2"
     />
-  </svg>
+  </g>
 );

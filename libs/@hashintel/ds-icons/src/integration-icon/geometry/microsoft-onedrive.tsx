@@ -1,5 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg version="1.1" viewBox="35.98 139.2 648.03 430.85">
+  <g>
     <defs>
       <radialGradient
         id={`${id}-radial0`}
@@ -234,10 +234,10 @@ export const markLight = ({ id }: { id: string }) => (
         fill={`url(#${id}-radial7)`}
       />
     </g>
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg version="1.1" viewBox="35.98 139.2 648.03 430.85">
+  <g>
     <defs>
       <radialGradient
         id={`${id}-radial0`}
@@ -472,7 +472,7 @@ export const markDark = ({ id }: { id: string }) => (
         fill={`url(#${id}-radial7)`}
       />
     </g>
-  </svg>
+  </g>
 );
 export const logoLight = ({ id }: { id: string }) => (
   <svg fill="none" viewBox="0 0 890.8321583953991 100">

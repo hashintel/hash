@@ -1,5 +1,5 @@
 export const markLight = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 64 64">
+  <g fill="none">
     <g clipPath={`url(#${id}-clip0_8505_34590)`}>
       <path
         fillRule="evenodd"
@@ -28,8 +28,8 @@ export const markLight = ({ id }: { id: string }) => (
         y="-18"
         width="144"
         height="86"
-        filterUnits="userSpaceOnUse"
         colorInterpolationFilters="sRGB"
+        filterUnits="userSpaceOnUse"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feColorMatrix
@@ -79,8 +79,8 @@ export const markLight = ({ id }: { id: string }) => (
         y="-4"
         width="64"
         height="27.75"
-        filterUnits="userSpaceOnUse"
         colorInterpolationFilters="sRGB"
+        filterUnits="userSpaceOnUse"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend
@@ -130,10 +130,10 @@ export const markLight = ({ id }: { id: string }) => (
         <rect width="64" height="64" rx="10" fill="white" />
       </clipPath>
     </defs>
-  </svg>
+  </g>
 );
 export const markDark = ({ id }: { id: string }) => (
-  <svg fill="none" viewBox="0 0 64 64">
+  <g fill="none">
     <g clipPath={`url(#${id}-clip0_8505_34590)`}>
       <path
         fillRule="evenodd"
@@ -162,8 +162,8 @@ export const markDark = ({ id }: { id: string }) => (
         y="-18"
         width="144"
         height="86"
-        filterUnits="userSpaceOnUse"
         colorInterpolationFilters="sRGB"
+        filterUnits="userSpaceOnUse"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feColorMatrix
@@ -213,8 +213,8 @@ export const markDark = ({ id }: { id: string }) => (
         y="-4"
         width="64"
         height="27.75"
-        filterUnits="userSpaceOnUse"
         colorInterpolationFilters="sRGB"
+        filterUnits="userSpaceOnUse"
       >
         <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend
@@ -264,5 +264,5 @@ export const markDark = ({ id }: { id: string }) => (
         <rect width="64" height="64" rx="10" fill="white" />
       </clipPath>
     </defs>
-  </svg>
+  </g>
 );
