@@ -21,6 +21,7 @@ use type_system::ontology::json_schema::DomainValidator;
 use super::{
     ApiState, PublicApiConfig,
     authentication::{self, api_token::ApiTokenRejection},
+    cors::CorsConfig,
     documentation,
     legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
     middleware::{self, Middleware},
@@ -39,6 +40,7 @@ pub struct Dependencies<S> {
     pub service_secret: Pin<Arc<Secret<str>>>,
     pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
+    pub cors: CorsConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
     pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
@@ -86,6 +88,7 @@ where
         service_secret: dependencies.service_secret,
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&dependencies.meter)),
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),
+        cors: dependencies.cors,
     };
 
     let state = ApiState::new(
