@@ -6,11 +6,13 @@
  *   panel keeps its three sections.
  * - Each path is one line on the rail: a dot, the value, then the step it leads to (a chip), or "Ends here". No "→"
  *   arrows and no connecting words: the rail and the order carry it (Aakarsh, T26: not a fan of the arrows).
+ * - If is I1 (inbox `picks/if-panel`, decided 4 Nov): no output label and no dots. Each path is one line: its name,
+ *   a muted "true" or "false" 12 px after it, then where it leads. The names share one column, so the targets line up.
  * - MOCK, the stretch case (Ciarán, Dei, T26): "Add path" adds a path on several fields, e.g. Approved AND Amount over
  *   10,000 → another reviewer. It lives in this panel only: the engine has one port per value, and the canvas card
  *   does not draw the extra port.
  */
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { Button, Chip, type IconName } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -76,6 +78,25 @@ const labelStackStyle = css({
   gap: "1",
 });
 
+/** I1: name, muted value, target; one column each. */
+const ifPathsStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[max-content max-content minmax(0, 1fr)]",
+  alignItems: "center",
+  columnGap: "3",
+  rowGap: "2",
+  textStyle: "sm",
+  color: "neutral.fg.body",
+  "& > [data-path-target]": {
+    display: "flex",
+    alignItems: "center",
+    minWidth: "[0]",
+    paddingLeft: "3",
+  },
+});
+
+const pathValueStyle = css({ color: "neutral.fg.subtle" });
+
 type ExtraPath = { id: string };
 
 export const BranchRows = ({
@@ -125,6 +146,20 @@ export const BranchRows = ({
   };
 
   const approved = ports[0];
+
+  if (actionDefinitionId === "if") {
+    return (
+      <div className={ifPathsStyle} data-if-paths="i1">
+        {ports.map((port) => (
+          <Fragment key={port.outputName}>
+            <span>{port.label}</span>
+            <span className={pathValueStyle}>{port.outputName}</span>
+            <span data-path-target>{goesTo(port.outputName)}</span>
+          </Fragment>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <PropertyRow
