@@ -1,4 +1,4 @@
-import { use, type ReactNode } from "react";
+import { use, useEffect, useState, type ReactNode } from "react";
 
 import {
   ARC_ID_PREFIX,
@@ -6,6 +6,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { NetManagementContext } from "./net-management-context";
+import { createVisualizerDefinitionStore } from "./sdcpn-provider/visualizer-definition-store";
 import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 import { useStore } from "./use-store";
@@ -21,7 +22,37 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
   const instance = usePetrinautInstance();
   const netManagement = use(NetManagementContext);
 
-  const petriNetDefinition = useStore(instance.definition);
+  const [definition, setDefinition] = useState(() => ({
+    source: instance.definition,
+    store: createVisualizerDefinitionStore(instance.definition),
+  }));
+  if (definition.source !== instance.definition) {
+    setDefinition({
+      source: instance.definition,
+      store: createVisualizerDefinitionStore(instance.definition),
+    });
+  }
+  useEffect(() => {
+    const flush = definition.store.flush;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.key === "Tab" ||
+        event.key === "Escape"
+      )
+        flush();
+    };
+    window.addEventListener("pointerdown", flush, true);
+    window.addEventListener("blur", flush, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("pointerdown", flush, true);
+      window.removeEventListener("blur", flush, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [definition.store]);
+  const petriNetDefinition = useStore(definition.store);
   const allNets = [petriNetDefinition, ...(petriNetDefinition.subnets ?? [])];
 
   const value: SDCPNContextValue = {
