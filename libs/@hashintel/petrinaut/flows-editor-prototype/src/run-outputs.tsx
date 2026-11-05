@@ -88,6 +88,18 @@ export const useEmailRowTake = (): EmailRowTake => {
     : null;
 };
 
+/**
+ * ?edgecase=1..6 (inbox `picks/outputs-container`, Aakarsh 5 Nov: "why are you so sure the outputs will be too big
+ * for the right pane"): one seed-flow output, mocked on the step it comes from, to see inline against the side sheet.
+ * URL only; no param changes nothing. 1 Find → 20 suppliers × 8 properties; 2 Find → 14 Suppliers + 6 Distributors with
+ * their own properties; 3 For each over 200 suppliers, 3 failed; 4 Fetch → 18 PDFs; 5 a failed Fetch, its error and
+ * input URL; 6 Read contact email → Name and Email.
+ */
+export const useEdgeCase = (): number | null => {
+  const value = Number(useLocation().query.get("edgecase"));
+  return Number.isInteger(value) && value >= 1 && value <= 6 ? value : null;
+};
+
 export type EntityTypesTake = "a" | "b";
 
 /** ?entitytypes=a|b; no param is A, the inbox row's recommendation. */
@@ -1364,7 +1376,15 @@ type Column = {
 /** One type's part of an output list: entities of one type, or files of one kind. */
 export type OutputGroup =
   | { type: EntityTypeName; rows: SupplierEntity[]; columns: Column[] }
-  | { type: "Certificate" | "Email"; files: OutputFile[] };
+  | { type: "Certificate" | "Email"; files: OutputFile[] }
+  | { type: "Failed"; failures: StepFailure[] };
+
+/** A failed item with what a reader needs to fix it: the error and the input that caused it (?edgecase=3, 5). */
+export type StepFailure = Failure & {
+  url: string;
+  attempts: number;
+  at: string;
+};
 
 export type ViewerState =
   | { kind: "files"; files: OutputFile[]; index: number; from: string }
@@ -1877,15 +1897,24 @@ const groupLabel: Record<OutputGroup["type"], [string, string]> = {
   Distributor: ["distributor", "Distributors"],
   Certificate: ["certificate", "Certificates"],
   Email: ["email", "Emails"],
+  Failed: ["failed", "Failed"],
 };
 
 const groupSize = (group: OutputGroup) =>
-  "rows" in group ? group.rows.length : group.files.length;
+  "rows" in group
+    ? group.rows.length
+    : "files" in group
+      ? group.files.length
+      : group.failures.length;
 
 /** "18 suppliers · 18 certificates · 18 emails" */
 export const groupsCount = (groups: OutputGroup[]) =>
   groups
-    .map((group) => plural(groupSize(group), groupLabel[group.type][0]))
+    .map((group) =>
+      group.type === "Failed"
+        ? `${groupSize(group)} failed`
+        : plural(groupSize(group), groupLabel[group.type][0]),
+    )
     .join(" · ");
 
 /** An entity list as groups, one per type, each with only its type's columns. */
@@ -1908,6 +1937,32 @@ const openFilesIn =
   (onChange: (next: ViewerState) => void, files: OutputFile[], from: string) =>
   (index: number) =>
     onChange({ kind: "files", files, index, from });
+
+/** Failed items, wide: the error and the input beside each. */
+const FailureTable = ({ failures }: { failures: StepFailure[] }) => (
+  <div className={tableScrollStyle}>
+    <table className={tableStyle} data-failure-table>
+      <thead>
+        <tr>
+          {["Supplier", "Error", "Input URL", "Attempts", "At"].map((label) => (
+            <th key={label}>{label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {failures.map((failure) => (
+          <tr key={failure.supplier}>
+            <td>{failure.supplier}</td>
+            <td>{failure.reason}</td>
+            <td>{failure.url}</td>
+            <td>{failure.attempts}</td>
+            <td>{failure.at}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
 /** Rows a type's wide table shows before "+ N more". */
 const widePeek = 5;
@@ -1946,7 +2001,17 @@ const MixedBody = ({
             validUntil: blank,
             sent: blank,
           }))
-        : group.files.map((file, index) => ({
+        : "failures" in group
+          ? group.failures.map((failure) => ({
+              key: `${group.type}.${failure.supplier}`,
+              name: <>{failure.supplier}</>,
+              type: "Failed",
+              supplier: failure.supplier,
+              contact: blank,
+              validUntil: blank,
+              sent: blank,
+            }))
+          : group.files.map((file, index) => ({
             key: `${group.type}.${file.supplier}`,
             name: (
               <button
@@ -2028,6 +2093,8 @@ const MixedBody = ({
                 outputs={outputs}
                 onChange={onChange}
               />
+            ) : "failures" in group ? (
+              <FailureTable failures={group.failures.slice(0, shown)} />
             ) : (
               <FileTable
                 files={group.files.slice(0, shown)}
@@ -2399,8 +2466,25 @@ const entityLineStyle = css({
   "& > span:nth-child(2)": { minWidth: "[0]" },
 });
 
-/** An entity in the narrow list: its name, and the properties that fit on one line. */
-const EntityLine = ({ row, tag }: { row: SupplierEntity; tag?: string }) => (
+/** A column's value as text, for the narrow list's one-line summary. */
+const cellText = (column: Column, row: SupplierEntity) => {
+  const cell = column.cell(row);
+  return typeof cell === "string" ? cell : "";
+};
+
+/**
+ * An entity in the narrow list: its name, and the properties that fit on one line. With ?edgecase= the line is the
+ * view's own properties in column order, so a wide output shows what the column cuts off.
+ */
+const EntityLine = ({
+  row,
+  tag,
+  columns,
+}: {
+  row: SupplierEntity;
+  tag?: string;
+  columns?: Column[];
+}) => (
   <div className={entityLineStyle} data-output-entity={row.type}>
     <span>
       <Icon name="cube" size="sm" />
@@ -2408,11 +2492,54 @@ const EntityLine = ({ row, tag }: { row: SupplierEntity; tag?: string }) => (
     <span>
       <span className={titleLineStyle}>{row.name}</span>
       <span className={metaLineStyle}>
-        {row.region ? `${row.region} · ` : ""}
-        {row.contact} · {row.email}
+        {columns
+          ? columns
+              .filter((column) => column.label !== "Name")
+              .map((column) => cellText(column, row))
+              .filter(Boolean)
+              .join(" · ")
+          : `${row.region ? `${row.region} · ` : ""}${row.contact} · ${row.email}`}
       </span>
     </span>
     {tag ? <span className={typeTagStyle}>{tag}</span> : <span />}
+  </div>
+);
+
+const failureLineStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[44px 1fr]",
+  alignItems: "start",
+  columnGap: "3",
+  paddingY: "2",
+  "& > span:first-child": {
+    display: "flex",
+    justifyContent: "center",
+    paddingTop: "[2px]",
+  },
+  "& > span:nth-child(2)": { minWidth: "[0]" },
+});
+
+const wrapLineStyle = css({
+  display: "block",
+  marginTop: "0.5",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+  overflowWrap: "anywhere",
+});
+
+/** A failed item in the narrow list: the error, then the input that caused it, wrapped. */
+const FailureLine = ({ failure }: { failure: StepFailure }) => (
+  <div className={failureLineStyle} data-output-failure>
+    <span>
+      <RunGlyph state="failed" size={16} detail={failure.reason} />
+    </span>
+    <span>
+      <span className={titleLineStyle}>{failure.supplier}</span>
+      <span className={metaLineStyle}>
+        {failure.reason} · {plural(failure.attempts, "attempt")} · {failure.at}
+      </span>
+      <span className={wrapLineStyle}>{failure.url}</span>
+    </span>
   </div>
 );
 
@@ -2445,6 +2572,7 @@ const ColumnList = ({
   onOpen: (next: ViewerState) => void;
 }) => {
   const take = useEntityTypesTake();
+  const edge = useEdgeCase() !== null;
   const groups = groupsOf(view);
   const [shownAll, setShownAll] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -2472,9 +2600,14 @@ const ColumnList = ({
               key={`${group.type}.${row.name}`}
               row={row}
               tag={row.type}
+              {...(edge ? { columns: group.columns } : {})}
             />
           ))
-        : group.files.map((file, index) => (
+        : "failures" in group
+          ? group.failures.map((failure) => (
+              <FailureLine key={failure.supplier} failure={failure} />
+            ))
+          : group.files.map((file, index) => (
             <FileRow
               key={`${group.type}.${file.supplier}`}
               file={file}
@@ -2526,8 +2659,20 @@ const ColumnList = ({
               {"rows" in group
                 ? group.rows
                     .slice(0, shown)
-                    .map((row) => <EntityLine key={row.name} row={row} />)
-                : group.files
+                    .map((row) => (
+                      <EntityLine
+                        key={row.name}
+                        row={row}
+                        {...(edge ? { columns: group.columns } : {})}
+                      />
+                    ))
+                : "failures" in group
+                  ? group.failures
+                      .slice(0, shown)
+                      .map((failure) => (
+                        <FailureLine key={failure.supplier} failure={failure} />
+                      ))
+                  : group.files
                     .slice(0, shown)
                     .map((file, index) => (
                       <FileRow
@@ -2878,6 +3023,240 @@ const panelStackStyle = css({
   gap: "6",
 });
 
+/* ----------------------------------------------------------------------------------------------------------------
+ * MOCK edge cases (?edgecase=1..6)
+ * ------------------------------------------------------------------------------------------------------------- */
+
+const tierOf = (item: number) => ["A", "B", "A", "C"][item % 4]!;
+const lastReviewOf = (item: number) =>
+  ["Oct 2026", "Sep 2026", "Aug 2026", "Nov 2025"][item % 4]!;
+const warehouses = ["Rotterdam", "Leeds", "Hamburg", "Lyon", "Malmö", "Porto"];
+const kinds = [
+  "Alloys",
+  "Plastics",
+  "Chemicals",
+  "Metals",
+  "Packaging",
+  "Resins",
+  "Minerals",
+  "Fibres",
+  "Coatings",
+  "Textiles",
+];
+
+const certificateUrl = (name: string) =>
+  `https://${slugOf(name)}.com/quality/iso9001.pdf`;
+
+const supplierColumns = {
+  name: { label: "Name", cell: (row: SupplierEntity) => row.name },
+  region: {
+    label: "Region",
+    cell: (row: SupplierEntity) =>
+      row.region ?? regions[row.item % regions.length]!,
+  },
+  contact: { label: "Contact", cell: (row: SupplierEntity) => row.contact },
+  email: { label: "Email", cell: (row: SupplierEntity) => row.email },
+  tier: { label: "Tier", cell: (row: SupplierEntity) => tierOf(row.item) },
+  validTo: {
+    label: "Certificate valid to",
+    cell: (row: SupplierEntity) =>
+      certificateOf(row.name, row.item).validUntil,
+  },
+  lastReview: {
+    label: "Last review",
+    cell: (row: SupplierEntity) => lastReviewOf(row.item),
+  },
+  status: {
+    label: "Status",
+    cell: (row: SupplierEntity) => (row.item % 7 === 3 ? "On hold" : "Active"),
+  },
+};
+
+const emailOf = (row: SupplierEntity, run: RunRecord): Email => {
+  const certificate = certificateOf(row.name, row.item);
+  return {
+    kind: "email",
+    supplier: row.name,
+    item: row.item,
+    contact: row.contact,
+    to: row.email,
+    subject: `Your monthly quality review · ${row.name}`,
+    body: [
+      `Hi ${row.contact.split(" ")[0]!},`,
+      `Your ISO 9001 certificate is on file and valid until ${certificate.validUntil}. No action needed this month.`,
+      "Thanks,\nAcme Quality",
+    ],
+    sentAt: clockPlus(run.startClock, 40 + row.item),
+    messageId: `<r${run.id}-${String(row.item + 1).padStart(3, "0")}@mail.acme.example>`,
+    attachment: certificate.fileName,
+    sizeKb: certificate.sizeKb + 14,
+    delivery: "sent",
+  };
+};
+
+/** Each edge case: the step it sits on, and the output that step's panel opens. */
+const edgeCaseOf = (
+  edge: number,
+  outputs: RunOutputs,
+  take: EntityTypesTake,
+): { stepId: string; view: EntitiesView | MixedView } => {
+  const { run } = outputs;
+  switch (edge) {
+    case 1:
+      return {
+        stepId: "findSuppliers",
+        view: {
+          kind: "entities",
+          title: `${plural(outputs.entities.length, "supplier")} · 8 properties`,
+          from: "Find active suppliers",
+          rows: outputs.entities,
+          columns: Object.values(supplierColumns),
+        },
+      };
+    case 2: {
+      const rows = outputs.entities.map(
+        (row): SupplierEntity =>
+          row.item % 3 === 2
+            ? {
+                ...row,
+                type: "Distributor",
+                region: regions[Math.floor(row.item / 3) % regions.length]!,
+              }
+            : row,
+      );
+      const distributor = ["Distributor" as const];
+      const supplier = ["Supplier" as const];
+      return {
+        stepId: "findSuppliers",
+        view: {
+          kind: "entities",
+          title: entityCount(rows, take),
+          from: "Find active suppliers",
+          rows,
+          columns: [
+            supplierColumns.name,
+            supplierColumns.contact,
+            { ...supplierColumns.email, types: supplier },
+            { ...supplierColumns.tier, types: supplier },
+            { ...supplierColumns.validTo, types: supplier },
+            { ...supplierColumns.region, types: distributor },
+            {
+              label: "Warehouse",
+              types: distributor,
+              cell: (row: SupplierEntity) =>
+                warehouses[row.item % warehouses.length]!,
+            },
+            {
+              label: "Lead time",
+              types: distributor,
+              cell: (row: SupplierEntity) => `${3 + (row.item % 5)} days`,
+            },
+            {
+              label: "Channels",
+              types: distributor,
+              cell: (row: SupplierEntity) =>
+                row.item % 2 === 0 ? "Retail, trade" : "Trade",
+            },
+          ],
+        },
+      };
+    }
+    case 3: {
+      const failedAt = new Map([
+        [37, "Certificate link returned 404"],
+        [112, "Certificate link timed out after 30 s"],
+        [168, "TLS handshake failed"],
+      ]);
+      const all = Array.from({ length: 200 }, (_, item): SupplierEntity => {
+        const name = `${suppliers[item % suppliers.length]!.split(" ")[0]!} ${kinds[Math.floor(item / suppliers.length)]!}`;
+        const contact = contacts[item % contacts.length]!;
+        return {
+          name,
+          type: "Supplier",
+          item,
+          contact,
+          email: `${contact.split(" ")[0]!.toLowerCase()}@${slugOf(name)}.com`,
+          reviewed: !failedAt.has(item),
+        };
+      });
+      const done = all.filter((row) => row.reviewed);
+      const groups: OutputGroup[] = [
+        {
+          type: "Failed",
+          failures: all
+            .filter((row) => !row.reviewed)
+            .map((row) => ({
+              supplier: row.name,
+              item: row.item,
+              reason: failedAt.get(row.item)!,
+              url: certificateUrl(row.name),
+              attempts: 3,
+              at: clockPlus(run.startClock, 30 + row.item),
+            })),
+        },
+        {
+          type: "Supplier",
+          rows: done,
+          columns: [
+            supplierColumns.name,
+            supplierColumns.contact,
+            supplierColumns.lastReview,
+          ],
+        },
+        {
+          type: "Certificate",
+          files: done.map((row) => certificateOf(row.name, row.item)),
+        },
+        { type: "Email", files: done.map((row) => emailOf(row, run)) },
+      ];
+      return {
+        stepId: forEachId,
+        view: {
+          kind: "mixed",
+          title: groupsCount(groups),
+          from: "For each supplier",
+          groups,
+        },
+      };
+    }
+    case 4:
+      return {
+        stepId: "fetchCertificate",
+        view: {
+          kind: "mixed",
+          title: plural(outputs.certificates.length, "certificate"),
+          from: "Fetch certificate",
+          groups: [{ type: "Certificate", files: outputs.certificates }],
+        },
+      };
+    case 5:
+      return {
+        stepId: "fetchCertificate",
+        view: {
+          kind: "mixed",
+          title: `${outputs.failures.length} failed`,
+          from: "Fetch certificate",
+          groups: [
+            {
+              type: "Failed",
+              failures: outputs.failures.map((failure) => ({
+                ...failure,
+                url: certificateUrl(failure.supplier),
+                attempts: 3,
+                at: clockPlus(run.startClock, 20 + 3 * failure.item),
+              })),
+            },
+          ],
+        },
+      };
+    default:
+      return {
+        stepId: "readEmail",
+        view: entityViews(outputs, take).values("Contact email"),
+      };
+  }
+};
+
 /** The Outputs part of a step's run panel. Returns null for steps with plain outputs (the sign-off's Decision). */
 export const StepOutputs = ({
   stepId,
@@ -2898,8 +3277,28 @@ export const StepOutputs = ({
   const openFiles = (files: OutputFile[], from: string) => (index: number) =>
     open({ kind: "files", files, index, from });
   const names = (rows: SupplierEntity[]) => rows.map((row) => row.name);
+  const edge = useEdgeCase();
+  const edgeCase = edge ? edgeCaseOf(edge, outputs, typesTake) : null;
   let body: React.ReactNode = null;
-  switch (stepId) {
+  if (edgeCase && edgeCase.stepId === stepId) {
+    const { view } = edgeCase;
+    const sample = groupsOf(view).flatMap((group) =>
+      "rows" in group
+        ? group.rows.map((row) => row.name)
+        : "files" in group
+          ? group.files.map((file) => file.supplier)
+          : group.failures.map((failure) => failure.supplier),
+    );
+    body = (
+      <EntityOutput
+        label={`Edge case ${edge}`}
+        icon="cubes"
+        count={view.title}
+        names={sample}
+        onOpen={() => open(view)}
+      />
+    );
+  } else switch (stepId) {
     case "findSuppliers":
       body = (
         <EntityOutput
