@@ -1,22 +1,20 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, ButtonBase } from "@mui/material";
+import { Box } from "@mui/material";
 import { useState } from "react";
-
-import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import {
   cellSx,
   formatVersionList,
   formatVersions,
-  openColumnWidth,
-  rowHeight,
   visuallyHidden,
 } from "./dependent-types-table-layout";
 import {
+  ExpandChevron,
   HeaderRow,
+  NestedRow,
   OpenTypeButton,
+  RowToggle,
   TableCard,
-  TreeLines,
+  toggleRowSx,
   TypeLabel,
 } from "./dependent-types-table-parts";
 
@@ -47,41 +45,25 @@ const RangeRow = ({
   const versions = formatVersions(range.firstVersion, range.lastVersion);
 
   return (
-    <Box
-      sx={({ palette }) => ({
-        position: "relative",
-        height: rowHeight,
-        borderRadius: 1,
-        "&:hover": { background: palette.gray[10] },
-      })}
+    <NestedRow
+      gridTemplateColumns={gridTemplateColumns}
+      last={last}
+      openButton={
+        <OpenTypeButton
+          label={`Open ${title} v${range.lastVersion}, the highest version in ${versions}, which extends ${parentTitle} v${range.parentVersion}`}
+          onClick={() => onOpenType(range.lastVersionId)}
+        />
+      }
     >
-      <Box
-        sx={({ palette }) => ({
-          height: rowHeight,
-          pr: `${openColumnWidth}px`,
-          display: "grid",
-          gridTemplateColumns,
-          alignItems: "center",
-          fontSize: 14,
-          lineHeight: "18px",
-          color: palette.gray[80],
-        })}
-      >
-        <Box sx={cellSx} />
-        <Box sx={cellSx}>{versions}</Box>
-        <Box sx={cellSx}>
-          <Box component="span" sx={visuallyHidden}>
-            extends {parentTitle}{" "}
-          </Box>
-          {`v${range.parentVersion}`}
+      <Box sx={cellSx} />
+      <Box sx={cellSx}>{versions}</Box>
+      <Box sx={cellSx}>
+        <Box component="span" sx={visuallyHidden}>
+          extends {parentTitle}{" "}
         </Box>
+        {`v${range.parentVersion}`}
       </Box>
-      <OpenTypeButton
-        label={`Open ${title} v${range.lastVersion}, the highest version in ${versions}, which extends ${parentTitle} v${range.parentVersion}`}
-        onClick={() => onOpenType(range.lastVersionId)}
-      />
-      <TreeLines last={last} />
-    </Box>
+    </NestedRow>
   );
 };
 
@@ -106,43 +88,16 @@ const DependentTypeTableRow = ({
 
   return (
     <Box>
-      <Box
-        sx={({ palette }) => ({
-          position: "relative",
-          height: rowHeight,
-          "&:hover .dependent-type-row-toggle": {
-            background: palette.gray[10],
-          },
-        })}
-      >
-        <ButtonBase
-          className="dependent-type-row-toggle"
+      <Box sx={toggleRowSx}>
+        <RowToggle
+          gridTemplateColumns={gridTemplateColumns}
           aria-expanded={expanded}
           aria-label={
             former
               ? `${title}, former, versions ${versions}, extends ${parentTitle} ${parentVersions}`
               : `${title} v${version}, versions ${versions}, extends ${parentTitle} ${parentVersions}`
           }
-          disableRipple
           onClick={() => setExpanded(!expanded)}
-          sx={({ palette }) => ({
-            width: 1,
-            height: rowHeight,
-            pr: `${openColumnWidth}px`,
-            borderRadius: 1,
-            display: "grid",
-            gridTemplateColumns,
-            alignItems: "center",
-            justifyItems: "start",
-            textAlign: "left",
-            fontSize: 14,
-            lineHeight: "18px",
-            color: palette.gray[80],
-            "&.Mui-focusVisible": {
-              outline: `2px solid ${palette.blue[70]}`,
-              outlineOffset: 2,
-            },
-          })}
         >
           <Box sx={{ ...cellSx, maxWidth: 1 }}>
             <TypeLabel
@@ -154,33 +109,8 @@ const DependentTypeTableRow = ({
           </Box>
           <Box sx={cellSx}>{versions}</Box>
           <Box sx={cellSx}>{parentVersions}</Box>
-        </ButtonBase>
-        <Box
-          aria-hidden
-          sx={({ palette }) => ({
-            position: "absolute",
-            left: 0,
-            top: 0,
-            width: 28,
-            height: rowHeight,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: palette.gray[60],
-            pointerEvents: "none",
-          })}
-        >
-          <FontAwesomeIcon
-            icon={faChevronRight}
-            sx={({ transitions }) => ({
-              fontSize: 10,
-              transform: expanded ? "rotate(90deg)" : "none",
-              transition: transitions.create("transform", {
-                duration: 300,
-              }),
-            })}
-          />
-        </Box>
+        </RowToggle>
+        <ExpandChevron expanded={expanded} />
         <OpenTypeButton
           label={
             former

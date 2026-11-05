@@ -1,11 +1,13 @@
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
-import { EntityOrTypeIcon } from "@hashintel/design-system";
+import { EntityOrTypeIcon, FontAwesomeIcon } from "@hashintel/design-system";
 
 import { ArrowUpRightRegularIcon } from "../../../../../shared/icons/arrow-up-right-regular-icon";
 import { openColumnWidth, rowHeight } from "./dependent-types-table-layout";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
+import type { ButtonBaseProps, SxProps, Theme } from "@mui/material";
 import type { ReactNode } from "react";
 
 /** The white card around a table, which scrolls sideways when the page is narrow. */
@@ -100,8 +102,87 @@ export const OpenTypeButton = ({
   );
 };
 
+/** A row's cells on the table's grid, with the open column left free on the right. */
+const rowGridSx =
+  (gridTemplateColumns: string) =>
+  ({ palette }: Theme) => ({
+    height: rowHeight,
+    pr: `${openColumnWidth}px`,
+    display: "grid",
+    gridTemplateColumns,
+    alignItems: "center",
+    fontSize: 14,
+    lineHeight: "18px",
+    color: palette.gray[80],
+  });
+
+const rowToggleClassName = "dependent-type-row-toggle";
+
+/** The box around an expandable row, which highlights the row's toggle while any part of the row is hovered. */
+export const toggleRowSx: SxProps<Theme> = ({ palette }) => ({
+  position: "relative",
+  height: rowHeight,
+  [`&:hover .${rowToggleClassName}`]: { background: palette.gray[10] },
+});
+
+/** The button that spans an expandable row's cells and expands or collapses it. */
+export const RowToggle = ({
+  gridTemplateColumns,
+  ...props
+}: { gridTemplateColumns: string } & Omit<
+  ButtonBaseProps,
+  "className" | "disableRipple" | "sx"
+>) => (
+  <ButtonBase
+    {...props}
+    className={rowToggleClassName}
+    disableRipple
+    sx={[
+      rowGridSx(gridTemplateColumns),
+      ({ palette }) => ({
+        width: 1,
+        borderRadius: 1,
+        justifyItems: "start",
+        textAlign: "left",
+        "&.Mui-focusVisible": {
+          outline: `2px solid ${palette.blue[70]}`,
+          outlineOffset: 2,
+        },
+      }),
+    ]}
+  />
+);
+
+/** The chevron at the left of an expandable row, turned down while the row is expanded. */
+export const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
+  <Box
+    aria-hidden
+    sx={({ palette }) => ({
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: 28,
+      height: rowHeight,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: palette.gray[60],
+      pointerEvents: "none",
+    })}
+  >
+    <FontAwesomeIcon
+      icon={faChevronRight}
+      sx={({ transitions }) => ({
+        fontSize: 10,
+        transform: expanded ? "rotate(90deg)" : "none",
+        transition: transitions.create("transform", { duration: 300 }),
+      })}
+    />
+  </Box>
+);
+
 /** The vertical line and elbow that join a nested row to the row above it. */
-export const TreeLines = ({ last }: { last: boolean }) => (
+const TreeLines = ({ last }: { last: boolean }) => (
   <>
     <Box
       aria-hidden
@@ -128,6 +209,33 @@ export const TreeLines = ({ last }: { last: boolean }) => (
       })}
     />
   </>
+);
+
+/** A row inside an expanded row: its cells, its open button, and the tree lines that join it to the row above. */
+export const NestedRow = ({
+  gridTemplateColumns,
+  last,
+  openButton,
+  children,
+}: {
+  gridTemplateColumns: string;
+  /** Whether this is the expanded row's last nested row, where the tree line ends. */
+  last: boolean;
+  openButton: ReactNode;
+  children: ReactNode;
+}) => (
+  <Box
+    sx={({ palette }) => ({
+      position: "relative",
+      height: rowHeight,
+      borderRadius: 1,
+      "&:hover": { background: palette.gray[10] },
+    })}
+  >
+    <Box sx={rowGridSx(gridTemplateColumns)}>{children}</Box>
+    {openButton}
+    <TreeLines last={last} />
+  </Box>
 );
 
 /** A type's icon, title, and its latest version or a "Former" tag. */
