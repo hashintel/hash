@@ -42,7 +42,7 @@ use crate::rest::{
     routing::{self, Route},
 };
 
-/// The query.
+/// Selects the entities to return.
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitiesRequest {
@@ -55,8 +55,8 @@ struct QueryEntitiesRequest {
     #[schemars(
         with = "EntityFilter",
         extend("description" = format!(
-            "The condition the entities meet, with at most {MAX_CONDITIONS} `eq`, `in` and `has` \
-             in all."
+            "The condition the entities meet. It may use `eq`, `in` and `has` at most \
+             {MAX_CONDITIONS} times in total."
         ))
     )]
     filter: Option<EntityFilter>,
@@ -66,10 +66,10 @@ struct QueryEntitiesRequest {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitiesParameters {
-    /// The page to return, as the previous page's `Link` header names it. Defaults to the first.
+    /// The page to return, from the previous page's `Link` header. Defaults to the first page.
     #[serde(default, deserialize_with = "non_null")]
     cursor: Option<Cursor>,
-    /// The size of the page; the server's maximum is the default and caps larger values.
+    /// The maximum number of entities per page. Defaults to the server's limit, which caps it.
     #[serde(
         default,
         deserialize_with = "non_null",
@@ -87,6 +87,8 @@ struct QueryEntitiesResponse {
 }
 
 /// The filter has an empty `in`, `and` or `or`, or names more values or conditions than allowed.
+///
+/// `detail` names the empty key, or the count and the limit it exceeds.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("The filter is invalid: {error}.")]
 struct InvalidFilter {
@@ -282,9 +284,9 @@ fn document_query_entities(operation: TransformOperation<'_>) -> TransformOperat
         .id("queryEntities")
         .summary("Query entities")
         .description(
-            "Returns the current edition of each entity the caller may view that is not archived \
-             and meets `filter`, if given, a page at a time, in a stable order. The `Link` header \
-             names the next page.",
+            "Returns the current edition of each entity that the caller may view, that is not \
+             archived, and that meets `filter` if the request gives one. The entities come a page \
+             at a time, in a stable order. The `Link` header names the next page.",
         )
 }
 
