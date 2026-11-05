@@ -27,7 +27,9 @@ import * as kinaxis from "./geometry/kinaxis";
 import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
 import * as linear from "./geometry/linear";
 import * as messenger from "./geometry/messenger";
+import * as microsoftCopilot from "./geometry/microsoft-copilot";
 import * as microsoftExcel from "./geometry/microsoft-excel";
+import * as microsoftOneDrive from "./geometry/microsoft-onedrive";
 import * as microsoftOneNote from "./geometry/microsoft-onenote";
 import * as microsoftOutlook from "./geometry/microsoft-outlook";
 import * as microsoftPowerPoint from "./geometry/microsoft-powerpoint";
@@ -299,6 +301,20 @@ export const integrationGeometry = {
     ...microsoftOneNote,
     markViewBox: "60 90 525 540",
     logoViewBox: "0 0 827.0558754531883 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftOneDrive: {
+    ...microsoftOneDrive,
+    markViewBox: "35.98 139.2 648.03 430.85",
+    logoViewBox: "0 0 890.8321583953991 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftCopilot: {
+    ...microsoftCopilot,
+    markViewBox: "-1 15 513 481",
+    logoViewBox: "0 0 770.242169787135 100",
     ratio: 2,
     alignment: "center",
   },

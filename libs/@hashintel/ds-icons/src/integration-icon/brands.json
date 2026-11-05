@@ -571,6 +571,46 @@
     }
   },
   {
+    "name": "microsoftOneDrive",
+    "slug": "microsoft-onedrive",
+    "label": "Microsoft OneDrive",
+    "integrationNames": ["Microsoft OneDrive"],
+    "ratio": 2,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Microsoft_OneDrive_Icon_%282025_-_present%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#242424": "#F5F7FA"
+    },
+    "logoSource": "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    "logoNotes": "Composed lock-up pairing the current product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    "logoLayout": {
+      "wordmarkHeight": 0.62,
+      "gap": 0.28
+    }
+  },
+  {
+    "name": "microsoftCopilot",
+    "slug": "microsoft-copilot",
+    "label": "Microsoft Copilot",
+    "integrationNames": ["Microsoft Copilot"],
+    "ratio": 2,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Microsoft-copilot-2026-seeklogo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#242424": "#F5F7FA"
+    },
+    "logoSource": "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    "logoNotes": "Composed lock-up pairing the current product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    "logoLayout": {
+      "wordmarkHeight": 0.797313,
+      "gap": 0.28
+    }
+  },
+  {
     "name": "microsoftTeamsLegacy",
     "slug": "microsoft-teams-legacy",
     "label": "Microsoft Teams (legacy)",

@@ -810,6 +810,52 @@ export const integrationIconCatalog = [
     logoRaster: false,
   },
   {
+    name: "microsoftOneDrive",
+    slug: "microsoft-onedrive",
+    label: "Microsoft OneDrive",
+    integrationNames: ["Microsoft OneDrive"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/e/e7/Microsoft_OneDrive_Icon_%282025_-_present%29.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    logoNotes:
+      "Composed lock-up pairing the current product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    logoRaster: false,
+  },
+  {
+    name: "microsoftCopilot",
+    slug: "microsoft-copilot",
+    label: "Microsoft Copilot",
+    integrationNames: ["Microsoft Copilot"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/f/f3/Microsoft-copilot-2026-seeklogo.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    logoNotes:
+      "Composed lock-up pairing the current product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    logoRaster: false,
+  },
+  {
     name: "microsoftTeamsLegacy",
     slug: "microsoft-teams-legacy",
     label: "Microsoft Teams (legacy)",

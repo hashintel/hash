@@ -167,7 +167,7 @@ hover feedback as the rest of the set; continuous effects remain opt-in.
 
 ## Integrations
 
-`IntegrationIcon` provides a separate **Integrations** category for HASH's 43 integration listings, plus a separate Kinaxis corporate entry and five additional Microsoft apps (45 current brands in total). `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
+`IntegrationIcon` provides a separate **Integrations** category for HASH's 43 integration listings, plus a separate Kinaxis corporate entry and seven additional Microsoft apps (47 current brands in total). `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
 
 ```tsx
 import {
@@ -203,13 +203,13 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-44 current brands have all seven variants. The `microsoftTeamsLegacy` option also has all seven. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+46 current brands have all seven variants. The `microsoftTeamsLegacy` option also has all seven. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with a vectorized wordmark from an official Microsoft PDF. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
 Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 
-`microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, and `microsoftOneNote` provide all seven variants using the current Microsoft 365 marks. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
+`microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
 `microsoftTeams` uses the current rounded Teams mark. `microsoftTeamsLegacy` preserves the previous mark and full-logo compositions; the “Microsoft Teams” integration alias always uses the current artwork.
 
