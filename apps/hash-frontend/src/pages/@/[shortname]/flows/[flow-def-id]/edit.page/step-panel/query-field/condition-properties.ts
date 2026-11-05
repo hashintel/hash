@@ -31,6 +31,7 @@ const getConstrainedValueKind = (
 
   if (
     "enum" in constraints &&
+    constraints.enum.length > 0 &&
     constraints.enum.every((option) => typeof option === "string")
   ) {
     return { kind: "status", options: constraints.enum };
@@ -110,7 +111,7 @@ export const getConditionProperties = ({
 
 /**
  * The properties a condition can be on for entities of the given types, or of any type if none are given: those the
- * types or their parents have as a single value, by title.
+ * types or their parents have as a single value, not a list, by title.
  */
 export const getPropertiesOfTypes = ({
   conditionProperties,
@@ -130,17 +131,16 @@ export const getPropertiesOfTypes = ({
       left.title.localeCompare(right.title),
     );
 
-  if (entityTypeBaseUrls.length === 0) {
-    return byTitle(conditionProperties.values());
-  }
-
   const entityTypesById = new Map(
     entityTypes.map((entityType) => [entityType.schema.$id, entityType]),
   );
   const found = new Map<BaseUrl, ConditionProperty>();
 
   for (const entityType of latestEntityTypes) {
-    if (!entityTypeBaseUrls.includes(entityType.metadata.recordId.baseUrl)) {
+    if (
+      entityTypeBaseUrls.length > 0 &&
+      !entityTypeBaseUrls.includes(entityType.metadata.recordId.baseUrl)
+    ) {
       continue;
     }
 
