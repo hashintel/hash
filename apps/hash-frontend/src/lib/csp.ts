@@ -16,9 +16,9 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
  * `/processes/draft`, with an optional trailing slash), the one route whose
  * policy lets Petrinaut evaluate strings and load its `data:` fonts.
  *
- * The policy belongs to the document, not the route: a document loaded here
- * keeps these allowances on every route it then reaches by client-side
- * navigation.
+ * The policy belongs to the document, not the route, so a client-side
+ * navigation keeps it. The process editor therefore reloads the document
+ * both on arriving from another route and on leaving for one.
  */
 export const isProcessEditorPath = (pathname: string): boolean =>
   /^\/processes\/[^/]+\/?$/.test(pathname);

@@ -144,6 +144,7 @@ const router = vi.hoisted(() => {
     },
     push: vi.fn(navigate),
     replace: vi.fn(navigate),
+    events: { on: vi.fn(), off: vi.fn() },
   };
 });
 
@@ -171,7 +172,12 @@ vi.mock("next/router", async () => {
         router.subscribe,
         () => router.state.current,
       );
-      return { ...state, push: router.push, replace: router.replace };
+      return {
+        ...state,
+        push: router.push,
+        replace: router.replace,
+        events: router.events,
+      };
     },
   };
 });

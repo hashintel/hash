@@ -50,6 +50,7 @@ const observed = vi.hoisted(() => ({
 const router = vi.hoisted(() => ({
   push: vi.fn(() => Promise.resolve(true)),
   replace: vi.fn(() => Promise.resolve(true)),
+  events: { on: vi.fn(), off: vi.fn() },
 }));
 
 vi.mock("next/router", () => ({ useRouter: () => router }));
