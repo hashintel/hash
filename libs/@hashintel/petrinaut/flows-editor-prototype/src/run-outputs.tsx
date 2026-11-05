@@ -732,7 +732,7 @@ const flagMarkStyle = css({
 });
 
 const FlagMark = () => (
-  <Tooltip content="Shown in run history">
+  <Tooltip content="Shown in Logs">
     <span className={flagMarkStyle} data-output-flag-mark>
       <Icon name="star" size="sm" />
     </span>
@@ -1760,7 +1760,7 @@ const EntityTable = ({
 
 /** "For each supplier · Run 16 · Today, 08:15"; a run's own outputs say where they are listed instead. */
 const sourceLine = (from: string, run: RunRecord) =>
-  `${from === `Run ${run.id} outputs` ? "Shown in run history" : from} · Run ${run.id} · ${run.when}`;
+  `${from === `Run ${run.id} outputs` ? "Shown in Logs" : from} · Run ${run.id} · ${run.when}`;
 
 type EntitiesView = Extract<ViewerState, { kind: "entities" }>;
 type MixedView = Extract<ViewerState, { kind: "mixed" }>;
