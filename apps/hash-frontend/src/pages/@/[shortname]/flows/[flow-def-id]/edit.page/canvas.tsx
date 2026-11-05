@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import {
   Background,
   BackgroundVariant,
@@ -10,6 +11,7 @@ import {
   useStore,
 } from "@xyflow/react";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -43,7 +45,9 @@ import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor"
 import type {
   Connection,
   EdgeChange,
+  EdgeMouseHandler,
   NodeChange,
+  NodeMouseHandler,
   OnBeforeDelete,
   OnConnectEnd,
   XYPosition,
@@ -109,6 +113,7 @@ const FlowCanvas = ({
   const {
     fitView,
     getInternalNode,
+    getNodes,
     getViewport,
     getZoom,
     screenToFlowPosition,
@@ -169,7 +174,10 @@ const FlowCanvas = ({
         editor.placeSteps(unplacedPositions);
         setForEachLayouts(layouts);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        /* Layout shouldn't fail. If it does, steps are still drawn where they were saved. */
+        Sentry.captureException(error);
+
         if (!cancelled) {
           setForEachLayouts(new Map());
         }
@@ -284,37 +292,76 @@ const FlowCanvas = ({
         : { nodes: [], edges: [] },
     [flowDefinition, problemsByStepId, forEachLayouts, collapsedStepIds],
   );
+  /* Connections removed other than by Delete (hover, right-click or a side panel) are no longer selected. */
+  useEffect(() => {
+    const edgeIds = new Set(graph.edges.map(({ id }) => id));
+
+    setSelectedEdgeIds((current) =>
+      current.isSubsetOf(edgeIds) ? current : current.intersection(edgeIds),
+    );
+  }, [graph.edges]);
+
   const graphNodesById = useMemo(
     () => new Map(graph.nodes.map((node) => [node.id, node])),
     [graph.nodes],
   );
 
-  const selectedStepIdSet = new Set(selectedStepIds);
-  const nodes = graph.nodes.map((node): FlowNode => {
-    const stepId = getNodeStepId(node);
+  /*
+   * React Flow redraws a node or edge only when its object changes, so each step below keeps the objects it has nothing
+   * to change in. Dragging a card then redraws that card and its lines, not the whole flow.
+   */
+  const measuredNodes = useMemo(
+    () =>
+      graph.nodes.map((node) => {
+        const measured = measurements.get(node.id);
 
-    return {
-      ...node,
-      position: dragPositions.get(node.id) ?? node.position,
-      measured: measurements.get(node.id),
-      selected: stepId === null ? startSelected : selectedStepIdSet.has(stepId),
-    };
-  });
-  const edges = graph.edges.map((edge) => ({
-    ...edge,
-    selected: selectedEdgeIds.has(edge.id),
-  }));
+        return measured ? { ...node, measured } : node;
+      }),
+    [graph.nodes, measurements],
+  );
+  const selectionNodes = useMemo(() => {
+    const selectedStepIdSet = new Set(selectedStepIds);
 
-  const topLevelSteps = new Map(
-    flowDefinition.steps.map((step) => [step.stepId, step]),
+    return measuredNodes.map((node) => {
+      const stepId = getNodeStepId(node);
+
+      const selected =
+        stepId === null ? startSelected : selectedStepIdSet.has(stepId);
+
+      return selected ? { ...node, selected: true } : node;
+    });
+  }, [measuredNodes, selectedStepIds, startSelected]);
+  const nodes = useMemo(
+    () =>
+      selectionNodes.map((node) => {
+        const position = dragPositions.get(node.id);
+
+        return position ? { ...node, position } : node;
+      }),
+    [selectionNodes, dragPositions],
+  );
+  const edges = useMemo(
+    () =>
+      graph.edges.map((edge) =>
+        selectedEdgeIds.has(edge.id) ? { ...edge, selected: true } : edge,
+      ),
+    [graph.edges, selectedEdgeIds],
+  );
+
+  const topLevelSteps = useMemo(
+    () => new Map(flowDefinition.steps.map((step) => [step.stepId, step])),
+    [flowDefinition.steps],
   );
   /** `null` for Start and inner steps. */
-  const getTopLevelStepId = (nodeId: string) => {
-    const node = graphNodesById.get(nodeId);
-    const stepId = node ? getNodeStepId(node) : null;
+  const getTopLevelStepId = useCallback(
+    (nodeId: string) => {
+      const node = graphNodesById.get(nodeId);
+      const stepId = node ? getNodeStepId(node) : null;
 
-    return stepId !== null && topLevelSteps.has(stepId) ? stepId : null;
-  };
+      return stepId !== null && topLevelSteps.has(stepId) ? stepId : null;
+    },
+    [graphNodesById, topLevelSteps],
+  );
   const getTopLevelStepIds = (stepNodes: FlowNode[]) =>
     stepNodes.flatMap((node) => {
       const stepId = getTopLevelStepId(node.id);
@@ -322,19 +369,25 @@ const FlowCanvas = ({
       return stepId === null ? [] : [stepId];
     });
 
-  const selectStep = (stepId: string) => {
-    onSelectionChange({ stepIds: [stepId], start: false });
-    setSelectedEdgeIds(new Set());
-  };
+  const selectStep = useCallback(
+    (stepId: string) => {
+      onSelectionChange({ stepIds: [stepId], start: false });
+      setSelectedEdgeIds(new Set());
+    },
+    [onSelectionChange],
+  );
 
-  const getTakenPlaces = () =>
-    nodes
-      .filter((node) => node.parentId === undefined)
-      .map((node) => ({
-        position: node.position,
-        width: node.measured?.width ?? stepCardSize.width,
-        height: node.measured?.height ?? stepCardSize.height,
-      }));
+  const getTakenPlaces = useCallback(
+    () =>
+      getNodes()
+        .filter((node) => node.parentId === undefined)
+        .map((node) => ({
+          position: node.position,
+          width: node.measured?.width ?? stepCardSize.width,
+          height: node.measured?.height ?? stepCardSize.height,
+        })),
+    [getNodes],
+  );
 
   const addStepInView = (actionDefinitionId: string) => {
     const bounds = containerRef.current?.getBoundingClientRect();
@@ -361,41 +414,45 @@ const FlowCanvas = ({
     );
   };
 
-  const canvasActions: CanvasActions = {
-    openAddMenuAfter: (anchor, stepId) => {
-      const node = getInternalNode(
-        stepId === null ? startNodeId : getStepNodeId(stepId),
-      );
+  /* Kept the same while dragging, as every card and line reads it. */
+  const canvasActions = useMemo<CanvasActions>(
+    () => ({
+      openAddMenuAfter: (anchor, stepId) => {
+        const node = getInternalNode(
+          stepId === null ? startNodeId : getStepNodeId(stepId),
+        );
 
-      if (!node) {
-        return;
-      }
+        if (!node) {
+          return;
+        }
 
-      const position = getFreePosition(
-        {
-          x:
-            node.position.x +
-            (node.measured.width ?? stepCardSize.width) +
-            stepGap,
-          y: node.position.y,
-        },
-        getTakenPlaces(),
-      );
+        const position = getFreePosition(
+          {
+            x:
+              node.position.x +
+              (node.measured.width ?? stepCardSize.width) +
+              stepGap,
+            y: node.position.y,
+          },
+          getTakenPlaces(),
+        );
 
-      setAddMenu({
-        anchor: anchor.getBoundingClientRect(),
-        addStep: (actionDefinitionId) =>
-          selectStep(
-            editor.addStep(
-              actionDefinitionId,
-              stepId === null ? { position } : { after: stepId, position },
+        setAddMenu({
+          anchor: anchor.getBoundingClientRect(),
+          addStep: (actionDefinitionId) =>
+            selectStep(
+              editor.addStep(
+                actionDefinitionId,
+                stepId === null ? { position } : { after: stepId, position },
+              ),
             ),
-          ),
-      });
-    },
-    removeConnection: editor.removeConnection,
-    toggleCollapsed: onToggleCollapsed,
-  };
+        });
+      },
+      removeConnection: editor.removeConnection,
+      toggleCollapsed: onToggleCollapsed,
+    }),
+    [editor, getInternalNode, getTakenPlaces, selectStep, onToggleCollapsed],
+  );
 
   const openAddMenuAtContextPoint = (addStep: AddStepAt) => {
     const point = contextPointRef.current;
@@ -415,17 +472,28 @@ const FlowCanvas = ({
     const nextDragPositions = new Map(dragPositions);
     const nextSelected = new Set(selectedStepIds);
     let nextStartSelected = startSelected;
+    let measurementsChanged = false;
+    let dragPositionsChanged = false;
     let selectionChanged = false;
 
     for (const change of changes) {
       if (change.type === "dimensions" && change.dimensions) {
-        nextMeasurements.set(change.id, change.dimensions);
+        const measured = measurements.get(change.id);
+
+        if (
+          measured?.width !== change.dimensions.width ||
+          measured.height !== change.dimensions.height
+        ) {
+          nextMeasurements.set(change.id, change.dimensions);
+          measurementsChanged = true;
+        }
       } else if (
         change.type === "position" &&
         change.dragging &&
         change.position
       ) {
         nextDragPositions.set(change.id, change.position);
+        dragPositionsChanged = true;
       } else if (change.type === "select") {
         const node = graphNodesById.get(change.id);
         const stepId = node ? getNodeStepId(node) : null;
@@ -445,8 +513,14 @@ const FlowCanvas = ({
       }
     }
 
-    setMeasurements(nextMeasurements);
-    setDragPositions(nextDragPositions);
+    /* Unchanged state is kept, so the nodes built from it are too. */
+    if (measurementsChanged) {
+      setMeasurements(nextMeasurements);
+    }
+
+    if (dragPositionsChanged) {
+      setDragPositions(nextDragPositions);
+    }
 
     if (selectionChanged) {
       onSelectionChange({
@@ -609,6 +683,54 @@ const FlowCanvas = ({
     contextPointRef.current = { x: event.clientX, y: event.clientY };
   };
 
+  /* Every card and line is given these, so they are kept the same while dragging. */
+  const onNodeContextMenu = useCallback<NodeMouseHandler<FlowNode>>(
+    (event, node) => {
+      const stepId = getTopLevelStepId(node.id);
+
+      if (stepId === null) {
+        refuseContextMenu(event);
+        return;
+      }
+
+      contextPointRef.current = { x: event.clientX, y: event.clientY };
+
+      const handle =
+        event.target instanceof Element
+          ? event.target.closest(".react-flow__handle")
+          : null;
+
+      setContextTarget(
+        handle
+          ? {
+              kind: "port",
+              stepId,
+              side: handle.classList.contains("source") ? "output" : "input",
+            }
+          : { kind: "step", stepId },
+      );
+    },
+    [getTopLevelStepId],
+  );
+  const onEdgeContextMenu = useCallback<EdgeMouseHandler<ConnectionEdgeType>>(
+    (event, edge) => {
+      if (edge.data?.kind === "connection") {
+        setContextTarget({
+          kind: "connection",
+          connection: edge.data.connection,
+        });
+      } else if (edge.data?.kind === "start") {
+        setContextTarget({ kind: "start-line", stepId: edge.data.stepId });
+      } else {
+        refuseContextMenu(event);
+        return;
+      }
+
+      contextPointRef.current = { x: event.clientX, y: event.clientY };
+    },
+    [],
+  );
+
   return (
     <CanvasActionsContext value={canvasActions}>
       <div ref={containerRef} className={canvas}>
@@ -648,51 +770,8 @@ const FlowCanvas = ({
             connectionLineStyle={{ stroke: "var(--colors-blue-bd-strong)" }}
             onBeforeDelete={onBeforeDelete}
             deleteKeyCode={["Backspace", "Delete"]}
-            onNodeContextMenu={(event, node) => {
-              const stepId = getTopLevelStepId(node.id);
-
-              if (stepId === null) {
-                refuseContextMenu(event);
-                return;
-              }
-
-              rememberContextPoint(event);
-
-              const handle =
-                event.target instanceof Element
-                  ? event.target.closest(".react-flow__handle")
-                  : null;
-
-              setContextTarget(
-                handle
-                  ? {
-                      kind: "port",
-                      stepId,
-                      side: handle.classList.contains("source")
-                        ? "output"
-                        : "input",
-                    }
-                  : { kind: "step", stepId },
-              );
-            }}
-            onEdgeContextMenu={(event, edge) => {
-              if (edge.data?.kind === "connection") {
-                setContextTarget({
-                  kind: "connection",
-                  connection: edge.data.connection,
-                });
-              } else if (edge.data?.kind === "start") {
-                setContextTarget({
-                  kind: "start-line",
-                  stepId: edge.data.stepId,
-                });
-              } else {
-                refuseContextMenu(event);
-                return;
-              }
-
-              rememberContextPoint(event);
-            }}
+            onNodeContextMenu={onNodeContextMenu}
+            onEdgeContextMenu={onEdgeContextMenu}
             onSelectionContextMenu={(event, selectedNodes) => {
               rememberContextPoint(event);
               setContextTarget({
