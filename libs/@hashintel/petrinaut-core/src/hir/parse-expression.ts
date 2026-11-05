@@ -109,7 +109,18 @@ const SIMPLE_ESCAPES: Readonly<Record<string, string>> = {
   "0": "\0",
 };
 
+const DECIMAL_DIGITS: ReadonlySet<string> = new Set("0123456789");
+const HEX_DIGITS: ReadonlySet<string> = new Set("0123456789abcdefABCDEF");
 const MATH_CONSTANTS: ReadonlySet<string> = new Set(["PI", "E"]);
+
+const isHexDigits = (text: string): boolean => {
+  for (let position = 0; position < text.length; position += 1) {
+    if (!HEX_DIGITS.has(text[position]!)) {
+      return false;
+    }
+  }
+  return true;
+};
 const MATH_FNS: ReadonlySet<string> = new Set(HIR_MATH_FNS);
 
 /** Deeper nesting than this is refused before the parser's own stack is. */
@@ -152,11 +163,7 @@ function readString(source: string, start: number): Token {
     if (escaped === "u" || escaped === "x") {
       const digits = escaped === "u" ? 4 : 2;
       const hex = source.slice(index + 2, index + 2 + digits);
-      const wellFormed =
-        digits === 4
-          ? /^[0-9a-fA-F]{4}$/.test(hex)
-          : /^[0-9a-fA-F]{2}$/.test(hex);
-      if (!wellFormed) {
+      if (hex.length !== digits || !isHexDigits(hex)) {
         return fail("Invalid escape sequence.", index, index + 2 + digits);
       }
       value += String.fromCharCode(Number.parseInt(hex, 16));
@@ -173,9 +180,11 @@ function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
   // Sticky patterns match at `lastIndex` only. They are declared here, per
   // call, so no module-level regex carries scanning state between calls.
+  // The number pattern keeps every quantifier behind a distinct prefix, so
+  // no input makes it backtrack.
   const whitespacePattern = /\s+/y;
   const numberPattern =
-    /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
+    /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/y;
   const identifierPattern = /[A-Za-z_$][A-Za-z0-9_$]*/y;
   let index = 0;
   while (index < source.length) {
@@ -204,7 +213,7 @@ function tokenize(source: string): Token[] {
       const raw = number[0];
       // Strict-mode JavaScript, which the other surfaces are, has no legacy
       // octal literals; `00` and `08` are errors, not zero and eight.
-      if (/^0\d/.test(raw)) {
+      if (raw[0] === "0" && DECIMAL_DIGITS.has(raw[1] ?? "")) {
         fail("Numbers may not start with `0`.", index, index + raw.length);
       }
       tokens.push({
