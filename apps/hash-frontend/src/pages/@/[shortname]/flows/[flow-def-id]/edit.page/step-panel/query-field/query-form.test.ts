@@ -81,6 +81,21 @@ describe("toEntityQuery and readQueryForm", () => {
     expect(read({ filter: { all: [] } })).toEqual(emptyQueryForm);
   });
 
+  it("reads back one condition joined with OR and no types, which looks like a group of types", () => {
+    const form: QueryForm = {
+      ...emptyQueryForm,
+      conditions: [
+        { propertyBaseUrl: status, operator: "is", value: "Active" },
+      ],
+      join: "any",
+    };
+
+    expect(toEntityQuery(form).filter).toEqual({
+      all: [{ any: [statusIsActive] }],
+    });
+    expect(read(toEntityQuery(form))).toEqual(form);
+  });
+
   it.each([
     [
       "is",
@@ -227,6 +242,12 @@ describe("toEntityQuery and readQueryForm", () => {
       },
     ],
     ["has an empty group of types", { filter: { all: [{ any: [] }] } }],
+    [
+      "mixes types and conditions in one group",
+      {
+        filter: { all: [{ any: [typeIs(shipment), statusIsActive] }] },
+      },
+    ],
     [
       "compares a property that isn't a date or a status",
       {

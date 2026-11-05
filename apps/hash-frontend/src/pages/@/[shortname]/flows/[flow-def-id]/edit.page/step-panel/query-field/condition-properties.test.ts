@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { getConditionProperties } from "./condition-properties";
+import {
+  getConditionProperties,
+  getPropertiesOfTypes,
+} from "./condition-properties";
 
 import type {
+  BaseUrl,
   DataType,
   DataTypeWithMetadata,
+  EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -28,6 +33,7 @@ const dataTypes = Object.fromEntries([
     enum: ["Active", "Suspended"],
   }),
   dataType("shipment-status", { allOf: [{ $ref: dataTypeId("status") }] }),
+  dataType("no-options", { type: "string", enum: [] as unknown as [string] }),
   dataType("date-or-text", {
     anyOf: [{ type: "string", format: "date" }, { type: "string" }],
   }),
@@ -70,6 +76,7 @@ describe("getConditionProperties", () => {
         propertyType("state", ["shipment-status"]),
         propertyType("note", ["text"]),
         propertyType("received-or-note", ["date", "text"]),
+        propertyType("blank", ["no-options"]),
       ]),
     ).toEqual({
       received: {
@@ -92,5 +99,59 @@ describe("getConditionProperties", () => {
         ]),
       ),
     ).toEqual(["sent"]);
+  });
+});
+
+describe("getPropertiesOfTypes", () => {
+  const propertyTypeUrl = (name: string) =>
+    `https://example.com/@acme/types/property-type/${name}/`;
+
+  const entityType = (
+    name: string,
+    properties: Record<string, unknown>,
+  ): EntityTypeWithMetadata =>
+    ({
+      metadata: {
+        recordId: {
+          baseUrl: `https://example.com/@acme/types/entity-type/${name}/`,
+        },
+      },
+      schema: {
+        $id: `https://example.com/@acme/types/entity-type/${name}/v/1`,
+        properties,
+      },
+    }) as unknown as EntityTypeWithMetadata;
+
+  const shipment = entityType("shipment", {
+    [propertyTypeUrl("received")]: {
+      $ref: `${propertyTypeUrl("received")}v/1`,
+    },
+  });
+  const report = entityType("report", {
+    [propertyTypeUrl("sent")]: {
+      type: "array",
+      items: { $ref: `${propertyTypeUrl("sent")}v/1` },
+    },
+  });
+  const conditionProperties = getConditionProperties({
+    latestPropertyTypes: [
+      propertyType("received", ["date"]),
+      propertyType("sent", ["date"]),
+    ],
+    dataTypes,
+  });
+
+  it("leaves out a property that types only have as a list, whether types are picked or not", () => {
+    const titles = (entityTypeBaseUrls: string[]) =>
+      getPropertiesOfTypes({
+        conditionProperties,
+        entityTypeBaseUrls: entityTypeBaseUrls as BaseUrl[],
+        latestEntityTypes: [shipment, report],
+        entityTypes: [shipment, report],
+        entityTypeParentIds: {},
+      }).map(({ title }) => title);
+
+    expect(titles([])).toEqual(["received"]);
+    expect(titles([report.metadata.recordId.baseUrl])).toEqual([]);
   });
 });
