@@ -125,6 +125,8 @@ describe("createFlowEditor", () => {
       array: false,
       required: false,
     });
+    editor.markFlowOutput("second", "explanation");
+    editor.unmarkFlowOutput("each", "explanations");
     editor.removeStep("first");
     editor.disconnectStep("each");
 
@@ -245,7 +247,7 @@ describe("createFlowEditor", () => {
       expect(editor.getState().problemsByStepId.size).toBe(2);
     });
 
-    it("lists problems outside every step separately, such as a flow output whose step was removed", () => {
+    it("lists problems outside every step separately, such as a flow input no step uses any more", () => {
       const editor = loadFlow();
 
       editor.removeStep("each");
@@ -254,8 +256,24 @@ describe("createFlowEditor", () => {
         editor.getState().flowDefinition.steps.map(({ stepId }) => stepId),
       ).toEqual(["first", "second"]);
       expect(editor.getState().flowProblems).toMatchObject([
-        { code: "unknownStep", path: ["outputs", 0] },
         { code: "unusedFlowInput", path: ["inputs", 1] },
+      ]);
+    });
+
+    it("drops the flow outputs it or a step inside it gives, keeping the others", () => {
+      const editor = createFlowEditor({
+        ...structuredClone(flowDefinition),
+        outputs: [
+          { name: "first", stepId: "first", outputName: "explanation" },
+          { name: "explanations", stepId: "each", outputName: "explanations" },
+          { name: "answer", stepId: "answer", outputName: "explanation" },
+        ],
+      });
+
+      editor.removeStep("each");
+
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        { name: "first", stepId: "first", outputName: "explanation" },
       ]);
     });
   });
@@ -368,6 +386,66 @@ describe("createFlowEditor", () => {
     });
   });
 
+  describe("flow outputs", () => {
+    it("names a flow output after its output, numbering the name while a flow output has it", () => {
+      const editor = loadFlow();
+      const third = editor.addStep("answerQuestion", { after: "second" });
+
+      editor.markFlowOutput("first", "explanation");
+      editor.markFlowOutput("second", "explanation");
+      editor.markFlowOutput(third, "explanation");
+
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        ...flowDefinition.outputs,
+        { name: "explanation", stepId: "first", outputName: "explanation" },
+        { name: "explanation 2", stepId: "second", outputName: "explanation" },
+        { name: "explanation 3", stepId: third, outputName: "explanation" },
+      ]);
+      expect(editor.getState().flowProblems).toEqual([]);
+
+      editor.unmarkFlowOutput("first", "explanation");
+      editor.markFlowOutput("first", "explanation");
+
+      expect(
+        editor.getState().flowDefinition.outputs.map(({ name }) => name),
+      ).toEqual([
+        "explanations",
+        "explanation 2",
+        "explanation 3",
+        "explanation",
+      ]);
+    });
+
+    it("marks an output once, and unmarks only that step's output", () => {
+      const editor = loadFlow();
+      const listener = vi.fn();
+
+      editor.markFlowOutput("first", "explanation");
+      editor.markFlowOutput("second", "explanation");
+      editor.subscribe(listener);
+      editor.markFlowOutput("second", "explanation");
+      editor.unmarkFlowOutput("first", "explanation");
+
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        ...flowDefinition.outputs,
+        { name: "explanation 2", stepId: "second", outputName: "explanation" },
+      ]);
+      expect(listener).toHaveBeenCalledOnce();
+    });
+
+    it("unmarks an output whose step is gone", () => {
+      const editor = createFlowEditor({
+        ...structuredClone(flowDefinition),
+        outputs: [{ name: "gone", stepId: "gone", outputName: "explanation" }],
+      });
+
+      editor.unmarkFlowOutput("gone", "explanation");
+
+      expect(editor.getState().flowDefinition.outputs).toEqual([]);
+      expect(editor.getState().flowProblems).toEqual([]);
+    });
+  });
+
   describe("connections", () => {
     it("adds a connection once", () => {
       const editor = loadFlow();
@@ -440,6 +518,9 @@ describe("createFlowEditor", () => {
     expect(() =>
       editor.setInputSource("each", "over", explanationOf("first")),
     ).toThrow('Step "each" is a for-each step, with no inputs');
+    expect(() => editor.markFlowOutput("answer", "explanation")).toThrow(
+      'The flow has no top-level step "answer"',
+    );
   });
 
   it("tells subscribers about each edit until they unsubscribe", () => {

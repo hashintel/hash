@@ -751,6 +751,34 @@ export const getValidFlowDefinition = ({
     : null;
 
 /**
+ * Which of a step's outputs a run has when it finishes, and so can be flow outputs: e.g. a for-each step's collected
+ * output, but not an output of a step inside it. Each is checked as a flow output of the definition, so this and the
+ * validator agree on what one can be.
+ */
+export const getOutputsAvailableToFlow = (
+  flowDefinition: FlowDefinition<string>,
+  stepId: string,
+  outputNames: string[],
+): string[] => {
+  const { diagnostics } = validateFlowDefinition({
+    ...flowDefinition,
+    outputs: outputNames.map((outputName) => ({
+      name: outputName,
+      stepId,
+      outputName,
+    })),
+  });
+
+  const unavailable = new Set(
+    diagnostics.flatMap(({ path: [collection, index] }) =>
+      collection === "outputs" && typeof index === "number" ? [index] : [],
+    ),
+  );
+
+  return outputNames.filter((_outputName, index) => !unavailable.has(index));
+};
+
+/**
  * The id of the innermost step a path into a definition goes through, if it goes through one with an id: e.g. the
  * id of the first step of the third step for `["steps", 2, "steps", 0, "inputs", "question"]`.
  */
