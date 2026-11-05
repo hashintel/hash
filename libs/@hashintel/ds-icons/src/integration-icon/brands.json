@@ -461,8 +461,12 @@
     "alignment": "center",
     "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/apple-notes-dark-icon.tsx",
     "markLightColors": {
-      "white": "#737373",
+      "white": "#595959",
       "#AAAAAA": "#8A8A8A"
+    },
+    "markMonoColors": {
+      "white": "#000000",
+      "#AAAAAA": "#595959"
     },
     "markDarkColors": {},
     "logoDarkColors": {},

@@ -22,6 +22,7 @@ export type IntegrationIconProps = Omit<
 type Artwork = {
   markLight: ComponentType<{ id: string }>;
   markDark: ComponentType<{ id: string }>;
+  markMono?: ComponentType<{ id: string }>;
   logoLight?: ComponentType<{ id: string }>;
   logoDark?: ComponentType<{ id: string }>;
   markViewBox: string;
@@ -51,9 +52,11 @@ export const IntegrationIcon = ({
     ? dark
       ? artwork.logoDark
       : artwork.logoLight
-    : dark
-      ? artwork.markDark
-      : artwork.markLight;
+    : mono
+      ? (artwork.markMono ?? artwork.markLight)
+      : dark
+        ? artwork.markDark
+        : artwork.markLight;
 
   if (!Geometry) {
     throw new Error(

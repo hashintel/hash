@@ -27,7 +27,7 @@ def color_rgb(value):
     return [int(value[index:index + 2], 16) / 255 for index in (0, 2, 4)]
 
 
-def themed_artwork(brand, kind, dark, for_logo=False):
+def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
     path = source / "artwork" / brand["slug"] / f"{kind}.svg"
     if for_logo and path.with_name("logo-mark.svg").exists():
         path = path.with_name("logo-mark.svg")
@@ -65,6 +65,8 @@ def themed_artwork(brand, kind, dark, for_logo=False):
     if kind == "logo" and document.get("fill") is None:
         document.set("fill", "#000000")
     colors = brand.get(f"{kind}{'Dark' if dark else 'Light'}Colors", {})
+    if mono:
+        colors = brand.get("markMonoColors", colors)
     # Mask colors describe coverage, not visible brand colors.
     def visit(element, in_mask=False):
         in_mask = in_mask or tag_name(element) in ("mask", "clipPath", "filter")
@@ -185,7 +187,7 @@ def variant_svg(brand, variant):
     dark = variant.endswith("dark")
     app = variant.startswith("app")
     mono = variant == "mark-mono"
-    artwork = themed_artwork(brand, kind, dark)
+    artwork = themed_artwork(brand, kind, dark, mono=mono)
     viewbox = [float(value) for value in artwork.get("viewBox").replace(",", " ").split()]
     if kind == "logo":
         outer_viewbox = f"0 0 {viewbox[2]} {viewbox[3]}"
@@ -226,9 +228,10 @@ def generate():
         for kind in ("mark", "logo"):
             if kind == "logo" and "logo-light" not in available:
                 continue
-            for dark in (False, True):
-                artwork = themed_artwork(brand, kind, dark)
-                name = kind + ("Dark" if dark else "Light")
+            modes = ["Light", "Dark"] + (["Mono"] if kind == "mark" and brand.get("markMonoColors") else [])
+            for mode in modes:
+                artwork = themed_artwork(brand, kind, mode == "Dark", mono=mode == "Mono")
+                name = kind + mode
                 if kind == "mark":
                     artwork.tag = svg_ns + "g"
                     for attribute in ("viewBox", "version", "preserveAspectRatio"):
