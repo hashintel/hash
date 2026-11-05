@@ -291,7 +291,7 @@ async fn failed_recovery_keeps_the_capture_error() {
     let directory = TempDir::new().expect("should create source storage");
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
     let run = run();
-    let secrets = ConflictingSecrets {
+    let resolver = ConflictingSecrets {
         target: directory
             .path()
             .join("captures")
@@ -300,7 +300,7 @@ async fn failed_recovery_keeps_the_capture_error() {
             .join("items.parquet"),
     };
     let error = reader(directory.path())
-        .capture_sources(&workspace, &postgres_definition(), run, &secrets)
+        .capture_sources(&workspace, &postgres_definition(), run, &resolver)
         .await
         .expect_err("should fail both the capture and its recovery");
     assert!(
