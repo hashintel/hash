@@ -39,15 +39,26 @@ export const pickerColour = (): 1 | 2 | 3 | null => {
 
 /** Each step row's second line (Figma, 3 Nov), from the engine's action definitions. */
 const stepLines: Record<string, string> = {
+  // One line at the menu's 288 px, two at most (Aakarsh, 5 Nov): plain words, no "e.g", no trailing clauses.
   queryEntities: "Search one entity type, with conditions",
+  readEntity: "Read one property of an entity",
   createEntity: "Add a new entity to the graph",
   updateEntity: "Change properties on an existing entity",
   requestReview: "Ask someone to approve or reject",
-  sendEmail: "Send an email; drafting is a separate step",
-  getFileFromUrl: "Download a file from a URL into HASH",
-  if: "Send a value to Yes or No by a condition",
-  forEach: "Run steps once per item of a list",
-  filterList: "Split a list into matching and other items",
+  sendEmail: "Send an email to people",
+  getFileFromUrl: "Download a file from a URL",
+  if: "Split by a yes/no condition",
+  forEach: "Run steps for every item",
+  filterList: "Keep only matching items",
+  find: "Find the first matching item",
+  orderBy: "Sort a list by a field",
+  takeFirst: "Keep the first items of a list",
+  aggregate: "Count, sum or average a list",
+  draftMessage: "Draft a message with AI",
+  answerQuestion: "Answer a question with AI",
+  getWebPageSummary: "Summarize a web page",
+  getWebPageByUrl: "Get a web page's title and text",
+  webSearch: "Search the web for a query",
 };
 
 /** A step Figma gives no line: the first sentence of its definition's description. */

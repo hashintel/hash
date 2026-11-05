@@ -134,10 +134,11 @@ const twoLineTitleStyle = cva({
   },
 });
 
-/** A long line wraps, as Figma draws Send email's (J0.10); the tile stays at the top. */
+/** A long line wraps, as Figma draws Send email's (J0.10), to two lines at most; the tile stays at the top. */
 const descriptionStyle = cva({
   base: {
     whiteSpace: "normal",
+    lineClamp: "2",
     textStyle: "xs",
     // Figma sets the line with no tracking; the DS xs style's 0.12 px clips the longest step line.
     letterSpacing: "[0]",

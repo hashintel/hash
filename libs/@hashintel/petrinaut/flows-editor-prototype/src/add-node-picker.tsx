@@ -30,6 +30,7 @@ import { SearchHeader } from "./source-menu";
 import { groupSwatch, tileColor } from "./status-colors";
 import {
   FloatingStepPicker,
+  stepLine,
   groupHue,
   pickerColour,
   pickerTake,
@@ -52,23 +53,6 @@ const originSuffix = (entry: CatalogEntry) =>
   ) : entry.origin.kind === "mock" ? (
     <OriginMark label="mock" hover={entry.origin.why} />
   ) : undefined;
-
-/** Each step row's second line (Figma, 3 Nov), from the engine's action definitions. */
-const stepLines: Record<string, string> = {
-  queryEntities: "Search one entity type, with conditions",
-  createEntity: "Add a new entity to the graph",
-  updateEntity: "Change properties on an existing entity",
-  requestReview: "Ask someone to approve or reject",
-  sendEmail: "Send an email; drafting is a separate step",
-  getFileFromUrl: "Download a file from a URL into HASH",
-  if: "Send a value to Yes or No by a condition",
-  forEach: "Run steps once per item of a list",
-  filterList: "Split a list into matching and other items",
-};
-
-/** A step Figma gives no line: the first sentence of its definition's description. */
-const stepLine = (entry: CatalogEntry) =>
-  stepLines[entry.id] ?? entry.description.split(/(?<=\.)\s/)[0]?.replace(/\.$/, "");
 
 /**
  * "Use in a step" (Attio's Select next block, 4 Nov): the step added after `fromId`, in the free spot to its right,
