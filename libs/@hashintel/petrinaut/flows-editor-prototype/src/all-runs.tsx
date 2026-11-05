@@ -207,7 +207,8 @@ const tableStyle = css({
 });
 
 /**
- * Takes for the runs table, URL only; with none the table is as it was (10 rows, then "Show N older runs").
+ * Takes for the runs table. P1 with Align is the default (Aakarsh's pick on inbox history-table, 5 Nov 15:57);
+ * `?runspage=before` shows the table as it was (10 rows, then "Show N older runs"), and p2–p4 stay as takes.
  * 5 Nov, Aakarsh: the table's left edge sat 48 px in from the title, and "Show more" showed with room to spare.
  * - `?runsalign=1`: the table bleeds to the page padding, so the first column's text lines up with "Runs" and the
  *   first status chip. Every `?runspage` take includes it.
@@ -221,9 +222,10 @@ type RunsPage = "none" | "p1" | "p2" | "p3" | "p4";
 
 const runsPage: RunsPage = (() => {
   const value = new URLSearchParams(globalThis.location.search).get("runspage");
-  return value === "p1" || value === "p2" || value === "p3" || value === "p4"
-    ? value
-    : "none";
+  if (value === "before") {
+    return "none";
+  }
+  return value === "p2" || value === "p3" || value === "p4" ? value : "p1";
 })();
 
 const runsAligned =
