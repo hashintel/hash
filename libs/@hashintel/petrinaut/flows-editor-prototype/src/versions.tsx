@@ -21,8 +21,26 @@ import { Toast } from "./ui";
 
 import type { FlowVersion } from "./seed-flows";
 
-export const versionLabel = (version: FlowVersion) =>
-  `v${version.current} · ${version.state === "draft" ? "Draft" : "Live"}`;
+/**
+ * How a version number is written, open (Aakarsh, 4 Nov: why "v1" and not "V1"?; inbox `picks/version-label-case`):
+ * ?versionlabel=lower|upper|word, from the URL only. lower is "v6", Petrinaut's form ("v2 · Draft") and the default;
+ * upper is "V6"; word is "Version 6".
+ */
+export type VersionLabelCase = "lower" | "upper" | "word";
+
+export const useVersionLabelCase = (): VersionLabelCase => {
+  const value = useLocation().query.get("versionlabel")?.toLowerCase();
+  return value === "upper" || value === "word" ? value : "lower";
+};
+
+export const versionName = (n: number, labelCase: VersionLabelCase = "lower") =>
+  labelCase === "word" ? `Version ${n}` : `${labelCase === "upper" ? "V" : "v"}${n}`;
+
+export const versionLabel = (
+  version: FlowVersion,
+  labelCase: VersionLabelCase = "lower",
+) =>
+  `${versionName(version.current, labelCase)} · ${version.state === "draft" ? "Draft" : "Live"}`;
 
 const menuRowStyle = css({
   display: "flex",
@@ -63,6 +81,7 @@ export const VersionMenu = ({
   viewing: number | null;
   trigger: React.ReactElement;
 }) => {
+  const labelCase = useVersionLabelCase();
   const draft =
     version.state === "draft"
       ? [
@@ -71,7 +90,7 @@ export const VersionMenu = ({
             text: (
               <span className={menuRowStyle}>
                 <span className={menuTitleStyle}>
-                  v{version.current}
+                  {versionName(version.current, labelCase)}
                   <span className={stateTagStyle}>Draft</span>
                 </span>
                 <span className={menuMetaStyle}>
@@ -93,7 +112,9 @@ export const VersionMenu = ({
       text: (
         <span className={menuRowStyle}>
           <span className={menuTitleStyle}>
-            {entry.name ? `v${entry.n} · ${entry.name}` : `v${entry.n}`}
+            {entry.name && entry.name !== `v${entry.n}`
+              ? `${versionName(entry.n, labelCase)} · ${entry.name}`
+              : versionName(entry.n, labelCase)}
             {live ? <span className={stateTagStyle}>Live</span> : null}
           </span>
           <span className={menuMetaStyle}>
@@ -142,7 +163,9 @@ export const VersionButton = ({
 }: {
   version: FlowVersion;
   viewing: number | null;
-}) => (
+}) => {
+  const labelCase = useVersionLabelCase();
+  return (
   <VersionMenu
     version={version}
     viewing={viewing}
@@ -156,11 +179,14 @@ export const VersionButton = ({
         className={quietButtonStyle}
         data-version-menu
       >
-        {viewing === null ? versionLabel(version) : `v${viewing} · Read-only`}
+        {viewing === null
+          ? versionLabel(version, labelCase)
+          : `${versionName(viewing, labelCase)} · Read-only`}
       </Button>
     }
   />
-);
+  );
+};
 
 /* ----------------------------------------------------------------------------------------------------------------
  * What the bar says about saving (5 Nov, inbox `picks/draft-saved`): ?draftsaved=dora|dei|steady, from the URL only;
@@ -312,6 +338,7 @@ const PublishDialog = ({
 }) => {
   const next = version.current;
   const live = version.published[0]?.n;
+  const labelCase = useVersionLabelCase();
   const [name, setName] = useState(`v${next}`);
   const [notes, setNotes] = useState("");
   const [moveTriggers, setMoveTriggers] = useState(true);
@@ -327,8 +354,8 @@ const PublishDialog = ({
           })}
         >
           <span className={noteStyle}>
-            Your draft becomes v{next} and goes live. Runs that start after this
-            use v{next}.
+            Your draft becomes {versionName(next, labelCase)} and goes live. Runs that start after
+            this use {versionName(next, labelCase)}.
           </span>
           {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the DS input is inside */}
           <label className={fieldStyle}>
@@ -361,11 +388,11 @@ const PublishDialog = ({
               <Checkbox
                 value={moveTriggers}
                 onChange={setMoveTriggers}
-                label={`Move 2 triggers in this web to v${next}`}
+                label={`Move 2 triggers in this web to ${versionName(next, labelCase)}`}
               />
               <span className={hintStyle}>
                 Every month on the 1st · When a supplier is updated. Untick to
-                keep them on v{live}.
+                keep them on {versionName(live ?? 0, labelCase)}.
               </span>
             </div>
           )}
@@ -389,7 +416,7 @@ const PublishDialog = ({
               data-publish-confirm
               onClick={() => onPublish(name.trim())}
             >
-              Publish v{next}
+              Publish {versionName(next, labelCase)}
             </Button>
           </>
         }
@@ -499,6 +526,7 @@ export const VersionBanner = ({
   viewing: number;
   onRestore: () => void;
 }) => {
+  const labelCase = useVersionLabelCase();
   const entry = version.published.find((each) => each.n === viewing);
   const draft =
     version.state === "draft" ? version.current : version.current + 1;
@@ -509,12 +537,12 @@ export const VersionBanner = ({
         <span
           className={css({ fontWeight: "medium", color: "neutral.fg.heading" })}
         >
-          Viewing v{viewing} · read-only
+          Viewing {versionName(viewing, labelCase)} · read-only
         </span>
         <span className={css({ color: "neutral.fg.subtle" })}>
           {" "}
           · Published {entry?.at ?? ""} by {entry?.by ?? ""}. Your edits stay in
-          the v{draft} draft.
+          the {versionName(draft, labelCase)} draft.
         </span>
       </span>
       <Button size="sm" variant="ghost" tone="neutral" onClick={onRestore}>
