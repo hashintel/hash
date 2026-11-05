@@ -4,9 +4,9 @@
  * and the next scheduled run. Clicking a run opens it on the canvas.
  *
  * DS gaps: ds-components has no Tabs (the status tabs are a local tablist with DS Badge-like counts), no table, and
- * no stacked bar chart; the DS Filter is one property's chip, not a Sort / Filter ribbon, so Sort and Filter are DS
- * ghost buttons that open DS Menus (ledger 4 Nov: status tabs, plus a filter, plus sorting). The DS SortMenu marks the
- * active sort in brand blue, which here means running, so Sort is a plain DS Menu with ticks.
+ * no stacked bar chart. Sort is a DS Menu (the DS SortMenu marks the active sort in brand blue, which here means
+ * running, so it has ticks instead). Filter opens "Filter by…" and the DS Filter ribbon under the tabs (B, inbox
+ * run-filter; ledger 4 Nov: status tabs, plus the DS Filter, plus sorting): `runs-filter.tsx`.
  */
 import { useLayoutEffect, useRef, useState } from "react";
 
@@ -39,8 +39,18 @@ import {
   runStatusTake,
   RunStatusTakeCell,
 } from "./run-status-takes";
+import {
+  appliedChips,
+  durationSeconds,
+  FilterByMenu,
+  newChip,
+  passesChips,
+  type RunFilterChip,
+  RunsFilterRibbon,
+} from "./runs-filter";
 import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
+import { Toast } from "./ui";
 
 import type { HistoryValue } from "./history-view";
 
@@ -190,10 +200,20 @@ const rowButtonActiveStyle = css({
 
 /**
  * `?runsort=old`: Sort and Filter as they were, buttons that open nothing. URL only, never remembered. Without it
- * Sort orders by start time, duration or status, and Filter narrows by status, trigger and who ran it.
+ * Sort orders by start time, duration or status, and Filter opens the DS Filter ribbon.
  */
 const oldRunsSort =
   new URLSearchParams(globalThis.location.search).get("runsort") === "old";
+
+/**
+ * `?logsfilter=old`: Filter as a plain checkbox menu (status, trigger, who ran it) instead of the picked ribbon B.
+ * URL only, never remembered.
+ */
+const oldLogsFilter =
+  new URLSearchParams(globalThis.location.search).get("logsfilter") === "old";
+
+/** Filters saved with Save: the ribbon opens on them the next time Logs opens in this session. */
+let savedChips: RunFilterChip[] = [];
 
 type SortKey = "started" | "duration" | "status";
 
@@ -226,16 +246,6 @@ const statusFilterLabel: Record<RunOutcome, string> = {
   warnings: "Completed with warnings",
   error: "Failed",
   abandoned: "Abandoned",
-};
-
-/** "1m 52s", "48h 02m": a past run's duration in seconds; a live run counts its clock. */
-const durationSeconds = (run: RunRecord, now: number) => {
-  if (run.kind === "live") {
-    return runClock(run, now);
-  }
-  const part = (unit: string) =>
-    Number(new RegExp(`(\\d+)\\s*${unit}`).exec(run.duration ?? "")?.[1] ?? 0);
-  return part("h") * 3600 + part("m") * 60 + part("s");
 };
 
 /** One Filter choice: "status:error", "trigger:manual", "by:Dora". */
@@ -341,6 +351,9 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
     flipped: false,
   });
   const [filters, setFilters] = useState<string[]>([]);
+  const [chips, setChips] = useState<RunFilterChip[]>(savedChips);
+  const [savedToast, setSavedToast] = useState(false);
+  const applied = oldLogsFilter ? filters.length : appliedChips(chips);
   // How many rows fit in the height the page has, with and without the footer row under them.
   const [fits, setFits] = useState({ bare: pageSize, withFooter: pageSize });
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -392,7 +405,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
     .filter(
       (run) =>
         (tab === "all" || tabOf[outcomeOf(run, now)] === tab) &&
-        passesFilters(run) &&
+        (oldLogsFilter ? passesFilters(run) : passesChips(chips, run, now)) &&
         `Run ${run.id} ${run.when} ${triggerLabel(run).row}`
           .toLowerCase()
           .includes(search.trim().toLowerCase()),
@@ -612,41 +625,63 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                 </Button>
               }
             />
-            <Menu
-              position="bottom-end"
-              items={
-                filters.length > 0
-                  ? [
-                      ...filterItems,
-                      {
-                        id: "clear",
-                        label: "",
-                        items: [
-                          {
-                            id: "clear-filters",
-                            text: "Clear filters",
-                            onClick: () => setFilters([]),
-                          },
-                        ],
-                      },
-                    ]
-                  : filterItems
-              }
-              trigger={
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  tone="neutral"
-                  iconName="filter"
-                  className={cx(
-                    rowButtonStyle,
-                    filters.length > 0 && rowButtonActiveStyle,
-                  )}
-                >
-                  {filters.length > 0 ? `Filter · ${filters.length}` : "Filter"}
-                </Button>
-              }
-            />
+            {oldLogsFilter ? (
+              <Menu
+                position="bottom-end"
+                items={
+                  filters.length > 0
+                    ? [
+                        ...filterItems,
+                        {
+                          id: "clear",
+                          label: "",
+                          items: [
+                            {
+                              id: "clear-filters",
+                              text: "Clear filters",
+                              onClick: () => setFilters([]),
+                            },
+                          ],
+                        },
+                      ]
+                    : filterItems
+                }
+                trigger={
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    tone="neutral"
+                    iconName="filter"
+                    className={cx(
+                      rowButtonStyle,
+                      filters.length > 0 && rowButtonActiveStyle,
+                    )}
+                  >
+                    {filters.length > 0
+                      ? `Filter · ${filters.length}`
+                      : "Filter"}
+                  </Button>
+                }
+              />
+            ) : (
+              <FilterByMenu
+                onPick={(property) => setChips(newChip(chips, property))}
+                trigger={
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    tone="neutral"
+                    iconName="filter"
+                    className={cx(
+                      rowButtonStyle,
+                      applied > 0 && rowButtonActiveStyle,
+                    )}
+                  >
+                    {applied > 0 ? `Filter · ${applied}` : "Filter"}
+                  </Button>
+                }
+              />
+            )}
           </>
         )}
         <span className={css({ width: "[200px]", marginLeft: "2" })}>
@@ -659,6 +694,21 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
           />
         </span>
       </div>
+      {!oldRunsSort && !oldLogsFilter && chips.length > 0 ? (
+        <RunsFilterRibbon
+          chips={chips}
+          onChips={setChips}
+          runs={runs}
+          now={now}
+          onSave={() => {
+            savedChips = chips;
+            setSavedToast(true);
+          }}
+        />
+      ) : null}
+      {savedToast ? (
+        <Toast text="Filters saved" onDone={() => setSavedToast(false)} />
+      ) : null}
       <div
         className={
           runsAligned ? css({ marginX: "[-24px]" }) : css({ paddingX: "6" })
@@ -747,7 +797,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                 </td>
               </tr>
             ))}
-            {shown.length === 0 && filters.length > 0 ? (
+            {shown.length === 0 && applied > 0 ? (
               <tr data-runs-empty>
                 <td
                   colSpan={statusTake === "c" ? 7 : 6}
