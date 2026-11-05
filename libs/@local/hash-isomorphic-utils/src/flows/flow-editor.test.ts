@@ -119,6 +119,7 @@ describe("createFlowEditor", () => {
     editor.setInputSource("second", "question", null);
     editor.addConnection({ from: added, to: "each" });
     editor.setStepDescription("second", "Answers again");
+    editor.setName("Answers, renamed");
     editor.addFlowInput({
       name: "context",
       payloadKind: "Text",
@@ -319,6 +320,34 @@ describe("createFlowEditor", () => {
         description: "Answer every question",
       });
       expect(stepOf(editor, "first")?.description).toBe("");
+    });
+  });
+
+  describe("renaming the flow", () => {
+    it("changes only the flow's name, as an edit", () => {
+      const editor = loadFlow();
+      const listener = vi.fn();
+      editor.subscribe(listener);
+
+      editor.setName("Answer every question");
+
+      expect(editor.getState().flowDefinition).toStrictEqual({
+        ...flowDefinition,
+        name: "Answer every question",
+      });
+      expect(listener).toHaveBeenCalledExactlyOnceWith({ edited: true });
+    });
+
+    it("leaves the state as it was when given the name the flow has", () => {
+      const editor = loadFlow();
+      const loaded = editor.getState();
+      const listener = vi.fn();
+      editor.subscribe(listener);
+
+      editor.setName("Answers");
+
+      expect(editor.getState()).toBe(loaded);
+      expect(listener).not.toHaveBeenCalled();
     });
   });
 

@@ -272,6 +272,7 @@ const FlowEditor = ({
     >
       <TopBar
         name={flowDefinition.name}
+        onRename={editor.setName}
         saveStatus={status}
         editsRefused={saveRefusedReason !== null}
         onRetrySave={() => {
