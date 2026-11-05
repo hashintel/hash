@@ -402,7 +402,8 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
 
 /**
  * S4 (picked 4 Nov, inbox history-stats): what you act on, as label–value rows; the counts live in the chart.
- * Short labels, regular weight, Attio's 32 px rows.
+ * Short labels, regular weight, Attio's 32 px rows. "Average run time" (5 Nov, was "Typical run"); the value is
+ * still the median of completed runs, and its tooltip says so.
  */
 const statRowStyle = css({
   display: "flex",
@@ -426,6 +427,81 @@ const statLinkStyle = css({
   borderRadius: "sm",
   _hover: { textDecoration: "underline", textUnderlineOffset: "[2px]" },
 });
+
+/**
+ * The stats as tiles, for comparison with S4 (5 Nov, Aakarsh: "show a mock of this with the cards too"). Read from
+ * ?stats=tiles1|tiles2 only; S4 rows are the default. M2's tile sizes (12 px padding, lg radius, 84 px min height,
+ * lg value over an xs label) with a faint neutral border.
+ * - `tiles1`: a 2×2 grid. `tiles2`: the four stacked.
+ */
+type StatsTake = "rows" | "tiles1" | "tiles2";
+
+const statsTake: StatsTake = (() => {
+  const value = new URLSearchParams(globalThis.location.search).get("stats");
+  return value === "tiles1" || value === "tiles2" ? value : "rows";
+})();
+
+const statTileStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  minWidth: "[0]",
+  minHeight: "[84px]",
+  padding: "3",
+  borderRadius: "lg",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  backgroundColor: "neutral.bgSolid.surface",
+});
+
+const statTileValueStyle = css({
+  textStyle: "lg",
+  color: "neutral.fg.heading",
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  textAlign: "left",
+  maxWidth: "[100%]",
+});
+
+type Stat = {
+  label: string;
+  text: string;
+  color?: string;
+  onOpen?: () => void;
+  tooltip?: string;
+};
+
+const StatValue = ({ stat, className }: { stat: Stat; className: string }) => {
+  const value = stat.onOpen ? (
+    <button
+      type="button"
+      className={cx(className, statLinkStyle)}
+      style={stat.color ? { color: stat.color } : undefined}
+      onClick={stat.onOpen}
+      data-stat-value
+    >
+      {stat.text}
+    </button>
+  ) : (
+    <span
+      className={className}
+      style={stat.color ? { color: stat.color } : undefined}
+      data-stat-value
+    >
+      {stat.text}
+    </span>
+  );
+  return stat.tooltip ? (
+    <Tooltip content={stat.tooltip} openDelay="fast">
+      {value}
+    </Tooltip>
+  ) : (
+    value
+  );
+};
 
 const StatRow = ({
   label,
@@ -919,6 +995,35 @@ const Overview = ({ history }: { history: HistoryValue }) => {
   const lastFailure = failed[0];
   const withWarnings = runs.filter((run) => outcomeOf(run, now) === "warnings");
   const onlyWarning = withWarnings.length === 1 ? withWarnings[0] : undefined;
+  const stats: Stat[] = [
+    lastFailure
+      ? {
+          label: "Last failure",
+          text: `Run ${lastFailure.id} · ${lastFailure.when}`,
+          color: "var(--flows-failed-text)",
+          onOpen: () => history.open(lastFailure.id),
+        }
+      : { label: "Last failure", text: "None" },
+    ...(withWarnings.length === 0
+      ? []
+      : [
+          onlyWarning
+            ? {
+                label: "With warnings",
+                text: `Run ${onlyWarning.id} · ${onlyWarning.when}`,
+                color: "var(--flows-warnings-text)",
+                onOpen: () => history.open(onlyWarning.id),
+              }
+            : { label: "With warnings", text: `${withWarnings.length} runs` },
+        ]),
+    { label: "Next run", text: "1 Dec, 09:00" },
+    // MOCK: a fixed median until runs carry real durations.
+    {
+      label: "Average run time",
+      text: "1m 44s",
+      tooltip: "Median of completed runs",
+    },
+  ];
   const failures: { runId: number; title: string; line: string }[] =
     runs.flatMap((run) => {
       const outcome = outcomeOf(run, now);
@@ -975,48 +1080,41 @@ const Overview = ({ history }: { history: HistoryValue }) => {
         >
           All {runs.length} runs
         </span>
-        <div className={css({ display: "flex", flexDirection: "column" })}>
-          <StatRow label="Last failure">
-            {lastFailure ? (
-              <button
-                type="button"
-                className={cx(statValueStyle, statLinkStyle)}
-                style={{ color: "var(--flows-failed-text)" }}
-                onClick={() => history.open(lastFailure.id)}
+        {statsTake === "rows" ? (
+          <div className={css({ display: "flex", flexDirection: "column" })}>
+            {stats.map((stat) => (
+              <StatRow key={stat.label} label={stat.label}>
+                <StatValue stat={stat} className={statValueStyle} />
+              </StatRow>
+            ))}
+          </div>
+        ) : (
+          <div
+            data-stats-take={statsTake}
+            className={css({ display: "grid", gap: "2" })}
+            style={{
+              gridTemplateColumns: statsTake === "tiles1" ? "1fr 1fr" : "1fr",
+            }}
+          >
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className={statTileStyle}
+                data-stat-tile={stat.label}
               >
-                Run {lastFailure.id} · {lastFailure.when}
-              </button>
-            ) : (
-              <span className={statValueStyle}>None</span>
-            )}
-          </StatRow>
-          {withWarnings.length > 0 ? (
-            <StatRow label="With warnings">
-              {onlyWarning ? (
-                <button
-                  type="button"
-                  className={cx(statValueStyle, statLinkStyle)}
-                  style={{ color: "var(--flows-warnings-text)" }}
-                  onClick={() => history.open(onlyWarning.id)}
+                <StatValue stat={stat} className={statTileValueStyle} />
+                <span
+                  className={css({
+                    textStyle: "xs",
+                    color: "neutral.fg.muted",
+                  })}
                 >
-                  Run {onlyWarning.id} · {onlyWarning.when}
-                </button>
-              ) : (
-                <span className={statValueStyle}>
-                  {withWarnings.length} runs
+                  {stat.label}
                 </span>
-              )}
-            </StatRow>
-          ) : null}
-          <StatRow label="Next run">
-            <span className={statValueStyle}>1 Dec, 09:00</span>
-          </StatRow>
-          <StatRow label="Typical run">
-            <Tooltip content="Median of completed runs" openDelay="fast">
-              <span className={statValueStyle}>1m 44s</span>
-            </Tooltip>
-          </StatRow>
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
       <RunsChart history={history} />
       <section
