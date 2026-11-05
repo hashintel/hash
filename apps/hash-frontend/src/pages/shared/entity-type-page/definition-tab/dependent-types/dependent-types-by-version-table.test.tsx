@@ -233,7 +233,7 @@ describe("DependentTypesByVersionTable", () => {
     const { container } = renderTable();
 
     expect(container.textContent).toContain(
-      "In this layout a type can appear under several Company versions. In the “By child type” layout each type appears once.",
+      "In this layout a type can appear under several Company versions. In the “By type” layout each type appears once.",
     );
   });
 

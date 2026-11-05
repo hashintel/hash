@@ -35,7 +35,7 @@ const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
   lineHeight: "20px",
 });
 
-const InfoButton = ({ label, text }: { label: string; text: string }) => (
+const InfoButton = ({ label, text }: { label: string; text: ReactNode }) => (
   <Tooltip title={text} describeChild placement="bottom-start">
     <IconButton
       aria-label={label}
@@ -118,12 +118,23 @@ export const DependentTypesSection = ({
                 }
               }}
             >
-              <ToggleButton value="byType">By child type</ToggleButton>
-              <ToggleButton value="byVersion">By parent version</ToggleButton>
+              <ToggleButton value="byType">By type</ToggleButton>
+              <ToggleButton value="byVersion">By version</ToggleButton>
             </ToggleButtonGroup>
             <InfoButton
               label="About the layouts"
-              text={`By child type: one row per type that extends ${entityTypeTitle}, expandable into its version ranges. By parent version: one row per version of ${entityTypeTitle}, expandable into the types that extend it.`}
+              text={
+                <>
+                  <Box component="span" sx={{ display: "block" }}>
+                    By type: one row per type that extends {entityTypeTitle},
+                    expandable into its version ranges.
+                  </Box>
+                  <Box component="span" sx={{ display: "block", mt: 0.5 }}>
+                    By version: one row per version of {entityTypeTitle},
+                    expandable into the types that extend it.
+                  </Box>
+                </>
+              }
             />
           </Stack>
           <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>

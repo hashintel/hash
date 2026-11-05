@@ -206,10 +206,10 @@ describe("DependentTypesSection", () => {
     const { section } = renderSection({ rows: [user] });
 
     const byChild = within(section).getByRole("button", {
-      name: "By child type",
+      name: "By type",
     });
     const byParent = within(section).getByRole("button", {
-      name: "By parent version",
+      name: "By version",
     });
     expect(byChild.getAttribute("aria-pressed")).toBe("true");
 
