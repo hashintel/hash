@@ -677,6 +677,29 @@ export const integrationIconCatalog = [
     label: "Microsoft Teams",
     integrationNames: ["Microsoft Teams"],
     source:
+      "https://upload.wikimedia.org/wikipedia/commons/0/07/Microsoft_Office_Teams_%282025%E2%80%93present%29.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
+    logoNotes:
+      "Composed lock-up pairing the current Teams product mark (October 2025 redesign) with the Microsoft Teams wordmark vectorized from page 1 of the official Microsoft PDF. The Microsoft corporate square is excluded. Charcoal lettering in light mode and near-white lettering in dark mode; no embedded raster artwork.",
+    logoRaster: false,
+  },
+  {
+    name: "microsoftTeamsLegacy",
+    slug: "microsoft-teams-legacy",
+    label: "Microsoft Teams (legacy)",
+    integrationNames: [],
+    source:
       "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/microsoft-teams-icon.tsx",
     category: "Integrations",
     variants: [
@@ -691,7 +714,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
     logoNotes:
-      "Composed lock-up pairing the Teams product mark with the Microsoft Teams wordmark vectorized from page 1 of the official Microsoft PDF. The Microsoft corporate square is excluded. Charcoal lettering in light mode and near-white lettering in dark mode; no embedded raster artwork.",
+      "Previous Teams product mark, retained as an explicit legacy option. Full logos pair it with the Microsoft Teams wordmark vectorized from an official Microsoft PDF. Charcoal/light and near-white/dark lettering.",
     logoRaster: false,
   },
   {

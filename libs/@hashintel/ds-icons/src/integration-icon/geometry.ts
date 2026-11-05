@@ -28,6 +28,7 @@ import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
 import * as linear from "./geometry/linear";
 import * as messenger from "./geometry/messenger";
 import * as microsoftTeams from "./geometry/microsoft-teams";
+import * as microsoftTeamsLegacy from "./geometry/microsoft-teams-legacy";
 import * as notion from "./geometry/notion";
 import * as omp from "./geometry/omp";
 import * as oracle from "./geometry/oracle";
@@ -256,6 +257,13 @@ export const integrationGeometry = {
   },
   microsoftTeams: {
     ...microsoftTeams,
+    markViewBox: "4 4 36 38",
+    logoViewBox: "0 0 683.7612323491655 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftTeamsLegacy: {
+    ...microsoftTeamsLegacy,
     markViewBox: "0 0 32 30",
     logoViewBox: "0 0 695.6910569105692 100",
     ratio: 2,

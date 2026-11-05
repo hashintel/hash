@@ -457,6 +457,26 @@
     "integrationNames": ["Microsoft Teams"],
     "ratio": 2,
     "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/07/Microsoft_Office_Teams_%282025%E2%80%93present%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#242424": "#F5F7FA"
+    },
+    "logoSource": "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
+    "logoNotes": "Composed lock-up pairing the current Teams product mark (October 2025 redesign) with the Microsoft Teams wordmark vectorized from page 1 of the official Microsoft PDF. The Microsoft corporate square is excluded. Charcoal lettering in light mode and near-white lettering in dark mode; no embedded raster artwork.",
+    "logoLayout": {
+      "wordmarkHeight": 0.62,
+      "gap": 0.28
+    }
+  },
+  {
+    "name": "microsoftTeamsLegacy",
+    "slug": "microsoft-teams-legacy",
+    "label": "Microsoft Teams (legacy)",
+    "integrationNames": [],
+    "ratio": 2,
+    "alignment": "center",
     "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/microsoft-teams-icon.tsx",
     "markLightColors": {},
     "markDarkColors": {},
@@ -464,7 +484,7 @@
       "#242424": "#F5F7FA"
     },
     "logoSource": "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
-    "logoNotes": "Composed lock-up pairing the Teams product mark with the Microsoft Teams wordmark vectorized from page 1 of the official Microsoft PDF. The Microsoft corporate square is excluded. Charcoal lettering in light mode and near-white lettering in dark mode; no embedded raster artwork.",
+    "logoNotes": "Previous Teams product mark, retained as an explicit legacy option. Full logos pair it with the Microsoft Teams wordmark vectorized from an official Microsoft PDF. Charcoal/light and near-white/dark lettering.",
     "logoLayout": {
       "wordmarkHeight": 0.62,
       "gap": 0.28

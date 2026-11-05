@@ -47,6 +47,14 @@ describe("IntegrationIcon", () => {
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
       40,
     );
+    expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
+      "microsoftTeams",
+    );
+    expect(
+      integrationIconCatalog.find(
+        (icon) => icon.name === "microsoftTeamsLegacy",
+      )?.integrationNames,
+    ).toEqual([]);
     expect(integrationIconNameByIntegration["Granola"]).toBe("granola");
     expect(
       integrationIconCatalog.find((icon) => icon.name === "granolaLegacy")
