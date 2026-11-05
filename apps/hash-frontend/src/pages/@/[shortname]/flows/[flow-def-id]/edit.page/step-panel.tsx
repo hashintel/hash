@@ -198,13 +198,14 @@ const SelectedStepPanel = ({
           }
         />
       </PanelHeader>
+      {/* Problems with the step as a whole, shown even when it has no inputs, e.g. an action that doesn't exist. */}
+      {stepProblems.length > 0 && (
+        <Form.Field.Errors
+          errors={stepProblems.map(({ message }) => message)}
+        />
+      )}
       {step.kind === "action" && actionDefinition && (
         <PanelSection title="Inputs">
-          {stepProblems.length > 0 && (
-            <Form.Field.Errors
-              errors={stepProblems.map(({ message }) => message)}
-            />
-          )}
           <Form.Section>
             {actionDefinition.inputs.map((input) => (
               <InputField
