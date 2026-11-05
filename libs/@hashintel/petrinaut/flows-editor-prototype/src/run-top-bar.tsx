@@ -2,7 +2,7 @@
  * Top bar takes, for Aakarsh to pick from (4 Nov): "what's the most minimal version of the top bar we can do which is
  * still clear and like allows all the affordances". Minimal means fewer, quieter controls, never fewer functions.
  *
- * Run view (`?topbar=1..4`, from the URL only). No segmented control in any. Each has: back to the editor, all runs, the run
+ * Run view (`?topbar=1..5`, from the URL only). No segmented control in any. Each has: back to the editor, all runs, the run
  * switcher (‹ › and the picker), Re-run (Stop on a live run), Simulate, Publish and ⋮. The takes differ only in
  * layout and grouping. A run with failed items adds "Re-run 2 failed" left of Re-run, its only place in the app.
  * 1. Centred switcher: ← flow · All runs | ‹ Run 16 · Today, 08:15 ▾ › | Re-run, Simulate, Publish, ⋮. The default.
@@ -10,6 +10,8 @@
  * 3. Breadcrumb: flow › All runs › ‹ Run 16 ▾ › | Re-run, Simulate, Publish, ⋮.
  * 4. Run as the title: ← History | Run 16 (big), "Failed · Today, 08:15", ‹ ▾ › | Re-run, Simulate, Open in editor,
  *    Publish, ⋮.
+ * 5. Take 1 with one "Re-run ▾" menu: "Re-run everything" and "Only the 2 failed"; the count is in the item, not on
+ *    the button. MOCK: the engine hasn't confirmed it can retry only the failed items yet.
  *
  * Editor: take 1, picked by Aakarsh on 4 Nov. The others stay for comparison behind `?editorbar=2|3`, which is not
  * remembered, so the default route always shows take 1.
@@ -24,13 +26,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { type HistoryValue, RunSwitcher } from "./history-view";
 import { bannerAction, factsOf, outcomeOf, statusText } from "./run-history";
 
-export type RunBarVariant = 1 | 2 | 3 | 4;
+export type RunBarVariant = 1 | 2 | 3 | 4 | 5;
 export type EditorBarVariant = 1 | 2 | 3;
 
 /** `?topbar=` from the URL only, never remembered; else take 1. */
 export const runBarVariant = (query: URLSearchParams): RunBarVariant => {
   const take = Number(query.get("topbar"));
-  return take === 2 || take === 3 || take === 4 ? take : 1;
+  return take === 2 || take === 3 || take === 4 || take === 5 ? take : 1;
 };
 
 export const editorBarVariant = (query: URLSearchParams): EditorBarVariant => {
@@ -229,10 +231,51 @@ export const RunTopBar = ({
       Simulate
     </Button>
   );
+  // Take 5: one Re-run with both choices. MOCK: partial retry is not confirmed by the engine yet.
+  const rerunMenu = (
+    <Menu
+      position="bottom-end"
+      className={css({ minWidth: "[208px]" })}
+      items={[
+        {
+          id: "rerun-all",
+          text: "Re-run everything",
+          icon: "rotate",
+          onClick: () => history.start(),
+        },
+        {
+          id: "rerun-failed",
+          text: `Only the ${failedCount} failed`,
+          icon: "rotate",
+          onClick: () => history.start(failedCount),
+        },
+      ]}
+      trigger={
+        <Button
+          size="sm"
+          variant="subtle"
+          tone="neutral"
+          iconName="chevronDown"
+          iconPosition="right"
+          className={quietStyle}
+          data-run-action
+          data-run-rerun-menu
+        >
+          Re-run
+        </Button>
+      }
+    />
+  );
   const right = (extra?: React.ReactNode) => (
     <div className={rightStyle}>
-      {rerunFailedButton}
-      {actionButton}
+      {variant === 5 && !stop && failedCount > 0 ? (
+        rerunMenu
+      ) : (
+        <>
+          {rerunFailedButton}
+          {actionButton}
+        </>
+      )}
       {simulateButton}
       {extra}
       {/* Publish publishes the editor's draft; it is here so the run view keeps every flow-level action. */}
@@ -362,7 +405,7 @@ export const RunTopBar = ({
     default:
       return (
         <>
-          <div className={sideStyle} data-topbar="1">
+          <div className={sideStyle} data-topbar={variant === 5 ? "5" : "1"}>
             {toEditorLink}
             <span aria-hidden className={dotStyle}>
               ·
