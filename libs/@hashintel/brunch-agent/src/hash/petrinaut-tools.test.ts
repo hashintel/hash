@@ -47,3 +47,32 @@ test("a merged update makes the canonical calls its input names, its failable st
     }).calls,
   ).toEqual([]);
 });
+
+test("petrinaut_update_arc rejects an input-arc type on an output arc", () => {
+  expect(() =>
+    hashPetrinautTools.petrinaut_update_arc.parseCall({
+      editor_id: hashProcessEditorId,
+      transitionId: "serve",
+      arcDirection: "output",
+      placeId: "queue",
+      type: "inhibitor",
+    }),
+  ).toThrow(/Output arcs do not have an input arc type/u);
+});
+
+test("petrinaut_create_experiment enforces cross-field experiment rules on its input schema", () => {
+  expect(() =>
+    hashPetrinautTools.petrinaut_create_experiment.parseCall({
+      editor_id: hashProcessEditorId,
+      name: "Queue study",
+      scenarioId: "scenario-1",
+      scenarioParameterValues: {},
+      runCount: 2,
+      seed: 1,
+      dt: 100,
+      maxTime: 10,
+      metricIds: ["metric-1", "metric-1"],
+      execution: { mode: "simulate" },
+    }),
+  ).toThrow(/Metric IDs must be unique/u);
+});

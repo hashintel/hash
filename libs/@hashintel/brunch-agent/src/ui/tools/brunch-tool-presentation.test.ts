@@ -65,16 +65,29 @@ describe("Brunch tool presentation", () => {
     expect(save({ status: "saved", savedAt: "now" })?.title).toBe(
       "Saved the net",
     );
-    expect(save({ status: "not-started", reason: "Declined" })).toEqual({
-      title: "Did not save the net",
-      detail: "Declined",
-      tone: "neutral",
-    });
-    expect(save({ status: "unconfirmed", error: "Timed out" })).toEqual({
-      title: "Could not confirm the save",
-      detail: "Timed out",
-      tone: "danger",
-    });
+    expect(save({ saved: true, title: "Replenishment" })?.title).toBe(
+      "Saved the net",
+    );
+    for (const notStarted of [
+      { status: "not-started", reason: "Declined" },
+      { saved: false, reason: "Declined" },
+    ]) {
+      expect(save(notStarted)).toEqual({
+        title: "Did not save the net",
+        detail: "Declined",
+        tone: "neutral",
+      });
+    }
+    for (const unconfirmed of [
+      { status: "unconfirmed", error: "Timed out" },
+      { saved: false, error: "Timed out", note: "Tell the user." },
+    ]) {
+      expect(save(unconfirmed)).toEqual({
+        title: "Could not confirm the save",
+        detail: "Timed out",
+        tone: "danger",
+      });
+    }
   });
 
   test("names the requested HASH read or save while it has no result", () => {

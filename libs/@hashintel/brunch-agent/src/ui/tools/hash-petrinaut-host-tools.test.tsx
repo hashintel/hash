@@ -310,6 +310,25 @@ test("a merged arc update whose retarget fails changes nothing, its reweight inc
   expect(failure).toBeInstanceOf(Error);
   expect(revision).toBe(before);
   expect(definition).toEqual(definitionBefore);
+
+  // A missing source arc also leaves an existing arc at the destination untouched.
+  const missingSource = await (
+    await runIssuedCall(
+      "petrinaut_update_arc",
+      {
+        editor_id: hashProcessEditorId,
+        transitionId: "serve",
+        arcDirection: "input",
+        placeId: "buffer",
+        newPlaceId: "queue",
+        weight: 3,
+      },
+      { initial: servedNet },
+    )
+  ).outcome();
+  expect(missingSource.result?.output).toMatchObject({ applied: false });
+  expect(missingSource.revision).toBe(missingSource.before);
+  expect(missingSource.definition).toEqual(missingSource.definitionBefore);
 });
 
 test("a HASH remove waits on the destructive-edit card, which offers Always allow, and runs once allowed", async () => {
@@ -497,6 +516,7 @@ test("petrinaut_create_experiment runs the experiment through the editor and set
   expect(failure).toBeUndefined();
   expect(runExperiment).toHaveBeenCalledWith(
     expect.objectContaining({ name: "Queue study", runCount: 2 }),
+    expect.objectContaining({ signal: expect.any(AbortSignal) as unknown }),
   );
   expect(result?.output).toEqual(experimentResult);
   expect(revision).toBe(before);

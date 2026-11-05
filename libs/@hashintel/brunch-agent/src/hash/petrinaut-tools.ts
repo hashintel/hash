@@ -104,12 +104,18 @@ const standIn = ({
   operation,
   description = petrinautAiTools[operation].description,
   shape,
+  check,
 }: {
   readonly operation: PetrinautAiToolName;
   readonly description?: string;
   readonly shape: z.core.$ZodShape;
+  readonly check?: (
+    input: Readonly<Record<string, unknown>>,
+    context: z.RefinementCtx,
+  ) => void;
 }): HashPetrinautTool => {
-  const zInput = z.strictObject({ ...shape, editor_id: zEditorId });
+  const base = z.strictObject({ ...shape, editor_id: zEditorId });
+  const zInput = check ? base.superRefine(check) : base;
   return {
     operations: [operation],
     description,
@@ -130,6 +136,7 @@ const merged = <Shape extends z.core.$ZodShape>({
   operations,
   description,
   shape,
+  check,
   split,
 }: {
   readonly operations: readonly [
@@ -138,15 +145,24 @@ const merged = <Shape extends z.core.$ZodShape>({
   ];
   readonly description: string;
   readonly shape: Shape;
+  readonly check?: (
+    input: z.output<z.ZodObject<Shape>>,
+    context: z.RefinementCtx,
+  ) => void;
   readonly split: (
     input: z.output<z.ZodObject<Shape>>,
   ) => readonly PetrinautOperationCall[];
 }): HashPetrinautTool => {
-  // Generic in `Shape`, zod can't see `editor_id` in the object's output.
-  const zInput = z.strictObject({
+  const base = z.strictObject({
     ...shape,
     editor_id: zEditorId,
-  }) as unknown as z.ZodType<
+  });
+  // Generic in `Shape`, zod can't see `editor_id` in the object's output.
+  const zInput = (check
+    ? base.superRefine((input, context) =>
+        check(input as unknown as z.output<z.ZodObject<Shape>>, context),
+      )
+    : base) as unknown as z.ZodType<
     z.output<z.ZodObject<Shape>> & { editor_id: string }
   >;
   return {
@@ -252,6 +268,16 @@ export const hashPetrinautTools = {
       type: schemas.updateArcType.shape.type.optional(),
       weight: schemas.updateArcWeight.shape.weight.optional(),
       targetSubnetId: schemas.updateArcWeight.shape.targetSubnetId,
+    },
+    check: (input, context) => {
+      if (input.arcDirection === "output" && input.type !== undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["type"],
+          message:
+            'Output arcs do not have an input arc type. Omit `type` when `arcDirection` is "output".',
+        });
+      }
     },
     split: ({
       transitionId,
@@ -399,6 +425,18 @@ export const hashPetrinautTools = {
   petrinaut_create_experiment: standIn({
     operation: "createExperiment",
     shape: petrinautExperimentRequestSchema.shape,
+    check: ({ editor_id: _editorId, ...rest }, context) => {
+      const parsed = petrinautExperimentRequestSchema.safeParse(rest);
+      if (!parsed.success) {
+        for (const issue of parsed.error.issues) {
+          context.addIssue({
+            code: "custom",
+            path: issue.path,
+            message: issue.message,
+          });
+        }
+      }
+    },
   }),
   petrinaut_read_guide: standIn({
     operation: "readPetrinautDoc",
