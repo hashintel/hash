@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#FFFFFF" fill-opacity="0.64" stroke="#62758A" stroke-opacity=".16"/><defs><clipPath id="snowflake-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#snowflake-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 26 26" x="18.991869918699187" y="18.991869918699187" width="26.016260162601625" height="26.016260162601625">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="snowflake-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3F7FA" stop-opacity=".82" />
+      <stop offset=".48" stop-color="#DCE5ED" stop-opacity=".64" />
+      <stop offset="1" stop-color="#E8EFF5" stop-opacity=".78" />
+    </linearGradient>
+    <radialGradient id="snowflake-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="snowflake-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".98" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".25" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".8" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#snowflake-app-light-background-surface)" stroke="#526E86" stroke-opacity=".28" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#snowflake-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#snowflake-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="snowflake-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#snowflake-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 26 26" x="18.991869918699187" y="18.991869918699187" width="26.016260162601625" height="26.016260162601625">
     <path d="M22.3451 19.8154L16.8431 16.6449C16.0701 16.2009 15.0817 16.465 14.6343 17.236C14.461 17.5397 14.393 17.8738 14.4258 18.1986V24.3948C14.4258 25.2803 15.1473 26 16.0373 26C16.9251 26 17.6465 25.2803 17.6465 24.3948V20.8318L20.7289 22.6075C21.5019 23.0537 22.4927 22.7874 22.9377 22.0163C23.3851 21.2453 23.1204 20.2593 22.3451 19.8154Z" fill="#29B5E8" />
     <path d="M8.66053 13.021C8.6699 12.4486 8.36774 11.9159 7.87118 11.6285L2.36915 8.46028C2.13023 8.32243 1.85618 8.25 1.58214 8.25C1.01765 8.25 0.492974 8.5514 0.211899 9.03738C-0.223766 9.78971 0.0362281 10.7547 0.790444 11.1892L3.9619 13.014L0.790444 14.8411C0.425047 15.0514 0.162711 15.3902 0.0549664 15.7967C-0.0551212 16.2032 0.00109368 16.6285 0.211899 16.9929C0.492974 17.4789 1.01765 17.7803 1.57979 17.7803C1.85618 17.7803 2.13023 17.7079 2.36915 17.57L7.87118 14.4018C8.36306 14.1168 8.66521 13.5888 8.66053 13.021Z" fill="#29B5E8" />
     <path d="M3.61807 6.21492L9.1201 9.38313C9.76189 9.75462 10.5536 9.63313 11.0595 9.14014C11.3804 8.84575 11.5795 8.42519 11.5795 7.9579V1.60747C11.5795 0.719622 10.8581 0 9.97035 0C9.08029 0 8.35886 0.719622 8.35886 1.60747V5.22194L5.23425 3.42288C4.4613 2.97662 3.47285 3.24064 3.02547 4.01166C2.5781 4.78269 2.84512 5.76866 3.61807 6.21492Z" fill="#29B5E8" />

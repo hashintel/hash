@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#FFFFFF" fill-opacity="0.64" stroke="#62758A" stroke-opacity=".16"/><defs><clipPath id="veeva-vault-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#veeva-vault-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 32" x="16.0" y="16.0" width="32.0" height="32.0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="veeva-vault-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3F7FA" stop-opacity=".82" />
+      <stop offset=".48" stop-color="#DCE5ED" stop-opacity=".64" />
+      <stop offset="1" stop-color="#E8EFF5" stop-opacity=".78" />
+    </linearGradient>
+    <radialGradient id="veeva-vault-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="veeva-vault-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".98" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".25" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".8" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#veeva-vault-app-light-background-surface)" stroke="#526E86" stroke-opacity=".28" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#veeva-vault-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#veeva-vault-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="veeva-vault-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#veeva-vault-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 32" x="16.0" y="16.0" width="32.0" height="32.0">
     <path d="M0.432373 0H5.82525L16.0872 20.92L26.2716 0H31.5675L16.029 32L0.432373 0Z" fill="#F89921" />
     <path d="M8.98645 0.059082L16.0088 14.2583L23.0118 0.059082H8.98645Z" fill="#898B8D" />
   </svg></g></svg>

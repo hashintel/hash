@@ -155,6 +155,19 @@ def mono_defs(filter_id):
     return f'<defs><filter id="{filter_id}" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -.13819 -.46488 -.04693 1 0" result="tones"/><feFlood flood-color="currentColor"/><feComposite in2="tones" operator="in"/></filter></defs>'
 
 
+def app_tile(dark):
+    tile = ET.parse(source / "app-tile" / ("dark.svg" if dark else "light.svg")).getroot()
+    tile.tag = svg_ns + "g"
+    tile.attrib.clear()
+    return tile
+
+
+def prefix_svg(body, prefix):
+    body = re.sub(r'id="([^"]+)"', lambda match: f'id="{prefix}-{match[1]}"', body)
+    body = body.replace("url(#", f"url(#{prefix}-")
+    return re.sub(r'(href|xlink:href)="#([^"]+)"', lambda match: f'{match[1]}="#{prefix}-{match[2]}"', body)
+
+
 def variant_svg(brand, variant):
     kind = "logo" if variant.startswith("logo") else "mark"
     dark = variant.endswith("dark")
@@ -176,16 +189,14 @@ def variant_svg(brand, variant):
         artwork.set("width", str(size))
         artwork.set("height", str(size))
     prefix = f'{brand["slug"]}-{variant}'
-    body = ET.tostring(artwork, encoding="unicode")
-    body = re.sub(r'id="([^"]+)"', lambda match: f'id="{prefix}-{match[1]}"', body)
-    body = body.replace("url(#", f"url(#{prefix}-")
-    body = re.sub(r'(href|xlink:href)="#([^"]+)"', lambda match: f'{match[1]}="#{prefix}-{match[2]}"', body)
-    background = f'<rect x=".5" y=".5" width="63" height="63" rx="10" fill="{("#1B242D" if dark else "#FFFFFF")}" fill-opacity="{(.72 if dark else .64)}" stroke="{("#FFFFFF" if dark else "#62758A")}" stroke-opacity=".16"/>' if app else ""
+    body = prefix_svg(ET.tostring(artwork, encoding="unicode"), prefix)
+    background = prefix_svg(ET.tostring(app_tile(dark), encoding="unicode"), prefix + "-background") if app else ""
     if app:
         body = f'<defs><clipPath id="{prefix}-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#{prefix}-tile)">{body}</g>'
     if mono:
         body = mono_defs(prefix + "-mono") + f'<g filter="url(#{prefix}-mono)">{body}</g>'
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none">{background}{body}</svg>\n'
+    color = f' color="{("#CBD5E1" if dark else "#374151")}"' if app else ""
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none"{color}>{background}{body}</svg>\n'
 
 
 def generate():
@@ -193,6 +204,7 @@ def generate():
     imports = []
     registry = []
     files = {}
+    files[source / "app-tile.tsx"] = "\n".join(f'export const AppTile{("Dark" if dark else "Light")} = ({{ id }}: {{ id: string }}) => ({jsx(app_tile(dark))});' for dark in (False, True)) + "\n"
     catalog = []
     for brand in brands:
         available = [variant for variant in variants if not variant.startswith("logo") or (source / "artwork" / brand["slug"] / "logo.svg").exists()]

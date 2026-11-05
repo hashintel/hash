@@ -522,15 +522,30 @@
     "slug": "granola",
     "label": "Granola",
     "integrationNames": ["Granola"],
+    "ratio": 1.78,
+    "alignment": "center",
+    "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/granola-light.svg",
+    "logoSource": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/granola-wordmark-light.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1E1E1E": "#F7F7F2"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current hand-drawn swirl identity, verified against the official Granola website and February 2026 rebrand announcement. The retired mark is available separately as granolaLegacy."
+  },
+  {
+    "name": "granolaLegacy",
+    "slug": "granola-legacy",
+    "label": "Granola (legacy)",
+    "integrationNames": [],
     "ratio": 2,
     "alignment": "center",
     "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/granola-dark-icon.tsx",
-    "logoSource": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/granola-wordmark-light.svg",
     "markLightColors": {
       "#E7FFF0": "#223C2C"
     },
     "markDarkColors": {},
-    "logoDarkColors": {}
+    "logoNotes": "Retired g-and-cursor artwork, retained as an explicit legacy option. No verified legacy full-logo lock-up is included."
   },
   {
     "name": "sentry",

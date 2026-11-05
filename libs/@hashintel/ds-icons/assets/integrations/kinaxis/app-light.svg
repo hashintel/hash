@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#FFFFFF" fill-opacity="0.64" stroke="#62758A" stroke-opacity=".16"/><defs><clipPath id="kinaxis-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#kinaxis-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 146 20" fill="none" x="6.399999999999999" y="6.399999999999999" width="51.2" height="51.2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kinaxis-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3F7FA" stop-opacity=".82" />
+      <stop offset=".48" stop-color="#DCE5ED" stop-opacity=".64" />
+      <stop offset="1" stop-color="#E8EFF5" stop-opacity=".78" />
+    </linearGradient>
+    <radialGradient id="kinaxis-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="kinaxis-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".98" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".25" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".8" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kinaxis-app-light-background-surface)" stroke="#526E86" stroke-opacity=".28" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kinaxis-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#kinaxis-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="kinaxis-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#kinaxis-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 146 20" fill="none" x="6.399999999999999" y="6.399999999999999" width="51.2" height="51.2">
 <path d="M137.805 2.56502C137.518 2.87566 137.261 3.15264 137.003 3.42704C136.441 4.02502 135.871 4.61782 135.317 5.22098C135.126 5.43066 134.965 5.48762 134.675 5.30382C133.702 4.68772 132.62 4.214 131.411 3.95255C129.923 3.63155 128.411 3.54872 126.899 3.83865C126.454 3.92407 125.998 4.04574 125.605 4.22435C124.14 4.88964 124.152 6.35223 125.656 6.97092C126.425 7.28674 127.274 7.5016 128.113 7.69058C129.778 8.06593 131.471 8.35845 133.13 8.74416C134.269 9.00821 135.338 9.43015 136.262 10.0307C137.766 11.0092 138.382 12.2932 138.359 13.805C138.32 16.1244 136.889 17.7449 134.318 18.7882C132.377 19.5777 130.285 19.8314 128.121 19.8107C126.164 19.7926 124.274 19.5026 122.467 18.928C121.09 18.4905 119.832 17.8821 118.683 17.1392C118.45 16.989 118.419 16.8726 118.608 16.6732C119.376 15.8708 120.125 15.0553 120.878 14.2425C121.038 14.069 121.186 14.0535 121.403 14.2036C122.566 15.0165 123.894 15.6093 125.398 15.9225C127.021 16.259 128.662 16.3108 130.316 16.0364C131.088 15.9096 131.805 15.6973 132.371 15.2546C133.293 14.5298 133.187 13.5021 132.136 12.886C131.372 12.4382 130.482 12.2181 129.581 12.024C127.885 11.6616 126.164 11.3613 124.492 10.9471C123.001 10.5769 121.587 10.0359 120.546 9.06516C119.278 7.88473 118.936 6.50497 119.216 5.00613C119.444 3.78946 120.119 2.75917 121.287 1.94115C122.214 1.2914 123.293 0.8565 124.476 0.556216C126.273 0.0980224 128.113 -0.0288166 129.974 0.100616C132.343 0.266291 134.564 0.825441 136.563 1.86349C136.972 2.07577 137.362 2.30874 137.813 2.56502" fill="#E30613" />
 <path d="M27.9267 0.447266H23.4043V19.549H27.9267V0.447266Z" fill="#E30613" />
 <path d="M46.3966 0.376204C41.9026 -0.309792 38.7626 2.22968 37.8851 2.92862V0.448686H33.3704L33.3135 19.5349H37.9135L37.9705 7.21803C38.4209 6.27317 40.9112 3.97185 44.0072 4.30061C48.5555 4.7355 48.6332 9.37439 48.6332 9.37439L48.6616 19.5478H53.184L53.2306 7.25687C53.2306 7.25687 52.9485 1.52298 46.394 0.376204" fill="#E30613" />

@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#1B242D" fill-opacity="0.72" stroke="#FFFFFF" stroke-opacity=".16"/><defs><clipPath id="figma-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#figma-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 34" x="16.0" y="16.0" width="32.0" height="32.0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="figma-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="figma-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="figma-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".75" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".04" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#figma-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#figma-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#figma-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="figma-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#figma-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 34" x="16.0" y="16.0" width="32.0" height="32.0">
     <path d="M6.33445 34C9.46181 34 12 31.4613 12 28.3333V22.6667H6.33445C3.20709 22.6667 0.668945 25.2053 0.668945 28.3333C0.668945 31.4613 3.20709 34 6.33445 34Z" fill="#0ACF83" />
     <path d="M0.668945 17C0.668945 13.872 3.20709 11.3333 6.33445 11.3333H12V22.6667H6.33445C3.20709 22.6667 0.668945 20.128 0.668945 17Z" fill="#A259FF" />
     <path d="M0.669067 5.66667C0.669067 2.53867 3.20722 0 6.33458 0H12.0001V11.3333H6.33458C3.20722 11.3333 0.669067 8.79467 0.669067 5.66667Z" fill="#F24E1E" />

@@ -47,6 +47,11 @@ describe("IntegrationIcon", () => {
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
       40,
     );
+    expect(integrationIconNameByIntegration["Granola"]).toBe("granola");
+    expect(
+      integrationIconCatalog.find((icon) => icon.name === "granolaLegacy")
+        ?.integrationNames,
+    ).toEqual([]);
     expect(integrationIconNameByIntegration["Kinaxis"]).toBe("kinaxis");
     expect(integrationIconNameByIntegration["Kinaxis Maestro"]).toBe(
       "kinaxisMaestro",
@@ -106,15 +111,26 @@ describe("IntegrationIcon", () => {
   });
 
   it("clips app artwork to translucent rounded tiles and keeps SAP left aligned", () => {
-    const content = renderToStaticMarkup(
-      <IntegrationIcon name="sap" variant="app-light" />,
-    );
-    const document = new DOMParser().parseFromString(content, "text/html");
-    const tile = document.querySelector("svg > rect");
-    expect(Number(tile?.getAttribute("fill-opacity"))).toBeGreaterThan(0);
-    expect(Number(tile?.getAttribute("fill-opacity"))).toBeLessThan(1);
-    expect(document.querySelector("g[clip-path]")).not.toBeNull();
-    expect(document.querySelector("g > svg")?.getAttribute("x")).toBe("0");
+    for (const variant of ["app-light", "app-dark"] as const) {
+      const content = renderToStaticMarkup(
+        <IntegrationIcon name="sap" variant={variant} />,
+      );
+      const document = new DOMParser().parseFromString(content, "text/html");
+      const tile = document.querySelector('rect[fill^="url("]');
+      const gradientId = tile?.getAttribute("fill")?.slice(5, -1) ?? "";
+      const stops = document
+        .getElementById(gradientId)
+        ?.querySelectorAll("stop");
+      expect(stops?.length).toBeGreaterThan(0);
+      for (const stop of stops ?? []) {
+        expect(Number(stop.getAttribute("stop-opacity"))).toBeGreaterThan(0);
+        expect(Number(stop.getAttribute("stop-opacity"))).toBeLessThan(1);
+      }
+      expect(document.querySelector("g[clip-path]")).not.toBeNull();
+      expect(
+        document.querySelector("g[clip-path] > svg")?.getAttribute("x"),
+      ).toBe("0");
+    }
   });
 
   it("sizes a full lock-up to its natural aspect ratio", () => {

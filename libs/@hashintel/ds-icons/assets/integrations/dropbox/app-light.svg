@@ -1,3 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#FFFFFF" fill-opacity="0.64" stroke="#62758A" stroke-opacity=".16"/><defs><clipPath id="dropbox-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#dropbox-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 30" x="16.0" y="16.0" width="32.0" height="32.0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dropbox-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3F7FA" stop-opacity=".82" />
+      <stop offset=".48" stop-color="#DCE5ED" stop-opacity=".64" />
+      <stop offset="1" stop-color="#E8EFF5" stop-opacity=".78" />
+    </linearGradient>
+    <radialGradient id="dropbox-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="dropbox-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".98" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".25" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".8" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dropbox-app-light-background-surface)" stroke="#526E86" stroke-opacity=".28" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dropbox-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#dropbox-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="dropbox-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#dropbox-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 30" x="16.0" y="16.0" width="32.0" height="32.0">
     <path d="M9.30233 0L0 6.075L6.47442 11.325L15.7767 5.475L9.30233 0ZM0 16.425L9.30233 22.575L15.7767 17.1L6.47442 11.325L0 16.425ZM15.7767 17.1L22.3256 22.575L31.5535 16.5L25.1535 11.325L15.7767 17.1ZM31.5535 6.075L22.3256 0L15.7767 5.475L25.1535 11.325L31.5535 6.075ZM15.8512 18.3L9.30233 23.775L6.54884 21.9V24L15.8512 29.625L25.1535 24V21.9L22.3256 23.775L15.8512 18.3Z" fill="#007EE5" />
   </svg></g></svg>

@@ -768,7 +768,7 @@ export const integrationIconCatalog = [
     label: "Granola",
     integrationNames: ["Granola"],
     source:
-      "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/granola-dark-icon.tsx",
+      "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/granola-light.svg",
     category: "Integrations",
     variants: [
       "mark-mono",
@@ -781,7 +781,22 @@ export const integrationIconCatalog = [
     ],
     logoSource:
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/granola-wordmark-light.svg",
-    logoNotes: null,
+    logoNotes:
+      "Current hand-drawn swirl identity, verified against the official Granola website and February 2026 rebrand announcement. The retired mark is available separately as granolaLegacy.",
+    logoRaster: false,
+  },
+  {
+    name: "granolaLegacy",
+    slug: "granola-legacy",
+    label: "Granola (legacy)",
+    integrationNames: [],
+    source:
+      "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/granola-dark-icon.tsx",
+    category: "Integrations",
+    variants: ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light"],
+    logoSource: null,
+    logoNotes:
+      "Retired g-and-cursor artwork, retained as an explicit legacy option. No verified legacy full-logo lock-up is included.",
     logoRaster: false,
   },
   {

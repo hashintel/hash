@@ -21,6 +21,7 @@ import * as googleCalendar from "./geometry/google-calendar";
 import * as googleDrive from "./geometry/google-drive";
 import * as gmail from "./geometry/google-mail";
 import * as granola from "./geometry/granola";
+import * as granolaLegacy from "./geometry/granola-legacy";
 import * as instagram from "./geometry/instagram";
 import * as kinaxis from "./geometry/kinaxis";
 import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
@@ -283,8 +284,15 @@ export const integrationGeometry = {
   },
   granola: {
     ...granola,
-    markViewBox: "0 0 32 38",
+    markViewBox: "0 0 32 32",
     logoViewBox: "0 0 148 32",
+    ratio: 1.78,
+    alignment: "center",
+  },
+  granolaLegacy: {
+    ...granolaLegacy,
+    markViewBox: "0 0 32 38",
+    logoViewBox: null,
     ratio: 2,
     alignment: "center",
   },

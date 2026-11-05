@@ -1,5 +1,6 @@
 import { useId } from "react";
 
+import { AppTileDark, AppTileLight } from "./integration-icon/app-tile";
 import { integrationGeometry } from "./integration-icon/geometry";
 
 import type {
@@ -44,6 +45,7 @@ export const IntegrationIcon = ({
   const dark = variant.endsWith("dark");
   const mono = variant === "mark-mono";
   const app = variant.startsWith("app");
+  const Tile = dark ? AppTileDark : AppTileLight;
   const Geometry = logo
     ? dark
       ? artwork.logoDark
@@ -114,19 +116,7 @@ export const IntegrationIcon = ({
           </clipPath>
         </defs>
       ) : null}
-      {app ? (
-        <rect
-          x={0.5}
-          y={0.5}
-          width={63}
-          height={63}
-          rx={10}
-          fill={dark ? "#1B242D" : "#FFFFFF"}
-          fillOpacity={dark ? 0.72 : 0.64}
-          stroke={dark ? "#FFFFFF" : "#62758A"}
-          strokeOpacity={0.16}
-        />
-      ) : null}
+      {app ? <Tile id={`${id}-tile-background`} /> : null}
       <g
         filter={mono ? `url(#${id}-mono)` : undefined}
         clipPath={app ? `url(#${id}-tile)` : undefined}

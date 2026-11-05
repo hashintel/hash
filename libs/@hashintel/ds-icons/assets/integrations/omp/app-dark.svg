@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#1B242D" fill-opacity="0.72" stroke="#FFFFFF" stroke-opacity=".16"/><defs><clipPath id="omp-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#omp-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 40 18" x="12.487804878048781" y="12.487804878048781" width="39.02439024390244" height="39.02439024390244">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="omp-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="omp-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="omp-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".75" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".04" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omp-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omp-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#omp-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="omp-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#omp-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 40 18" x="12.487804878048781" y="12.487804878048781" width="39.02439024390244" height="39.02439024390244">
     <g clip-path="url(#omp-app-dark-clip0_8474_23847)">
       <path d="M39.1482 13.1539H37.091C36.9146 13.1539 36.7383 13.0061 36.7383 12.7991V10.7295C36.7383 10.5521 36.8852 10.3748 37.091 10.3748H39.1482C39.3246 10.3748 39.5009 10.5226 39.5009 10.7295V12.7991C39.5009 13.0061 39.354 13.1539 39.1482 13.1539Z" fill="#9FBE37" />
       <path d="M39.1472 17.5001H0.881972C0.705634 17.5001 0.529297 17.3523 0.529297 17.1453V15.0757C0.529297 14.8983 0.676245 14.7209 0.881972 14.7209H39.1766C39.353 14.7209 39.5293 14.8688 39.5293 15.0757V17.1453C39.4999 17.3523 39.353 17.5001 39.1472 17.5001Z" fill="#9DD3CD" />

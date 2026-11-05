@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#1B242D" fill-opacity="0.72" stroke="#FFFFFF" stroke-opacity=".16"/><defs><clipPath id="bigquery-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bigquery-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 26 26" x="18.991869918699187" y="18.991869918699187" width="26.016260162601625" height="26.016260162601625">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bigquery-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="bigquery-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bigquery-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".75" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".04" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bigquery-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bigquery-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bigquery-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="bigquery-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bigquery-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 26 26" x="18.991869918699187" y="18.991869918699187" width="26.016260162601625" height="26.016260162601625">
     <path d="M16.0002 21.9896C15.448 21.9896 15.0002 21.5418 15.0002 20.9896V13.0001C15.0002 12.4479 15.448 12.0002 16.0002 12.0002C16.5525 12.0002 17.0002 12.4479 17.0002 13.0001V20.9896C17.0002 21.5418 16.5525 21.9896 16.0002 21.9896ZM7.00035 21.9896C6.44811 21.9896 6.00037 21.5418 6.00037 20.9896V10.0002C6.00037 9.44794 6.44811 9.0002 7.00035 9.0002C7.55259 9.0002 8.00033 9.44794 8.00033 10.0002V20.9896C8.00033 21.5418 7.55259 21.9896 7.00035 21.9896ZM11.5003 23C10.948 23 10.5003 22.5522 10.5003 22V7.00023C10.5003 6.44799 10.948 6.00024 11.5003 6.00024C12.0525 6.00024 12.5003 6.44799 12.5003 7.00023V22C12.5003 22.5522 12.0525 23 11.5003 23Z" fill="#34A853" />
     <path d="M11.5003 22.9998C5.15928 22.9998 0.000488281 17.841 0.000488281 11.5H2.00046C2.00046 16.7382 6.26208 20.9999 11.5003 20.9999C16.7385 20.9999 21.0002 16.7382 21.0002 11.5H23.0001C23.0001 17.841 17.8413 22.9998 11.5003 22.9998Z" fill="#FBBC04" />
     <path d="M23.0001 11.5001H21.0002C21.0002 6.26183 16.7385 2.00021 11.5003 2.00021C6.26208 2.00021 2.00046 6.26183 2.00046 11.5001H0.000488281C0.000488281 5.15904 5.15928 0.000244141 11.5003 0.000244141C17.8413 0.000244141 23.0001 5.15904 23.0001 11.5001Z" fill="#EA4335" />
