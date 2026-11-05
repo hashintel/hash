@@ -10,8 +10,11 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
+import { RunFlow } from "./top-bar/run-flow";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
+import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
+import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const topBar = css({
   display: "flex",
@@ -221,24 +224,30 @@ const LeaveFlowDialog = ({
 );
 
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, Run, and its menu.
  */
 export const TopBar = ({
-  name,
+  editorState,
   onRename,
   saveStatus,
-  editsRefused,
+  saveRefusedReason,
   onRetrySave,
+  onRun,
   onArchive,
   onLeave,
   onLeaveWithoutSaving,
 }: {
-  name: string;
+  editorState: FlowEditorState;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
-  /** Whether the API refused the latest edits. */
-  editsRefused: boolean;
+  /** Why the API refused the latest edits, if it did. */
+  saveRefusedReason: string | null;
   onRetrySave: () => void;
+  /**
+   * Saves any edits not saved yet, then starts a run with these inputs and opens it. Throws, saying why, if the edits
+   * couldn't be saved or the run didn't start.
+   */
+  onRun: (flowInputs: FlowInputValues) => Promise<void>;
   /** Archives the flow and leaves the editor. */
   onArchive: () => Promise<void>;
   /**
@@ -249,6 +258,7 @@ export const TopBar = ({
   /** Leaves the editor for the flows page, dropping any edits not saved yet. */
   onLeaveWithoutSaving: () => void;
 }) => {
+  const { name } = editorState.flowDefinition;
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -284,6 +294,11 @@ export const TopBar = ({
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
+        <RunFlow
+          editorState={editorState}
+          saveRefusedReason={saveRefusedReason}
+          onRun={onRun}
+        />
         <EllipsisMenu
           iconName="ellipsisVertical"
           size="md"
@@ -302,7 +317,7 @@ export const TopBar = ({
           name={name}
           onArchive={onArchive}
           onClose={() => setArchiveDialogOpen(false)}
-          editsRefused={editsRefused}
+          editsRefused={saveRefusedReason !== null}
         />
       )}
       {leaveDialogOpen && (

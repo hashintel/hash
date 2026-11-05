@@ -6,6 +6,7 @@ import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step
 
 import { getNameLabel } from "./shared/name-label";
 import { getStepDisplay, startDisplay } from "./shared/step-display";
+import { getFlowInputLabel } from "./shared/value-display";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { InputField } from "./step-panel/input-field";
 import { getActionDefinition } from "./step-panel/input-sources";
@@ -137,16 +138,17 @@ const StartPanel = ({
           <span className={empty}>No inputs yet</span>
         ) : (
           <Form.Section>
-            {inputs.map(
-              ({ input: { name, label, payloadKind, array }, key }) => (
-                <UsedByField
-                  key={key}
-                  name={label ?? getNameLabel(name)}
-                  shape={{ payloadKind, array }}
-                  usedBy={stepsUsing({ kind: "flow-input", inputName: name })}
-                />
-              ),
-            )}
+            {inputs.map(({ input, key }) => (
+              <UsedByField
+                key={key}
+                name={getFlowInputLabel(input)}
+                shape={input}
+                usedBy={stepsUsing({
+                  kind: "flow-input",
+                  inputName: input.name,
+                })}
+              />
+            ))}
           </Form.Section>
         )}
       </PanelSection>
