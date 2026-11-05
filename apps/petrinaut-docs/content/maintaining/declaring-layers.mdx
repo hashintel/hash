@@ -152,6 +152,54 @@ Set a name longer than one letter in `\mathit{}`, as in `\mathit{bins}`,
 so it reads as one word rather than a product of letters. A dollar sign in
 prose is written `\$`.
 
+## Stepping a figure
+
+A figure can arrive in steps, as on a slide: a diagram whose parts appear in
+turn, a formula that gains a term at a time, a sentence after the drawing.
+On a page the figure plays once it scrolls into view, stops on its last
+step, and offers to play again. Print, reduced motion and a page read
+without JavaScript show the last step.
+
+<Steps>
+
+![The docs build: the generator reads the packages, writes the bundle, and the site renders it](@diagrams/docs-build-steps.svg)
+
+<Reveal at={4}>The site renders the bundle, never the packages.</Reveal>
+
+</Steps>
+
+Mark the parts the way a slide does:
+
+- in a D2 file, a class on a shape or connection: `at-n` shows it from step
+  `n`, `draw-n` draws its lines on that step, `flow-n` runs dashes along
+  them, `token-n` sends a token along a connection and `focus-n` fades the
+  rest of the drawing;
+- in a formula, `\step{n}{…}` shows a part from step `n`, and
+  `\swap{n}{before}{after}` replaces one part with another;
+- around text, `<Reveal at={n}>`.
+
+```mdx
+<Steps>
+
+![The docs build](@diagrams/docs-build-steps.svg)
+
+<Reveal at={4}>The site renders the bundle, never the packages.</Reveal>
+
+</Steps>
+```
+
+The parts inside one `<Steps>` play as one figure. A stepped diagram,
+formula or paragraph outside any `<Steps>` plays on its own:
+
+$$
+\mathit{bins} = \min\bigl(1024,\ \step{1}{\lfloor (16384 - 8\,\mathit{metricCount}) / (4\,\mathit{metricCount}) \rfloor}\bigr)
+$$
+
+The build counts a figure's steps from the numbers its parts name, so
+write each step as a number. `<Steps>`, `<Reveal>` and the stepped formula
+commands are this site's components: another host that renders the bundle
+needs its own components of those names.
+
 ## Declaring a rule
 
 Rules live in `architecture.config.ts` and are checked against the real import
