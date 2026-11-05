@@ -197,7 +197,7 @@ export const VersionButton = ({
  * - Dora: nothing.
  * - Dei: "Draft saved" flashes after each save, then fades.
  *
- * Retry as a subtler icon (Aakarsh, 5 Nov), open: ?retryicon=1..3, URL only; no param keeps the text "Retry".
+ * Retry as a subtler icon (Aakarsh, 5 Nov): he picked 1, so it is the default; ?retryicon=2..3 shows the others.
  * 1. A faint 28 px ghost icon button, tooltip "Retry".
  * 2. The icon inline, right after the error text.
  * 3. The icon button, with a muted "Retry" that shows only on hover.
@@ -267,7 +267,7 @@ const iconRetryStyle = css({
 });
 
 const RetryControl = ({ onRetry }: { onRetry: () => void }) => {
-  const take = useLocation().query.get("retryicon");
+  const take = useLocation().query.get("retryicon") ?? "1";
   if (take === "1") {
     return (
       <Tooltip content="Retry">

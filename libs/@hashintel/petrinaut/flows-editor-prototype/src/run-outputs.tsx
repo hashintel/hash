@@ -73,7 +73,8 @@ export const useStepOutputsTake = (): StepOutputsTake => {
 };
 
 /**
- * ?emailrow=1..4 (inbox `picks/email-rows`), from the URL only; no param keeps today's page thumbnail.
+ * An email row, by take (inbox `picks/email-rows`): Aakarsh picked 1 on 5 Nov, so 1 is the default; ?emailrow=2..4
+ * shows the others.
  * 1. Recipient first: initials, recipient, subject, sent time; a status mark only when an email bounced.
  * 2. Delivery status first: an F3 mark (sent or bounced) leads, then recipient and subject.
  * 3. A plain mail glyph, recipient, subject and a one-line snippet.
@@ -86,7 +87,7 @@ export const useEmailRowTake = (): EmailRowTake => {
   const value = useLocation().query.get("emailrow");
   return value === "1" || value === "2" || value === "3" || value === "4"
     ? value
-    : null;
+    : "1";
 };
 
 /**
