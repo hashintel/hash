@@ -1059,6 +1059,53 @@ const ledgerRetryPreservesHighlights = async () => {
   }
 };
 
+/** A threshold's stated timing and its still-unknown timing both reach the Ledger tab. */
+const ledgerTabShowsRestrictionTiming = async () => {
+  const page = await fixture.openAssistant();
+  const stated = "Rack inlet stays at or below 30 °C throughout the incident.";
+  const unknown =
+    "When the 30 °C limit must hold: unasked, whether any reading above it counts or only a sustained one.";
+  faux.setResponses([
+    toolCall(
+      "ledger_commit",
+      {
+        entries: [
+          ["entity/create", { name: "30 °C inlet limit", kind: "threshold" }],
+          ["claim/create", { text: stated, entities: ["$0"] }],
+          [
+            "claim/create",
+            {
+              text: unknown,
+              entities: ["$0"],
+              origin: "inferred",
+              status: "open",
+            },
+          ],
+        ],
+      },
+      "commit-timing",
+    ),
+    fauxAssistantMessage([fauxText("Recorded the inlet limit.")]),
+  ]);
+  await fixture.ask(
+    page,
+    "30 °C rack inlet is the incident limit we plan against.",
+    "Recorded the inlet limit.",
+    60_000,
+  );
+  await page.getByRole("tab", { name: "Ledger" }).click();
+  const ledger = page.getByTestId("brunch-ledger-document");
+  await ledger.getByText(stated).waitFor({ timeout: 10_000 });
+  await ledger
+    .getByRole("heading", { name: "Open questions" })
+    .waitFor({ timeout: 10_000 });
+  assert.equal(
+    await ledger.getByText(unknown).count(),
+    2,
+    "the unknown timing shows under the threshold and under Open questions",
+  );
+};
+
 const baseRequest = {
   scenarioId: "summer_nights_levers",
   runCount: 1,
@@ -1175,6 +1222,7 @@ const experimentTimings = async () => {
 
 const witnesses = [
   ledgerTabShowsCommit,
+  ledgerTabShowsRestrictionTiming,
   ledgerReviewControls,
   ledgerLatestTurnHighlights,
   ledgerSubmissionClearsHighlights,

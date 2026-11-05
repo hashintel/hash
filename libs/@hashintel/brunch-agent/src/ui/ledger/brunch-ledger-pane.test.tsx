@@ -125,6 +125,55 @@ test("renders accepted commits as a document whose records carry their addresses
   expect(document.querySelector('[data-ledger-address="e1"]')).not.toBeNull();
 });
 
+test("shows a threshold's stated timing beside the timing nobody has given yet", () => {
+  const entries = [
+    [
+      "entity/create",
+      {
+        name: "30 °C inlet limit",
+        kind: "threshold",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "Rack inlet stays at or below 30 °C throughout the incident.",
+        entities: ["$0"],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "When the 30 °C limit must hold: unasked, whether any reading above it counts or only a sustained one.",
+        entities: ["$0"],
+        origin: "inferred",
+        status: "open",
+      },
+    ],
+  ];
+  render(
+    <BrunchLedgerPane
+      messages={[
+        assistant(commit("ledger-1", {}, entries, ["e1", "c1", "c2"])),
+      ]}
+    />,
+  );
+  const sectionUnder = (name: string) =>
+    screen.getByRole("heading", { name }).closest("section")?.textContent ?? "";
+  const thresholds = sectionUnder("Thresholds");
+  expect(thresholds).toContain(
+    "Rack inlet stays at or below 30 °C throughout the incident.",
+  );
+  expect(thresholds).toContain("When the 30 °C limit must hold: unasked");
+  const questions = sectionUnder("Open questions");
+  expect(questions).toContain("When the 30 °C limit must hold: unasked");
+  expect(questions).toContain("Concerns: 30 °C inlet limit.");
+});
+
 test("never shows refused, failed, pending or unbound commits", () => {
   for (const part of [
     commit("refused", {
