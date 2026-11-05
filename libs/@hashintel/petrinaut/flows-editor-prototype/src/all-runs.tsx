@@ -90,7 +90,9 @@ const statusCellOf = (
         : {
             state,
             progress,
-            text: progress ? `${progress.done} of ${progress.total}` : undefined,
+            text: progress
+              ? `${progress.done} of ${progress.total}`
+              : undefined,
           };
     case "needsReview":
       return { state, text: "Needs review", detail: "Quality sign-off" };
@@ -524,7 +526,7 @@ const bucketsFor = (
 
 const chartColour: Record<RunOutcome, string> = {
   completed: chartColor.done,
-  warnings: chartColor.done,
+  warnings: chartColor.warnings,
   error: chartColor.failed,
   abandoned: chartColor.quiet,
   running: chartColor.running,
@@ -975,10 +977,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             alert
           />
           <Tile value="1m 44s" label="typical run (median of completed runs)" />
-          <Tile
-            value={String(warnings)}
-            label="completed with warnings"
-          />
+          <Tile value={String(warnings)} label="completed with warnings" />
         </div>
       </section>
       <RunsChart history={history} />

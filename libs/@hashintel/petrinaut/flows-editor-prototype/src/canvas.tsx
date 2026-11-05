@@ -59,7 +59,14 @@ import {
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
 import { navigate, setQuery, useLocation } from "./router";
-import { RunBar, RunGlyph } from "./run-glyph";
+import {
+  type BarMotion,
+  ensureBarKeyframes,
+  reviewMotionOf,
+  reviewOnceStyle,
+  RunBar,
+  RunGlyph,
+} from "./run-glyph";
 import { flashLogRows } from "./run-log-panel";
 import {
   barOf,
@@ -522,13 +529,19 @@ const RunDot = ({ stepId }: { stepId: string }) => {
  * 3. Colour only where attention is needed: a 3 px bar for failed, running and needs review; done stays faint.
  * 4. Attio: a small pill above the card for every state but done, and a faint red outline round a step card with
  *    failures.
+ * `4bar`: take 4's pills over take 1's bar on every card, flat (?nodeglow=bar motion unless the URL asks for
+ *    bar-review), with no red outline.
  */
-type NodeStatusTake = 1 | 2 | 3 | 4;
+type NodeStatusTake = 1 | 2 | 3 | 4 | "4bar";
 
 const nodeStatusTake: NodeStatusTake = (() => {
-  const take = Number(
-    new URLSearchParams(globalThis.location.search).get("nodestatus"),
+  const value = new URLSearchParams(globalThis.location.search).get(
+    "nodestatus",
   );
+  if (value === "4bar") {
+    return value;
+  }
+  const take = Number(value);
   return take === 2 || take === 3 || take === 4 ? take : 1;
 })();
 
@@ -551,6 +564,27 @@ const nodeStatusTake: NodeStatusTake = (() => {
  *    motion. Failed stays bar-only.
  */
 type NodeGlowTake = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+/**
+ * Bar only (Alex, 5 Nov: "our design language is very flat with almost no shadows, so I would avoid glows… go for
+ * crisper lines instead"): ?nodeglow=bar draws no glow or shadow; a running segment carries a band across it every
+ * 2 s. ?nodeglow=bar-review also shifts a needs-review segment light to dark and back over 4 s. Failed stays still.
+ */
+const barMotion: BarMotion = (() => {
+  const value = new URLSearchParams(globalThis.location.search).get("nodeglow");
+  if (value === "bar" || value === "bar-review") {
+    return value;
+  }
+  return nodeStatusTake === "4bar" ? "bar" : "pulse";
+})();
+
+/**
+ * Needs review's motion over every take (?reviewmotion=off|once|loop, URL only): off by default, loop under
+ * ?nodeglow=bar-review. `once` pulses the card's words in take 4 and 4bar, the bar segment in the others.
+ */
+const reviewMotion = reviewMotionOf(
+  barMotion === "bar-review" ? "loop" : "off",
+);
 
 const nodeGlowTake: NodeGlowTake = (() => {
   const take = Number(
@@ -758,6 +792,8 @@ const RunMarkTake = ({
         colors={strongBarColor}
         radius={radius}
         finish={finish}
+        motion={barMotion}
+        reviewMotion={reviewMotion}
       />
     ) : (
       <span
@@ -780,10 +816,19 @@ const RunMarkTake = ({
         height={loud ? 3 : 2}
         radius={radius}
         finish={finish}
+        motion={barMotion}
+        reviewMotion={reviewMotion}
       />
     ) : null;
   }
-  if (nodeStatusTake === 4) {
+  if (nodeStatusTake === 4 || nodeStatusTake === "4bar") {
+    const flat = nodeStatusTake === "4bar";
+    // The words carry the once pulse here, so the bar under them stays still.
+    const wordsReviewMotion = reviewMotion === "once" ? "off" : reviewMotion;
+    const pulseWords = reviewMotion === "once" && mark.state === "needsReview";
+    if (pulseWords) {
+      ensureBarKeyframes();
+    }
     const label =
       mark.state === "doneWithFailures" && mark.progress
         ? `${mark.progress.failed} failed`
@@ -793,8 +838,13 @@ const RunMarkTake = ({
       <>
         {label && tone ? (
           <span
+            key={mark.state}
             data-status-pill={mark.state}
-            className={statusPillStyle}
+            className={
+              pulseWords
+                ? cx(statusPillStyle, reviewOnceStyle)
+                : statusPillStyle
+            }
             style={{
               backgroundColor: `var(--flows-${tone}-badgeBg)`,
               color: `var(--flows-${tone}-badgeFg)`,
@@ -805,7 +855,8 @@ const RunMarkTake = ({
           </span>
         ) : null}
         {/* A step card that failed, or whose items partly failed; the For each box keeps its own border. */}
-        {!group &&
+        {!flat &&
+        !group &&
         (mark.state === "failed" ||
           (mark.state === "doneWithFailures" &&
             (mark.progress?.failed ?? 0) > 0)) ? (
@@ -823,9 +874,24 @@ const RunMarkTake = ({
             style={{ borderColor: failedOutlineColor }}
           />
         ) : null}
-        {/* Only a step that repeats keeps a bar, its items in the faint colours. */}
-        {repeats ? (
-          <RunBar segments={segments} radius={radius} finish={finish} />
+        {/* Only a step that repeats keeps a bar, its items in the faint colours; 4bar keeps take 1's bar on every card. */}
+        {flat ? (
+          <RunBar
+            segments={segments}
+            colors={strongBarColor}
+            radius={radius}
+            finish={finish}
+            motion={barMotion}
+            reviewMotion={wordsReviewMotion}
+          />
+        ) : repeats ? (
+          <RunBar
+            segments={segments}
+            radius={radius}
+            finish={finish}
+            motion={barMotion}
+            reviewMotion={wordsReviewMotion}
+          />
         ) : null}
       </>
     );
@@ -836,6 +902,8 @@ const RunMarkTake = ({
       colors={strongBarColor}
       radius={radius}
       finish={finish}
+      motion={barMotion}
+      reviewMotion={reviewMotion}
     />
   );
 };

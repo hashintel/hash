@@ -66,6 +66,10 @@ type NodeStatusRoles = {
   restBar: string;
   quietDoneBar: string;
   failedOutline: string;
+  /** ?nodeglow=bar: the darker band that travels along a running segment. */
+  runningSweep: string;
+  /** ?nodeglow=bar-review: the step a needs-review segment shifts to and back. */
+  reviewShift: string;
   glassShade: string;
   glassDrop: string;
   highlight: string;
@@ -88,6 +92,8 @@ const nodeStatusRoles: NodeStatusRoles = {
   restBar: "neutral.s30",
   quietDoneBar: "neutral.a10",
   failedOutline: "red.s60",
+  runningSweep: "blue.s100",
+  reviewShift: "orange.s95",
   ...glassRoles,
 };
 
@@ -101,6 +107,8 @@ const subtleNodeRoles: NodeStatusRoles = {
   restBar: "neutral.s30",
   quietDoneBar: "neutral.a10",
   failedOutline: "red.s60",
+  runningSweep: "blue.s90",
+  reviewShift: "orange.s85",
   ...glassRoles,
 };
 
@@ -353,6 +361,117 @@ const variablesOf = (palette: Palette): Record<string, string> => {
   return variables;
 };
 
+/**
+ * How done looks (Dei, 5 Nov: "we don't need to make a big song/dance/show 'green' for stuff completed… only show
+ * 'failed' and 'with warnings' nodes in red/yellow. Otherwise… a sea of green"). One switch over every palette:
+ * - `green` (default): each palette's own done roles; a run with warnings charts as done.
+ * - `neutral`: every done role (ticks, bars, Steps tree and log marks, History ticks and chart) becomes a grey
+ *   step that sits quietly beside grey text but stays darker than skipped and not run, and a run with warnings
+ *   charts in amber. Failed, running and needs review keep their palette colours.
+ *
+ * Pick: ?done=green|neutral, from the URL only.
+ */
+export type DoneTone = "green" | "neutral";
+
+export const doneTone: DoneTone =
+  new URLSearchParams(globalThis.location.search).get("done") === "neutral"
+    ? "neutral"
+    : "green";
+
+/**
+ * Neutral's done steps. Darker than skipped (bar s60, mark s90) and not run (s30), so a For each bar of 18 done and 2
+ * skipped still shows that something ran (5 Nov: in the faint take they "look almost identical"). ?donegrey=faint
+ * shows the first, fainter take beside it, from the URL only.
+ */
+const neutralDoneSteps = {
+  darker: {
+    roles: {
+      mark: "neutral.s100",
+      bar: "neutral.s80",
+      chart: "neutral.s80",
+      text: "neutral.s100",
+      badgeBg: "neutral.s20",
+      badgeFg: "neutral.s100",
+    },
+    cardBar: "neutral.s85",
+  },
+  faint: {
+    roles: {
+      mark: "neutral.s85",
+      bar: "neutral.s60",
+      chart: "neutral.s70",
+      text: "neutral.s100",
+      badgeBg: "neutral.s20",
+      badgeFg: "neutral.s100",
+    },
+    cardBar: "neutral.s75",
+  },
+} satisfies Record<string, { roles: StateRoles; cardBar: string }>;
+
+const neutralDone =
+  neutralDoneSteps[
+    new URLSearchParams(globalThis.location.search).get("donegrey") === "faint"
+      ? "faint"
+      : "darker"
+  ];
+
+/** A run that completed with warnings, under `neutral`; `green` keeps it on the done roles. */
+const amberWarnings = {
+  mark: "yellow.s105",
+  chart: "yellow.s80",
+  text: "yellow.s110",
+};
+
+/** The done-tone overrides, written after the palette's own variables so they win. */
+const doneToneVariables = (tone: DoneTone): Record<string, string> => {
+  const variables: Record<string, string> = {};
+  for (const role of Object.keys(amberWarnings)) {
+    variables[`--flows-warnings-${role}`] = flowsVar(`done-${role}`);
+  }
+  if (tone === "green") {
+    return variables;
+  }
+  for (const [role, token] of Object.entries(neutralDone.roles)) {
+    variables[`--flows-done-${role}`] = tokenVar(token);
+  }
+  variables["--flows-node-doneBar"] = tokenVar(neutralDone.cardBar);
+  for (const [role, token] of Object.entries(amberWarnings)) {
+    variables[`--flows-warnings-${role}`] = tokenVar(token);
+  }
+  return variables;
+};
+
+/**
+ * Needs review's alternative (5 Nov: the pale orange reads close to the warnings amber): ?review=alt turns every
+ * needs-review role purple, a hue no other state uses. Without it, needs review keeps its pale orange. URL only.
+ */
+export const reviewTone: "orange" | "alt" =
+  new URLSearchParams(globalThis.location.search).get("review") === "alt"
+    ? "alt"
+    : "orange";
+
+const purpleReview: StateRoles = {
+  mark: "purple.s85",
+  bar: "purple.s50",
+  chart: "purple.s70",
+  text: "purple.s110",
+  badgeBg: "purple.s20",
+  badgeFg: "purple.s110",
+};
+
+const reviewToneVariables = (): Record<string, string> => {
+  if (reviewTone === "orange") {
+    return {};
+  }
+  const variables: Record<string, string> = {};
+  for (const [role, token] of Object.entries(purpleReview)) {
+    variables[`--flows-needsReview-${role}`] = tokenVar(token);
+  }
+  variables["--flows-node-reviewBar"] = tokenVar("purple.s75");
+  variables["--flows-node-reviewShift"] = tokenVar("purple.s90");
+  return variables;
+};
+
 const storageKey = "flows-proto:colours:v1";
 
 const isPaletteId = (value: string | null): value is PaletteId =>
@@ -381,11 +500,17 @@ export const applyPalette = (id: PaletteId) => {
     sheet.id = "flows-palette";
     document.head.append(sheet);
   }
-  const declarations = Object.entries(variablesOf(palettes[id]))
+  const declarations = Object.entries({
+    ...variablesOf(palettes[id]),
+    ...doneToneVariables(doneTone),
+    ...reviewToneVariables(),
+  })
     .map(([name, value]) => `${name}: ${value};`)
     .join(" ");
   sheet.textContent = `.petrinaut-root { ${declarations} }`;
   document.documentElement.dataset.flowsColours = id;
+  document.documentElement.dataset.flowsDone = doneTone;
+  document.documentElement.dataset.flowsReview = reviewTone;
   try {
     globalThis.localStorage.setItem(storageKey, id);
   } catch {
@@ -442,6 +567,8 @@ export const chartColor = {
   running: flowsVar("running-chart"),
   review: flowsVar("needsReview-chart"),
   quiet: flowsVar("skipped-chart"),
+  /** Completed with warnings: done under ?done=green, amber under ?done=neutral. */
+  warnings: flowsVar("warnings-chart"),
 } as const;
 
 /** The 2 px run bar on canvas cards; running pulses. */
@@ -469,6 +596,12 @@ export const glassColor = {
   shade: flowsVar("node-glassShade"),
   drop: flowsVar("node-glassDrop"),
   highlight: flowsVar("node-highlight"),
+} as const;
+
+/** ?nodeglow=bar and bar-review: the running sweep and the needs-review shift. */
+export const barMotionColor = {
+  runningSweep: flowsVar("node-runningSweep"),
+  reviewShift: flowsVar("node-reviewShift"),
 } as const;
 
 /** Take 3's card bar: colour only where attention is needed; done stays a faint neutral. */

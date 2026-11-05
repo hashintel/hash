@@ -9,7 +9,7 @@
 import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { barColor, statusColor } from "./status-colors";
+import { barColor, barMotionColor, statusColor } from "./status-colors";
 
 import type { BarSegment, StepState } from "./run-history";
 
@@ -370,8 +370,12 @@ const glyphColor: Record<StepState, string> = {
   doneWithFailures: green,
 };
 
+/** The DS `spin` keyframes carry no duration, so the duration and loop are set here (it sat still at 0 s). */
 const spinStyle = css({
-  animation: "spin",
+  animationName: "spin",
+  animationDuration: "[1s]",
+  animationTimingFunction: "linear",
+  animationIterationCount: "infinite",
   "@media (prefers-reduced-motion: reduce)": { animation: "none" },
 });
 
@@ -567,6 +571,87 @@ const pulseStyle = css({
 });
 
 /**
+ * The run bar's keyframes, which the DS preset does not have: a band sweeping across its segment, a colour shift from
+ * the segment's own colour (`--flows-seg`) to a darker step and back, and a fade for the needs-review pulse.
+ */
+export const ensureBarKeyframes = () => {
+  const { document } = globalThis;
+  if (document.getElementById("flows-bar-keyframes")) {
+    return;
+  }
+  const sheet = document.createElement("style");
+  sheet.id = "flows-bar-keyframes";
+  sheet.textContent = [
+    "@keyframes flowsBarSweep { from { transform: translateX(-70%); } to { transform: translateX(70%); } }",
+    `@keyframes flowsBarShift { 0%, 100% { background-color: var(--flows-seg); } 50% { background-color: ${barMotionColor.reviewShift}; } }`,
+    "@keyframes flowsReviewOnce { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }",
+  ].join("\n");
+  document.head.append(sheet);
+};
+
+const segmentStyle = css({ position: "relative", overflow: "hidden" });
+
+/** Running, ?nodeglow=bar: a darker band crosses the segment every 2 s. */
+const sweepStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  animationName: "[flowsBarSweep]",
+  animationDuration: "[2s]",
+  animationTimingFunction: "ease-in-out",
+  animationIterationCount: "infinite",
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "none",
+    display: "none",
+  },
+});
+
+/** Needs review, ?nodeglow=bar-review: light to dark and back over 4 s. */
+const shiftStyle = css({
+  animationName: "[flowsBarShift]",
+  animationDuration: "[4s]",
+  animationTimingFunction: "ease-in-out",
+  animationIterationCount: "infinite",
+  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+});
+
+/**
+ * ?reviewmotion=once: three 1 s fades as a step enters needs review, then still. CSS runs it when the element mounts,
+ * so the element must be keyed by its state. On the bar segment, or on the card's words in a take that has them.
+ */
+export const reviewOnceStyle = css({
+  animationName: "[flowsReviewOnce]",
+  animationDuration: "[1s]",
+  animationTimingFunction: "ease-in-out",
+  animationIterationCount: "3",
+  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+});
+
+/**
+ * How needs review moves (?reviewmotion=, URL only): `off` still; `once` the pulse above; `loop` the slow light↔dark
+ * shift (the default under ?nodeglow=bar-review).
+ */
+export type ReviewMotion = "off" | "once" | "loop";
+
+export const reviewMotionOf = (fallback: ReviewMotion): ReviewMotion => {
+  const value = new URLSearchParams(globalThis.location.search).get(
+    "reviewmotion",
+  );
+  return value === "off" || value === "once" || value === "loop"
+    ? value
+    : fallback;
+};
+
+/**
+ * How a bar's segments move:
+ * - `pulse` (default): a running segment fades in and out.
+ * - `bar` (?nodeglow=bar, Alex 5 Nov: "crisper lines instead … pulse over the line"): a running segment carries a
+ *   darker band across it; nothing else moves.
+ * - `bar-review`: `bar`, and a needs-review segment shifts slowly from light to dark and back.
+ * `reviewMotion` sets needs review on its own and wins over `bar-review`. Nothing moves under reduced motion.
+ */
+export type BarMotion = "pulse" | "bar" | "bar-review";
+
+/**
  * A card's run bar, inside its bottom edge. A clip box the size of the card (radius = the card's less its 1 px border,
  * `overflow: hidden`) holds it, so the bar follows the card's curve at both corners rather than running straight.
  *
@@ -584,6 +669,8 @@ export const RunBar = ({
   colors = barColor,
   radius = "lg",
   finish = "solid",
+  motion = "pulse",
+  reviewMotion: reviewMotionProp,
 }: {
   segments: BarSegment[];
   height?: number;
@@ -592,7 +679,14 @@ export const RunBar = ({
   /** The card's corner token: `lg` for a step card, `xl` for a For each box. */
   radius?: "lg" | "xl";
   finish?: "solid" | "reflect";
+  motion?: BarMotion;
+  reviewMotion?: ReviewMotion;
 }) => {
+  const reviewMotion =
+    reviewMotionProp ?? (motion === "bar-review" ? "loop" : "off");
+  if (motion !== "pulse" || reviewMotion !== "off") {
+    ensureBarKeyframes();
+  }
   const parts: { state: BarSegment["state"]; count: number }[] = [];
   for (const segment of segments) {
     const last = parts.at(-1);
@@ -629,6 +723,10 @@ export const RunBar = ({
       >
         {parts.map((part, index) => {
           const color = colors[part.state];
+          const sweeps = motion !== "pulse" && part.state === "running";
+          const review = part.state === "review";
+          const shifts = review && reviewMotion === "loop";
+          const once = review && reviewMotion === "once";
           return (
             <span
               // eslint-disable-next-line react/no-array-index-key -- runs of one state, in order
@@ -636,6 +734,7 @@ export const RunBar = ({
               data-segment={part.state}
               data-count={part.count}
               style={{
+                ["--flows-seg" as string]: color,
                 flexGrow: part.count,
                 flexBasis: 0,
                 minWidth: 2,
@@ -643,8 +742,28 @@ export const RunBar = ({
                   ? `linear-gradient(to top, ${color} 0px, color-mix(in srgb, ${color} 45%, transparent) ${height}px, color-mix(in srgb, ${color} 14%, transparent) ${height}px, transparent 100%)`
                   : color,
               }}
-              className={part.state === "running" ? pulseStyle : undefined}
-            />
+              className={
+                sweeps
+                  ? segmentStyle
+                  : shifts
+                    ? shiftStyle
+                    : once
+                      ? reviewOnceStyle
+                      : part.state === "running" && motion === "pulse"
+                        ? pulseStyle
+                        : undefined
+              }
+            >
+              {sweeps ? (
+                <span
+                  data-bar-sweep
+                  className={sweepStyle}
+                  style={{
+                    background: `linear-gradient(90deg, transparent 30%, ${barMotionColor.runningSweep} 50%, transparent 70%)`,
+                  }}
+                />
+              ) : null}
+            </span>
           );
         })}
       </span>
