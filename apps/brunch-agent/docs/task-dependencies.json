@@ -330,11 +330,6 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@hashintel/ds-components",
-        "@hashintel/ds-helpers",
-        "@hashintel/ds-icons",
-        "@hashintel/petrinaut",
-        "@hashintel/refractive",
         "error-stack",
         "error-stack-macros",
         "harpc-types",

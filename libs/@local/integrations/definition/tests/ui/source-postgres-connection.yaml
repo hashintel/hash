@@ -40,6 +40,38 @@ sources:
       credentials:
         secretEntityUuid: 22222222-2222-4222-8222-222222222222
     primaryKey: [id]
+  socket-query:
+    postgres:
+      connection: postgresql:///demo?host=%2Fvar%2Frun%2Fpostgresql
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  socket-authority:
+    postgres:
+      connection: postgresql://%2Fvar%2Frun%2Fpostgresql/demo
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  socket-abstract:
+    postgres:
+      connection: postgresql:///demo?host=%40postgres
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  socket-list:
+    postgres:
+      connection: postgresql:///demo?host=database.example%2C%2Ftmp
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
 pipelines:
   entities:
     - source: scheme
@@ -51,4 +83,12 @@ pipelines:
     - source: tls
       steps: []
     - source: port
+      steps: []
+    - source: socket-query
+      steps: []
+    - source: socket-authority
+      steps: []
+    - source: socket-abstract
+      steps: []
+    - source: socket-list
       steps: []

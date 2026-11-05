@@ -27,10 +27,7 @@ import { StatusCode } from "@local/status";
 
 import { sleep } from "../utils.js";
 import { getActionActivityOptions } from "./action-activity-options.js";
-import {
-  getAllStepsInFlow,
-  getStepsInFlowById,
-} from "./process-flow-workflow/get-all-steps-in-flow.js";
+import { getStepsInFlowById } from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";
 import {
   initializeActionStep,
@@ -567,6 +564,8 @@ const processFlow = async (
     });
   }
 
+  /** Every step in the run, by id, including a for-each step's items once it starts them. */
+  const stepsById = getStepsInFlowById(flow);
   const processedStepIds = new Set<string>();
   /** Steps skipped because a value they need is missing (see `getStepReadiness`); also in `processedStepIds`. */
   const skippedStepIds = new Set<string>();
@@ -575,21 +574,10 @@ const processFlow = async (
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};
 
   // Function to process a single step
-  const processStep = async (currentStepId: string) => {
+  const processStep = async (currentStep: FlowStep) => {
+    const currentStepId = currentStep.stepId;
+
     log(`Step ${currentStepId}: processing step`);
-
-    const currentStep = getAllStepsInFlow(flow).find(
-      (step) => step.stepId === currentStepId,
-    );
-
-    if (!currentStep) {
-      processStepErrors[currentStepId] = {
-        code: StatusCode.NotFound,
-        message: `No step found with id ${currentStepId}`,
-      };
-
-      return;
-    }
 
     if (currentStep.kind === "action") {
       const actionStepDefinition = getStepDefinitionFromFlowDefinition({
@@ -670,10 +658,11 @@ const processFlow = async (
         `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinitionId}" action`,
       );
 
+      // eslint-disable-next-line no-param-reassign -- a run's steps hold its state as it runs
       currentStep.outputs = outputs;
 
       const status = passOutputsToUnprocessedSteps({
-        flow,
+        stepsById,
         flowDefinition,
         outputs,
         processedStepIds,
@@ -736,14 +725,14 @@ const processFlow = async (
                 flowInputs,
                 stepDefinition,
                 overrideStepId: generateStepRunId(stepDefinition.stepId, index),
-                existingFlow: flow,
+                existingStepsById: stepsById,
                 item,
               })
             : initializeForEachStep({
                 flowInputs,
                 stepDefinition,
                 overrideStepId: generateStepRunId(stepDefinition.stepId, index),
-                existingFlow: flow,
+                existingStepsById: stepsById,
                 item,
               }),
         );
@@ -752,7 +741,12 @@ const processFlow = async (
       /**
        * Add the new steps to the child steps of the for-each step.
        */
+      // eslint-disable-next-line no-param-reassign -- a run's steps hold its state as it runs
       currentStep.steps = [...(currentStep.steps ?? []), ...newSteps];
+
+      for (const newStep of newSteps) {
+        stepsById.set(newStep.stepId, newStep);
+      }
 
       startedForEachSteps.push({
         stepId: currentStep.stepId,
@@ -769,7 +763,7 @@ const processFlow = async (
 
       /* With no items, the step is complete now, with an empty collected output. Otherwise its last branch completes it. */
       const status = completeForEachStep({
-        flow,
+        stepsById,
         flowDefinition,
         forEachStep: currentStep,
         processedStepIds,
@@ -791,12 +785,12 @@ const processFlow = async (
   let skippedStepCountInMemo = 0;
 
   /*
-   * Only valid until a step is processed, which can add steps (a for-each step's items) or fail. The id sets are
-   * live, so steps skipped while it's in use are seen.
+   * The steps and the processed and skipped ids are live, so steps added or skipped while it's in use are seen. The
+   * failed ids are those when it's built, so it's built again for each pass over the steps.
    */
   const getReadinessContext = (): StepReadinessContext => ({
     flowDefinition,
-    stepsById: getStepsInFlowById(flow),
+    stepsById,
     processedStepIds,
     skippedStepIds,
     failedStepIds: new Set(Object.keys(processStepErrors)),
@@ -810,7 +804,7 @@ const processFlow = async (
 
       const context = getReadinessContext();
 
-      for (const step of context.stepsById.values()) {
+      for (const step of stepsById.values()) {
         if (
           !processedStepIds.has(step.stepId) &&
           getStepReadiness(step, context) === "skip"
@@ -830,7 +824,7 @@ const processFlow = async (
           skippedAny = true;
 
           const status = collectSkippedBranchStep({
-            flow,
+            stepsById,
             flowDefinition,
             stepId: step.stepId,
             processedStepIds,
@@ -856,7 +850,7 @@ const processFlow = async (
   const getStepsReadyToProcess = () => {
     const context = getReadinessContext();
 
-    return [...context.stepsById.values()].filter(
+    return [...stepsById.values()].filter(
       (step) =>
         !processedStepIds.has(step.stepId) &&
         getStepReadiness(step, context) === "ready",
@@ -871,7 +865,7 @@ const processFlow = async (
 
   if (
     getStepsReadyToProcess().length === 0 &&
-    getAllStepsInFlow(flow).some(({ stepId }) => !processedStepIds.has(stepId))
+    processedStepIds.size < stepsById.size
   ) {
     const errorMessage =
       "No steps have satisfied dependencies when initializing the flow.";
@@ -898,7 +892,7 @@ const processFlow = async (
       return;
     }
 
-    await Promise.all(stepsToProcess.map((step) => processStep(step.stepId)));
+    await Promise.all(stepsToProcess.map((step) => processStep(step)));
 
     const lastStepIds = stepsToProcess.map((step) => step.stepId);
 
@@ -929,7 +923,7 @@ const processFlow = async (
   );
 
   /** @todo this is not necessarily an error once there are branches */
-  if (processedStepIds.size !== getAllStepsInFlow(flow).length) {
+  if (processedStepIds.size !== stepsById.size) {
     const errorMessage = "Not all steps in the flows were processed.";
     throw ApplicationFailure.create({
       message: errorMessage,
@@ -944,9 +938,7 @@ const processFlow = async (
   }
 
   for (const outputDefinition of flowDefinition.outputs) {
-    const step = getAllStepsInFlow(flow).find(
-      (flowStep) => flowStep.stepId === outputDefinition.stepId,
-    );
+    const step = stepsById.get(outputDefinition.stepId);
 
     const output =
       step?.kind === "action"

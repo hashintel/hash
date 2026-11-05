@@ -13,6 +13,7 @@
       "!**/pkg",
       "!**/.venv",
       "!**/.build",
+      "!**/_scratch/**",
       "apps/**",
       "libs/**",
       "tests/**"

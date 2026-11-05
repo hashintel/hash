@@ -1,4 +1,4 @@
-import { createOpenAIVoiceConfigHandler } from "../../src/server/voice/openai-voice-config.js";
+import { createOpenAIVoiceConfigHandler } from "@hashintel/brunch-agent/server";
 
 declare const process: {
   env: Record<string, string | undefined>;

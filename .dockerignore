@@ -25,6 +25,8 @@
 !libs/@local/graph/api/src/rest/documentation/overview.md
 # The Brunch agent packages its prompts and skills through `?raw` and `SKILL.md` imports in its build.
 !apps/brunch-agent/src/**/*.md
+# Brunch's chat bundles its user guide through a `?raw` import.
+!libs/@hashintel/brunch-agent/src/**/*.md
 
 ########################
 ## Same as in .gitignore

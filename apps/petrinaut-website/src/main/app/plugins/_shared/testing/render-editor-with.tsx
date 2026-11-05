@@ -1,14 +1,13 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { beforeAll, expect, vi } from "vitest";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import { Petrinaut, type PetrinautProps } from "@hashintel/petrinaut/ui";
-import { type PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
-
 import {
   InProcessLspWorker,
   NoopResizeObserver,
-} from "../../../shared/petrinaut-jsdom";
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { Petrinaut, type PetrinautProps } from "@hashintel/petrinaut/ui";
+import { type PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 /** Renders the real editor on an empty net with `plugins` installed, and returns its handle too. */
 export const renderEditorWith = (

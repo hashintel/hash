@@ -1,7 +1,5 @@
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
-import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
-
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   ActionStep,
@@ -33,12 +31,12 @@ export const wrapPayload = (payload: Payload): ArrayPayload =>
 const getInitialSourcePayload = ({
   source,
   flowInputs,
-  existingFlow,
+  existingStepsById,
   item,
 }: {
   source: StepInputSource;
   flowInputs: FlowInputValues;
-  existingFlow?: LocalFlowRun;
+  existingStepsById: ReadonlyMap<string, FlowStep>;
   item?: Payload;
 }): Payload | undefined => {
   switch (source.kind) {
@@ -46,13 +44,7 @@ const getInitialSourcePayload = ({
       return flowInputs[source.inputName];
 
     case "step-output": {
-      if (!existingFlow) {
-        return undefined;
-      }
-
-      const sourceStep = getAllStepsInFlow(existingFlow).find(
-        ({ stepId }) => stepId === source.stepId,
-      );
+      const sourceStep = existingStepsById.get(source.stepId);
 
       const sourceStepOutputs =
         sourceStep?.kind === "action"
@@ -84,12 +76,18 @@ export const initializeActionStep = (params: {
   flowInputs: FlowInputValues;
   stepDefinition: ActionStepDefinition;
   overrideStepId?: string;
-  existingFlow?: LocalFlowRun;
+  /** The run's steps so far, by id, to take the outputs of steps that have already run. */
+  existingStepsById: ReadonlyMap<string, FlowStep>;
   /** The item of the for-each step branch this step is in, if any. */
   item?: Payload;
 }): ActionStep => {
-  const { overrideStepId, stepDefinition, flowInputs, existingFlow, item } =
-    params;
+  const {
+    overrideStepId,
+    stepDefinition,
+    flowInputs,
+    existingStepsById,
+    item,
+  } = params;
 
   const actionDefinition = actionDefinitions[stepDefinition.actionDefinitionId];
 
@@ -103,7 +101,7 @@ export const initializeActionStep = (params: {
           const payload = getInitialSourcePayload({
             source,
             flowInputs,
-            existingFlow,
+            existingStepsById,
             item,
           });
 
@@ -143,17 +141,23 @@ export const initializeForEachStep = (params: {
   flowInputs: FlowInputValues;
   stepDefinition: ForEachStepDefinition;
   overrideStepId?: string;
-  existingFlow?: LocalFlowRun;
+  /** The run's steps so far, by id, to take the outputs of steps that have already run. */
+  existingStepsById: ReadonlyMap<string, FlowStep>;
   /** The item of the enclosing for-each step's branch, if this step is nested in one. */
   item?: Payload;
 }): ForEachStep => {
-  const { stepDefinition, overrideStepId, flowInputs, existingFlow, item } =
-    params;
+  const {
+    stepDefinition,
+    overrideStepId,
+    flowInputs,
+    existingStepsById,
+    item,
+  } = params;
 
   const over = getInitialSourcePayload({
     source: stepDefinition.over,
     flowInputs,
-    existingFlow,
+    existingStepsById,
     item,
   });
 
@@ -187,8 +191,16 @@ export const initializeFlow = (params: {
     flowDefinitionEntityId,
     steps: flowDefinition.steps.map<FlowStep>((stepDefinition) =>
       stepDefinition.kind === "action"
-        ? initializeActionStep({ flowInputs, stepDefinition })
-        : initializeForEachStep({ flowInputs, stepDefinition }),
+        ? initializeActionStep({
+            flowInputs,
+            stepDefinition,
+            existingStepsById: new Map(),
+          })
+        : initializeForEachStep({
+            flowInputs,
+            stepDefinition,
+            existingStepsById: new Map(),
+          }),
     ),
   };
 };
