@@ -1,16 +1,26 @@
+import { once } from "node:events";
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
 
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
 import {
   agentOwnershipHeaders,
-  brunchCallerAuthorization,
   brunchHeaders,
   brunchRoutes,
   brunchTools,
   hashProcessEditorId,
+  hashSessionCredential,
   petrinautContextualUserMessageBody,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
@@ -30,6 +40,9 @@ import {
   hashWebReadDescription,
 } from "./tools/hash-graph-reads.ts";
 import { hashSaveDescription } from "./tools/hash-save.ts";
+
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
@@ -140,20 +153,84 @@ const systemPrompt = async () =>
   ).trim();
 /** The system prompt's opening of its paragraph on the HASH graph. */
 const hashGraphParagraph = "You work inside HASH. The _user_'s HASH graph";
-/** The secret Brunch is configured to require from hash-api in these tests. */
-// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
-const hashSecret = "hash-caller-test-secret";
-const hashCredential = (
-  secret = hashSecret,
-  scheme: string = brunchCallerAuthorization.hashScheme,
-) => ({ [brunchCallerAuthorization.header]: `${scheme} ${secret}` });
+/** The signed-in user's graph actor, as HASH provisions it into Kratos. */
+const ownerGraphActorId = "account-1";
+/** The session cookie value Kratos resolves to the owner in these tests. */
+const ownerSession = "owner-session";
+const sessionCookie = (value = ownerSession) => ({
+  cookie: `${hashSessionCredential.cookie}=${value}`,
+});
+const whoami = (metadataPublic: object, active = true) => ({
+  status: 200,
+  body: {
+    active,
+    identity: { id: "identity", metadata_public: metadataPublic },
+  },
+});
+/**
+ * A stand-in for Kratos's public API: answers `/sessions/whoami` by the
+ * credential it receives, a session token or the whole cookie header, and
+ * records every call.
+ */
+const kratos = {
+  url: "",
+  calls: [] as { path: string; credential: string }[],
+  answers: new Map<string, { status: number; body?: object }>(),
+};
+let kratosServer: Server | undefined;
+beforeAll(async () => {
+  const server = createServer((request, response) => {
+    const token = request.headers[hashSessionCredential.tokenHeader];
+    const credential = String(token ?? request.headers.cookie ?? "");
+    kratos.calls.push({ path: request.url ?? "", credential });
+    const answer = kratos.answers.get(credential) ?? {
+      status: 401,
+      body: { error: { code: 401 } },
+    };
+    response
+      .writeHead(answer.status, { "content-type": "application/json" })
+      .end(JSON.stringify(answer.body ?? {}));
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  kratosServer = server;
+  kratos.url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+});
+afterAll(
+  () =>
+    new Promise((resolve) => {
+      kratosServer?.close(resolve);
+    }),
+);
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("NODE_ENV", "test");
-  // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
-  vi.stubEnv(brunchEnv.hashServiceSecret, hashSecret);
+  vi.stubEnv(brunchEnv.hashKratosPublicUrl, kratos.url);
+  kratos.calls.length = 0;
+  kratos.answers.clear();
+  kratos.answers.set(
+    sessionCookie().cookie,
+    whoami({ graph_actor_id: ownerGraphActorId }),
+  );
+  kratos.answers.set(
+    sessionCookie("other-session").cookie,
+    whoami({ graph_actor_id: "account-2" }),
+  );
+  kratos.answers.set(
+    "owner-token",
+    whoami({ graph_actor_id: ownerGraphActorId }),
+  );
+  kratos.answers.set(sessionCookie("aal1").cookie, {
+    status: 403,
+    body: { error: { id: "session_aal2_required" } },
+  });
+  kratos.answers.set(sessionCookie("unprovisioned").cookie, whoami({}));
+  kratos.answers.set(
+    sessionCookie("inactive").cookie,
+    whoami({ graph_actor_id: ownerGraphActorId }, false),
+  );
   mounted.initialData = undefined;
   mounted.body = "Four agents";
   mounted.contextProjections = 0;
@@ -164,7 +241,10 @@ beforeEach(() => {
   mounted.skills.length = 0;
   mounted.tools.length = 0;
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
 
 test("a document binding mounts the guidance, the Ledger, HASH's graph reads and Save, and HASH's own Petrinaut tools, with no canonical Petrinaut tool left", async () => {
   mounted.initialData = bound;
@@ -455,40 +535,46 @@ test("the HASH agent keeps its own conversation storage", async () => {
   expect(HashAgent.agentName).not.toBe(PetrinautAgent.agentName);
 });
 
-const identity = { actorKey: "owner", conversationId: "conversation" };
-/** What hash-api adds on the HASH route, as its hop does; nothing elsewhere. */
+/**
+ * The owner's conversation. On the HASH route the actor key is the one Brunch
+ * derives from the owner's session; the Petrinaut routes take any actor key
+ * from the header, so the same one addresses the same instance there.
+ */
+const identity = {
+  actorKey: `hash:${ownerGraphActorId}`,
+  conversationId: "conversation",
+};
+/** What hash-api's hop adds on the HASH route: the owner's session; nothing elsewhere. */
 const callerHeaders = (segment: string) =>
-  segment === brunchRoutes.hashAgent ? hashCredential() : {};
+  segment === brunchRoutes.hashAgent ? sessionCookie() : {};
 /** The status and body the app gives an owned instance under one agent route segment. */
 const served = async (
   segment: string,
   headers: Record<string, string> = agentOwnershipHeaders(identity),
+  instance: { actorKey: string; conversationId: string } = identity,
 ) => {
   const { default: app } = await import("../../app.ts");
   const response = await app.fetch(
     new Request(
-      `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
+      `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(instance)}`,
       { headers: { ...callerHeaders(segment), ...headers } },
     ),
   );
   return { status: response.status, body: await response.text() };
 };
 
-test("the app admits the actor header alone or its former name alone to the same conversation, and allows both cross-origin", async () => {
+test("the Petrinaut routes admit the actor header alone or its former name alone to the same conversation, and allow both cross-origin", async () => {
   const origin = "https://app.example.com";
   vi.stubEnv(brunchEnv.corsAllowedOrigins, origin);
   const { PetrinautAgent } = await import("../petrinaut/agent.ts");
-  for (const [segment, agentName] of [
-    ["hash", "brunch-hash-agent"],
-    [brunchRoutes.petrinautAgent, PetrinautAgent.agentName],
-  ] as const) {
+  for (const segment of [brunchRoutes.petrinautAgent, "chat"]) {
     for (const legacyActorHeader of [false, true]) {
       expect(
         await served(
           segment,
           agentOwnershipHeaders(identity, { legacyActorHeader }),
         ),
-      ).toEqual({ status: 200, body: agentName });
+      ).toEqual({ status: 200, body: PetrinautAgent.agentName });
       expect(
         (
           await served(
@@ -527,7 +613,7 @@ test("the app admits the actor header alone or its former name alone to the same
 });
 
 test.each(["test", "production"])(
-  "under NODE_ENV=%s the app serves the HASH agent under /agents/hash with hash-api's secret and the Petrinaut agent under its routes",
+  "under NODE_ENV=%s the app serves the HASH agent under /agents/hash with the user's session and the Petrinaut agent under its routes",
   async (nodeEnv) => {
     vi.stubEnv("NODE_ENV", nodeEnv);
     const { PetrinautAgent } = await import("../petrinaut/agent.ts");
@@ -535,14 +621,7 @@ test.each(["test", "production"])(
       status: 200,
       body: "brunch-hash-agent",
     });
-    expect(
-      (
-        await served("hash", {
-          ...agentOwnershipHeaders(identity),
-          [brunchCallerAuthorization.header]: "",
-        })
-      ).status,
-    ).toBe(401);
+    expect((await served("hash", { cookie: "" })).status).toBe(401);
     for (const segment of [brunchRoutes.petrinautAgent, "chat"])
       expect(await served(segment)).toEqual({
         status: 200,
@@ -558,7 +637,7 @@ const browserCall = async (
   request: {
     readonly suffix?: string;
     readonly body?: object;
-    /** In place of the credential hash-api would add. */
+    /** In place of the session hash-api would add. */
     readonly headers?: Record<string, string>;
   } = {},
 ) => {
@@ -725,14 +804,20 @@ test("a browser call issued by one agent is unknown on another agent's routes an
   });
 });
 
-/** Credentials that are not hash-api's secret under its scheme. */
+/** Credentials that Kratos doesn't resolve to a graph actor, or none at all. */
 const wrongCredentials = {
   none: {},
-  "a wrong secret": hashCredential("wrong-secret"),
-  "a prefix of the secret": hashCredential(hashSecret.slice(0, -1)),
-  "the secret and more": hashCredential(`${hashSecret} more`),
-  // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret
-  "the secret under another scheme": hashCredential(hashSecret, "Bearer"),
+  "an unknown session": sessionCookie("unknown"),
+  "a session still needing a second factor": sessionCookie("aal1"),
+  "a session with no graph actor": sessionCookie("unprovisioned"),
+  "an inactive session": sessionCookie("inactive"),
+  "an empty session cookie": sessionCookie(""),
+  "the session's value under another cookie": {
+    cookie: `other=${ownerSession}`,
+  },
+  "an unknown session token": {
+    [hashSessionCredential.tokenHeader]: "unknown",
+  },
 } satisfies Record<string, Record<string, string>>;
 /** Every kind of request the HASH route serves, on the owned instance and an issued call. */
 const hashRouteRequests = (toolCallId: string) => {
@@ -799,7 +884,7 @@ const forEachWrongCredential = <Answer>(answer: Answer) =>
     Object.keys(wrongCredentials).map((credential) => [credential, answer]),
   );
 
-test("the HASH route refuses every request without hash-api's secret before any of its handlers runs", async () => {
+test("the HASH route refuses every request without a session Kratos resolves to an actor, before any of its handlers runs", async () => {
   const { HashAgent } = await import("./agent.ts");
   const hashCall = await issue(HashAgent.agentName);
   expect(
@@ -813,7 +898,7 @@ test("the HASH route refuses every request without hash-api's secret before any 
     ),
   ).toEqual(forEachWrongCredential(everyRequest(unauthorized)));
   // Nothing refused touched the call (a failure or settlement would have
-  // ended it): hash-api's secret still claims it, and serves the actor.
+  // ended it): the owner's session still claims it, and serves the actor.
   expect(
     await browserCall(brunchRoutes.hashAgent, hashCall.toolCallId),
   ).toMatchObject({ status: 200, body: { toolName: "addPlace" } });
@@ -821,88 +906,248 @@ test("the HASH route refuses every request without hash-api's secret before any 
     status: 200,
     body: HashAgent.agentName,
   });
+  // A session token resolves as the cookie does.
+  expect(
+    await served(brunchRoutes.hashAgent, {
+      ...agentOwnershipHeaders(identity),
+      cookie: "",
+      [hashSessionCredential.tokenHeader]: "owner-token",
+    }),
+  ).toEqual({ status: 200, body: HashAgent.agentName });
 
-  // Unset or empty in Brunch, the secret admits nothing, even the one hash-api would send.
+  // Without Kratos's address, nothing is admitted, even the owner's session,
+  // and Kratos is never asked.
   for (const configured of [undefined, ""]) {
-    vi.stubEnv(brunchEnv.hashServiceSecret, configured);
+    vi.stubEnv(brunchEnv.hashKratosPublicUrl, configured);
     vi.resetModules();
+    kratos.calls.length = 0;
     expect(
-      await Promise.all(
-        [hashCredential(), hashCredential("")].map((headers) =>
-          answers(hashCall.toolCallId, headers),
-        ),
-      ),
+      await answers(hashCall.toolCallId, sessionCookie()),
       String(configured),
-    ).toEqual([everyRequest(unauthorized), everyRequest(unauthorized)]);
+    ).toEqual(everyRequest(unauthorized));
+    expect(kratos.calls).toEqual([]);
   }
 });
 
-test("with hash-api's secret the HASH route still serves only the actor's own conversation", async () => {
+test("the HASH route serves only the session actor's own conversation, ignoring any actor header", async () => {
+  const another = { ...identity, actorKey: "hash:account-2" };
+  const hashAgentServed = { status: 200, body: "brunch-hash-agent" };
+  // A forged actor header, under either name, changes nothing and is not refused.
+  for (const legacyActorHeader of [false, true])
+    expect(
+      await served(
+        brunchRoutes.hashAgent,
+        agentOwnershipHeaders(another, { legacyActorHeader }),
+      ),
+    ).toEqual(hashAgentServed);
+  expect(
+    await served(brunchRoutes.hashAgent, {
+      ...agentOwnershipHeaders(identity),
+      [brunchHeaders.legacyPrincipal]: another.actorKey,
+    }),
+  ).toEqual(hashAgentServed);
+  // Naming another actor's conversation in the header doesn't reach it.
+  for (const legacyActorHeader of [false, true])
+    expect(
+      (
+        await served(
+          brunchRoutes.hashAgent,
+          agentOwnershipHeaders(another, { legacyActorHeader }),
+          another,
+        )
+      ).status,
+    ).toBe(403);
+  // That actor's own session does.
+  expect(
+    await served(
+      brunchRoutes.hashAgent,
+      {
+        ...agentOwnershipHeaders(identity),
+        ...sessionCookie("other-session"),
+      },
+      another,
+    ),
+  ).toEqual(hashAgentServed);
+  expect(
+    (
+      await served(brunchRoutes.hashAgent, {
+        ...agentOwnershipHeaders(identity),
+        ...sessionCookie("other-session"),
+      })
+    ).status,
+  ).toBe(403);
   const statuses = await Promise.all(
     [
-      agentOwnershipHeaders({ ...identity, actorKey: "another" }),
       agentOwnershipHeaders({ ...identity, conversationId: "another" }),
       { [brunchHeaders.conversation]: identity.conversationId },
+      {},
     ].map(
       async (headers) => (await served(brunchRoutes.hashAgent, headers)).status,
     ),
   );
-  expect(statuses).toEqual([403, 403, 401]);
+  // Without the actor header the session still names the actor; without the
+  // conversation header nothing is addressed.
+  expect(statuses).toEqual([403, 200, 401]);
 });
 
-test("the Petrinaut agent's routes refuse HASH's secret and stay open to the website without it", async () => {
+test("the HASH route fails without reaching the agent when Kratos can't answer", async () => {
+  kratos.answers.set(sessionCookie("kratos-fault").cookie, { status: 500 });
+  const unavailable = {
+    status: 503,
+    body: '{"error":"session check unavailable"}',
+  };
+  expect(
+    await served(brunchRoutes.hashAgent, {
+      ...agentOwnershipHeaders(identity),
+      ...sessionCookie("kratos-fault"),
+    }),
+  ).toEqual(unavailable);
+
+  const closed = createServer();
+  closed.listen(0, "127.0.0.1");
+  await once(closed, "listening");
+  const closedPort = (closed.address() as AddressInfo).port;
+  await new Promise((resolve) => {
+    closed.close(resolve);
+  });
+  vi.stubEnv(brunchEnv.hashKratosPublicUrl, `http://127.0.0.1:${closedPort}`);
+  vi.resetModules();
+  expect(await served(brunchRoutes.hashAgent)).toEqual(unavailable);
+});
+
+test("Kratos answers are reused for 30 seconds per credential, under a digest of it", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  const owner = { status: 200, body: "brunch-hash-agent" };
+  expect(await served(brunchRoutes.hashAgent)).toEqual(owner);
+  expect(await served(brunchRoutes.hashAgent)).toEqual(owner);
+  expect(kratos.calls).toHaveLength(1);
+  expect(kratos.calls[0]).toEqual({
+    path: "/sessions/whoami",
+    credential: sessionCookie().cookie,
+  });
+  // Another credential has its own entry.
+  await served(brunchRoutes.hashAgent, {
+    ...agentOwnershipHeaders(identity),
+    ...sessionCookie("other-session"),
+  });
+  expect(kratos.calls).toHaveLength(2);
+  // Only the session cookie reaches Kratos, whatever else the browser sent.
+  await served(brunchRoutes.hashAgent, {
+    ...agentOwnershipHeaders(identity),
+    cookie: `other=1; ${hashSessionCredential.cookie}=unknown; csrf=2`,
+  });
+  expect(kratos.calls.at(-1)?.credential).toBe(sessionCookie("unknown").cookie);
+  const callsBeforeExpiry = kratos.calls.length;
+  vi.setSystemTime(Date.now() + 30_000);
+  expect(await served(brunchRoutes.hashAgent)).toEqual(owner);
+  expect(kratos.calls).toHaveLength(callsBeforeExpiry + 1);
+  // Kratos's refusal is never reused: a revoked session is asked about again.
+  kratos.calls.length = 0;
+  await served(brunchRoutes.hashAgent, sessionCookie("unknown"));
+  await served(brunchRoutes.hashAgent, sessionCookie("unknown"));
+  expect(kratos.calls).toHaveLength(2);
+
+  const { hashSessionActor } =
+    await import("../../server/http/hash-session-actor.ts");
+  const { Hono } = await import("hono");
+  const cache = new Map<string, { actorKey: string; expiresAt: number }>();
+  const probe = new Hono()
+    .use(hashSessionActor({ kratosPublicUrl: kratos.url, cache }))
+    .get("/", (context) => context.text(context.get("hashSessionActorKey")));
+  const token = { [hashSessionCredential.tokenHeader]: "owner-token" };
+  for (const headers of [sessionCookie(), token]) {
+    const response = await probe.fetch(
+      new Request("http://brunch.test/", { headers }),
+    );
+    expect(await response.text()).toBe(identity.actorKey);
+  }
+  expect(cache.size).toBe(2);
+  for (const key of cache.keys()) {
+    expect(key).toMatch(/^[0-9a-f]{64}$/u);
+    expect(key).not.toContain(ownerSession);
+    expect(key).not.toContain("owner-token");
+  }
+});
+
+test("no credential reaches the logs or an answer", async () => {
+  kratos.answers.set(sessionCookie("kratos-fault").cookie, { status: 502 });
+  const { logger } = await import("../../server/logger.ts");
+  const logged = (["debug", "info", "warn", "error"] as const).map((level) =>
+    vi.spyOn(logger, level),
+  );
+  const bodies = await Promise.all(
+    ["kratos-fault", "unknown", "unprovisioned", ownerSession].map(
+      async (session) =>
+        (
+          await served(brunchRoutes.hashAgent, {
+            ...agentOwnershipHeaders(identity),
+            ...sessionCookie(session),
+          })
+        ).body,
+    ),
+  );
+  expect(logged[2]?.mock.calls.length).toBeGreaterThan(0);
+  const recorded = JSON.stringify([
+    bodies,
+    logged.map((spy) => spy.mock.calls),
+  ]);
+  for (const session of ["kratos-fault", "unknown", ownerSession])
+    expect(recorded).not.toContain(session);
+  expect(recorded).not.toContain(hashSessionCredential.cookie);
+});
+
+test("the Petrinaut agent's routes read the actor header, never ask Kratos, and stay open to the website", async () => {
   const { PetrinautAgent } = await import("../petrinaut/agent.ts");
   const { HashAgent } = await import("./agent.ts");
   const hashCall = await issue(HashAgent.agentName);
-  const petrinautCall = await issue(PetrinautAgent.agentName);
-  const forbidden = { status: 403, body: { error: "forbidden" } };
   const segments = [brunchRoutes.petrinautAgent, "chat"];
-  const withHeaders = (headers: Record<string, string>) =>
+  const withHeaders = (headers: Record<string, string>, instance = identity) =>
     Promise.all(
       segments.map((segment) =>
-        served(segment, { ...agentOwnershipHeaders(identity), ...headers }),
-      ),
-    );
-  // The website sends no credential; any other `Authorization` is not HASH's.
-  const open = { status: 200, body: PetrinautAgent.agentName };
-  expect(await withHeaders({})).toEqual([open, open]);
-  expect(await withHeaders(hashCredential("wrong-secret"))).toEqual([
-    open,
-    open,
-  ]);
-  const refused = { status: 403, body: '{"error":"forbidden"}' };
-  expect(await withHeaders(hashCredential())).toEqual([refused, refused]);
-  const everyOperationRefused = {
-    claim: forbidden,
-    renew: forbidden,
-    fail: forbidden,
-    settle: forbidden,
-  };
-  expect(
-    await Promise.all(
-      segments.flatMap((segment) =>
-        [hashCall, petrinautCall].map((call) =>
-          everyOperation(
-            segment,
-            call.toolCallId,
-            "capability",
-            hashCredential(),
-          ),
+        served(
+          segment,
+          { ...agentOwnershipHeaders(instance), ...headers },
+          instance,
         ),
       ),
-    ),
-  ).toEqual(Array.from({ length: 4 }, () => everyOperationRefused));
-  // HASH's call is still HASH's alone: unknown on the aliases without the secret.
-  expect(await browserCall("chat", hashCall.toolCallId)).toEqual({
+    );
+  // The website sends no session; a HASH session changes nothing here.
+  const open = { status: 200, body: PetrinautAgent.agentName };
+  expect(await withHeaders({})).toEqual([open, open]);
+  expect(await withHeaders(sessionCookie())).toEqual([open, open]);
+  expect(
+    await withHeaders(sessionCookie(), { ...identity, actorKey: "local" }),
+  ).toEqual([open, open]);
+  // The header, not the session, names the actor.
+  expect(
+    (
+      await Promise.all(
+        segments.map((segment) =>
+          served(segment, {
+            ...agentOwnershipHeaders({ ...identity, actorKey: "another" }),
+            ...sessionCookie(),
+          }),
+        ),
+      )
+    ).map(({ status }) => status),
+  ).toEqual([403, 403]);
+  // HASH's call is still HASH's alone: unknown on the aliases even with the session.
+  expect(
+    await browserCall("chat", hashCall.toolCallId, {
+      headers: sessionCookie(),
+    }),
+  ).toEqual({
     status: 404,
     body: { error: "not-issued" },
   });
+  expect(kratos.calls).toEqual([]);
   expect(
     (await browserCall(brunchRoutes.hashAgent, hashCall.toolCallId)).status,
   ).toBe(200);
+  expect(kratos.calls).toHaveLength(1);
 });
 
-test("a browser can't send a caller's secret: no agent route allows the header cross-origin", async () => {
+test("a browser can't send a session token to Brunch: no agent route allows the header cross-origin", async () => {
   const origin = "https://app.example.com";
   vi.stubEnv(brunchEnv.corsAllowedOrigins, origin);
   const { default: app } = await import("../../app.ts");
@@ -917,7 +1162,7 @@ test("a browser can't send a caller's secret: no agent route allows the header c
               headers: {
                 Origin: origin,
                 "Access-Control-Request-Method": "POST",
-                "Access-Control-Request-Headers": `content-type,${brunchCallerAuthorization.header}`,
+                "Access-Control-Request-Headers": `content-type,${hashSessionCredential.tokenHeader}`,
               },
             },
           ),
@@ -931,11 +1176,11 @@ test("a browser can't send a caller's secret: no agent route allows the header c
         .get("access-control-allow-headers")
         ?.toLowerCase()
         .split(","),
-    ).not.toContain(brunchCallerAuthorization.header);
+    ).not.toContain(hashSessionCredential.tokenHeader);
   }
 });
 
-test("an encoded or doubled route segment does not reach the HASH agent without the secret", async () => {
+test("an encoded or doubled route segment does not reach the HASH agent without a session", async () => {
   const { default: app } = await import("../../app.ts");
   const instance = flueConversationId(identity);
   const paths = [

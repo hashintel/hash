@@ -7,12 +7,12 @@
 
 export {
   brunchActorKeyStorageKey,
-  brunchCallerAuthorization,
   brunchExposedResponseHeaders,
   brunchHeaders,
   brunchRoutes,
   brunchSignals,
   brunchTools,
+  hashSessionCredential,
   localUiActorKey,
   previewConversationIdPrefix,
 } from "./constants";
