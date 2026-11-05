@@ -21,7 +21,7 @@ Use the **Fill panel** button in the section header to expand that section to th
 
 The expanded header shows a breadcrumb, such as **Transition Collision › Transition Results**, using the parent’s usual icon and title. Long parent names fade so the code section’s name stays visible. Click the parent name to return to the item’s other properties. Code, undo history, cursor position, and the other sections’ sizes and contents remain in place.
 
-Visualizer, Firing Time, and Transition Results use a short fade when expanding and returning. Their editor changes size once, so the text stays responsive during the transition. These transitions respect the animation setting and your system’s reduced-motion preference.
+Expanding and returning animate within the section container. These transitions respect the animation setting and your system’s reduced-motion preference.
 
 Collapsing one of these sections keeps its editor ready while the same item stays selected. Reopening it preserves the text, undo history, and cursor position.
 

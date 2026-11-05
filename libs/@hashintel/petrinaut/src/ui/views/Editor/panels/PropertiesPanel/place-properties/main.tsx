@@ -31,7 +31,6 @@ const placeVisualizerSubView = createDeferredSubView({
     "Custom visualization of tokens in this place, defined by visualizer code.",
   defaultCollapsed: true,
   retainOnCollapse: true,
-  stableLayout: true,
   alwaysShowHeaderAction: true,
   hasHeaderAction: true,
   resizable: {

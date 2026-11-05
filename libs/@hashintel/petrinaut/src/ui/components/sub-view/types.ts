@@ -74,8 +74,6 @@ export interface SubView {
   defaultCollapsed?: boolean;
   /** Keep visited content mounted until its panel is removed. */
   retainOnCollapse?: boolean;
-  /** Fade content instead of animating its dimensions during maximize/restore. */
-  stableLayout?: boolean;
   /**
    * When true, the header action is always visible instead of only on hover/focus.
    * Defaults to false.
