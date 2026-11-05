@@ -2,7 +2,7 @@
  * Top bar takes, for Aakarsh to pick from (4 Nov): "what's the most minimal version of the top bar we can do which is
  * still clear and like allows all the affordances". Minimal means fewer, quieter controls, never fewer functions.
  *
- * Run view (`?topbar=1..4`, remembered). No segmented control in any. Each has: back to the editor, all runs, the run
+ * Run view (`?topbar=1..4`, from the URL only). No segmented control in any. Each has: back to the editor, all runs, the run
  * switcher (‹ › and the picker), Re-run (Stop on a live run), Simulate, Publish and ⋮. The takes differ only in
  * layout and grouping. A run with failed items adds "Re-run 2 failed" left of Re-run, its only place in the app.
  * 1. Centred switcher: ← flow · All runs | ‹ Run 16 · Today, 08:15 ▾ › | Re-run, Simulate, Publish, ⋮. The default.
@@ -27,35 +27,11 @@ import { bannerAction, factsOf, outcomeOf, statusText } from "./run-history";
 export type RunBarVariant = 1 | 2 | 3 | 4;
 export type EditorBarVariant = 1 | 2 | 3;
 
-/** `?<key>=` wins and is remembered (switching runs drops the query); else the last pick; else the default. */
-const variantFrom = <Variant extends number>(
-  query: URLSearchParams,
-  key: string,
-  storageKey: string,
-  max: number,
-  fallback: Variant,
-): Variant => {
-  const read = (value: string | null) => {
-    const number = Number(value);
-    return Number.isInteger(number) && number >= 1 && number <= max
-      ? (number as Variant)
-      : undefined;
-  };
-  const fromQuery = read(query.get(key));
-  try {
-    if (fromQuery) {
-      globalThis.localStorage.setItem(storageKey, String(fromQuery));
-      return fromQuery;
-    }
-    return read(globalThis.localStorage.getItem(storageKey)) ?? fallback;
-  } catch {
-    return fromQuery ?? fallback;
-  }
+/** `?topbar=` from the URL only, never remembered; else take 1. */
+export const runBarVariant = (query: URLSearchParams): RunBarVariant => {
+  const take = Number(query.get("topbar"));
+  return take === 2 || take === 3 || take === 4 ? take : 1;
 };
-
-// v2: the first takes (one had a segmented control) are retired; a remembered pick of them must not come back.
-export const runBarVariant = (query: URLSearchParams) =>
-  variantFrom<RunBarVariant>(query, "topbar", "flows-proto:topbar:v2", 4, 1);
 
 export const editorBarVariant = (query: URLSearchParams): EditorBarVariant => {
   const take = Number(query.get("editorbar"));
