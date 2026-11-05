@@ -28,6 +28,7 @@ import {
   itemPropertyOf,
   itemPropertySource,
   setInputSource,
+  stepLabel,
 } from "./document";
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
@@ -272,16 +273,38 @@ type SourceGroup = {
   label?: string;
   items: {
     id: string;
-    text: string;
+    text: React.ReactNode;
     description?: string;
     icon?: IconName;
     selected?: boolean;
     disabled?: boolean;
     hint?: string;
     suffix?: React.ReactNode;
+    /** Picking it changes the menu instead of closing it ("Show more"). */
+    keepOpen?: boolean;
     onPick?: () => void;
   }[];
 };
+
+const urlFlag = (name: string) =>
+  new URLSearchParams(globalThis.location.search).get(name);
+
+/**
+ * `?sourcegroups=old`: "This item" and "Flow inputs" as groups of their own, as before X was built in full (ledger
+ * 1 Nov, Figma 770:33030). URL only, never remembered.
+ */
+const oldSourceGroups = urlFlag("sourcegroups") === "old";
+
+/** `?showmore=old`: every row of every group, with no "Show more" (ledger 2 Nov: first 3–4, then Show more). */
+const oldShowMore = urlFlag("showmore") === "old";
+
+/** `?lookuphint=old`: the Find entities row's hover text from before the real-names rule ("Adds a Find entities…"). */
+const oldLookupHint = urlFlag("lookuphint") === "old";
+
+/** How many rows a group shows before its "Show more" row (ledger 2 Nov call: "first 3–4 + Show more + search"). */
+const GROUP_ROWS = 4;
+
+const showMoreTextStyle = css({ color: "neutral.fg.muted" });
 
 /** The model as DS Menu groups and items. A tick marks a picked value; a disabled row says why a list is empty. */
 const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
@@ -297,6 +320,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
       suffix: item.suffix,
       selectedStyle: "tick" as const,
       disabled: item.disabled,
+      keepOpenOnSelect: item.keepOpen,
       onClick: () => item.onPick?.(),
     })),
   }));
@@ -479,6 +503,8 @@ export const SourceMenu = ({
 }) => {
   const { document, setDocument, setUi } = useEditor();
   const [search, setSearch] = useState("");
+  // Groups opened past their first rows with "Show more".
+  const [expanded, setExpanded] = useState<string[]>([]);
   const text = (query ?? search).trim().toLowerCase();
   const kinds = acceptedKinds(document, stepId, input, entry);
 
@@ -587,9 +613,28 @@ export const SourceMenu = ({
     onPick: () => onPick(itemPropertySource(property.baseUrl)),
   }));
   const searching = text !== "";
-  const earlier = optionItems("Earlier steps");
+  // X (Figma 770:33030, ledger 2 Nov "Menu rows"): flow inputs are earlier-step rows with "Start · Flow inputs" under
+  // them, first, as Start comes first; the current item's rows are one line, in the group named after the item.
+  const flowInputs = optionItems("Flow inputs").map((row) =>
+    oldSourceGroups ? row : { ...row, description: "Start · Flow inputs" },
+  );
+  const earlier = oldSourceGroups
+    ? optionItems("Earlier steps")
+    : [...flowInputs, ...optionItems("Earlier steps")];
   const thisItem = optionItems("This item");
-  const flowInputs = optionItems("Flow inputs");
+  const itemRows = oldSourceGroups
+    ? propertyItems
+    : [
+        ...thisItem.map((row) => ({
+          ...row,
+          description: undefined,
+          icon: undefined,
+        })),
+        ...propertyItems,
+      ];
+  const currentItemName = loopId
+    ? itemName(document, loopId)
+    : options.find((option) => option.group === "This item")?.label;
   const nothingFits =
     options.length === 0 &&
     typed.length === 0 &&
@@ -600,12 +645,14 @@ export const SourceMenu = ({
      them (22 Oct): Earlier steps, Flow inputs, Lookup in graph. An empty group says why; Flow inputs then offers
      "Add flow input on Start". */
   const allGroups: SourceGroup[] = [
-    ...(propertyItems.length > 0 && loopId
+    ...(itemRows.length > 0 && currentItemName
       ? [
           {
             id: "item-properties",
-            label: itemName(document, loopId),
-            items: propertyItems,
+            label: oldSourceGroups
+              ? currentItemName
+              : `Current ${currentItemName}`,
+            items: itemRows,
           },
         ]
       : []),
@@ -644,7 +691,7 @@ export const SourceMenu = ({
               ],
             },
           ]
-        : fromSteps && !searching && flowInputs.length === 0
+        : fromSteps && !searching && (!oldSourceGroups || flowInputs.length === 0)
           ? [
               {
                 id: "Earlier steps",
@@ -662,10 +709,10 @@ export const SourceMenu = ({
               },
             ]
           : []),
-    ...(thisItem.length > 0
+    ...(oldSourceGroups && thisItem.length > 0
       ? [{ id: "This item", label: "This item", items: thisItem }]
       : []),
-    ...(fromSteps && !listsOnly && flowInputs.length > 0
+    ...(oldSourceGroups && fromSteps && !listsOnly && flowInputs.length > 0
       ? [{ id: "Flow inputs", label: "Flow inputs", items: flowInputs }]
       : []),
     // A search that finds nothing says so; with no search there is always the Start action above.
@@ -696,7 +743,11 @@ export const SourceMenu = ({
                 text: "Find entities",
                 icon: "search" as const,
                 suffix: <Icon name="chevronRight" size="xs" />,
-                hint: "Adds a Find entities step before this one",
+                // Real names and › → · only (outputs playground, "Decided"): the new step, then the step it feeds.
+                hint:
+                  oldLookupHint || !found
+                    ? "Adds a Find entities step before this one"
+                    : `Find entities → ${stepLabel(found.step)}`,
                 onPick: lookUp,
               },
             ],
@@ -721,7 +772,7 @@ export const SourceMenu = ({
       : []),
   ];
   // Inside a For each with item properties to pick, the "No earlier step gives…" rows would only add noise.
-  const groupsModel =
+  const fullGroups =
     propertyItems.length > 0
       ? allGroups
           .map((group) => ({
@@ -730,6 +781,33 @@ export const SourceMenu = ({
           }))
           .filter((group) => group.items.length > 0)
       : allGroups;
+  // The first rows of a long group, then "Show more", which opens the rest in place (ledger 2 Nov call). A search
+  // lists every match, and a group whose picked value is further down opens whole.
+  const groupsModel = fullGroups.map((group): SourceGroup => {
+    const pickedLate = group.items.some(
+      (item, index) => item.selected && index >= GROUP_ROWS,
+    );
+    return oldShowMore ||
+      searching ||
+      listsOnly ||
+      pickedLate ||
+      group.items.length <= GROUP_ROWS ||
+      expanded.includes(group.id)
+      ? group
+      : {
+          ...group,
+          items: [
+            ...group.items.slice(0, GROUP_ROWS),
+            {
+              id: `more:${group.id}`,
+              text: <span className={showMoreTextStyle}>Show more</span>,
+              hint: `${group.items.length - GROUP_ROWS} more`,
+              keepOpen: true,
+              onPick: () => setExpanded((open) => [...open, group.id]),
+            },
+          ],
+        };
+  });
 
   if (query === undefined) {
     // The DS Menu: groups, icons, descriptions and ticks as shipped; the search is its pinned header.
@@ -793,6 +871,12 @@ export const SourceMenu = ({
                       tiledPopover ? tiledPopoverRowStyle : menuRowStyle
                     }
                     title={item.hint}
+                    // "Show more" keeps the caret in the field the "@" was typed in.
+                    onMouseDown={
+                      item.keepOpen
+                        ? (event) => event.preventDefault()
+                        : undefined
+                    }
                     onClick={item.onPick}
                   >
                     {tiledPopover ? (
