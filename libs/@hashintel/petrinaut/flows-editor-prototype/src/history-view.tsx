@@ -260,6 +260,7 @@ export const RunSwitcher = ({
             <RunGlyph
               state={outcomeState[outcomeOf(candidate, now)]}
               progress={runProgress(candidate, now)}
+              warnings={outcomeOf(candidate, now) === "warnings"}
               size={14}
             />
             <span>{runMenuLabel(candidate, now)}</span>

@@ -115,6 +115,7 @@ const statusCellOf = (
       const warnings = warningsText(warningsOf(run, now));
       return {
         state,
+        warnings: true,
         text: progress ? `${progress.done} · ${warnings}` : warnings,
         detail: `${warnings} · ${facts.failures.length} of ${facts.n} certificates not fetched`,
       };

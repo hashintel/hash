@@ -548,6 +548,8 @@ export const statusColor = {
   notReached: flowsVar("notRun-mark"),
   /** The empty track of a bar or chart. */
   track: flowsVar("notRun-bar"),
+  /** A run completed with warnings: done under ?done=green, amber under ?done=neutral. */
+  warnings: flowsVar("warnings-mark"),
   onSolid: "var(--colors-neutral-bg-solid-min)",
 } as const;
 

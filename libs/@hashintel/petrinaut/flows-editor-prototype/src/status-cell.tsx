@@ -74,6 +74,7 @@ export const StatusCell = ({
   size,
   textFirst = false,
   small = false,
+  warnings = false,
 }: {
   state: StepState;
   progress?: ItemProgress;
@@ -85,14 +86,20 @@ export const StatusCell = ({
   textFirst?: boolean;
   /** Smaller, subtler text, for the step list. */
   small?: boolean;
+  /** A run that completed with warnings. */
+  warnings?: boolean;
 }) => {
   const label = text ? (
-    <span className={small ? smallTextStyle : textStyle}>
-      {text}
-    </span>
+    <span className={small ? smallTextStyle : textStyle}>{text}</span>
   ) : null;
   const glyph = (
-    <RunGlyph state={state} progress={progress} detail={detail} size={size} />
+    <RunGlyph
+      state={state}
+      progress={progress}
+      detail={detail}
+      size={size}
+      warnings={warnings}
+    />
   );
   return (
     <span className={cellStyle} data-status-cell={state}>

@@ -405,12 +405,15 @@ export const RunGlyph = ({
   progress,
   detail,
   tooltip = true,
+  warnings = false,
 }: {
   state: StepState;
   size?: number;
   progress?: GlyphProgress;
   detail?: string;
   tooltip?: boolean;
+  /** A run that completed with warnings: its done mark takes the warnings colour (amber under ?done=neutral). */
+  warnings?: boolean;
 }) => {
   const label = glyphTooltip(state, progress, detail);
   const mark =
@@ -430,7 +433,12 @@ export const RunGlyph = ({
         strokeWidth={SW}
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ color: glyphColor[state] }}
+        style={{
+          color:
+            warnings && state === "done"
+              ? statusColor.warnings
+              : glyphColor[state],
+        }}
         className={`${css({ flexShrink: 0, overflow: "visible" })}${
           state === "running" && !showsProgress(state, progress)
             ? ` ${spinStyle}`

@@ -28,6 +28,7 @@ import {
   warningsText,
 } from "./run-history";
 import { type LogRow, logRows, secondsText } from "./run-log";
+import { doneTone } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
 
@@ -320,7 +321,9 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         ? "var(--flows-running-text)"
         : outcome === "needsReview"
           ? "var(--flows-needsReview-text)"
-          : "var(--colors-neutral-fg-heading)";
+          : outcome === "warnings" && doneTone === "neutral"
+            ? "var(--flows-warnings-text)"
+            : "var(--colors-neutral-fg-heading)";
   const trigger =
     run.trigger.kind === "manual" ? `Manual · ${run.trigger.by}` : "Schedule";
   const duration = live
@@ -498,7 +501,9 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
                 setOpenIds((current) => ({ ...current, loop: true }))
               }
             >
-              {outcome === "warnings" ? warningsText(failed) : `${failed} failed`}
+              {outcome === "warnings"
+                ? warningsText(failed)
+                : `${failed} failed`}
             </Button>
           ) : null}
         </div>
