@@ -97,11 +97,24 @@ export const sectionTitleStyle = css({
   color: "neutral.fg.heading",
 });
 
+/**
+ * `?labelcol=old`: the label column capped at 120 px, as before ledger 21 Oct's `minmax(88px, 30%)` was built in
+ * full. Read from the URL only and never remembered.
+ */
+export const oldLabelColumn =
+  new URLSearchParams(globalThis.location.search).get("labelcol") === "old";
+
+export const oldLabelColumnStyle = css({
+  "&[class]": {
+    gridTemplateColumns: "minmax(88px, min(30%, 120px)) minmax(0, 1fr)",
+  },
+});
+
 const sectionGridStyle = css({
   display: "grid",
   // One label column for the whole panel (Aakarsh, 21 Oct; ops/research/panel-label-layout): every value starts at
   // the same x in every section. Long labels truncate and show in full on hover.
-  gridTemplateColumns: "minmax(88px, min(30%, 120px)) minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
   columnGap: "2",
   rowGap: "2",
   // Baselines line the label up with the first line of any value: a chip, a field or plain text.
@@ -142,7 +155,15 @@ export const Section = ({
         {action}
       </div>
     ) : null}
-    <div className={cx(sectionGridStyle, gridClassName)}>{children}</div>
+    <div
+      className={cx(
+        sectionGridStyle,
+        oldLabelColumn && oldLabelColumnStyle,
+        gridClassName,
+      )}
+    >
+      {children}
+    </div>
   </section>
 );
 

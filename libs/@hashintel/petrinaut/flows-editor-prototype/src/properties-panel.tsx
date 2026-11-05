@@ -89,6 +89,8 @@ import {
   kindLabel,
   mutedTextStyle,
   OriginMark,
+  oldLabelColumn,
+  oldLabelColumnStyle,
   oldPanelHeader,
   panelHeaderStyle,
   panelKindTake,
@@ -1127,6 +1129,7 @@ const RunFormFields = () => {
           key={input.name}
           className={cx(
             inputBlockStyle,
+            oldLabelColumn && oldLabelColumnStyle,
             index > 0
               ? css({
                   paddingTop: "2",
