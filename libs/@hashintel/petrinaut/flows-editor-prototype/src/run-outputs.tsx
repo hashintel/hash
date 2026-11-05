@@ -41,6 +41,7 @@ import {
   Drawer,
   Icon,
   type IconName,
+  Menu,
   Tooltip,
   usePortalContainerRef,
 } from "@hashintel/ds-components";
@@ -98,6 +99,20 @@ export const useEmailRowTake = (): EmailRowTake => {
 export const useEdgeCase = (): number | null => {
   const value = Number(useLocation().query.get("edgecase"));
   return Number.isInteger(value) && value >= 1 && value <= 6 ? value : null;
+};
+
+/**
+ * ?entityswitch=a|b|c (inbox `picks/entity-types`, Aakarsh 5 Nov: "it's not clear how one switches between the types"):
+ * how the inline column moves between types in a list of several. URL only; no param is today's stacked sections.
+ * a. Stacked sections: a heading and count per type, scroll moves between them, each with "+ N more".
+ * b. Type tabs at the top: "Suppliers 14 · Distributors 6", each tab its own list.
+ * c. A type filter in the list header: "All types ▾", or one type.
+ */
+export type EntitySwitchTake = "a" | "b" | "c" | null;
+
+export const useEntitySwitch = (): EntitySwitchTake => {
+  const value = useLocation().query.get("entityswitch")?.toLowerCase();
+  return value === "a" || value === "b" || value === "c" ? value : null;
 };
 
 export type EntityTypesTake = "a" | "b";
@@ -1445,12 +1460,16 @@ const FileFacts = ({ file, run }: { file: OutputFile; run: RunRecord }) => {
           ["To", `${file.contact} · ${file.to}`],
           ["Supplier", file.supplier],
           ["Sent", `${run.when.split(",")[0]}, ${file.sentAt}`],
-          ...(file.bounce ? [["Bounced", file.bounce] as [string, string]] : []),
+          ...(file.bounce
+            ? [["Bounced", file.bounce] as [string, string]]
+            : []),
           ["Attachment", file.attachment],
           ["Message ID", file.messageId],
         ];
   const bounced = file.kind === "email" && file.delivery === "bounced";
-  const good = (file.kind === "email" && !bounced) || (file.kind === "certificate" && !file.expiring);
+  const good =
+    (file.kind === "email" && !bounced) ||
+    (file.kind === "certificate" && !file.expiring);
   const tone = bounced ? "failed" : good ? "done" : "needsReview";
   return (
     <dl className={factsGridStyle}>
@@ -2012,29 +2031,29 @@ const MixedBody = ({
               sent: blank,
             }))
           : group.files.map((file, index) => ({
-            key: `${group.type}.${file.supplier}`,
-            name: (
-              <button
-                type="button"
-                className={linkStyle}
-                data-output-file={file.kind}
-                onClick={() =>
-                  openFilesIn(
-                    onChange,
-                    group.files,
-                    groupLabel[group.type][1],
-                  )(index)
-                }
-              >
-                {fileTitle(file)}
-              </button>
-            ),
-            type: group.type,
-            supplier: file.supplier,
-            contact: file.kind === "email" ? file.contact : blank,
-            validUntil: file.kind === "certificate" ? file.validUntil : blank,
-            sent: file.kind === "email" ? file.sentAt : blank,
-          })),
+              key: `${group.type}.${file.supplier}`,
+              name: (
+                <button
+                  type="button"
+                  className={linkStyle}
+                  data-output-file={file.kind}
+                  onClick={() =>
+                    openFilesIn(
+                      onChange,
+                      group.files,
+                      groupLabel[group.type][1],
+                    )(index)
+                  }
+                >
+                  {fileTitle(file)}
+                </button>
+              ),
+              type: group.type,
+              supplier: file.supplier,
+              contact: file.kind === "email" ? file.contact : blank,
+              validUntil: file.kind === "certificate" ? file.validUntil : blank,
+              sent: file.kind === "email" ? file.sentAt : blank,
+            })),
     );
     return (
       <div className={tableScrollStyle}>
@@ -2561,6 +2580,61 @@ const listStackStyle = css({
 
 /** How many rows a group shows before "+ N more". */
 const groupPeek = 5;
+
+/** ?entityswitch=b: the type tabs, the status tabs' family at the column's size (regular weight, faint fill when on). */
+const typeTabsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  marginLeft: "[-8px]",
+});
+
+const typeTabStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  height: "[28px]",
+  paddingX: "2",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  textStyle: "sm",
+  color: "neutral.fg.muted",
+  cursor: "pointer",
+  "& > span": { color: "neutral.fg.subtle" },
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  "&[aria-selected=true]": {
+    color: "neutral.fg.heading",
+    backgroundColor: "neutral.a10",
+  },
+  _focusVisible: {
+    outline: "none",
+    boxShadow: "[0 0 0 2px var(--colors-neutral-a20)]",
+  },
+});
+
+/** ?entityswitch=c: the filter trigger reads as the list's header, a quiet chevron after it. */
+const typeFilterStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  alignSelf: "flex-start",
+  height: "[28px]",
+  marginLeft: "[-8px]",
+  paddingX: "2",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  textStyle: "sm",
+  color: "neutral.fg.heading",
+  cursor: "pointer",
+  "& > span": { color: "neutral.fg.subtle" },
+  "& svg": { color: "neutral.fg.subtle" },
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  "&[data-state=open], &[aria-expanded=true]": {
+    backgroundColor: "neutral.bg.surface.hover",
+  },
+});
 const flatPeek = 12;
 
 /** A list in the column: by type (A), or one list with each row's type (B). */
@@ -2573,8 +2647,11 @@ const ColumnList = ({
 }) => {
   const take = useEntityTypesTake();
   const edge = useEdgeCase() !== null;
+  const switchTake = useEntitySwitch();
   const groups = groupsOf(view);
   const [shownAll, setShownAll] = useState<string[]>([]);
+  /** The type ?entityswitch=b's tab or c's filter shows; null is the first tab (b) or all types (c). */
+  const [picked, setPicked] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const focus = view.kind === "mixed" ? view.focus : undefined;
   useEffect(() => {
@@ -2608,13 +2685,13 @@ const ColumnList = ({
               <FailureLine key={failure.supplier} failure={failure} />
             ))
           : group.files.map((file, index) => (
-            <FileRow
-              key={`${group.type}.${file.supplier}`}
-              file={file}
-              tag={group.type}
-              onOpen={() => openFile(group)(index)}
-            />
-          )),
+              <FileRow
+                key={`${group.type}.${file.supplier}`}
+                file={file}
+                tag={group.type}
+                onOpen={() => openFile(group)(index)}
+              />
+            )),
     );
     const all = shownAll.includes("flat");
     return (
@@ -2628,13 +2705,74 @@ const ColumnList = ({
       </div>
     );
   }
+  const switching = groups.length > 1 && switchTake !== null;
+  const tabbed = switching && switchTake === "b";
+  const current = tabbed ? (picked ?? groups[0]!.type) : picked;
+  const visible =
+    switching && switchTake !== "a" && current
+      ? groups.filter((group) => group.type === current)
+      : groups;
+  const total = groups.reduce((sum, group) => sum + groupSize(group), 0);
   return (
     <div
       ref={listRef}
       className={css({ display: "flex", flexDirection: "column", gap: "6" })}
       data-column-list="a"
+      data-entity-switch={switching ? switchTake : undefined}
     >
-      {groups.map((group) => {
+      {tabbed ? (
+        <div role="tablist" aria-label="Types" className={typeTabsStyle}>
+          {groups.map((group) => (
+            <button
+              key={group.type}
+              type="button"
+              role="tab"
+              aria-selected={group.type === current}
+              className={typeTabStyle}
+              data-type-tab={group.type}
+              onClick={() => setPicked(group.type)}
+            >
+              {groupLabel[group.type][1]}
+              <span>{groupSize(group)}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {switching && switchTake === "c" ? (
+        <Menu
+          position="bottom-start"
+          items={[
+            {
+              id: "all",
+              text: "All types",
+              suffix: String(total),
+              selected: current === null,
+              onClick: () => setPicked(null),
+            },
+            ...groups.map((group) => ({
+              id: group.type,
+              text: groupLabel[group.type][1],
+              suffix: String(groupSize(group)),
+              selected: current === group.type,
+              onClick: () => setPicked(group.type),
+            })),
+          ]}
+          trigger={
+            <button type="button" className={typeFilterStyle} data-type-filter>
+              {current
+                ? groupLabel[current as OutputGroup["type"]][1]
+                : "All types"}
+              <span>
+                {current
+                  ? groupSize(groups.find((group) => group.type === current)!)
+                  : total}
+              </span>
+              <Icon name="chevronDown" size="sm" />
+            </button>
+          }
+        />
+      ) : null}
+      {visible.map((group) => {
         const all = shownAll.includes(group.type);
         const size = groupSize(group);
         const shown = all ? size : Math.min(size, groupPeek);
@@ -2649,7 +2787,7 @@ const ColumnList = ({
               scrollMarginTop: "6",
             })}
           >
-            {groups.length > 1 ? (
+            {visible.length > 1 ? (
               <div className={columnGroupHeadStyle}>
                 {groupLabel[group.type][1]}
                 <span>{size}</span>
@@ -2673,14 +2811,14 @@ const ColumnList = ({
                         <FailureLine key={failure.supplier} failure={failure} />
                       ))
                   : group.files
-                    .slice(0, shown)
-                    .map((file, index) => (
-                      <FileRow
-                        key={file.supplier}
-                        file={file}
-                        onOpen={() => openFile(group)(index)}
-                      />
-                    ))}
+                      .slice(0, shown)
+                      .map((file, index) => (
+                        <FileRow
+                          key={file.supplier}
+                          file={file}
+                          onOpen={() => openFile(group)(index)}
+                        />
+                      ))}
             </div>
             <MoreButton
               hidden={size - shown}
@@ -3059,8 +3197,7 @@ const supplierColumns = {
   tier: { label: "Tier", cell: (row: SupplierEntity) => tierOf(row.item) },
   validTo: {
     label: "Certificate valid to",
-    cell: (row: SupplierEntity) =>
-      certificateOf(row.name, row.item).validUntil,
+    cell: (row: SupplierEntity) => certificateOf(row.name, row.item).validUntil,
   },
   lastReview: {
     label: "Last review",
@@ -3114,15 +3251,14 @@ const edgeCaseOf = (
         },
       };
     case 2: {
-      const rows = outputs.entities.map(
-        (row): SupplierEntity =>
-          row.item % 3 === 2
-            ? {
-                ...row,
-                type: "Distributor",
-                region: regions[Math.floor(row.item / 3) % regions.length]!,
-              }
-            : row,
+      const rows = outputs.entities.map((row): SupplierEntity =>
+        row.item % 3 === 2
+          ? {
+              ...row,
+              type: "Distributor",
+              region: regions[Math.floor(row.item / 3) % regions.length]!,
+            }
+          : row,
       );
       const distributor = ["Distributor" as const];
       const supplier = ["Supplier" as const];
@@ -3298,217 +3434,218 @@ export const StepOutputs = ({
         onOpen={() => open(view)}
       />
     );
-  } else switch (stepId) {
-    case "findSuppliers":
-      body = (
-        <EntityOutput
-          label="Entities"
-          icon="cubes"
-          count={entityCount(outputs.entities, typesTake)}
-          names={names(outputs.entities)}
-          flagged={flagged("entities")}
-          onOpen={() => open(views.suppliers)}
-        />
-      );
-      break;
-    case forEachId: {
-      // What the loop's body made, three types at once: the mixed list the containers are compared on.
-      const view = loopView(outputs, typesTake);
-      body = (
-        <EntityOutput
-          label="Each supplier's outputs"
-          icon="cubes"
-          count={view.title}
-          names={names(outputs.updated)}
-          onOpen={() => open(view)}
-        />
-      );
-      break;
-    }
-    case "readName":
-    case "readEmail":
-    case "readCertificateLink": {
-      const property =
-        stepId === "readName"
-          ? "Name"
-          : stepId === "readEmail"
-            ? "Contact email"
-            : "Certificate link";
-      const view = views.values(property);
-      body = (
-        <EntityOutput
-          label="Values"
-          icon="text"
-          count={plural(outputs.entities.length, "value")}
-          flagged={flagged("value")}
-          names={outputs.entities.map((row) => {
-            const cell = view.columns.at(-1)!.cell(row);
-            return typeof cell === "string" ? cell : row.name;
-          })}
-          onOpen={() => open(view)}
-        />
-      );
-      break;
-    }
-    case "markReviewed":
-      body = (
-        <EntityOutput
-          label="Entities"
-          icon="cubes"
-          count={`${entityCount(outputs.updated, typesTake)} updated`}
-          names={names(outputs.updated)}
-          flagged={flagged("entityId")}
-          onOpen={() => open(views.reviewed)}
-        />
-      );
-      break;
-    case "fetchCertificate": {
-      const files = outputs.certificates;
-      const list = (
-        <FileList
-          take={take}
-          files={files}
-          title={
-            take === "d"
-              ? `Files · ${plural(files.length, "PDF")}`
-              : `Certificates · ${plural(files.length, "PDF")}`
-          }
-          linkOut={
-            <LinkOut
-              label={take === "d" ? "Open all" : "Open all in Files"}
-              tooltip="Opens these File entities in HASH (not in the prototype)"
-            />
-          }
-          flagged={flagged("fileEntity")}
-          footer={
-            take === "a"
-              ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · used by Send review email`
-              : undefined
-          }
-          onOpen={openFiles(files, "Fetch certificate")}
-        />
-      );
-      const failures = <Failures failures={outputs.failures} />;
-      body =
-        take === "c" ? (
-          <>
-            {list}
-            {failures}
-          </>
-        ) : take === "d" ? (
-          <>
-            {failures}
-            {list}
-            <EntityOutput
-              label={`Entities · ${files.length} Supplier updated`}
-              icon="cubes"
-              count="Certificate, Certificate expiry"
-              names={names(outputs.entities.filter((row) => row.certificate))}
-              onOpen={() => open(views.reviewed)}
-            />
-            <Block
-              title={`Table · certificates.csv · ${plural(files.length, "row")}`}
-              action={
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  tone="neutral"
-                  className={linkOutStyle}
-                  onClick={() => open(views.reviewed)}
-                >
-                  Open
-                </Button>
-              }
-            >
-              <div className={boxStyle}>
-                <table className={miniTableStyle}>
-                  <thead>
-                    <tr>
-                      <th>name</th>
-                      <th>status</th>
-                      <th>expiry</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {files.slice(0, 3).map((file) => (
-                      <tr key={file.supplier}>
-                        <td>{file.supplier}</td>
-                        <td>
-                          {file.kind === "certificate" && file.expiring
-                            ? "expiring"
-                            : "valid"}
-                        </td>
-                        <td>
-                          {file.kind === "certificate" ? file.validUntil : ""}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Block>
-          </>
-        ) : (
-          <>
-            {failures}
-            {list}
-          </>
+  } else
+    switch (stepId) {
+      case "findSuppliers":
+        body = (
+          <EntityOutput
+            label="Entities"
+            icon="cubes"
+            count={entityCount(outputs.entities, typesTake)}
+            names={names(outputs.entities)}
+            flagged={flagged("entities")}
+            onOpen={() => open(views.suppliers)}
+          />
         );
-      break;
-    }
-    case "sendReviewEmail": {
-      const files = outputs.emails;
-      const skipped = outputs.failures.length;
-      body = (
-        <>
+        break;
+      case forEachId: {
+        // What the loop's body made, three types at once: the mixed list the containers are compared on.
+        const view = loopView(outputs, typesTake);
+        body = (
+          <EntityOutput
+            label="Each supplier's outputs"
+            icon="cubes"
+            count={view.title}
+            names={names(outputs.updated)}
+            onOpen={() => open(view)}
+          />
+        );
+        break;
+      }
+      case "readName":
+      case "readEmail":
+      case "readCertificateLink": {
+        const property =
+          stepId === "readName"
+            ? "Name"
+            : stepId === "readEmail"
+              ? "Contact email"
+              : "Certificate link";
+        const view = views.values(property);
+        body = (
+          <EntityOutput
+            label="Values"
+            icon="text"
+            count={plural(outputs.entities.length, "value")}
+            flagged={flagged("value")}
+            names={outputs.entities.map((row) => {
+              const cell = view.columns.at(-1)!.cell(row);
+              return typeof cell === "string" ? cell : row.name;
+            })}
+            onOpen={() => open(view)}
+          />
+        );
+        break;
+      }
+      case "markReviewed":
+        body = (
+          <EntityOutput
+            label="Entities"
+            icon="cubes"
+            count={`${entityCount(outputs.updated, typesTake)} updated`}
+            names={names(outputs.updated)}
+            flagged={flagged("entityId")}
+            onOpen={() => open(views.reviewed)}
+          />
+        );
+        break;
+      case "fetchCertificate": {
+        const files = outputs.certificates;
+        const list = (
           <FileList
             take={take}
             files={files}
-            title={`Emails · ${files.length} sent`}
-            flagged={flagged("messageId")}
+            title={
+              take === "d"
+                ? `Files · ${plural(files.length, "PDF")}`
+                : `Certificates · ${plural(files.length, "PDF")}`
+            }
             linkOut={
               <LinkOut
-                label="Open in Mail"
-                tooltip="Opens the sent emails (not in the prototype)"
+                label={take === "d" ? "Open all" : "Open all in Files"}
+                tooltip="Opens these File entities in HASH (not in the prototype)"
               />
             }
+            flagged={flagged("fileEntity")}
             footer={
-              skipped > 0
-                ? `${plural(skipped, "supplier")} skipped: no certificate to send`
+              take === "a"
+                ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · used by Send review email`
                 : undefined
             }
-            onOpen={openFiles(files, "Send review email")}
+            onOpen={openFiles(files, "Fetch certificate")}
           />
-          {take === "d" && files[0] ? (
-            <Block title="Text · email body">
-              <button
-                type="button"
-                className={cx(
-                  boxStyle,
-                  css({
-                    padding: "3",
-                    textAlign: "left",
-                    background: "[transparent]",
-                    cursor: "pointer",
-                    textStyle: "xs",
-                    lineHeight: "[18px]",
-                    color: "neutral.fg.muted",
-                    _hover: { borderColor: "neutral.bd.solid" },
-                  }),
-                )}
-                onClick={() => openFiles(files, "Send review email")(0)}
+        );
+        const failures = <Failures failures={outputs.failures} />;
+        body =
+          take === "c" ? (
+            <>
+              {list}
+              {failures}
+            </>
+          ) : take === "d" ? (
+            <>
+              {failures}
+              {list}
+              <EntityOutput
+                label={`Entities · ${files.length} Supplier updated`}
+                icon="cubes"
+                count="Certificate, Certificate expiry"
+                names={names(outputs.entities.filter((row) => row.certificate))}
+                onOpen={() => open(views.reviewed)}
+              />
+              <Block
+                title={`Table · certificates.csv · ${plural(files.length, "row")}`}
+                action={
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    tone="neutral"
+                    className={linkOutStyle}
+                    onClick={() => open(views.reviewed)}
+                  >
+                    Open
+                  </Button>
+                }
               >
-                {files[0].body.slice(0, 2).join(" ")}
-              </button>
-            </Block>
-          ) : null}
-        </>
-      );
-      break;
+                <div className={boxStyle}>
+                  <table className={miniTableStyle}>
+                    <thead>
+                      <tr>
+                        <th>name</th>
+                        <th>status</th>
+                        <th>expiry</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {files.slice(0, 3).map((file) => (
+                        <tr key={file.supplier}>
+                          <td>{file.supplier}</td>
+                          <td>
+                            {file.kind === "certificate" && file.expiring
+                              ? "expiring"
+                              : "valid"}
+                          </td>
+                          <td>
+                            {file.kind === "certificate" ? file.validUntil : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Block>
+            </>
+          ) : (
+            <>
+              {failures}
+              {list}
+            </>
+          );
+        break;
+      }
+      case "sendReviewEmail": {
+        const files = outputs.emails;
+        const skipped = outputs.failures.length;
+        body = (
+          <>
+            <FileList
+              take={take}
+              files={files}
+              title={`Emails · ${files.length} sent`}
+              flagged={flagged("messageId")}
+              linkOut={
+                <LinkOut
+                  label="Open in Mail"
+                  tooltip="Opens the sent emails (not in the prototype)"
+                />
+              }
+              footer={
+                skipped > 0
+                  ? `${plural(skipped, "supplier")} skipped: no certificate to send`
+                  : undefined
+              }
+              onOpen={openFiles(files, "Send review email")}
+            />
+            {take === "d" && files[0] ? (
+              <Block title="Text · email body">
+                <button
+                  type="button"
+                  className={cx(
+                    boxStyle,
+                    css({
+                      padding: "3",
+                      textAlign: "left",
+                      background: "[transparent]",
+                      cursor: "pointer",
+                      textStyle: "xs",
+                      lineHeight: "[18px]",
+                      color: "neutral.fg.muted",
+                      _hover: { borderColor: "neutral.bd.solid" },
+                    }),
+                  )}
+                  onClick={() => openFiles(files, "Send review email")(0)}
+                >
+                  {files[0].body.slice(0, 2).join(" ")}
+                </button>
+              </Block>
+            ) : null}
+          </>
+        );
+        break;
+      }
+      default:
+        return null;
     }
-    default:
-      return null;
-  }
   return (
     <div ref={anchor} className={panelStackStyle} data-step-outputs={take}>
       {body}
