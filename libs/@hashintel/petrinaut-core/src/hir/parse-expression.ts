@@ -96,20 +96,6 @@ type Token = { start: number; end: number } & (
   | { kind: "end" }
 );
 
-const NUMBER_PATTERN =
-  /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/;
-const IDENTIFIER_PATTERN = /[A-Za-z_$][A-Za-z0-9_$]*/;
-const WHITESPACE_PATTERN = /\s+/;
-
-/** Matches `pattern` exactly at an index of `source`. */
-const stickyMatcher = (pattern: RegExp, source: string) => {
-  const sticky = new RegExp(pattern.source, "y");
-  return (index: number): RegExpExecArray | null => {
-    sticky.lastIndex = index;
-    return sticky.exec(source);
-  };
-};
-
 const punctuatorAt = (source: string, index: number): Punctuator | undefined =>
   PUNCTUATORS.find((candidate) => source.startsWith(candidate, index));
 
@@ -166,7 +152,11 @@ function readString(source: string, start: number): Token {
     if (escaped === "u" || escaped === "x") {
       const digits = escaped === "u" ? 4 : 2;
       const hex = source.slice(index + 2, index + 2 + digits);
-      if (!new RegExp(`^[0-9a-fA-F]{${digits}}$`).test(hex)) {
+      const wellFormed =
+        digits === 4
+          ? /^[0-9a-fA-F]{4}$/.test(hex)
+          : /^[0-9a-fA-F]{2}$/.test(hex);
+      if (!wellFormed) {
         return fail("Invalid escape sequence.", index, index + 2 + digits);
       }
       value += String.fromCharCode(Number.parseInt(hex, 16));
@@ -181,12 +171,16 @@ function readString(source: string, start: number): Token {
 
 function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
-  const matchWhitespace = stickyMatcher(WHITESPACE_PATTERN, source);
-  const matchNumber = stickyMatcher(NUMBER_PATTERN, source);
-  const matchIdentifier = stickyMatcher(IDENTIFIER_PATTERN, source);
+  // Sticky patterns match at `lastIndex` only. They are declared here, per
+  // call, so no module-level regex carries scanning state between calls.
+  const whitespacePattern = /\s+/y;
+  const numberPattern =
+    /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
+  const identifierPattern = /[A-Za-z_$][A-Za-z0-9_$]*/y;
   let index = 0;
   while (index < source.length) {
-    const whitespace = matchWhitespace(index);
+    whitespacePattern.lastIndex = index;
+    const whitespace = whitespacePattern.exec(source);
     if (whitespace) {
       index += whitespace[0].length;
       continue;
@@ -204,7 +198,8 @@ function tokenize(source: string): Token[] {
       index = close + 2;
       continue;
     }
-    const number = matchNumber(index);
+    numberPattern.lastIndex = index;
+    const number = numberPattern.exec(source);
     if (number) {
       const raw = number[0];
       // Strict-mode JavaScript, which the other surfaces are, has no legacy
@@ -222,7 +217,8 @@ function tokenize(source: string): Token[] {
       index += raw.length;
       continue;
     }
-    const identifier = matchIdentifier(index);
+    identifierPattern.lastIndex = index;
+    const identifier = identifierPattern.exec(source);
     if (identifier) {
       tokens.push({
         kind: "identifier",
