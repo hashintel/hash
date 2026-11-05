@@ -28,7 +28,6 @@ import type { ReactNode } from "react";
 
 type StepsUsing = ReturnType<typeof indexValueUses>;
 
-/** Whether an input takes a query for entities, which the query builder edits. */
 const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
   input.oneOfPayloadKinds.includes("EntityQuery");

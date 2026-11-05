@@ -122,7 +122,7 @@ const getFilterValue = (
     ? { key: condition.operator, value: condition.value }
     : { key: condition.operator, value: null };
 
-/** One condition as a filter chip: the property, then the operator and value. Commits once its value is complete. */
+/** Commits once its value is complete. */
 const ConditionFilter = ({
   rowKey,
   property,
@@ -182,7 +182,6 @@ const ConditionFilter = ({
   );
 };
 
-/** Picks the property for a new condition, from those of the picked types. */
 const AddConditionMenu = ({
   properties,
   onPick,
@@ -238,9 +237,8 @@ const AddConditionMenu = ({
 };
 
 /**
- * A query for entities, built from the types to find, conditions on their dates and statuses, a sort order and a
- * limit. Each change saves the whole query. A query the builder didn't make shows read-only, as it runs; one from a
- * flow input or an earlier step shows as any other input does.
+ * Each change saves the whole query. A query the builder didn't make shows read-only, as it runs; one from a flow
+ * input or an earlier step shows as any other input does.
  */
 export const QueryField = (props: ComponentProps<typeof InputField>) => {
   const { editor, stepId, input, source, problems, readOnly } = props;
