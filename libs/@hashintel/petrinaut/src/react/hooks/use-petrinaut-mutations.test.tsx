@@ -69,8 +69,11 @@ const editorContextValue = (
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
-  toggleVisualizerPin: () => {},
+  keepPlaceVisualizerOpen: () => {},
+  closePlaceVisualizer: () => {},
   openPlaceVisualizer: () => {},
+  setVisualizerEditorFocus: () => {},
+  bringVisualizerToFront: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},
@@ -446,4 +449,79 @@ test("allowed scenario mutations in Simulate stay quiet", () => {
   );
   expect(instance.definition.get().scenarios).toHaveLength(1);
   expect(addNotification).not.toHaveBeenCalled();
+});
+
+describe("visualizer edits during simulation", () => {
+  const place = {
+    id: "p1",
+    name: "Place",
+    colorId: null,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    x: 0,
+    y: 0,
+    visualizerCode: "original",
+  };
+  test.each(["Running", "Paused", "Complete"] as const)(
+    "allows only visualizer updates while %s",
+    (simulationState) => {
+      const { Wrapper, instance } = createWrapper({
+        sdcpn: makeSDCPN({ places: [place] }),
+        simulationState,
+      });
+      const { result } = renderHook(usePetrinautMutations, {
+        wrapper: Wrapper,
+      });
+      act(() =>
+        result.current.updatePlace({
+          placeId: "p1",
+          update: { visualizerCode: "edited" },
+        }),
+      );
+      expect(instance.definition.get().places[0]?.visualizerCode).toBe(
+        "edited",
+      );
+      act(() =>
+        result.current.updatePlace({
+          placeId: "p1",
+          update: { visualizerCode: "blocked", name: "Changed" },
+        }),
+      );
+      expect(instance.definition.get().places[0]).toMatchObject({
+        name: "Place",
+        visualizerCode: "edited",
+      });
+      act(() =>
+        result.current.updatePlace({
+          placeId: "p1",
+          update: { visualizerCode: undefined },
+        }),
+      );
+      expect(
+        instance.definition.get().places[0]?.visualizerCode,
+      ).toBeUndefined();
+    },
+  );
+  test.each([false, true])(
+    "respects host read-only in simulate mode: %s",
+    (readonly) => {
+      const { Wrapper, instance } = createWrapper({
+        sdcpn: makeSDCPN({ places: [place] }),
+        globalMode: "simulate",
+        readonly,
+      });
+      const { result } = renderHook(usePetrinautMutations, {
+        wrapper: Wrapper,
+      });
+      act(() =>
+        result.current.updatePlace({
+          placeId: "p1",
+          update: { visualizerCode: "edited" },
+        }),
+      );
+      expect(instance.definition.get().places[0]?.visualizerCode).toBe(
+        readonly ? "original" : "edited",
+      );
+    },
+  );
 });

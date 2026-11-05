@@ -44,8 +44,7 @@ export default Visualization(({ tokens }) => {
   const height = 170;
   const visible = tokens.slice(0, 20);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px" }}>
-      <rect width={width} height={height} rx="10" fill="#eff6ff" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#eff6ff" }}>
       <text x="18" y="28" fill="#1e3a8a" fontSize="18" fontWeight="700">Release queue</text>
       <text x="18" y="50" fill="#2563eb" fontSize="13">{tokens.length} waiting; hotter cards are riskier</text>
       {visible.map((deployment, index) => {
@@ -84,8 +83,7 @@ export default Visualization(({ tokens }) => {
   const height = 170;
   const visible = tokens.slice(0, 10);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px" }}>
-      <rect width={width} height={height} rx="10" fill="#fff1f2" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#fff1f2" }}>
       <text x="18" y="30" fill="#991b1b" fontSize="18" fontWeight="700">Incident bridge</text>
       <text x="18" y="52" fill="#dc2626" fontSize="13">Inhibits new deployments while any card is present</text>
       {visible.length === 0 && <text x="18" y="98" fill="#16a34a" fontSize="18">No active incident — deploy gate open</text>}
@@ -128,8 +126,7 @@ export default Visualization(({ tokens }) => {
   const size = deployment ? deployment.size : 0;
   const progress = deployment ? Math.max(0.08, Math.min(1, age / Math.max(1, size * 6))) : 0;
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px" }}>
-      <rect width={width} height={height} rx="10" fill="#ecfeff" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#ecfeff" }}>
       <text x="18" y="30" fill="#155e75" fontSize="18" fontWeight="700">Deployment lane</text>
       {!deployment && <text x="18" y="88" fill="#0891b2" fontSize="18">Idle — ready for next safe release</text>}
       {deployment && (
@@ -163,8 +160,7 @@ export default Visualization(({ tokens }) => {
   const height = 160;
   const visible = tokens.slice(-24);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px" }}>
-      <rect width={width} height={height} rx="10" fill="#f0fdf4" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#f0fdf4" }}>
       <text x="18" y="30" fill="#166534" fontSize="18" fontWeight="700">Successful releases</text>
       <text x="18" y="54" fill="#16a34a" fontSize="13">{tokens.length} completed deployments</text>
       {visible.map((deployment, index) => {
@@ -198,8 +194,7 @@ export default Visualization(({ tokens }) => {
   const height = 150;
   const visible = tokens.slice(-18);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px" }}>
-      <rect width={width} height={height} rx="10" fill="#f8fafc" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#f8fafc" }}>
       <text x="18" y="30" fill="#334155" fontSize="18" fontWeight="700">Closed incidents</text>
       <text x="18" y="52" fill="#64748b" fontSize="13">{tokens.length} resolved tickets</text>
       {visible.map((incident, index) => {
@@ -233,8 +228,7 @@ export default Visualization(({ tokens }) => {
   const height = 160;
   const visible = tokens.slice(-18);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px" }}>
-      <rect width={width} height={height} rx="10" fill="#1f2937" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "6px", backgroundColor: "#1f2937" }}>
       <text x="18" y="30" fill="#fecaca" fontSize="18" fontWeight="700">Failed releases</text>
       <text x="18" y="54" fill="#fca5a5" fontSize="13">{tokens.length} rollback / incident-generating deploys</text>
       {visible.map((deployment, index) => {

@@ -1,10 +1,11 @@
-import { createContext, use } from "react";
+import { createContext, use, useState } from "react";
 
 import {
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautNavigation } from "../../react/navigation";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { EditorContext } from "../../react/state/editor-context";
 import { SDCPNContext } from "../../react/state/sdcpn-context";
@@ -26,18 +27,26 @@ type CodeEntry = {
 type CodeNavigation = {
   enabled: boolean;
   entries: CodeEntry[];
-  open: (path: string) => void;
+  open: (path: string, options?: { maximize?: boolean }) => void;
+  focusRequest: { path: string } | null;
+  acknowledgeFocus: (path: string) => void;
 };
 
 const CodeNavigationContext = createContext<CodeNavigation>({
   enabled: false,
   entries: [],
   open: () => {},
+  focusRequest: null,
+  acknowledgeFocus: () => {},
 });
 
 export const useCodeNavigation = () => use(CodeNavigationContext);
 
 export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
+  const navigation = usePetrinautNavigation();
+  const [focusRequest, setFocusRequest] = useState<{ path: string } | null>(
+    null,
+  );
   const { activeNet } = use(ActiveNetContext);
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   const { selectItem } = use(EditorContext);
@@ -112,14 +121,28 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
   const value: CodeNavigation = {
     enabled,
     entries,
-    open: (path: string) => {
+    focusRequest,
+    acknowledgeFocus: (path) =>
+      setFocusRequest((request) => (request?.path === path ? null : request)),
+    open: (path, options) => {
       const entry = entries.find((candidate) => candidate.path === path);
       if (!enabled || !entry) return;
       updateSubViewSection(entry.panel, entry.section, {
         ...subViewPanels[entry.panel]?.[entry.section],
         collapsed: false,
       });
-      selectItem(entry.selection);
+      if (options?.maximize) {
+        navigation.navigate(
+          {
+            selection: [entry.selection],
+            expandedSubView: { container: entry.panel, id: entry.section },
+          },
+          { cause: "user", action: "subview" },
+        );
+        setFocusRequest({ path });
+      } else {
+        selectItem(entry.selection);
+      }
     },
   };
   return (

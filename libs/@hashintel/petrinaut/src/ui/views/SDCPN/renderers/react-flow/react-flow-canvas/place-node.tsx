@@ -54,16 +54,9 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   // A frame re-renders this place only when its own count moves.
   const tokenCount = usePlaceTokenCount(id);
 
-  // Show the visualizer on hover for places that define one, and keep it up
-  // for as long as it is pinned. Before a run it draws the initial marking,
-  // so a net still being built is worth pointing at too.
   const showStateTooltip =
-    data.hasColorType &&
     data.hasVisualizer &&
-    // Dragging the place would carry the box along over the canvas it is
-    // being dropped on, and redraw the visualizer every frame of the drag.
-    !data.dragging &&
-    (data.hovered || data.visualizerPinned);
+    (data.visualizerKeptOpen || data.visualizerActive || selected);
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
