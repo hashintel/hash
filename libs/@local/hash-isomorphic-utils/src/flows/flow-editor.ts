@@ -214,6 +214,15 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       };
     },
 
+    /** Giving the flow the name it has isn't an edit, so nothing is saved. */
+    setName: (name: string) => {
+      if (name === state.flowDefinition.name) {
+        return;
+      }
+
+      setFlowDefinition({ ...state.flowDefinition, name });
+    },
+
     /** Adds a step that runs an action, with no inputs yet, returning its id. */
     addStep: (actionDefinitionId: string, placement: NewStepPlacement) => {
       const stepId = newStepId(state.flowDefinition, actionDefinitionId);
