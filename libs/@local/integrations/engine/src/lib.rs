@@ -23,6 +23,7 @@ mod pipeline;
 mod progress;
 mod sources;
 mod sql;
+mod storage;
 mod variant_name;
 mod workspace;
 
@@ -39,6 +40,7 @@ pub use self::{
         CaptureLimits, CaptureRun, CaptureStore, GraphVaultConfig, GraphVaultSecretStore,
         SecretStore, SecretValue, SourceError, SourceReader,
     },
+    storage::{CaptureStorage, S3Bucket},
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,

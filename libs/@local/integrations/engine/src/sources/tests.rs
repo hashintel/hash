@@ -18,6 +18,12 @@ use reqwest::{
 };
 use rstest::rstest;
 use tempfile::TempDir;
+use testcontainers::{
+    ContainerAsync, ImageExt as _,
+    core::{CmdWaitFor, ExecCommand},
+    runners::AsyncRunner as _,
+};
+use testcontainers_modules::minio::MinIO;
 use tokio::{net::TcpListener, task::JoinHandle};
 use uuid::Uuid;
 
@@ -25,7 +31,7 @@ use super::{
     CaptureLimits, CaptureRun, CaptureStore, SecretStore, SecretValue, SourceError, SourceReader,
     fingerprint,
 };
-use crate::{Workspace, WorkspaceConfig};
+use crate::{CaptureStorage, S3Bucket, Workspace, WorkspaceConfig};
 
 pub(super) struct Server {
     url: String,
@@ -190,13 +196,57 @@ fn run() -> CaptureRun {
 }
 
 fn reader(directory: &Path) -> SourceReader {
+    reader_with(directory, CaptureStorage::Local(directory.join("captures")))
+}
+
+fn reader_with(directory: &Path, captures: CaptureStorage) -> SourceReader {
     let local = directory.join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
     SourceReader::new(
-        CaptureStore::new(&local, &directory.join("captures"))
-            .expect("should open capture storage"),
+        CaptureStore::new(&local, captures).expect("should open capture storage"),
         CaptureLimits::default(),
     )
+}
+
+/// Starts MinIO with an empty `captures` bucket and returns it with its API port.
+async fn minio() -> (ContainerAsync<MinIO>, u16) {
+    let minio = MinIO::default()
+        .with_name("ghcr.io/hashdeps/minio")
+        .with_tag("RELEASE.2025-09-07T16-13-09Z")
+        .start()
+        .await
+        .expect("the MinIO fixture should start");
+    minio
+        .exec(
+            ExecCommand::new([
+                "sh",
+                "-c",
+                "mc alias set local http://localhost:9000 minioadmin minioadmin && mc mb \
+                 local/captures",
+            ])
+            .with_cmd_ready_condition(CmdWaitFor::exit_code(0)),
+        )
+        .await
+        .expect("should create the bucket");
+    let port = minio
+        .get_host_port_ipv4(9000)
+        .await
+        .expect("the MinIO port should be mapped");
+    (minio, port)
+}
+
+fn s3_storage(port: u16, staging: PathBuf) -> CaptureStorage {
+    CaptureStorage::S3 {
+        staging,
+        bucket: S3Bucket {
+            uri: "s3://captures/tenants".into(),
+            region: "us-east-1".into(),
+            endpoint: Some(format!("localhost:{port}").into()),
+            use_ssl: false,
+            key_id: "minioadmin".into(),
+            secret: Secret::from_vec(b"minioadmin".to_vec()),
+        },
+    }
 }
 
 async fn open_workspace(directory: &Path, name: &str) -> Workspace {
@@ -205,25 +255,22 @@ async fn open_workspace(directory: &Path, name: &str) -> Workspace {
         .expect("should open a workspace")
 }
 
+#[rstest]
+#[case::local(false)]
+#[case::s3(true)]
 #[tokio::test]
-async fn capture_retry_and_restore() {
+async fn capture_retry_and_restore(#[case] s3: bool) {
     let directory = TempDir::new().expect("should create source storage");
+    let minio = if s3 { Some(minio().await) } else { None };
+    // In S3 each reader stages in its own directory, so the restore has to download the capture.
+    let captures = |staging: &str| match &minio {
+        Some((_, port)) => s3_storage(*port, directory.path().join(staging)),
+        None => CaptureStorage::Local(directory.path().join("captures")),
+    };
     let run = run();
-    let definition = remote_definition();
-    let reader = reader(directory.path());
-    // An earlier attempt of the run captured the remote source, which is unreachable now.
-    let (name, source) = definition
-        .sources()
-        .iter()
-        .next()
-        .expect("should define a source");
-    let target = reader
-        .store
-        .path(run, name, &fingerprint(source))
-        .expect("should prepare the capture path");
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
-    workspace
-        .capture("SELECT 7 AS id, 'initial' AS value".into(), target)
+    let first = reader_with(directory.path(), captures("first"))
+        .capture_sources(&workspace, &sql_definition(), run, &NoSecrets)
         .await
         .expect("should publish the earlier capture");
     workspace
@@ -232,7 +279,8 @@ async fn capture_retry_and_restore() {
         .expect("should close the first workspace");
 
     let restored = open_workspace(directory.path(), "restored.duckdb").await;
-    let captures = reader
+    let definition = remote_definition();
+    let captures = reader_with(directory.path(), captures("restore"))
         .capture_sources(&restored, &definition, run, &NoSecrets)
         .await
         .expect("should reuse a capture without contacting the source or secret store");
@@ -342,7 +390,7 @@ fn overlapping_roots(#[case] captures: &str) {
     let directory = TempDir::new().expect("should create the directory");
     let local = directory.path().join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
-    let error = CaptureStore::new(&local, &local.join(captures))
+    let error = CaptureStore::new(&local, CaptureStorage::Local(local.join(captures)))
         .expect_err("should keep captures outside the local source root");
     assert!(
         matches!(error.current_context(), SourceError::Configuration),
@@ -357,7 +405,11 @@ fn overlapping_roots(#[case] captures: &str) {
 fn local_root_invalid_key(#[case] key: &str) {
     let directory = TempDir::new().expect("should create the directory");
     let captures = TempDir::new().expect("should create the capture directory");
-    let store = CaptureStore::new(directory.path(), captures.path()).expect("should open storage");
+    let store = CaptureStore::new(
+        directory.path(),
+        CaptureStorage::Local(captures.path().to_owned()),
+    )
+    .expect("should open storage");
     let error = store
         .local_file(key)
         .expect_err("should reject an invalid source key");
@@ -374,7 +426,11 @@ fn local_root_symlink() {
     let outside = TempDir::new().expect("should create the outside directory");
     fs::write(outside.path().join("source.parquet"), b"outside").expect("should write a source");
     let captures = TempDir::new().expect("should create the capture directory");
-    let store = CaptureStore::new(directory.path(), captures.path()).expect("should open storage");
+    let store = CaptureStore::new(
+        directory.path(),
+        CaptureStorage::Local(captures.path().to_owned()),
+    )
+    .expect("should open storage");
     symlink(outside.path(), directory.path().join("escape"))
         .expect("should create the test symlink");
     let error = store

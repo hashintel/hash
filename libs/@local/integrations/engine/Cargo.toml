@@ -51,7 +51,7 @@ rstest                 = { workspace = true }
 serde                  = { workspace = true, features = ["derive"] }
 tempfile               = { workspace = true }
 testcontainers         = { workspace = true }
-testcontainers-modules = { workspace = true, features = ["postgres"] }
+testcontainers-modules = { workspace = true, features = ["minio", "postgres"] }
 tokio                  = { workspace = true, features = ["io-util", "macros", "rt", "test-util", "time"] }
 
 [lints]
