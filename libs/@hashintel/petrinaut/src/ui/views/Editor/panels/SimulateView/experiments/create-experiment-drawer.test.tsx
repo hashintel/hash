@@ -433,7 +433,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
 });
 
 /** The Backend field: the CPU/GPU labels with the toggle between them. */

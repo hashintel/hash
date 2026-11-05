@@ -1,3 +1,5 @@
+import { FilledShape } from "./filled-shape";
+
 const matrixBrackets = <path d="M6 3H3v18h3M18 3h3v18h-3" />;
 
 export const explorationGeometry = {
@@ -48,16 +50,22 @@ export const explorationGeometry = {
     </>
   ),
   probabilityDice: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <g data-icon-detail="cells" fill="currentColor" stroke="none">
+            <circle cx="8" cy="8" r="1.5" />
+            <circle cx="16" cy="8" r="1.5" />
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="8" cy="16" r="1.5" />
+            <circle cx="16" cy="16" r="1.5" />
+          </g>{" "}
+        </>
+      }
+    >
       <rect x="4" y="4" width="16" height="16" rx="3" />
-      <g data-icon-detail="cells" fill="currentColor" stroke="none">
-        <circle cx="8" cy="8" r="1.5" />
-        <circle cx="16" cy="8" r="1.5" />
-        <circle cx="12" cy="12" r="1.5" />
-        <circle cx="8" cy="16" r="1.5" />
-        <circle cx="16" cy="16" r="1.5" />
-      </g>
-    </>
+    </FilledShape>
   ),
   expression: (
     <>
@@ -67,12 +75,14 @@ export const explorationGeometry = {
     </>
   ),
   expressionTree: (
-    <>
-      <path d="M12 8v5M5 16v-3h14v3" />
-      <circle data-icon-detail="node" cx="12" cy="5" r="3" />
-      <rect x="2" y="16" width="6" height="5" rx="1" />
-      <rect x="16" y="16" width="6" height="5" rx="1" />
-    </>
+    <FilledShape>
+      <>
+        <path fill="none" d="M12 8v5M5 16v-3h14v3" />
+        <circle data-icon-detail="node" cx="12" cy="5" r="3" />
+        <rect x="2" y="16" width="6" height="5" rx="1" />
+        <rect x="16" y="16" width="6" height="5" rx="1" />
+      </>
+    </FilledShape>
   ),
   typeVariable: (
     <>
@@ -81,77 +91,112 @@ export const explorationGeometry = {
     </>
   ),
   typeUnion: (
-    <>
-      <circle data-icon-detail="open-left" cx="5.5" cy="12" r="3.5" />
-      <path d="M12 4v16" />
-      <rect
-        data-icon-detail="open-right"
-        x="16"
-        y="8.5"
-        width="6"
-        height="7"
-        rx=".5"
-      />
-    </>
+    <FilledShape>
+      <>
+        <circle data-icon-detail="open-left" cx="5.5" cy="12" r="3.5" />
+        <path fill="none" d="M12 4v16" />
+        <rect
+          data-icon-detail="open-right"
+          x="16"
+          y="8.5"
+          width="6"
+          height="7"
+          rx=".5"
+        />
+      </>
+    </FilledShape>
   ),
   breakpoint: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <circle
+            data-icon-detail="target"
+            cx="12"
+            cy="12"
+            r="3"
+            fill="currentColor"
+          />{" "}
+        </>
+      }
+    >
       <path d="m8 3-5 5v8l5 5h8l5-5V8l-5-5Z" />
-      <circle
-        data-icon-detail="target"
-        cx="12"
-        cy="12"
-        r="3"
-        fill="currentColor"
-      />
-    </>
+    </FilledShape>
   ),
   breakpointLine: (
-    <>
-      <path d="M9 5h12M9 19h12" />
-      <path data-icon-detail="lines" d="M11 12h10" />
-      <circle data-icon-detail="target" cx="5" cy="12" r="3" />
-    </>
+    <FilledShape>
+      <>
+        <path fill="none" d="M9 5h12M9 19h12" />
+        <path fill="none" data-icon-detail="lines" d="M11 12h10" />
+        <circle data-icon-detail="target" cx="5" cy="12" r="3" />
+      </>
+    </FilledShape>
   ),
   testTube: (
     <>
-      <path d="m9 3 9 9M11 5 3.5 12.5a4.2 4.2 0 0 0 6 6L17 11" />
+      <FilledShape
+        cutout={<path data-icon-detail="liquid-level" d="M6 12h5" />}
+      >
+        <path d="M11 5 3.5 12.5a4.2 4.2 0 0 0 6 6L17 11" />
+      </FilledShape>
+      <path d="m9 3 9 9" />
       <path data-icon-detail="test-result" d="m14 18 2 2 5-5" />
-      <path data-icon-detail="liquid-level" d="M6 12h5" />
     </>
   ),
   testCheck: (
-    <>
-      <path d="M9 3H5v18h14V3h-4M9 2h6v4H9Z" />
-      <path data-icon-detail="test-result" d="m8 13 3 3 5-6" />
-    </>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path data-icon-detail="test-result" d="m8 13 3 3 5-6" />{" "}
+        </>
+      }
+    >
+      <path d="M9 3H5v18h14V3h-4" />
+      <path fill="none" d="M9 2h6v4H9Z" />
+    </FilledShape>
   ),
   agent: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <g data-icon-detail="eyes">
+            <path d="M8 12v2m8-2v2" />
+          </g>
+          <path d="M9 18h6" />{" "}
+        </>
+      }
+    >
       <rect x="4" y="7" width="16" height="14" rx="4" />
-      <path data-icon-detail="antenna" d="M12 7V3m-2 0h4" />
-      <g data-icon-detail="eyes">
-        <path d="M8 12v2m8-2v2" />
-      </g>
-      <path d="M9 18h6" />
-    </>
+      <path fill="none" data-icon-detail="antenna" d="M12 7V3m-2 0h4" />
+    </FilledShape>
   ),
   agentOrbit: (
-    <>
-      <circle cx="12" cy="12" r="4" />
-      <g data-icon-detail="orbit">
-        <path d="M3 12a9 9 0 0 1 15-6M21 12a9 9 0 0 1-15 6" />
-        <circle cx="4" cy="17" r="2" />
-        <circle cx="20" cy="7" r="2" />
-      </g>
-    </>
+    <FilledShape>
+      <>
+        <circle cx="12" cy="12" r="4" />
+        <g data-icon-detail="orbit">
+          <path fill="none" d="M3 12a9 9 0 0 1 15-6M21 12a9 9 0 0 1-15 6" />
+          <circle cx="4" cy="17" r="2" />
+          <circle cx="20" cy="7" r="2" />
+        </g>
+      </>
+    </FilledShape>
   ),
   context: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path data-icon-detail="lines" d="M11 8h6m-6 4h4" />{" "}
+        </>
+      }
+    >
       <rect x="7" y="3" width="14" height="16" rx="1.5" />
-      <path data-icon-detail="sheet" d="M3 7v14h14" />
-      <path data-icon-detail="lines" d="M11 8h6m-6 4h4" />
-    </>
+      <path fill="none" data-icon-detail="sheet" d="M3 7v14h14" />
+    </FilledShape>
   ),
   contextWindow: (
     <>
@@ -161,26 +206,34 @@ export const explorationGeometry = {
     </>
   ),
   reasoning: (
-    <>
-      <path data-icon-detail="connection" d="M6 7v5h12v5" />
-      <circle cx="6" cy="4" r="2.5" />
-      <circle
-        data-icon-detail="node"
-        cx="12"
-        cy="12"
-        r="2.5"
-        fill="currentColor"
-      />
-      <circle cx="18" cy="20" r="2.5" />
-    </>
+    <FilledShape>
+      <>
+        <path fill="none" data-icon-detail="connection" d="M6 7v5h12v5" />
+        <circle cx="6" cy="4" r="2.5" />
+        <circle
+          data-icon-detail="node"
+          cx="12"
+          cy="12"
+          r="2.5"
+          fill="currentColor"
+        />
+        <circle cx="18" cy="20" r="2.5" />
+      </>
+    </FilledShape>
   ),
   reasoningFork: (
-    <>
-      <path data-icon-detail="connection" d="M12 17v-6M5 7v4h14V7" />
-      <circle cx="5" cy="4" r="2.5" />
-      <circle data-icon-detail="node" cx="19" cy="4" r="2.5" />
-      <circle cx="12" cy="20" r="2.5" />
-    </>
+    <FilledShape>
+      <>
+        <path
+          fill="none"
+          data-icon-detail="connection"
+          d="M12 17v-6M5 7v4h14V7"
+        />
+        <circle cx="5" cy="4" r="2.5" />
+        <circle data-icon-detail="node" cx="19" cy="4" r="2.5" />
+        <circle cx="12" cy="20" r="2.5" />
+      </>
+    </FilledShape>
   ),
   embedding: (
     <>

@@ -3,7 +3,10 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 
 use axum::{
     Json, Router,
-    http::{HeaderMap, StatusCode, header::LOCATION},
+    http::{
+        HeaderMap, StatusCode,
+        header::{AUTHORIZATION, LOCATION},
+    },
     response::IntoResponse as _,
     routing::{get, post},
 };
@@ -23,7 +26,7 @@ use hash_middleware::authentication::{
 use reqwest::Client;
 use rstest::rstest;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 use type_system::{
     knowledge::{
         Entity, Property, PropertyValue,
@@ -48,7 +51,7 @@ use super::{
     EXPIRED_AT, GraphVaultConfig, GraphVaultSecretStore, SecretQueryResponse, SecretStore as _,
     USER_SECRET_TYPE, VAULT_PATH, VaultResponse, VaultSecret, secret_response, validate_entity,
 };
-use crate::sources::{SecretService, SourceError, tests::server};
+use crate::sources::{SecretService, SourceError, rest, tests::server};
 
 fn entity(web: Uuid, id: Uuid) -> Entity {
     let transaction_time = Timestamp::from_unix_timestamp(1_767_225_600);
@@ -101,6 +104,7 @@ fn entity(web: Uuid, id: Uuid) -> Entity {
                 edition: EntityEditionProvenance {
                     created_by_id: ActorEntityUuid::new(web),
                     archived_by_id: None,
+                    created_from_draft_id: None,
                     provided: ProvidedEntityEditionProvenance {
                         sources: Vec::new(),
                         actor_type: ActorType::User,
@@ -226,10 +230,7 @@ async fn read_graph_authorization_and_vault_value() {
                 Json(VaultResponse {
                     data: VaultSecret {
                         data: StoredValue {
-                            value: serde_json::to_string(&StoredValue {
-                                value: "stored-token".to_owned(),
-                            })
-                            .expect("should encode the stored secret"),
+                            value: "stored-token".to_owned(),
                         },
                     },
                 })
@@ -253,11 +254,22 @@ async fn read_graph_authorization_and_vault_value() {
             value: "stored-token".to_owned()
         })
         .expect("should encode the expected secret"),
-        "should unwrap the Vault value envelope"
+        "should return the stored secret object as JSON"
     );
     assert!(
         !format!("{result:?}").contains("stored-token"),
         "should redact secret diagnostics"
+    );
+    let auth = serde_json::from_value(json!({"type": "bearer", "secretEntityUuid": id}))
+        .expect("should describe bearer authentication");
+    let headers = rest::headers(Some(&auth), Some(&result))
+        .expect("should read the stored secret as a REST token");
+    assert_eq!(
+        headers
+            .get(AUTHORIZATION)
+            .and_then(|header| header.to_str().ok()),
+        Some("Bearer stored-token"),
+        "should send the stored token as a bearer credential"
     );
 }
 
@@ -318,7 +330,7 @@ async fn read_request_failure(#[case] service: SecretService) {
 #[rstest]
 #[case::missing(0)]
 #[case::ambiguous(2)]
-#[case::empty_value(1)]
+#[case::empty_data(1)]
 #[tokio::test]
 async fn read_entity_count_and_value(#[case] count: usize) {
     let web = Uuid::new_v4();
@@ -343,9 +355,7 @@ async fn read_entity_count_and_value(#[case] count: usize) {
                         observed.fetch_add(1, Ordering::SeqCst);
                         Json(VaultResponse {
                             data: VaultSecret {
-                                data: StoredValue {
-                                    value: String::new(),
-                                },
+                                data: Map::<String, Value>::new(),
                             },
                         })
                     }

@@ -44,7 +44,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
-    "test:unit": "vitest"
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@hashintel/ds-helpers": "workspace:^"
@@ -63,7 +63,7 @@
     "oxlint-tsgolint": "7.0.2003",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "rolldown": "1.2.6",
+    "rolldown": "catalog:",
     "rolldown-plugin-dts": "0.28.3",
     "typescript": "catalog:",
     "vite": "catalog:",

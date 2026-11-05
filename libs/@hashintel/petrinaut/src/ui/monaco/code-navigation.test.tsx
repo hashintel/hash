@@ -67,7 +67,6 @@ const Harness = ({
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
 });
 
 it("opens the matching property section and preserves its saved size", () => {

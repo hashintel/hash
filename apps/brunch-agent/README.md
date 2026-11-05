@@ -66,6 +66,12 @@ BRUNCH_CHAT_MODEL=openai/gpt-5.5-2026-04-23 BRUNCH_CHAT_THINKING=medium yarn wor
 
 Live mode uses the configured model, or Brunch's default, and retains the actual results, replies, history and screenshots in the printed temporary directory. Review the replies against the results: seven waiting, three completed, 30% completed, and no evidence of processing speed from a static snapshot. The live completion marker means evidence was recorded, not that explanation quality passed. Neither mode establishes retrieval of a saved experiment in a different conversation.
 
+`test:manual:browser:reliable-chat-endings` checks how a turn ends in the panel. A response that fails with an unanswered call leaves that call as a neutral **No result — response failed** row, which survives a reload. An empty reply after a tool step shows **No reply received** and leaves the composer ready. Stop removes a pending approval. After each case, a new message still gets a reply. It uses only synthetic model responses, so it costs no model calls, and it requires local macOS Chrome.
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:reliable-chat-endings
+```
+
 ## Local Postgres
 
 Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.
@@ -98,29 +104,27 @@ Build from the repository root:
 yarn workspace @apps/brunch-agent build:docker
 ```
 
-The image runs the generated `dist/server.mjs` under the repository-locked Node version as uid
-`60000`. It listens on `PORT`, set to `3002` in the image, exposes the cheap liveness probe `GET /health`,
-and requires the `BRUNCH_POSTGRES_*` variables plus `HASH_OTLP_ENDPOINT` whenever
-`NODE_ENV=production`. Flue connects and migrates its store before the server listens, so database
-configuration, connection, and migration failures prevent readiness. An unreachable collector does
-not: export failures surface as OpenTelemetry diagnostics on stderr. `/health` reports process
-liveness only; it does not query Postgres or Anthropic.
+The image runs the generated `dist/server.mjs` under the repository-locked Node version as uid `60000`. It listens on `PORT`, set to `3002` in the image, exposes the cheap liveness probe `GET /health`, and requires the `BRUNCH_POSTGRES_*` variables, `HASH_OTLP_ENDPOINT`, and the selected chat model's provider credential whenever `NODE_ENV=production`. Before listening, the server resolves the chat model and its credential and asks the provider for that model's metadata, a request that runs no inference. Flue then connects and migrates its store. An unknown model, a missing credential, a credential the provider rejects, a model the provider does not offer to that credential, and database configuration, connection, and migration failures all prevent readiness. A provider that is unreachable, rate-limited, failing, or that forbids the metadata request only logs a `model.configuration` warning with its reason, so a provider outage cannot keep replacement tasks down. The same warning reports a shutdown date the provider has announced for the model. The metadata request does not prove permission to generate, which a restricted OpenAI key can withhold. An unreachable collector does not prevent readiness: export failures surface as OpenTelemetry diagnostics on stderr. `/health` reports process liveness only; it does not query Postgres or the model provider.
 
-Production database configuration uses dedicated fields:
+Production configuration uses dedicated fields:
 
-| Variable                      | Required when | Purpose                                                                                                   |
-| ----------------------------- | ------------- | --------------------------------------------------------------------------------------------------------- |
-| `BRUNCH_POSTGRES_AUTH_MODE`   | Always        | `iam` or `password`                                                                                       |
-| `BRUNCH_POSTGRES_HOST`        | Always        | Exact RDS endpoint used for TLS and IAM signing                                                           |
-| `BRUNCH_POSTGRES_PORT`        | Always        | PostgreSQL port                                                                                           |
-| `BRUNCH_POSTGRES_DATABASE`    | Always        | Flue database                                                                                             |
-| `BRUNCH_POSTGRES_USER`        | Always        | PostgreSQL role                                                                                           |
-| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always        | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA   |
-| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only      | Region used by the RDS signer; rejected in password mode                                                  |
-| `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                  |
-| `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                         |
-| `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                             |
-| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Browser JavaScript allowlist for `/agents/*`: exact origins or `https://*.domain`; blank grants no access |
+| Variable                      | Required when   | Purpose                                                                                                   |
+| ----------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| `BRUNCH_POSTGRES_AUTH_MODE`   | Always          | `iam` or `password`                                                                                       |
+| `BRUNCH_POSTGRES_HOST`        | Always          | Exact RDS endpoint used for TLS and IAM signing                                                           |
+| `BRUNCH_POSTGRES_PORT`        | Always          | PostgreSQL port                                                                                           |
+| `BRUNCH_POSTGRES_DATABASE`    | Always          | Flue database                                                                                             |
+| `BRUNCH_POSTGRES_USER`        | Always          | PostgreSQL role                                                                                           |
+| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always          | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA   |
+| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only        | Region used by the RDS signer; rejected in password mode                                                  |
+| `BRUNCH_POSTGRES_PASSWORD`    | Password only   | Runtime-injected database password; rejected in IAM mode                                                  |
+| `HASH_OTLP_ENDPOINT`          | Always          | HASH OTLP/gRPC collector endpoint                                                                         |
+| `OPENAI_API_KEY`              | OpenAI model    | Credential for the default chat model (`petrinautAiModel`) or an `openai/...` override                    |
+| `ANTHROPIC_API_KEY`           | Anthropic model | Credential when `BRUNCH_CHAT_MODEL` selects an Anthropic model                                            |
+| `BRUNCH_CHAT_MODEL`           | Optional        | `provider/model` override; a bare id means Anthropic. Unset runs `petrinautAiModel`                       |
+| `BRUNCH_CHAT_THINKING`        | Optional        | Thinking level for an overriding model; the default model carries its own                                 |
+| `OTEL_SERVICE_NAME`           | Optional        | OTel service name; defaults to `Brunch Agent`                                                             |
+| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional        | Browser JavaScript allowlist for `/agents/*`: exact origins or `https://*.domain`; blank grants no access |
 
 `BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of origins whose browser JavaScript may
 read cross-origin responses from `/agents/*`. An entry is either an exact origin or a wildcard for

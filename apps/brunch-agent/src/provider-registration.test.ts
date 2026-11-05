@@ -10,6 +10,8 @@ import { instrument, setProvider } from "@flue/runtime";
 import { Hono } from "hono";
 import { beforeAll, expect, test, vi } from "vitest";
 
+vi.setConfig({ clearMocks: false });
+
 vi.mock("./server/telemetry-bootstrap.ts", () => ({}));
 vi.mock("./agents/petrinaut/agent.ts", () => ({
   PetrinautAgent: { agentName: "brunch-chat-agent" },

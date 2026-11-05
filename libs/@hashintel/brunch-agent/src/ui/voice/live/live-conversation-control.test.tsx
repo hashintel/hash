@@ -67,7 +67,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
   vi.unstubAllGlobals();
   window.localStorage.clear();
 });

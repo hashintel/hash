@@ -4,6 +4,7 @@ import { expect, test, vi } from "vitest";
 
 import {
   interviewBudgetLevels,
+  ledgerCommentsMessage,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
   readPetrinautSubmissionContext,
@@ -106,6 +107,110 @@ test("captures words before waiting for the client and retains them for the same
   expect(
     send.mock.calls.map(([submission]) => submission.message.body),
   ).toEqual([expected, expected]);
+});
+
+test("announces a typed or comment submission before Flue admits it, but not an internal continuation", async () => {
+  const events: string[] = [];
+  const send = vi.fn<FlueClient["send"]>(async ({ message }) => {
+    events.push(`send ${message.kind}`);
+    throw new FlueApiError(403, "Refused");
+  });
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as unknown as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { onSubmission: (messageId) => events.push(`submission ${messageId}`) },
+  );
+  const submit = (messages: PetrinautAiMessage[]) =>
+    transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "one",
+      messageId: messages.at(-1)?.id,
+      messages,
+      abortSignal: undefined,
+    });
+  const typed: PetrinautAiMessage = {
+    id: "user-one",
+    role: "user",
+    parts: [{ type: "text", text: "A pump fills it." }],
+  };
+  await expect(submit([typed])).rejects.toMatchObject({
+    failure: { kind: "rejected", status: 403 },
+  });
+  await expect(
+    submit([
+      typed,
+      {
+        id: "comments",
+        role: "user",
+        parts: [
+          {
+            type: "text",
+            text: ledgerCommentsMessage([
+              { id: "n1", records: ["e1"], text: "It is a pump." },
+            ]).body,
+          },
+        ],
+      },
+    ]),
+  ).rejects.toMatchObject({ failure: { kind: "rejected" } });
+  expect(events).toEqual([
+    "submission user-one",
+    "send user",
+    "submission comments",
+    "send signal",
+  ]);
+
+  // Petrinaut continues a turn after client tool results; that is no new turn.
+  await expect(
+    submit([
+      typed,
+      {
+        id: "assistant-one",
+        role: "assistant",
+        parts: [{ type: "text", text: "Placed it." }],
+      },
+    ]),
+  ).rejects.toThrow("The submitted user message has no text.");
+  expect(events).toHaveLength(4);
+});
+
+test("a retried delivery of the same message is no new submission, even from a recreated transport", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(403, "Refused");
+  });
+  const client = Promise.resolve({ send } as unknown as FlueClient);
+  const tracker = new BrunchPanelConversationTracker();
+  const onSubmission = vi.fn<(messageId: string) => void>();
+  const submit = (id: string) =>
+    // The panel recreates its transport whenever the history it reads moves.
+    createBrunchPanelTransport(client, tracker, { onSubmission }).sendMessages({
+      trigger: "submit-message",
+      chatId: "one",
+      messageId: id,
+      messages: [{ id, role: "user", parts: [{ type: "text", text: "Ok" }] }],
+      abortSignal: undefined,
+    });
+  await expect(submit("comments")).rejects.toThrow();
+  await expect(submit("comments")).rejects.toThrow();
+  await expect(submit("retried-answer")).rejects.toThrow();
+  expect(send).toHaveBeenCalledTimes(3);
+  expect(onSubmission.mock.calls).toEqual([["comments"], ["retried-answer"]]);
+
+  // Another conversation's tracker has not seen the message.
+  await expect(
+    createBrunchPanelTransport(client, new BrunchPanelConversationTracker(), {
+      onSubmission,
+    }).sendMessages({
+      trigger: "submit-message",
+      chatId: "two",
+      messageId: "comments",
+      messages: [
+        { id: "comments", role: "user", parts: [{ type: "text", text: "Ok" }] },
+      ],
+      abortSignal: undefined,
+    }),
+  ).rejects.toThrow();
+  expect(onSubmission).toHaveBeenCalledTimes(3);
 });
 
 test("an empty words snapshot without an allowance sends an ordinary message", async () => {

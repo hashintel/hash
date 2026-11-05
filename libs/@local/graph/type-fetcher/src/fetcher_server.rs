@@ -1,5 +1,3 @@
-use alloc::sync::Arc;
-use core::{net::IpAddr, time::Duration};
 use std::{collections::HashMap, io};
 
 use axum::{
@@ -10,105 +8,11 @@ use axum::{
     routing::{get, post},
 };
 use error_stack::{Report, ResultExt as _};
-use futures::{StreamExt as _, TryStreamExt as _, stream};
 use include_dir::{Dir, DirEntry, include_dir};
-use reqwest::{
-    Client,
-    dns::{Addrs, Name, Resolve, Resolving},
-    header::{ACCEPT, USER_AGENT},
-    redirect,
-};
-use reqwest_middleware::ClientBuilder;
-use reqwest_tracing::TracingMiddleware;
 use time::OffsetDateTime;
 use type_system::ontology::VersionedUrl;
-use url::Url;
 
 use crate::fetcher::{FETCH_ONTOLOGY_TYPES_PATH, FetchedOntologyType, FetcherError};
-
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
-const MAX_RESPONSE_SIZE_BYTES: usize = 1_024 * 1_024;
-
-/// SSRF protection that ensures only globally routable addresses are reachable.
-///
-/// Provides three layers of protection, all using [`IpAddr::is_global`] for validation:
-/// - As a DNS [`Resolve`]r: filters resolved addresses, which also prevents DNS rebinding attacks
-///   since filtering happens inside the resolver itself.
-/// - Via [`reject_ip_literal`](Self::reject_ip_literal): blocks URLs with non-global IP-literal
-///   hosts (e.g. `http://127.0.0.1/...`), which bypass DNS resolution entirely.
-/// - Via [`redirect_policy`](Self::redirect_policy): blocks redirects to non-global IP literals,
-///   preventing SSRF through redirect chains.
-///
-/// [`IpAddr::is_global`]: core::net::IpAddr::is_global
-struct SsrfSafeResolver;
-
-impl SsrfSafeResolver {
-    /// Returns the non-global IP if the URL host is an IP literal that is not globally routable.
-    ///
-    /// Returns `None` for domain hosts (handled by the [`Resolve`] implementation) and for
-    /// globally routable IP addresses.
-    fn non_global_ip_literal(url: &Url) -> Option<IpAddr> {
-        let ip = match url.host()? {
-            url::Host::Ipv4(addr) => IpAddr::V4(addr),
-            url::Host::Ipv6(addr) => IpAddr::V6(addr),
-            url::Host::Domain(_) => return None,
-        };
-
-        (!ip.is_global()).then_some(ip)
-    }
-
-    /// Rejects URLs whose host is a non-global IP literal.
-    ///
-    /// DNS resolution is not triggered for IP-literal hosts, so the [`Resolve`] implementation
-    /// cannot catch them. This method must be called before each request to close that gap.
-    fn reject_ip_literal(url: &Url) -> Result<(), FetcherError> {
-        if let Some(ip) = Self::non_global_ip_literal(url) {
-            return Err(FetcherError::Network(format!(
-                "Request to `{url}` blocked: host address {ip} is not globally routable"
-            )));
-        }
-        Ok(())
-    }
-
-    /// Creates a redirect policy that blocks redirects to non-global IP literals.
-    ///
-    /// This prevents SSRF via redirect chains where an attacker-controlled domain redirects to a
-    /// private IP (e.g. `http://169.254.169.254/`). Domain-based redirect targets are allowed
-    /// since they will be validated by the [`Resolve`] implementation on connection.
-    fn redirect_policy() -> redirect::Policy {
-        redirect::Policy::custom(|attempt| {
-            if let Some(ip) = Self::non_global_ip_literal(attempt.url()) {
-                let url = attempt.url().clone();
-                return attempt.error(format!(
-                    "Redirect to `{url}` blocked: host address {ip} is not globally routable"
-                ));
-            }
-            redirect::Policy::default().redirect(attempt)
-        })
-    }
-}
-
-impl Resolve for SsrfSafeResolver {
-    fn resolve(&self, name: Name) -> Resolving {
-        Box::pin(async move {
-            let addrs: Vec<_> = tokio::net::lookup_host((name.as_str(), 0))
-                .await?
-                .filter(|addr| addr.ip().is_global())
-                .collect();
-
-            if addrs.is_empty() {
-                return Err(format!(
-                    "DNS resolution for `{}` blocked: no globally routable addresses found",
-                    name.as_str()
-                )
-                .into());
-            }
-
-            Ok(Box::new(addrs.into_iter()) as Addrs)
-        })
-    }
-}
 
 #[derive(Clone)]
 pub struct FetchServer {
@@ -149,64 +53,17 @@ impl FetchServer {
         Ok(())
     }
 
-    async fn fetch_ontology_type_from_url(
-        client: reqwest_middleware::ClientWithMiddleware,
-        url: VersionedUrl,
-    ) -> Result<FetchedOntologyType, FetcherError> {
-        let request_url = url.to_url();
-        SsrfSafeResolver::reject_ip_literal(&request_url)?;
-
-        let response = client
-            .get(request_url)
-            .header(ACCEPT, "application/json")
-            .header(USER_AGENT, "HASH Graph")
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await
-            .map_err(|err| {
-                tracing::error!(error=?err, %url, "Could not fetch ontology type");
-                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
-            })?
-            .error_for_status()
-            .map_err(|err| {
-                tracing::error!(error=?err, %url, "Could not fetch ontology type");
-                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
-            })?;
-
-        let mut body = Vec::new();
-        let mut body_stream = response.bytes_stream();
-
-        while let Some(chunk) = body_stream.next().await {
-            let chunk = chunk.map_err(|err| {
-                tracing::error!(error=?err, %url, "Could not read response body");
-                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
-            })?;
-
-            if body.len() + chunk.len() > MAX_RESPONSE_SIZE_BYTES {
-                return Err(FetcherError::Network(format!(
-                    "Error fetching {url}: response exceeded the maximum size of \
-                     {MAX_RESPONSE_SIZE_BYTES} bytes"
-                )));
-            }
-
-            body.extend_from_slice(&chunk);
-        }
-
-        serde_json::from_slice::<FetchedOntologyType>(&body).map_err(|err| {
-            tracing::error!(error=?err, %url, "Could not deserialize response");
-            FetcherError::Serialization(format!("Error deserializing {url}: {err:?}"))
-        })
-    }
-
-    /// Fetches a list of ontology types identified by their [`VersionedUrl`] and returns them.
+    /// Returns the predefined ontology types identified by the given [`VersionedUrl`]s.
+    ///
+    /// Only the types bundled in the `predefined_types` directory are served. A URL outside that
+    /// set is rejected with [`FetcherError::NotPredefined`].
     ///
     /// # Errors
     ///
     /// - [`FetcherError::PredefinedTypes`] if the predefined types cannot be loaded
-    /// - [`FetcherError::Network`] if an ontology type cannot be fetched
-    /// - [`FetcherError::Serialization`] if a fetched ontology type cannot be deserialized
+    /// - [`FetcherError::NotPredefined`] if a requested URL is not a predefined type
     #[tracing::instrument(skip(self))]
-    pub async fn fetch_ontology_types(
+    pub fn fetch_ontology_types(
         mut self,
         ontology_type_urls: Vec<VersionedUrl>,
     ) -> Result<Vec<(FetchedOntologyType, OffsetDateTime)>, FetcherError> {
@@ -214,33 +71,20 @@ impl FetchServer {
             FetcherError::PredefinedTypes(format!("Error loading predefined types: {err:?}"))
         })?;
 
-        let client = Client::builder()
-            .https_only(true)
-            .dns_resolver(Arc::new(SsrfSafeResolver))
-            .redirect(SsrfSafeResolver::redirect_policy())
-            .connect_timeout(CONNECT_TIMEOUT)
-            .build()
-            .map_err(|err| FetcherError::Network(format!("Error building HTTP client: {err:?}")))?;
-        let client = ClientBuilder::new(client)
-            .with(TracingMiddleware::default())
-            .build();
-        let predefined_types = &self.predefined_types;
-        stream::iter(ontology_type_urls)
+        ontology_type_urls
+            .into_iter()
             .map(|url| {
-                let client = client.clone();
-                async move {
-                    let ontology_type = if let Some(ontology_type) = predefined_types.get(&url) {
-                        ontology_type.clone()
-                    } else {
-                        Self::fetch_ontology_type_from_url(client.clone(), url).await?
-                    };
+                let ontology_type = self.predefined_types.get(&url).cloned().ok_or_else(|| {
+                    tracing::error!(%url, "Requested ontology type is not a predefined type");
+                    FetcherError::NotPredefined(format!(
+                        "ontology type `{url}` is not a predefined type, and only predefined \
+                         types can be fetched"
+                    ))
+                })?;
 
-                    Ok::<_, FetcherError>((ontology_type, OffsetDateTime::now_utc()))
-                }
+                Ok((ontology_type, OffsetDateTime::now_utc()))
             })
-            .buffer_unordered(self.buffer_size)
-            .try_collect()
-            .await
+            .collect()
     }
 }
 
@@ -270,7 +114,7 @@ async fn fetch_ontology_types(
     State(server): State<FetchServer>,
     Json(ontology_type_urls): Json<Vec<VersionedUrl>>,
 ) -> Response {
-    match server.fetch_ontology_types(ontology_type_urls).await {
+    match server.fetch_ontology_types(ontology_type_urls) {
         Ok(fetched) => Json(fetched).into_response(),
         Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
     }
@@ -281,8 +125,14 @@ mod tests {
     use super::*;
     use crate::fetcher::FetcherClient;
 
-    #[tokio::test]
-    async fn http_round_trip_serves_predefined_type() {
+    fn server() -> FetchServer {
+        FetchServer {
+            buffer_size: 10,
+            predefined_types: HashMap::new(),
+        }
+    }
+
+    async fn spawn_server() -> FetcherClient {
         let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
             .await
             .expect("should bind to an ephemeral port");
@@ -290,13 +140,15 @@ mod tests {
             .local_addr()
             .expect("listener should have a local address")
             .port();
-        let app = router(FetchServer {
-            buffer_size: 10,
-            predefined_types: HashMap::new(),
-        });
+        let app = router(server());
         tokio::spawn(async move { axum::serve(listener, app).await });
 
-        let client = FetcherClient::new("127.0.0.1", port).expect("client should build");
+        FetcherClient::new("127.0.0.1", port).expect("client should build")
+    }
+
+    #[tokio::test]
+    async fn http_round_trip_serves_predefined_type() {
+        let client = spawn_server().await;
         let url: VersionedUrl =
             "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1"
                 .parse()
@@ -315,99 +167,58 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reqwest_https_only_rejects_http_urls() {
-        let client = Client::builder()
-            .https_only(true)
-            .build()
-            .expect("client should build");
+    async fn http_round_trip_rejects_type_outside_predefined_set() {
+        let client = spawn_server().await;
+        let url: VersionedUrl = "https://example.com/@alice/types/entity-type/person/v/1"
+            .parse()
+            .expect("valid versioned URL");
 
-        let err = client
-            .get("http://example.com/types/v/1")
-            .send()
+        let error = client
+            .fetch_ontology_types(vec![url.clone()])
             .await
-            .expect_err("http scheme should be rejected");
+            .expect_err("type outside the predefined set should be rejected");
 
+        let FetcherError::NotPredefined(message) = &error else {
+            panic!("expected a `NotPredefined` error, got: {error:?}");
+        };
         assert!(
-            err.is_builder(),
-            "expected builder error from HTTPS-only restriction, got: {err}"
-        );
-    }
-
-    #[tokio::test]
-    async fn ssrf_resolver_blocks_localhost() {
-        let resolver = SsrfSafeResolver;
-        let err = resolver
-            .resolve("localhost".parse().expect("valid name"))
-            .await
-            .err()
-            .expect("localhost should be blocked");
-
-        assert!(
-            err.to_string().contains("no globally routable addresses"),
-            "expected SSRF blocking error, got: {err}"
-        );
-    }
-
-    #[tokio::test]
-    async fn ssrf_resolver_allows_public_domain() {
-        let resolver = SsrfSafeResolver;
-        let result = resolver
-            .resolve("example.com".parse().expect("valid name"))
-            .await;
-        assert!(result.is_ok(), "example.com should be allowed");
-    }
-
-    #[test]
-    fn rejects_ipv4_loopback_literal() {
-        let url = Url::parse("http://127.0.0.1/types/v/1").expect("valid URL");
-        assert!(
-            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
-            "127.0.0.1 should be blocked"
+            message.contains(&url.to_string()),
+            "error should name the requested URL, got: {message}"
         );
     }
 
     #[test]
-    fn rejects_ipv4_private_literal() {
-        let url = Url::parse("http://10.0.0.1/types/v/1").expect("valid URL");
-        assert!(
-            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
-            "10.0.0.1 should be blocked"
-        );
-    }
+    fn serves_block_protocol_data_types_and_link_entity_type() {
+        let urls: Vec<VersionedUrl> = [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+        ]
+        .into_iter()
+        .map(|url| url.parse().expect("valid versioned URL"))
+        .collect();
 
-    #[test]
-    fn rejects_ipv4_link_local_literal() {
-        let url = Url::parse("http://169.254.169.254/latest/meta-data/").expect("valid URL");
-        assert!(
-            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
-            "169.254.169.254 (AWS metadata) should be blocked"
-        );
-    }
+        let fetched = server()
+            .fetch_ontology_types(urls.clone())
+            .expect("predefined types should be served");
 
-    #[test]
-    fn rejects_ipv6_loopback_literal() {
-        let url = Url::parse("http://[::1]/types/v/1").expect("valid URL");
-        assert!(
-            SsrfSafeResolver::reject_ip_literal(&url).is_err(),
-            "::1 should be blocked"
-        );
-    }
-
-    #[test]
-    fn allows_global_ipv4_literal() {
-        let url = Url::parse("http://93.184.215.14/types/v/1").expect("valid URL");
-        assert!(
-            SsrfSafeResolver::reject_ip_literal(&url).is_ok(),
-            "93.184.215.14 (example.com) should be allowed"
-        );
-    }
-
-    #[test]
-    fn allows_domain_host() {
-        let url = Url::parse("https://example.com/types/v/1").expect("valid URL");
-        assert!(
-            SsrfSafeResolver::reject_ip_literal(&url).is_ok(),
-            "domain hosts should always pass IP-literal check"
-        );
+        let fetched_ids: Vec<&VersionedUrl> = fetched
+            .iter()
+            .map(|(ontology_type, _)| match ontology_type {
+                FetchedOntologyType::DataType(data_type) => &data_type.id,
+                FetchedOntologyType::PropertyType(property_type) => &property_type.id,
+                FetchedOntologyType::EntityType(entity_type) => &entity_type.id,
+            })
+            .collect();
+        assert_eq!(fetched_ids, urls.iter().collect::<Vec<_>>());
+        assert!(matches!(
+            fetched.last().map(|(ontology_type, _)| ontology_type),
+            Some(FetchedOntologyType::EntityType(_))
+        ));
     }
 }

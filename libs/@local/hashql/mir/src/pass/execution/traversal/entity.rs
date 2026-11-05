@@ -136,9 +136,9 @@ pub(crate) struct TransferCostConfig {
     pub embedding_size: InformationRange,
     /// Size of the `entity_editions.provenance` JSONB.
     ///
-    /// Variable structure: optional `archived_by_id` + `actor_type` + `OriginProvenance` (tag +
-    /// optional strings) + `Vec<SourceProvenance>` (typically 0-2 items, each with optional
-    /// entity ID, authors, location, and timestamps).
+    /// Variable structure: optional `archived_by_id` + optional `created_from_draft_id` +
+    /// `actor_type` + `OriginProvenance` (tag + optional strings) + `Vec<SourceProvenance>`
+    /// (typically 0-2 items, each with optional entity ID, authors, location, and timestamps).
     pub edition_provenance_size: InformationRange,
     /// Size of `PropertyProvenance` JSONB on entity edges (`entity_edge.provenance`).
     ///

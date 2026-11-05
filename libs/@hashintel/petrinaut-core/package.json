@@ -98,7 +98,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
-    "test:unit": "vitest"
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@noble/hashes": "2.0.1",
@@ -122,7 +122,7 @@
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
     "pyodide": "314.0.6",
-    "rolldown": "1.2.6",
+    "rolldown": "catalog:",
     "rolldown-plugin-dts": "0.28.3",
     "typescript": "catalog:",
     "vite": "catalog:",

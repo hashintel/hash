@@ -60,6 +60,8 @@ impl PostgresSource {
                 "user" | "password" | "passfile" | "service" | "servicefile" => {
                     return Err("connection credentials must come from the referenced User Secret");
                 }
+                // The engine resolves and checks each host, then pins the address it connects to.
+                "hostaddr" => return Err("connection must not set hostaddr"),
                 "host" => {
                     if value.split(',').any(|entry| socket(entry.bytes().next())) {
                         return Err(SOCKET_HOST);
@@ -73,7 +75,32 @@ impl PostgresSource {
                 "port" if value.parse::<core::num::NonZeroU16>().is_err() => {
                     return Err("connection port must be between 1 and 65535");
                 }
-                _ => {}
+                // `system` verifies against the system certificate store; a path would read a
+                // file on the machine running the capture.
+                "sslrootcert" if value != "system" => {
+                    return Err("sslrootcert must be system");
+                }
+                // Options that read or write local files, use local credentials, or change the
+                // protocol are not listed, so libpq never sees them.
+                "port"
+                | "sslmode"
+                | "sslrootcert"
+                | "connect_timeout"
+                | "application_name"
+                | "fallback_application_name"
+                | "keepalives"
+                | "keepalives_idle"
+                | "keepalives_interval"
+                | "keepalives_count"
+                | "tcp_user_timeout"
+                | "target_session_attrs"
+                | "load_balance_hosts"
+                | "sslnegotiation"
+                | "sslsni"
+                | "channel_binding"
+                | "require_auth"
+                | "client_encoding" => {}
+                _ => return Err("connection parameter is not supported"),
             }
         }
         if !host || !database || self.connection.port() == Some(0) {
