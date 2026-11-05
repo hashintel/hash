@@ -1,3 +1,5 @@
+import { descriptions } from "./catalog/descriptions";
+import { relatedGroups } from "./catalog/related";
 import { hashIconNames, hashIconHints } from "./hash-icon";
 
 import type { HashIconName } from "./hash-icon";
@@ -177,6 +179,12 @@ const categories = {
     "sortDown",
     "sortUpAlphabetical",
     "sortDownAlphabetical",
+    "sortUpNumeric",
+    "sortDownNumeric",
+    "sortUpShapes",
+    "sortDownShapes",
+    "sortUpSize",
+    "sortDownSize",
     "ruler",
     "gripVertical",
   ],
@@ -235,6 +243,21 @@ const categories = {
   ],
 } satisfies Record<string, readonly HashIconName[]>;
 
+const relationships = new Map<HashIconName, Set<HashIconName>>();
+
+for (const group of [
+  ...hashIconStudies.map(({ names }) => names),
+  ...relatedGroups,
+]) {
+  for (const name of group) {
+    const related = relationships.get(name) ?? new Set<HashIconName>();
+    for (const candidate of group) {
+      if (candidate !== name) related.add(candidate);
+    }
+    relationships.set(name, related);
+  }
+}
+
 export const hashIconCatalog = hashIconNames.map((name) => {
   const study = hashIconStudies.find((candidate) =>
     candidate.names.some((variant) => variant === name),
@@ -250,6 +273,10 @@ export const hashIconCatalog = hashIconNames.map((name) => {
     name,
     label: words.charAt(0).toUpperCase() + words.slice(1),
     category,
+    description: descriptions[name],
+    related: hashIconNames.filter((candidate) =>
+      relationships.get(name)?.has(candidate),
+    ),
     motion: hashIconHints[name],
     study: study?.concept,
   };
