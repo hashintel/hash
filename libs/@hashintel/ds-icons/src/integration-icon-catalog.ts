@@ -1164,6 +1164,27 @@ export const integrationIconCatalog = [
     logoRaster: false,
   },
   {
+    name: "hash",
+    slug: "hash",
+    label: "HASH",
+    integrationNames: ["HASH"],
+    source: "https://hash.ai/",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource: "https://hash.ai/",
+    logoNotes:
+      "Blue gradient mark and outlined wordmark from the live hash.ai navigation logo, retrieved 2026-11-05. Preserves the original gradient, path opacity, wordmark geometry, and lock-up spacing. App tiles place the mark flush against the bottom-right edge at 60% of the tile height; logo lettering is dark in light mode and white in dark mode.",
+    logoRaster: false,
+  },
+  {
     name: "genericApp",
     slug: "generic-app",
     label: "Other integration",

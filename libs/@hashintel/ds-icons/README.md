@@ -203,7 +203,7 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-47 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple, Apple Notes, and Apple Health have the five mark and tile variants because no separate full-logo lock-ups were verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+48 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple, Apple Notes, and Apple Health have the five mark and tile variants because no separate full-logo lock-ups were verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with a vectorized wordmark from an official Microsoft PDF. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
@@ -212,6 +212,8 @@ Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<va
 `microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
 `microsoftTeams` uses the current rounded Teams mark. `microsoftTeamsLegacy` preserves the previous mark and full-logo compositions; the “Microsoft Teams” integration alias always uses the current artwork.
+
+`hash` uses the blue gradient mark and vector wordmark from hash.ai. Its full logos preserve the site’s lock-up proportions, with dark lettering for light mode and white lettering for dark mode. App tiles align the mark flush to the bottom-right edge at 60% of the tile height, using `appViewBox` to position it independently of the backgroundless marks. All seven variants are available.
 
 `amazon` is the corporate brand, separate from `amazonRedshift`. Its marks and tiles use the current orange smile. Full logos preserve the complete wordmark-and-smile arrangement, with Squid Ink lettering for light mode and white lettering for dark mode. All seven variants are native vectors.
 

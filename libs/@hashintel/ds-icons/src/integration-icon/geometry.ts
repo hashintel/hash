@@ -25,6 +25,7 @@ import * as googleDrive from "./geometry/google-drive";
 import * as gmail from "./geometry/google-mail";
 import * as granola from "./geometry/granola";
 import * as granolaLegacy from "./geometry/granola-legacy";
+import * as hash from "./geometry/hash";
 import * as instagram from "./geometry/instagram";
 import * as kinaxis from "./geometry/kinaxis";
 import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
@@ -427,6 +428,14 @@ export const integrationGeometry = {
     logoViewBox: "0 0 512 102",
     ratio: 2,
     alignment: "center",
+  },
+  hash: {
+    ...hash,
+    markViewBox: "0 0 21.6653 22",
+    logoViewBox: "0 0 120 22",
+    ratio: 1,
+    alignment: "center",
+    appViewBox: "-15.001367 -14.666667 36.666667 36.666667",
   },
   genericApp: {
     ...genericApp,

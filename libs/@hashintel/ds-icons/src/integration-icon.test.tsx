@@ -48,9 +48,9 @@ describe("IntegrationIcon", () => {
   });
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(54);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(55);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      50,
+      51,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -66,6 +66,7 @@ describe("IntegrationIcon", () => {
         ?.integrationNames,
     ).toEqual([]);
     expect(integrationIconNameByIntegration["Amazon"]).toBe("amazon");
+    expect(integrationIconNameByIntegration["HASH"]).toBe("hash");
     expect(integrationIconNameByIntegration["Amazon Redshift"]).toBe(
       "amazonRedshift",
     );
