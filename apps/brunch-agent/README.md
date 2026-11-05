@@ -66,6 +66,12 @@ BRUNCH_CHAT_MODEL=openai/gpt-5.5-2026-04-23 BRUNCH_CHAT_THINKING=medium yarn wor
 
 Live mode uses the configured model, or Brunch's default, and retains the actual results, replies, history and screenshots in the printed temporary directory. Review the replies against the results: seven waiting, three completed, 30% completed, and no evidence of processing speed from a static snapshot. The live completion marker means evidence was recorded, not that explanation quality passed. Neither mode establishes retrieval of a saved experiment in a different conversation.
 
+`test:manual:browser:reliable-chat-endings` checks how a turn ends in the panel. A response that fails with an unanswered call leaves that call as a neutral **No result — response failed** row, which survives a reload. An empty reply after a tool step shows **No reply received** and leaves the composer ready. Stop removes a pending approval. After each case, a new message still gets a reply. It uses only synthetic model responses, so it costs no model calls, and it requires local macOS Chrome.
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:reliable-chat-endings
+```
+
 ## Local Postgres
 
 Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.

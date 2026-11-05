@@ -15,6 +15,7 @@ import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
+import { resolveBrunchToolPresentation } from "../../tools/brunch-tool-presentation";
 import { definePetrinautAiInteractiveTool } from "../ai-interactive-tool";
 import {
   createTestEditorApi,
@@ -507,6 +508,49 @@ describe("AiAssistantContents", () => {
     expect(note?.closest('[data-role="user"]')).toBeNull();
     expect(note?.parentElement).toBe(screen.getByTestId("ai-transcript"));
   });
+
+  test.each(["brunch", "stock"] as const)(
+    "ends a %s transcript with a no-reply note distinct from Stop",
+    (presentation) => {
+      render(
+        <AiAssistantContents
+          input=""
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation={presentation}
+          status="ready"
+          noReply
+          messages={[
+            {
+              id: "question",
+              role: "user",
+              parts: [{ type: "text", text: "Read the net" }],
+            },
+            {
+              id: "tool-step",
+              role: "assistant",
+              parts: [
+                { type: "step-start" },
+                {
+                  type: "dynamic-tool",
+                  toolName: "readNet",
+                  toolCallId: "net-read-1",
+                  state: "output-available",
+                  input: {},
+                  output: {},
+                },
+              ],
+            },
+          ]}
+        />,
+      );
+      const [note, ...rest] = screen.getAllByText("No reply received");
+      expect(rest).toHaveLength(0);
+      expect(note?.parentElement).toBe(screen.getByTestId("ai-transcript"));
+      expect(screen.queryByText("Response stopped")).toBeNull();
+    },
+  );
 
   test.each([
     ["brunch", "true"],
@@ -3969,14 +4013,15 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /Added place Buffer/u })
         .getAttribute("data-tone"),
     ).toBe("success");
+    // Still running, the removal names its request rather than an outcome.
     expect(
       screen
-        .getByRole("button", { name: /Deleted 1 item/u })
+        .getByRole("button", { name: /Delete 1 item/u })
         .getAttribute("data-tone"),
     ).toBe("danger");
     expect(
       screen
-        .getByRole("button", { name: /Deleted 1 item/u })
+        .getByRole("button", { name: /Delete 1 item/u })
         .getAttribute("aria-busy"),
     ).toBe("true");
   });
@@ -5045,5 +5090,495 @@ describe("AiAssistantContents in the stock presentation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(onSubmit).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * FE-2134: a call that is still waiting stays answerable; one that succeeded,
+ * errored or ended unanswered must not look as though it waits. Neither an
+ * `abort` nor an `error` chunk changes a tool part's state, so an unanswered
+ * call stays `input-available`; only the panel's Stop or the message's
+ * durable ending (`metadata.stopped`, `metadata.failed`) says it will not
+ * return. A ready chat or a panel-wide error alone does not.
+ */
+describe("interactive ending", () => {
+  const decisionTool = (placement: "work" | "card") =>
+    definePetrinautAiInteractiveTool({
+      toolName: "decide",
+      placement,
+      inputSchema: { parse: (value: unknown) => value },
+      outputSchema: { parse: (value: unknown) => value },
+      component: ({ state, submit }) =>
+        state === "awaiting" ? (
+          <button type="button" onClick={() => submit({ approved: true })}>
+            Answer decision
+          </button>
+        ) : (
+          <span>Decision recorded</span>
+        ),
+    });
+  const decisionPart = (
+    state: "input-available" | "output-available" | "output-error",
+  ): PetrinautAiMessage["parts"][number] =>
+    state === "input-available"
+      ? {
+          type: "dynamic-tool",
+          toolName: "decide",
+          toolCallId: "decision",
+          state,
+          input: {},
+        }
+      : state === "output-available"
+        ? {
+            type: "dynamic-tool",
+            toolName: "decide",
+            toolCallId: "decision",
+            state,
+            input: {},
+            output: { approved: true },
+          }
+        : {
+            type: "dynamic-tool",
+            toolName: "decide",
+            toolCallId: "decision",
+            state,
+            input: {},
+            errorText: "Decision failed",
+          };
+  const renderDecision = ({
+    placement,
+    messages,
+    stopped,
+    onInteractiveToolSubmit = noop,
+  }: {
+    placement: "work" | "card";
+    messages: PetrinautAiMessage[];
+    stopped?: boolean;
+    onInteractiveToolSubmit?: () => void;
+  }) =>
+    render(
+      <AiAssistantContents
+        input=""
+        presentation="brunch"
+        interactiveTools={[decisionTool(placement)]}
+        onInputChange={noop}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        stopped={stopped}
+        messages={messages}
+      />,
+    );
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: a pending %s decision stays answerable while the chat is ready",
+    (placement) => {
+      const onInteractiveToolSubmit = vi.fn();
+      renderDecision({
+        placement,
+        onInteractiveToolSubmit,
+        messages: [
+          {
+            id: "asking",
+            role: "assistant",
+            parts: [decisionPart("input-available")],
+          },
+        ],
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Answer decision" }));
+      expect(onInteractiveToolSubmit).toHaveBeenCalledOnce();
+      // Card decisions prepare in place; only work decisions ask the person.
+      expect(screen.queryByText("Waiting for your decision") !== null).toBe(
+        placement === "work",
+      );
+    },
+  );
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: a succeeded %s decision keeps its result",
+    async (placement) => {
+      renderDecision({
+        placement,
+        messages: [
+          {
+            id: "answered",
+            role: "assistant",
+            parts: [decisionPart("output-available")],
+          },
+        ],
+      });
+      await expandWork();
+      expect(screen.getByText("Decision recorded")).not.toBeNull();
+      expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+        null,
+      );
+      expect(screen.queryByText("Waiting for your decision")).toBeNull();
+    },
+  );
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: a failed %s decision shows its error without the widget",
+    async (placement) => {
+      renderDecision({
+        placement,
+        messages: [
+          {
+            id: "failed",
+            role: "assistant",
+            parts: [decisionPart("output-error")],
+          },
+        ],
+      });
+      await expandWork();
+      expect(
+        screen
+          .getByRole("button", { name: /Decision failed/u })
+          .querySelector('[data-tool-status="error"]'),
+      ).not.toBeNull();
+      expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+        null,
+      );
+      expect(screen.queryByText("Waiting for your decision")).toBeNull();
+    },
+  );
+
+  // Observed through the website panel: Stop while an approval waits renders
+  // the row Cancelled until history follow turns it into an `output-error`.
+  test("interactive ending: an unanswered work decision ended by panel Stop cannot be answered", async () => {
+    renderDecision({
+      placement: "work",
+      stopped: true,
+      messages: [
+        {
+          id: "stopped",
+          role: "assistant",
+          parts: [decisionPart("input-available")],
+        },
+      ],
+    });
+    await expandWork();
+    expect(screen.getByText("Response stopped")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+      null,
+    );
+    expect(screen.queryByText("Waiting for your decision")).toBeNull();
+  });
+
+  // Observed through the website panel and built Brunch server: a provider
+  // failure in the step that proposes a call leaves it `input-available`,
+  // live and reopened; Brunch projects the failed outcome onto the message.
+  const removeScenarioPart = (
+    state: "input-available" | "output-available",
+  ): PetrinautAiMessage["parts"][number] =>
+    state === "input-available"
+      ? {
+          type: "dynamic-tool",
+          toolName: "removeScenario",
+          toolCallId: "remove-scenario-call",
+          state,
+          input: { scenarioId: "baseline" },
+        }
+      : {
+          type: "dynamic-tool",
+          toolName: "removeScenario",
+          toolCallId: "remove-scenario-call",
+          state,
+          input: { scenarioId: "baseline" },
+          output: { title: "Removed scenario Baseline" },
+        };
+
+  test.each(["brunch", "stock"] as const)(
+    "interactive ending: a %s call left unanswered by a failed response reads as no result, not pending",
+    async (presentation) => {
+      render(
+        <AiAssistantContents
+          input=""
+          presentation={presentation}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="ready"
+          messages={[
+            {
+              id: "failed-response",
+              role: "assistant",
+              metadata: { failed: true },
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "addScenario",
+                  toolCallId: "add-scenario-call",
+                  state: "output-available",
+                  input: {},
+                  output: { title: "Added scenario Baseline" },
+                },
+                removeScenarioPart("input-available"),
+              ],
+            },
+          ]}
+        />,
+      );
+      await expandWork();
+      // Without a result, the row names the requested action, not an outcome.
+      const row = screen.getByRole("button", {
+        name: /Remove scenario /u,
+      });
+      expect(screen.queryByText(/Removed scenario/u)).toBeNull();
+      expect(row.textContent).toContain("No result — response failed");
+      expect(row.getAttribute("data-tone")).toBe("neutral");
+      expect(row.textContent).not.toContain("Running…");
+      expect(row.getAttribute("aria-busy")).toBeNull();
+      expect(
+        row.querySelector('[data-tool-status="no-result"]'),
+      ).not.toBeNull();
+      expect(row.querySelector('[data-tool-status="pending"]')).toBeNull();
+      expect(row.querySelector("[data-tool-progress-spinner]")).toBeNull();
+      expect(
+        screen.getByRole("button", { name: /Added scenario Baseline/u })
+          .textContent,
+      ).not.toContain("No result");
+      expect(screen.queryByText("Response stopped")).toBeNull();
+    },
+  );
+
+  test.each(["brunch", "stock"] as const)(
+    "interactive ending: a %s call still awaiting its result names the requested action",
+    async (presentation) => {
+      render(
+        <AiAssistantContents
+          input=""
+          presentation={presentation}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="streaming"
+          messages={[
+            {
+              id: "pending-response",
+              role: "assistant",
+              parts: [removeScenarioPart("input-available")],
+            },
+          ]}
+        />,
+      );
+      await expandWork();
+      const row = screen.getByRole("button", {
+        name: /Remove scenario /u,
+      });
+      expect(screen.queryByText(/Removed scenario/u)).toBeNull();
+      expect(row.textContent).not.toContain("No result");
+    },
+  );
+
+  test("interactive ending: a call the failed response completed keeps its result", async () => {
+    render(
+      <AiAssistantContents
+        input=""
+        presentation="brunch"
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [removeScenarioPart("output-available")],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const row = screen.getByRole("button", {
+      name: /Removed scenario Baseline/u,
+    });
+    expect(row.querySelector('[data-tool-status="ok"]')).not.toBeNull();
+    expect(row.textContent).not.toContain("No result");
+  });
+
+  test("interactive ending: a net rename names its request until its result confirms it", async () => {
+    const renamePart = (
+      toolCallId: string,
+      state: "input-available" | "output-available",
+      title: string,
+    ): PetrinautAiMessage["parts"][number] =>
+      state === "input-available"
+        ? {
+            type: "dynamic-tool",
+            toolName: "setNetTitle",
+            toolCallId,
+            state,
+            input: { title },
+          }
+        : {
+            type: "dynamic-tool",
+            toolName: "setNetTitle",
+            toolCallId,
+            state,
+            input: { title },
+            output: {
+              applied: true,
+              title: `Renamed net to "${title}"`,
+              detail: "Previous title: Draft",
+            },
+          };
+    render(
+      <AiAssistantContents
+        input=""
+        presentation="brunch"
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "renamed",
+            role: "assistant",
+            parts: [renamePart("rename-ok", "output-available", "Clinic")],
+          },
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [renamePart("rename-lost", "input-available", "Ward")],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const renamed = screen.getByRole("button", {
+      name: /Renamed net to "Clinic"/u,
+    });
+    expect(renamed.textContent).toContain("Previous title: Draft");
+    const unanswered = screen.getByRole("button", {
+      name: /Rename net to "Ward"/u,
+    });
+    expect(unanswered.textContent).toContain("No result — response failed");
+    expect(screen.queryByText(/Renaming/u)).toBeNull();
+  });
+
+  test("interactive ending: a Brunch-titled call left unanswered by a failed response names its request", async () => {
+    render(
+      <AiAssistantContents
+        input=""
+        presentation="brunch"
+        resolveToolPresentation={resolveBrunchToolPresentation}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        messages={[
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "ledger_commit",
+                toolCallId: "commit-call",
+                state: "input-available",
+                input: { entries: [] },
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await expandWork();
+    const row = screen.getByRole("button", { name: /Record in the Ledger/u });
+    expect(row.textContent).toContain("No result — response failed");
+    expect(row.getAttribute("data-tone")).toBe("neutral");
+  });
+
+  test.each(["work", "card"] as const)(
+    "interactive ending: an unanswered %s decision whose response failed reads as no result and cannot be answered",
+    async (placement) => {
+      const onInteractiveToolSubmit = vi.fn();
+      renderDecision({
+        placement,
+        onInteractiveToolSubmit,
+        messages: [
+          {
+            id: "failed-response",
+            role: "assistant",
+            metadata: { failed: true },
+            parts: [decisionPart("input-available")],
+          },
+        ],
+      });
+      await expandWork();
+      expect(
+        screen
+          .getByRole("button", { name: /No result — response failed/u })
+          .querySelector('[data-tool-status="no-result"]'),
+      ).not.toBeNull();
+      expect(screen.queryByRole("button", { name: "Answer decision" })).toBe(
+        null,
+      );
+      expect(screen.queryByText("Waiting for your decision")).toBeNull();
+      expect(
+        document.querySelector('[data-work-status="approval"]'),
+      ).toBeNull();
+      expect(onInteractiveToolSubmit).not.toHaveBeenCalled();
+    },
+  );
+
+  test("interactive ending: a decision the failed response answered keeps its result", async () => {
+    renderDecision({
+      placement: "card",
+      messages: [
+        {
+          id: "failed-response",
+          role: "assistant",
+          metadata: { failed: true },
+          parts: [decisionPart("output-available")],
+        },
+      ],
+    });
+    await expandWork();
+    expect(screen.getByText("Decision recorded")).not.toBeNull();
+    expect(screen.queryByText("No result — response failed")).toBeNull();
+  });
+
+  test("interactive ending: a decision left by an earlier failed response does not hold a later pending one", () => {
+    const onInteractiveToolSubmit = vi.fn();
+    renderDecision({
+      placement: "work",
+      onInteractiveToolSubmit,
+      messages: [
+        {
+          id: "failed-response",
+          role: "assistant",
+          metadata: { failed: true },
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "decide",
+              toolCallId: "earlier",
+              state: "input-available",
+              input: {},
+            },
+          ],
+        },
+        {
+          id: "retry",
+          role: "user",
+          parts: [{ type: "text", text: "Try again." }],
+        },
+        {
+          id: "asking",
+          role: "assistant",
+          parts: [decisionPart("input-available")],
+        },
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Answer decision" }));
+    expect(onInteractiveToolSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ toolCallId: "decision" }),
+    );
+    expect(screen.getByText("Waiting for your decision")).not.toBeNull();
   });
 });

@@ -27,7 +27,7 @@ const statusDotStyle = css({
   backgroundColor: "yellow.s90",
   '&[data-tool-status="ok"]': { backgroundColor: "green.s90" },
   '&[data-tool-status="error"]': { backgroundColor: "red.s90" },
-  '&[data-tool-status="cancelled"]': {
+  '&[data-tool-status="cancelled"], &[data-tool-status="no-result"]': {
     backgroundColor: "neutral.s80",
     height: "[2px]",
   },
@@ -118,7 +118,8 @@ const ToolItem = ({
   stopped?: boolean;
 }) => {
   const inProgress =
-    tool.state === "input-streaming" || tool.state === "input-available";
+    (tool.state === "input-streaming" || tool.state === "input-available") &&
+    !tool.noResult;
   const cancelled = stopped && inProgress;
   const duration = useElapsedTime(active && inProgress && !tool.interactive);
   if (tool.interactive && !cancelled) {
@@ -159,20 +160,24 @@ const ToolItem = ({
         data-tool-status={
           cancelled
             ? "cancelled"
-            : errored
-              ? "error"
-              : complete
-                ? "ok"
-                : "pending"
+            : tool.noResult
+              ? "no-result"
+              : errored
+                ? "error"
+                : complete
+                  ? "ok"
+                  : "pending"
         }
         aria-label={
           cancelled
             ? "Cancelled"
-            : errored
-              ? "Error"
-              : complete
-                ? "Complete"
-                : "Pending"
+            : tool.noResult
+              ? "No result"
+              : errored
+                ? "Error"
+                : complete
+                  ? "Complete"
+                  : "Pending"
         }
       />
       <span className={toolTextStyle}>
@@ -221,7 +226,9 @@ const ToolItem = ({
               (tool.output === undefined
                 ? cancelled
                   ? "Cancelled before a result was received"
-                  : "Pending"
+                  : tool.noResult
+                    ? tool.stateLabel
+                    : "Pending"
                 : JSON.stringify(tool.output, null, 2))}
           </pre>
           {children.map((item, index) => (
@@ -264,6 +271,7 @@ export const BrunchToolList = ({
     tools.some(
       (tool) =>
         !tool.interactive &&
+        !tool.noResult &&
         (tool.state === "input-streaming" || tool.state === "input-available"),
     );
   const [disclosure, setDisclosure] = useState({

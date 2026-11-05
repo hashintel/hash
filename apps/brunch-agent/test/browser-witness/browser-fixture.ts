@@ -141,7 +141,8 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
       else {
         const file = resolve(
           websiteDist,
-          `.${url.pathname === "/" ? "/index.html" : url.pathname}`,
+          // The website's client-side document route must also survive reload.
+          `.${url.pathname === "/" || url.pathname.startsWith("/local/") ? "/index.html" : url.pathname}`,
         );
         assert(file.startsWith(`${websiteDist}/`));
         const mime: Record<string, string> = {

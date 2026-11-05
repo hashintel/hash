@@ -77,6 +77,8 @@ export type AiAssistantContentsProps = {
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   isOpen?: boolean;
   messages: PetrinautAiMessage[];
+  /** The turn ended because a tool follow-up came back with nothing. */
+  noReply?: boolean;
   onClearMessages?: () => void;
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onInputChange: (value: string) => void;
@@ -268,6 +270,7 @@ export const AiAssistantContents = ({
   hostTabSelected: controlledHostTabSelected,
   hiddenToolNames,
   messages,
+  noReply = false,
   onClearMessages,
   onInputModeChange,
   onInputChange,
@@ -311,13 +314,16 @@ export const AiAssistantContents = ({
   );
   const awaitingDecision =
     !stopped &&
-    messages.some((message) =>
-      message.parts.some((part) => {
-        if (part.type !== "dynamic-tool" || part.state !== "input-available")
-          return false;
-        const tool = getInteractiveTool(part, interactiveTools);
-        return tool !== undefined && tool.placement !== "card";
-      }),
+    messages.some(
+      (message) =>
+        // A failed response's unanswered calls will not get a result.
+        message.metadata?.failed !== true &&
+        message.parts.some((part) => {
+          if (part.type !== "dynamic-tool" || part.state !== "input-available")
+            return false;
+          const tool = getInteractiveTool(part, interactiveTools);
+          return tool !== undefined && tool.placement !== "card";
+        }),
     );
   const experimentRunning =
     hostExperimentRunning ||
@@ -624,6 +630,7 @@ export const AiAssistantContents = ({
             <BrunchTranscript
               {...transcriptProps}
               stopped={stopped}
+              noReply={noReply}
               busy={isBusy}
               canRetry={
                 onRetryPrompt !== undefined && !isBusy && !voiceHandoffPending
@@ -635,6 +642,7 @@ export const AiAssistantContents = ({
             <StockTranscript
               {...transcriptProps}
               stopped={stopped && !error}
+              noReply={noReply}
               busy={isBusy}
             />
           )}
