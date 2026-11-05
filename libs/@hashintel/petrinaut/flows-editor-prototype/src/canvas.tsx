@@ -1152,11 +1152,14 @@ const CardText = ({
   title,
   description,
   onDescription,
+  label = "Step description",
 }: {
   title: string;
   description?: string;
   /** Renames the description in place on the card (Attio's pattern); none in a run or a past version. */
   onDescription?: (value: string) => void;
+  /** The rename field's name for assistive tech. */
+  label?: string;
 }) => (
   <span
     className={css({
@@ -1182,7 +1185,7 @@ const CardText = ({
         compact
         value={description ?? ""}
         placeholder="Add a description…"
-        label="Step description"
+        label={label}
         onSave={onDescription}
       />
     ) : (
@@ -1696,9 +1699,18 @@ const triggerStyle = css({
   },
 });
 
+/**
+ * `?startrename=old`: Start's "Flow inputs" line as plain text on the card, renamed only in the Start panel. URL
+ * only, never remembered.
+ */
+const oldStartRename =
+  new URLSearchParams(globalThis.location.search).get("startrename") ===
+  "old";
+
 /** Start: always on the canvas, holds the flow's inputs and lists what starts the flow; steps follow it. */
 const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
-  const { document, ui } = useEditor();
+  const { document, ui, setDocument } = useEditor();
+  const editable = !useReadOnlyCanvas();
   const runView = useRunView();
   return (
     <div
@@ -1718,7 +1730,21 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
       <Tooltip content="Start · holds the flow's inputs" position="top">
         <div className={cardHeadStyle}>
           <CardTile icon="play" tone="neutral" />
-          <CardText title="Start" description={startSubtitle(document)} />
+          {/* Renamed in place like a step's description (ledger 4 Nov), the same field the Start panel edits. */}
+          <CardText
+            title="Start"
+            description={startSubtitle(document)}
+            label="Start description"
+            onDescription={
+              editable && !oldStartRename
+                ? (value) =>
+                    setDocument((current) => ({
+                      ...current,
+                      startDescription: value,
+                    }))
+                : undefined
+            }
+          />
         </div>
       </Tooltip>
       <PortHandle
