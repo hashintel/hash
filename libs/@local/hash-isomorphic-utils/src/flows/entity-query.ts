@@ -2,10 +2,7 @@ import { maxEntitiesPerStep } from "./limits.js";
 
 import type { ActionStepCheck } from "./types.js";
 
-/**
- * Checks the limit of a Query Entities step's query: a whole number from 1 to `maxEntitiesPerStep`. Run when the flow
- * is defined for a constant query, and by the step for a query from an earlier step.
- */
+/** Shared by the flow definition check, for a constant query, and the step, for a query from an earlier step. */
 export const validateQueryLimit = (limit: number): string | undefined =>
   Number.isInteger(limit) && limit >= 1 && limit <= maxEntitiesPerStep
     ? undefined
