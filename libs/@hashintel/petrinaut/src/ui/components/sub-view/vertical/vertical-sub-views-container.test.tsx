@@ -531,3 +531,29 @@ it.each([
     expect(animations).toHaveLength(0);
   },
 );
+
+it("retains visited code while collapsed and releases it when selecting another item", () => {
+  const views = subViews.map((subView) => ({
+    ...subView,
+    retainOnCollapse: true,
+  }));
+  const view = render(<Harness views={views} codeCollapsed />);
+  expect(
+    screen.queryByRole("textbox", { name: "Code", hidden: true }),
+  ).toBeNull();
+  view.rerender(<Harness views={views} />);
+  const editor = screen.getByRole("textbox", { name: "Code" });
+  fireEvent.change(editor, { target: { value: "return false;" } });
+  view.rerender(<Harness views={views} codeCollapsed />);
+  expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
+  expect(screen.getByRole("textbox", { name: "Code", hidden: true })).toBe(
+    editor,
+  );
+  view.rerender(<Harness views={views} />);
+  expect(screen.getByRole("textbox", { name: "Code" })).toBe(editor);
+  expect((editor as HTMLTextAreaElement).value).toBe("return false;");
+  view.rerender(<Harness views={views} itemId="two" codeCollapsed />);
+  expect(
+    screen.queryByRole("textbox", { name: "Code", hidden: true }),
+  ).toBeNull();
+});

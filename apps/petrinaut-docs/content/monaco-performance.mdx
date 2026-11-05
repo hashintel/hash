@@ -1,0 +1,445 @@
+---
+title: Monaco performance investigation
+description: Measured editor opening, typing and lifecycle costs, with reversible optimization prototypes.
+sidebar_order: 4
+---
+
+The editor has three distinct performance problems: waiting for a deferred panel,
+constructing the first native Monaco instance, and updating the rest of Petrinaut
+while typing. They need separate remedies. Preloading alone cannot make every
+frame smooth, and retaining React state alone does not retain a native editor.
+
+The original investigation measured the Visualizer branch at
+`4f010f99aa9f70cd445c8596db2007106b9279af`. Its isolated source-transform experiments
+are preserved at `eae0520065`. The current branch implements the prototype below;
+its benchmark configuration adds timing hooks without replacing product behavior.
+Measurements describe one host and browser.
+
+Panel motion is restored after the measured prototype: code sections animate
+collapse, expansion, maximization, and restoration again. Editor readiness,
+retention, model cleanup, idle warmup, and coalesced UI updates remain enabled.
+The measurements below describe the earlier revisions named in each section,
+including their animation behavior.
+
+## Implemented prototype
+
+The production prototype at `688d898aff` contains separate commits for editor
+readiness, retained sections, model cleanup, idle warmup, coalesced UI updates,
+and stable editor dimensions. A follow-up corrects update classification to use
+document patches: the public definition store sanitizes each snapshot into new
+objects, so reference equality cannot distinguish code edits.
+
+- Resolved deferred subviews render through an external store, and Monaco renders
+  after ordinary readiness state updates. Visualizer panel code preloads when its
+  containing module loads.
+- Visited Visualizer, Firing Time, and Transition Results sections remain mounted
+  while collapsed. Selecting another item releases those sections.
+- Switching a mounted editor's document disposes its detached model. The React
+  adapter's unbounded view-state cache is disabled. A shared model stays alive
+  while another editor remains attached.
+- An idle task warms the exact font and theme once, then disposes its temporary
+  editor and model. It skips warming when a real editor has already opened and
+  cancels pending work when its provider unmounts. Environments without font
+  loading or idle callbacks skip this optional task.
+- Every keystroke reaches the document handle immediately. Local Visualizer text
+  replacements delay only the UI snapshot, using a 120 ms quiet period and a
+  500 ms maximum wait. Pointer interaction, blur, and navigation/save keyboard
+  shortcuts flush the snapshot. Structural edits, toggles, remote updates, and
+  handles without patches publish immediately. Completion still sends current
+  model text directly to the language server.
+- The measured revision used a 120 ms fade and changed dimensions once during
+  maximize and restore. That experiment was reverted to preserve panel motion.
+  Keeping editor dimensions stable while animating the surrounding panel remains
+  an unmeasured alternative.
+
+### Production comparison
+
+Both builds ran sequentially on the same M1 Max host in Chromium 145, at
+1440 × 1000 and device scale 1. There are six samples per full-app case, four
+cold micro-editor samples, and two 30-document memory runs. These are medians;
+key timings end at a second animation-frame opportunity, not a measured display
+scanout. The comparison uses fresh baseline runs, separate from the original
+investigation samples.
+
+| Measurement                                              | Baseline | Prototype |
+| -------------------------------------------------------- | -------: | --------: |
+| Satellites: first open                                   |   450 ms |     87 ms |
+| Satellites: reopen collapsed editor                      |   102 ms |     28 ms |
+| Supply Chain: first open                                 |   508 ms |    117 ms |
+| Supply Chain: reopen collapsed editor                    |   122 ms |     41 ms |
+| Cold micro editor: native mount                          |   527 ms |    269 ms |
+| Cold micro editor: next paint opportunity                |   545 ms |    286 ms |
+| Satellites: typing                                       |    22 ms |     16 ms |
+| Supply Chain: typing                                     |    37 ms |     25 ms |
+| Supply Chain: typing during simulation                   |    47 ms |     44 ms |
+| Net updates during a 20-character burst                  |       20 |         1 |
+| Registered models after 30 document switches and closure |       30 |         0 |
+
+The raw aggregates are `prototype-measurements.csv` and
+`prototype-lifecycle.csv` beside the benchmark scripts. The full traces and
+screenshots are local verification artifacts.
+
+Warmup moves work earlier: the full-app readiness metric increased from
+340 to 398 ms for Satellites and from 472 to 600 ms for Supply Chain. It is a
+separate commit so that intent-based warming can replace it independently.
+
+The stable-layout change also shifts work. Supply Chain's first paint opportunity
+when maximizing increased from 41 to 61 ms, while total style recalculation over
+the measured action fell from 91 to 21 ms. The baseline continues resizing for
+240 ms after its first paint; the prototype applies the destination dimensions
+immediately. Satellites' corresponding style cost fell from 67 to 25 ms.
+
+:::danger[Remaining frame-budget work]
+
+This prototype does not make every frame fit its budget. Supply Chain's median
+worst frame during simulation typing was 117 ms, versus 100 ms in the baseline.
+At 4× main-thread CPU throttling, Satellites first opening took 321 ms and its
+worst opening frame was 208 ms across three samples. Activity view switches and
+selection changes still recreate native editors. Undo and cursor state survive
+section collapse, but released document models lose their native state.
+
+The next iteration in [FE-2169](https://linear.app/hash/issue/FE-2169/prototype-faster-monaco-opening-and-typing-in-petrinaut)
+should address simulation/scene rendering, narrower context subscriptions,
+intent-based warmup, and bounded native editor reuse across view switches.
+Safari, IME, screen-reader behavior, and slower physical devices still need checks.
+
+:::
+
+Browser verification passed for real typing and undo, completion suggestions,
+type-error markers, Canvas → Definitions → Canvas source preservation, and real
+pointer resizing. No page errors were reported. The updated unit suite passes
+1,427 tests across 178 files. It covers real document mutations, pending-update
+flush/cancellation, subnet edits, remote snapshots, retained sections, model
+ownership, warmup cleanup, and panel transitions.
+
+Run the current prototype with:
+
+```sh
+mise x -- node benchmarks/monaco-performance/run.mjs surface=full model=satellites samples=6 variants=prototype
+mise x -- node benchmarks/monaco-performance/run.mjs surface=full model=supply-chain samples=6 variants=prototype
+mise x -- node benchmarks/monaco-performance/lifecycle.mjs mode=cold samples=4 variants=prototype
+mise x -- node benchmarks/monaco-performance/lifecycle.mjs mode=memory samples=2 variants=prototype
+mise x -- node benchmarks/monaco-performance/verify.mjs variants=prototype
+```
+
+## What the baseline does when an editor opens
+
+1. `MonacoProvider` starts importing Monaco, its React adapter and selected
+   contributions when the provider renders. This already happens before the
+   first editor opens. It configures local assets, a custom theme and Petrinaut's
+   language-server integration.
+2. Opening the Visualizer selects a place, reveals the Properties panel and
+   loads its deferred subview. `createDeferredSubView` wraps `React.lazy` in
+   Suspense. A cached dynamic import still returns a promise; importing a module
+   is not the same as making its component available synchronously.
+3. `CodeEditor` unwraps the provider promise. `@monaco-editor/react` initializes
+   its loader, creates the native editor in an effect, sets the theme and
+   signals readiness. Monaco measures fonts and layout, creates a model,
+   attaches contributions and renders text.
+4. Panel and fullscreen transitions change actual dimensions. Monaco's
+   automatic layout reacts to those changes while the canvas also renders.
+5. Collapsing a subview unmounts its content. Selecting another place changes
+   the container key. Both destroy the native editor. Switching the main view
+   hides a React Activity, whose effect cleanup also disposes Monaco.
+
+The installed React build contains a 300 ms Suspense fallback reveal throttle.
+The baseline timeline had about 347 ms between clicking and model creation;
+bypassing the unresolved lazy component removed roughly 300 ms. This supports
+the deferred-subview diagnosis. It does not mean every Suspense boundary always
+adds 300 ms. See the [React reconciler implementation](https://github.com/facebook/react/blob/v19.2.0/packages/react-reconciler/src/ReactFiberWorkLoop.js).
+
+React Activity preserves DOM and React state, but destroys effects while hidden.
+An editor pool must therefore own native instances outside the lifecycle that
+disposes them, or explicitly change that lifecycle. Simply wrapping Monaco in
+Activity does not solve this. See [Activity's effect lifecycle](https://react.dev/reference/react/Activity).
+
+## Measurement method
+
+The harness renders either the real `CodeEditor` alone or the real
+`PetrinautStoryProvider` with Satellites or Supply Chain with Disruption. It uses
+the repository's React Compiler configuration. The optimized Vite application
+uses production React; the development server is measured separately. It does
+not include the Storybook manager or a production network deployment.
+
+The test host is an Apple M1 Max with 10 CPU cores and 64 GiB RAM, macOS 27.2,
+Chromium 145.0.7632.6, a 1440 × 1000 viewport and device scale factor 1. Each
+sample gets a fresh browser context. Variant order rotates, and browser runs
+execute serially. The local asset server is already warm. Network, browser disk
+cache, battery, thermal state and unrelated system activity are not controlled
+as they would be in a dedicated performance lab.
+
+The opening metric runs from the real click event to a requestAnimationFrame
+after a visible editor has nonzero dimensions, its React onMount callback has
+run and it can take focus. This is a **paint opportunity**, not proof of a
+composited pixel or Event Timing INP. The regular opening tests wait for Monaco
+modules and fonts first; the separate cold test mounts the editor during initial
+page startup. Neither should be substituted for the other.
+
+The full-scene opening action is **Edit visualizer code**, with its preview
+already visible. The first hover-to-preview reveal and first HIR compilation
+are not included in that opening metric; preview updates during typing are.
+
+Typing uses real keyboard input, checks the resulting text, and checks that
+undo restores the original document. Key-to-frame timing runs from the key
+event timestamp through two animation-frame callbacks. The runner records
+native editor/model creation and disposal, worker protocol messages, Long
+Tasks, Long Animation Frames, CDP layout/style/script totals and post-GC heap
+usage. Raw timelines can be loaded in Chrome DevTools. React Profiler timings
+exist only in the development build.
+
+The observed idle frame interval was about 8.3 ms: a 120 Hz budget. Frame gaps
+are a useful proxy for main-thread stalls; they are not a compositor dropped-frame
+counter. A 50 ms Long Task threshold misses many missed-frame-sized tasks, so
+the report also uses animation-frame gaps. See the [Long Animation Frames specification](https://www.w3.org/TR/long-animation-frames/).
+
+## Results
+
+### Opening the real Visualizer
+
+Optimized build, Satellites, eight samples per variant. Times are medians in
+milliseconds; the range is the observed first-open minimum and maximum. “Worst
+frame” is the median of each sample's longest frame gap during opening.
+
+| Prototype                                              | First open (range) | Native construction | Worst frame | Reopen |
+| ------------------------------------------------------ | ------------------ | ------------------- | ----------- | ------ |
+| Baseline                                               | 450 (440–454)      | 55                  | 67          | 99     |
+| Preload resolved Visualizer subview                    | 151 (141–154)      | 49                  | 108         | 98     |
+| Preload + exact Monaco warm-up + retain visited editor | 92 (89–106)        | 4                   | 50          | 84     |
+| Same combination, motion disabled                      | 92 (84–94)         | 5                   | 54          | 24     |
+
+The combination removes about 80% of the first-open wait. Preloading by itself
+makes the response earlier but concentrates more synchronous work into one
+frame. Removing all motion helps reopening, but does not improve first opening
+and increases some simulation frame gaps. None of these results meets an 8.3 ms
+frame budget throughout.
+
+On Supply Chain, six samples per variant, first opening falls from **518 ms to
+116 ms** with the combination. The median worst opening frame falls from 100 ms
+to 67 ms. The larger scene therefore remains relevant after the Monaco startup
+cost has been addressed.
+
+### Typing with a live Visualizer
+
+Each sample types the same 20-character comment and then undoes it. These are
+medians of the per-run median key-to-frame timings. The 120 ms batching prototype
+leaves text updates in Monaco immediate and delays the whole-net state update;
+it flushes on editor blur.
+
+| Scene                   | Baseline | Batched state | Baseline during simulation | Batched during simulation |
+| ----------------------- | -------- | ------------- | -------------------------- | ------------------------- |
+| Satellites, 8 samples   | 23 ms    | 16 ms         | 22 ms                      | 17 ms                     |
+| Supply Chain, 6 samples | 40 ms    | 17 ms         | 50 ms                      | 26 ms                     |
+
+Whole-net `sdcpn/didChange` messages fall from **20 to 1** per edit. For the
+Satellites typing window, median main-thread script time falls from 268 ms to
+92 ms, and style recalculation from 224 ms to 99 ms. Those totals include the
+runner's 600 ms settling window; they are not individual keystroke costs.
+
+Compilation was already partially coalesced by deferred rendering and the HIR
+cache: the baseline sent only a few lowering requests, not 20. The 20 whole-net
+updates still each reach the language worker's synchronization/diagnostics path.
+This distinction argues for fixing state propagation and diagnostic scheduling,
+rather than only adding another compiler cache.
+
+Supply Chain still has roughly 100 ms worst frame gaps during simulation even
+with the improved typing path. Faster key response and smoother simulation are
+different outcomes. Prewarming and retaining Monaco do not improve steady-state
+typing in that scene.
+
+### Where main-thread work accumulates
+
+A separate diagnostic CPU profile found Monaco's `_readClientRects` below its
+text-range measurement and reveal-cursor paths. The timeline also showed broad
+style recalculation, including one 23 ms `UpdateLayoutTree` affecting 2,972
+elements. Those observations identify DOM/style work as a real cost, rather than
+assuming that TypeScript parsing accounts for the whole delay. The trace runs
+include tracing overhead and are not mixed into the timing table.
+
+### Cold startup, options and retention
+
+In six fresh-context startup samples, mounting the isolated editor immediately
+after navigation reached its React onMount callback at **522 ms** in the
+baseline. A prototype that waits for Monaco readiness through an ordinary state
+update before rendering the suspending inner editor reached it at **263 ms**.
+Exact prewarming alone reached 472 ms. Monaco modules were ready at about 214 ms
+in all three cases. This further separates loading time from the subsequent
+Suspense reveal delay. All three still had roughly 67 ms worst startup frame
+gaps, and the first real keyboard input was accepted.
+
+This cold fixture shares the application's bundle imports even when it renders
+only Monaco; its roughly 8.9 MiB of decoded resources is **not Monaco's bundle
+size**. The readiness gate is a prototype, not a proposed new loading API: a
+production readiness store needs resolved/error states, stable ownership and
+error-boundary behavior.
+
+The isolated editor also provides a useful control for the full UI results:
+
+| Variant, 6 samples               | First open | Reopen | Switch model | Resize |
+| -------------------------------- | ---------- | ------ | ------------ | ------ |
+| Baseline                         | 112 ms     | 31 ms  | 15 ms        | 14 ms  |
+| Explicit measured dimension      | 118 ms     | 31 ms  | 14 ms        | 15 ms  |
+| Exact font/theme warm-up         | 69 ms      | 31 ms  | 16 ms        | 15 ms  |
+| Retain native instance           | 113 ms     | 22 ms  | 16 ms        | 15 ms  |
+| Keep models only                 | 113 ms     | 30 ms  | 14 ms        | 15 ms  |
+| Disable optional editor features | 113 ms     | 31 ms  | 15 ms        | 14 ms  |
+
+Most steady-state frame gaps here were about 9–11 ms. The much slower full-app
+typing and simulation results cannot be explained by native Monaco construction
+or model switching alone.
+
+Thirty open/change-to-a-new-document/close cycles, repeated twice, left **30
+registered models in the baseline**, and **31** with either keep-model or
+retain-instance enabled. The baseline and keep-model variants had no live editor
+after close; retain-instance had one. The adapter preserves previous paths while
+switching models and disposes only the current model on unmount. Model ownership
+and eviction therefore need attention even before adding a broader editor cache.
+The whole post-GC renderer heap stayed in the low tens of MiB in this short test;
+that noisy total does not negate the deterministic model-count growth.
+
+An initial rapid-lifecycle pilot emitted an unhandled `Canceled` event. The
+stress runner records these separately and fails on other page errors. A
+production pool must handle outstanding asynchronous work during disposal;
+silencing cancellation globally would hide the issue.
+
+A three-sample CSS ablation removing relational `:has()` rules reduced opening
+style-recalculation totals from about 89 ms to 59 ms, but native construction was
+still about 54 ms and the opening wait remained over 400 ms. This warrants a
+targeted selector profile, not removing all relational styling. Broad containment
+and complete visual-effects removal did not solve the opening problem in the
+earlier two-sample pilots.
+
+### Development and slower execution
+
+Three samples per variant on Satellites:
+
+| Environment                      | Baseline first open | Combined first open | Baseline worst opening frame | Combined worst opening frame |
+| -------------------------------- | ------------------- | ------------------- | ---------------------------- | ---------------------------- |
+| Vite development, modules ready  | 507 ms              | 136 ms              | 75 ms                        | 92 ms                        |
+| Optimized build, 4× CPU throttle | 780 ms              | 301 ms              | 252 ms                       | 191 ms                       |
+
+The first development navigation took 4.8 seconds while Vite transformed assets;
+subsequent application-ready observations were around 635–645 ms. That server
+warm-up cost should not be attributed to opening an already-loaded editor or to
+the production bundle. Conversely, the throttled results show that removing the
+300 ms wait is insufficient to guarantee smooth frames on slower execution.
+
+The separate interaction pass used real typed input and verified a type-error
+diagnostic, a visible completion popup, undo restoring the original source,
+Canvas → Definitions → Canvas preserving source, and a pointer-driven panel
+resize. Baseline, combined and batched-state variants passed without page
+errors. Screenshots confirmed the resized editor and preserved preview. All
+three disposed the native editor on the Activity view switch and created it
+again on return; that experiment retained only collapsed sections.
+
+The committed `measurements.csv` and `lifecycle.csv` beside the harness preserve
+the numerical summaries. The main timing matrix contains 112 fresh-context
+interaction trials; cold startup adds 18, and memory stress adds six. Three
+interaction-verification runs and diagnostic/pilot traces are separate. The
+experiments are local and do not change production editor behavior or publish
+anything remotely.
+
+## What to implement, in order
+
+| Priority | Change                                                                      | Evidence and tradeoff                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | Make likely-to-open subviews and Monaco readiness synchronously available   | The largest measured opening improvement. Preload on selection, pointer intent or an idle opportunity; cache the resolved descriptor, not only the import promise. Avoid the extra Suspense retry on already-loaded content. Keep a fallback for an immediate click and handle loading errors. The prototype eagerly loads only the Visualizer subview, so an intent-based policy still needs its own measurements. |
+| 2        | Preserve a small number of native editors and manage models separately      | Retaining the visited subview avoids construction on reopen. A stable editor host with `setModel`, saved view state and a bounded model cache can also cover place and view switching. The current retain prototype covers collapse only. Retained models consume memory and require explicit eviction; `keepCurrentModel` alone does not retain an editor.                                                         |
+| 3        | Separate the immediate text draft from expensive whole-net updates          | The coalescing experiment reduces language-server traffic and typing latency. Store the current draft durably and version it; flush before blur, navigation, save, simulation actions and teardown. Undo, external edits and collaborative updates need explicit semantics. The experimental 120 ms callback queue is evidence, not that production design.                                                         |
+| 4        | Warm one representative editor when the user is likely to need it           | Exact theme and font options prime more of the first-instance path. Construction still runs on the main thread: an idle callback changes when the stall happens, not its size. Do not warm many hidden editors or compete with an active interaction. A retained real instance is preferable to repeatedly creating and disposing warm-up instances.                                                                |
+| 5        | Give the editor its final layout once; animate the surrounding presentation | Width/height transitions repeatedly invoke layout. A stable inner editor with a transform/opacity transition or temporary visual snapshot can preserve motion without reflowing text every frame. Disabling all motion improved reopen latency but did not consistently improve first open or fullscreen; it is an ablation, not the proposed UX.                                                                   |
+| 6        | Bound diagnostics and preview work independently                            | Keep completion and hover requests current; coalesce superseded background diagnostics and visualizer compilation, using document revisions to discard stale results. Prioritize interactive requests over whole-net diagnostics. Preserve the previous successful visualizer artifact. Measure worker queue latency and canvas cost separately before moving more work into the worker.                            |
+
+The architecture target is one immediate path from keystroke to Monaco text,
+then independent, versioned paths for persisted drafts, language assistance and
+preview compilation. Simulation rendering needs its own frame budget. A worker
+cannot perform Monaco's DOM measurements, style recalculation or text painting.
+
+## Changes that did not justify adoption
+
+- **Passing `dimension` at construction:** the prototype reads the parent size
+  immediately before construction and did not remove the first-open cost.
+  Passing a size already known by the layout system may still avoid a forced
+  read; measuring the same DOM somewhere else is not that optimization.
+- **Blanket CSS containment:** `contain: layout paint style` on `.monaco-editor`
+  did not improve the tested opening path. Paint containment may clip completion
+  or hover UI. It should not be applied without popup and accessibility checks.
+- **Removing every shadow, blur and transition:** this did not remove the lazy
+  panel delay or the first-instance cost. It also changes the intended visual
+  design. Target expensive layout-changing animations first.
+- **Disabling editor features wholesale:** fewer features reduce functionality;
+  the measured option toggle is not a substitute for avoiding reconstruction.
+  Petrinaut already disables the minimap and imports a selected set of
+  contributions. Audit bundle coverage before removing more.
+- **Adding manual React memoization everywhere:** React Compiler already runs.
+  Broad context changes, imperative editor creation and layout remain even if
+  a component's render is memoized. Narrow subscriptions and state ownership
+  are more relevant than adding `memo` indiscriminately.
+
+Monaco exposes `dimension`, `automaticLayout` and feature options in its
+[construction API](https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor_editor_api.editor.IStandaloneEditorConstructionOptions.html).
+Those options can reduce specific work; they do not provide an asynchronous
+editor constructor. `useDeferredValue` can make React rendering interruptible,
+but does not debounce side effects or split a synchronous native constructor.
+The Visualizer already uses it and caches lowered artifacts. See
+[React's deferred value guidance](https://react.dev/reference/react/useDeferredValue).
+
+## Further candidates, not measured improvements
+
+- Lazy-load contribution bundles that are unused in a particular
+  editor, while keeping required typing, accessibility and language features.
+  Inspect the actual shipped bundle: the custom LSP is already separate from
+  Monaco's standard TypeScript worker.
+- Reuse a small number of full editors for single-line fields, or use a native
+  input for fields that need no code navigation/completion. A different editor
+  such as CodeMirror needs a feature-parity and accessibility benchmark; a
+  smaller bundle alone does not establish a faster complete workflow.
+- Evaluate experimental GPU text rendering on supported browsers only after
+  eliminating mounting and state-propagation costs. It does not eliminate
+  JavaScript construction, React work or main-thread layout.
+- Split broad SDCPN/editor context subscriptions by document and derived data.
+  Suppress unchanged diagnostics per model instead of revisiting every model.
+- Throttle hidden or occluded visualizer rendering and simulation display
+  updates without slowing the simulation engine or losing timeline state.
+  Use the larger scene to validate this independently of Monaco.
+- Avoid a permanent `will-change` on every editor or visualizer. Promotion can
+  help a measured compositor bottleneck, but costs memory and cannot make
+  layout-changing animations compositor-only.
+
+## Reproduce the original investigation
+
+Use revision `eae0520065` for the original experiment variants below. Run commands
+from `libs/@hashintel/petrinaut`, using the repository-pinned tools:
+
+```sh
+mise x -- yarn exec vite build --config benchmarks/monaco-performance/vite.config.ts
+mise x -- yarn exec vite preview --config benchmarks/monaco-performance/vite.config.ts
+```
+
+The isolated preview uses port 6027. In another terminal:
+
+```sh
+mise x -- node benchmarks/monaco-performance/run.mjs surface=full samples=8 variants=baseline,preload-view,combined,combined-fast,debounced-state
+mise x -- node benchmarks/monaco-performance/run.mjs surface=full model=supply-chain samples=6 variants=baseline,combined,debounced-state
+mise x -- node benchmarks/monaco-performance/run.mjs surface=micro samples=6 variants=baseline,dimension,prewarm-exact,retain,keep-model,minimal-options
+mise x -- node benchmarks/monaco-performance/lifecycle.mjs mode=cold samples=6 variants=baseline,readiness-gate,prewarm-exact
+mise x -- node benchmarks/monaco-performance/lifecycle.mjs mode=memory samples=2
+mise x -- node benchmarks/monaco-performance/verify.mjs
+```
+
+Use `origin=http://127.0.0.1:6026` for the dev server, `cpu=4` for a CPU-throttled
+main-thread run, and `trace=true samples=1` for a separate diagnostic trace and
+CPU profile. Do not mix tracing samples into the untraced timing results, run
+benchmarks concurrently, or rebuild while a benchmark is running. CPU throttling
+is not a faithful emulation of a particular low-end machine or its workers.
+
+Run `summarize.mjs` with the result JSON paths to produce aggregate results.
+Sample counts and ranges matter: a small-sample p95 is not a reliable fleet-wide
+tail estimate. Heap figures cover the renderer's JavaScript heap after collection,
+not worker heaps, GPU allocations or total process memory.
+
+Before shipping an optimization, repeat the tests on a foreground interactive
+browser, Safari and a slower physical device. Add large documents, completion
+and hover, diagnostics, IME, keyboard navigation, screen readers, external
+updates, view switching and memory pressure. Set separate opening, keystroke,
+resize and simulation budgets. A fast median on this host cannot establish
+that an editor will never drop a frame.
