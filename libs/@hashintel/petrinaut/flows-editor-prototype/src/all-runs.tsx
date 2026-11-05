@@ -33,6 +33,11 @@ import {
   warningsText,
 } from "./run-history";
 import { RunOutputsCell } from "./run-outputs";
+import {
+  RunItemsCell,
+  runStatusTake,
+  RunStatusTakeCell,
+} from "./run-status-takes";
 import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
 
@@ -219,6 +224,8 @@ const tableStyle = css({
  * - `p4`: 25 rows (past the fold), scrolling inside the page; 25 more load as you near the end; no button.
  */
 type RunsPage = "none" | "p1" | "p2" | "p3" | "p4";
+
+const statusTake = runStatusTake();
 
 const runsPage: RunsPage = (() => {
   const value = new URLSearchParams(globalThis.location.search).get("runspage");
@@ -437,6 +444,9 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
             <tr>
               <th>Run</th>
               <th>Status</th>
+              {statusTake === "c" ? (
+                <th className={css({ textAlign: "right" })}>Items</th>
+              ) : null}
               <th>Started by</th>
               <th>Outputs</th>
               <th>Duration</th>
@@ -459,8 +469,17 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                   Run {run.id} · {run.when}
                 </td>
                 <td>
-                  <StatusCell {...statusCellOf(run, now)} />
+                  {statusTake ? (
+                    <RunStatusTakeCell run={run} now={now} take={statusTake} />
+                  ) : (
+                    <StatusCell {...statusCellOf(run, now)} />
+                  )}
                 </td>
+                {statusTake === "c" ? (
+                  <td>
+                    <RunItemsCell run={run} now={now} />
+                  </td>
+                ) : null}
                 <td>
                   {run.trigger.kind === "manual"
                     ? `Manual · ${run.trigger.by}`
