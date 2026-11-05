@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createFlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 
 import { actionStep, flowWith } from "../shared/step-fixtures";
-import { getFieldProblems } from "./field-problems";
+import { getFieldProblems, getPathInSource } from "./field-problems";
 
 const answerInputNames = ["question", "context", "entities"];
 
@@ -105,5 +105,32 @@ describe("getFieldProblems", () => {
       },
       stepProblems: ["unknownInput", "unknownStep"],
     });
+  });
+
+  it("tells where in an input's source its problem is, e.g. at a query's limit", () => {
+    const { problemsByStepId } = createFlowEditor(
+      flowWith([
+        actionStep("find", {
+          inputs: {
+            query: {
+              kind: "constant",
+              payload: {
+                kind: "EntityQuery",
+                value: { filter: { all: [] }, limit: 0 },
+              },
+            },
+          },
+        }),
+      ]),
+    ).getState();
+
+    const { byInputName } = getFieldProblems(
+      problemsByStepId.get("find") ?? [],
+      ["query"],
+    );
+
+    expect(byInputName.get("query")?.map(getPathInSource)).toEqual([
+      ["payload", "value", "limit"],
+    ]);
   });
 });

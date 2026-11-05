@@ -2,19 +2,26 @@ import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-
 
 type Problem = FlowDefinitionDiagnosticWithStepId;
 
-/** The name of the input a step's problem is about, from its path, e.g. `dataToWrite` for `["steps", 2, "inputs", "dataToWrite"]`. */
-const getInputName = ({ path }: Problem) => {
+/**
+ * The input a step's problem is about, from its path, and where in the input's source it is, e.g. `query` and
+ * `["payload", "value", "limit"]` for `["steps", 2, "inputs", "query", "payload", "value", "limit"]`.
+ */
+const getInputPath = ({ path }: Problem) => {
   /* The step is the innermost one on the path: the last number after "steps". */
   const stepIndex = path.findLastIndex(
     (segment, index) =>
       typeof segment === "number" && path[index - 1] === "steps",
   );
-  const [section, inputName] = path.slice(stepIndex + 1);
+  const [section, inputName, ...pathInSource] = path.slice(stepIndex + 1);
 
   return section === "inputs" && typeof inputName === "string"
-    ? inputName
+    ? { inputName, pathInSource }
     : undefined;
 };
+
+/** Where in an input's source a problem with the input is, e.g. `["payload", "value", "limit"]`, or `[]` for all of it. */
+export const getPathInSource = (problem: Problem) =>
+  getInputPath(problem)?.pathInSource ?? [];
 
 /**
  * Splits a step's problems into those about each of `inputNames`, shown next to its field, and the rest, which are
@@ -28,7 +35,7 @@ export const getFieldProblems = (
   const stepProblems: Problem[] = [];
 
   for (const problem of problems) {
-    const inputName = getInputName(problem);
+    const inputName = getInputPath(problem)?.inputName;
 
     if (inputName === undefined || !inputNames.includes(inputName)) {
       stepProblems.push(problem);
