@@ -23,10 +23,7 @@ import { usePropertyTypes } from "../../../../../../../shared/property-types-con
 import { useDataTypesContext } from "../../../../../../shared/data-types-context";
 import { getPathInSource } from "./field-problems";
 import { InputField } from "./input-field";
-import {
-  getConditionProperties,
-  getPropertiesOfTypes,
-} from "./query-field/condition-properties";
+import { getConditionProperties } from "./query-field/condition-properties";
 import {
   operatorsByKind,
   readQueryForm,
@@ -34,7 +31,10 @@ import {
   toEntityQuery,
 } from "./query-field/query-form";
 
-import type { ConditionProperty } from "./query-field/condition-properties";
+import type {
+  ConditionOntology,
+  ConditionProperty,
+} from "./query-field/condition-properties";
 import type {
   ConditionOperator,
   ConditionValueKind,
@@ -257,18 +257,48 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
 
   const { entityTypes, entityTypeParentIds } = useEntityTypesContextRequired();
   const { latestEntityTypes } = useLatestEntityTypesOptional();
-  const { propertyTypes } = usePropertyTypes({ latestOnly: true });
+  const { propertyTypes } = usePropertyTypes();
+  const { propertyTypes: latestPropertyTypes } = usePropertyTypes({
+    latestOnly: true,
+  });
   const { dataTypes } = useDataTypesContext();
 
+  const ontology = useMemo(
+    (): ConditionOntology | null =>
+      entityTypes &&
+      entityTypeParentIds &&
+      propertyTypes &&
+      latestPropertyTypes &&
+      dataTypes
+        ? {
+            entityTypes,
+            entityTypeParentIds,
+            propertyTypes,
+            latestPropertyTypes: Object.values(latestPropertyTypes),
+            dataTypes,
+          }
+        : null,
+    [
+      entityTypes,
+      entityTypeParentIds,
+      propertyTypes,
+      latestPropertyTypes,
+      dataTypes,
+    ],
+  );
+
+  /* By base URL, the properties a condition can be on for entities of any type. */
   const conditionProperties = useMemo(
     () =>
-      propertyTypes &&
-      dataTypes &&
-      getConditionProperties({
-        latestPropertyTypes: Object.values(propertyTypes),
-        dataTypes,
-      }),
-    [propertyTypes, dataTypes],
+      ontology &&
+      latestEntityTypes &&
+      new Map(
+        getConditionProperties(
+          ontology,
+          latestEntityTypes.map(({ schema }) => schema.$id),
+        ).map((property) => [property.baseUrl, property]),
+      ),
+    [ontology, latestEntityTypes],
   );
 
   const typeItems = useMemo(() => {
@@ -307,7 +337,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
     .filter((problem) => !isAboutLimit(problem))
     .map(({ message }) => message);
 
-  if (!conditionProperties || !entityTypes || !entityTypeParentIds) {
+  if (!ontology || !latestEntityTypes || !conditionProperties) {
     return (
       <Form.Field layout="inline" label="Query">
         <LoadingSpinner size="sm" />
@@ -481,13 +511,20 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
               ))}
               {!readOnly && !newConditionProperty && (
                 <AddConditionMenu
-                  properties={getPropertiesOfTypes({
-                    conditionProperties,
-                    entityTypeBaseUrls: form.entityTypeBaseUrls,
-                    latestEntityTypes: latestEntityTypes ?? [],
-                    entityTypes,
-                    entityTypeParentIds,
-                  })}
+                  properties={
+                    form.entityTypeBaseUrls.length === 0
+                      ? [...conditionProperties.values()]
+                      : getConditionProperties(
+                          ontology,
+                          latestEntityTypes
+                            .filter(({ metadata }) =>
+                              form.entityTypeBaseUrls.includes(
+                                metadata.recordId.baseUrl,
+                              ),
+                            )
+                            .map(({ schema }) => schema.$id),
+                        )
+                  }
                   onPick={setNewConditionProperty}
                 />
               )}

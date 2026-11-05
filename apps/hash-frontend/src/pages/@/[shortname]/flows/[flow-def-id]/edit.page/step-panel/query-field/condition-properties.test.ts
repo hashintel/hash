@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  getConditionProperties,
-  getPropertiesOfTypes,
-} from "./condition-properties";
+import { getConditionProperties } from "./condition-properties";
 
+import type { ConditionOntology } from "./condition-properties";
 import type {
-  BaseUrl,
   DataType,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -40,17 +37,17 @@ const dataTypes = Object.fromEntries([
   dataType("only-date", { anyOf: [{ type: "string", format: "date" }] }),
 ]);
 
+const propertyTypeUrl = (name: string) =>
+  `https://example.com/@acme/types/property-type/${name}/`;
+
 const propertyType = (
   name: string,
   dataTypeNames: string[],
 ): PropertyTypeWithMetadata =>
   ({
-    metadata: {
-      recordId: {
-        baseUrl: `https://example.com/@acme/types/property-type/${name}/`,
-      },
-    },
+    metadata: { recordId: { baseUrl: propertyTypeUrl(name) } },
     schema: {
+      $id: `${propertyTypeUrl(name)}v/1`,
       title: name,
       oneOf: dataTypeNames.map((dataTypeName) => ({
         $ref: dataTypeId(dataTypeName),
@@ -58,100 +55,108 @@ const propertyType = (
     },
   }) as unknown as PropertyTypeWithMetadata;
 
-const valueKindsOf = (propertyTypes: PropertyTypeWithMetadata[]) =>
+const entityTypeId = (name: string) =>
+  `https://example.com/@acme/types/entity-type/${name}/v/1` as VersionedUrl;
+
+/** An entity type with each property as a single value, or as a list when its name is in `lists`. */
+const entityType = (
+  name: string,
+  propertyNames: string[],
+  lists: string[] = [],
+): EntityTypeWithMetadata =>
+  ({
+    schema: {
+      $id: entityTypeId(name),
+      properties: Object.fromEntries(
+        propertyNames.map((propertyName) => {
+          const reference = { $ref: `${propertyTypeUrl(propertyName)}v/1` };
+
+          return [
+            propertyTypeUrl(propertyName),
+            lists.includes(propertyName)
+              ? { type: "array", items: reference }
+              : reference,
+          ];
+        }),
+      ),
+    },
+  }) as unknown as EntityTypeWithMetadata;
+
+const ontologyOf = (
+  propertyTypes: PropertyTypeWithMetadata[],
+  entityTypes: EntityTypeWithMetadata[],
+  entityTypeParentIds: Record<VersionedUrl, VersionedUrl[]> = {},
+): ConditionOntology => ({
+  entityTypes,
+  entityTypeParentIds,
+  propertyTypes: Object.fromEntries(
+    propertyTypes.map((type) => [type.schema.$id, type]),
+  ),
+  latestPropertyTypes: propertyTypes,
+  dataTypes,
+});
+
+const valueKindsOf = (ontology: ConditionOntology, typeNames: string[]) =>
   Object.fromEntries(
-    [
-      ...getConditionProperties({
-        latestPropertyTypes: propertyTypes,
-        dataTypes,
-      }),
-    ].map(([baseUrl, { title, valueKind }]) => [title, { baseUrl, valueKind }]),
+    getConditionProperties(ontology, typeNames.map(entityTypeId)).map(
+      ({ title, valueKind }) => [title, valueKind],
+    ),
   );
 
 describe("getConditionProperties", () => {
   it("keeps properties whose single data type is a date or a status, including one inherited", () => {
+    const properties = [
+      propertyType("received", ["date"]),
+      propertyType("state", ["shipment-status"]),
+      propertyType("note", ["text"]),
+      propertyType("received-or-note", ["date", "text"]),
+      propertyType("blank", ["no-options"]),
+    ];
+    const shipment = entityType(
+      "shipment",
+      properties.map(({ schema }) => schema.title),
+    );
+
     expect(
-      valueKindsOf([
-        propertyType("received", ["date"]),
-        propertyType("state", ["shipment-status"]),
-        propertyType("note", ["text"]),
-        propertyType("received-or-note", ["date", "text"]),
-        propertyType("blank", ["no-options"]),
-      ]),
+      valueKindsOf(ontologyOf(properties, [shipment]), ["shipment"]),
     ).toEqual({
-      received: {
-        baseUrl: "https://example.com/@acme/types/property-type/received/",
-        valueKind: { kind: "date" },
-      },
-      state: {
-        baseUrl: "https://example.com/@acme/types/property-type/state/",
-        valueKind: { kind: "status", options: ["Active", "Suspended"] },
-      },
+      received: { kind: "date" },
+      state: { kind: "status", options: ["Active", "Suspended"] },
     });
   });
 
   it("reads a data type that allows one set of constraints, not one that allows several", () => {
+    const properties = [
+      propertyType("sent", ["only-date"]),
+      propertyType("sent-or-note", ["date-or-text"]),
+    ];
+    const report = entityType("report", ["sent", "sent-or-note"]);
+
     expect(
-      Object.keys(
-        valueKindsOf([
-          propertyType("sent", ["only-date"]),
-          propertyType("sent-or-note", ["date-or-text"]),
-        ]),
-      ),
+      Object.keys(valueKindsOf(ontologyOf(properties, [report]), ["report"])),
     ).toEqual(["sent"]);
   });
-});
 
-describe("getPropertiesOfTypes", () => {
-  const propertyTypeUrl = (name: string) =>
-    `https://example.com/@acme/types/property-type/${name}/`;
-
-  const entityType = (
-    name: string,
-    properties: Record<string, unknown>,
-  ): EntityTypeWithMetadata =>
-    ({
-      metadata: {
-        recordId: {
-          baseUrl: `https://example.com/@acme/types/entity-type/${name}/`,
-        },
-      },
-      schema: {
-        $id: `https://example.com/@acme/types/entity-type/${name}/v/1`,
-        properties,
-      },
-    }) as unknown as EntityTypeWithMetadata;
-
-  const shipment = entityType("shipment", {
-    [propertyTypeUrl("received")]: {
-      $ref: `${propertyTypeUrl("received")}v/1`,
-    },
-  });
-  const report = entityType("report", {
-    [propertyTypeUrl("sent")]: {
-      type: "array",
-      items: { $ref: `${propertyTypeUrl("sent")}v/1` },
-    },
-  });
-  const conditionProperties = getConditionProperties({
-    latestPropertyTypes: [
+  it("offers the properties of the given types and their parents, not those they only have as a list", () => {
+    const properties = [
       propertyType("received", ["date"]),
       propertyType("sent", ["date"]),
-    ],
-    dataTypes,
-  });
+      propertyType("state", ["status"]),
+    ];
+    const ontology = ontologyOf(
+      properties,
+      [
+        entityType("item", ["state"]),
+        entityType("shipment", ["received"]),
+        entityType("report", ["sent"], ["sent"]),
+      ],
+      { [entityTypeId("shipment")]: [entityTypeId("item")] },
+    );
 
-  it("leaves out a property that types only have as a list, whether types are picked or not", () => {
-    const titles = (entityTypeBaseUrls: string[]) =>
-      getPropertiesOfTypes({
-        conditionProperties,
-        entityTypeBaseUrls: entityTypeBaseUrls as BaseUrl[],
-        latestEntityTypes: [shipment, report],
-        entityTypes: [shipment, report],
-        entityTypeParentIds: {},
-      }).map(({ title }) => title);
-
-    expect(titles([])).toEqual(["received"]);
-    expect(titles([report.metadata.recordId.baseUrl])).toEqual([]);
+    expect(Object.keys(valueKindsOf(ontology, ["shipment"]))).toEqual([
+      "received",
+      "state",
+    ]);
+    expect(valueKindsOf(ontology, ["report"])).toEqual({});
   });
 });

@@ -1,9 +1,4 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
-
-import {
-  resolveDataTypeValueKind,
-  resolveStringEnumOptions,
-} from "../../../../../../../shared/entities-visualizer/shared/property-filters/derive-filterable-properties";
+import { deriveFilterableProperties } from "../../../../../../../shared/entities-visualizer/shared/property-filters/derive-filterable-properties";
 
 import type { ConditionValueKind } from "./query-form";
 import type {
@@ -21,10 +16,16 @@ export type ConditionProperty = {
   valueKind: ConditionValueKind;
 };
 
-/**
- * Whether a data type, or one it inherits from, has format `date`. Only for a data type `resolveDataTypeValueKind`
- * resolves to a single kind, so any `anyOf` it meets has one entry.
- */
+export type ConditionOntology = {
+  entityTypes: EntityTypeWithMetadata[];
+  entityTypeParentIds: Record<VersionedUrl, VersionedUrl[]>;
+  /** Every version, as the entity types refer to them. */
+  propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
+  latestPropertyTypes: PropertyTypeWithMetadata[];
+  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>;
+};
+
+/** Whether a data type, or one it inherits from, has format `date`. */
 const hasDateFormat = (
   dataTypeId: VersionedUrl,
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
@@ -39,8 +40,8 @@ const hasDateFormat = (
   seen.add(dataTypeId);
 
   if ("anyOf" in schema) {
-    const [only] = schema.anyOf;
-    return "format" in only && only.format === "date";
+    const [only, ...others] = schema.anyOf;
+    return others.length === 0 && "format" in only && only.format === "date";
   }
 
   if ("format" in schema && schema.format === "date") {
@@ -52,103 +53,59 @@ const hasDateFormat = (
   );
 };
 
-/** A date, a status (text that is one of a fixed set), or `undefined` for any other kind of value. */
-const getValueKind = (
-  dataTypeId: VersionedUrl,
-  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
-): ConditionValueKind | undefined => {
-  if (resolveDataTypeValueKind({ dataTypeId, dataTypes }) !== "string") {
-    return undefined;
-  }
-
-  if (hasDateFormat(dataTypeId, dataTypes)) {
-    return { kind: "date" };
-  }
-
-  const options = resolveStringEnumOptions({ dataTypeId, dataTypes });
-
-  return options ? { kind: "status", options } : undefined;
-};
-
-/** Every property, by base URL, whose value is a single date or status, from the latest version of each. */
-export const getConditionProperties = ({
-  latestPropertyTypes,
-  dataTypes,
-}: {
-  latestPropertyTypes: PropertyTypeWithMetadata[];
-  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>;
-}) => {
-  const properties = new Map<BaseUrl, ConditionProperty>();
+/**
+ * The properties a condition can be on for entities of the given types, by title: those the entities table filters as
+ * a single status, or as single text whose latest data type is a date.
+ */
+export const getConditionProperties = (
+  {
+    entityTypes,
+    entityTypeParentIds,
+    propertyTypes,
+    latestPropertyTypes,
+    dataTypes,
+  }: ConditionOntology,
+  entityTypeIds: VersionedUrl[],
+): ConditionProperty[] => {
+  const latestDataTypeIds = new Map<BaseUrl, VersionedUrl>();
 
   for (const { schema, metadata } of latestPropertyTypes) {
     const [only, ...others] = schema.oneOf;
-    const valueKind =
-      others.length === 0 && "$ref" in only
-        ? getValueKind(only.$ref, dataTypes)
-        : undefined;
 
-    if (valueKind) {
-      properties.set(metadata.recordId.baseUrl, {
-        baseUrl: metadata.recordId.baseUrl,
-        title: schema.title,
-        valueKind,
-      });
+    if (others.length === 0 && "$ref" in only) {
+      latestDataTypeIds.set(metadata.recordId.baseUrl, only.$ref);
     }
   }
 
-  return properties;
-};
-
-/**
- * The properties a condition can be on for entities of the given types, or of any type if none are given: those the
- * types or their parents have as a single value, not a list, by title.
- */
-export const getPropertiesOfTypes = ({
-  conditionProperties,
-  entityTypeBaseUrls,
-  latestEntityTypes,
-  entityTypes,
-  entityTypeParentIds,
-}: {
-  conditionProperties: Map<BaseUrl, ConditionProperty>;
-  entityTypeBaseUrls: BaseUrl[];
-  latestEntityTypes: EntityTypeWithMetadata[];
-  entityTypes: EntityTypeWithMetadata[];
-  entityTypeParentIds: Record<VersionedUrl, VersionedUrl[]>;
-}): ConditionProperty[] => {
-  const byTitle = (properties: Iterable<ConditionProperty>) =>
-    [...properties].sort((left, right) =>
-      left.title.localeCompare(right.title),
-    );
-
-  const entityTypesById = new Map(
-    entityTypes.map((entityType) => [entityType.schema.$id, entityType]),
-  );
-  const found = new Map<BaseUrl, ConditionProperty>();
-
-  for (const entityType of latestEntityTypes) {
-    if (
-      entityTypeBaseUrls.length > 0 &&
-      !entityTypeBaseUrls.includes(entityType.metadata.recordId.baseUrl)
-    ) {
-      continue;
+  return deriveFilterableProperties({
+    dataTypes,
+    entityTypeIds,
+    entityTypeParentIds,
+    entityTypes,
+    propertyTypes,
+  }).flatMap((property): ConditionProperty[] => {
+    if (!property.filterable) {
+      return [];
     }
 
-    for (const typeId of [
-      entityType.schema.$id,
-      ...(entityTypeParentIds[entityType.schema.$id] ?? []),
-    ]) {
-      for (const [baseUrl, propertySchema] of typedEntries(
-        entityTypesById.get(typeId)?.schema.properties ?? {},
-      )) {
-        const property = conditionProperties.get(baseUrl);
+    const { baseUrl, title } = property;
 
-        if (property && "$ref" in propertySchema) {
-          found.set(baseUrl, property);
-        }
-      }
+    if (property.kind === "enum" && property.enumOptions) {
+      return [
+        {
+          baseUrl,
+          title,
+          valueKind: { kind: "status", options: property.enumOptions },
+        },
+      ];
     }
-  }
 
-  return byTitle(found.values());
+    const dataTypeId = latestDataTypeIds.get(baseUrl);
+
+    return property.kind === "string" &&
+      dataTypeId &&
+      hasDateFormat(dataTypeId, dataTypes)
+      ? [{ baseUrl, title, valueKind: { kind: "date" } }]
+      : [];
+  });
 };

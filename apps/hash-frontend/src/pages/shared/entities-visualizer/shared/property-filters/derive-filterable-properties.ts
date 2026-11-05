@@ -101,7 +101,7 @@ export const resolveDataTypeValueKind = ({
   return inheritedKind;
 };
 
-export const resolveStringEnumOptions = ({
+const resolveStringEnumOptions = ({
   dataTypeId,
   dataTypes,
   seenDataTypeIds = new Set(),
