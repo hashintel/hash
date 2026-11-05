@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 /**
  * The Flows colours, in one place, as three switchable palettes (Aakarsh, 4 Nov: "I might switch my mind between
  * today's color prototype and subtle semantics. Make these switches easy to do"). Source: the colour review,
@@ -879,6 +881,10 @@ export const tileColor = (icon: string, ghost = false) =>
  * Unset or `a` is P-a everywhere, as now. b: neutral tree tiles (the 2 Nov rule); c: the group hue on the icon only,
  * on a neutral tile (P-c); d: P-a one step fainter (tile s15, yellow s20; icon one step lighter). Under P-a the run
  * view still makes them neutral unless `?runtiles=pa`.
+ * d1..d4 keep the P-a hues, quieter. d1: tile one step fainter (s20; yellow s20 too, as its s30 has 8× the others'
+ * chroma), icon as P-a; d2: tile and icon one step fainter each, icons held at ≥ 3:1 on white (yellow has no lighter
+ * step that passes, so People keeps s110); d3: tile nearly white (s10, yellow s15), the hue carried by the icon;
+ * d4: no fill, a faint 1 px hue ring.
  */
 const fainterIcon: Record<string, string> = {
   yellow: "yellow.s105",
@@ -888,12 +894,52 @@ const fainterIcon: Record<string, string> = {
   purple: "purple.s80",
 };
 
+const fainterTile: Record<string, string> = {
+  yellow: "yellow.s20",
+  blue: "blue.s20",
+  orange: "orange.s20",
+  green: "green.s20",
+  purple: "purple.s20",
+};
+
+const fainterReadableIcon: Record<string, string> = {
+  yellow: "yellow.s110",
+  blue: "blue.s105",
+  orange: "orange.s105",
+  green: "green.s105",
+  purple: "purple.s85",
+};
+
+const quieterTree: Record<string, (hue: string) => CSSProperties> = {
+  d1: (hue) => ({
+    backgroundColor: runTile("bg", tokenVar(fainterTile[hue] ?? "neutral.s20")),
+    color: runTile("icon", tokenVar(equalSteps[hue]?.icon ?? "neutral.s105")),
+  }),
+  d2: (hue) => ({
+    backgroundColor: runTile("bg", tokenVar(fainterTile[hue] ?? "neutral.s20")),
+    color: runTile("icon", tokenVar(fainterReadableIcon[hue] ?? "neutral.s105")),
+  }),
+  d3: (hue) => ({
+    backgroundColor: runTile("bg", tokenVar(hue === "yellow" ? "yellow.s15" : `${hue}.s10`)),
+    color: runTile("icon", tokenVar(equalSteps[hue]?.icon ?? "neutral.s105")),
+  }),
+  d4: (hue) => ({
+    backgroundColor: runTile("bg", "transparent"),
+    boxShadow: `inset 0 0 0 1px ${runTile("bg", tokenVar(hue === "yellow" ? "yellow.s55" : `${hue}.s45`))}`,
+    color: runTile("icon", tokenVar(equalSteps[hue]?.icon ?? "neutral.s105")),
+  }),
+};
+
 export const treeTileColor = (icon: string) => {
   const take = new URLSearchParams(globalThis.location.search).get("treetiles");
+  const hue = groupHues.find((entry) => entry.icons.includes(icon))?.hue;
+  const quieter = take ? quieterTree[take] : undefined;
+  if (quieter && hue && pickerPalette() === "a") {
+    return quieter(hue);
+  }
   if (take !== "b" && take !== "c" && take !== "d") {
     return tileColor(icon);
   }
-  const hue = groupHues.find((entry) => entry.icons.includes(icon))?.hue;
   const neutral = {
     backgroundColor: runTile("bg", flowsVar(`tile-${tileKindOf(icon)}-bg`)),
     color: runTile("icon", flowsVar(`tile-${tileKindOf(icon)}-icon`)),
