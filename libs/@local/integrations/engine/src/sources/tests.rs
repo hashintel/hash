@@ -1,9 +1,7 @@
 use core::future::ready;
 #[cfg(unix)]
-use std::fs;
-#[cfg(unix)]
 use std::os::unix::fs::symlink;
-use std::path::Path;
+use std::{fs, path::Path};
 
 use axum::Router;
 use duckdb::types::Value;
