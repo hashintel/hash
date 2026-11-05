@@ -1,4 +1,5 @@
 import * as anaplan from "./geometry/anaplan";
+import * as apple from "./geometry/apple";
 import * as appleHealth from "./geometry/apple-health";
 import * as appleNotes from "./geometry/apple-notes";
 import * as asana from "./geometry/asana";
@@ -248,6 +249,13 @@ export const integrationGeometry = {
     markViewBox: "0 0 32 32",
     logoViewBox: "0 0 312 64",
     ratio: 2,
+    alignment: "center",
+  },
+  apple: {
+    ...apple,
+    markViewBox: "0.2140 11.9507 13.5720 16.5354",
+    logoViewBox: null,
+    ratio: 1.9,
     alignment: "center",
   },
   appleNotes: {

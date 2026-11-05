@@ -167,7 +167,7 @@ hover feedback as the rest of the set; continuous effects remain opt-in.
 
 ## Integrations
 
-`IntegrationIcon` provides a separate **Integrations** category for HASH's 43 integration listings, plus a separate Kinaxis corporate entry, Apple Health, and seven additional Microsoft apps (48 current brands in total). `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
+`IntegrationIcon` provides a separate **Integrations** category for HASH's 43 integration listings, plus separate Kinaxis and Apple corporate entries, Apple Health, and seven additional Microsoft apps (49 current brands in total). `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
 
 ```tsx
 import {
@@ -203,7 +203,7 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-46 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple Notes and Apple Health have the five mark and tile variants because no authentic full-logo lock-ups were verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+46 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple, Apple Notes, and Apple Health have the five mark and tile variants because no separate full-logo lock-ups were verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with a vectorized wordmark from an official Microsoft PDF. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
@@ -212,6 +212,8 @@ Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<va
 `microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
 `microsoftTeams` uses the current rounded Teams mark. `microsoftTeamsLegacy` preserves the previous mark and full-logo compositions; the “Microsoft Teams” integration alias always uses the current artwork.
+
+`apple` is the corporate brand, separate from `appleNotes` and `appleHealth`. Its native SVG symbol is black in light mode and white in dark mode; its mono variant uses the caller's hue. The “Apple” alias resolves only to this corporate entry.
 
 `appleHealth` provides a backgroundless heart vectorized from Apple's current App Store artwork, with its pink-to-red gradient and subtle bevel. Its app variants use the shared translucent tiles; the “Apple Health” integration alias resolves to this set.
 

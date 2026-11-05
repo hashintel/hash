@@ -422,6 +422,21 @@
     "logoDarkColors": {}
   },
   {
+    "name": "apple",
+    "slug": "apple",
+    "label": "Apple",
+    "integrationNames": ["Apple"],
+    "ratio": 1.9,
+    "alignment": "center",
+    "source": "https://www.apple.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Corporate Apple symbol sourced as a native SVG from Apple's website navigation, with navigation padding removed. No separate full-logo lock-up was verified. Only mark and app-tile variants are provided."
+  },
+  {
     "name": "appleNotes",
     "slug": "apple-notes",
     "label": "Apple Notes",

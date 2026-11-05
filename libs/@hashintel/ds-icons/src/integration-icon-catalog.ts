@@ -636,6 +636,19 @@ export const integrationIconCatalog = [
     logoRaster: false,
   },
   {
+    name: "apple",
+    slug: "apple",
+    label: "Apple",
+    integrationNames: ["Apple"],
+    source: "https://www.apple.com/",
+    category: "Integrations",
+    variants: ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light"],
+    logoSource: null,
+    logoNotes:
+      "Corporate Apple symbol sourced as a native SVG from Apple's website navigation, with navigation padding removed. No separate full-logo lock-up was verified. Only mark and app-tile variants are provided.",
+    logoRaster: false,
+  },
+  {
     name: "appleNotes",
     slug: "apple-notes",
     label: "Apple Notes",
