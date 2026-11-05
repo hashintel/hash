@@ -351,7 +351,7 @@ where
         tokio::fs::write(&self.report, buffer)
             .await
             .change_context(FitError::Write)
-            .attach_with(|| format!("admission report: {}", self.report))?;
+            .attach_with(|| self.report.clone())?;
 
         if let Some(upload) = upload {
             upload
@@ -438,7 +438,7 @@ where
         tokio::fs::write(&self.report, buffer)
             .await
             .change_context(FitError::Write)
-            .attach_with(|| format!("admission report: {}", self.report))?;
+            .attach_with(|| self.report.clone())?;
 
         if let Some(upload) = upload {
             upload
