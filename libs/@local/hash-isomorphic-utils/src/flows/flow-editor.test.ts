@@ -377,5 +377,43 @@ describe("createFlowEditor", () => {
     editor.moveStep("first", { x: 2, y: 2 });
 
     expect(listener).toHaveBeenCalledOnce();
+    expect(listener).toHaveBeenCalledWith({ edited: true });
+  });
+
+  it("places steps without it being an edit, keeping the positions for the next edit", () => {
+    const editor = loadFlow();
+    const listener = vi.fn();
+    editor.subscribe(listener);
+
+    editor.placeSteps(new Map([["each", { x: 600, y: 0 }]]));
+
+    expect(stepOf(editor, "each")).toStrictEqual({
+      ...flowDefinition.steps[2],
+      position: { x: 600, y: 0 },
+    });
+    expect(listener).toHaveBeenCalledExactlyOnceWith({ edited: false });
+
+    editor.moveStep("first", { x: 10, y: 10 });
+
+    expect(listener).toHaveBeenLastCalledWith({ edited: true });
+    expect(stepOf(editor, "each")).toHaveProperty("position", {
+      x: 600,
+      y: 0,
+    });
+  });
+
+  it("rejects placing a step that isn't a top-level step, leaving every step where it was", () => {
+    const editor = loadFlow();
+    const loaded = editor.getState();
+
+    expect(() =>
+      editor.placeSteps(
+        new Map([
+          ["first", { x: 10, y: 10 }],
+          ["answerQuestion", { x: 0, y: 0 }],
+        ]),
+      ),
+    ).toThrow('The flow has no top-level step "answerQuestion"');
+    expect(editor.getState()).toBe(loaded);
   });
 });

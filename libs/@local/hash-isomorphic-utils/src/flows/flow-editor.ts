@@ -35,6 +35,9 @@ export type FlowEditorState = {
   flowProblems: FlowDefinitionDiagnosticWithStepId[];
 };
 
+/** A change to the state. It's an edit unless it came from `placeSteps`, which shouldn't be saved on its own. */
+export type FlowEditorChange = { edited: boolean };
+
 const checkFlowDefinition = (
   flowDefinition: FlowDefinition<string>,
 ): FlowEditorState => {
@@ -168,13 +171,16 @@ const replaceStep = (
  */
 export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
   let state = checkFlowDefinition(flowDefinition);
-  const listeners = new Set<() => void>();
+  const listeners = new Set<(change: FlowEditorChange) => void>();
 
-  const setSteps = (steps: StepDefinition<string>[]) => {
+  const setSteps = (
+    steps: StepDefinition<string>[],
+    change: FlowEditorChange = { edited: true },
+  ) => {
     state = checkFlowDefinition({ ...state.flowDefinition, steps });
 
     for (const listener of listeners) {
-      listener();
+      listener(change);
     }
   };
 
@@ -193,8 +199,8 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
   return {
     getState: () => state,
 
-    /** Calls `listener` after every edit. Returns a function that stops it. */
-    subscribe: (listener: () => void) => {
+    /** Calls `listener` after every change to the state. Returns a function that stops it. */
+    subscribe: (listener: (change: FlowEditorChange) => void) => {
       listeners.add(listener);
 
       return () => {
@@ -248,6 +254,29 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
           ...getStep(stepId),
           position,
         }),
+      );
+    },
+
+    /**
+     * Gives top-level steps the positions they're drawn at, e.g. steps with none when the flow is opened. This isn't an
+     * edit: the positions are saved with the next edit.
+     */
+    placeSteps: (positions: Map<string, StepPosition>) => {
+      if (positions.size === 0) {
+        return;
+      }
+
+      for (const stepId of positions.keys()) {
+        getStep(stepId);
+      }
+
+      setSteps(
+        state.flowDefinition.steps.map((step) => {
+          const position = positions.get(step.stepId);
+
+          return position ? { ...step, position } : step;
+        }),
+        { edited: false },
       );
     },
 

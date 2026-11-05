@@ -1,6 +1,6 @@
 import { ApolloError, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
@@ -165,6 +165,42 @@ const FlowEditor = ({
     editor.getState,
   );
 
+  /* Replacing the editor after a conflict remounts the canvas and clears the selection. */
+  const [session, setSession] = useState<{
+    editor: typeof editor;
+    key: number;
+    selectedStepIds: string[];
+    focusRequest: { stepId: string } | null;
+  }>({ editor, key: 0, selectedStepIds: [], focusRequest: null });
+
+  if (session.editor !== editor) {
+    setSession({
+      editor,
+      key: session.key + 1,
+      selectedStepIds: [],
+      focusRequest: null,
+    });
+  }
+
+  const { selectedStepIds, focusRequest } = session;
+  const setSelectedStepIds = (stepIds: string[]) =>
+    setSession((current) => ({ ...current, selectedStepIds: stepIds }));
+
+  /* For-each steps collapsed in the Steps tab and on the canvas. */
+  const [collapsedStepIds, setCollapsedStepIds] = useState(
+    () => new Set<string>(),
+  );
+  const toggleCollapsed = (stepId: string) =>
+    setCollapsedStepIds((collapsed) => {
+      const next = new Set(collapsed);
+
+      if (!next.delete(stepId)) {
+        next.add(stepId);
+      }
+
+      return next;
+    });
+
   const archiveFlow = async () => {
     /*
      * Saving first, so that no save is made after the flow is archived, which would be refused. Edits the API refused
@@ -213,7 +249,20 @@ const FlowEditor = ({
         onLeaveWithoutSaving={leaveWithoutSaving}
       />
       <div className={editorBody}>
-        <LeftPanel steps={flowDefinition.steps} />
+        <LeftPanel
+          steps={flowDefinition.steps}
+          selectedStepIds={selectedStepIds}
+          onStepClick={(stepId) =>
+            setSession((current) => ({
+              ...current,
+              selectedStepIds: [stepId],
+              focusRequest: { stepId },
+            }))
+          }
+          collapsedGroupIds={collapsedStepIds}
+          onToggleGroup={toggleCollapsed}
+          onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
+        />
         <div className={canvasArea}>
           {(saveRefusedReason !== null || changedElsewhere) && (
             <div className={notices}>
@@ -241,7 +290,15 @@ const FlowEditor = ({
               )}
             </div>
           )}
-          <Canvas />
+          <Canvas
+            key={session.key}
+            editor={editor}
+            selectedStepIds={selectedStepIds}
+            onSelectedStepIdsChange={setSelectedStepIds}
+            focusRequest={focusRequest}
+            collapsedStepIds={collapsedStepIds}
+            onToggleCollapsed={toggleCollapsed}
+          />
         </div>
       </div>
     </DsComponentsScope>
