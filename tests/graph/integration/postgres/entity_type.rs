@@ -360,7 +360,7 @@ async fn create_parent_not_instantiable() {
 /// Machines may instantiate [`ACTOR_V1`], so they may create this type extending it.
 const AGENT_V1: &str = "https://example.com/@alice/types/entity-type/agent/v/1";
 
-async fn create_agent_type(api: &mut DatabaseApi<'_>, web_id: WebId) {
+async fn create_agent_type(api: &mut DatabaseApi<'_>, web_id: WebId) -> ActorId {
     let machine = ActorId::from(api.create_machine("test-machine").await);
     api.assign_web_administrator(ActorEntityUuid::from(machine), web_id)
         .await;
@@ -370,6 +370,7 @@ async fn create_agent_type(api: &mut DatabaseApi<'_>, web_id: WebId) {
     )
     .await
     .expect("machines should be able to extend a type they can instantiate");
+    machine
 }
 
 #[tokio::test]
@@ -501,6 +502,44 @@ async fn update_grandparent_not_instantiable() {
     assert_instantiation_denied(result, ACTOR_V1);
 }
 
+/// The seeded policies do not allow users to instantiate this type.
+const ORGANIZATION_V1: &str = "https://hash.ai/@h/types/entity-type/organization/v/1";
+
+#[tokio::test]
+async fn create_parents_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+    api.create_entity_type(
+        user,
+        create_params(entity_type_schema(ORGANIZATION_V1, &[]), web_id, user),
+    )
+    .await
+    .expect("users should be able to create a type they cannot instantiate");
+
+    let result = api
+        .create_entity_type(
+            user,
+            create_params(
+                entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child/v/1",
+                    &[ACTOR_V1, ORGANIZATION_V1],
+                ),
+                web_id,
+                user,
+            ),
+        )
+        .await;
+
+    let error = result.expect_err("extending types the actor cannot instantiate should fail");
+    let message = format!("{error:?}");
+    assert!(
+        message.contains(ACTOR_V1) && message.contains(ORGANIZATION_V1),
+        "the error should name both `{ACTOR_V1}` and `{ORGANIZATION_V1}`: {message}",
+    );
+}
+
 const REMOTE_CHILD_V1: &str = "https://remote.example/@bob/types/entity-type/child/v/1";
 
 fn remote_params(
@@ -552,6 +591,98 @@ async fn create_fetched_parent_not_instantiable_accepted() {
     )
     .await
     .expect("a type fetched from its origin should not require instantiating its parents");
+}
+
+fn agent_v2(actor: ActorId) -> UpdateEntityTypesParams {
+    UpdateEntityTypesParams {
+        schema: entity_type_schema(
+            "https://example.com/@alice/types/entity-type/agent/v/2",
+            &[ACTOR_V1],
+        ),
+        provenance: api_provenance(actor),
+    }
+}
+
+/// Updating a type checks its ancestors even when its parents are unchanged.
+#[tokio::test]
+async fn update_unchanged_parent_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+    create_agent_type(&mut api, WebId::new(user)).await;
+
+    let result = api.update_entity_type(user, agent_v2(user)).await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
+}
+
+#[tokio::test]
+async fn update_unchanged_parent_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+    let machine = create_agent_type(&mut api, WebId::new(user)).await;
+
+    api.update_entity_type(machine, agent_v2(machine))
+        .await
+        .expect("machines should be able to update a type extending one they can instantiate");
+}
+
+#[tokio::test]
+async fn update_parent_in_same_batch() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed([], [], [])
+        .await
+        .expect("should be able to seed the database");
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+    let parent_v1 = "https://example.com/@alice/types/entity-type/parent/v/1";
+    let parent_v2 = "https://example.com/@alice/types/entity-type/parent/v/2";
+    let child_v2 = "https://example.com/@alice/types/entity-type/child/v/2";
+
+    api.create_entity_types(
+        user,
+        [
+            create_params(entity_type_schema(parent_v1, &[]), web_id, user),
+            create_params(
+                entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child/v/1",
+                    &[parent_v1],
+                ),
+                web_id,
+                user,
+            ),
+        ],
+    )
+    .await
+    .expect("should be able to create the parent and the child");
+
+    let updated = api
+        .update_entity_types(
+            user,
+            [
+                UpdateEntityTypesParams {
+                    schema: entity_type_schema(parent_v2, &[]),
+                    provenance: api_provenance(user),
+                },
+                UpdateEntityTypesParams {
+                    schema: entity_type_schema(child_v2, &[parent_v2]),
+                    provenance: api_provenance(user),
+                },
+            ],
+        )
+        .await
+        .expect("should be able to update a type to extend a parent updated in the same batch");
+
+    assert_eq!(
+        updated
+            .iter()
+            .map(|metadata| VersionedUrl::from(metadata.record_id.clone()).to_string())
+            .collect::<Vec<_>>(),
+        [parent_v2, child_v2],
+        "both types should be updated",
+    );
 }
 
 fn befriending_type_id(version: u32) -> VersionedUrl {
