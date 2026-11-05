@@ -4371,6 +4371,577 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.getByText("The net has one place")).not.toBeNull();
   });
 
+  test.each([
+    ["empty text", "text", ""],
+    ["blank text", "text", " \n "],
+    ["empty reasoning", "reasoning", ""],
+    ["blank reasoning", "reasoning", " \n "],
+  ] as const)(
+    "ends the turn when the follow-up to a completed browser tool streams only %s",
+    async (_label, kind, text) => {
+      expect(
+        await runBrowserToolThenFollowUp([
+          { type: "start-step" },
+          { type: `${kind}-start`, id: "empty" },
+          ...(text === ""
+            ? []
+            : [{ type: `${kind}-delta`, id: "empty", delta: text } as const]),
+          { type: `${kind}-end`, id: "empty" },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ).toEqual(endedWithoutReply);
+    },
+  );
+
+  test("recognizes meaningful reasoning after the follow-up to a completed browser tool as a reply", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "start-step" },
+        { type: "reasoning-start", id: "thought" },
+        { type: "reasoning-delta", id: "thought", delta: "Nothing to add" },
+        { type: "reasoning-end", id: "thought" },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+  });
+
+  test("recognizes a data part after the follow-up to a completed browser tool as a reply", async () => {
+    expect(
+      await runBrowserToolThenFollowUp([
+        { type: "start-step" },
+        { type: "text-start", id: "empty" },
+        { type: "text-end", id: "empty" },
+        { type: "data-brief", data: { summary: "One place" } },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ]),
+    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+  });
+
+  /** One response in which the server runs a tool and then follows it up itself. */
+  const runServerToolThenFollowUp = async (
+    followUpChunks: UIMessageChunk[],
+  ) => {
+    const observedStatuses: PetrinautAiComposerControlContext["status"][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        streamChunks([
+          { type: "start", messageId: "server-tool-response" },
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-1",
+            toolName: "readNetOutline",
+            input: {},
+          },
+          {
+            type: "tool-output-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-1",
+            output: { places: 1 },
+          },
+          { type: "finish-step" },
+          ...followUpChunks,
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ),
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: (context) => {
+          observedStatuses.push(context.status);
+          return null;
+        },
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Outline the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Stop AI response" }),
+      ).toBeNull(),
+    );
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    return {
+      requests: sendMessages.mock.calls.length,
+      stopOffered:
+        screen.queryByRole("button", { name: "Stop AI response" }) !== null,
+      noReplyNotices: screen.queryAllByText("No reply received").length,
+      finalStatus: observedStatuses.at(-1),
+    };
+  };
+
+  const serverEndedWithoutReply = {
+    requests: 1,
+    stopOffered: false,
+    noReplyNotices: 1,
+    finalStatus: "ready",
+  };
+
+  test.each([
+    ["nothing", []],
+    [
+      "empty text",
+      [
+        { type: "start-step" },
+        { type: "text-start", id: "empty" },
+        { type: "text-end", id: "empty" },
+        { type: "finish-step" },
+      ],
+    ],
+    [
+      "blank text",
+      [
+        { type: "start-step" },
+        { type: "text-start", id: "blank" },
+        { type: "text-delta", id: "blank", delta: " \n " },
+        { type: "text-end", id: "blank" },
+        { type: "finish-step" },
+      ],
+    ],
+    [
+      "empty reasoning",
+      [
+        { type: "start-step" },
+        { type: "reasoning-start", id: "empty" },
+        { type: "reasoning-end", id: "empty" },
+        { type: "finish-step" },
+      ],
+    ],
+    [
+      "blank reasoning",
+      [
+        { type: "start-step" },
+        { type: "reasoning-start", id: "blank" },
+        { type: "reasoning-delta", id: "blank", delta: " \n " },
+        { type: "reasoning-end", id: "blank" },
+        { type: "finish-step" },
+      ],
+    ],
+  ] satisfies [string, UIMessageChunk[]][])(
+    "ends the turn when the server's follow-up to its own tool result has %s",
+    async (_label, followUp) => {
+      expect(await runServerToolThenFollowUp(followUp)).toEqual(
+        serverEndedWithoutReply,
+      );
+    },
+  );
+
+  test.each([
+    ["text", textChunks("answer", "The net has one place")],
+    [
+      "meaningful reasoning",
+      [
+        { type: "start-step" },
+        { type: "reasoning-start", id: "thought" },
+        { type: "reasoning-delta", id: "thought", delta: "Nothing to add" },
+        { type: "reasoning-end", id: "thought" },
+      ],
+    ],
+    [
+      "a data part",
+      [
+        { type: "start-step" },
+        { type: "text-start", id: "empty" },
+        { type: "text-end", id: "empty" },
+        { type: "data-brief", data: { summary: "One place" } },
+      ],
+    ],
+  ] satisfies [string, UIMessageChunk[]][])(
+    "recognizes %s after the server's follow-up to its own tool result as a reply",
+    async (_label, followUp) => {
+      expect(
+        await runServerToolThenFollowUp([...followUp, { type: "finish-step" }]),
+      ).toEqual({ ...serverEndedWithoutReply, noReplyNotices: 0 });
+    },
+  );
+
+  // A Flue reply whose live tool events arrive before its message starts
+  // streams under a provisional ID, and history then names it canonically.
+  test.each([
+    ["its canonical ID", "server-tool-response"],
+    ["a provisional ID", "live:submission-1:turn-1"],
+  ])(
+    "keeps a missing-reply notice streamed under %s with its turn across followed history, and drops it under another tab's turn",
+    async (_label, streamedMessageId) => {
+      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+        Promise.resolve(
+          streamChunks([
+            { type: "start", messageId: streamedMessageId },
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              providerExecuted: true,
+              toolCallId: "outline-1",
+              toolName: "readNetOutline",
+              input: {},
+            },
+            {
+              type: "tool-output-available",
+              dynamic: true,
+              providerExecuted: true,
+              toolCallId: "outline-1",
+              output: { places: 1 },
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "stop" },
+          ]),
+        ),
+      );
+      const host = {
+        conversationId: "conversation-1",
+        followMessages: { canReplace: () => true },
+        transport: { reconnectToStream: async () => null, sendMessages },
+      } satisfies PetrinautAiAssistant;
+      const { rerenderPanel } = renderTestPanel({
+        aiAssistant: { ...host, messages: [] },
+        initialMessage: "Outline the net",
+        petriNetDefinition: nonEmptySDCPN,
+      });
+      await screen.findByText("No reply received");
+
+      // Canonical history renames the user's message and any provisional
+      // reply, but preserves the tool call's identity.
+      const sameTurn: PetrinautAiMessage[] = [
+        {
+          id: "canonical-user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Outline the net" }],
+        },
+        {
+          id: "server-tool-response",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "readNetOutline",
+              toolCallId: "outline-1",
+              state: "output-available",
+              input: {},
+              output: { places: 1 },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ];
+      const localUserMessage = screen.getByText("Outline the net", {
+        selector: '[data-role="user"] *',
+      });
+      rerenderPanel({ ...host, messages: sameTurn });
+      // History names the user's message differently, so it remounts.
+      await waitFor(() => expect(localUserMessage.isConnected).toBe(false));
+      expect(screen.getAllByText("No reply received")).toHaveLength(1);
+
+      const laterUser: PetrinautAiMessage = {
+        id: "canonical-user-2",
+        role: "user",
+        parts: [{ type: "text", text: "From another tab" }],
+      };
+      rerenderPanel({ ...host, messages: [...sameTurn, laterUser] });
+      await screen.findByText("From another tab");
+      expect(screen.queryByText("No reply received")).toBeNull();
+
+      rerenderPanel({
+        ...host,
+        messages: [
+          ...sameTurn,
+          laterUser,
+          {
+            id: "canonical-assistant-2",
+            role: "assistant",
+            parts: [{ type: "text", text: "Another tab's reply" }],
+          },
+        ],
+      });
+      await screen.findByText("Another tab's reply");
+      expect(screen.queryByText("No reply received")).toBeNull();
+      expect(sendMessages).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("does not revive a missing-reply notice under another tab's turn after an unadmitted message", async () => {
+    const sendMessages = vi
+      .fn<PetrinautAiTransport["sendMessages"]>()
+      // The host refuses the first message, so it never reaches history.
+      .mockRejectedValueOnce(new Error("The agent refused the message."))
+      .mockResolvedValueOnce(
+        streamChunks([
+          { type: "start", messageId: "server-tool-response" },
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-1",
+            toolName: "readNetOutline",
+            input: {},
+          },
+          {
+            type: "tool-output-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-1",
+            output: { places: 1 },
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ]),
+      );
+    const host = {
+      conversationId: "conversation-1",
+      followMessages: { canReplace: () => true },
+      transport: { reconnectToStream: async () => null, sendMessages },
+    } satisfies PetrinautAiAssistant;
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: { ...host, messages: [] },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const composer = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Lost message" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(composer.value).toBe("Lost message"));
+    fireEvent.change(composer, { target: { value: "Outline the net" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await screen.findByText("No reply received");
+
+    // Canonical history carries only the admitted turn.
+    const admittedTurn: PetrinautAiMessage[] = [
+      {
+        id: "canonical-user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Outline the net" }],
+      },
+      {
+        id: "server-tool-response",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "readNetOutline",
+            toolCallId: "outline-1",
+            state: "output-available",
+            input: {},
+            output: { places: 1 },
+            providerExecuted: true,
+          },
+        ],
+      },
+    ];
+    rerenderPanel({ ...host, messages: admittedTurn });
+    await waitFor(() => expect(screen.queryByText("Lost message")).toBeNull());
+    expect(screen.getAllByText("No reply received")).toHaveLength(1);
+
+    rerenderPanel({
+      ...host,
+      messages: [
+        ...admittedTurn,
+        {
+          id: "canonical-user-2",
+          role: "user",
+          parts: [{ type: "text", text: "From another tab" }],
+        },
+        {
+          id: "canonical-assistant-2",
+          role: "assistant",
+          parts: [{ type: "text", text: "Another tab's reply" }],
+        },
+      ],
+    });
+    await screen.findByText("Another tab's reply");
+    expect(screen.queryByText("No reply received")).toBeNull();
+    expect(sendMessages).toHaveBeenCalledTimes(2);
+  });
+
+  test("drops a missing-reply notice when the chat is cleared or the conversation changes", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        streamChunks([
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-1",
+            toolName: "readNetOutline",
+            input: {},
+          },
+          {
+            type: "tool-output-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "outline-1",
+            output: { places: 1 },
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ),
+    );
+    const transport = { reconnectToStream: async () => null, sendMessages };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: { conversationId: "conversation-1", transport },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const sendText = (text: string) => {
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Message AI assistant" }),
+        { target: { value: text } },
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    };
+    sendText("Outline the net");
+    await screen.findByText("No reply received");
+
+    // Another conversation's history at the same number of turns.
+    rerenderPanel({
+      conversationId: "conversation-2",
+      messages: [
+        {
+          id: "other-user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Earlier question" }],
+        },
+        {
+          id: "other-assistant-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Earlier answer" }],
+        },
+      ],
+      transport,
+    });
+    await screen.findByText("Earlier answer");
+    expect(screen.queryByText("No reply received")).toBeNull();
+    expect(sendMessages).toHaveBeenCalledTimes(1);
+
+    sendText("Outline it again");
+    await screen.findByText("No reply received");
+    fireEvent.click(screen.getByRole("button", { name: "Clear AI chat" }));
+    await waitFor(() =>
+      expect(screen.queryByText("No reply received")).toBeNull(),
+    );
+  });
+
+  test("keeps a local Stop with its turn across followed history, and leaves another tab's pending turn live", async () => {
+    const releaseTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
+      outputSchema: { parse: (raw: unknown) => raw as { approved: boolean } },
+      component: ({ input, submit }) => (
+        <button type="button" onClick={() => submit({ approved: true })}>
+          {input.question}
+        </button>
+      ),
+    });
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ abortSignal }) =>
+        Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: "start", messageId: "stopped-1" });
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "partial" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "partial",
+                delta: "Partial answer",
+              });
+              abortSignal?.addEventListener("abort", () =>
+                controller.error(new DOMException("Aborted", "AbortError")),
+              );
+            },
+          }),
+        ),
+    );
+    const host = {
+      conversationId: "conversation-1",
+      followMessages: { canReplace: () => true },
+      interactiveTools: [releaseTool],
+      presentation: "brunch",
+      requestStop: async () => "stop-requested" as const,
+      transport: { reconnectToStream: async () => null, sendMessages },
+    } satisfies PetrinautAiAssistant;
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: { ...host, messages: [] },
+      initialMessage: "Start the work",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await screen.findByText("Partial answer");
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    await screen.findByText("Response stopped");
+
+    // Flue records the stopped turn durably on its own reply.
+    const sameTurn: PetrinautAiMessage[] = [
+      {
+        id: "canonical-user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Start the work" }],
+      },
+      {
+        id: "stopped-1",
+        role: "assistant",
+        parts: [{ type: "text", text: "Partial answer", state: "done" }],
+        metadata: { stopped: true },
+      },
+    ];
+    const localUserMessage = screen.getByText("Start the work", {
+      selector: '[data-role="user"] *',
+    });
+    rerenderPanel({ ...host, messages: sameTurn });
+    // History names the user's message differently, so it remounts.
+    await waitFor(() => expect(localUserMessage.isConnected).toBe(false));
+    expect(screen.getAllByText("Response stopped")).toHaveLength(1);
+
+    rerenderPanel({
+      ...host,
+      messages: [
+        ...sameTurn,
+        {
+          id: "canonical-user-2",
+          role: "user",
+          parts: [{ type: "text", text: "From another tab" }],
+        },
+        {
+          id: "canonical-assistant-2",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "confirmRelease",
+              toolCallId: "release-1",
+              state: "input-available",
+              input: { question: "Ship this change?" },
+            },
+          ],
+        },
+      ],
+    });
+    await screen.findByText("Ship this change?");
+    // The historical reply keeps its durable Stop; the later one is pending.
+    expect(screen.getAllByText("Response stopped")).toHaveLength(1);
+    expect(
+      screen.getByText("Response stopped").closest('[data-role="assistant"]')
+        ?.textContent,
+    ).toContain("Partial answer");
+    expect(screen.getByText("Waiting for your decision")).not.toBeNull();
+    expect(sendMessages).toHaveBeenCalledTimes(1);
+  });
+
   test("does not call a durably stopped client follow-up an empty reply", async () => {
     expect(
       await runBrowserToolThenFollowUp([

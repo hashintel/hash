@@ -2,6 +2,8 @@
 import {
   fauxAssistantMessage,
   fauxProvider,
+  fauxText,
+  fauxThinking,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 import { setProvider } from "@flue/runtime";
@@ -310,6 +312,332 @@ test.each(["empty", "text"] as const)(
   },
   60_000,
 );
+
+test.each([
+  ["empty text", fauxText("")],
+  ["blank text", fauxText(" \n ")],
+  ["empty reasoning", fauxThinking("")],
+  ["blank reasoning", fauxThinking(" \n ")],
+])(
+  "a server-owned tool follow-up with only %s ends with no reply",
+  async (_label, content) => {
+    const { server, faux } = await startServer([
+      fauxAssistantMessage(
+        [fauxToolCall("getLatestNetDefinition", {}, { id: "blank-read" })],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage([content]),
+    ]);
+    let unmount = () => {};
+    try {
+      ({ unmount } = await openPanel());
+      await send("Read the net and finish.");
+      await waitFor(
+        () => {
+          expect(rowContaining("Checked latest net definition")?.status).toBe(
+            "ok",
+          );
+          expectNotWaiting();
+          expect(screen.getAllByText("No reply received")).toHaveLength(1);
+        },
+        { timeout: 20_000 },
+      );
+      expect(faux.state.callCount).toBe(2);
+      expect(screen.queryByText("AI assistant error")).toBeNull();
+    } finally {
+      unmount();
+      fixture.fetch = null;
+      fixture.client = null;
+      await server.stop();
+    }
+  },
+  60_000,
+);
+
+test("a no-reply notice stays with its turn when followed history arrives, and leaves when another tab's turn follows", async () => {
+  const { server, faux } = await startServer([
+    fauxAssistantMessage(
+      [fauxToolCall("getLatestNetDefinition", {}, { id: "followed-read" })],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage([]),
+  ]);
+  let unmount = () => {};
+  try {
+    ({ unmount } = await openPanel());
+    await send("Read the net and finish.");
+    // Canonical history names the user's message differently from the
+    // panel's local copy, so following it remounts that message. History can
+    // replace the transcript only once the turn settles.
+    const localUserMessage = await screen.findByText(
+      "Read the net and finish.",
+      { selector: '[data-role="user"] *' },
+    );
+    await screen.findByText("No reply received", undefined, {
+      timeout: 20_000,
+    });
+    await waitFor(expectNotWaiting);
+
+    // Followed history for the same turn keeps the notice.
+    await waitFor(() => expect(localUserMessage.isConnected).toBe(false), {
+      timeout: 20_000,
+    });
+    expect(screen.getByText("Read the net and finish.")).not.toBeNull();
+    expect(screen.getAllByText("No reply received")).toHaveLength(1);
+
+    // Another tab's turn reaches this panel only as followed history.
+    const reply = "Another tab's reply.";
+    faux.setResponses([fauxAssistantMessage(reply)]);
+    const client = fixture.client;
+    if (client === null) throw new Error("The panel's Flue client is missing.");
+    await client.wait(
+      await client.send({
+        message: { kind: "user", body: "From another tab." },
+      }),
+    );
+    await screen.findByText(reply, undefined, { timeout: 20_000 });
+    await waitFor(expectNotWaiting);
+    expect(screen.queryByText("No reply received")).toBeNull();
+    expect(faux.state.callCount).toBe(3);
+  } finally {
+    unmount();
+    fixture.fetch = null;
+    fixture.client = null;
+    await server.stop();
+  }
+}, 60_000);
+
+test("a no-reply notice does not return under another tab's turn after an unadmitted message", async () => {
+  const { server, faux } = await startServer([
+    fauxAssistantMessage(
+      [fauxToolCall("getLatestNetDefinition", {}, { id: "after-lost-read" })],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage([]),
+  ]);
+  const serverFetch = fixture.fetch;
+  if (serverFetch === null) throw new Error("The server fetch is missing.");
+  // Flue refuses the first message outright, so it is never admitted.
+  fixture.fetch = async (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init);
+    if (
+      request.method === "POST" &&
+      (await request.clone().text()).includes("Lost message.")
+    ) {
+      return Response.json(
+        { error: { type: "invalid_request", message: "Refused by the test" } },
+        { status: 400 },
+      );
+    }
+    return serverFetch(request);
+  };
+  let unmount = () => {};
+  try {
+    ({ unmount } = await openPanel());
+    await send("Lost message.");
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole<HTMLTextAreaElement>("textbox", {
+            name: "Message AI assistant",
+          }).value,
+        ).toBe("Lost message."),
+      { timeout: 20_000 },
+    );
+    const lostMessage = screen.getByText("Lost message.", {
+      selector: '[data-role="user"] *',
+    });
+    expect(faux.state.callCount).toBe(0);
+
+    await send("Read the net and finish.");
+    await waitFor(
+      () => {
+        expect(rowContaining("Checked latest net definition")?.status).toBe(
+          "ok",
+        );
+        expectNotWaiting();
+        expect(faux.state.callCount).toBe(2);
+        expect(screen.getAllByText("No reply received")).toHaveLength(1);
+      },
+      { timeout: 20_000 },
+    );
+
+    // Followed history carries only the admitted turn, and keeps its notice.
+    await waitFor(() => expect(lostMessage.isConnected).toBe(false), {
+      timeout: 20_000,
+    });
+    expect(
+      screen.queryByText("Lost message.", { selector: '[data-role="user"] *' }),
+    ).toBeNull();
+    expect(screen.getAllByText("No reply received")).toHaveLength(1);
+
+    const reply = "Another tab's reply.";
+    faux.setResponses([fauxAssistantMessage(reply)]);
+    const client = fixture.client;
+    if (client === null) throw new Error("The panel's Flue client is missing.");
+    await client.wait(
+      await client.send({
+        message: { kind: "user", body: "From another tab." },
+      }),
+    );
+    await screen.findByText(reply, undefined, { timeout: 20_000 });
+    await waitFor(expectNotWaiting);
+    expect(screen.queryByText("No reply received")).toBeNull();
+    expect(faux.state.callCount).toBe(3);
+  } finally {
+    unmount();
+    fixture.fetch = null;
+    fixture.client = null;
+    await server.stop();
+  }
+}, 60_000);
+
+test("a Stop before any reply keeps one durable marker with its turn, across followed history, reopening and another tab's turn", async () => {
+  let waitingForReply = false;
+  const { server, faux } = await startServer([
+    async (_context, options) => {
+      await new Promise<void>((resolve) => {
+        options?.signal?.addEventListener("abort", () => resolve(), {
+          once: true,
+        });
+        waitingForReply = true;
+      });
+      return fauxAssistantMessage([]);
+    },
+  ]);
+  const stoppedNotes = () =>
+    screen
+      .queryAllByText("Response stopped")
+      .map((note) => note.closest("[data-role]")?.getAttribute("data-role"));
+  let unmount = () => {};
+  try {
+    ({ unmount } = await openPanel());
+    await send("Start something long.");
+    const localUserMessage = await screen.findByText("Start something long.", {
+      selector: '[data-role="user"] *',
+    });
+    await waitFor(() => expect(waitingForReply).toBe(true), {
+      timeout: 20_000,
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Stop AI response" }),
+    );
+    await screen.findByText("Response stopped", undefined, {
+      timeout: 20_000,
+    });
+    await waitFor(expectNotWaiting);
+
+    // Followed history for the same turn: the user's message remounts under
+    // its canonical ID, and the stopped response keeps one marker.
+    await waitFor(() => expect(localUserMessage.isConnected).toBe(false), {
+      timeout: 20_000,
+    });
+    expect(stoppedNotes()).toEqual(["assistant"]);
+
+    unmount();
+    ({ unmount } = await openPanel());
+    await screen.findByText("Start something long.", undefined, {
+      timeout: 20_000,
+    });
+    await waitFor(() => expect(stoppedNotes()).toEqual(["assistant"]), {
+      timeout: 20_000,
+    });
+
+    const reply = "Another tab's reply.";
+    faux.setResponses([fauxAssistantMessage(reply)]);
+    const client = fixture.client;
+    if (client === null) throw new Error("The panel's Flue client is missing.");
+    await client.wait(
+      await client.send({
+        message: { kind: "user", body: "From another tab." },
+      }),
+    );
+    const later = await screen.findByText(reply, undefined, {
+      timeout: 20_000,
+    });
+    await waitFor(expectNotWaiting);
+    expect(stoppedNotes()).toEqual(["assistant"]);
+    expect(later.closest('[data-role="assistant"]')?.textContent).not.toContain(
+      "Response stopped",
+    );
+    expect(faux.state.callCount).toBe(2);
+  } finally {
+    unmount();
+    fixture.fetch = null;
+    fixture.client = null;
+    await server.stop();
+  }
+}, 60_000);
+
+test("a local Stop stays with its turn when another tab's turn follows", async () => {
+  let waitingForReply = false;
+  const { server, faux } = await startServer([
+    fauxAssistantMessage(
+      [fauxToolCall("getLatestNetDefinition", {}, { id: "stopped-read" })],
+      { stopReason: "toolUse" },
+    ),
+    async (_context, options) => {
+      await new Promise<void>((resolve) => {
+        options?.signal?.addEventListener("abort", () => resolve(), {
+          once: true,
+        });
+        waitingForReply = true;
+      });
+      return fauxAssistantMessage([]);
+    },
+  ]);
+  let unmount = () => {};
+  try {
+    ({ unmount } = await openPanel());
+    await send("Read the net, then something long.");
+    await waitFor(() => expect(waitingForReply).toBe(true), {
+      timeout: 20_000,
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Stop AI response" }),
+    );
+    await screen.findByText("Response stopped", undefined, {
+      timeout: 20_000,
+    });
+    await waitFor(expectNotWaiting);
+    await waitFor(async () => {
+      const history = await fixture.client?.history();
+      expect(history?.settlements.map(({ outcome }) => outcome)).toEqual([
+        "aborted",
+      ]);
+    });
+
+    const reply = "Another tab's reply.";
+    faux.setResponses([fauxAssistantMessage(reply)]);
+    const client = fixture.client;
+    if (client === null) throw new Error("The panel's Flue client is missing.");
+    await client.wait(
+      await client.send({
+        message: { kind: "user", body: "From another tab." },
+      }),
+    );
+    const later = await screen.findByText(reply, undefined, {
+      timeout: 20_000,
+    });
+    await waitFor(expectNotWaiting);
+    // The stopped turn keeps its note; the later reply is not labelled stopped.
+    const [stoppedNote, ...otherNotes] =
+      screen.getAllByText("Response stopped");
+    expect(otherNotes).toEqual([]);
+    expect(
+      stoppedNote?.closest('[data-role="assistant"]')?.textContent,
+    ).toContain("Checked latest net definition");
+    expect(later.closest('[data-role="assistant"]')?.textContent).not.toContain(
+      "Response stopped",
+    );
+    expect(faux.state.callCount).toBe(3);
+  } finally {
+    unmount();
+    fixture.fetch = null;
+    fixture.client = null;
+    await server.stop();
+  }
+}, 60_000);
 
 test("a call left unanswered by a failed response reads as no result, live and reopened, beside the results it did get", async () => {
   const scenario = {
