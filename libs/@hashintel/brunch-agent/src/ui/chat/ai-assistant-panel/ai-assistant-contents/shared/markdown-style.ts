@@ -11,6 +11,11 @@ export const markdownStyle = css({
   },
   "& p": {
     marginY: "2",
+    // Hosts may style bare paragraphs globally (HASH sets their size,
+    // leading and colour); model text keeps the panel's own.
+    fontSize: "[inherit]",
+    lineHeight: "[inherit]",
+    color: "[inherit]",
   },
   "& h1, & h2, & h3, & h4, & h5, & h6": {
     marginTop: "3",
