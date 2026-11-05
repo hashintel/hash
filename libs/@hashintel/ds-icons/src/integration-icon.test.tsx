@@ -48,9 +48,9 @@ describe("IntegrationIcon", () => {
   });
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(55);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(96);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      51,
+      92,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -66,6 +66,17 @@ describe("IntegrationIcon", () => {
         ?.integrationNames,
     ).toEqual([]);
     expect(integrationIconNameByIntegration["Amazon"]).toBe("amazon");
+    expect(integrationIconNameByIntegration["AWS"]).toBe("aws");
+    expect(integrationIconNameByIntegration["Amazon S3"]).toBe("amazonS3");
+    expect(integrationIconNameByIntegration["OpenAI"]).toBe("openai");
+    expect(integrationIconNameByIntegration["OpenAI ChatGPT"]).toBe("chatgpt");
+    expect(integrationIconNameByIntegration["Anthropic"]).toBe("anthropic");
+    expect(integrationIconNameByIntegration["Anthropic Claude"]).toBe("claude");
+    expect(integrationIconNameByIntegration["X"]).toBe("x");
+    expect(
+      integrationIconCatalog.find((icon) => icon.name === "twitterLegacy")
+        ?.integrationNames,
+    ).toEqual([]);
     expect(integrationIconNameByIntegration["HASH"]).toBe("hash");
     expect(integrationIconNameByIntegration["Amazon Redshift"]).toBe(
       "amazonRedshift",

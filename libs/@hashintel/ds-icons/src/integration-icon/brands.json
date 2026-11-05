@@ -888,6 +888,731 @@
     "logoNotes": "Blue gradient mark and outlined wordmark from the live hash.ai navigation logo, retrieved 2026-11-05. Preserves the original gradient, path opacity, wordmark geometry, and lock-up spacing. App tiles place the mark flush against the bottom-right edge at 60% of the tile height; logo lettering is dark in light mode and white in dark mode."
   },
   {
+    "name": "openai",
+    "slug": "openai",
+    "label": "OpenAI",
+    "integrationNames": ["OpenAI"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://openai.com/brand/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/openai_wordmark_light.svg",
+    "logoNotes": "Current OpenAI wordmark, kept separate from the Blossom as specified in the brand guidelines."
+  },
+  {
+    "name": "chatgpt",
+    "slug": "chatgpt",
+    "label": "OpenAI ChatGPT",
+    "integrationNames": ["OpenAI ChatGPT"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://openai.com/brand/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://asvg.app/assets/svg/chatgpt/chatgpt-lockup-mono.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "anthropic",
+    "slug": "anthropic",
+    "label": "Anthropic",
+    "integrationNames": ["Anthropic"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.anthropic.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#181818": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.anthropic.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "claude",
+    "slug": "claude",
+    "label": "Anthropic Claude",
+    "integrationNames": ["Anthropic Claude"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://claude.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://claude.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "segment",
+    "slug": "segment",
+    "label": "Segment",
+    "integrationNames": ["Segment"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/segment-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/segment.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "rudderstack",
+    "slug": "rudderstack",
+    "label": "RudderStack",
+    "integrationNames": ["RudderStack"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.rudderstack.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#020E20": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.rudderstack.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "zapier",
+    "slug": "zapier",
+    "label": "Zapier",
+    "integrationNames": ["Zapier"],
+    "ratio": 1.6,
+    "alignment": "center",
+    "source": "https://zapier.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://zapier.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "whalesync",
+    "slug": "whalesync",
+    "label": "Whalesync",
+    "integrationNames": ["Whalesync"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.whalesync.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://www.whalesync.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "clickup",
+    "slug": "clickup",
+    "label": "ClickUp",
+    "integrationNames": ["ClickUp"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/clickup.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/clickup-wordmark.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "okta",
+    "slug": "okta",
+    "label": "Okta",
+    "integrationNames": ["Okta"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.okta.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.okta.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "cursor",
+    "slug": "cursor",
+    "label": "Cursor",
+    "integrationNames": ["Cursor"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cursor.com/brand",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://cursor.com/brand",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "x",
+    "slug": "x",
+    "label": "X",
+    "integrationNames": ["X"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://about.x.com/en/who-we-are/brand-toolkit",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000": "#F5F7FA"
+    },
+    "logoDarkColors": {}
+  },
+  {
+    "name": "twitterLegacy",
+    "slug": "twitter-legacy",
+    "label": "X (Twitter) — legacy",
+    "integrationNames": [],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/twitter.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {}
+  },
+  {
+    "name": "calCom",
+    "slug": "cal-com",
+    "label": "Cal.com",
+    "integrationNames": ["Cal.com"],
+    "ratio": 1.6,
+    "alignment": "center",
+    "source": "https://cal.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://cal.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "composio",
+    "slug": "composio",
+    "label": "Composio",
+    "integrationNames": ["Composio"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://composio.dev/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "black": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://composio.dev/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "attio",
+    "slug": "attio",
+    "label": "Attio",
+    "integrationNames": ["Attio"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://attio.com/brand",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://attio.com/brand",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "stripe",
+    "slug": "stripe",
+    "label": "Stripe",
+    "integrationNames": ["Stripe"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://stripe.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#635BFF": "#FFFFFF"
+    },
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/stripe.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "pandadoc",
+    "slug": "pandadoc",
+    "label": "PandaDoc",
+    "integrationNames": ["PandaDoc"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.vectorlogo.zone/logos/pandadoc/pandadoc-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#248567": "#55B76F"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.freelogovectors.net/svg02/pandadoc-logo.svg",
+    "logoNotes": "Sourced PD mark without its app-tile background, using PandaDoc green, composed with the native outlined wordmark.",
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.25
+    }
+  },
+  {
+    "name": "zoho",
+    "slug": "zoho",
+    "label": "Zoho",
+    "integrationNames": ["Zoho"],
+    "ratio": 1.45,
+    "alignment": "center",
+    "source": "https://www.zohowebstatic.com/sites/zweb/images/commonroot/zoho-logo-web.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.zohowebstatic.com/sites/zweb/images/commonroot/zoho-logo-web.svg",
+    "logoNotes": "Zoho’s primary identity is its four-letter colored-block wordmark; no separate pictorial mark is substituted."
+  },
+  {
+    "name": "googleMeet",
+    "slug": "google-meet",
+    "label": "Google Meet",
+    "integrationNames": ["Google Meet"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.gstatic.com/images/branding/productlogos/meet_2026/v2/web/192px.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#5F6368": "#F5F7FA"
+    },
+    "logoSource": "https://fonts.googleapis.com/css?family=Google+Sans:400&subset=latin&display=swap",
+    "logoNotes": "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "googleSheets",
+    "slug": "google-sheets",
+    "label": "Google Sheets",
+    "integrationNames": ["Google Sheets"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.gstatic.com/images/branding/productlogos/sheets_2026q3/v1/web/192px.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#5F6368": "#F5F7FA"
+    },
+    "logoSource": "https://fonts.googleapis.com/css?family=Google+Sans:400&subset=latin&display=swap",
+    "logoNotes": "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "googleDocs",
+    "slug": "google-docs",
+    "label": "Google Docs",
+    "integrationNames": ["Google Docs"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.gstatic.com/images/branding/productlogos/docs_2026/v2/web/192px.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#5F6368": "#F5F7FA"
+    },
+    "logoSource": "https://fonts.googleapis.com/css?family=Google+Sans:400&subset=latin&display=swap",
+    "logoNotes": "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "googleSlides",
+    "slug": "google-slides",
+    "label": "Google Slides",
+    "integrationNames": ["Google Slides"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.gstatic.com/images/branding/productlogos/slides_2026/v2/web/192px.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#5F6368": "#F5F7FA"
+    },
+    "logoSource": "https://fonts.googleapis.com/css?family=Google+Sans:400&subset=latin&display=swap",
+    "logoNotes": "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "telegram",
+    "slug": "telegram",
+    "label": "Telegram",
+    "integrationNames": ["Telegram"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://telegram.org/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://telegram.org/",
+    "logoNotes": "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
+    "logoLayout": {
+      "wordmarkHeight": 0.65,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "zendesk",
+    "slug": "zendesk",
+    "label": "Zendesk",
+    "integrationNames": ["Zendesk"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/zendesk-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#03363D": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/zendesk.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "apollo",
+    "slug": "apollo",
+    "label": "Apollo.io",
+    "integrationNames": ["Apollo.io"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.apollo.io/",
+    "markLightColors": {
+      "#F8FF2C": "#191919"
+    },
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://www.apollo.io/",
+    "logoNotes": "Current native Apollo lock-up. Light mode uses the brand’s black for contrast; dark mode retains the neon-yellow mark and light lettering.",
+    "logoLightColors": {
+      "#F8FF2C": "#191919"
+    }
+  },
+  {
+    "name": "hunter",
+    "slug": "hunter",
+    "label": "Hunter.io",
+    "integrationNames": ["Hunter.io"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://hunter.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://hunter.io/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "airtable",
+    "slug": "airtable",
+    "label": "Airtable",
+    "integrationNames": ["Airtable"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.airtable.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://www.airtable.com/",
+    "logoNotes": "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
+    "logoLayout": {
+      "wordmarkHeight": 0.65,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "luma",
+    "slug": "luma",
+    "label": "Luma",
+    "integrationNames": ["Luma"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://luma.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://luma.com/",
+    "logoNotes": "Luma events platform: native star mark and outlined wordmark from luma.com, composed horizontally.",
+    "logoLayout": {
+      "wordmarkHeight": 0.75,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "aws",
+    "slug": "aws",
+    "label": "AWS",
+    "integrationNames": ["AWS"],
+    "ratio": 1.6,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#252F3E": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws.svg",
+    "logoNotes": "AWS uses the aws lettermark and Amazon smile as its primary wordmark identity."
+  },
+  {
+    "name": "amazonS3",
+    "slug": "amazon-s3",
+    "label": "Amazon S3",
+    "integrationNames": ["Amazon S3"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws-s3.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#569A31": "#7DCB53"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    "logoNotes": "Composed product lock-up using the AWS S3 bucket mark and Amazon Ember Regular outlines. The architecture-icon background is removed for backgroundless marks. Not a downloaded official full lock-up.",
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "mailchimp",
+    "slug": "mailchimp",
+    "label": "Mailchimp",
+    "integrationNames": ["Mailchimp"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://mailchimp.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/images/dotcom/oneintuit2026-logos-mc-dotcom-inapp/cornerstoneBrand_mailchimp.svg",
+    "logoNotes": "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
+    "logoLayout": {
+      "wordmarkHeight": 0.68,
+      "gap": 0.22
+    }
+  },
+  {
+    "name": "evernote",
+    "slug": "evernote",
+    "label": "Evernote",
+    "integrationNames": ["Evernote"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://evernote.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00a82d": "#17C653",
+      "#00A82D": "#17C653"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://evernote.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "mixmax",
+    "slug": "mixmax",
+    "label": "Mixmax",
+    "integrationNames": ["Mixmax"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.mixmax.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://www.mixmax.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "turbopuffer",
+    "slug": "turbopuffer",
+    "label": "Turbopuffer",
+    "integrationNames": ["Turbopuffer"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://turbopuffer.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#010529": "#94A3B8"
+    },
+    "logoDarkColors": {
+      "none": "none",
+      "#010529": "#94A3B8",
+      "#FFFFF3": "#FFFFF3",
+      "#D6BFA2": "#D6BFA2",
+      "#B7E2F4": "#B7E2F4",
+      "#0F172A": "#0F172A",
+      "#6D6A94": "#6D6A94",
+      "#FFE295": "#FFE295",
+      "#9CDAE0": "#9CDAE0",
+      "#213260": "#213260",
+      "#59A6C7": "#59A6C7",
+      "#FB915F": "#FB915F",
+      "#9C4987": "#9C4987",
+      "#0f172a": "#F5F7FA"
+    },
+    "logoSource": "https://turbopuffer.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "typeform",
+    "slug": "typeform",
+    "label": "Typeform",
+    "integrationNames": ["Typeform"],
+    "ratio": 1.6,
+    "alignment": "center",
+    "source": "https://www.typeform.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.typeform.com/",
+    "logoNotes": "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
+    "logoLayout": {
+      "wordmarkHeight": 0.65,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "calendly",
+    "slug": "calendly",
+    "label": "Calendly",
+    "integrationNames": ["Calendly"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://calendly.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://calendly.com/",
+    "logoNotes": "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
+    "logoLayout": {
+      "wordmarkHeight": 0.7,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "modal",
+    "slug": "modal",
+    "label": "Modal",
+    "integrationNames": ["Modal"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://modal.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://modal.com/",
+    "logoNotes": "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
+    "logoLayout": {
+      "wordmarkHeight": 0.75,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "taskrabbit",
+    "slug": "taskrabbit",
+    "label": "Taskrabbit",
+    "integrationNames": ["Taskrabbit"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.taskrabbit.com/press",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.taskrabbit.com/press",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "vercel",
+    "slug": "vercel",
+    "label": "Vercel",
+    "integrationNames": ["Vercel"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/vercel-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/vercel.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "miro",
+    "slug": "miro",
+    "label": "Miro",
+    "integrationNames": ["Miro"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://miro.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://miro.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "clay",
+    "slug": "clay",
+    "label": "Clay.com",
+    "integrationNames": ["Clay.com"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://assets.clayrun.dev/Clay%20Kiln%20Logos%202025.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://assets.clayrun.dev/Clay%20Kiln%20Logos%202025.zip",
+    "logoNotes": "Official Clay Kiln primary lock-up. The kit embeds a raster mark; this copy vectorizes that mark while preserving the original outlined wordmark and placement."
+  },
+  {
     "name": "genericApp",
     "slug": "generic-app",
     "label": "Other integration",
