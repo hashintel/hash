@@ -674,6 +674,15 @@ export function createPetrinautActions(
           if (place.id === parsed.placeId) {
             const wasPort = place.isPort === true;
             Object.assign(place, parsed.update);
+            // A direction belongs to a port: unmarking the port, or clearing
+            // the field, removes it rather than storing `undefined`.
+            if (
+              place.isPort !== true ||
+              ("portDirection" in parsed.update &&
+                parsed.update.portDirection === undefined)
+            ) {
+              delete place.portDirection;
+            }
             Object.assign(place, sanitizePlaceForExtensions(place, extensions));
             placeSchema.parse(place);
             assertPlaceDynamicsReferences(place, net.differentialEquations);

@@ -53,6 +53,9 @@ export type ComponentPortArcEndpoint = {
 
 export type ArcEndpoint = PlaceArcEndpoint | ComponentPortArcEndpoint;
 
+/** How a component uses one of its ports; see `Place.portDirection`. */
+export type PortDirection = "in" | "out" | "inout";
+
 /**
  * One member of a fusion: a place of the net the fusion belongs to, or a port
  * of one of that net's component instances. The same shape an arc uses to
@@ -135,6 +138,14 @@ export type Place = {
   capacity?: number | null;
   /** When true, this place is exposed as a component port for subnet instances. */
   isPort?: boolean;
+  /**
+   * The direction a port promises, seen from the component: `in` is only
+   * consumed by the component's transitions, `out` only produced into, and
+   * `inout` both, as a shared resource pool is. Absent, the direction is read
+   * off the subnet's arcs. The checks report a port used against its promise,
+   * and a fusion that leaves a flow without a producer or a consumer.
+   */
+  portDirection?: PortDirection;
   visualizerCode?: string;
   showAsInitialState?: boolean;
   // UI positioning

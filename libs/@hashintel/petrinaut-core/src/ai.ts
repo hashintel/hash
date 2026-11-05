@@ -124,7 +124,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "useful-patterns":
     "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
   composition:
-    "Components (subnets) and instances, marking ports, fusing a place with instance ports by dragging, what fused places must agree on, fusion checks in Diagnostics.",
+    "Components (subnets) and instances, marking ports and their direction (input, output, both), fusing a place with instance ports by dragging, what fused places must agree on, fusion and port checks in Diagnostics.",
   simulation:
     "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
   scenarios:
