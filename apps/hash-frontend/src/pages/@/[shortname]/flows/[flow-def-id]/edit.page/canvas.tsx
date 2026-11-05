@@ -9,6 +9,7 @@ import {
   useNodesInitialized,
   useReactFlow,
   useStore,
+  useStoreApi,
 } from "@xyflow/react";
 import {
   useCallback,
@@ -52,7 +53,10 @@ import type {
   OnConnectEnd,
   XYPosition,
 } from "@xyflow/react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+} from "react";
 
 const nodeTypes = {
   start: StartNode,
@@ -111,6 +115,7 @@ const FlowCanvas = ({
     editor.getState,
   );
   const {
+    deleteElements,
     fitView,
     getInternalNode,
     getNodes,
@@ -119,6 +124,7 @@ const FlowCanvas = ({
     screenToFlowPosition,
     setCenter,
   } = useReactFlow<FlowNode, ConnectionEdgeType>();
+  const store = useStoreApi<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
   const fitPadding = useMemo(
     () =>
@@ -657,6 +663,32 @@ const FlowCanvas = ({
     return Promise.resolve(false);
   };
 
+  /*
+   * React Flow's own delete key listens on the whole page, so a key pressed in the step panel or its menus would delete
+   * the selection. Only keys pressed in the canvas delete, and not those from menus portalled out of it.
+   */
+  const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (
+      (event.key !== "Backspace" && event.key !== "Delete") ||
+      event.repeat ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      !(event.target instanceof Element) ||
+      !event.currentTarget.contains(event.target) ||
+      event.target.closest("input, textarea, select, [contenteditable]")
+    ) {
+      return;
+    }
+
+    void deleteElements({
+      nodes: nodes.filter(({ selected }) => selected),
+      edges: edges.filter(({ selected }) => selected),
+    });
+    store.setState({ nodesSelectionActive: false });
+  };
+
   const organize = async () => {
     const { flowDefinition: laidOut } = editor.getState();
     const { positions, forEachLayouts: layouts } = await layOutFlow(
@@ -769,7 +801,8 @@ const FlowCanvas = ({
             connectOnClick={false}
             connectionLineStyle={{ stroke: "var(--colors-blue-bd-strong)" }}
             onBeforeDelete={onBeforeDelete}
-            deleteKeyCode={["Backspace", "Delete"]}
+            deleteKeyCode={null}
+            onKeyDown={onCanvasKeyDown}
             onNodeContextMenu={onNodeContextMenu}
             onEdgeContextMenu={onEdgeContextMenu}
             onSelectionContextMenu={(event, selectedNodes) => {
