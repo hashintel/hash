@@ -525,19 +525,19 @@ fn document_same_problem_type() {
         labels,
         [
             "Entity not found",
-            "Web not found: The web named in the request does not exist.",
-            "Web not found: The web named in the request was deleted, and its name stays reserved \
-             until the retention period ends.",
+            "The web named in the request does not exist.",
+            "The web named in the request was deleted, and its name stays reserved until the \
+             retention period ends.",
             "Entity type not found",
         ],
         "every schema should be documented once, labelled by the first paragraph of its \
-         description where its type URI is shared"
+         description where its title is shared"
     );
     let example = &media["examples"]["/problems/web/not-found (2)"];
     assert_eq!(
         example["summary"],
-        "Web not found: The web named in the request was deleted, and its name stays reserved \
-         until the retention period ends.",
+        "The web named in the request was deleted, and its name stays reserved until the \
+         retention period ends.",
         "the example of the second variant of a type URI should be named apart"
     );
     assert_eq!(

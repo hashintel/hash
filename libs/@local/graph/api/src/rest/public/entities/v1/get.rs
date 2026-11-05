@@ -31,7 +31,7 @@ use crate::rest::{
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct EntityPath {
-    /// The ID of the entity to read. An ID that names a draft is answered with `400`.
+    /// The ID of the entity to read. An ID that names a draft gets a `400` response.
     entity_id: LiveEntityId,
 }
 
@@ -128,10 +128,10 @@ fn document_get_entity(operation: TransformOperation<'_>) -> TransformOperation<
         .id("getEntity")
         .summary("Get an entity")
         .description(
-            "Returns the entity's ID, the entity types, the provenance, and the properties with \
-             the data types and provenance of their values, of its current edition. \
-             `propertyMetadata` leaves out a value without a stored data type, and a list that \
-             contains one.",
+            "Returns the current edition of the entity: its ID, entity types, provenance and \
+             properties, with the data type and provenance of each value. `propertyMetadata` \
+             leaves out a value without a stored data type, and any list that contains such a \
+             value.",
         )
 }
 

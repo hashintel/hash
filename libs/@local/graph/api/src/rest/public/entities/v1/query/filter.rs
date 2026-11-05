@@ -76,13 +76,13 @@ impl<'de, T: SingleKey<'de>> de::Visitor<'de> for SingleKeyVisitor<T> {
 #[derive(Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) enum EntityFilter {
-    /// Entities in the web, or in one of the webs.
+    /// Entities in the given web, or in one of the given webs.
     #[schemars(title = "Web ID")]
     WebId(Match<WebId>),
-    /// Entities of the versioned entity type, or of a type that inherits from it.
+    /// Entities of the given versioned entity type, or of a type that inherits from it.
     #[schemars(title = "Entity type IDs")]
     EntityTypeIds(SetMatch<VersionedUrl>),
-    /// Entities of any version of the entity type, or of a type that inherits from one.
+    /// Entities of any version of the given entity type, or of a type that inherits from one.
     #[schemars(title = "Entity type base IDs")]
     EntityTypeBaseIds(SetMatch<BaseUrl>),
     /// Entities that meet every condition.

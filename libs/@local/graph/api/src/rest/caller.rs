@@ -9,11 +9,11 @@ use super::{
     routing::{self, Route, Routes},
 };
 
-/// The resolved caller.
+/// The caller of the request.
 #[derive(Serialize, JsonSchema)]
 #[schemars(extend("required" = ["actor"]))]
 pub(super) struct CallerResponse {
-    /// The resolved actor, or `null` for an anonymous request.
+    /// The actor the request's credentials identify, or `null` for an anonymous request.
     actor: Option<ActorId>,
 }
 
@@ -23,10 +23,10 @@ pub(super) async fn caller<A: Into<Option<ActorId>>>(actor: A) -> Json<CallerRes
     })
 }
 
-/// The resolved caller.
+/// The caller of the request.
 #[derive(Serialize, JsonSchema)]
 struct AuthenticatedCallerResponse {
-    /// The resolved actor.
+    /// The actor the request's credentials identify.
     actor: ActorId,
 }
 
@@ -40,7 +40,10 @@ fn document_caller(operation: TransformOperation<'_>) -> TransformOperation<'_> 
     operation
         .id("getCaller")
         .summary("Get the caller")
-        .description("Returns the resolved actor, or `actor: null` for an anonymous request.")
+        .description(
+            "Returns the actor the request's credentials identify, or `actor: null` for an \
+             anonymous request.",
+        )
 }
 
 fn document_authenticated_caller(operation: TransformOperation<'_>) -> TransformOperation<'_> {
