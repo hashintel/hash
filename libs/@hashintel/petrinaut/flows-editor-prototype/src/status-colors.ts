@@ -877,6 +877,16 @@ export const tileColor = (icon: string, ghost = false) =>
       });
 
 /**
+ * The right panel's header tile (H4, decided 5 Nov): the step's group hue at the canvas tiles' equal steps, in the
+ * editor and the run view alike, so it skips the run view's neutral tiles. Icons outside a group stay neutral.
+ */
+export const panelTileColor = (icon: string): CSSProperties => {
+  const group = groupHues.find((entry) => entry.icons.includes(icon))?.group;
+  const steps = (group ? paletteSwatch(group) : null) ?? equalSteps.neutral!;
+  return { backgroundColor: tokenVar(steps.tile), color: tokenVar(steps.icon) };
+};
+
+/**
  * `?treetiles=b|c|d` (inbox status-colour-steps, open): the Steps tree's tiles apart from the canvas and Add menu.
  * Unset or `a` is P-a everywhere, as now. b: neutral tree tiles (the 2 Nov rule); c: the group hue on the icon only,
  * on a neutral tile (P-c); d: P-a one step fainter (tile s15, yellow s20; icon one step lighter). Under P-a the run

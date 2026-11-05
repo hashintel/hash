@@ -41,7 +41,13 @@ import {
   runTriggerId,
   triggerLabel,
 } from "./run-history";
-import { HeaderTitle, PropertyRow, Section } from "./ui";
+import {
+  HeaderTitle,
+  HueHeader,
+  oldPanelHeader,
+  PropertyRow,
+  Section,
+} from "./ui";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * State: the flow's runs and the clock that moves the live ones
@@ -377,6 +383,15 @@ const strongLineStyle = css({
 
 const quietLineStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
 
+/** H4's second line, "Action · description": 14 px on the title's 20 px line, muted as in the editor. */
+const headerLineStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.muted.hover",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
 const valueStyle = css({
   textStyle: "sm",
   color: "neutral.fg.body",
@@ -652,26 +667,41 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
   const outputs = plainOutputs(stepId, state);
   return (
     <aside className={runPanelStyle} aria-label="Step in this run">
-      <div
-        className={css({
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.5",
-        })}
-      >
-        <HeaderTitle icon={entry?.icon ?? detail.icon}>
-          <span className={strongLineStyle}>{entry?.title ?? detail.type}</span>
-        </HeaderTitle>
-        <span
+      {oldPanelHeader ? (
+        <div
           className={css({
-            textStyle: "sm",
-            color: "neutral.fg.muted",
-            paddingLeft: "6",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5",
           })}
         >
-          {label}
-        </span>
-      </div>
+          <HeaderTitle icon={entry?.icon ?? detail.icon}>
+            <span className={strongLineStyle}>
+              {entry?.title ?? detail.type}
+            </span>
+          </HeaderTitle>
+          <span
+            className={css({
+              textStyle: "sm",
+              color: "neutral.fg.muted",
+              paddingLeft: "6",
+            })}
+          >
+            {label}
+          </span>
+        </div>
+      ) : (
+        <HueHeader
+          icon={entry?.icon ?? detail.icon}
+          title={<span>{entry?.title ?? detail.type}</span>}
+        >
+          <span className={headerLineStyle}>
+            {step?.kind === "action" && step.description.trim()
+              ? `Action · ${step.description}`
+              : label}
+          </span>
+        </HueHeader>
+      )}
       <Section title="Status">
         <div
           className={css({

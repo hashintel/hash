@@ -10,7 +10,7 @@ import {
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { useSourceHover } from "./editor-context";
-import { tileColor } from "./status-colors";
+import { panelTileColor, tileColor } from "./status-colors";
 
 import type { StepInputSource } from "./engine";
 import type { EditorPayloadKind } from "./mock-action-definitions";
@@ -485,6 +485,81 @@ export const HeaderTitle = ({
   >
     {icon ? <Icon name={icon} size="sm" /> : null}
     {children}
+  </div>
+);
+
+/** `?panelheader=old`: the two headers from before H4, read from the URL only and never remembered. */
+export const oldPanelHeader =
+  new URLSearchParams(globalThis.location.search).get("panelheader") === "old";
+
+const hueHeaderStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[40px minmax(0, 1fr)]",
+  columnGap: "3",
+  alignItems: "center",
+});
+
+const hueTileStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[40px]",
+  height: "[40px]",
+  borderRadius: "[8px]",
+  "&[class] svg": { width: "[20px]", height: "[20px]", "--icon-size": "20px" },
+});
+
+/** Both lines on a 20 px line, the editable description too, so together they are the tile's 40 px. */
+const hueLinesStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  minWidth: "[0]",
+  "& *": { lineHeight: "[20px]" },
+  // The editable field's fill and ring hug its line (1 px out, not 3), so they stay clear of the title above.
+  "& input": { paddingY: "[0]", marginY: "[-1px]" },
+});
+
+/** The header's title line in H4: 14 px medium on a 20 px line, so the two lines match the 40 px tile. */
+export const hueTitleStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minWidth: "[0]",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.heading",
+  "& > span:first-child": {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+});
+
+/**
+ * H4 (decided 5 Nov): a 40 px tile in the step's group hue spans both header lines; the title, then
+ * "Action · description", start at the same x 12 px to its right.
+ */
+export const HueHeader = ({
+  icon,
+  title,
+  children,
+}: {
+  icon: IconName;
+  title: React.ReactNode;
+  children?: React.ReactNode;
+}) => (
+  <div className={hueHeaderStyle}>
+    <span
+      className={hueTileStyle}
+      style={panelTileColor(icon)}
+      aria-hidden="true"
+    >
+      <Icon name={icon} size="sm" />
+    </span>
+    <div className={hueLinesStyle}>
+      <div className={hueTitleStyle}>{title}</div>
+      {children}
+    </div>
   </div>
 );
 

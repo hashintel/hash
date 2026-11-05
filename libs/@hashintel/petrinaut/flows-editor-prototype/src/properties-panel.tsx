@@ -82,11 +82,13 @@ import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
   HeaderTitle,
+  HueHeader,
   keyHoverStyle,
   keyStyle,
   kindLabel,
   mutedTextStyle,
   OriginMark,
+  oldPanelHeader,
   panelHeaderStyle,
   PropertyRow,
   Section,
@@ -328,78 +330,99 @@ const PanelHeader = ({
         }
       : null;
   const what = trigger ? "trigger" : "step";
-  return (
-    <div className={panelHeaderStyle}>
-      <HeaderTitle icon={icon}>
-        <span className={typeLineStyle}>{type}</span>
-        {origin}
-      </HeaderTitle>
-      {subtitle ? (
+  const second = subtitle ? (
+    <span
+      className={cx(
+        descriptionInputStyle,
+        // Read-only: the same place as the editable line, without its hover.
+        css({
+          display: "block",
+          cursor: "default",
+          "&:hover:not(:focus)": { backgroundColor: "[transparent]" },
+        }),
+      )}
+    >
+      {subtitle}
+    </span>
+  ) : trigger ? (
+    <DescriptionInput
+      label="Trigger description"
+      value={trigger.description}
+      onChange={(next) =>
+        setDocument((document) =>
+          updateTrigger(document, trigger.id, (current) => ({
+            ...current,
+            description: next,
+          })),
+        )
+      }
+    />
+  ) : stepId && description !== undefined ? (
+    // "Action · description", as in V3 P1 (Figma 118:1748); with no description yet, "Add a description…" alone (J2.1).
+    <span className={css({ display: "flex", alignItems: "baseline" })}>
+      {description.trim() ? (
         <span
-          className={cx(
-            descriptionInputStyle,
-            // Read-only: the same place as the editable line, without its hover.
-            css({ display: "block", cursor: "default", "&:hover:not(:focus)": { backgroundColor: "[transparent]" } }),
-          )}
+          className={css({
+            flexShrink: 0,
+            whiteSpace: "pre",
+            textStyle: "sm",
+            color: "neutral.fg.muted.hover",
+          })}
         >
-          {subtitle}
+          {"Action ·"}
         </span>
-      ) : trigger ? (
+      ) : null}
+      <span
+        className={css({
+          flex: "1",
+          minWidth: "0",
+          display: "grid",
+          // After "Action ·" the field starts 3 px past the prefix, so its fill and border never touch the dot.
+          "&[data-after-prefix] input": {
+            marginLeft: "[3px]",
+            width: "[calc(100% + 4px)]",
+          },
+        })}
+        data-after-prefix={description.trim() ? true : undefined}
+      >
         <DescriptionInput
-          label="Trigger description"
-          value={trigger.description}
+          label="Step description"
+          value={description}
           onChange={(next) =>
             setDocument((document) =>
-              updateTrigger(document, trigger.id, (current) => ({
-                ...current,
+              updateStep(document, stepId, (step) => ({
+                ...step,
                 description: next,
               })),
             )
           }
         />
-      ) : stepId && description !== undefined ? (
-        // "Action · description", as in V3 P1 (Figma 118:1748); with no description yet, "Add a description…" alone (J2.1).
-        <span className={css({ display: "flex", alignItems: "baseline" })}>
-          {description.trim() ? (
-            <span
-              className={css({
-                flexShrink: 0,
-                whiteSpace: "pre",
-                textStyle: "sm",
-                color: "neutral.fg.muted.hover",
-              })}
-            >
-              {"Action ·"}
-            </span>
-          ) : null}
-          <span
-            className={css({
-              flex: "1",
-              minWidth: "0",
-              display: "grid",
-              // After "Action ·" the field starts 3 px past the prefix, so its fill and border never touch the dot.
-              "&[data-after-prefix] input": {
-                marginLeft: "[3px]",
-                width: "[calc(100% + 4px)]",
-              },
-            })}
-            data-after-prefix={description.trim() ? true : undefined}
-          >
-            <DescriptionInput
-              label="Step description"
-              value={description}
-              onChange={(next) =>
-                setDocument((document) =>
-                  updateStep(document, stepId, (step) => ({
-                    ...step,
-                    description: next,
-                  })),
-                )
-              }
-            />
-          </span>
-        </span>
-      ) : null}
+      </span>
+    </span>
+  ) : null;
+  return (
+    <div className={panelHeaderStyle}>
+      {oldPanelHeader ? (
+        <>
+          <HeaderTitle icon={icon}>
+            <span className={typeLineStyle}>{type}</span>
+            {origin}
+          </HeaderTitle>
+          {second}
+        </>
+      ) : (
+        <HueHeader
+          icon={icon}
+          title={
+            <>
+              <span>{type}</span>
+              {origin}
+            </>
+          }
+        >
+          {second}
+        </HueHeader>
+      )}
       {onDelete ? (
         <span className={headerActionStyle} data-header-action>
           <Button
@@ -1463,19 +1486,30 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
 /** Start: the flow's inputs, which the Run button's form and every trigger fill. Nothing about triggers (4 Nov). */
 const StartPanel = () => {
   const { document, setDocument } = useEditor();
+  const startDescription = (
+    <DescriptionInput
+      label="Start description"
+      value={document.startDescription}
+      onChange={(next) =>
+        setDocument((current) => ({ ...current, startDescription: next }))
+      }
+    />
+  );
   return (
     <>
       <div className={panelHeaderStyle}>
-        <HeaderTitle icon="play">
-          <span className={typeLineStyle}>Start</span>
-        </HeaderTitle>
-        <DescriptionInput
-          label="Start description"
-          value={document.startDescription}
-          onChange={(next) =>
-            setDocument((current) => ({ ...current, startDescription: next }))
-          }
-        />
+        {oldPanelHeader ? (
+          <>
+            <HeaderTitle icon="play">
+              <span className={typeLineStyle}>Start</span>
+            </HeaderTitle>
+            {startDescription}
+          </>
+        ) : (
+          <HueHeader icon="play" title={<span>Start</span>}>
+            {startDescription}
+          </HueHeader>
+        )}
       </div>
       {/* Triggers are read-only here (4 Nov): they show as ghost nodes left of Start, and open their own panel. */}
       <RunFormFields />
