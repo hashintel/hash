@@ -3,11 +3,14 @@
  * @role Wires the Monaco editor to the language server for authoring user code
  */
 
+import { useEffect } from "react";
+
 import { CompletionSync } from "./completion-sync";
 import { MonacoContext } from "./context";
 import { DiagnosticsSync } from "./diagnostics-sync";
 import { HoverSync } from "./hover-sync";
 import { SignatureHelpSync } from "./signature-help-sync";
+import { warmEditor } from "./warm-editor";
 
 import type { MonacoContextValue } from "./context";
 
@@ -75,6 +78,20 @@ export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const promise = getMonacoPromise();
+  useEffect(() => {
+    let active = true;
+    let cancel: (() => void) | undefined;
+    void promise.then(
+      ({ monaco }) => {
+        if (active) cancel = warmEditor(monaco);
+      },
+      () => {},
+    );
+    return () => {
+      active = false;
+      cancel?.();
+    };
+  }, [promise]);
 
   return (
     <MonacoContext.Provider value={promise}>
