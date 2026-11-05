@@ -46,6 +46,8 @@ const FakeEditor: React.FC<EditorProps> = ({ loading, onMount }) => {
       getDomNode: () => document.querySelector('[data-testid="editor"]'),
       setPosition: vi.fn(),
       setSelection: vi.fn(),
+      onDidChangeModel: () => ({ dispose: vi.fn() }),
+      onDidDispose: vi.fn(),
       onDidChangeModelContent: vi.fn(),
       onDidScrollChange: vi.fn(),
       onDidFocusEditorText: vi.fn(),

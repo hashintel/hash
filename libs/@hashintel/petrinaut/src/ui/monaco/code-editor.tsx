@@ -5,6 +5,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { CODE_FONT_FAMILY } from "../constants/ui";
 import { MonacoContext } from "./context";
+import { releaseReplacedModels } from "./release-replaced-models";
 
 import type { MonacoContextValue } from "./context";
 import type { EditorProps, Monaco } from "@monaco-editor/react";
@@ -257,6 +258,7 @@ const CodeEditorInner: React.FC<
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
+    if (!props.keepCurrentModel) releaseReplacedModels(editorInstance);
     setEditorFocused(false);
     setEditorMounted(true);
 
@@ -394,6 +396,7 @@ const CodeEditorInner: React.FC<
       )}
       <Editor
         theme="petrinaut-light"
+        saveViewState={false}
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
         onMount={(editorInstance, monacoInstance) =>
