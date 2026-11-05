@@ -71,9 +71,13 @@ export const VisualizerSvg = ({
   legacyProps?: SVGProps<SVGSVGElement>;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
+  const { background, backgroundColor, ...drawingStyle } =
+    legacyProps?.style ?? {};
+  const color = options.backgroundColor ?? backgroundColor;
   const frameBackground = useVisualizerBackground(
-    options.backgroundColor ?? legacyProps?.style?.backgroundColor,
-    legacyProps?.style?.background,
+    color,
+    background,
+    drawingStyle.opacity ?? legacyProps?.opacity,
   );
   const { camera, homeZoom, changed, navigate, reset } = useSceneCamera(
     options,
@@ -142,14 +146,10 @@ export const VisualizerSvg = ({
         viewBox={cameraViewBox(camera, size)}
         preserveAspectRatio="xMidYMid meet"
         style={{
-          ...legacyProps?.style,
+          ...drawingStyle,
           display: "block",
-          background: frameBackground.inFrame
-            ? "transparent"
-            : legacyProps?.style?.background,
-          backgroundColor: frameBackground.inFrame
-            ? "transparent"
-            : (options.backgroundColor ?? legacyProps?.style?.backgroundColor),
+          background: frameBackground.inFrame ? "transparent" : background,
+          backgroundColor: frameBackground.inFrame ? "transparent" : color,
           cursor: exploring ? (dragging ? "grabbing" : "grab") : undefined,
           touchAction: exploring ? "none" : undefined,
         }}

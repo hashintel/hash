@@ -95,20 +95,24 @@ export const VisualizerFrame = ({
 export const useVisualizerBackground = (
   color?: string | number,
   background?: string | number,
+  opacity?: string | number,
 ) => {
   const frame = use(BackgroundContext);
   const fill = color ?? background;
-  const inFrame =
-    !!frame?.layer &&
-    typeof fill === "string" &&
-    typeof CSS !== "undefined" &&
-    CSS.supports("color", fill) &&
-    (background === undefined ||
-      (typeof background === "string" && CSS.supports("color", background)));
+  if (
+    !frame?.layer ||
+    opacity !== undefined ||
+    typeof fill !== "string" ||
+    /\bcurrentcolor\b/iu.test(fill) ||
+    typeof CSS === "undefined" ||
+    !CSS.supports("color", fill) ||
+    (background !== undefined &&
+      (typeof background !== "string" || !CSS.supports("color", background)))
+  )
+    return { inFrame: false, background: null };
+
   return {
-    inFrame,
-    background: inFrame
-      ? createPortal(<path d={frame.path} fill={fill} />, frame.layer!)
-      : null,
+    inFrame: true,
+    background: createPortal(<path d={frame.path} fill={fill} />, frame.layer),
   };
 };
