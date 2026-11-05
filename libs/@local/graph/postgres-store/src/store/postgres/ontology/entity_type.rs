@@ -963,24 +963,22 @@ where
     }
 }
 
-/// Adds the stored parents of `entity_types` to the policy context, together with their ancestors.
+/// Adds the parents of `entity_types` that are in `viewable_entity_type_ids` to the policy context,
+/// together with their ancestors.
 ///
-/// Parents among `entity_types` are skipped, as they are not stored yet.
-fn add_stored_parent_entity_types<'a, S>(
+/// A parent the actor cannot view is left out, so that it fails to resolve in the same way as a
+/// parent that does not exist.
+fn add_viewable_parent_entity_types<'a, S>(
     policy_components_builder: &mut PolicyComponentsBuilder<'a, S>,
     entity_types: &'a [(EntityTypeUuid, Arc<EntityType>)],
+    viewable_entity_type_ids: &HashSet<&VersionedUrl>,
 ) {
-    let pending_entity_type_ids = entity_types
-        .iter()
-        .map(|(_, entity_type)| &entity_type.id)
-        .collect::<HashSet<_>>();
-
     policy_components_builder.add_entity_type_ids(
         entity_types
             .iter()
             .flat_map(|(_, entity_type)| &entity_type.all_of)
             .map(|parent| &parent.url)
-            .filter(|parent_id| !pending_entity_type_ids.contains(parent_id)),
+            .filter(|parent_id| viewable_entity_type_ids.contains(parent_id)),
     );
 }
 
@@ -1112,7 +1110,43 @@ where
             }
         }
 
-        add_stored_parent_entity_types(&mut policy_components_builder, &inserted_entity_types);
+        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
+        let referenced_entity_types = transaction
+            .query_entity_types(
+                Some(actor_id),
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::OntologyId,
+                            },
+                            FilterExpressionList::ParameterList {
+                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
+                            },
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
+                    include_entity_types: None,
+                },
+            )
+            .await
+            .change_context(InsertionError)
+            .attach("Could not read parent entity types")?
+            .entity_types;
+        let viewable_entity_type_ids = referenced_entity_types
+            .iter()
+            .map(|entity_type| &entity_type.schema.id)
+            .collect::<HashSet<_>>();
+        add_viewable_parent_entity_types(
+            &mut policy_components_builder,
+            &inserted_entity_types,
+            &viewable_entity_type_ids,
+        );
 
         let policy_components = policy_components_builder
             .with_actions(
@@ -1158,8 +1192,6 @@ where
                 .add_unresolved_entity_type(*entity_type_id, Arc::clone(inserted_entity_type));
         }
 
-        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
-
         let mut resolve_data = transaction
             .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
@@ -1168,47 +1200,19 @@ where
             .collect::<Result<HashMap<_, _>, _>>()
             .change_context(InsertionError)?;
 
-        transaction
-            .query_entity_types(
-                Some(actor_id),
-                QueryEntityTypesParams {
-                    request: CommonQueryEntityTypesParams {
-                        filter: Filter::In(
-                            FilterExpression::Path {
-                                path: EntityTypeQueryPath::OntologyId,
-                            },
-                            FilterExpressionList::ParameterList {
-                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
-                            },
-                        ),
-                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
-                    },
-                    include_entity_types: None,
-                },
-            )
-            .await
-            .change_context(InsertionError)
-            .attach("Could not read parent entity types")?
-            .entity_types
-            .into_iter()
-            .for_each(|entity_type| {
-                let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
-                if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
-                    ontology_type_resolver.add_closed_entity_type(
-                        entity_type_id,
-                        Arc::new(entity_type.schema),
-                        Arc::new(resolve_data),
-                    );
-                } else {
-                    ontology_type_resolver
-                        .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
-                }
-            });
+        for entity_type in referenced_entity_types {
+            let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
+            if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
+                ontology_type_resolver.add_closed_entity_type(
+                    entity_type_id,
+                    Arc::new(entity_type.schema),
+                    Arc::new(resolve_data),
+                );
+            } else {
+                ontology_type_resolver
+                    .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
+            }
+        }
 
         let closed_schemas = inserted_entity_types
             .iter()
@@ -1874,7 +1878,43 @@ where
         }
 
         policy_components_builder.add_entity_type_ids(&old_entity_type_ids);
-        add_stored_parent_entity_types(&mut policy_components_builder, &inserted_entity_types);
+        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
+        let referenced_entity_types = transaction
+            .query_entity_types(
+                Some(actor_id),
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::OntologyId,
+                            },
+                            FilterExpressionList::ParameterList {
+                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
+                            },
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
+                    include_entity_types: None,
+                },
+            )
+            .await
+            .change_context(UpdateError)
+            .attach("Could not read parent entity types")?
+            .entity_types;
+        let viewable_entity_type_ids = referenced_entity_types
+            .iter()
+            .map(|entity_type| &entity_type.schema.id)
+            .collect::<HashSet<_>>();
+        add_viewable_parent_entity_types(
+            &mut policy_components_builder,
+            &inserted_entity_types,
+            &viewable_entity_type_ids,
+        );
 
         let policy_components = policy_components_builder
             .with_actions(
@@ -1920,8 +1960,6 @@ where
                 .add_unresolved_entity_type(*entity_type_id, Arc::clone(inserted_entity_type));
         }
 
-        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
-
         let mut resolve_data = transaction
             .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
@@ -1930,47 +1968,19 @@ where
             .collect::<Result<HashMap<_, _>, _>>()
             .change_context(UpdateError)?;
 
-        transaction
-            .query_entity_types(
-                Some(actor_id),
-                QueryEntityTypesParams {
-                    request: CommonQueryEntityTypesParams {
-                        filter: Filter::In(
-                            FilterExpression::Path {
-                                path: EntityTypeQueryPath::OntologyId,
-                            },
-                            FilterExpressionList::ParameterList {
-                                parameters: ParameterList::EntityTypeIds(&required_reference_ids),
-                            },
-                        ),
-                        temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
-                    },
-                    include_entity_types: None,
-                },
-            )
-            .await
-            .change_context(UpdateError)
-            .attach("Could not read parent entity types")?
-            .entity_types
-            .into_iter()
-            .for_each(|entity_type| {
-                let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
-                if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
-                    ontology_type_resolver.add_closed_entity_type(
-                        entity_type_id,
-                        Arc::new(entity_type.schema),
-                        Arc::new(resolve_data),
-                    );
-                } else {
-                    ontology_type_resolver
-                        .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
-                }
-            });
+        for entity_type in referenced_entity_types {
+            let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
+            if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
+                ontology_type_resolver.add_closed_entity_type(
+                    entity_type_id,
+                    Arc::new(entity_type.schema),
+                    Arc::new(resolve_data),
+                );
+            } else {
+                ontology_type_resolver
+                    .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
+            }
+        }
 
         let closed_schemas = inserted_entity_types
             .iter()

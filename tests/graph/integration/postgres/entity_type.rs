@@ -1,6 +1,12 @@
 use core::{assert_matches, fmt::Debug};
 
 use error_stack::Report;
+use hash_graph_authorization::policies::{
+    Effect,
+    action::ActionName,
+    resource::{EntityTypeId, EntityTypeResourceConstraint, ResourceConstraint},
+    store::PolicyCreationParams,
+};
 use hash_graph_postgres_store::store::error::LinkToLinkConstraint;
 use hash_graph_store::{
     entity_type::{
@@ -683,6 +689,136 @@ async fn update_parent_in_same_batch() {
         [parent_v2, child_v2],
         "both types should be updated",
     );
+}
+
+const HIDDEN_PARENT_V1: &str = "https://example.com/@alice/types/entity-type/hidden-parent/v/1";
+const MISSING_PARENT_V1: &str = "https://example.com/@alice/types/entity-type/missing-parent/v/1";
+
+/// Creates [`HIDDEN_PARENT_V1`] and forbids every actor from viewing it.
+async fn seed_with_hidden_parent(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+    let mut api = database
+        .seed([], [], [])
+        .await
+        .expect("should be able to seed the database");
+    let user = api.account_id;
+    api.create_entity_type(
+        user,
+        create_params(
+            entity_type_schema(HIDDEN_PARENT_V1, &[]),
+            WebId::new(user),
+            user,
+        ),
+    )
+    .await
+    .expect("should be able to create the parent");
+    api.store
+        .insert_policies_into_database([&PolicyCreationParams {
+            name: Some("forbid-view-hidden-parent".to_owned()),
+            effect: Effect::Forbid,
+            principal: None,
+            actions: vec![ActionName::ViewEntityType],
+            resource: Some(ResourceConstraint::EntityType(
+                EntityTypeResourceConstraint::Exact {
+                    id: EntityTypeId::new(
+                        HIDDEN_PARENT_V1
+                            .parse()
+                            .expect("should be a valid entity type id"),
+                    ),
+                },
+            )),
+        }])
+        .await
+        .expect("should insert the forbid policy");
+    api
+}
+
+/// Asserts that extending a parent the actor cannot view fails in the same way as extending a
+/// parent that does not exist.
+fn assert_unresolved_parents_indistinguishable<T: Debug, C>(
+    hidden: Result<T, Report<C>>,
+    missing: Result<T, Report<C>>,
+) {
+    let hidden = hidden.expect_err("extending a parent the actor cannot view should fail");
+    let missing = missing.expect_err("extending a parent that does not exist should fail");
+    assert_eq!(
+        hidden.request_ref::<StatusCode>().next(),
+        missing.request_ref::<StatusCode>().next(),
+        "a hidden and a missing parent should fail with the same status: {hidden:?} {missing:?}",
+    );
+    for (error, parent) in [(&hidden, HIDDEN_PARENT_V1), (&missing, MISSING_PARENT_V1)] {
+        let message = format!("{error:?}");
+        assert!(
+            message.contains("unresolved references") && message.contains(parent),
+            "the error should report `{parent}` as an unresolved reference: {message}",
+        );
+    }
+}
+
+#[tokio::test]
+async fn create_parent_hidden_or_missing() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_hidden_parent(&mut database).await;
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+
+    let hidden = api
+        .create_entity_type(
+            user,
+            create_params(
+                entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child-of-hidden/v/1",
+                    &[HIDDEN_PARENT_V1],
+                ),
+                web_id,
+                user,
+            ),
+        )
+        .await;
+    let missing = api
+        .create_entity_type(
+            user,
+            create_params(
+                entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child-of-missing/v/1",
+                    &[MISSING_PARENT_V1],
+                ),
+                web_id,
+                user,
+            ),
+        )
+        .await;
+
+    assert_unresolved_parents_indistinguishable(hidden, missing);
+}
+
+#[tokio::test]
+async fn update_parent_hidden_or_missing() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_hidden_parent(&mut database).await;
+    let user = api.account_id;
+    let child_v1 = "https://example.com/@alice/types/entity-type/child/v/1";
+    api.create_entity_type(
+        user,
+        create_params(entity_type_schema(child_v1, &[]), WebId::new(user), user),
+    )
+    .await
+    .expect("should be able to create an entity type without parents");
+
+    let child_v2 = |parent| UpdateEntityTypesParams {
+        schema: entity_type_schema(
+            "https://example.com/@alice/types/entity-type/child/v/2",
+            &[parent],
+        ),
+        provenance: api_provenance(user),
+    };
+    let hidden = api
+        .update_entity_type(user, child_v2(HIDDEN_PARENT_V1))
+        .await;
+    let missing = api
+        .update_entity_type(user, child_v2(MISSING_PARENT_V1))
+        .await;
+
+    assert_unresolved_parents_indistinguishable(hidden, missing);
 }
 
 fn befriending_type_id(version: u32) -> VersionedUrl {
