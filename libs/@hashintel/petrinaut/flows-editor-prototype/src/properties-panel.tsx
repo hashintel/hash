@@ -369,7 +369,7 @@ const PanelHeader = ({
             color: "neutral.fg.muted.hover",
           })}
         >
-          {"Action ·"}
+          {"Action · "}
         </span>
       ) : null}
       <span
@@ -377,10 +377,13 @@ const PanelHeader = ({
           flex: "1",
           minWidth: "0",
           display: "grid",
-          // After "Action ·" the field starts 3 px past the prefix, so its fill and border never touch the dot.
+          // After "Action · " the text sits one space past the dot, as in the run view. The field's inset shrinks to
+          // 3 px (2 padding + 1 border) with a matching −3 px margin, so its hover fill stays inside the space and
+          // never touches the dot.
           "&[data-after-prefix] input": {
-            marginLeft: "[3px]",
-            width: "[calc(100% + 4px)]",
+            marginLeft: "[-3px]",
+            paddingLeft: "[2px]",
+            width: "[calc(100% + 10px)]",
           },
         })}
         data-after-prefix={description.trim() ? true : undefined}
