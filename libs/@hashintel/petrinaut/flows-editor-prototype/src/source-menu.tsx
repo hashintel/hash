@@ -605,9 +605,14 @@ export const SourceMenu = ({
   };
 
   const phrase = kindPhrase(kinds, input.array);
-  // Search only earns its place on a long list; the mocks show short menus without it.
+  // "Search values" heads every value menu, as in the picked X frame (Figma 770:33030), which shows it over six rows.
+  // ?srcsearch=long brings back the old rule: search only on lists longer than eight rows.
   const longList =
-    searchAlways || listsOnly || typedChoicesProp.length + options.length > 8;
+    new URLSearchParams(globalThis.location.search).get("srcsearch") !==
+      "long" ||
+    searchAlways ||
+    listsOnly ||
+    typedChoicesProp.length + options.length > 8;
 
   // A list reads "List of Shipments" under its step's name.
   const listName = (option: SourceOption) => {
@@ -890,7 +895,11 @@ export const SourceMenu = ({
         )}
         header={
           hideSearch || !longList ? undefined : (
-            <SearchHeader value={search} onChange={setSearch} />
+            <SearchHeader
+              value={search}
+              onChange={setSearch}
+              placeholder="Search values"
+            />
           )
         }
         items={tileMenu(toMenuItems(groupsModel))}
