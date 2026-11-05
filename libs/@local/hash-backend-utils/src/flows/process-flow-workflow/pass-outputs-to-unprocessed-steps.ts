@@ -1,12 +1,15 @@
-import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import {
+  generateStepRunId,
+  parseStepRunId,
+} from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import {
   appendCollectedValue,
   getArrayPayloadLength,
 } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { StatusCode } from "@local/status";
 
-import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow.js";
 import { wrapPayload } from "./initialize-flow.js";
 
@@ -15,154 +18,174 @@ import type {
   FlowDefinition,
   ForEachStep,
   ForEachStepDefinition,
-  LocalFlowRun,
+  FlowStep,
   PayloadKind,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
+
+const getEnclosingForEachStepDefinition = (
+  flowDefinition: FlowDefinition,
+  stepId: string,
+) =>
+  getAllStepDefinitionsInFlowDefinition(flowDefinition).find(
+    (stepDefinition): stepDefinition is ForEachStepDefinition =>
+      stepDefinition.kind === "for-each" &&
+      stepDefinition.steps.some((nested) => nested.stepId === stepId),
+  );
+
+const passOutputsToStep = ({
+  step,
+  flowDefinition,
+  producerStepId,
+  outputs,
+}: {
+  step: FlowStep;
+  flowDefinition: FlowDefinition;
+  producerStepId: string;
+  outputs: StepOutput[];
+}) => {
+  if (step.kind === "action") {
+    const { inputs } = getStepDefinitionFromFlowDefinition({
+      step,
+      flowDefinition,
+    });
+
+    for (const [inputName, source] of Object.entries(inputs)) {
+      if (source.kind !== "step-output" || source.stepId !== producerStepId) {
+        continue;
+      }
+
+      const matchingOutput = outputs.find(
+        ({ outputName }) => outputName === source.outputName,
+      );
+
+      if (!matchingOutput) {
+        /* The output is optional, and the step didn't produce it. */
+        continue;
+      }
+
+      // eslint-disable-next-line no-param-reassign -- a run's steps hold its state as it runs
+      step.inputs = [
+        ...(step.inputs ?? []),
+        {
+          inputName,
+          payload: source.wrap
+            ? wrapPayload(matchingOutput.payload)
+            : matchingOutput.payload,
+        },
+      ];
+    }
+  } else {
+    const { over } = getStepDefinitionFromFlowDefinition({
+      step,
+      flowDefinition,
+    });
+
+    if (over.kind === "step-output" && over.stepId === producerStepId) {
+      const matchingOutput = outputs.find(
+        ({ outputName }) => outputName === over.outputName,
+      );
+
+      if (matchingOutput) {
+        // eslint-disable-next-line no-param-reassign -- a run's steps hold its state as it runs
+        step.over = matchingOutput.payload as ArrayPayload;
+      }
+    }
+  }
+};
 
 /**
  * Passes the outputs of a step that has just completed to the unprocessed steps that consume them, and
  * collects them into the for-each step it's a branch of, if any.
  */
 export const passOutputsToUnprocessedSteps = (params: {
-  flow: LocalFlowRun;
+  stepsById: ReadonlyMap<string, FlowStep>;
   flowDefinition: FlowDefinition;
   stepId: string;
   outputs: StepOutput[];
   processedStepIds: ReadonlySet<string>;
 }): Omit<Status<never>, "contents"> => {
-  const { flow, flowDefinition, stepId, processedStepIds, outputs } = params;
+  const { stepsById, flowDefinition, stepId, processedStepIds, outputs } =
+    params;
 
   const { stepId: currentStepIdWithoutIndex, itemIndex: currentItemIndex } =
     parseStepRunId(stepId);
 
-  const allSteps = getAllStepsInFlow(flow);
-
-  const unprocessedSteps = allSteps.filter(
-    (step) => !processedStepIds.has(step.stepId),
-  );
-
-  for (const unprocessedStep of unprocessedSteps) {
-    const { itemIndex: unprocessedItemIndex } = parseStepRunId(
-      unprocessedStep.stepId,
-    );
-
-    if (
-      currentItemIndex !== undefined &&
-      currentItemIndex !== unprocessedItemIndex
-    ) {
-      /**
-       * A step in a for-each branch only feeds steps in the same branch.
-       */
-      continue;
+  if (currentItemIndex === undefined) {
+    /* A step outside every for-each step can feed the steps of every item. */
+    for (const step of stepsById.values()) {
+      if (!processedStepIds.has(step.stepId)) {
+        passOutputsToStep({
+          step,
+          flowDefinition,
+          producerStepId: currentStepIdWithoutIndex,
+          outputs,
+        });
+      }
     }
 
-    if (unprocessedStep.kind === "action") {
-      const { inputs } = getStepDefinitionFromFlowDefinition({
-        step: unprocessedStep,
+    return { code: StatusCode.Ok };
+  }
+
+  const forEachStepDefinition = getEnclosingForEachStepDefinition(
+    flowDefinition,
+    currentStepIdWithoutIndex,
+  );
+
+  if (!forEachStepDefinition) {
+    return { code: StatusCode.Ok };
+  }
+
+  for (const stepDefinition of forEachStepDefinition.steps) {
+    const step = stepsById.get(
+      generateStepRunId(stepDefinition.stepId, currentItemIndex),
+    );
+
+    if (step && !processedStepIds.has(step.stepId)) {
+      passOutputsToStep({
+        step,
         flowDefinition,
+        producerStepId: currentStepIdWithoutIndex,
+        outputs,
       });
-
-      for (const [inputName, source] of Object.entries(inputs)) {
-        if (
-          source.kind !== "step-output" ||
-          source.stepId !== currentStepIdWithoutIndex
-        ) {
-          continue;
-        }
-
-        const matchingOutput = outputs.find(
-          ({ outputName }) => outputName === source.outputName,
-        );
-
-        if (!matchingOutput) {
-          /* The output is optional, and the step didn't produce it. */
-          continue;
-        }
-
-        unprocessedStep.inputs = [
-          ...(unprocessedStep.inputs ?? []),
-          {
-            inputName,
-            payload: source.wrap
-              ? wrapPayload(matchingOutput.payload)
-              : matchingOutput.payload,
-          },
-        ];
-      }
-    } else {
-      const { over } = getStepDefinitionFromFlowDefinition({
-        step: unprocessedStep,
-        flowDefinition,
-      });
-
-      if (
-        over.kind === "step-output" &&
-        over.stepId === currentStepIdWithoutIndex
-      ) {
-        const matchingOutput = outputs.find(
-          ({ outputName }) => outputName === over.outputName,
-        );
-
-        if (matchingOutput) {
-          unprocessedStep.over = matchingOutput.payload as ArrayPayload;
-        }
-      }
     }
   }
 
-  const processedSteps = allSteps.filter((step) =>
-    processedStepIds.has(step.stepId),
+  const forEachStep = stepsById.get(forEachStepDefinition.stepId);
+  const { collect } = forEachStepDefinition;
+
+  if (
+    forEachStep?.kind !== "for-each" ||
+    !processedStepIds.has(forEachStep.stepId) ||
+    collect.stepId !== currentStepIdWithoutIndex
+  ) {
+    return { code: StatusCode.Ok };
+  }
+
+  const collectedOutput = outputs.find(
+    ({ outputName }) => outputName === collect.outputName,
   );
 
-  for (const processedStep of processedSteps) {
-    if (processedStep.kind !== "for-each") {
-      continue;
-    }
-
-    const { collect } = getStepDefinitionFromFlowDefinition({
-      step: processedStep,
-      flowDefinition,
-    });
-
-    const isCurrentStepInForEachStep = processedStep.steps?.some(
-      (step) => step.stepId === stepId,
-    );
-
-    if (
-      !isCurrentStepInForEachStep ||
-      collect.stepId !== currentStepIdWithoutIndex
-    ) {
-      continue;
-    }
-
-    const collectedOutput = outputs.find(
-      ({ outputName }) => outputName === collect.outputName,
-    );
-
-    if (!collectedOutput) {
-      return {
-        code: StatusCode.Internal,
-        message: `Step ${stepId} did not produce output "${collect.outputName}", which for-each step ${processedStep.stepId} collects`,
-      };
-    }
-
-    processedStep.branchValues = {
-      ...processedStep.branchValues,
-      [Number(currentItemIndex)]: collectedOutput.payload.value,
+  if (!collectedOutput) {
+    return {
+      code: StatusCode.Internal,
+      message: `Step ${stepId} did not produce output "${collect.outputName}", which for-each step ${forEachStep.stepId} collects`,
     };
-
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the two pass each other's outputs on
-    return completeForEachStep({
-      flow,
-      flowDefinition,
-      forEachStep: processedStep,
-      processedStepIds,
-    });
   }
 
-  return { code: StatusCode.Ok };
+  forEachStep.branchValues = {
+    ...forEachStep.branchValues,
+    [currentItemIndex]: collectedOutput.payload.value,
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the two pass each other's outputs on
+  return completeForEachStep({
+    stepsById,
+    flowDefinition,
+    forEachStep,
+    processedStepIds,
+  });
 };
 
 /**
@@ -185,12 +208,12 @@ const getCollectedPayloadKind = (
  * singular values gathered.
  */
 export const completeForEachStep = (params: {
-  flow: LocalFlowRun;
+  stepsById: ReadonlyMap<string, FlowStep>;
   flowDefinition: FlowDefinition;
   forEachStep: ForEachStep;
   processedStepIds: ReadonlySet<string>;
 }): Omit<Status<never>, "contents"> => {
-  const { flow, flowDefinition, forEachStep, processedStepIds } = params;
+  const { stepsById, flowDefinition, forEachStep, processedStepIds } = params;
 
   if (!forEachStep.over || forEachStep.collected) {
     return { code: StatusCode.Ok };
@@ -236,7 +259,7 @@ export const completeForEachStep = (params: {
   };
 
   return passOutputsToUnprocessedSteps({
-    flow,
+    stepsById,
     flowDefinition,
     stepId: forEachStep.stepId,
     outputs: [forEachStep.collected],
@@ -249,36 +272,41 @@ export const completeForEachStep = (params: {
  * branch contributes nothing, but counts as finished, so that the for-each step can complete.
  */
 export const collectSkippedBranchStep = (params: {
-  flow: LocalFlowRun;
+  stepsById: ReadonlyMap<string, FlowStep>;
   flowDefinition: FlowDefinition;
   stepId: string;
   processedStepIds: ReadonlySet<string>;
 }): Omit<Status<never>, "contents"> => {
-  const { flow, flowDefinition, stepId, processedStepIds } = params;
+  const { stepsById, flowDefinition, stepId, processedStepIds } = params;
 
   const { stepId: stepIdWithoutIndex, itemIndex } = parseStepRunId(stepId);
 
-  const forEachStep = getAllStepsInFlow(flow).find(
-    (step): step is ForEachStep =>
-      step.kind === "for-each" &&
-      (step.steps?.some((branchStep) => branchStep.stepId === stepId) ?? false),
+  if (itemIndex === undefined) {
+    return { code: StatusCode.Ok };
+  }
+
+  const forEachStepDefinition = getEnclosingForEachStepDefinition(
+    flowDefinition,
+    stepIdWithoutIndex,
   );
 
+  const forEachStep =
+    forEachStepDefinition && stepsById.get(forEachStepDefinition.stepId);
+
   if (
-    !forEachStep ||
-    getStepDefinitionFromFlowDefinition({ step: forEachStep, flowDefinition })
-      .collect.stepId !== stepIdWithoutIndex
+    forEachStep?.kind !== "for-each" ||
+    forEachStepDefinition?.collect.stepId !== stepIdWithoutIndex
   ) {
     return { code: StatusCode.Ok };
   }
 
   forEachStep.branchValues = {
     ...forEachStep.branchValues,
-    [Number(itemIndex)]: null,
+    [itemIndex]: null,
   };
 
   return completeForEachStep({
-    flow,
+    stepsById,
     flowDefinition,
     forEachStep,
     processedStepIds,

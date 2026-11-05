@@ -11,32 +11,41 @@ graph TD
     0[<a href="../type_system/index.html">type-system</a>]
     1[<a href="../hash_codec/index.html">hash-codec</a>]
     2[<a href="../hash_codegen/index.html">hash-codegen</a>]
-    3[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    4[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    5[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    6[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    7[<a href="../harpc_types/index.html">harpc-types</a>]
-    8[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    9[<a href="../hash_integrations_definition/index.html">hash-integrations-definition</a>]
-    10[hash-integrations-engine]
-    class 10 root
-    11[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    12[<a href="../error_stack/index.html">error-stack</a>]
-    13[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    0 --> 5
-    0 -.-> 13
+    3[<a href="../hash_crypto/index.html">hash-crypto</a>]
+    4[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    5[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    6[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    7[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    8[<a href="../harpc_types/index.html">harpc-types</a>]
+    9[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    10[<a href="../hash_integrations_definition/index.html">hash-integrations-definition</a>]
+    11[hash-integrations-engine]
+    class 11 root
+    12[<a href="../hash_middleware/index.html">hash-middleware</a>]
+    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    14[<a href="../error_stack/index.html">error-stack</a>]
+    15[<a href="../problematic/index.html">problematic</a>]
+    16[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 6
+    0 -.-> 16
     1 -.-> 2
-    1 --> 8
-    3 --> 0
-    4 --> 3
-    4 --> 6
-    4 --> 11
-    5 --> 1
-    6 -.-> 13
-    8 -.-> 7
-    8 --> 7
-    8 --> 12
-    9 --> 0
-    10 --> 9
-    11 --> 0
-    13 --> 4
+    1 --> 9
+    3 --> 14
+    4 --> 0
+    5 --> 4
+    5 --> 7
+    5 --> 13
+    6 --> 1
+    7 -.-> 16
+    9 -.-> 8
+    9 --> 8
+    9 --> 14
+    10 --> 0
+    11 --> 5
+    11 --> 10
+    11 --> 12
+    12 --> 0
+    12 --> 3
+    12 --> 15
+    13 --> 0
+    16 --> 5

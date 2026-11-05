@@ -37,7 +37,7 @@ import type { ReactNode } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../main/app/shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 

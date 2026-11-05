@@ -8,3 +8,7 @@ input_file: libs/@local/integrations/definition/tests/ui/source-postgres-connect
 19:3: sources.query: connection credentials must come from the referenced User Secret
 27:3: sources.tls: sslmode must be disable, require or verify-full
 35:3: sources.port: connection must specify a host, database and nonzero port
+43:3: sources.socket-query: connection must use a network host, not a Unix socket
+51:3: sources.socket-authority: connection must use a network host, not a Unix socket
+59:3: sources.socket-abstract: connection must use a network host, not a Unix socket
+67:3: sources.socket-list: connection must use a network host, not a Unix socket
