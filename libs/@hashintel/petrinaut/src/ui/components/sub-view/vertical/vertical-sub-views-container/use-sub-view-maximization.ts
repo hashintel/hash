@@ -9,6 +9,7 @@ type Maximization = {
   id: string;
   restoring: boolean;
   animated: boolean;
+  stableLayout: boolean;
   from: Bounds | null;
 };
 
@@ -69,7 +70,13 @@ export const useSubViewMaximization = (
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [maximization, setMaximization] = useState<Maximization | null>(() =>
     targetId
-      ? { id: targetId, restoring: false, animated: false, from: null }
+      ? {
+          id: targetId,
+          restoring: false,
+          animated: false,
+          stableLayout: false,
+          from: null,
+        }
       : null,
   );
   if (
@@ -121,9 +128,17 @@ export const useSubViewMaximization = (
     setMaximization(
       !targetId && !animated
         ? null
-        : { id: sectionId, restoring: targetId === null, animated, from },
+        : {
+            id: sectionId,
+            restoring: targetId === null,
+            animated,
+            stableLayout:
+              subViews.find((subView) => subView.id === sectionId)
+                ?.stableLayout ?? false,
+            from,
+          },
     );
-  }, [maximization, showAnimations, targetId]);
+  }, [maximization, showAnimations, targetId, subViews]);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -153,11 +168,14 @@ export const useSubViewMaximization = (
       : relativeBounds(container, container);
     const options: KeyframeAnimationOptions = {
       ...animationOptions,
+      duration: maximization.stableLayout ? 120 : animationOptions.duration,
       // Keep the destination bounds until React restores the normal layout.
       fill: maximization.restoring ? "forwards" : "none",
     };
     const animation = section.animate(
-      [keyframe(maximization.from), keyframe(target)],
+      maximization.stableLayout
+        ? [{ opacity: 0.75 }, { opacity: 1 }]
+        : [keyframe(maximization.from), keyframe(target)],
       options,
     );
     const title = section.querySelector<HTMLElement>("[data-subview-title]");

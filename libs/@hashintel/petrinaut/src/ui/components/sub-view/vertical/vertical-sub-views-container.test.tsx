@@ -557,3 +557,29 @@ it("retains visited code while collapsed and releases it when selecting another 
     screen.queryByRole("textbox", { name: "Code", hidden: true }),
   ).toBeNull();
 });
+
+it("keeps code dimensions stable while fading between expanded and restored layouts", async () => {
+  const animations = mockAnimations();
+  const views = subViews.map((subView) => ({
+    ...subView,
+    stableLayout: true,
+    retainOnCollapse: true,
+  }));
+  render(<Harness views={views} />);
+  const editor = screen.getByRole("textbox", { name: "Code" });
+  fireEvent.click(screen.getByRole("button", { name: "Expand Firing Time" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Back to Transition Collision" }),
+  );
+  const sections = animations.filter((animation) =>
+    animation.element.hasAttribute("data-subview-section"),
+  );
+  expect(sections).toHaveLength(2);
+  for (const animation of sections) {
+    expect(animation.frames).toEqual([{ opacity: 0.75 }, { opacity: 1 }]);
+    expect(animation.options.duration).toBe(120);
+  }
+  await act(async () => sections.at(-1)?.finish());
+  expect(screen.getByRole("textbox", { name: "Code" })).toBe(editor);
+  expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy();
+});

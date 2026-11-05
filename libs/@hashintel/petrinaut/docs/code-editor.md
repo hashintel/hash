@@ -21,7 +21,9 @@ Use the **Fill panel** button in the section header to expand that section to th
 
 The expanded header shows a breadcrumb, such as **Transition Collision › Transition Results**, using the parent’s usual icon and title. Long parent names fade so the code section’s name stays visible. Click the parent name to return to the item’s other properties. Code, undo history, cursor position, and the other sections’ sizes and contents remain in place.
 
-Expanding and returning animate within the section container. These transitions respect the animation setting and your system’s reduced-motion preference.
+Visualizer, Firing Time, and Transition Results use a short fade when expanding and returning. Their editor changes size once, so the text stays responsive during the transition. These transitions respect the animation setting and your system’s reduced-motion preference.
+
+Collapsing one of these sections keeps its editor ready while the same item stays selected. Reopening it preserves the text, undo history, and cursor position.
 
 On hosts with app navigation enabled, expanding a section updates the URL and browser history. **Back** closes the expanded view and **Forward** reopens it. Reloading or opening that URL restores the selected item and expanded section.
 
@@ -30,5 +32,7 @@ Returning restores keyboard focus to **Fill panel**, or to the section header if
 Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
 Changes apply automatically to the model. Simulation modes keep model functions read-only, but visualizer code remains editable during a run because it only changes the picture. Read-only files keep all code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.
+
+Visualizer edits are saved immediately. The preview and diagnostics update after a brief pause while typing, with periodic updates during longer bursts. Clicking elsewhere or leaving the editor applies the latest preview update.
 
 The Properties Panel and Definitions show the same saved code. Switching between them keeps your latest edits.
