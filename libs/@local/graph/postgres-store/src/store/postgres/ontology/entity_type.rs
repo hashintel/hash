@@ -984,7 +984,7 @@ fn add_stored_parent_entity_types<'a, S>(
     );
 }
 
-/// Fails if the actor may not instantiate every entity type that `entity_type` inherits from,
+/// Fails unless the actor may instantiate every entity type that `entity_type` inherits from,
 /// directly or transitively.
 ///
 /// The policy context has to contain all of these ancestors.
@@ -1015,7 +1015,13 @@ where
         match authorized {
             Ok(Authorized::Always) => {}
             Ok(Authorized::Never) => forbidden_ancestors.push(ancestor.id.to_string()),
-            Err(error) => return Err(error.change_context(context)),
+            Err(error) => {
+                return Err(error.change_context(context).attach(format!(
+                    "Could not check whether the actor may instantiate `{}`, which the entity \
+                     type `{}` inherits from",
+                    ancestor.id, entity_type.id
+                )));
+            }
         }
     }
 
