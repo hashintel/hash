@@ -482,13 +482,13 @@
     "markLightColors": {},
     "markDarkColors": {},
     "logoDarkColors": {
-      "#780cff": "#B48CFF"
+      "#000000": "#FFFFFF"
     },
     "logoLayout": {
       "wordmarkHeight": 0.85,
       "gap": 0.3
     },
-    "logoNotes": "Lock-up composed from the sourced brand mark and wordmark."
+    "logoNotes": "Lock-up composed from the sourced brand mark and wordmark. The wordmark is black on light backgrounds and white on dark backgrounds; the mark retains its gradient."
   },
   {
     "name": "notion",

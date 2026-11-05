@@ -714,7 +714,8 @@ export const integrationIconCatalog = [
     ],
     logoSource:
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/instagram-wordmark.svg",
-    logoNotes: "Lock-up composed from the sourced brand mark and wordmark.",
+    logoNotes:
+      "Lock-up composed from the sourced brand mark and wordmark. The wordmark is black on light backgrounds and white on dark backgrounds; the mark retains its gradient.",
     logoRaster: false,
   },
   {
