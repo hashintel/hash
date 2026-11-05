@@ -16,6 +16,7 @@ const scopes: Readonly<Record<string, string>> = {
   const: "variable.other.constant",
   property: "variable.other.property",
   accessor: "variable.other.property",
+  enumMember: "variable.other.enummember",
   namespace: "entity.name.type.module",
   module: "entity.name.type.module",
 };

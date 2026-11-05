@@ -3,9 +3,9 @@ import { loader } from "fumadocs-core/source";
 import { defineDocs } from "fumadocs-mdx/macro";
 import { createElement } from "react";
 
-import * as Source from "../../lib/source.js";
+import * as Source from "../../src/Source.js";
 
-import type * as Location from "../../lib/Location.js";
+import type * as Location from "../../src/Location.js";
 import type * as PageTree from "fumadocs-core/page-tree";
 import type { ReactNode } from "react";
 
