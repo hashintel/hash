@@ -62,6 +62,7 @@ import {
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
 import { mockRuns, stepRunStatus } from "./mock-runs";
+import { pathsTake } from "./paths-flags";
 import { navigate, setQuery, useLocation } from "./router";
 import {
   type BarMotion,
@@ -120,10 +121,18 @@ type StepNode = Node<
   | "flowOutputs"
 >;
 
-const portRows = (step: DraftStep) =>
-  step.kind === "action"
-    ? (getCatalogEntry(step.actionDefinitionId)?.ports ?? null)
-    : null;
+/** `?paths=i2`: Ask a person's card also draws the Otherwise port its Paths section ends on. */
+const otherwisePort = { outputName: "otherwise", label: "Otherwise" };
+
+const portRows = (step: DraftStep) => {
+  if (step.kind !== "action") {
+    return null;
+  }
+  const ports = getCatalogEntry(step.actionDefinitionId)?.ports ?? null;
+  return ports && pathsTake === "i2" && step.actionDefinitionId !== "if"
+    ? [...ports, otherwisePort]
+    : ports;
+};
 
 const stepHeight = (step: DraftStep) => {
   const ports = portRows(step);

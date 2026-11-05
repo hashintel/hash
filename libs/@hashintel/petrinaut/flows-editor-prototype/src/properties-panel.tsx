@@ -12,7 +12,7 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
-import { BranchRows } from "./branches";
+import { BranchRows, PathsSection } from "./branches";
 import { forEachEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
   START_ID,
@@ -760,6 +760,14 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
           />
         ) : null}
       </Section>
+      {entry.ports ? (
+        <PathsSection
+          stepId={step.stepId}
+          actionDefinitionId={step.actionDefinitionId}
+          ports={entry.ports}
+          iconOf={(id) => nodeLook(document, id).icon}
+        />
+      ) : null}
       <Checks stepId={step.stepId} />
     </>
   );

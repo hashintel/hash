@@ -14,12 +14,13 @@
  */
 import { Fragment, useState } from "react";
 
-import { Button, Chip, type IconName } from "@hashintel/ds-components";
+import { Button, Chip, type IconName, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { findStep, START_ID, stepLabel } from "./document";
 import { useEditor } from "./editor-context";
-import { PropertyRow, SourceChip } from "./ui";
+import { pathsTake } from "./paths-flags";
+import { PropertyRow, Section, SourceChip } from "./ui";
 
 /** The output a step branches on, per action. The engine models the values as ports. */
 export const branchOutput: Record<string, { label: string; kind: string }> = {
@@ -97,38 +98,19 @@ const ifPathsStyle = css({
 
 const pathValueStyle = css({ color: "neutral.fg.subtle" });
 
-type ExtraPath = { id: string };
-
-export const BranchRows = ({
-  stepId,
-  actionDefinitionId,
-  ports,
-  iconOf,
-}: {
-  stepId: string;
-  actionDefinitionId: string;
-  ports: { outputName: string; label: string }[];
-  iconOf: (id: string) => IconName;
-}) => {
+/** Where a port leads: a chip per step it is wired to, or "Ends here". */
+const useGoesTo = (stepId: string, iconOf: (id: string) => IconName) => {
   const { document, setUi } = useEditor();
-  const [extras, setExtras] = useState<ExtraPath[]>([]);
-  const output = branchOutput[actionDefinitionId] ?? {
-    label: "Paths",
-    kind: ports.map((port) => port.label).join(" or "),
-  };
-
-  const targetsOf = (port: string) =>
-    document.wires.filter(
-      (wire) => wire.source === stepId && wire.sourcePort === port,
-    );
 
   const nameOf = (id: string) => {
     const step = findStep(document, id)?.step;
     return step ? stepLabel(step) : id === START_ID ? "Start" : id;
   };
 
-  const goesTo = (port: string) => {
-    const targets = targetsOf(port);
+  return (port: string) => {
+    const targets = document.wires.filter(
+      (wire) => wire.source === stepId && wire.sourcePort === port,
+    );
     if (targets.length === 0) {
       return <span className={goesToStyle}>Ends here</span>;
     }
@@ -144,8 +126,67 @@ export const BranchRows = ({
       </SourceChip>
     ));
   };
+};
+
+/** `?paths=i2|cr`: the output the step branches on, listed as data with its values, as the other outputs are. */
+const DecisionRow = ({
+  actionDefinitionId,
+  ports,
+}: {
+  actionDefinitionId: string;
+  ports: { outputName: string; label: string }[];
+}) => {
+  const output = branchOutput[actionDefinitionId];
+  if (!output) {
+    return null;
+  }
+  return (
+    <PropertyRow
+      label={
+        <span className={labelStackStyle}>
+          <span>{output.label}</span>
+          <Chip size="xs" variant="soft">
+            {output.kind}
+          </Chip>
+        </span>
+      }
+      hover={`${output.label} · ${ports.map((port) => port.label).join(" or ")}`}
+    >
+      <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+        {ports.map((port) => port.label).join(" · ")}
+      </span>
+    </PropertyRow>
+  );
+};
+
+type ExtraPath = { id: string };
+
+export const BranchRows = ({
+  stepId,
+  actionDefinitionId,
+  ports,
+  iconOf,
+}: {
+  stepId: string;
+  actionDefinitionId: string;
+  ports: { outputName: string; label: string }[];
+  iconOf: (id: string) => IconName;
+}) => {
+  const [extras, setExtras] = useState<ExtraPath[]>([]);
+  const output = branchOutput[actionDefinitionId] ?? {
+    label: "Paths",
+    kind: ports.map((port) => port.label).join(" or "),
+  };
+  const goesTo = useGoesTo(stepId, iconOf);
 
   const approved = ports[0];
+
+  // `?paths=i2|cr`: Decision is listed as data only; i2 puts its paths in their own section, cr on the canvas.
+  if (actionDefinitionId !== "if" && pathsTake !== "b") {
+    return (
+      <DecisionRow actionDefinitionId={actionDefinitionId} ports={ports} />
+    );
+  }
 
   if (actionDefinitionId === "if") {
     return (
@@ -216,7 +257,10 @@ export const BranchRows = ({
             variant="subtle"
             iconName="plus"
             onClick={() =>
-              setExtras((current) => [...current, { id: `extra${current.length}` }])
+              setExtras((current) => [
+                ...current,
+                { id: `extra${current.length}` },
+              ])
             }
           >
             Add path
@@ -224,5 +268,158 @@ export const BranchRows = ({
         ) : null}
       </div>
     </PropertyRow>
+  );
+};
+
+/** One I2 path: its name and where it leads on one line, its condition under it. No nested edges inside. */
+const pathCardStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  padding: "3",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "lg",
+  textStyle: "sm",
+  color: "neutral.fg.body",
+});
+
+const pathHeadStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+  minHeight: "[24px]",
+  minWidth: "[0]",
+});
+
+const whenStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+  gap: "1.5",
+  minWidth: "[0]",
+});
+
+const pathsListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "2",
+  "& > [data-path-card]": { alignSelf: "stretch" },
+});
+
+type AddedPath = { id: string; value: string | null };
+
+/**
+ * `?paths=i2` (Figma I2 `748:30752`, 1 Nov; 3 Nov call): Ask a person's paths in their own section under Outputs.
+ * Each path matches one Decision value (enum only for v1) and leads to the step wired to its port; Otherwise is
+ * last. MOCK: Add path adds a card whose value is picked from the Decision values; it draws no port.
+ */
+export const PathsSection = ({
+  stepId,
+  actionDefinitionId,
+  ports,
+  iconOf,
+}: {
+  stepId: string;
+  actionDefinitionId: string;
+  ports: { outputName: string; label: string }[];
+  iconOf: (id: string) => IconName;
+}) => {
+  const goesTo = useGoesTo(stepId, iconOf);
+  const [added, setAdded] = useState<AddedPath[]>([]);
+  const output = branchOutput[actionDefinitionId];
+  if (pathsTake !== "i2" || actionDefinitionId === "if" || !output) {
+    return null;
+  }
+  const paths = ports.filter((port) => port.outputName !== "otherwise");
+  return (
+    <Section title="Paths">
+      <div className={pathsListStyle}>
+        {paths.map((port) => (
+          <div key={port.outputName} className={pathCardStyle} data-path-card>
+            <div className={pathHeadStyle}>
+              <span>{port.label}</span>
+              <span className={css({ display: "flex", minWidth: "[0]" })}>
+                {goesTo(port.outputName)}
+              </span>
+            </div>
+            <div className={whenStyle}>
+              <span className={goesToStyle}>When</span>
+              <span>{output.label}</span>
+              <span className={goesToStyle}>is</span>
+              <span>{port.label}</span>
+            </div>
+          </div>
+        ))}
+        {added.map((path, index) => (
+          <div key={path.id} className={pathCardStyle} data-path-card>
+            <div className={pathHeadStyle}>
+              <span>
+                {paths.find((port) => port.outputName === path.value)?.label ??
+                  `Path ${paths.length + index + 1}`}
+              </span>
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() =>
+                  setAdded((current) =>
+                    current.filter((candidate) => candidate.id !== path.id),
+                  )
+                }
+              >
+                Remove
+              </Button>
+            </div>
+            <div className={whenStyle}>
+              <span className={goesToStyle}>When</span>
+              <span>{output.label}</span>
+              <span className={goesToStyle}>is</span>
+              <Select
+                size="xs"
+                placeholder="Choose a value"
+                aria-label={`${output.label} value`}
+                items={paths.map((port) => ({
+                  value: port.outputName,
+                  text: port.label,
+                }))}
+                value={path.value ?? undefined}
+                onChange={(value) =>
+                  setAdded((current) =>
+                    current.map((candidate) =>
+                      candidate.id === path.id
+                        ? { ...candidate, value }
+                        : candidate,
+                    ),
+                  )
+                }
+              />
+            </div>
+          </div>
+        ))}
+        <div className={pathCardStyle} data-path-card>
+          <div className={pathHeadStyle}>
+            <span className={goesToStyle}>Otherwise</span>
+            <span className={css({ display: "flex", minWidth: "[0]" })}>
+              {goesTo("otherwise")}
+            </span>
+          </div>
+        </div>
+        <Button
+          size="xs"
+          variant="subtle"
+          iconName="plus"
+          onClick={() =>
+            setAdded((current) => [
+              ...current,
+              { id: `added${current.length}`, value: null },
+            ])
+          }
+        >
+          Add path
+        </Button>
+      </div>
+    </Section>
   );
 };
