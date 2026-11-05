@@ -450,7 +450,6 @@ beforeAll(() => {
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
   vi.useRealTimers();
 });
 

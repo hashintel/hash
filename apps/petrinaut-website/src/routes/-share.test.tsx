@@ -107,7 +107,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
 });
 
 const open = async (path: string) => {

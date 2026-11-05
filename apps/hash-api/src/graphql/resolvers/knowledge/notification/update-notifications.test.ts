@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   archiveNotificationsResolver,
@@ -44,10 +44,6 @@ const graphQLContext = {
 const resolveInfo = {} as GraphQLResolveInfo;
 
 describe("notification update resolvers", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("marks an owned notification as read through the notification service", async () => {
     const entity = {
       metadata: { recordId: { entityId: notificationEntityId } },
