@@ -46,7 +46,11 @@ import { OriginMark } from "./ui";
 const oldStepTooltip =
   new URLSearchParams(globalThis.location.search).get("steptooltip") === "old";
 
-const stepTooltipStyle = css({ display: "flex", flexDirection: "column", gap: "0.5" });
+const stepTooltipStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
+});
 
 const stepTooltipFlowStyle = css({ opacity: "[0.72]" });
 

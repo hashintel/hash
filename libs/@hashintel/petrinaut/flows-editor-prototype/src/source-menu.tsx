@@ -691,7 +691,9 @@ export const SourceMenu = ({
               ],
             },
           ]
-        : fromSteps && !searching && (!oldSourceGroups || flowInputs.length === 0)
+        : fromSteps &&
+            !searching &&
+            (!oldSourceGroups || flowInputs.length === 0)
           ? [
               {
                 id: "Earlier steps",

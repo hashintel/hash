@@ -256,7 +256,12 @@ export const tileMenu = (
     const { glyph, tint, tooltip, ...rest } = item;
     const withTooltip = (row: React.ReactNode) =>
       tooltip ? (
-        <Tooltip content={tooltip} position="right-start" gapX={20} className={rowTooltipTriggerStyle}>
+        <Tooltip
+          content={tooltip}
+          position="right-start"
+          gapX={20}
+          className={rowTooltipTriggerStyle}
+        >
           {row}
         </Tooltip>
       ) : (
