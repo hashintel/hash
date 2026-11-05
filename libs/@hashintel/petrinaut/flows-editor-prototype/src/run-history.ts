@@ -526,6 +526,38 @@ const scheduled = (
   facts: finished(n, [], "approved"),
 });
 
+const shortMonths = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/**
+ * MOCK, `?runs=140` only: `count` weekly scheduled runs before Run 1 (18 Nov 2025), newest first, numbered 1 to
+ * `count`, so the Logs table has enough runs to page through. The seeded runs are renumbered above them.
+ */
+export const olderRuns = (count: number): RunRecord[] =>
+  Array.from({ length: count }, (_, index) => {
+    const id = count - index;
+    const date = new Date(2025, 10, 18 - 7 * (index + 1));
+    const when = `${date.getDate()} ${shortMonths[date.getMonth()]} ${date.getFullYear()}, 09:00`;
+    return scheduled(
+      id,
+      when,
+      15,
+      `1m ${String(20 + (id % 30)).padStart(2, "0")}s`,
+    );
+  });
+
 /** Runs 1–16, newest first (J6.0 lists 17 to 8; the tabs count all 17). */
 export const pastRuns = (): RunRecord[] => [
   {

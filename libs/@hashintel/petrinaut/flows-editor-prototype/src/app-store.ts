@@ -10,6 +10,7 @@ import { useSyncExternalStore } from "react";
 import {
   liveRun17,
   newLiveRun,
+  olderRuns,
   pastRuns,
   type RunRecord,
   runClock,
@@ -61,13 +62,22 @@ const load = (): FlowEntry[] => {
 const seedRuns = (): Record<string, RunRecord[]> => {
   const query = new URLSearchParams(globalThis.location.search);
   const at = query.get("at");
+  // `?runs=140`: 123 older runs under the seeded 17, which move up to Runs 124–140 (Run 17 is then Run 140).
+  const extra = query.get("runs") === "140" ? 123 : 0;
+  const renumber = (run: RunRecord): RunRecord => ({
+    ...run,
+    id: run.id + extra,
+  });
   return {
     [monthlyReviewId]: [
-      liveRun17(Date.now(), {
-        seconds: at === null ? 4 : Number(at),
-        pinned: query.has("pin"),
-      }),
-      ...pastRuns(),
+      renumber(
+        liveRun17(Date.now(), {
+          seconds: at === null ? 4 : Number(at),
+          pinned: query.has("pin"),
+        }),
+      ),
+      ...pastRuns().map(renumber),
+      ...olderRuns(extra),
     ],
   };
 };

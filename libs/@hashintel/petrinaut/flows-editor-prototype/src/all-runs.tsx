@@ -206,11 +206,90 @@ const tableStyle = css({
   "& tbody tr:hover": { backgroundColor: "neutral.bg.surface.active" },
 });
 
+/**
+ * Takes for the runs table, URL only; with none the table is as it was (10 rows, then "Show N older runs").
+ * 5 Nov, Aakarsh: the table's left edge sat 48 px in from the title, and "Show more" showed with room to spare.
+ * - `?runsalign=1`: the table bleeds to the page padding, so the first column's text lines up with "Runs" and the
+ *   first status chip. Every `?runspage` take includes it.
+ * - `?runspage=p1`: rows fill the height the page has, up to 25; then a quiet "Show all N runs" row loads the rest
+ *   in place. The header stays put as the list scrolls.
+ * - `p2`: the same fill, then "Show 25 more" with "25 of 140", until all show.
+ * - `p3`: a pager, 25 a page, "1–25 of 140 ‹ ›" at the bottom right.
+ * - `p4`: 25 rows (past the fold), scrolling inside the page; 25 more load as you near the end; no button.
+ */
+type RunsPage = "none" | "p1" | "p2" | "p3" | "p4";
+
+const runsPage: RunsPage = (() => {
+  const value = new URLSearchParams(globalThis.location.search).get("runspage");
+  return value === "p1" || value === "p2" || value === "p3" || value === "p4"
+    ? value
+    : "none";
+})();
+
+const runsAligned =
+  runsPage !== "none" ||
+  new URLSearchParams(globalThis.location.search).get("runsalign") === "1";
+
+const pageSize = 25;
+const rowHeight = 48;
+const headerHeight = 32;
+const footerHeight = 40;
+
+const footerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  height: "[40px]",
+  paddingX: "6",
+  textStyle: "sm",
+  color: "neutral.fg.muted",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const footerLinkStyle = css({
+  cursor: "pointer",
+  color: "neutral.fg.body",
+  _hover: { textDecoration: "underline", textUnderlineOffset: "[2px]" },
+});
+
+/** The paging takes keep the header row in view as the list scrolls (−24 px: above the page's top padding). */
+const stickyHeadStyle = css({
+  "& th": { position: "sticky", top: "[-24px]", zIndex: "[1]" },
+});
+
 const RunsTable = ({ history }: { history: HistoryValue }) => {
   const { runs, now } = history;
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [older, setOlder] = useState(false);
+  const [extraRows, setExtraRows] = useState(0);
+  const [page, setPage] = useState(0);
+  // How many rows fit in the height the page has, with and without the footer row under them.
+  const [fits, setFits] = useState({ bare: pageSize, withFooter: pageSize });
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  useLayoutEffect(() => {
+    const box = scrollRef.current;
+    const table = tableRef.current;
+    if (runsPage === "none" || !box || !table) {
+      return;
+    }
+    const measure = () => {
+      const top =
+        table.getBoundingClientRect().top -
+        box.getBoundingClientRect().top +
+        box.scrollTop;
+      const free = box.clientHeight - top - headerHeight - 32;
+      setFits({
+        bare: Math.max(1, Math.floor(free / rowHeight)),
+        withFooter: Math.max(1, Math.floor((free - footerHeight) / rowHeight)),
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
   const counts = (value: Tab) =>
     value === "all"
       ? runs.length
@@ -222,9 +301,43 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
         .toLowerCase()
         .includes(search.trim().toLowerCase()),
   );
-  const shown = older ? matching : matching.slice(0, 10);
+  const total = matching.length;
+  const allFit = total <= fits.bare;
+  const fill = Math.min(pageSize, fits.withFooter);
+  const lastPage = Math.max(0, Math.ceil(total / pageSize) - 1);
+  const currentPage = Math.min(page, lastPage);
+  const shownCount =
+    runsPage === "none"
+      ? older
+        ? total
+        : Math.min(10, total)
+      : runsPage === "p3"
+        ? total
+        : allFit || (runsPage === "p1" && older)
+          ? total
+          : // p4 starts past the fold, so the list can scroll and fetch the next 25.
+            Math.min(
+              total,
+              (runsPage === "p4" ? Math.max(fill, pageSize) : fill) + extraRows,
+            );
+  const shown =
+    runsPage === "p3"
+      ? matching.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
+      : matching.slice(0, shownCount);
+  const onScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (runsPage !== "p4" || shownCount >= total) {
+      return;
+    }
+    const box = event.currentTarget;
+    if (box.scrollTop + box.clientHeight >= box.scrollHeight - rowHeight * 2) {
+      setExtraRows((current) => current + pageSize);
+    }
+  };
   return (
     <div
+      ref={scrollRef}
+      onScroll={onScroll}
+      data-runs-page={runsPage}
       className={css({
         flex: "1",
         minWidth: "[0]",
@@ -309,8 +422,15 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
           />
         </span>
       </div>
-      <div className={css({ paddingX: "6" })}>
-        <table className={tableStyle}>
+      <div
+        className={
+          runsAligned ? css({ marginX: "[-24px]" }) : css({ paddingX: "6" })
+        }
+      >
+        <table
+          ref={tableRef}
+          className={cx(tableStyle, runsPage !== "none" && stickyHeadStyle)}
+        >
           <thead>
             <tr>
               <th>Run</th>
@@ -380,7 +500,61 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
             ))}
           </tbody>
         </table>
-        {matching.length > shown.length ? (
+        {runsPage === "p1" && !allFit && !older ? (
+          <div className={footerStyle} data-runs-footer>
+            <button
+              type="button"
+              className={footerLinkStyle}
+              onClick={() => setOlder(true)}
+            >
+              Show all {total} runs
+            </button>
+          </div>
+        ) : null}
+        {runsPage === "p2" && shownCount < total ? (
+          <div className={footerStyle} data-runs-footer>
+            <button
+              type="button"
+              className={footerLinkStyle}
+              onClick={() => setExtraRows((current) => current + pageSize)}
+            >
+              Show {Math.min(pageSize, total - shownCount)} more
+            </button>
+            <span>
+              {shownCount} of {total}
+            </span>
+          </div>
+        ) : null}
+        {runsPage === "p3" && total > pageSize ? (
+          <div
+            className={cx(footerStyle, css({ justifyContent: "flex-end" }))}
+            data-runs-footer
+          >
+            <span>
+              {currentPage * pageSize + 1}–
+              {Math.min(total, (currentPage + 1) * pageSize)} of {total}
+            </span>
+            <Button
+              size="xs"
+              variant="ghost"
+              tone="neutral"
+              iconName="chevronLeft"
+              aria-label="Newer runs"
+              disabled={currentPage === 0}
+              onClick={() => setPage(currentPage - 1)}
+            />
+            <Button
+              size="xs"
+              variant="ghost"
+              tone="neutral"
+              iconName="chevronRight"
+              aria-label="Older runs"
+              disabled={currentPage === lastPage}
+              onClick={() => setPage(currentPage + 1)}
+            />
+          </div>
+        ) : null}
+        {runsPage === "none" && matching.length > shown.length ? (
           <Button
             size="sm"
             variant="ghost"
