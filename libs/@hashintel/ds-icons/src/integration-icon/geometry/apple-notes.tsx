@@ -127,7 +127,7 @@ export const markLight = ({ id }: { id: string }) => (
         />
       </filter>
       <clipPath id={`${id}-clip0_8505_34590`}>
-        <rect width="64" height="64" fill="white" />
+        <rect width="64" height="64" rx="10" fill="white" />
       </clipPath>
     </defs>
   </svg>
@@ -261,7 +261,7 @@ export const markDark = ({ id }: { id: string }) => (
         />
       </filter>
       <clipPath id={`${id}-clip0_8505_34590`}>
-        <rect width="64" height="64" fill="white" />
+        <rect width="64" height="64" rx="10" fill="white" />
       </clipPath>
     </defs>
   </svg>
