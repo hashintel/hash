@@ -4,10 +4,14 @@ import { Box, ButtonBase, Typography } from "@mui/material";
 import { EntityOrTypeIcon, FontAwesomeIcon } from "@hashintel/design-system";
 
 import { ArrowUpRightRegularIcon } from "../../../../../shared/icons/arrow-up-right-regular-icon";
-import { openColumnWidth, rowHeight } from "./dependent-types-table-layout";
+import {
+  openColumnWidth,
+  rowHeight,
+  rowToggleClassName,
+} from "./dependent-types-table-layout";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
-import type { ButtonBaseProps, SxProps, Theme } from "@mui/material";
+import type { ButtonBaseProps, Theme } from "@mui/material";
 import type { ReactNode } from "react";
 
 /** The white card around a table, which scrolls sideways when the page is narrow. */
@@ -115,15 +119,6 @@ const rowGridSx =
     lineHeight: "18px",
     color: palette.gray[80],
   });
-
-const rowToggleClassName = "dependent-type-row-toggle";
-
-/** The box around an expandable row, which highlights the row's toggle while any part of the row is hovered. */
-export const toggleRowSx: SxProps<Theme> = ({ palette }) => ({
-  position: "relative",
-  height: rowHeight,
-  [`&:hover .${rowToggleClassName}`]: { background: palette.gray[10] },
-});
 
 /** The button that spans an expandable row's cells and expands or collapses it. */
 export const RowToggle = ({

@@ -5,6 +5,7 @@ import {
   cellSx,
   formatVersionList,
   formatVersions,
+  toggleRowSx,
   visuallyHidden,
 } from "./dependent-types-table-layout";
 import {
@@ -14,7 +15,6 @@ import {
   OpenTypeButton,
   RowToggle,
   TableCard,
-  toggleRowSx,
   TypeLabel,
 } from "./dependent-types-table-parts";
 

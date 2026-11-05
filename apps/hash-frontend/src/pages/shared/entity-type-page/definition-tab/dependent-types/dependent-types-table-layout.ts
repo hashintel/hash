@@ -1,3 +1,5 @@
+import type { SxProps, Theme } from "@mui/material";
+
 export const rowHeight = 40;
 
 export const openColumnWidth = 40;
@@ -31,3 +33,12 @@ export const visuallyHidden = {
   whiteSpace: "nowrap",
   border: 0,
 } as const;
+
+export const rowToggleClassName = "dependent-type-row-toggle";
+
+/** The box around an expandable row, which highlights the row's toggle while any part of the row is hovered. */
+export const toggleRowSx: SxProps<Theme> = ({ palette }) => ({
+  position: "relative",
+  height: rowHeight,
+  [`&:hover .${rowToggleClassName}`]: { background: palette.gray[10] },
+});
