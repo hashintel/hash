@@ -321,8 +321,8 @@ export declare namespace Box { type Inner = string; }`,
       expect.hasAssertions();
       const reference = yield* Reference.Fixture;
       expect(reference.folders).toStrictEqual([
-        { directory: "", pages: ["index", "pkg", "traits"] },
-        { directory: "pkg", pages: ["index", "Other", "Model"] },
+        { directory: "", pages: ["pkg", "pkg/Other", "traits"] },
+        { directory: "pkg", pages: ["Model"] },
         { directory: "pkg/Model", pages: ["Helpers"] },
       ]);
     }),

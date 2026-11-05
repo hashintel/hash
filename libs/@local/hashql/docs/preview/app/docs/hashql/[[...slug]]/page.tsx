@@ -8,13 +8,13 @@ import {
 import defaultMdxComponents from "@fumadocs/base-ui/mdx";
 import { notFound } from "next/navigation.js";
 
-import { Body } from "../../../../../lib/components.js";
+import { Body } from "../../../../../src/components.js";
 import { components, html } from "../../../../components/api.js";
 import { Glyph } from "../../../../components/glyph.js";
 import { Rail } from "../../../../components/rail.js";
 import { source } from "../../../../lib/source.js";
 
-import type * as Source from "../../../../../lib/source.js";
+import type * as Source from "../../../../../src/Source.js";
 import type { TOCItemType } from "fumadocs-core/toc";
 import type { Root, RootContent } from "hast";
 import type { Metadata } from "next";
@@ -113,7 +113,6 @@ export default async function Page({ params }: Props): Promise<ReactNode> {
       tableOfContent={tableOfContent}
     >
       <DocsTitle>{data.title}</DocsTitle>
-      <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
         <Body
           tree={data.hast}

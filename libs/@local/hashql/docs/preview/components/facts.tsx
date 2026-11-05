@@ -1,4 +1,4 @@
-import type * as Page from "../../lib/Page.js";
+import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
 const internalLabel = "internal";
@@ -10,7 +10,9 @@ export function Facts({
   source,
   internal = false,
   labelled = false,
-}: Page.Facts & { readonly labelled?: boolean }): ReactNode {
+}: Omit<Components.FactProps, "deprecated"> & {
+  readonly labelled?: boolean;
+}): ReactNode {
   return (
     <span className="api-facts">
       {internal ? (

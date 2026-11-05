@@ -1,23 +1,20 @@
-import { Children } from "react";
-
-import { Overloads } from "./overloads.js";
-
-import type * as Components from "../../lib/components.js";
+import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
-/** The overloads of one export as one panel, each numbered from 1, with a rule between overloads. */
+/** Every declaration of an entry or a member as one panel, under a title that counts the overloads when there is more than one. */
 export function ApiSignatures({
+  overloads,
   children,
 }: Components.SignaturesProps): ReactNode {
+  const title =
+    overloads > 1 ? `Signatures · ${overloads} overloads` : "Signature";
+
   return (
-    <div className="api-signatures">
-      {/* oxlint-disable-next-line react/no-react-children -- the children are the code blocks of the overloads, in order, which the extraction writes */}
-      {Children.toArray(children).map((signature, index) => (
-        <div className="api-signature" key={`${index + 1}`}>
-          <Overloads numbers={`${index + 1}`} />
-          {signature}
-        </div>
-      ))}
+    <div className="api-part" data-part="declaration">
+      <h4 className="api-section-title">{title}</h4>
+      <div className="api-signatures" data-overloads={overloads}>
+        {children}
+      </div>
     </div>
   );
 }

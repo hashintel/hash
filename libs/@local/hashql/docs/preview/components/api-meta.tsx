@@ -1,7 +1,7 @@
 import { Facts } from "./facts.js";
 import { Glyph } from "./glyph.js";
 
-import type * as Components from "../../lib/components.js";
+import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
 /** The facts under a module's or an entrypoint's title, which start with what it is and how many exports it has. */
