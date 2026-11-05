@@ -239,7 +239,7 @@ export const DependentTypesByVersionTable = ({
       >
         {entityType.schema.title}
       </Box>{" "}
-      versions. In the “By child type” layout each type appears once.
+      versions. In the “By type” layout each type appears once.
     </Typography>
   </>
 );
