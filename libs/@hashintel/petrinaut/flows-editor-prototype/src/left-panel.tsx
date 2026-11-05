@@ -47,6 +47,7 @@ import {
 import { FLOW_OUTPUTS_ID } from "./flow-outputs";
 import { useFlowOutputTake } from "./outputs";
 import { type EditorUi, useEditor } from "./editor-context";
+import { useLocation } from "./router";
 import { cellText, StatusCell } from "./status-cell";
 import { treeTileColor } from "./status-colors";
 import { InlineStepPicker, pickerTake } from "./step-picker";
@@ -148,6 +149,31 @@ const labelStyle = css({
 
 const countStyle = css({ textStyle: "xxs", color: "neutral.fg.subtle" });
 
+/**
+ * The text at a Steps-tree row's right ("6 steps", "19 of 20", "Needs review"), inbox `picks/row-text`, open:
+ * ?rowtext=a|b|c|d, URL only; no param keeps today's text on every row.
+ * - a: the text shows only while the row is hovered or selected.
+ * - b: no text; the mark's tooltip carries the count or reason.
+ * - c: no text, and a step done for only some items draws the progress ring, so the mark itself says "not all".
+ * - d: a failed or needs-review row keeps its word; counts show only while the row is hovered or selected.
+ */
+type RowTextTake = "a" | "b" | "c" | "d";
+
+const useRowTextTake = (): RowTextTake | null => {
+  const value = useLocation().query.get("rowtext");
+  return value === "a" || value === "b" || value === "c" || value === "d"
+    ? value
+    : null;
+};
+
+/** Hidden until its row is hovered or selected (takes a and d). */
+const onRowHoverStyle = css({
+  display: "none",
+  "button:hover &": { display: "inline" },
+  "button:focus-visible &": { display: "inline" },
+  "button[aria-current=true] &": { display: "inline" },
+});
+
 const Tile = ({ icon, tone }: { icon: IconName; tone: Tone }) => (
   <span className={tileStyle({ tone })} style={treeTileColor(icon)}>
     <Icon name={icon} size="sm" />
@@ -196,17 +222,44 @@ const FlowList = ({
         <Icon name={flowTake === 1 ? "star" : "rightToLine"} size="xs" />
       </span>
     ) : null;
+  const rowText = useRowTextTake();
+  /** The editor's "6 steps" count, per the ?rowtext= take. */
+  const groupCount = (text: string) =>
+    rowText === "b" || rowText === "c" ? null : (
+      <span
+        className={
+          rowText === "a" || rowText === "d"
+            ? `${countStyle} ${onRowHoverStyle}`
+            : countStyle
+        }
+      >
+        {text}
+      </span>
+    );
   // One status cell per row: the count or reason only where it adds something, then the glyph at the right edge.
   const mark = (stepId: string) => {
     if (!statusFor) {
       return null;
     }
     const status = statusFor(stepId);
+    const text = cellText(status);
+    const isWord = status.state === "failed" || status.state === "needsReview";
+    // Take c: done for only some items so far reads as the progress ring, not a tick.
+    const partial =
+      rowText === "c" &&
+      status.state === "done" &&
+      status.progress !== undefined &&
+      status.progress.done < status.progress.total;
     return (
       <StatusCell
-        state={status.state}
+        state={partial ? "doneWithFailures" : status.state}
         progress={status.progress}
-        text={cellText(status)}
+        text={rowText === "b" || rowText === "c" ? undefined : text}
+        textClassName={
+          rowText === "a" || (rowText === "d" && !isWord)
+            ? onRowHoverStyle
+            : undefined
+        }
         detail={status.state === "failed" ? status.count : undefined}
         textFirst
         small
@@ -277,13 +330,9 @@ const FlowList = ({
             <Tile icon={look.icon} tone={look.tone} />
             <span className={labelStyle}>{stepLabel(step)}</span>
             {flowMark(step.stepId)}
-            {statusFor ? (
-              mark(step.stepId)
-            ) : (
-              <span className={countStyle}>
-                {inside === 1 ? "1 step" : `${inside} steps`}
-              </span>
-            )}
+            {statusFor
+              ? mark(step.stepId)
+              : groupCount(inside === 1 ? "1 step" : `${inside} steps`)}
           </button>
         );
         return open ? [row, ...nested(step.steps, depth + 1)] : [row];
@@ -365,7 +414,7 @@ const FlowList = ({
           </span>
           <Tile icon="diagramNested" tone="neutral" />
           <span className={labelStyle}>In parallel</span>
-          <span className={countStyle}>{together.length} steps</span>
+          {groupCount(`${together.length} steps`)}
         </button>,
         ...(open ? stepRows(together, depth + 1, withParallel) : []),
       ];

@@ -75,6 +75,7 @@ export const StatusCell = ({
   textFirst = false,
   small = false,
   warnings = false,
+  textClassName,
 }: {
   state: StepState;
   progress?: ItemProgress;
@@ -88,9 +89,16 @@ export const StatusCell = ({
   small?: boolean;
   /** A run that completed with warnings. */
   warnings?: boolean;
+  /** Extra class on the text, for the ?rowtext= takes that hide it until the row is hovered. */
+  textClassName?: string;
 }) => {
   const label = text ? (
-    <span className={small ? smallTextStyle : textStyle}>{text}</span>
+    <span
+      className={`${small ? smallTextStyle : textStyle}${textClassName ? ` ${textClassName}` : ""}`}
+      data-row-text
+    >
+      {text}
+    </span>
   ) : null;
   const glyph = (
     <RunGlyph
