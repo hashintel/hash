@@ -39,7 +39,7 @@ impl From<EntityRef> for LinkEndpoint {
     }
 }
 
-/// The entities a link entity connects. More kinds may follow.
+/// The entities a link entity connects. More `kind` values may follow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub(super) enum Link {

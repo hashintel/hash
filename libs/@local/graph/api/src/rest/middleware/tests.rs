@@ -15,7 +15,12 @@ use hash_middleware::{
 };
 use http::{
     HeaderValue, Method, Request, StatusCode,
-    header::{ALLOW, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
+    header::{
+        ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
+        ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_EXPOSE_HEADERS, ACCESS_CONTROL_REQUEST_HEADERS,
+        ACCESS_CONTROL_REQUEST_METHOD, ALLOW, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, ORIGIN,
+        WWW_AUTHENTICATE,
+    },
 };
 use problematic::Rejected;
 use serde_json::json;
@@ -25,6 +30,7 @@ use uuid::Uuid;
 
 use super::Middleware;
 use crate::rest::{
+    cors::CorsConfig,
     documentation, internal,
     test_utils::{self, apis, echo_caller, response_json},
 };
@@ -67,6 +73,7 @@ fn middleware(
         service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
         rate_limiters: RateLimiters::start(config, &meter),
+        cors: CorsConfig::default(),
     }
 }
 
@@ -826,5 +833,224 @@ async fn legacy_routes_challenge_service() {
         response.headers()[WWW_AUTHENTICATE],
         r#"HASH-Service realm="HASH""#,
         "legacy routes should challenge with the service secret"
+    );
+}
+
+/// Middleware admitting the comma-separated `public` origins to the public APIs and `internal` to
+/// the internal API, with an address gate admitting `gate_burst` requests.
+fn cors_middleware(
+    gate_burst: u32,
+    public: &str,
+    internal: &str,
+) -> Middleware<
+    StaticAuthenticationProvider,
+    StaticAuthenticationProvider,
+    StaticAuthenticationProvider,
+> {
+    let mut middleware = middleware(
+        &config(gate_burst, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    );
+    middleware.cors = CorsConfig::parse(public, internal).expect("the origins should parse");
+    middleware
+}
+
+fn with_origin(mut request: Request<Body>, origin: &'static str) -> Request<Body> {
+    request
+        .headers_mut()
+        .insert(ORIGIN, HeaderValue::from_static(origin));
+    request
+}
+
+fn preflight(path: &str, origin: &'static str) -> Request<Body> {
+    let mut request = with_origin(request_with(Method::OPTIONS, path), origin);
+    let headers = request.headers_mut();
+    headers.insert(
+        ACCESS_CONTROL_REQUEST_METHOD,
+        HeaderValue::from_static("POST"),
+    );
+    headers.insert(
+        ACCESS_CONTROL_REQUEST_HEADERS,
+        HeaderValue::from_static("authorization,content-type"),
+    );
+    request
+}
+
+/// A preflight to a public API is answered ahead of the address gate, authentication and the
+/// caller budget.
+#[tokio::test]
+async fn cors_preflight_public() {
+    let router = cors_middleware(1, "https://hash.dev", "https://app.hash.ai").assemble(
+        Router::new(),
+        apis(),
+        Router::new(),
+    );
+
+    for path in ["/entities/v1", "/entities/v1/query"] {
+        let response = send_request(&router, preflight(path, "https://hash.dev")).await;
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "the preflight to {path} should be answered without credentials"
+        );
+        assert_eq!(
+            response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN),
+            Some(&HeaderValue::from_static("https://hash.dev")),
+            "the listed origin should be allowed on {path}"
+        );
+        assert_eq!(
+            response.headers().get(ACCESS_CONTROL_ALLOW_HEADERS),
+            Some(&HeaderValue::from_static("authorization,content-type")),
+            "the requested headers should be allowed on {path}"
+        );
+        assert_eq!(
+            response.headers().get(ACCESS_CONTROL_ALLOW_CREDENTIALS),
+            None,
+            "the public APIs should not allow credentials on {path}"
+        );
+        assert_eq!(
+            response.headers().get(CACHE_CONTROL),
+            Some(&HeaderValue::from_static("private, no-store")),
+            "the preflight to {path} should carry the default cache control"
+        );
+    }
+    assert_eq!(
+        send(&router, "/entities/v1/query").await.status(),
+        StatusCode::UNAUTHORIZED,
+        "the preflight should not have drawn on the address gate"
+    );
+}
+
+/// The public APIs admit their origins while the internal API has none.
+#[tokio::test]
+async fn cors_preflight_public_only() {
+    let router =
+        cors_middleware(10, "https://hash.dev", "").assemble(Router::new(), apis(), Router::new());
+
+    assert_eq!(
+        send_request(&router, preflight("/entities/v1/query", "https://hash.dev"))
+            .await
+            .headers()
+            .get(ACCESS_CONTROL_ALLOW_ORIGIN),
+        Some(&HeaderValue::from_static("https://hash.dev")),
+        "the listed origin should be allowed without internal origins"
+    );
+}
+
+/// An origin is admitted only by the APIs of its own audience, and nowhere outside the APIs.
+#[tokio::test]
+async fn cors_preflight_unlisted_origin() {
+    let router = cors_middleware(10, "https://hash.dev", "https://app.hash.ai").assemble(
+        Router::new(),
+        apis(),
+        Router::new(),
+    );
+
+    for (path, origin) in [
+        ("/entities/v1/query", "https://example.com"),
+        ("/entities/v1/query", "https://app.hash.ai"),
+        ("/_api/caller", "https://hash.dev"),
+        ("/_apis", "https://app.hash.ai"),
+        ("/", "https://hash.dev"),
+    ] {
+        assert_eq!(
+            send_request(&router, preflight(path, origin))
+                .await
+                .headers()
+                .get(ACCESS_CONTROL_ALLOW_ORIGIN),
+            None,
+            "{origin} should not be allowed on {path}"
+        );
+    }
+}
+
+/// The internal API admits its origins with credentials.
+#[tokio::test]
+async fn cors_preflight_internal() {
+    let router = cors_middleware(10, "https://hash.dev", "https://app.hash.ai").assemble(
+        Router::new(),
+        apis(),
+        Router::new(),
+    );
+
+    let response = send_request(&router, preflight("/_api/caller", "https://app.hash.ai")).await;
+    assert_eq!(
+        response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN),
+        Some(&HeaderValue::from_static("https://app.hash.ai")),
+        "the listed origin should be allowed"
+    );
+    assert_eq!(
+        response.headers().get(ACCESS_CONTROL_ALLOW_CREDENTIALS),
+        Some(&HeaderValue::from_static("true")),
+        "the internal API should allow credentials"
+    );
+}
+
+/// Rejections by authentication and by the address gate carry the CORS headers and expose the
+/// challenge and rate-limit headers.
+#[tokio::test]
+async fn cors_rejection_headers() {
+    let router = cors_middleware(1, "https://hash.dev", "https://app.hash.ai").assemble(
+        Router::new(),
+        [test_utils::api("/first")],
+        Router::new(),
+    );
+
+    for status in [StatusCode::UNAUTHORIZED, StatusCode::TOO_MANY_REQUESTS] {
+        let response = send_request(
+            &router,
+            with_origin(request_to("/first/test"), "https://hash.dev"),
+        )
+        .await;
+        assert_eq!(response.status(), status, "the request should be rejected");
+        assert_eq!(
+            response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN),
+            Some(&HeaderValue::from_static("https://hash.dev")),
+            "the {status} should allow the origin"
+        );
+        let exposed = response
+            .headers()
+            .get(ACCESS_CONTROL_EXPOSE_HEADERS)
+            .unwrap_or_else(|| panic!("the {status} should carry Access-Control-Expose-Headers"))
+            .to_str()
+            .expect("the exposed headers should be ASCII");
+        for header in [
+            "retry-after",
+            "www-authenticate",
+            "ratelimit",
+            "ratelimit-policy",
+            "link",
+        ] {
+            assert!(
+                exposed.split(',').any(|name| name.trim() == header),
+                "the {status} should expose {header}"
+            );
+        }
+    }
+}
+
+/// Without origins, a preflight is answered like any other request.
+#[tokio::test]
+async fn cors_unconfigured() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), apis(), Router::new());
+
+    let response = send_request(&router, preflight("/entities/v1/query", "https://hash.dev")).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "the preflight should be authenticated like any request"
+    );
+    assert_eq!(
+        response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN),
+        None,
+        "no origin should be allowed"
     );
 }

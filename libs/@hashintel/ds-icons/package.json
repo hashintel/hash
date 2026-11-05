@@ -54,7 +54,7 @@
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
     "preview:integrations": "node scripts/preview-integrations.ts",
-    "test:unit": "vitest"
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@hashintel/ds-helpers": "workspace:^"

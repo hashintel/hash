@@ -48,7 +48,7 @@ const isExternal = (moduleId: string): boolean =>
       moduleId === packageName || moduleId.startsWith(`${packageName}/`),
   );
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   build: {
     lib: {
       entry: entries,
@@ -76,25 +76,29 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: {
-    conditions: [workspaceSourceCondition, ...defaultClientConditions],
-  },
-  // Node-environment tests resolve through SSR, which has its own
-  // conditions; without the source condition this package's self-imports
-  // would need its `dist`, which a test run does not build. Vitest's own
-  // SSR default leaves out `module`, whose builds Node cannot import.
-  ssr: {
-    resolve: {
-      conditions: [
-        workspaceSourceCondition,
-        ...defaultServerConditions.filter(
-          (condition) => condition !== "module",
-        ),
-      ],
-    },
-  },
+  ...(command === "serve"
+    ? {
+        resolve: {
+          conditions: [workspaceSourceCondition, ...defaultClientConditions],
+        },
+        // Node-environment tests resolve through SSR, which has its own
+        // conditions; without the source condition this package's self-imports
+        // would need its `dist`, which a test run does not build. Vitest's own
+        // SSR default leaves out `module`, whose builds Node cannot import.
+        ssr: {
+          resolve: {
+            conditions: [
+              workspaceSourceCondition,
+              ...defaultServerConditions.filter(
+                (condition) => condition !== "module",
+              ),
+            ],
+          },
+        },
+      }
+    : {}),
   test: {
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
   },
-});
+}));

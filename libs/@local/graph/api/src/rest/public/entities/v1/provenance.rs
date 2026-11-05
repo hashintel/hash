@@ -42,7 +42,7 @@ pub(super) struct NewOrigin {
     )]
     #[schemars(with = "String", length(max = MAX_SHORT_TEXT_LENGTH))]
     version: Option<String>,
-    /// The version of the application in Semantic Versioning 2.0, at most 255 characters.
+    /// The version of the application, in Semantic Versioning 2.0, at most 255 characters.
     #[serde(
         default,
         deserialize_with = "non_null",
@@ -56,7 +56,7 @@ pub(super) struct NewOrigin {
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct NewProvenance {
-    /// The application that sends the entity, as it names itself. HASH stores it unconfirmed.
+    /// The application that sends the entity, as it names itself. HASH does not verify it.
     #[serde(
         default,
         deserialize_with = "non_null",
@@ -134,7 +134,7 @@ pub(super) fn property_provenance(sources: Vec<SourceProvenance>) -> Option<Prop
     })
 }
 
-/// How an edition reached HASH. More types may follow.
+/// How an edition reached HASH. More `type` values may follow.
 #[derive(Debug, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct Origin {
@@ -148,7 +148,7 @@ struct Origin {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "String")]
     version: Option<String>,
-    /// The version of what sent the edition in the format of Semantic Versioning 2.0.
+    /// The version of what sent the edition, in Semantic Versioning 2.0.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "semver::Version")]
     semantic_version: Option<semver::Version>,

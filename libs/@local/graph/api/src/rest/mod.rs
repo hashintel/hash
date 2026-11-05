@@ -1,5 +1,6 @@
 pub mod authentication;
 mod caller;
+mod cors;
 mod credentials;
 mod documentation;
 mod extract;
@@ -25,6 +26,7 @@ use hash_middleware::authentication::Challenge;
 
 pub(crate) use self::state::ApiState;
 pub use self::{
+    cors::CorsConfig,
     public::PublicApiConfig,
     router::{Dependencies, router},
 };

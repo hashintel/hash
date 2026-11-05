@@ -23,6 +23,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { brunchHeaders } from "@hashintel/brunch-agent";
 
+import { brunchEnv } from "../../src/env.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
@@ -127,7 +128,17 @@ describe("the emitted server bundle", () => {
       [join(DIST, "server.mjs")],
       {
         env: {
-          ...unconfiguredEnvironment(),
+          ...Object.fromEntries(
+            Object.entries(unconfiguredEnvironment()).filter(
+              ([name]) =>
+                !name.startsWith("ANTHROPIC_") && !name.startsWith("OPENAI_"),
+            ),
+          ),
+          // The chat model is verified before the database is opened. An OAuth
+          // token cannot be looked up, so verification only warns and makes no
+          // network call.
+          [brunchEnv.chatModel]: "anthropic/claude-haiku-4-5",
+          ANTHROPIC_OAUTH_TOKEN: "sk-ant-oat-synthetic-not-a-real-credential",
           // Production telemetry is required before the database is opened.
           HASH_OTLP_ENDPOINT: "http://127.0.0.1:9",
           NODE_ENV: "production",
