@@ -1,4 +1,7 @@
-import type { DependentTypeRow } from "./dependent-type-rows";
+import type {
+  DependentTypeRow,
+  DependentTypeVersionRange,
+} from "./dependent-type-rows";
 
 export const pillWidth = 26;
 export const pillHeight = 20;
@@ -58,8 +61,13 @@ export const getVersionGraphLayout = ({
 }: {
   row: Pick<
     DependentTypeRow,
-    "former" | "firstVersion" | "lastVersion" | "parentVersions" | "versions"
-  >;
+    "former" | "firstVersion" | "lastVersion" | "parentVersions"
+  > & {
+    ranges: Pick<
+      DependentTypeVersionRange,
+      "firstVersion" | "lastVersion" | "parentVersion"
+    >[];
+  };
   title: string;
   parentTitle: string;
   parentLatestVersion: number;
@@ -72,12 +80,21 @@ export const getVersionGraphLayout = ({
   const parentLeft = Math.round((pillsWidth - parentBandWidth) / 2);
   const typeLeft = Math.round((pillsWidth - typeBandWidth) / 2);
 
-  const parentVersionsByVersion = new Map(
-    row.versions.map(({ version, parentVersions }) => [
-      version,
-      parentVersions,
-    ]),
-  );
+  const parentVersionsByVersion = new Map<number, number[]>();
+  for (const {
+    firstVersion,
+    lastVersion,
+    parentVersion,
+  } of row.ranges.toSorted(
+    (left, right) => left.parentVersion - right.parentVersion,
+  )) {
+    for (let version = firstVersion; version <= lastVersion; version += 1) {
+      parentVersionsByVersion.set(version, [
+        ...(parentVersionsByVersion.get(version) ?? []),
+        parentVersion,
+      ]);
+    }
+  }
 
   const parentPills = Array.from(
     { length: parentTo - parentFrom + 1 },

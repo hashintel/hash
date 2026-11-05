@@ -13,7 +13,7 @@ describe("getVersionGraphLayout", () => {
         firstVersion: 1,
         lastVersion: 1,
         parentVersions: [1],
-        versions: [{ version: 1, parentVersions: [1] }],
+        ranges: [{ firstVersion: 1, lastVersion: 1, parentVersion: 1 }],
       },
       title: "Machine",
       parentTitle: "Actor",
@@ -42,13 +42,9 @@ describe("getVersionGraphLayout", () => {
         firstVersion: 2,
         lastVersion: 7,
         parentVersions: [1, 2],
-        versions: [
-          { version: 2, parentVersions: [1] },
-          { version: 3, parentVersions: [1] },
-          { version: 4, parentVersions: [2] },
-          { version: 5, parentVersions: [2] },
-          { version: 6, parentVersions: [2] },
-          { version: 7, parentVersions: [2] },
+        ranges: [
+          { firstVersion: 2, lastVersion: 3, parentVersion: 1 },
+          { firstVersion: 4, lastVersion: 7, parentVersion: 2 },
         ],
       },
       title: "User",
@@ -77,9 +73,9 @@ describe("getVersionGraphLayout", () => {
         firstVersion: 1,
         lastVersion: 2,
         parentVersions: [1, 3],
-        versions: [
-          { version: 1, parentVersions: [1] },
-          { version: 2, parentVersions: [3] },
+        ranges: [
+          { firstVersion: 1, lastVersion: 1, parentVersion: 1 },
+          { firstVersion: 2, lastVersion: 2, parentVersion: 3 },
         ],
       },
       title: "Robot",
@@ -113,10 +109,10 @@ describe("getVersionGraphLayout", () => {
         firstVersion: 1,
         lastVersion: 4,
         parentVersions: [1, 2],
-        versions: [
-          { version: 1, parentVersions: [1] },
-          { version: 2, parentVersions: [1, 2] },
-          { version: 4, parentVersions: [2] },
+        ranges: [
+          { firstVersion: 1, lastVersion: 2, parentVersion: 1 },
+          { firstVersion: 2, lastVersion: 2, parentVersion: 2 },
+          { firstVersion: 4, lastVersion: 4, parentVersion: 2 },
         ],
       },
       title: "Shell Company",
@@ -161,6 +157,28 @@ describe("getVersionGraphLayout", () => {
         "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v3 doesn't extend Company now; v4 extends Company v2. Company has versions newer than v2. Shell Company has newer versions that don't extend Company now.",
       );
     });
+  });
+
+  it("lists a version's parent versions in order when it starts extending an older parent version later", () => {
+    const layout = getVersionGraphLayout({
+      row: {
+        former: false,
+        firstVersion: 1,
+        lastVersion: 2,
+        parentVersions: [1, 2],
+        ranges: [
+          { firstVersion: 1, lastVersion: 2, parentVersion: 2 },
+          { firstVersion: 2, lastVersion: 2, parentVersion: 1 },
+        ],
+      },
+      title: "Robot",
+      parentTitle: "Actor",
+      parentLatestVersion: 2,
+    });
+
+    expect(layout.summary).toBe(
+      "Robot: v1 extends Actor v2; v2 extends Actor v1 and v2.",
+    );
   });
 });
 
