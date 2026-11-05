@@ -176,6 +176,11 @@ export type EditorDocument = {
   inputEntityTypes: Record<string, string>;
   /** MOCK: each flow input's default for the run form. `FlowInputDefinition` has no default. */
   inputDefaults?: Record<string, unknown>;
+  /**
+   * MOCK: the outputs the user marked "Show in run history", keyed `stepId.outputName` (Ciarán, 4 Nov: "important
+   * output" is a flag on each output of each node). Unset means the defaults (`defaultFlaggedOutputs`).
+   */
+  flaggedOutputs?: string[];
 };
 
 export const fieldKey = (stepId: string, inputName: string) =>
@@ -585,6 +590,44 @@ export const earlierStepIds = (
   }
 
   return order;
+};
+
+/** The supplier review's flagged outputs before anyone changes them: its suppliers, certificates and emails. */
+const defaultFlaggedOutputs = [
+  "findSuppliers.entities",
+  "fetchCertificate.fileEntity",
+  "sendReviewEmail.messageId",
+];
+
+export const outputKey = (stepId: string, outputName: string) =>
+  `${stepId}.${outputName}`;
+
+/** The outputs the History Outputs column lists, in flow order. */
+export const flaggedOutputsOf = (document: EditorDocument): string[] =>
+  document.flaggedOutputs ??
+  defaultFlaggedOutputs.filter((key) =>
+    Boolean(findStep(document, key.split(".")[0] ?? "")),
+  );
+
+export const isOutputFlagged = (
+  document: EditorDocument,
+  stepId: string,
+  outputName: string,
+) => flaggedOutputsOf(document).includes(outputKey(stepId, outputName));
+
+export const toggleOutputFlag = (
+  document: EditorDocument,
+  stepId: string,
+  outputName: string,
+): EditorDocument => {
+  const key = outputKey(stepId, outputName);
+  const current = flaggedOutputsOf(document);
+  return {
+    ...document,
+    flaggedOutputs: current.includes(key)
+      ? current.filter((flagged) => flagged !== key)
+      : [...current, key],
+  };
 };
 
 /** Which steps read an output, for the "used by" chips (D26 A). */

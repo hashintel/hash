@@ -7,13 +7,23 @@
  * - Three names show; "+N more" lists the next ten on hover and shows all on click (Dei: there might be 50 or 100).
  * - An output no step reads offers "Use in a step" on hover, as Attio's Select next block does (4 Nov): it opens the
  *   step picker, and the step picked is added after this one, reading this output.
+ * - A faint star at the row's end flags the output "Show in run history" (Ciarán, 4 Nov: "important output" is a flag
+ *   on each output of each node). It shows on hover and stays when set; the History Outputs column lists the flagged
+ *   outputs. Read-only in a run or a past version: a set star shows, nothing toggles.
  */
 import { useState } from "react";
 
 import { Chip, Icon, type IconName, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { type EditorDocument, findStep, stepLabel, usersOf } from "./document";
+import {
+  type EditorDocument,
+  findStep,
+  isOutputFlagged,
+  stepLabel,
+  toggleOutputFlag,
+  usersOf,
+} from "./document";
 import { useEditor } from "./editor-context";
 import { useRunView } from "./history-view";
 import { useLocation } from "./router";
@@ -203,6 +213,73 @@ const UsedByTree = ({
   );
 };
 
+/** The flag: a ghost square at the row's control size (28 px, as "Use in a step"), hidden until hovered, kept once set. */
+const flagStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[28px]",
+  height: "[28px]",
+  marginY: "[-6px]",
+  textStyle: "sm",
+  fontWeight: "medium",
+  padding: "[0]",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  color: "neutral.fg.subtle",
+  cursor: "pointer",
+  visibility: "hidden",
+  "[data-row]:hover &": { visibility: "visible" },
+  "&[data-flagged]": { visibility: "visible", color: "neutral.fg.muted" },
+  "&[data-flagged] svg": { fill: "[currentColor]" },
+  _hover: {
+    backgroundColor: "neutral.bg.surface.hover",
+    color: "neutral.fg.heading",
+  },
+  "&[data-readonly]": { cursor: "default", _hover: { background: "[transparent]" } },
+});
+
+const OutputFlag = ({
+  stepId,
+  outputName,
+  readOnly,
+}: {
+  stepId: string;
+  outputName: string;
+  readOnly: boolean;
+}) => {
+  const { document, setDocument } = useEditor();
+  const flagged = isOutputFlagged(document, stepId, outputName);
+  if (readOnly && !flagged) {
+    return null;
+  }
+  return (
+    <Tooltip content={readOnly ? "Shown in run history" : "Show in run history"}>
+      <button
+        type="button"
+        className={flagStyle}
+        aria-label="Show in run history"
+        aria-pressed={flagged}
+        data-output-flag={`${stepId}.${outputName}`}
+        data-flagged={flagged || undefined}
+        data-readonly={readOnly || undefined}
+        aria-disabled={readOnly || undefined}
+        onClick={() =>
+          readOnly
+            ? undefined
+            : setDocument((current) =>
+                toggleOutputFlag(current, stepId, outputName),
+              )
+        }
+      >
+        <Icon name="star" size="sm" />
+      </button>
+    </Tooltip>
+  );
+};
+
 /** An output's type as the icon left of its name (2 Nov): its kind decides it. */
 const kindIcon = (kind: string | null): IconName => {
   const name = (kind ?? "").replace(/^List of /, "");
@@ -284,6 +361,15 @@ export const OutputRows = ({
             }
             hover={`${output.label} · ${kind ?? "Kind is known when it runs"}`}
           >
+            <span
+              className={css({
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "2",
+                minWidth: "[0]",
+              })}
+            >
             <UsedByTree
               iconOf={iconOf}
               action={
@@ -313,6 +399,12 @@ export const OutputRows = ({
                 source.outputName === output.name
               }
             />
+              <OutputFlag
+                stepId={stepId}
+                outputName={output.name}
+                readOnly={readOnly}
+              />
+            </span>
           </PropertyRow>
         );
       })}

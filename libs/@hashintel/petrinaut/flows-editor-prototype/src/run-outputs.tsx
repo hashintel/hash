@@ -14,13 +14,30 @@
  * C. The first file previewed large, the rest as rows; failures after.
  * D. Outputs grouped by type: files, updated entities, text, a table.
  *
+ * Outputs can be entities of any type (Ciarán, 4 Nov). Run 14's Find active suppliers returned two types, Supplier
+ * and Distributor; the two ways to show that sit behind ?entitytypes=a|b (inbox `picks/entity-types`), read from the
+ * URL only; no param is A.
+ * A. Group by type: one table per type, each with its own columns; History counts each type ("14 suppliers · 6
+ *    distributors").
+ * B. One table with a Type column; columns only some types have are blank for the rest; History says "20 entities".
+ *
+ * The History Outputs column lists only the outputs flagged "Show in run history" (`document.flaggedOutputs`).
+ *
  * MOCK: no flow runs and no files exist; the certificates and emails are drawn from the seed suppliers.
  */
 import { Fragment, useState } from "react";
 
-import { Button, Dialog, Icon, type IconName } from "@hashintel/ds-components";
+import {
+  Button,
+  Dialog,
+  Icon,
+  type IconName,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { flaggedOutputsOf, flattenSteps, outputKey } from "./document";
+import { useEditor } from "./editor-context";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
@@ -43,6 +60,12 @@ export const useStepOutputsTake = (): StepOutputsTake => {
   const value = useLocation().query.get("stepoutputs")?.toLowerCase();
   return value === "b" || value === "c" || value === "d" ? value : "a";
 };
+
+export type EntityTypesTake = "a" | "b";
+
+/** ?entitytypes=a|b; no param is A, the inbox row's recommendation. */
+export const useEntityTypesTake = (): EntityTypesTake =>
+  useLocation().query.get("entitytypes")?.toLowerCase() === "b" ? "b" : "a";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * MOCK outputs, from the seed suppliers
@@ -215,8 +238,24 @@ const certificateOf = (supplier: string, item: number): Certificate => {
   };
 };
 
+/** MOCK: the run whose Find active suppliers returned two entity types. */
+export const mixedTypesRunId = 14;
+
+export type EntityTypeName = "Supplier" | "Distributor";
+
+/** A type's name in a count: "14 suppliers". */
+const typeNoun: Record<EntityTypeName, string> = {
+  Supplier: "supplier",
+  Distributor: "distributor",
+};
+
+const regions = ["UK and Ireland", "Benelux", "Nordics", "Iberia", "DACH", "France"];
+
 export type SupplierEntity = {
   name: string;
+  type: EntityTypeName;
+  /** A Distributor's own property, which a Supplier doesn't have. */
+  region?: string;
   item: number;
   contact: string;
   email: string;
@@ -254,11 +293,16 @@ export const runOutputs = (run: RunRecord, now: number): RunOutputs => {
     facts.failures.map((failure) => [failure.item, failure.reason]),
   );
   const sendSpan = stageSpan("sendReviewEmail", facts.n);
-  const entities = suppliers.slice(0, n).map((name, item) => {
+  const entities = suppliers.slice(0, n).map((name, item): SupplierEntity => {
     const contact = contacts[item % contacts.length]!;
     const fetched = item < facts.processed[1] && !failedItems.has(item);
+    const distributor = run.id === mixedTypesRunId && item % 3 === 2;
     return {
       name,
+      type: distributor ? "Distributor" : "Supplier",
+      ...(distributor
+        ? { region: regions[Math.floor(item / 3) % regions.length]! }
+        : {}),
       item,
       contact,
       email: `${contact.split(" ")[0]!.toLowerCase()}@${slugOf(name)}.com`,
@@ -323,6 +367,28 @@ export const runOutputs = (run: RunRecord, now: number): RunOutputs => {
 
 const plural = (count: number, one: string, many = `${one}s`) =>
   `${count} ${count === 1 ? one : many}`;
+
+/** Entities by type, in first-seen order. */
+const byType = (rows: SupplierEntity[]) => {
+  const groups = new Map<EntityTypeName, SupplierEntity[]>();
+  for (const row of rows) {
+    groups.set(row.type, [...(groups.get(row.type) ?? []), row]);
+  }
+  return [...groups.entries()].map(([type, members]) => ({ type, rows: members }));
+};
+
+/** "14 suppliers · 6 distributors" (take A) or "20 entities" (take B); one type is always "20 suppliers". */
+const entityCount = (rows: SupplierEntity[], take: EntityTypesTake) => {
+  const groups = byType(rows);
+  if (groups.length <= 1) {
+    return plural(rows.length, typeNoun[groups[0]?.type ?? "Supplier"]);
+  }
+  return take === "b"
+    ? plural(rows.length, "entity", "entities")
+    : groups
+        .map((group) => plural(group.rows.length, typeNoun[group.type]))
+        .join(" · ");
+};
 
 /* ----------------------------------------------------------------------------------------------------------------
  * Drawn pages: a certificate's first page and an email, at 420 × 560, scaled into any box
@@ -583,7 +649,12 @@ const fileDetail = (file: OutputFile) =>
  * The viewer: a file modal, or a table of entities
  * ------------------------------------------------------------------------------------------------------------- */
 
-type Column = { label: string; cell: (row: SupplierEntity) => React.ReactNode };
+type Column = {
+  label: string;
+  cell: (row: SupplierEntity) => React.ReactNode;
+  /** A property only these types have; other types leave it out (A) or blank (B). */
+  types?: EntityTypeName[];
+};
 
 export type ViewerState =
   | { kind: "files"; files: OutputFile[]; index: number; from: string }
@@ -841,6 +912,71 @@ const linkStyle = css({
   _hover: { textDecorationColor: "neutral.fg.muted" },
 });
 
+const groupTitleStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+  gap: "1.5",
+  paddingX: "3",
+  paddingTop: "5",
+  paddingBottom: "1",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.heading",
+  "&:first-child": { paddingTop: "1" },
+  "& > span": { fontWeight: "normal", color: "neutral.fg.subtle" },
+});
+
+const EntityTable = ({
+  rows,
+  columns,
+  outputs,
+  onChange,
+}: {
+  rows: SupplierEntity[];
+  columns: Column[];
+  outputs: RunOutputs;
+  onChange: (next: ViewerState) => void;
+}) => (
+  <table className={tableStyle}>
+    <thead>
+      <tr>
+        {columns.map((column) => (
+          <th key={column.label}>{column.label}</th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr key={row.name}>
+          {columns.map((column) => (
+            <td key={column.label}>
+              {column.types && !column.types.includes(row.type) ? null : column.label ===
+                  "Certificate" && row.certificate ? (
+                <button
+                  type="button"
+                  className={linkStyle}
+                  onClick={() =>
+                    onChange({
+                      kind: "files",
+                      files: outputs.certificates,
+                      index: outputs.certificates.indexOf(row.certificate!),
+                      from: "Fetch certificate",
+                    })
+                  }
+                >
+                  {column.cell(row)}
+                </button>
+              ) : (
+                column.cell(row)
+              )}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+
 const EntityModal = ({
   view,
   run,
@@ -853,101 +989,105 @@ const EntityModal = ({
   onChange: (next: ViewerState) => void;
   onClose: () => void;
   outputs: RunOutputs;
-}) => (
-  <Dialog size="lg" variant="plain" onClose={onClose} aria-label={view.title}>
-    <Dialog.Header
-      title={view.title}
-      description={`${view.from} · Run ${run.id} · ${run.when}`}
-      actions={
-        <Button
-          size="sm"
-          variant="subtle"
-          tone="neutral"
-          iconName="arrowUpRight"
-          iconPosition="right"
-          tooltip="Opens these entities in HASH (not in the prototype)"
+}) => {
+  const take = useEntityTypesTake();
+  const groups = byType(view.rows);
+  const mixed = groups.length > 1;
+  // B: one table, the Type column after the first; a column only some types have stays, blank for the rest.
+  const typeColumn: Column = { label: "Type", cell: (row) => row.type };
+  const flatColumns =
+    mixed && take === "b"
+      ? [view.columns[0]!, typeColumn, ...view.columns.slice(1)]
+      : view.columns.filter((column) => !column.types || mixed);
+  return (
+    <Dialog size="lg" variant="plain" onClose={onClose} aria-label={view.title}>
+      <Dialog.Header
+        title={view.title}
+        description={`${view.from} · Run ${run.id} · ${run.when}`}
+        actions={
+          <Button
+            size="sm"
+            variant="subtle"
+            tone="neutral"
+            iconName="arrowUpRight"
+            iconPosition="right"
+            tooltip="Opens these entities in HASH (not in the prototype)"
+          >
+            Open in Entities
+          </Button>
+        }
+      />
+      <Dialog.Body>
+        <div
+          data-entity-table={mixed ? take : undefined}
+          className={css({
+            maxHeight: "[60vh]",
+            overflowY: "auto",
+            marginX: "[-12px]",
+          })}
         >
-          Open in Entities
-        </Button>
-      }
-    />
-    <Dialog.Body>
-      <div
-        data-entity-table
-        className={css({
-          maxHeight: "[60vh]",
-          overflowY: "auto",
-          marginX: "[-12px]",
-        })}
-      >
-        <table className={tableStyle}>
-          <thead>
-            <tr>
-              {view.columns.map((column) => (
-                <th key={column.label}>{column.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {view.rows.map((row) => (
-              <tr key={row.name}>
-                {view.columns.map((column) => (
-                  <td key={column.label}>
-                    {column.label === "Certificate" && row.certificate ? (
-                      <button
-                        type="button"
-                        className={linkStyle}
-                        onClick={() =>
-                          onChange({
-                            kind: "files",
-                            files: outputs.certificates,
-                            index: outputs.certificates.indexOf(
-                              row.certificate!,
-                            ),
-                            from: "Fetch certificate",
-                          })
-                        }
-                      >
-                        {column.cell(row)}
-                      </button>
-                    ) : (
-                      column.cell(row)
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Dialog.Body>
-  </Dialog>
-);
+          {mixed && take === "a" ? (
+            // A: one table per type, each with only the columns its type has.
+            groups.map((group) => (
+              <section key={group.type} data-entity-group={group.type}>
+                <div className={groupTitleStyle}>
+                  {group.type}
+                  <span>{group.rows.length}</span>
+                </div>
+                <EntityTable
+                  rows={group.rows}
+                  columns={view.columns.filter(
+                    (column) => !column.types || column.types.includes(group.type),
+                  )}
+                  outputs={outputs}
+                  onChange={onChange}
+                />
+              </section>
+            ))
+          ) : (
+            <EntityTable
+              rows={view.rows}
+              columns={flatColumns}
+              outputs={outputs}
+              onChange={onChange}
+            />
+          )}
+        </div>
+      </Dialog.Body>
+    </Dialog>
+  );
+};
 
 const muted = (text: string) => (
   <span className={css({ color: "neutral.fg.subtle" })}>{text}</span>
 );
 
 /** The entity tables each output opens. */
-export const entityViews = (outputs: RunOutputs) => {
+export const entityViews = (outputs: RunOutputs, take: EntityTypesTake) => {
   const certificateCell = (row: SupplierEntity) =>
     row.certificate ? row.certificate.fileName : muted("None");
   return {
     suppliers: {
       kind: "entities" as const,
-      title: plural(outputs.entities.length, "supplier"),
+      title: entityCount(outputs.entities, take),
       from: "Find active suppliers",
       rows: outputs.entities,
+      // Headers are property names, never the type's name (Ciarán, 4 Nov: "Name", not "Supplier").
       columns: [
         { label: "Name", cell: (row: SupplierEntity) => row.name },
         { label: "Contact", cell: (row: SupplierEntity) => row.contact },
         { label: "Email", cell: (row: SupplierEntity) => row.email },
+        {
+          label: "Region",
+          types: ["Distributor" as const],
+          cell: (row: SupplierEntity) => row.region ?? "",
+        },
         { label: "Certificate", cell: certificateCell },
       ],
     },
     reviewed: {
       kind: "entities" as const,
-      title: `${plural(outputs.updated.length, "supplier")} updated`,
+      title: `${entityCount(outputs.updated, take)} updated`,
       from: "Mark supplier reviewed",
       rows: outputs.updated,
       columns: [
@@ -965,8 +1105,11 @@ export const entityViews = (outputs: RunOutputs) => {
       title: `${plural(outputs.entities.length, "value")} · ${property}`,
       from: `Read ${property.toLowerCase()}`,
       rows: outputs.entities,
+      // The read entity's Name, then the value; reading Name itself is one column.
       columns: [
-        { label: "Supplier", cell: (row: SupplierEntity) => row.name },
+        ...(property === "Name"
+          ? []
+          : [{ label: "Name", cell: (row: SupplierEntity) => row.name }]),
         {
           label: property,
           cell: (row: SupplierEntity) =>
@@ -1035,18 +1178,44 @@ const linkOutStyle = css({
   "&[class]": { color: "neutral.fg.muted" },
 });
 
+/** A flagged output's star in a run: read-only, the editor sets it. */
+const flagMarkStyle = css({
+  display: "inline-flex",
+  color: "neutral.fg.subtle",
+  "& svg": { fill: "[currentColor]" },
+});
+
+const FlagMark = () => (
+  <Tooltip content="Shown in run history">
+    <span className={flagMarkStyle} data-output-flag-mark>
+      <Icon name="star" size="sm" />
+    </span>
+  </Tooltip>
+);
+
 const Block = ({
   title,
   action,
+  flagged = false,
   children,
 }: {
   title: string;
   action?: React.ReactNode;
+  /** Flagged "Show in run history" in the editor. */
+  flagged?: boolean;
   children: React.ReactNode;
 }) => (
   <section className={blockStyle}>
     <div className={blockHeadStyle}>
-      <span className={blockTitleStyle}>{title}</span>
+      <span
+        className={cx(
+          blockTitleStyle,
+          css({ display: "inline-flex", alignItems: "center", gap: "1.5" }),
+        )}
+      >
+        {title}
+        {flagged ? <FlagMark /> : null}
+      </span>
       {action}
     </div>
     {children}
@@ -1252,6 +1421,7 @@ const FileList = ({
   title,
   linkOut,
   footer,
+  flagged,
   onOpen,
 }: {
   take: StepOutputsTake;
@@ -1259,12 +1429,13 @@ const FileList = ({
   title: string;
   linkOut: React.ReactNode;
   footer?: string;
+  flagged?: boolean;
   onOpen: (index: number) => void;
 }) => {
   const [all, setAll] = useState(false);
   if (files.length === 0) {
     return (
-      <Block title={title}>
+      <Block title={title} flagged={flagged}>
         <span className={quietStyle}>None yet</span>
       </Block>
     );
@@ -1272,7 +1443,7 @@ const FileList = ({
   if (take === "b") {
     const shown = all ? files : files.slice(0, 4);
     return (
-      <Block title={title} action={linkOut}>
+      <Block title={title} flagged={flagged} action={linkOut}>
         <div
           className={css({
             display: "grid",
@@ -1303,7 +1474,7 @@ const FileList = ({
     const [first, ...rest] = files;
     const shown = all ? rest : rest.slice(0, 2);
     return (
-      <Block title={title} action={linkOut}>
+      <Block title={title} flagged={flagged} action={linkOut}>
         <button
           type="button"
           className={heroStyle}
@@ -1337,7 +1508,7 @@ const FileList = ({
   }
   const shown = all ? files : files.slice(0, take === "d" ? 2 : 4);
   return (
-    <Block title={title} action={linkOut}>
+    <Block title={title} flagged={flagged} action={linkOut}>
       <div className={css({ display: "flex", flexDirection: "column", gap: "1" })}>
         {shown.map((file, index) => (
           <FileRow key={file.supplier} file={file} onOpen={() => onOpen(index)} />
@@ -1381,15 +1552,17 @@ const EntityOutput = ({
   icon,
   count,
   names,
+  flagged,
   onOpen,
 }: {
   label: string;
   icon: IconName;
   count: string;
   names: string[];
+  flagged?: boolean;
   onOpen: () => void;
 }) => (
-  <Block title={label}>
+  <Block title={label} flagged={flagged}>
     <button
       type="button"
       className={entityRowStyle}
@@ -1459,8 +1632,13 @@ export const StepOutputs = ({
   outputs: RunOutputs;
 }) => {
   const take = useStepOutputsTake();
+  const typesTake = useEntityTypesTake();
+  const { document } = useEditor();
   const { open, node } = useOutputViewer(outputs);
-  const views = entityViews(outputs);
+  const views = entityViews(outputs, typesTake);
+  const flags = flaggedOutputsOf(document);
+  const flagged = (outputName: string) =>
+    flags.includes(outputKey(stepId, outputName));
   const openFiles = (files: OutputFile[], from: string) => (index: number) =>
     open({ kind: "files", files, index, from });
   const names = (rows: SupplierEntity[]) => rows.map((row) => row.name);
@@ -1471,8 +1649,9 @@ export const StepOutputs = ({
         <EntityOutput
           label="Entities"
           icon="cubes"
-          count={plural(outputs.entities.length, "supplier")}
+          count={entityCount(outputs.entities, typesTake)}
           names={names(outputs.entities)}
+          flagged={flagged("entities")}
           onOpen={() => open(views.suppliers)}
         />
       );
@@ -1482,7 +1661,7 @@ export const StepOutputs = ({
         <EntityOutput
           label="Reviewed suppliers"
           icon="cubes"
-          count={plural(outputs.updated.length, "supplier")}
+          count={entityCount(outputs.updated, typesTake)}
           names={names(outputs.updated)}
           onOpen={() => open(views.reviewed)}
         />
@@ -1503,8 +1682,9 @@ export const StepOutputs = ({
           label="Values"
           icon="text"
           count={plural(outputs.entities.length, "value")}
+          flagged={flagged("value")}
           names={outputs.entities.map((row) => {
-            const cell = view.columns[1]!.cell(row);
+            const cell = view.columns.at(-1)!.cell(row);
             return typeof cell === "string" ? cell : row.name;
           })}
           onOpen={() => open(view)}
@@ -1517,8 +1697,9 @@ export const StepOutputs = ({
         <EntityOutput
           label="Entities"
           icon="cubes"
-          count={`${plural(outputs.updated.length, "supplier")} updated`}
+          count={`${entityCount(outputs.updated, typesTake)} updated`}
           names={names(outputs.updated)}
+          flagged={flagged("entityId")}
           onOpen={() => open(views.reviewed)}
         />
       );
@@ -1540,6 +1721,7 @@ export const StepOutputs = ({
               tooltip="Opens these File entities in HASH (not in the prototype)"
             />
           }
+          flagged={flagged("fileEntity")}
           footer={
             take === "a"
               ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · used by Send review email`
@@ -1584,7 +1766,7 @@ export const StepOutputs = ({
                 <table className={miniTableStyle}>
                   <thead>
                     <tr>
-                      <th>supplier</th>
+                      <th>name</th>
                       <th>status</th>
                       <th>expiry</th>
                     </tr>
@@ -1619,6 +1801,7 @@ export const StepOutputs = ({
             take={take}
             files={files}
             title={`Emails · ${files.length} sent`}
+            flagged={flagged("messageId")}
             linkOut={
               <LinkOut
                 label="Open in Mail"
@@ -1683,7 +1866,98 @@ const cellStyle = css({
 
 const dotStyle = css({ color: "neutral.fg.subtle" });
 
-/** Certificates and emails stay separate counts until Dei says otherwise. */
+type CellPart = { key: string; text: string; count: number; onOpen: () => void };
+
+/** The parts one flagged output adds to the cell; an output the prototype has no run data for adds none. */
+const partsOf = (
+  key: string,
+  outputs: RunOutputs,
+  take: EntityTypesTake,
+  open: (view: ViewerState) => void,
+): CellPart[] => {
+  const views = entityViews(outputs, take);
+  const files = (list: OutputFile[], from: string) => () =>
+    open({ kind: "files", files: list, index: 0, from });
+  switch (key) {
+    case "findSuppliers.entities": {
+      const groups = byType(outputs.entities);
+      // A: a count per type, each opening its own type's rows; B (or one type): one count.
+      if (groups.length > 1 && take === "a") {
+        return groups.map((group) => ({
+          key: `${key}.${group.type}`,
+          text: plural(group.rows.length, typeNoun[group.type]),
+          count: group.rows.length,
+          onOpen: () =>
+            open({
+              ...views.suppliers,
+              title: plural(group.rows.length, typeNoun[group.type]),
+              rows: group.rows,
+            }),
+        }));
+      }
+      return [
+        {
+          key,
+          text: entityCount(outputs.entities, take),
+          count: outputs.entities.length,
+          onOpen: () => open(views.suppliers),
+        },
+      ];
+    }
+    case "fetchCertificate.fileEntity":
+      return [
+        {
+          key,
+          text: plural(outputs.certificates.length, "certificate"),
+          count: outputs.certificates.length,
+          onOpen: files(outputs.certificates, "Fetch certificate"),
+        },
+      ];
+    case "sendReviewEmail.messageId":
+      return [
+        {
+          key,
+          text: plural(outputs.emails.length, "email"),
+          count: outputs.emails.length,
+          onOpen: files(outputs.emails, "Send review email"),
+        },
+      ];
+    case "markReviewed.entityId":
+      return [
+        {
+          key,
+          text: `${outputs.updated.length} reviewed`,
+          count: outputs.updated.length,
+          onOpen: () => open(views.reviewed),
+        },
+      ];
+    case "readName.value":
+    case "readEmail.value":
+    case "readCertificateLink.value": {
+      const property =
+        key === "readName.value"
+          ? "Name"
+          : key === "readEmail.value"
+            ? "Contact email"
+            : "Certificate link";
+      return [
+        {
+          key,
+          text: plural(outputs.entities.length, property.toLowerCase()),
+          count: outputs.entities.length,
+          onOpen: () => open(views.values(property)),
+        },
+      ];
+    }
+    default:
+      return [];
+  }
+};
+
+/**
+ * Only the outputs flagged "Show in run history", in flow order (Ciarán, 4 Nov). Certificates and emails stay
+ * separate counts until Dei says otherwise.
+ */
 export const RunOutputsCell = ({
   run,
   now,
@@ -1691,6 +1965,8 @@ export const RunOutputsCell = ({
   run: RunRecord;
   now: number;
 }) => {
+  const { document } = useEditor();
+  const take = useEntityTypesTake();
   const outputs = runOutputs(run, now);
   const { open, node } = useOutputViewer(outputs);
   if (outputs.findFailed) {
@@ -1700,39 +1976,15 @@ export const RunOutputsCell = ({
       </span>
     );
   }
-  const views = entityViews(outputs);
-  const parts = [
-    {
-      key: "suppliers",
-      text: plural(outputs.entities.length, "supplier"),
-      count: outputs.entities.length,
-      onOpen: () => open(views.suppliers),
-    },
-    {
-      key: "certificates",
-      text: plural(outputs.certificates.length, "certificate"),
-      count: outputs.certificates.length,
-      onOpen: () =>
-        open({
-          kind: "files",
-          files: outputs.certificates,
-          index: 0,
-          from: "Fetch certificate",
-        }),
-    },
-    {
-      key: "emails",
-      text: plural(outputs.emails.length, "email"),
-      count: outputs.emails.length,
-      onOpen: () =>
-        open({
-          kind: "files",
-          files: outputs.emails,
-          index: 0,
-          from: "Send review email",
-        }),
-    },
-  ].filter((part) => part.count > 0);
+  const order = flattenSteps(document.steps).map(({ step }) => step.stepId);
+  const flags = flaggedOutputsOf(document).toSorted(
+    (left, right) =>
+      order.indexOf(left.split(".")[0] ?? "") -
+      order.indexOf(right.split(".")[0] ?? ""),
+  );
+  const parts = flags
+    .flatMap((key) => partsOf(key, outputs, take, open))
+    .filter((part) => part.count > 0);
   return (
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keeps a part's click off the row
     <span
@@ -1741,7 +1993,9 @@ export const RunOutputsCell = ({
       onClick={(event) => event.stopPropagation()}
     >
       {parts.length === 0 ? (
-        <span className={css({ color: "neutral.fg.subtle" })}>Nothing yet</span>
+        <span className={css({ color: "neutral.fg.subtle" })}>
+          {flags.length === 0 ? "No outputs flagged" : "Nothing yet"}
+        </span>
       ) : (
         parts.map((part, index) => (
           <Fragment key={part.key}>
