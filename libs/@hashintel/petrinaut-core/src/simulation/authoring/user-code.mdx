@@ -1,6 +1,6 @@
 ---
 title: Compiling user code
-description: How authored TypeScript becomes buffer programs or interpreted HIR, and what the visualizer sandbox does and does not protect.
+description: How authored TypeScript becomes buffer programs or interpreted HIR, and why no surface runs source text as JavaScript.
 sidebar_order: 10
 ---
 
@@ -92,24 +92,18 @@ arrays in colour-element order, each coerced with typed defaults for missing
 columns. Extra columns and invalid typed values are reported as compilation
 errors.
 
-## What the sandbox is for
+## No surface runs source text as JavaScript
 
-The place visualizer is the one surface still executed as raw JavaScript
-(`compile-visualizer.ts` in the UI package; it authors JSX, which the HIR
-does not represent). Its Babel-compiled module body runs in strict mode with
-a list of globals shadowed (`window`, `document`, `globalThis`, `fetch`,
-`importScripts`, `Function`, timers and similar), so those name lookups
-resolve to `undefined`. Because shadowing only stops identifier lookup, the
-sandbox additionally blocks the constructor-chain escape
-(`({}).constructor.constructor` reaching `Function`) around the module
-evaluation and each render, by swapping the `.constructor` descriptors on the
-built-in prototypes and restoring them afterwards.
-
-**Treat this as robustness hardening, not isolation.** Visualizer code
-executes with `new Function` in the same realm as the host. It protects
-against typos and accidental API use, not against an attacker. Every other
-surface, scenario code included, compiles through the HIR, where
-out-of-subset code is a blocking diagnostic rather than a sandbox concern.
+Every surface compiles through the HIR, where out-of-subset code is a
+blocking diagnostic rather than a sandbox concern. Place visualizers lower to
+the view HIR (`view-hir/`) and are interpreted. The ad-hoc scenario form's
+constant values (Optimize bounds, exposed Variables' defaults, place totals)
+are evaluated while the form renders, where the TypeScript compiler is
+unavailable: `hir/parse-expression.ts` parses them into HIR with a
+hand-written parser for the scenario expression grammar, and `hir/interpret.ts`
+evaluates the result. The buffer programs emitted from the HIR are
+instantiated with `new Function` in the simulation workers, but that source
+is generated from checked HIR, never written by a user.
 
 Identity strings (ids, parameter variable names, element names) are the other
 untrusted input: [Untrusted names](doc:core.simulation.engine/untrusted-names) covers how
