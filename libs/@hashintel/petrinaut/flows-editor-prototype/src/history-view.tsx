@@ -20,6 +20,7 @@ import { type EditorUi, useEditor } from "./editor-context";
 import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
 import { runOutputs, StepOutputs } from "./run-outputs";
+import { ForEachItems, StepStatusLines } from "./run-step-status";
 import type { StepState } from "./run-history";
 import {
   anyTicking,
@@ -845,17 +846,21 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
               </span>
             ))}
           </span>
-          {detail.span ? (
-            <span className={strongLineStyle}>{detail.span}</span>
-          ) : null}
-          <span className={quietLineStyle}>
-            Run {run.id} · {run.when} ·{" "}
-            {run.trigger.kind === "manual"
-              ? `Manual · ${run.trigger.by}`
-              : "Schedule · monthly"}
-          </span>
+          {/* The step's own facts (Run outputs playground, 5 Nov): "12 s · 5 Nov, 14:02", then attempts or waiting only when they apply. */}
+          <StepStatusLines
+            stepId={stepId}
+            run={run}
+            facts={facts}
+            state={state}
+            now={now}
+          />
         </div>
       </Section>
+      {stepId === forEachId && state.state !== "notReached" ? (
+        <Section title="Items">
+          <ForEachItems facts={facts} />
+        </Section>
+      ) : null}
       {detail.inputs.length > 0 ? (
         <Section title="Inputs">
           {detail.inputs.map(([key, value]) => (
