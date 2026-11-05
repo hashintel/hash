@@ -48,9 +48,9 @@ describe("IntegrationIcon", () => {
   });
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(51);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(52);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      47,
+      48,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -65,6 +65,9 @@ describe("IntegrationIcon", () => {
       integrationIconCatalog.find((icon) => icon.name === "granolaLegacy")
         ?.integrationNames,
     ).toEqual([]);
+    expect(integrationIconNameByIntegration["Apple Health"]).toBe(
+      "appleHealth",
+    );
     expect(integrationIconNameByIntegration["Messenger"]).toBe("messenger");
     expect(
       integrationIconCatalog.find((icon) => icon.name === "messengerLegacy")

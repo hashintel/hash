@@ -1,4 +1,5 @@
 import * as anaplan from "./geometry/anaplan";
+import * as appleHealth from "./geometry/apple-health";
 import * as appleNotes from "./geometry/apple-notes";
 import * as asana from "./geometry/asana";
 import * as amazonRedshift from "./geometry/aws-redshift";
@@ -254,6 +255,13 @@ export const integrationGeometry = {
     markViewBox: "0 0 64 64",
     logoViewBox: null,
     ratio: 1.0,
+    alignment: "center",
+  },
+  appleHealth: {
+    ...appleHealth,
+    markViewBox: "0 0 492 460",
+    logoViewBox: null,
+    ratio: 1.65,
     alignment: "center",
   },
   discord: {

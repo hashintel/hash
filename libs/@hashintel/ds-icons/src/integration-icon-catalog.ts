@@ -650,6 +650,19 @@ export const integrationIconCatalog = [
     logoRaster: false,
   },
   {
+    name: "appleHealth",
+    slug: "apple-health",
+    label: "Apple Health",
+    integrationNames: ["Apple Health"],
+    source: "https://apps.apple.com/us/app/apple-health/id1242545199",
+    category: "Integrations",
+    variants: ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light"],
+    logoSource: null,
+    logoNotes:
+      "Heart vectorized from Apple's current App Store icon, preserving its pink-to-red gradient and bevel. The mark omits the app's white tile; app variants use the shared translucent tile. No authentic full-logo lock-up was verified. Only mark and app-tile variants are provided.",
+    logoRaster: false,
+  },
+  {
     name: "discord",
     slug: "discord",
     label: "Discord",
