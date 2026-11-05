@@ -47,9 +47,11 @@ export const idleTimeoutsOf = (
 const timeoutOutcome = (timeout: LoggedIdleTimeout): string =>
   timeout.acknowledged === false
     ? "cancellation not acknowledged"
-    : timeout.retryClaimed
-      ? "retry claimed"
-      : "no retry";
+    : timeout.retryClaimed === null
+      ? "retry not logged"
+      : timeout.retryClaimed
+        ? "retry claimed"
+        : "no retry";
 
 /** A timeout beside the call it interrupted. */
 const timeoutCell = (timeout: LoggedIdleTimeout): string =>

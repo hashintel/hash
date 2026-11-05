@@ -136,6 +136,22 @@ test("an idle timeout whose turn is not among the calls is listed on its own", (
   );
 });
 
+test("an idle timeout whose line dropped its retry field says so rather than reporting no retry", () => {
+  const markdown = renderSubmissionDetail({
+    submissionId: "sub-1",
+    searched: "in the last 24h",
+    chronology,
+    idleTimeouts: [
+      { ...idleTimeout, retryClaimed: null },
+      { ...idleTimeout, turnId: "turn-2", retryClaimed: false },
+    ],
+    spans: null,
+  });
+
+  expect(markdown).toContain("request_dispatch idle 60 s, retry not logged");
+  expect(markdown).toContain("request_dispatch idle 60 s, no retry");
+});
+
 test("an unsettled submission says where its chronology was looked for", () => {
   const markdown = renderSubmissionDetail({
     submissionId: "sub-2",
