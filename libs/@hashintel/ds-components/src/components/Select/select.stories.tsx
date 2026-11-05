@@ -39,6 +39,34 @@ const sampleItems: Array<ItemOrGroup<SelectItem>> = [
   { value: "date", text: "Date" },
 ];
 
+const treeItems: Array<ItemOrGroup<SelectItem>> = [
+  {
+    value: "fruit",
+    text: "Fruit",
+    subItems: [
+      { value: "apple", text: "Apple" },
+      { value: "banana", text: "Banana" },
+      {
+        value: "berries",
+        text: "Berries",
+        subItems: [
+          { value: "strawberry", text: "Strawberry" },
+          { value: "blueberry", text: "Blueberry" },
+        ],
+      },
+    ],
+  },
+  {
+    value: "vegetables",
+    text: "Vegetables",
+    subItems: [
+      { value: "carrot", text: "Carrot" },
+      { value: "potato", text: "Potato" },
+    ],
+  },
+  { value: "water", text: "Water" },
+];
+
 const groupedItemsForRow = (label: string): Array<ItemOrGroup<SelectItem>> => [
   {
     id: "group-one",
@@ -297,6 +325,25 @@ export default meta;
 
 type Story = StoryObj<SingleSelectProps>;
 
+// A required select opts into clearing with `clearable`. It stays required:
+// once cleared it is empty, so this example passes `invalid` to show that.
+const RequiredClearableSelect = ({ size }: { size: FormInputSize }) => {
+  const [value, setValue] = useState<string | null | undefined>("apple");
+  return (
+    <Select
+      items={sampleItems}
+      size={size}
+      width="md"
+      required
+      clearable
+      invalid={value == null}
+      placeholder="Pick a fruit…"
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
 export const Default: Story = {
   render: (args: SingleSelectProps) => (
     <div className={sectionStyle}>
@@ -349,12 +396,49 @@ export const Default: Story = {
           </div>
         </div>
       ))}
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Required + clearable</h3>
+        <RequiredClearableSelect size="md" />
+      </div>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Collapsible options</h3>
+        <span style={subheadingStyle}>single</span>
+        <Controlled {...args} items={treeItems} placeholder="Pick a food…" />
+        <span style={subheadingStyle}>searchable</span>
+        <Controlled
+          {...args}
+          items={treeItems}
+          searchable
+          placeholder="Search foods…"
+        />
+      </div>
     </div>
   ),
 };
 
+const CollapsibleMultiDemo = () => {
+  const [value, setValue] = useState<string[]>([]);
+  return (
+    <Select
+      multiple
+      items={treeItems}
+      value={value}
+      onChange={setValue}
+      placeholder="Pick several foods…"
+    />
+  );
+};
+
 export const Multiple: StoryObj<MultiSelectProps> = {
-  render: (args: MultiSelectProps) => <MultipleDemo {...args} />,
+  render: (args: MultiSelectProps) => (
+    <div className={sectionStyle}>
+      <MultipleDemo {...args} />
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Collapsible options</h3>
+        <CollapsibleMultiDemo />
+      </div>
+    </div>
+  ),
 };
 
 export const Alignment: Story = {
@@ -690,41 +774,6 @@ export const Widths: Story = {
           ))}
         </div>
       ))}
-    </div>
-  ),
-};
-
-// A required select opts into clearing with `clearable`. It stays required:
-// once cleared it is empty, so this example passes `invalid` to show that.
-const RequiredClearableSelect = ({ size }: { size: FormInputSize }) => {
-  const [value, setValue] = useState<string | null | undefined>("apple");
-  return (
-    <Select
-      items={sampleItems}
-      size={size}
-      width="md"
-      required
-      clearable
-      invalid={value == null}
-      placeholder="Pick a fruit…"
-      value={value}
-      onChange={setValue}
-    />
-  );
-};
-
-export const RequiredClearable: Story = {
-  render: () => (
-    <div className={sectionStyle}>
-      <div className={groupStyle}>
-        <h3 style={headingStyle}>Required + clearable</h3>
-        {formInputSizes.map((size) => (
-          <Fragment key={size}>
-            <span style={subheadingStyle}>{size}</span>
-            <RequiredClearableSelect size={size} />
-          </Fragment>
-        ))}
-      </div>
     </div>
   ),
 };

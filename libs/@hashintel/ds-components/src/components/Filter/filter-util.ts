@@ -280,10 +280,27 @@ const selectItemsEqual = (
   if (typeof a === "function" || typeof b === "function") {
     return a === b;
   }
-  const valuesOf = (items: typeof a): string[] =>
-    items.flatMap((entry) =>
-      "items" in entry ? entry.items.map((item) => item.value) : [entry.value],
-    );
+  const valuesOf = (items: typeof a): string[] => {
+    const result: string[] = [];
+    const visit = (item: SelectItem | MultiSelectItem) => {
+      result.push(item.value);
+      if (item.subItems) {
+        for (const child of item.subItems) {
+          visit(child);
+        }
+      }
+    };
+    for (const entry of items) {
+      if ("items" in entry) {
+        for (const item of entry.items) {
+          visit(item);
+        }
+      } else {
+        visit(entry);
+      }
+    }
+    return result;
+  };
   const aValues = valuesOf(a);
   const bValues = valuesOf(b);
   return (

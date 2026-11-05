@@ -47,6 +47,34 @@ const sampleItems: Array<ItemOrGroup<ComboboxItem>> = [
   },
 ];
 
+const treeItems: Array<ItemOrGroup<ComboboxItem>> = [
+  {
+    value: "fruit",
+    text: "Fruit",
+    subItems: [
+      { value: "apple", text: "Apple" },
+      { value: "banana", text: "Banana" },
+      {
+        value: "berries",
+        text: "Berries",
+        subItems: [
+          { value: "strawberry", text: "Strawberry" },
+          { value: "blueberry", text: "Blueberry" },
+        ],
+      },
+    ],
+  },
+  {
+    value: "vegetables",
+    text: "Vegetables",
+    subItems: [
+      { value: "carrot", text: "Carrot" },
+      { value: "potato", text: "Potato" },
+    ],
+  },
+  { value: "water", text: "Water" },
+];
+
 const sampleItemText = (value: string): string => {
   for (const entry of sampleItems) {
     if ("items" in entry) {
@@ -253,6 +281,25 @@ export default meta;
 
 type Story = StoryObj;
 
+// A required combobox opts into clearing with `clearable`. It stays
+// required: once cleared it is empty, so this example passes `invalid` to
+// show that.
+const RequiredClearableCombobox = () => {
+  const [value, setValue] = useState<string | null | undefined>("apple");
+  return (
+    <Combobox
+      items={sampleItems}
+      renderItem={renderSampleItem}
+      required
+      clearable
+      invalid={value == null}
+      placeholder="Pick a fruit…"
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
 export const Default: Story = {
   render: (args: ControlArgs) => (
     <div className={sectionStyle}>
@@ -364,6 +411,21 @@ export const Default: Story = {
           <DialogExample {...args} />
         </div>
       </div>
+
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Required + clearable</h3>
+        <RequiredClearableCombobox />
+      </div>
+
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Collapsible options</h3>
+        <Controlled
+          {...args}
+          items={treeItems}
+          renderItem={undefined}
+          placeholder="Pick a food…"
+        />
+      </div>
     </div>
   ),
 };
@@ -423,34 +485,17 @@ export const Sizes: Story = {
   ),
 };
 
-// A required combobox opts into clearing with `clearable`. It stays
-// required: once cleared it is empty, so this example passes `invalid` to
-// show that.
-const RequiredClearableCombobox = () => {
-  const [value, setValue] = useState<string | null | undefined>("apple");
+const CollapsibleMultiDemo = () => {
+  const [value, setValue] = useState<string[]>([]);
   return (
     <Combobox
-      items={sampleItems}
-      renderItem={renderSampleItem}
-      required
-      clearable
-      invalid={value == null}
-      placeholder="Pick a fruit…"
+      multiple
+      items={treeItems}
       value={value}
-      onChange={setValue}
+      onChange={(next) => setValue(next)}
+      placeholder="Pick several foods…"
     />
   );
-};
-
-export const RequiredClearable: Story = {
-  render: () => (
-    <div className={sectionStyle}>
-      <div className={groupStyle}>
-        <h3 style={headingStyle}>Required + clearable</h3>
-        <RequiredClearableCombobox />
-      </div>
-    </div>
-  ),
 };
 
 export const Multiple: StoryObj<MultiComboboxProps> = {
@@ -463,5 +508,13 @@ export const Multiple: StoryObj<MultiComboboxProps> = {
     variant: "default",
     size: "md",
   },
-  render: (args: MultiComboboxProps) => <MultipleDemo {...args} />,
+  render: (args: MultiComboboxProps) => (
+    <div className={sectionStyle}>
+      <MultipleDemo {...args} />
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Collapsible options</h3>
+        <CollapsibleMultiDemo />
+      </div>
+    </div>
+  ),
 };

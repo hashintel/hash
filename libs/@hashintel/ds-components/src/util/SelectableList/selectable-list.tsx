@@ -14,23 +14,29 @@ import { isEmptyString } from "../string";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
 import {
+  type CollapsibleExpansion,
   type CustomItem,
   type Item,
   type ItemOrGroup,
+  collectCollapsibleIds,
   footerRowId,
   getItemId,
+  hasSelectedDescendant,
   headerRowId,
+  isCollapsibleItem,
   isCustomItem,
   isGroup,
+  loopSelectionKeyDown,
+  useCollapsibleExpansion,
+  useCollapsibleToggleKeyDown,
   useCustomRowNavigation,
   useItemsWithCustomIds,
-  useLoopSelection,
 } from "./selectable-list-util";
 import { contentPaddingPx, styles } from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../form-shared";
 
-export type { CustomItem, Item, ItemOrGroup };
+export type { CollapsibleExpansion, CustomItem, Item, ItemOrGroup };
 
 export type SelectableListAs = "Menu" | "Select" | "Combobox";
 
@@ -39,6 +45,9 @@ type RenderCtx = {
   size: FormInputSize;
   selectedSet: Set<string>;
   contentClassName: string | undefined;
+  expansion: CollapsibleExpansion;
+  /** Whether this list has collapsible rows, so every row keeps a chevron column */
+  hasCollapsibleRows: boolean;
 };
 
 const NestedMenuDepthContext = createContext(0);
@@ -64,8 +73,23 @@ const NestedMenu = ({
   const parentDepth = use(NestedMenuDepthContext);
   const depth = parentDepth + 1;
   const normalizedSubItems = useItemsWithCustomIds(subItems);
-  const handleLoopKeyDown = useLoopSelection(normalizedSubItems);
-  const handleCustomRowKeyDown = useCustomRowNavigation(normalizedSubItems);
+  // The submenu is its own list, with its own collapsible expansion state.
+  const expansion = useCollapsibleExpansion(
+    normalizedSubItems,
+    ctx.selectedSet,
+  );
+  const handleCustomRowKeyDown = useCustomRowNavigation(normalizedSubItems, {
+    expandedIds: expansion.expandedIds,
+  });
+  const handleCollapsibleKeyDown = useCollapsibleToggleKeyDown(
+    normalizedSubItems,
+    expansion,
+  );
+  const subCtx: RenderCtx = {
+    ...ctx,
+    expansion,
+    hasCollapsibleRows: collectCollapsibleIds(normalizedSubItems).size > 0,
+  };
 
   return (
     <Menu.Root
@@ -91,16 +115,19 @@ const NestedMenu = ({
                 style={{
                   zIndex: `calc(var(--z-index-popover) + ${depth})`,
                 }}
-                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+                onKeyDownCapture={(event) => loopSelectionKeyDown(event, menu)}
               >
                 <Menu.Content
                   className={cx(ctx.contentClassName, menuClassName)}
-                  onKeyDownCapture={(event) =>
-                    handleCustomRowKeyDown(event, menu)
-                  }
+                  onKeyDownCapture={(event) => {
+                    handleCollapsibleKeyDown(event, menu);
+                    handleCustomRowKeyDown(event, menu);
+                  }}
                 >
                   <NestedMenuDepthContext value={depth}>
-                    {normalizedSubItems.map((entry) => renderEntry(entry, ctx))}
+                    {normalizedSubItems.map((entry) =>
+                      renderEntry(entry, subCtx),
+                    )}
                   </NestedMenuDepthContext>
                 </Menu.Content>
               </Menu.Positioner>
@@ -153,6 +180,20 @@ const CustomRow = ({ item, ctx }: { item: CustomItem; ctx: RenderCtx }) => {
   );
 };
 
+/** Returns the entry with its (non-custom) items indented by `steps` more. */
+const indentEntry = (
+  entry: ItemOrGroup<Item>,
+  steps: number,
+): ItemOrGroup<Item> => {
+  const indentItem = (child: Item): Item =>
+    isCustomItem(child)
+      ? child
+      : { ...child, indent: (child.indent ?? 0) + steps };
+  return isGroup(entry)
+    ? { ...entry, items: entry.items.map(indentItem) }
+    : indentItem(entry);
+};
+
 const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   if (isCustomItem(item)) {
     return <CustomRow item={item} ctx={ctx} />;
@@ -161,6 +202,11 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const itemId = getItemId(item);
   const isSelected = ctx.selectedSet.has(itemId);
   const isInteractive = !item.disabled && !item.loading;
+  const collapsible = isCollapsibleItem(item);
+  const expanded = collapsible && ctx.expansion.expandedIds.has(itemId);
+  // A collapsed row badges its chevron while a selected item hides inside.
+  const containsSelection =
+    collapsible && !expanded && hasSelectedDescendant(item, ctx.selectedSet);
 
   const classes = itemStyles({
     // A Combobox list is styled like a Select list.
@@ -170,6 +216,8 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     selectedTone: item.selectedTone ?? item.tone,
     selectedStyle: item.selectedStyle ?? "highlight",
     selected: isSelected,
+    expanded,
+    containsSelection,
   });
 
   const body = (
@@ -178,32 +226,88 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
       size={ctx.size}
       isSelected={isSelected}
       classes={classes}
+      expanded={expanded}
+      containsSelection={containsSelection}
+      onToggleExpansion={
+        collapsible ? () => ctx.expansion.onToggle(itemId) : undefined
+      }
+      reserveChevron={ctx.hasCollapsibleRows}
     />
   );
 
+  // An expanded collapsible item's subItems render as rows of this same
+  // list, each indented one step past the parent.
+  const revealedSubItems =
+    collapsible && expanded
+      ? item.subItems.map((entry) =>
+          renderEntry(indentEntry(entry, (item.indent ?? 0) + 1), ctx),
+        )
+      : null;
+
   if (ctx.as === "Select") {
     return (
-      <Select.Item
-        item={item}
-        className={classes.item}
-        data-selected={isSelected || undefined}
-        data-loading={(item.loading && !item.disabled) || undefined}
-      >
-        {body}
-      </Select.Item>
+      <>
+        <Select.Item
+          item={item}
+          className={classes.item}
+          aria-expanded={collapsible ? expanded : undefined}
+          data-selected={isSelected || undefined}
+          data-loading={(item.loading && !item.disabled) || undefined}
+        >
+          {body}
+        </Select.Item>
+        {revealedSubItems}
+      </>
     );
   }
 
   if (ctx.as === "Combobox") {
     return (
-      <Combobox.Item
-        item={item}
-        className={classes.item}
-        data-selected={isSelected || undefined}
-        data-loading={(item.loading && !item.disabled) || undefined}
-      >
-        {body}
-      </Combobox.Item>
+      <>
+        <Combobox.Item
+          item={item}
+          className={classes.item}
+          aria-expanded={collapsible ? expanded : undefined}
+          data-selected={isSelected || undefined}
+          data-loading={(item.loading && !item.disabled) || undefined}
+        >
+          {body}
+        </Combobox.Item>
+        {revealedSubItems}
+      </>
+    );
+  }
+
+  if (collapsible) {
+    const activates = item.onClick !== undefined;
+    return (
+      <>
+        <Menu.Item
+          value={itemId}
+          disabled={!isInteractive}
+          closeOnSelect={
+            activates
+              ? item.keepOpenOnSelect !== undefined
+                ? !item.keepOpenOnSelect
+                : undefined
+              : false
+          }
+          onSelect={() => {
+            if (item.onClick) {
+              item.onClick(itemId);
+            } else {
+              ctx.expansion.onToggle(itemId);
+            }
+          }}
+          className={classes.item}
+          aria-expanded={expanded}
+          data-selected={isSelected || undefined}
+          data-loading={(item.loading && !item.disabled) || undefined}
+        >
+          {body}
+        </Menu.Item>
+        {revealedSubItems}
+      </>
     );
   }
 
@@ -359,6 +463,7 @@ export const SelectableList = ({
   footer,
   swapHeaderFooterOnFlip = false,
   highlightNavigated = false,
+  expansion: expansionProp,
 }: {
   /** Which ark-ui primitive set to render inside. Defaults to Menu. */
   as?: SelectableListAs;
@@ -383,15 +488,36 @@ export const SelectableList = ({
    */
   swapHeaderFooterOnFlip?: boolean;
   highlightNavigated?: boolean;
+  /**
+   * Expansion state for `collapsible` items. Omit to let the list manage
+   * expansion internally; pass it when the consumer needs the set of visible
+   * rows itself (e.g. to build an ark collection) — see
+   * `useCollapsibleExpansion`.
+   */
+  expansion?: CollapsibleExpansion;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
   const normalizedItems = useItemsWithCustomIds(items);
+  const internalExpansion = useCollapsibleExpansion(
+    normalizedItems,
+    selectedSet,
+  );
+  const expansion = expansionProp ?? internalExpansion;
+  const hasCollapsibleRows = useMemo(
+    () => collectCollapsibleIds(normalizedItems).size > 0,
+    [normalizedItems],
+  );
   const hasHeader = header !== undefined && header !== null;
   const hasFooter = footer !== undefined && footer !== null;
   const handleCustomRowKeyDown = useCustomRowNavigation(normalizedItems, {
     hasHeader,
     hasFooter,
+    expandedIds: expansion.expandedIds,
   });
+  const handleCollapsibleKeyDown = useCollapsibleToggleKeyDown(
+    normalizedItems,
+    expansion,
+  );
   const classes = styles({
     size,
     component: as === "Menu" ? "menu" : "select",
@@ -424,6 +550,8 @@ export const SelectableList = ({
     size,
     selectedSet,
     contentClassName: classes.content,
+    expansion,
+    hasCollapsibleRows,
   };
 
   const listBody = isEmpty ? (
@@ -502,7 +630,10 @@ export const SelectableList = ({
         <Menu.Content
           className={cx(classes.content, className)}
           data-highlight-navigated={navigatedAttr}
-          onKeyDownCapture={(event) => handleCustomRowKeyDown(event, menu)}
+          onKeyDownCapture={(event) => {
+            handleCollapsibleKeyDown(event, menu);
+            handleCustomRowKeyDown(event, menu);
+          }}
         >
           {body}
         </Menu.Content>

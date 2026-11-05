@@ -1,5 +1,5 @@
 import { getTabbables, isTabbable } from "@zag-js/dom-query";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { type IconName } from "../../components/Icon/icon";
 import { type Tone } from "../form-shared";
@@ -25,7 +25,7 @@ type ItemBase = {
   /** `error` marks destructive actions */
   tone?: Exclude<Tone, "warning" | "success">;
   /** How a selected item is shown */
-  selectedStyle?: "tick" | "checkbox" | "highlight";
+  selectedStyle?: "tick" | "checkbox" | "highlight" | "radio";
   /** Tone of the selected indicator, when it differs from `tone` */
   selectedTone?: Exclude<Tone, "warning" | "success">;
   /** Keeps the menu open when this item is selected */
@@ -36,15 +36,15 @@ type ItemBase = {
 // omit `id`. For any non-string `text` (e.g. JSX) an explicit `id` is required.
 type ItemTextAndId =
   | {
-      /** Identifies the item, e.g. in `onClick` — required when `text` is not a plain string */
+      /** Identifies the item, e.g. in `onClick`. Required when `text` is not a plain string; a plain-string `text` doubles as the id. */
       id: string;
-      /** The row's label */
+      /** The row's label. A plain string doubles as the item's `id`. */
       text: React.ReactNode;
     }
   | {
-      /** Identifies the item, e.g. in `onClick` — a plain-string `text` doubles as the id */
+      /** Identifies the item, e.g. in `onClick`. Required when `text` is not a plain string; a plain-string `text` doubles as the id. */
       id?: string;
-      /** The row's label; a plain string doubles as the item's `id` */
+      /** The row's label. A plain string doubles as the item's `id`. */
       text: string;
     };
 
@@ -70,6 +70,16 @@ type StandardItem = ItemBase &
          */
         menuClassName?: string;
       }
+    | {
+        /** Whether the item is an expandable row that reveals `subItems` inline, indented beneath it like a folder tree. Its chevron button (and ArrowRight/ArrowLeft while highlighted) toggles it; activating the row fires `onClick`, or toggles when there is no `onClick`. */
+        collapsible: true;
+        /** The entries revealed inline beneath this item while it is expanded */
+        subItems: Array<ItemOrGroup<Item>>;
+        /** Whether the item starts out expanded */
+        defaultExpanded?: boolean;
+        /** Called with the item's `id` when it is activated */
+        onClick?: (id: string) => void;
+      }
   >;
 
 /**
@@ -88,8 +98,25 @@ export type Item = (StandardItem & { custom?: never }) | CustomItem;
 export const isCustomItem = (item: Item): item is CustomItem =>
   "custom" in item;
 
+export type CollapsibleItem = Item & {
+  collapsible: true;
+  subItems: Array<ItemOrGroup<Item>>;
+};
+
+export const isCollapsibleItem = (item: Item): item is CollapsibleItem =>
+  !isCustomItem(item) && item.collapsible === true;
+
 export const getItemId = (item: Item): string =>
   item.id ?? (typeof item.text === "string" ? item.text : "");
+
+export interface CollapsibleFolder<TChild> {
+  /** Nested options that sit beneath this item in a collapsible sub-folder. The item itself remains selectable, and a chevron button is added to toggle revealing sub-items */
+  subItems: ReadonlyArray<TChild>;
+}
+
+export type NotCollapsible = {
+  subItems?: never;
+};
 
 export type ItemOrGroup<ItemType> =
   | ItemType
@@ -103,6 +130,314 @@ export const isGroup = (
   entry: ItemOrGroup<Item>,
 ): entry is Extract<ItemOrGroup<Item>, { items: Item[] }> => "items" in entry;
 
+/** Expansion state of a list's `collapsible` items. */
+export type CollapsibleExpansion = {
+  /** The ids of the collapsible items whose subItems are currently revealed. */
+  expandedIds: ReadonlySet<string>;
+  /** Flips the given collapsible item between expanded and collapsed. */
+  onToggle: (id: string) => void;
+  /**
+   * Marks the given collapsible items expanded — dropdowns reveal the
+   * selection's collapsed ancestors on open with it. Optional: derived
+   * wrappers (e.g. the searching override) omit it.
+   */
+  expand?: (ids: ReadonlySet<string>) => void;
+};
+
+/**
+ * The ids of the collapsible items with a selected item somewhere beneath
+ * them — the set to expand so every selection is visible.
+ */
+export const collectSelectedAncestorIds = (
+  items: Array<ItemOrGroup<Item>>,
+  selected: ReadonlySet<string>,
+): ReadonlySet<string> => {
+  const result = new Set<string>();
+  if (selected.size === 0) {
+    return result;
+  }
+  // Returns whether the entry or any descendant is selected, collecting the
+  // collapsible items along the way.
+  const visitEntry = (entry: ItemOrGroup<Item>): boolean => {
+    if (isGroup(entry)) {
+      let containsSelected = false;
+      for (const item of entry.items) {
+        containsSelected = visitEntry(item) || containsSelected;
+      }
+      return containsSelected;
+    }
+    if (isCustomItem(entry)) {
+      return false;
+    }
+    let descendantSelected = false;
+    for (const child of entry.subItems ?? []) {
+      descendantSelected = visitEntry(child) || descendantSelected;
+    }
+    if (descendantSelected && isCollapsibleItem(entry)) {
+      result.add(getItemId(entry));
+    }
+    return descendantSelected || selected.has(getItemId(entry));
+  };
+  for (const entry of items) {
+    visitEntry(entry);
+  }
+  return result;
+};
+
+/** Collects every collapsible item id in the tree, expanded or not. */
+export const collectCollapsibleIds = (
+  items: Array<ItemOrGroup<Item>>,
+): ReadonlySet<string> => {
+  const result = new Set<string>();
+  const visitEntry = (entry: ItemOrGroup<Item>) => {
+    if (isGroup(entry)) {
+      for (const item of entry.items) {
+        visitEntry(item);
+      }
+      return;
+    }
+    if (isCollapsibleItem(entry)) {
+      result.add(getItemId(entry));
+      for (const child of entry.subItems) {
+        visitEntry(child);
+      }
+    }
+  };
+  for (const entry of items) {
+    visitEntry(entry);
+  }
+  return result;
+};
+
+/**
+ * Expansion state for a tree of items with `collapsible` entries. Expansion
+ * is uncontrolled: each item starts at its `defaultExpanded` and user toggles
+ * are tracked on top, so items that appear later (e.g. async loads) still
+ * honour their default. Pass `revealSelected` to also start the collapsed
+ * ancestors of the selected items expanded, so the selection is visible right
+ * away — decided per folder when it first appears, covering options that
+ * arrive while the list is already showing; dropdown consumers additionally
+ * re-reveal on every open via the returned `expand`.
+ *
+ * `SelectableList` manages this internally; consumers that need the set of
+ * visible rows themselves (e.g. to build an ark collection) call it and pass
+ * the result on via the list's `expansion` prop.
+ */
+export const useCollapsibleExpansion = (
+  items: Array<ItemOrGroup<Item>>,
+  revealSelected?: ReadonlySet<string>,
+): CollapsibleExpansion => {
+  const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(
+    () => new Map(),
+  );
+  const collapsibleIds = useMemo(() => collectCollapsibleIds(items), [items]);
+  // Reveal is decided per folder when it first appears — at mount, or later
+  // for options that arrive while the list is already showing (async loads):
+  // a newcomer starts expanded when the selection hides beneath it. Folders
+  // already seen are left alone: later selection changes must not expand
+  // (or worse, re-collapse) them behind the user's back.
+  const [reveal, setReveal] = useState<{
+    seenIds: ReadonlySet<string>;
+    revealedIds: ReadonlySet<string>;
+  }>(() => ({
+    seenIds: collapsibleIds,
+    revealedIds:
+      revealSelected === undefined
+        ? new Set()
+        : collectSelectedAncestorIds(items, revealSelected),
+  }));
+  if ([...collapsibleIds].some((id) => !reveal.seenIds.has(id))) {
+    const revealedIds = new Set(reveal.revealedIds);
+    if (revealSelected !== undefined) {
+      for (const id of collectSelectedAncestorIds(items, revealSelected)) {
+        if (!reveal.seenIds.has(id)) {
+          revealedIds.add(id);
+        }
+      }
+    }
+    setReveal({
+      seenIds: new Set([...reveal.seenIds, ...collapsibleIds]),
+      revealedIds,
+    });
+  }
+  const defaults = useMemo(() => {
+    const result = new Map<string, boolean>();
+    const visitEntry = (entry: ItemOrGroup<Item>) => {
+      if (isGroup(entry)) {
+        for (const item of entry.items) {
+          visitEntry(item);
+        }
+        return;
+      }
+      if (isCollapsibleItem(entry)) {
+        const id = getItemId(entry);
+        result.set(
+          id,
+          (entry.defaultExpanded ?? false) || reveal.revealedIds.has(id),
+        );
+        for (const child of entry.subItems) {
+          visitEntry(child);
+        }
+      }
+    };
+    for (const entry of items) {
+      visitEntry(entry);
+    }
+    return result;
+  }, [items, reveal.revealedIds]);
+  const expandedIds = useMemo(() => {
+    const result = new Set<string>();
+    for (const [id, defaultExpanded] of defaults) {
+      if (toggled.get(id) ?? defaultExpanded) {
+        result.add(id);
+      }
+    }
+    return result;
+  }, [defaults, toggled]);
+  const onToggle = useCallback(
+    (id: string) => {
+      setToggled((previous) => {
+        const next = new Map(previous);
+        next.set(id, !(previous.get(id) ?? defaults.get(id) ?? false));
+        return next;
+      });
+    },
+    [defaults],
+  );
+  const expand = useCallback(
+    (ids: ReadonlySet<string>) => {
+      if (ids.size === 0) {
+        return;
+      }
+      setToggled((previous) => {
+        const collapsed = [...ids].filter(
+          (id) => !(previous.get(id) ?? defaults.get(id) ?? false),
+        );
+        if (collapsed.length === 0) {
+          return previous;
+        }
+        const next = new Map(previous);
+        for (const id of collapsed) {
+          next.set(id, true);
+        }
+        return next;
+      });
+    },
+    [defaults],
+  );
+  return useMemo(
+    () => ({ expandedIds, onToggle, expand }),
+    [expandedIds, onToggle, expand],
+  );
+};
+
+/**
+ * Whether any item nested under a collapsible item — at any depth, through
+ * groups, nested collapsibles and submenus — is selected. Backs the badge a
+ * collapsed row shows so hidden selections stay discoverable.
+ */
+export const hasSelectedDescendant = (
+  item: CollapsibleItem,
+  selected: ReadonlySet<string>,
+): boolean => {
+  const visitEntry = (entry: ItemOrGroup<Item>): boolean => {
+    if (isGroup(entry)) {
+      return entry.items.some(visitEntry);
+    }
+    if (isCustomItem(entry)) {
+      return false;
+    }
+    if (selected.has(getItemId(entry))) {
+      return true;
+    }
+    return entry.subItems?.some(visitEntry) ?? false;
+  };
+  return item.subItems.some(visitEntry);
+};
+
+/**
+ * Returns a keydown-capture handler for a menu's `Content` that lets
+ * ArrowRight expand and ArrowLeft collapse the highlighted collapsible row.
+ * Row activation (Enter, click) is selection, so the keyboard's toggle lives
+ * on the horizontal arrows, mirroring tree views.
+ */
+export const useCollapsibleToggleKeyDown = (
+  items: Array<ItemOrGroup<Item>>,
+  expansion: CollapsibleExpansion,
+) => {
+  const collapsibleIds = useMemo(() => collectCollapsibleIds(items), [items]);
+
+  return (event: React.KeyboardEvent, menu: UseMenuContext) => {
+    if (
+      (event.key !== "ArrowRight" && event.key !== "ArrowLeft") ||
+      hasCaretModifier(event)
+    ) {
+      return;
+    }
+    // Nested submenus portal outside this content; custom rows (e.g. a
+    // search field) own their horizontal arrows for the caret.
+    const { currentTarget, target } = event;
+    if (
+      !(currentTarget instanceof Node) ||
+      !(target instanceof Node) ||
+      !currentTarget.contains(target)
+    ) {
+      return;
+    }
+    if (
+      target instanceof Element &&
+      target.closest("[data-selectable-list-custom]")
+    ) {
+      return;
+    }
+    const highlighted = menu.highlightedValue;
+    if (highlighted === null || !collapsibleIds.has(highlighted)) {
+      return;
+    }
+    const isExpanded = expansion.expandedIds.has(highlighted);
+    if (event.key === "ArrowRight" ? isExpanded : !isExpanded) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    expansion.onToggle(highlighted);
+  };
+};
+
+/**
+ * Flattens an items-or-groups tree into the ordered list of selectable rows
+ * the list currently renders: group members are inlined, custom rows are
+ * dropped, and a collapsible item contributes itself plus — while expanded —
+ * its subItems. The backing list for an ark collection.
+ */
+export const flattenVisibleItems = (
+  items: Array<ItemOrGroup<Item>>,
+  expandedIds: ReadonlySet<string>,
+): Item[] => {
+  const result: Item[] = [];
+  const visitEntry = (entry: ItemOrGroup<Item>) => {
+    if (isGroup(entry)) {
+      for (const item of entry.items) {
+        visitEntry(item);
+      }
+      return;
+    }
+    if (isCustomItem(entry)) {
+      return;
+    }
+    result.push(entry);
+    if (isCollapsibleItem(entry) && expandedIds.has(getItemId(entry))) {
+      for (const child of entry.subItems) {
+        visitEntry(child);
+      }
+    }
+  };
+  for (const entry of items) {
+    visitEntry(entry);
+  }
+  return result;
+};
+
 /** Prefix of ids assigned internally to custom items declared without one. */
 const internalCustomIdPrefix = "__custom-";
 
@@ -114,16 +449,51 @@ export const useItemsWithCustomIds = (
   items: Array<ItemOrGroup<Item>>,
 ): Array<ItemOrGroup<Item>> =>
   useMemo(() => {
-    const orderedCustomItems = items
-      .flatMap((entry) => (isGroup(entry) ? entry.items : [entry]))
-      .filter(isCustomItem);
-    const visitItem = (item: Item): Item =>
-      isCustomItem(item) && item.id === undefined
-        ? {
-            ...item,
-            id: `${internalCustomIdPrefix}${orderedCustomItems.indexOf(item)}`,
-          }
-        : item;
+    // Collapsible subtrees render in this same list, so their custom rows
+    // take part in the id assignment; submenu subItems are normalized by
+    // their own `NestedMenu` instead.
+    const orderedCustomItems: CustomItem[] = [];
+    const collect = (entry: ItemOrGroup<Item>) => {
+      if (isGroup(entry)) {
+        for (const item of entry.items) {
+          collect(item);
+        }
+        return;
+      }
+      if (isCustomItem(entry)) {
+        orderedCustomItems.push(entry);
+        return;
+      }
+      if (isCollapsibleItem(entry)) {
+        for (const child of entry.subItems) {
+          collect(child);
+        }
+      }
+    };
+    for (const entry of items) {
+      collect(entry);
+    }
+    const visitItem = (item: Item): Item => {
+      if (isCustomItem(item)) {
+        return item.id === undefined
+          ? {
+              ...item,
+              id: `${internalCustomIdPrefix}${orderedCustomItems.indexOf(item)}`,
+            }
+          : item;
+      }
+      if (isCollapsibleItem(item)) {
+        return {
+          ...item,
+          subItems: item.subItems.map((entry) =>
+            isGroup(entry)
+              ? { ...entry, items: entry.items.map(visitItem) }
+              : visitItem(entry),
+          ),
+        };
+      }
+      return item;
+    };
     return items.map((entry) =>
       isGroup(entry)
         ? { ...entry, items: entry.items.map(visitItem) }
@@ -177,13 +547,27 @@ type NavPosition = { kind: "item" | "custom"; id: string };
 /** Flattens items into the ordered rows keyboard interaction can land on. */
 const collectNavPositions = (
   items: Array<ItemOrGroup<Item>>,
+  expandedIds: ReadonlySet<string>,
 ): NavPosition[] => {
   const result: NavPosition[] = [];
   const visit = (item: Item) => {
     if (isCustomItem(item)) {
       result.push({ kind: "custom", id: getItemId(item) });
-    } else if (!item.disabled && !item.loading) {
+      return;
+    }
+    if (!item.disabled && !item.loading) {
       result.push({ kind: "item", id: getItemId(item) });
+    }
+    if (isCollapsibleItem(item) && expandedIds.has(getItemId(item))) {
+      for (const entry of item.subItems) {
+        if (isGroup(entry)) {
+          for (const child of entry.items) {
+            visit(child);
+          }
+        } else {
+          visit(entry);
+        }
+      }
     }
   };
   for (const entry of items) {
@@ -233,14 +617,22 @@ type TabStop =
  * A header/footer rendered by the list (marked with `headerRowId` /
  * `footerRowId`) participates as a custom row at the corresponding edge.
  */
+const noExpandedIds: ReadonlySet<string> = new Set();
+
 export const useCustomRowNavigation = (
   items: Array<ItemOrGroup<Item>>,
-  edges?: { hasHeader?: boolean; hasFooter?: boolean },
+  options?: {
+    hasHeader?: boolean;
+    hasFooter?: boolean;
+    /** The currently revealed collapsible items, whose subItems are rows too */
+    expandedIds?: ReadonlySet<string>;
+  },
 ) => {
-  const hasHeader = edges?.hasHeader ?? false;
-  const hasFooter = edges?.hasFooter ?? false;
+  const hasHeader = options?.hasHeader ?? false;
+  const hasFooter = options?.hasFooter ?? false;
+  const expandedIds = options?.expandedIds ?? noExpandedIds;
   const positions = useMemo(() => {
-    const rows = collectNavPositions(items);
+    const rows = collectNavPositions(items, expandedIds);
     if (hasHeader) {
       rows.unshift({ kind: "custom", id: headerRowId });
     }
@@ -248,7 +640,7 @@ export const useCustomRowNavigation = (
       rows.push({ kind: "custom", id: footerRowId });
     }
     return rows;
-  }, [items, hasHeader, hasFooter]);
+  }, [items, hasHeader, hasFooter, expandedIds]);
 
   return (event: React.KeyboardEvent, menu: UseMenuContext) => {
     const content = event.currentTarget;
@@ -460,34 +852,8 @@ export const useCustomRowNavigation = (
 };
 
 /**
- * Flattens an items-or-groups tree into the ordered list of ids that are
- * actually navigable via keyboard (skipping disabled or loading items, which
- * `ItemRow` renders as non-interactive).
- */
-export const collectNavigableItemIds = (
-  items: Array<ItemOrGroup<Item>>,
-): string[] => {
-  const result: string[] = [];
-  const isNavigable = (item: Item) =>
-    !isCustomItem(item) && !item.disabled && !item.loading;
-  for (const entry of items) {
-    if (isGroup(entry)) {
-      for (const item of entry.items) {
-        if (isNavigable(item)) {
-          result.push(getItemId(item));
-        }
-      }
-    } else if (isNavigable(entry)) {
-      result.push(getItemId(entry));
-    }
-  }
-  return result;
-};
-
-/**
- * Returns a keydown-capture handler that adds "discrete press to wrap,
- * held-key pauses at the boundary" semantics to an ark-ui Menu. Use with
- * `loopFocus={false}`:
+ * Keydown-capture handler that adds "discrete press to wrap, held-key pauses
+ * at the boundary" semantics to an ark-ui Menu. Use with `loopFocus={false}`:
  *
  * - A discrete `ArrowDown` while the last item is highlighted (or
  *   `ArrowUp` at the top) wraps to the opposite end via
@@ -495,61 +861,71 @@ export const collectNavigableItemIds = (
  * - A held-key auto-repeat at the boundary is blocked, so the menu stops
  *   wrapping while the user is still holding the key down.
  *
- * Wire the returned handler to `onKeyDownCapture` on an element above
- * `Menu.Content` in the React tree (e.g. `Menu.Positioner`), passing the
- * `menu` API from `Menu.Context`.
+ * The boundary items are read from the DOM at event time — the same
+ * `[role^="menuitem"]` walk the menu machine's own arrow navigation uses —
+ * so rows revealed or hidden dynamically (expanded collapsible children,
+ * filtered lists) are always accounted for.
+ *
+ * Wire it to `onKeyDownCapture` on an element above `Menu.Content` in the
+ * React tree (e.g. `Menu.Positioner`), passing the `menu` API from
+ * `Menu.Context`.
  */
-export const useLoopSelection = (items: Array<ItemOrGroup<Item>>) => {
-  const navigableIds = useMemo(() => collectNavigableItemIds(items), [items]);
-  const firstId = navigableIds[0];
-  const lastId = navigableIds[navigableIds.length - 1];
+export const loopSelectionKeyDown = (
+  event: React.KeyboardEvent,
+  menu: UseMenuContext,
+) => {
+  const isDown = event.key === "ArrowDown";
+  const isUp = event.key === "ArrowUp";
+  // Cmd+Down means "jump to end", not "wrap to top".
+  if ((!isDown && !isUp) || hasCommandModifier(event)) {
+    return;
+  }
 
-  return (event: React.KeyboardEvent, menu: UseMenuContext) => {
-    const isDown = event.key === "ArrowDown";
-    const isUp = event.key === "ArrowUp";
-    // Cmd+Down means "jump to end", not "wrap to top".
-    if ((!isDown && !isUp) || hasCommandModifier(event)) {
-      return;
+  // Nested submenus portal to body but remain React descendants, so their
+  // key events bubble through capture on this handler. DOM containment lets
+  // us ignore those — only events from inside this menu's positioner apply.
+  const { currentTarget, target } = event;
+  if (
+    !(currentTarget instanceof Element) ||
+    !(target instanceof Node) ||
+    !currentTarget.contains(target)
+  ) {
+    return;
+  }
+
+  // Keys originating inside a custom row are handled by
+  // useCustomRowNavigation on the content; skip them here so boundary
+  // wrapping doesn't fire before that handler runs.
+  if (
+    target instanceof Element &&
+    target.closest("[data-selectable-list-custom]")
+  ) {
+    return;
+  }
+
+  // A nested submenu's own positioner portals outside this one, so this
+  // query only sees the rows of this menu's content.
+  const rows = currentTarget.querySelectorAll(
+    '[role^="menuitem"]:not([data-disabled])',
+  );
+  const firstId = rows[0]?.getAttribute("data-value") ?? undefined;
+  const lastId = rows[rows.length - 1]?.getAttribute("data-value") ?? undefined;
+
+  const current = menu.highlightedValue;
+  const atBottom = lastId !== undefined && current === lastId;
+  const atTop = firstId !== undefined && current === firstId;
+
+  if (isDown && atBottom) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.repeat && firstId !== undefined) {
+      menu.setHighlightedValue(firstId);
     }
-
-    // Nested submenus portal to body but remain React descendants, so their
-    // key events bubble through capture on this handler. DOM containment lets
-    // us ignore those — only events from inside this menu's positioner apply.
-    const { currentTarget, target } = event;
-    if (
-      !(currentTarget instanceof Node) ||
-      !(target instanceof Node) ||
-      !currentTarget.contains(target)
-    ) {
-      return;
+  } else if (isUp && atTop) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.repeat && lastId !== undefined) {
+      menu.setHighlightedValue(lastId);
     }
-
-    // Keys originating inside a custom row are handled by
-    // useCustomRowNavigation on the content; skip them here so boundary
-    // wrapping doesn't fire before that handler runs.
-    if (
-      target instanceof Element &&
-      target.closest("[data-selectable-list-custom]")
-    ) {
-      return;
-    }
-
-    const current = menu.highlightedValue;
-    const atBottom = lastId !== undefined && current === lastId;
-    const atTop = firstId !== undefined && current === firstId;
-
-    if (isDown && atBottom) {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!event.repeat && firstId !== undefined) {
-        menu.setHighlightedValue(firstId);
-      }
-    } else if (isUp && atTop) {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!event.repeat && lastId !== undefined) {
-        menu.setHighlightedValue(lastId);
-      }
-    }
-  };
+  }
 };

@@ -367,6 +367,59 @@ const KitchenSinkState = ({
   </>
 );
 
+type CollapsibleSelectValues = {
+  locatedIn: string;
+};
+
+const regionItems: Array<ItemOrGroup<SelectItem<string>>> = [
+  {
+    value: "europe",
+    text: "Europe",
+    subItems: [
+      { value: "berlin", text: "Berlin" },
+      { value: "london", text: "London" },
+    ],
+  },
+  {
+    value: "americas",
+    text: "Americas",
+    subItems: [
+      { value: "nyc", text: "New York" },
+      { value: "sao-paulo", text: "São Paulo" },
+    ],
+  },
+  { value: "remote", text: "Remote" },
+];
+
+/** Collapsible options in a select input: region folders reveal cities. */
+const CollapsibleSelectDemo = (filterProps: FilterArgs) => {
+  const [value, setValue] =
+    useState<FilterValue<CollapsibleSelectValues> | null>({
+      key: "locatedIn",
+      value: "berlin",
+    });
+  return (
+    <Filter<CollapsibleSelectValues>
+      {...filterProps}
+      property="location"
+      propertyLabel="Location"
+      operators={[
+        {
+          key: "locatedIn",
+          label: "is in",
+          input: { type: "select", items: regionItems },
+        },
+      ]}
+      value={value}
+      onChange={(...change: FilterChange<CollapsibleSelectValues>) => {
+        const [key, nextValue] = change;
+        setValue({ key, value: nextValue });
+      }}
+      removeable={{ onRemove: noop }}
+    />
+  );
+};
+
 const switchableProperties = [
   { id: "name", label: "Name" },
   { id: "age", label: "Age" },
@@ -640,6 +693,11 @@ export const Selects: Story = {
         value={{ key: "is", value: "done" }}
         disabled
       />
+      <span style={stateLabelStyle}>
+        collapsible options — region folders reveal cities, the selection's
+        ancestors open with the dropdown
+      </span>
+      <CollapsibleSelectDemo {...args} />
     </div>
   ),
 };
