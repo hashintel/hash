@@ -11,6 +11,25 @@ const ruleColor = /^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/;
 const colorId = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/;
 const monacoBases = ["vs", "vs-dark", "hc-black", "hc-light"];
 
+/** WCAG 2 relative luminance of a `#RRGGBB` or `RRGGBB` colour. */
+const luminance = (hex: string) => {
+  const digits = hex.replace("#", "");
+  const [red = 0, green = 0, blue = 0] = [0, 2, 4].map((offset) => {
+    const channel = parseInt(digits.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+};
+
+const contrastRatio = (first: string, second: string) => {
+  const [lighter = 0, darker = 0] = [luminance(first), luminance(second)].sort(
+    (left, right) => right - left,
+  );
+  return (lighter + 0.05) / (darker + 0.05);
+};
+
 describe("codeEditorThemes", () => {
   it("lists the default theme first", () => {
     expect(codeEditorThemes[0]?.id).toBe(defaultCodeEditorThemeId);
@@ -44,10 +63,21 @@ describe("codeEditorThemes", () => {
     }
   });
 
-  it("keeps Kay Day's editor surface white, like Petrinaut's light chrome", () => {
-    const kayDay = codeEditorThemes.find((theme) => theme.id === "kay-day");
-    expect(kayDay?.colors["editor.background"]).toBe("#ffffff");
-    expect(kayDay?.colors["editorGutter.background"]).toBe("#ffffff");
+  it("gives every token colour 4.5:1 contrast on the theme's own surface", () => {
+    for (const theme of codeEditorThemes) {
+      const surface = theme.colors["editor.background"];
+      if (surface === undefined) {
+        continue;
+      }
+      for (const rule of theme.rules) {
+        if (rule.foreground !== undefined) {
+          expect(
+            contrastRatio(rule.foreground, surface),
+            `${theme.id} ${rule.token}`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
   });
 
   it("keeps a saved theme that still exists and falls back otherwise", () => {

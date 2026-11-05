@@ -35,4 +35,4 @@ The Properties Panel and Definitions show the same saved code. Switching between
 
 ## Theme
 
-Every code editor shares one theme. Choose it under **User settings › General › Code editor**: **Petrinaut Light** (the default), **Kay Day** or **Kay Night**. Open editors change immediately, and the choice is saved with your other [preferences](visual-settings.md#code-editor-theme).
+Every code editor shares one theme. Choose it under **User settings › General › Code editor**: **Petrinaut Light** (the default) or **HASH Light**. Open editors change immediately, and the choice is saved with your other [preferences](visual-settings.md#code-editor-theme).

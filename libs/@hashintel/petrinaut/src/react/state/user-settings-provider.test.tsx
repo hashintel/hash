@@ -183,7 +183,7 @@ describe("UserSettingsProvider", () => {
     const ThemeProbe = () => {
       const { codeEditorTheme, setCodeEditorTheme } = use(UserSettingsContext);
       return (
-        <button type="button" onClick={() => setCodeEditorTheme("kay-night")}>
+        <button type="button" onClick={() => setCodeEditorTheme("hash-light")}>
           {codeEditorTheme}
         </button>
       );
@@ -195,9 +195,9 @@ describe("UserSettingsProvider", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "petrinaut-light" }));
-    expect(screen.getByRole("button", { name: "kay-night" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "hash-light" })).toBeTruthy();
     expect(JSON.parse(localStorage.getItem(storageKey) ?? "{}")).toMatchObject({
-      codeEditorTheme: "kay-night",
+      codeEditorTheme: "hash-light",
       compactNodes: true,
     });
   });

@@ -38,7 +38,7 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 
 ### Code editor theme
 
-Choose the colours of every [code editor](code-editor.md) in Petrinaut. **Petrinaut Light** is the default. **Kay Day** and **Kay Night** are the light and dark faces of the Kay palette: slate text, indigo keywords, cyan strings and sky-blue types. The change applies to open editors immediately and is saved with your other preferences.
+Choose the colours of every [code editor](code-editor.md) in Petrinaut. **Petrinaut Light** is the default. **HASH Light** uses HASH's brand colours on a white surface: slate text, purple keywords, blue types and green strings. The change applies to open editors immediately and is saved with your other preferences.
 
 ### AI assistant
 

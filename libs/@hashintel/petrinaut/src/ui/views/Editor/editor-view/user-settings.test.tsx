@@ -369,13 +369,15 @@ describe("user settings", () => {
       within(listbox)
         .getAllByRole("option")
         .map((option) => option.textContent),
-    ).toEqual(["Petrinaut Light", "Kay Day", "Kay Night"]);
+    ).toEqual(["Petrinaut Light", "HASH Light"]);
 
-    fireEvent.click(within(listbox).getByRole("option", { name: "Kay Night" }));
-    await waitFor(() => expect(theme.textContent).toContain("Kay Night"));
+    fireEvent.click(
+      within(listbox).getByRole("option", { name: "HASH Light" }),
+    );
+    await waitFor(() => expect(theme.textContent).toContain("HASH Light"));
     expect(
       JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
-    ).toMatchObject({ codeEditorTheme: "kay-night" });
+    ).toMatchObject({ codeEditorTheme: "hash-light" });
   });
 
   it("walks settings with worksheet arrows and restores focus across columns", async () => {
