@@ -60,13 +60,13 @@ export const DependentTypesSection = ({
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
   const entityTypeTitle = entityType.schema.title;
-  const [currentOnly, setCurrentOnly] = useState(true);
+  const [includeFormer, setIncludeFormer] = useState(false);
 
   const headingId = useId();
 
   const failed = rows === undefined && !!error;
   const loading = rows === undefined && !error;
-  const shownRows = currentOnly ? rows?.filter((row) => !row.former) : rows;
+  const shownRows = includeFormer ? rows : rows?.filter((row) => !row.former);
 
   const boldTitle: ReactNode = (
     <Box component="span" sx={{ fontWeight: 700 }}>
@@ -92,18 +92,18 @@ export const DependentTypesSection = ({
           <FormControlLabel
             control={
               <Switch
-                checked={currentOnly}
-                onChange={(event) => setCurrentOnly(event.target.checked)}
+                checked={includeFormer}
+                onChange={(event) => setIncludeFormer(event.target.checked)}
                 size="small"
                 inputProps={{ role: "switch" }}
               />
             }
-            label="Current children only"
+            label="Include former types"
             sx={{ m: 0, gap: 1 }}
           />
           <InfoButton
-            label="About current children"
-            text={`On: lists only types whose latest version still extends ${entityTypeTitle}. Off: also lists former children, whose latest version no longer extends ${entityTypeTitle} or is archived.`}
+            label="About former types"
+            text={`Former types: their latest version no longer extends ${entityTypeTitle}, or is archived.`}
           />
         </Stack>
       ) : null}

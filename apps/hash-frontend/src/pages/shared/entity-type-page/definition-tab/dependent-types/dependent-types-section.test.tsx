@@ -171,17 +171,17 @@ describe("DependentTypesSection", () => {
     expect(onOpenType).toHaveBeenCalledWith(typeId("User", 3));
   });
 
-  it("lists former types, marked as former, once current children only is turned off", () => {
+  it("lists former types, marked as former, once former types are included", () => {
     const { onOpenType, section } = renderSection({
       rows: [shellCompany, user],
     });
 
-    const currentOnly = within(section).getByRole("switch", {
-      name: "Current children only",
+    const includeFormer = within(section).getByRole("switch", {
+      name: "Include former types",
     });
-    expect((currentOnly as HTMLInputElement).checked).toBe(true);
+    expect((includeFormer as HTMLInputElement).checked).toBe(false);
 
-    fireEvent.click(currentOnly);
+    fireEvent.click(includeFormer);
 
     within(section).getByRole("button", {
       name: "Shell Company, former, versions v1–v2, extends Actor v1",
@@ -198,7 +198,7 @@ describe("DependentTypesSection", () => {
     const { section } = renderSection({ rows: [shellCompany] });
 
     expect(section.textContent).toContain("No types extend Actor yet.");
-    within(section).getByRole("switch", { name: "Current children only" });
+    within(section).getByRole("switch", { name: "Include former types" });
   });
 
   it("warns that types or versions may be missing when a query reached its row limit", () => {
