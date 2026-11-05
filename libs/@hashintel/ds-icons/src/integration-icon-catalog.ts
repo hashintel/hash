@@ -883,6 +883,28 @@ export const integrationIconCatalog = [
     slug: "messenger",
     label: "Messenger",
     integrationNames: ["Messenger"],
+    source: "https://www.meta.com/brand/resources/facebook/messenger-icon/",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://upload.wikimedia.org/wikipedia/commons/d/d0/Facebook_Messenger_wordmark_2025.svg",
+    logoNotes:
+      "Composed lock-up pairing Meta\u2019s official February 2025 blue Messenger mark with the sourced Messenger wordmark. Both use Facebook Blue (#0866FF); the earlier multicolor mark remains available as messengerLegacy.",
+    logoRaster: false,
+  },
+  {
+    name: "messengerLegacy",
+    slug: "messenger-legacy",
+    label: "Messenger (legacy)",
+    integrationNames: [],
     source:
       "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/messenger-icon.tsx",
     category: "Integrations",
@@ -898,7 +920,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://upload.wikimedia.org/wikipedia/commons/d/d0/Facebook_Messenger_wordmark_2025.svg",
     logoNotes:
-      "https://commons.wikimedia.org/wiki/File:Facebook_Messenger_wordmark_2025.svg. Lock-up composed from the sourced brand mark and wordmark.",
+      "Previous multicolor Messenger mark retained in all seven variants. Full logos preserve the previous composition with the sourced Messenger wordmark.",
     logoRaster: false,
   },
   {

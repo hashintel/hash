@@ -20,20 +20,9 @@
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#messenger-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#messenger-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#messenger-app-dark-background-reflection)" stroke-width="1.5" />
-</g><defs><clipPath id="messenger-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#messenger-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 34 34" x="16.0" y="16.0" width="32.0" height="32.0">
-    <g clip-path="url(#messenger-app-dark-clip0_8505_21908)">
-      <path d="M17 0C7.42475 0 0 7.01675 0 16.49C0 21.4455 2.0315 25.7295 5.338 28.6875C5.61425 28.934 5.78425 29.2825 5.79275 29.6565L5.88625 32.6825C5.89306 32.9051 5.95445 33.1227 6.06503 33.3161C6.17562 33.5094 6.332 33.6727 6.52045 33.7915C6.70889 33.9102 6.92362 33.9809 7.14578 33.9973C7.36793 34.0136 7.59069 33.9752 7.7945 33.8852L11.169 32.3977C11.4537 32.2702 11.7768 32.249 12.0785 32.3298C13.6298 32.7548 15.2788 32.9842 17 32.9842C26.5753 32.9842 34 25.9675 34 16.4943C34 7.021 26.5753 0 17 0Z" fill="url(#messenger-app-dark-paint0_radial_8505_21908)" />
-      <path d="M6.79149 21.3138L11.7852 13.3918C11.9731 13.0935 12.2207 12.8374 12.5126 12.6397C12.8044 12.442 13.134 12.3069 13.4807 12.243C13.8273 12.1791 14.1834 12.1878 14.5266 12.2685C14.8697 12.3491 15.1924 12.5001 15.4742 12.7118L19.448 15.691C19.6254 15.8238 19.8412 15.8952 20.0628 15.8945C20.2844 15.8937 20.4998 15.8208 20.6762 15.6868L26.0397 11.6152C26.7537 11.0712 27.6887 11.9298 27.2127 12.6905L22.2147 20.6083C22.0269 20.9065 21.7792 21.1626 21.4874 21.3603C21.1956 21.558 20.866 21.6931 20.5193 21.757C20.1727 21.8209 19.8165 21.8122 19.4734 21.7315C19.1303 21.6509 18.8076 21.4999 18.5257 21.2883L14.552 18.309C14.3746 18.1762 14.1588 18.1048 13.9371 18.1055C13.7155 18.1063 13.5002 18.1792 13.3237 18.3133L7.96024 22.3848C7.24624 22.9288 6.31124 22.0745 6.79149 21.3138Z" fill="white" />
-    </g>
-    <defs>
-      <radialGradient id="messenger-app-dark-paint0_radial_8505_21908" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(5.695 34) scale(37.4 37.4)">
-        <stop stop-color="#0099FF" />
-        <stop offset="0.6" stop-color="#A033FF" />
-        <stop offset="0.9" stop-color="#FF5280" />
-        <stop offset="1" stop-color="#FF7061" />
-      </radialGradient>
-      <clipPath id="messenger-app-dark-clip0_8505_21908">
-        <rect width="34" height="34" fill="white" />
-      </clipPath>
+</g><defs><clipPath id="messenger-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#messenger-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="messenger-app-dark-Logo" viewBox="0 0 502 502" x="16.0" y="16.0" width="32.0" height="32.0">
+  <defs>
     </defs>
-  </svg></g></svg>
+  <path d="M501,243.5c0,139.34-109.17,242.5-250,242.5-25.29,0-49.56-3.34-72.37-9.61-4.43-1.23-9.14-.88-13.35.97l-49.62,21.91c-12.98,5.73-27.63-3.5-28.06-17.68l-1.36-44.48c-.17-5.48-2.63-10.6-6.72-14.25C30.87,379.36,1,316.39,1,243.5,1,104.16,110.17,1,251,1s250,103.16,250,242.5Z" stroke-width="0px" fill="#0866ff" />
+  <path d="M318.88,313.31l87.04-134.52c8.75-13.52-7.46-29.26-20.72-20.11l-90.86,62.67c-3.06,2.11-7.1,2.17-10.22.15l-80.65-52.18c-6.83-4.42-15.94-2.46-20.35,4.36l-87.05,134.52c-8.75,13.52,7.46,29.26,20.72,20.11l90.88-62.68c3.06-2.11,7.1-2.17,10.22-.15l80.63,52.17c6.83,4.42,15.94,2.46,20.36-4.36Z" fill="#fff" stroke-width="0px" />
+</svg></g></svg>

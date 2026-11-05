@@ -637,12 +637,35 @@
     "integrationNames": ["Messenger"],
     "ratio": 2,
     "alignment": "center",
+    "source": "https://www.meta.com/brand/resources/facebook/messenger-icon/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#0766ff": "#0866ff"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Facebook_Messenger_wordmark_2025.svg",
+    "logoNotes": "Composed lock-up pairing Meta’s official February 2025 blue Messenger mark with the sourced Messenger wordmark. Both use Facebook Blue (#0866FF); the earlier multicolor mark remains available as messengerLegacy.",
+    "logoLayout": {
+      "wordmarkHeight": 0.7,
+      "gap": 0.3
+    },
+    "logoLightColors": {
+      "#0766ff": "#0866ff"
+    }
+  },
+  {
+    "name": "messengerLegacy",
+    "slug": "messenger-legacy",
+    "label": "Messenger (legacy)",
+    "integrationNames": [],
+    "ratio": 2,
+    "alignment": "center",
     "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/messenger-icon.tsx",
     "markLightColors": {},
     "markDarkColors": {},
     "logoDarkColors": {},
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Facebook_Messenger_wordmark_2025.svg",
-    "logoNotes": "https://commons.wikimedia.org/wiki/File:Facebook_Messenger_wordmark_2025.svg. Lock-up composed from the sourced brand mark and wordmark.",
+    "logoNotes": "Previous multicolor Messenger mark retained in all seven variants. Full logos preserve the previous composition with the sourced Messenger wordmark.",
     "logoLayout": {
       "wordmarkHeight": 0.7,
       "gap": 0.3

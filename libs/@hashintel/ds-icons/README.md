@@ -203,7 +203,7 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-46 current brands have all seven variants. The `microsoftTeamsLegacy` option also has all seven. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+46 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with a vectorized wordmark from an official Microsoft PDF. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
@@ -212,6 +212,8 @@ Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<va
 `microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
 `microsoftTeams` uses the current rounded Teams mark. `microsoftTeamsLegacy` preserves the previous mark and full-logo compositions; the “Microsoft Teams” integration alias always uses the current artwork.
+
+`messenger` uses Meta’s current Facebook Blue mark in all variants, including the full logos. `messengerLegacy` preserves the previous multicolor artwork in all seven variants; the “Messenger” integration alias resolves to the current blue set.
 
 `granola` uses the current swirl identity. `granolaLegacy` preserves the retired g-and-cursor mark; the “Granola” integration alias always resolves to the current artwork.
 

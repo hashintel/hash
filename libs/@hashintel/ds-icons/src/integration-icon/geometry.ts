@@ -27,6 +27,7 @@ import * as kinaxis from "./geometry/kinaxis";
 import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
 import * as linear from "./geometry/linear";
 import * as messenger from "./geometry/messenger";
+import * as messengerLegacy from "./geometry/messenger-legacy";
 import * as microsoftCopilot from "./geometry/microsoft-copilot";
 import * as microsoftExcel from "./geometry/microsoft-excel";
 import * as microsoftOneDrive from "./geometry/microsoft-onedrive";
@@ -327,6 +328,13 @@ export const integrationGeometry = {
   },
   messenger: {
     ...messenger,
+    markViewBox: "0 0 502 502",
+    logoViewBox: "0 0 599.7771678907785 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  messengerLegacy: {
+    ...messengerLegacy,
     markViewBox: "0 0 34 34",
     logoViewBox: "0 0 599.7771678907785 100",
     ratio: 2,

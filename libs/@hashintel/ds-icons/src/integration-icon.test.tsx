@@ -65,6 +65,11 @@ describe("IntegrationIcon", () => {
       integrationIconCatalog.find((icon) => icon.name === "granolaLegacy")
         ?.integrationNames,
     ).toEqual([]);
+    expect(integrationIconNameByIntegration["Messenger"]).toBe("messenger");
+    expect(
+      integrationIconCatalog.find((icon) => icon.name === "messengerLegacy")
+        ?.integrationNames,
+    ).toEqual([]);
     expect(integrationIconNameByIntegration["Kinaxis"]).toBe("kinaxis");
     expect(integrationIconNameByIntegration["Kinaxis Maestro"]).toBe(
       "kinaxisMaestro",

@@ -42,7 +42,8 @@ def themed_artwork(brand, kind, dark, for_logo=False):
         if tag_name(element) == "style":
             for selector, body in re.findall(r"([^{}]+)\{([^{}]+)\}", element.text or ""):
                 for name in selector.split(","):
-                    declarations[name.strip().lstrip(".")] = body
+                    name = name.strip().lstrip(".")
+                    declarations[name] = declarations.get(name, "") + ";" + body
     paint_properties = {"fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "fill-rule", "clip-rule", "mask-type", "stop-color", "stop-opacity"}
     svg_attributes = {
         "gradient-units": "gradientUnits",
