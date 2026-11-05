@@ -1805,8 +1805,14 @@ const TypeTabs = ({
   </div>
 );
 
-/** Wide lists (modal, side sheet): the tabs sit over the tables' first column, 12 px in. */
-const wideTabsStyle = css({ marginLeft: "[4px]", marginBottom: "2" });
+/**
+ * Wide lists (modal, side sheet): the tabs sit over the tables' first column, 12 px in, so a tab's label starts at the
+ * title's x (switch-b crop). The attribute selector outranks typeTabsStyle's -8 px, which used to win.
+ */
+const wideTabsStyle = css({
+  "&[role=tablist]": { marginLeft: "[4px]" },
+  marginBottom: "2",
+});
 
 /** A table wider than its sheet scrolls sideways; cells never wrap. */
 const tableScrollStyle = css({ overflowX: "auto" });

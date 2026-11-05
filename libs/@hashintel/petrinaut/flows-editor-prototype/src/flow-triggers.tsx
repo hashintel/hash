@@ -361,16 +361,17 @@ const blockStyle = css({
   borderTopColor: "neutral.bd.subtle",
 });
 
+// Triggers panel B (inbox triggers-panel): group labels, field labels and states are fg.muted (#8d8d8d).
 const groupLabelStyle = css({
   textStyle: "sm",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.muted",
   paddingY: "2",
 });
 
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  gap: "3",
   width: "[100%]",
   minHeight: "[40px]",
   paddingX: "2",
@@ -384,7 +385,7 @@ const rowStyle = css({
   "&[aria-expanded=true]": { backgroundColor: "neutral.bgSolid.surface" },
 });
 
-const stateStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const stateStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });
 
 const detailGridStyle = css({
   display: "grid",
@@ -525,6 +526,10 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
             variant="ghost"
             tone="neutral"
             iconName="search"
+            className={css({
+              color: "neutral.fg.body",
+              "& svg": { width: "[16px]", height: "[16px]" },
+            })}
             aria-label="Search triggers"
             onClick={() => {
               setSearching(!searching);
@@ -572,7 +577,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
                       <span
                         className={css({
                           display: "inline-flex",
-                          color: "neutral.fg.muted",
+                          color: "neutral.fg.body",
                         })}
                       >
                         <Icon name={iconFor[item.kind]} size="sm" />
@@ -602,7 +607,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
                         {item.details.map((detail) => (
                           <Fragment key={detail.label}>
                             <span
-                              className={css({ color: "neutral.fg.subtle" })}
+                              className={css({ color: "neutral.fg.muted" })}
                             >
                               {detail.label}
                             </span>
@@ -644,13 +649,15 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
             className={css({
               display: "flex",
               alignItems: "center",
-              gap: "2",
+              gap: "3",
               minHeight: "[40px]",
               textStyle: "sm",
-              color: "neutral.fg.subtle",
+              color: "neutral.fg.muted",
             })}
           >
-            <Icon name="lockClosed" size="sm" />
+            <span className={css({ display: "inline-flex", color: "neutral.fg.body" })}>
+              <Icon name="lockClosed" size="sm" />
+            </span>
             {triggers.hidden} more trigger{triggers.hidden === 1 ? "" : "s"} in
             a web you can&apos;t view
           </span>

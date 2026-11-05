@@ -186,10 +186,10 @@ const FlowList = ({
   statusFor?: (stepId: string) => StepRun;
 }) => {
   const { document, ui, setUi } = useEditor();
-  const flowTake = useFlowOutputTake();
-  // ?flowoutput=1..3: a faint glyph on a step that has a flow output (the star in 1, a flag in 2 and 3).
+  // M1 (decided 5 Nov, inbox flow-output-mark): a faint star on a step that has a flow output, by default.
+  // ?flowoutput=2|3 show a flag instead; 4 and 5 move the mark to the flow-level view.
+  const flowTake = useFlowOutputTake() ?? 1;
   const flowMark = (stepId: string) =>
-    flowTake !== null &&
     flowTake <= 3 &&
     flaggedOutputsOf(document).some((key) => key.startsWith(`${stepId}.`)) ? (
       <span className={flowGlyphStyle} data-flow-output-glyph>
