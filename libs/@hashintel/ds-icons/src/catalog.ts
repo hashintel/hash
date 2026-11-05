@@ -151,7 +151,6 @@ const categories = {
     "chevronRight",
     "externalLink",
     "link",
-    "linkCopy",
     "linkBroken",
     "rightToLine",
     "sidebar",
