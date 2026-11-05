@@ -9,7 +9,13 @@
  */
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { Button, Icon, Menu, TextInput } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  Menu,
+  TextInput,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -394,38 +400,43 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
  * Right panel (direction only)
  * ------------------------------------------------------------------------------------------------------------- */
 
-const tileStyle = css({
+/**
+ * S4 (picked 4 Nov, inbox history-stats): what you act on, as label–value rows; the counts live in the chart.
+ * Short labels, regular weight, Attio's 32 px rows.
+ */
+const statRowStyle = css({
   display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  padding: "3",
-  borderRadius: "lg",
-  backgroundColor: "neutral.bgSolid.surface",
-  minHeight: "[84px]",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+  height: "[32px]",
+  textStyle: "sm",
 });
 
-const Tile = ({
-  value,
+const statLabelStyle = css({ color: "neutral.fg.muted" });
+
+const statValueStyle = css({
+  color: "neutral.fg.body",
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+});
+
+const statLinkStyle = css({
+  cursor: "pointer",
+  borderRadius: "sm",
+  _hover: { textDecoration: "underline", textUnderlineOffset: "[2px]" },
+});
+
+const StatRow = ({
   label,
-  alert,
+  children,
 }: {
-  value: string;
   label: string;
-  alert?: boolean;
+  children: React.ReactNode;
 }) => (
-  <div className={tileStyle}>
-    <span
-      className={css({
-        textStyle: "lg",
-        fontWeight: "semibold",
-        color: alert ? "[var(--flows-failed-text)]" : "neutral.fg.heading",
-      })}
-    >
-      {value}
-    </span>
-    <span className={css({ textStyle: "xs", color: "neutral.fg.muted" })}>
-      {label}
-    </span>
+  <div className={statRowStyle} data-stat-row={label}>
+    <span className={statLabelStyle}>{label}</span>
+    {children}
   </div>
 );
 
@@ -901,13 +912,13 @@ const failureRowStyle = css({
 
 const Overview = ({ history }: { history: HistoryValue }) => {
   const { runs, now } = history;
-  const errors = runs.filter((run) => outcomeOf(run, now) === "error").length;
-  const abandoned = runs.filter(
-    (run) => outcomeOf(run, now) === "abandoned",
-  ).length;
-  const warnings = runs.filter(
-    (run) => outcomeOf(run, now) === "warnings",
-  ).length;
+  const failed = runs.filter((run) => {
+    const outcome = outcomeOf(run, now);
+    return outcome === "error" || outcome === "abandoned";
+  });
+  const lastFailure = failed[0];
+  const withWarnings = runs.filter((run) => outcomeOf(run, now) === "warnings");
+  const onlyWarning = withWarnings.length === 1 ? withWarnings[0] : undefined;
   const failures: { runId: number; title: string; line: string }[] =
     runs.flatMap((run) => {
       const outcome = outcomeOf(run, now);
@@ -964,21 +975,47 @@ const Overview = ({ history }: { history: HistoryValue }) => {
         >
           All {runs.length} runs
         </span>
-        <div
-          className={css({
-            display: "grid",
-            gridTemplateColumns: "[1fr 1fr]",
-            gap: "2",
-          })}
-        >
-          <Tile value={String(runs.length)} label="runs since 18 Nov 2025" />
-          <Tile
-            value={String(errors + abandoned)}
-            label={`failed: ${errors} timed out, ${abandoned} abandoned`}
-            alert
-          />
-          <Tile value="1m 44s" label="typical run (median of completed runs)" />
-          <Tile value={String(warnings)} label="completed with warnings" />
+        <div className={css({ display: "flex", flexDirection: "column" })}>
+          <StatRow label="Last failure">
+            {lastFailure ? (
+              <button
+                type="button"
+                className={cx(statValueStyle, statLinkStyle)}
+                style={{ color: "var(--flows-failed-text)" }}
+                onClick={() => history.open(lastFailure.id)}
+              >
+                Run {lastFailure.id} · {lastFailure.when}
+              </button>
+            ) : (
+              <span className={statValueStyle}>None</span>
+            )}
+          </StatRow>
+          {withWarnings.length > 0 ? (
+            <StatRow label="With warnings">
+              {onlyWarning ? (
+                <button
+                  type="button"
+                  className={cx(statValueStyle, statLinkStyle)}
+                  style={{ color: "var(--flows-warnings-text)" }}
+                  onClick={() => history.open(onlyWarning.id)}
+                >
+                  Run {onlyWarning.id} · {onlyWarning.when}
+                </button>
+              ) : (
+                <span className={statValueStyle}>
+                  {withWarnings.length} runs
+                </span>
+              )}
+            </StatRow>
+          ) : null}
+          <StatRow label="Next run">
+            <span className={statValueStyle}>1 Dec, 09:00</span>
+          </StatRow>
+          <StatRow label="Typical run">
+            <Tooltip content="Median of completed runs" openDelay="fast">
+              <span className={statValueStyle}>1m 44s</span>
+            </Tooltip>
+          </StatRow>
         </div>
       </section>
       <RunsChart history={history} />
@@ -1028,24 +1065,6 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             </span>
           </button>
         ))}
-      </section>
-      <section
-        className={css({ display: "flex", flexDirection: "column", gap: "1" })}
-      >
-        <span
-          className={css({
-            textStyle: "sm",
-            fontWeight: "medium",
-            color: "neutral.fg.heading",
-          })}
-        >
-          Next scheduled run
-        </span>
-        <span
-          className={cx(css({ textStyle: "sm", color: "neutral.fg.body" }))}
-        >
-          1 Dec, 09:00 · Schedule · monthly
-        </span>
       </section>
     </aside>
   );
