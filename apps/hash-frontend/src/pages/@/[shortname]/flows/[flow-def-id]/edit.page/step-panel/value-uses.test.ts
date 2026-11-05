@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { actionStep } from "../shared/step-fixtures";
-import { getStepsUsingValue } from "./value-uses";
+import { indexValueUses } from "./value-uses";
 
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -41,10 +41,12 @@ const steps: StepDefinition<string>[] = [
   }),
 ];
 
-const stepIdsUsing = (value: Parameters<typeof getStepsUsingValue>[1]) =>
-  getStepsUsingValue(steps, value).map(({ stepId }) => stepId);
+const stepsUsing = indexValueUses(steps);
 
-describe("getStepsUsingValue", () => {
+const stepIdsUsing = (value: Parameters<typeof stepsUsing>[0]) =>
+  stepsUsing(value).map(({ stepId }) => stepId);
+
+describe("indexValueUses", () => {
   it("lists the steps that use an output at any depth, including a for-each step running over it, each once", () => {
     expect(stepIdsUsing(outputOf("search", "results"))).toEqual([
       "summary",

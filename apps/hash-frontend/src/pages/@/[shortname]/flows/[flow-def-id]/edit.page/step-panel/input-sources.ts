@@ -1,3 +1,4 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
@@ -91,7 +92,7 @@ export type SourceOption = {
   source: Extract<StepInputSource, { kind: "flow-input" | "step-output" }>;
   /** The value's own name, e.g. "Certificate link". */
   label: string;
-  /** Where the value comes from: "Flow inputs", or the step that gives it. */
+  /** Where the value comes from: "Start · Flow inputs", or the step that gives it. */
   from: string;
   shape: ConnectionSource;
 };
@@ -144,7 +145,7 @@ export const getSourceOptions = ({
             {
               source: { kind: "flow-input", inputName: name },
               label: label ?? getNameLabel(name),
-              from: flowInputsLabel,
+              from: `Start · ${flowInputsLabel}`,
               shape,
             },
           ]
@@ -222,8 +223,38 @@ export const getSourceLabel = (
   }
 };
 
-/** Kinds a value can be typed for, as a fixed value, most preferred first. */
-const typedKinds: PayloadKind[] = ["Text", "Number", "Date"];
+/**
+ * Whether a value of each kind can be typed in its field as a fixed value. The typeable kinds come first, most
+ * preferred first, since an input that accepts several takes the first of them.
+ */
+const canBeTyped = {
+  Text: true,
+  Number: true,
+  Date: true,
+  ActorType: false,
+  Aggregation: false,
+  Boolean: false,
+  DateTime: false,
+  Duration: false,
+  EntityId: false,
+  EntityQuery: false,
+  FailedEntityProposal: false,
+  FilterCondition: false,
+  FormattedText: false,
+  GoogleAccountId: false,
+  GoogleSheet: false,
+  PersistedEntityMetadata: false,
+  PropertyObjectWithMetadata: false,
+  PropertyPatch: false,
+  ProposedEntity: false,
+  ProposedEntityWithResolvedLinks: false,
+  SortKey: false,
+  VersionedUrl: false,
+  WebPage: false,
+  WebSearchResult: false,
+} satisfies Record<PayloadKind, boolean>;
+
+const typedKinds = typedKeys(canBeTyped).filter((kind) => canBeTyped[kind]);
 
 /** A fixed value that can be typed in its field, as it reads there: one text, number or date. */
 export const getTypedConstant = (

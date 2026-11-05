@@ -6,6 +6,7 @@ import {
   Form,
   Icon,
   Menu,
+  NumberInput,
   SelectableListSearch,
   TextInput,
   Tooltip,
@@ -59,7 +60,7 @@ const brokenSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
   "itemOutsideForEach",
 ]);
 
-/** Values of each group shown before Show more. */
+/** Values shown before Show more. */
 const shownOptionCount = 4;
 
 /* The Button only fills the row; what's inside it is laid out by these. */
@@ -107,7 +108,8 @@ const SourceMenu = ({
   onClear,
 }: {
   label: string;
-  options: { id: string; label: string; options: SourceOption[] }[];
+  /** Flow inputs, then the outputs of earlier steps, nearest first. */
+  options: SourceOption[];
   pickedKey: string | undefined;
   pickedLabel: string | undefined;
   brokenReason: string | undefined;
@@ -122,58 +124,33 @@ const SourceMenu = ({
   onClear: () => void;
 }) => {
   const [query, setQuery] = useState("");
-  const [expandedGroupIds, setExpandedGroupIds] = useState(
-    () => new Set<string>(),
-  );
+  const [showAll, setShowAll] = useState(false);
 
-  const groups: ItemOrGroup<MenuItem>[] = options.flatMap((group) => {
-    const matching = group.options.filter((option) =>
-      matchesQuery(option, query),
-    );
-    const showAll = query !== "" || expandedGroupIds.has(group.id);
-    const shown = showAll ? matching : matching.slice(0, shownOptionCount);
+  const matching = options.filter((option) => matchesQuery(option, query));
+  const shown =
+    showAll || query !== "" ? matching : matching.slice(0, shownOptionCount);
 
-    if (matching.length === 0) {
-      return [];
-    }
-
-    return [
-      {
-        id: group.id,
-        label: group.label,
-        items: [
-          ...shown.map((option): MenuItem => ({
-            id: getSourceKey(option.source),
-            text: option.label,
-            description: option.from,
-            icon: getKindIcon(option.shape),
-            selected: getSourceKey(option.source) === pickedKey,
-            onClick: () => onPick(option),
-          })),
-          ...(shown.length < matching.length
-            ? [
-                {
-                  id: `${group.id}:show-more`,
-                  text: "Show more",
-                  icon: "chevronDown",
-                  keepOpenOnSelect: true,
-                  onClick: () =>
-                    setExpandedGroupIds(
-                      (expanded) => new Set([...expanded, group.id]),
-                    ),
-                } satisfies MenuItem,
-              ]
-            : []),
-        ],
-      },
-    ];
-  });
-
-  const fits = options.some((group) => group.options.length > 0);
-
-  const items: ItemOrGroup<MenuItem>[] = [
-    ...groups,
-    ...(fits && groups.length === 0
+  const earlierStepItems: MenuItem[] = [
+    ...shown.map((option): MenuItem => ({
+      id: getSourceKey(option.source),
+      text: option.label,
+      description: option.from,
+      icon: getKindIcon(option.shape),
+      selected: getSourceKey(option.source) === pickedKey,
+      onClick: () => onPick(option),
+    })),
+    ...(shown.length < matching.length
+      ? [
+          {
+            id: "show-more",
+            text: "Show more",
+            icon: "chevronDown",
+            keepOpenOnSelect: true,
+            onClick: () => setShowAll(true),
+          } satisfies MenuItem,
+        ]
+      : []),
+    ...(options.length > 0 && matching.length === 0
       ? [
           {
             id: "no-matches",
@@ -183,7 +160,7 @@ const SourceMenu = ({
           } satisfies MenuItem,
         ]
       : []),
-    ...(!fits && newFlowInputLabel !== null
+    ...(options.length === 0 && newFlowInputLabel !== null
       ? [
           {
             id: "add-flow-input",
@@ -191,6 +168,18 @@ const SourceMenu = ({
             icon: "plus",
             onClick: onAddFlowInput,
           } satisfies MenuItem,
+        ]
+      : []),
+  ];
+
+  const items: ItemOrGroup<MenuItem>[] = [
+    ...(earlierStepItems.length > 0
+      ? [
+          {
+            id: "earlier-steps",
+            label: "Earlier steps",
+            items: earlierStepItems,
+          },
         ]
       : []),
     ...(typeLabel !== null
@@ -232,19 +221,17 @@ const SourceMenu = ({
     <Menu
       items={items}
       header={
-        fits ? (
-          <SelectableListSearch
-            value={query}
-            onChange={setQuery}
-            placeholder="Search values"
-            aria-label="Search values"
-          />
-        ) : undefined
+        <SelectableListSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search values"
+          aria-label="Search values"
+        />
       }
       onOpen={(open) => {
         if (!open) {
           setQuery("");
-          setExpandedGroupIds(new Set());
+          setShowAll(false);
         }
       }}
       trigger={
@@ -320,47 +307,51 @@ export const InputField = ({
     typedConstant?.kind ?? (typing ? typedKind : null);
 
   if (typedInKind !== null) {
+    /* Typing keeps the field until it's left, even while what's typed isn't a value yet, such as "-". */
+    const setTypedValue = (value: string | number | null) => {
+      setTyping(true);
+      setSource(
+        value === null || value === ""
+          ? null
+          : { kind: "constant", payload: { kind: typedInKind, value } },
+      );
+    };
+    const fieldProps = {
+      readonly: readOnly,
+      invalid: errors.length > 0,
+      autoFocus: typing,
+      clearable: !readOnly && {
+        onClear: () => {
+          setTyping(false);
+          setSource(null);
+        },
+      },
+      onBlur: () => setTyping(false),
+    };
+
     return (
       <Form.Field
         layout="inline"
         label={label}
         errors={errors.length > 0 ? errors : undefined}
       >
-        <TextInput
-          type={
-            typedInKind === "Number"
-              ? "number"
-              : typedInKind === "Date"
-                ? "date"
-                : "text"
-          }
-          value={typedConstant?.text ?? ""}
-          readonly={readOnly}
-          invalid={errors.length > 0}
-          autoFocus={typing}
-          clearable={
-            !readOnly && {
-              onClear: () => {
-                setTyping(false);
-                setSource(null);
-              },
-            }
-          }
-          onChange={(text) =>
-            setSource(
-              text === ""
-                ? null
-                : {
-                    kind: "constant",
-                    payload: {
-                      kind: typedInKind,
-                      value: typedInKind === "Number" ? Number(text) : text,
-                    },
-                  },
-            )
-          }
-          onBlur={() => setTyping(false)}
-        />
+        {typedInKind === "Number" ? (
+          <NumberInput
+            {...fieldProps}
+            value={typedConstant ? Number(typedConstant.text) : null}
+            min={-Number.MAX_VALUE}
+            max={Number.MAX_VALUE}
+            step="any"
+            onChange={setTypedValue}
+          />
+        ) : (
+          <TextInput
+            {...fieldProps}
+            type={typedInKind === "Date" ? "date" : "text"}
+            value={typedConstant?.text ?? ""}
+            onChange={setTypedValue}
+          />
+        )}
       </Form.Field>
     );
   }
@@ -383,14 +374,7 @@ export const InputField = ({
     >
       <SourceMenu
         label={label}
-        options={[
-          { id: "flow-inputs", label: "Flow inputs", options: flowInputs },
-          {
-            id: "earlier-steps",
-            label: "Earlier steps",
-            options: earlierSteps,
-          },
-        ]}
+        options={[...flowInputs, ...earlierSteps]}
         pickedKey={source && getSourceKey(source)}
         pickedLabel={pickedLabel}
         brokenReason={
