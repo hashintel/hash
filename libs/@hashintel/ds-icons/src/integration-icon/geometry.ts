@@ -277,8 +277,9 @@ export const integrationGeometry = {
     ...appleHealth,
     markViewBox: "0 0 492 460",
     logoViewBox: null,
-    ratio: 1.65,
+    ratio: 1,
     alignment: "center",
+    appViewBox: "-384 -144 1024 1024",
   },
   discord: {
     ...discord,

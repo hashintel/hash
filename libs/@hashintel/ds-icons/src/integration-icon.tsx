@@ -25,6 +25,7 @@ type Artwork = {
   logoLight?: ComponentType<{ id: string }>;
   logoDark?: ComponentType<{ id: string }>;
   markViewBox: string;
+  appViewBox?: string;
   logoViewBox: string | null;
   ratio: number;
   alignment: string;
@@ -129,7 +130,11 @@ export const IntegrationIcon = ({
             y={(64 - markSize) / 2}
             width={markSize}
             height={markSize}
-            viewBox={artwork.markViewBox}
+            viewBox={
+              app
+                ? (artwork.appViewBox ?? artwork.markViewBox)
+                : artwork.markViewBox
+            }
           >
             <Geometry id={`${id}-mark`} />
           </svg>

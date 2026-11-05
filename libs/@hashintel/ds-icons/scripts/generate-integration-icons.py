@@ -195,6 +195,8 @@ def variant_svg(brand, variant):
         artwork.set("height", str(viewbox[3]))
     else:
         outer_viewbox = "0 0 64 64"
+        if app and brand.get("appViewBox"):
+            artwork.set("viewBox", brand["appViewBox"])
         size = 64 / brand["ratio"] if app else 64
         artwork.set("x", str(0 if app and brand["alignment"] == "start" else (64 - size) / 2))
         artwork.set("y", str((64 - size) / 2))
@@ -239,7 +241,8 @@ def generate():
         files[source / "geometry" / f'{brand["slug"]}.tsx'] = "\n".join(geometries) + "\n"
         mark_viewbox = themed_artwork(brand, "mark", False).get("viewBox")
         logo_viewbox = themed_artwork(brand, "logo", False).get("viewBox") if "logo-light" in available else None
-        registry.append(f'  {brand["name"]}: {{ ...{brand["name"]}, markViewBox: {json.dumps(mark_viewbox)}, logoViewBox: {json.dumps(logo_viewbox)}, ratio: {brand["ratio"]}, alignment: "{brand["alignment"]}" }}')
+        app_viewbox = f', appViewBox: {json.dumps(brand["appViewBox"])}' if brand.get("appViewBox") else ""
+        registry.append(f'  {brand["name"]}: {{ ...{brand["name"]}, markViewBox: {json.dumps(mark_viewbox)}, logoViewBox: {json.dumps(logo_viewbox)}, ratio: {brand["ratio"]}, alignment: "{brand["alignment"]}"{app_viewbox} }}')
         catalog.append({key: brand[key] for key in ("name", "slug", "label", "integrationNames", "source") } | {"category": "Integrations", "variants": available, "logoSource": brand.get("logoSource"), "logoNotes": brand.get("logoNotes"), "logoRaster": brand.get("logoRaster", False)})
         for variant in available:
             files[root / "assets/integrations" / brand["slug"] / f"{variant}.svg"] = variant_svg(brand, variant)

@@ -693,7 +693,7 @@ export const integrationIconCatalog = [
     variants: ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light"],
     logoSource: null,
     logoNotes:
-      "Heart vectorized from Apple's current App Store icon, preserving its pink-to-red gradient and bevel. The mark omits the app's white tile; app variants use the shared translucent tile. No authentic full-logo lock-up was verified. Only mark and app-tile variants are provided.",
+      "Heart vectorized from Apple's current App Store icon, preserving its pink-to-red gradient and bevel. The mark omits the app's white tile; app variants preserve the original upper-right placement and scale on the shared translucent tile. No authentic full-logo lock-up was verified. Only mark and app-tile variants are provided.",
     logoRaster: false,
   },
   {
