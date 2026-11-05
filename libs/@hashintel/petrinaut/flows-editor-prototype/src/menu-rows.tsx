@@ -6,7 +6,7 @@
  * DS gap G77: the DS Menu item's icon is an `IconName` drawn at the item size (14 px), so it cannot hold the tile.
  * The rows stay DS Menu items (keyboard, submenus, highlight) and carry this content as their `text`.
  */
-import { Icon, type IconName, type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
+import { Icon, type IconName, type ItemOrGroup, type MenuItem, Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 /**
@@ -42,6 +42,12 @@ export const tiledRowsStyle = css({
     flex: "1",
   },
   "& [role=menuitem] span:has(> [data-menu-row])": {
+    display: "flex",
+    flex: "1",
+    minWidth: "[0]",
+  },
+  // A row with a hover tooltip has the tooltip's trigger between them: every wrapper still fills the row.
+  "& [role=menuitem] span:has([data-menu-row])": {
     display: "flex",
     flex: "1",
     minWidth: "[0]",
@@ -219,7 +225,14 @@ export type TiledItem = MenuItem & {
   glyph?: React.ReactElement;
   /** `?pickercolour=` takes only: see `MenuRow`. */
   tint?: React.CSSProperties;
+  /** A DS tooltip right of the menu while the row is hovered (the Add step menu's description and inputs → outputs). */
+  tooltip?: React.ReactNode;
 };
+
+/** The tooltip's trigger fills the row, so hovering anywhere on it opens the tooltip. */
+const rowTooltipTriggerStyle = css({
+  "&[class]": { display: "block", width: "[100%]", lineHeight: "[inherit]" },
+});
 
 const isGroup = <T,>(
   entry: ItemOrGroup<T>,
@@ -240,7 +253,15 @@ export const tileMenu = (
   const rows = entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]));
   const tiled = rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
-    const { glyph, tint, ...rest } = item;
+    const { glyph, tint, tooltip, ...rest } = item;
+    const withTooltip = (row: React.ReactNode) =>
+      tooltip ? (
+        <Tooltip content={tooltip} position="right-start" gapX={20} className={rowTooltipTriggerStyle}>
+          {row}
+        </Tooltip>
+      ) : (
+        row
+      );
     const subItems = rest.subItems
       ? {
           subItems: tileMenu(
@@ -250,20 +271,20 @@ export const tileMenu = (
         }
       : {};
     if (!tiled) {
-      return { ...rest, ...subItems } as MenuItem;
+      return { ...rest, ...subItems, ...(tooltip ? { text: withTooltip(rest.text) } : {}) } as MenuItem;
     }
     return {
       ...rest,
       ...subItems,
       id: rest.id ?? (typeof rest.text === "string" ? rest.text : undefined),
-      text: (
+      text: withTooltip(
         <MenuRow
           icon={glyph ?? rest.icon}
           title={rest.text}
           description={rest.description}
           lines={lines}
           tint={tint}
-        />
+        />,
       ),
       icon: undefined,
       description: undefined,

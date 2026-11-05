@@ -42,6 +42,28 @@ import {
 } from "./step-picker";
 import { OriginMark } from "./ui";
 
+/** `?steptooltip=old`: no hover tooltip on the Add step rows, as before ledger L18 was built. URL only, never remembered. */
+const oldStepTooltip =
+  new URLSearchParams(globalThis.location.search).get("steptooltip") === "old";
+
+const stepTooltipStyle = css({ display: "flex", flexDirection: "column", gap: "0.5" });
+
+const stepTooltipFlowStyle = css({ opacity: "[0.72]" });
+
+/**
+ * A step's hover tooltip in the Add step menu (ledger L18, 2 Nov call, Dora): what it does, then its inputs → its
+ * outputs, by their real names.
+ */
+const stepTooltip = (entry: CatalogEntry) => (
+  <span className={stepTooltipStyle}>
+    <span>{entry.description}</span>
+    <span className={stepTooltipFlowStyle}>
+      {entry.inputs.map((input) => input.label).join(", ") || "No inputs"} →{" "}
+      {entry.outputs.map((output) => output.label).join(", ") || "No outputs"}
+    </span>
+  </span>
+);
+
 /** How far Insert step here moves the steps after it: a card and the gap between cards (J1.1: 200 + 96). */
 const insertShift = 296;
 
@@ -346,6 +368,7 @@ export const AddNodePicker = ({
     description: stepLine(entry),
     icon: entry.icon,
     suffix: originSuffix(entry) ?? side,
+    tooltip: oldStepTooltip ? undefined : stepTooltip(entry),
     // `?pickercolour=` only: 1 and 2 tint the tile and its icon (T1), 3 tints the icon on the grey tile.
     tint:
       colour === 1 || colour === 2
