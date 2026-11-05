@@ -30,6 +30,7 @@ import {
   updateTrigger,
   usersOf,
 } from "./document";
+import { FLOW_OUTPUTS_ID, FlowOutputsPanel } from "./flow-outputs";
 import {
   inScreenState,
   showDebug,
@@ -1631,7 +1632,9 @@ export const PropertiesPanel = () => {
       ? findTrigger(document, ui.triggerId)
       : null;
   const found =
-    !ui.selectedId || ui.selectedId === START_ID
+    !ui.selectedId ||
+    ui.selectedId === START_ID ||
+    ui.selectedId === FLOW_OUTPUTS_ID
       ? null
       : findStep(document, ui.selectedId);
   // J0.3 (3 Nov): with nothing selected there is no panel, unless the draft has a checklist to clear (V5).
@@ -1689,6 +1692,8 @@ export const PropertiesPanel = () => {
             <TriggerPanel key={trigger.id} trigger={trigger} />
           ) : ui.selectedId === START_ID ? (
             <StartPanel />
+          ) : ui.selectedId === FLOW_OUTPUTS_ID ? (
+            <FlowOutputsPanel />
           ) : found?.step.kind === "action" ? (
             <ActionPanel key={found.step.stepId} step={found.step} />
           ) : found?.step.kind === "for-each" ? (

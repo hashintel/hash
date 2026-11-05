@@ -283,6 +283,203 @@ const OutputFlag = ({
   );
 };
 
+/**
+ * How a step's output is marked a flow output (inbox `picks/flow-output-mark`, open): ?flowoutput=1..5, URL only; no param
+ * keeps today's star. 1 the star; 2 a quiet "Flow output" checkbox on the row; 3 the row's ⋯ menu, with a faint tag on a
+ * flagged row; 4 a flow-level Outputs list (Flow outputs, at the end of the Steps tree); 5 an Outputs card on the canvas
+ * after the last step. 4 and 5 show a flagged row's tag here, read-only.
+ */
+export type FlowOutputTake = 1 | 2 | 3 | 4 | 5;
+
+export const useFlowOutputTake = (): FlowOutputTake | null => {
+  const value = Number(useLocation().query.get("flowoutput"));
+  return value >= 1 && value <= 5 ? (value as FlowOutputTake) : null;
+};
+
+/** The faint "Flow output" tag a flagged row carries in takes 3–5. */
+const flowTagStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  height: "[18px]",
+  paddingX: "1.5",
+  borderRadius: "sm",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  textStyle: "xxs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+});
+
+export const FlowOutputTag = () => (
+  <span className={flowTagStyle} data-flow-output-tag>
+    Flow output
+  </span>
+);
+
+/** Take 2: a quiet checkbox and its label, shown on hover, kept once checked. */
+const flowCheckStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  height: "[28px]",
+  marginY: "[-6px]",
+  paddingX: "1.5",
+  borderRadius: "md",
+  cursor: "pointer",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+  visibility: "hidden",
+  "[data-row]:hover &": { visibility: "visible" },
+  "&[data-flagged]": { visibility: "visible", color: "neutral.fg.muted" },
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  "& input": {
+    width: "[12px]",
+    height: "[12px]",
+    margin: "[0]",
+    accentColor: "[var(--colors-neutral-s110)]",
+    cursor: "pointer",
+  },
+});
+
+const FlowOutputCheck = ({
+  stepId,
+  outputName,
+}: {
+  stepId: string;
+  outputName: string;
+}) => {
+  const { document, setDocument } = useEditor();
+  const flagged = isOutputFlagged(document, stepId, outputName);
+  return (
+    <label
+      className={flowCheckStyle}
+      data-flagged={flagged || undefined}
+      data-output-flag={`${stepId}.${outputName}`}
+    >
+      <input
+        type="checkbox"
+        checked={flagged}
+        onChange={() =>
+          setDocument((current) =>
+            toggleOutputFlag(current, stepId, outputName),
+          )
+        }
+      />
+      Flow output
+    </label>
+  );
+};
+
+/** Take 3: the row's ⋯, with one item, drawn in place under it. */
+const rowMenuStyle = css({
+  position: "relative",
+  flexShrink: 0,
+});
+
+const rowMenuButtonStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[28px]",
+  height: "[28px]",
+  marginY: "[-6px]",
+  padding: "[0]",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  color: "neutral.fg.subtle",
+  cursor: "pointer",
+  visibility: "hidden",
+  "[data-row]:hover &": { visibility: "visible" },
+  "&[data-open]": { visibility: "visible" },
+  _hover: {
+    backgroundColor: "neutral.bg.surface.hover",
+    color: "neutral.fg.heading",
+  },
+});
+
+const rowMenuListStyle = css({
+  position: "absolute",
+  top: "[26px]",
+  right: "[0]",
+  zIndex: "[20]",
+  minWidth: "[188px]",
+  padding: "1",
+  borderRadius: "lg",
+  backgroundColor: "neutral.s00",
+  boxShadow: "md",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+});
+
+const rowMenuItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  width: "[100%]",
+  height: "[32px]",
+  paddingX: "2",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  textStyle: "sm",
+  color: "neutral.fg.heading",
+  whiteSpace: "nowrap",
+  _hover: { backgroundColor: "neutral.bg.surface.hover" },
+  "& svg": { color: "neutral.fg.subtle" },
+});
+
+const FlowOutputMenu = ({
+  stepId,
+  outputName,
+}: {
+  stepId: string;
+  outputName: string;
+}) => {
+  const { document, setDocument } = useEditor();
+  const [open, setOpen] = useState(false);
+  const flagged = isOutputFlagged(document, stepId, outputName);
+  return (
+    <span className={rowMenuStyle}>
+      <button
+        type="button"
+        className={rowMenuButtonStyle}
+        aria-label="Output actions"
+        data-open={open || undefined}
+        data-output-menu={`${stepId}.${outputName}`}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <Icon name="ellipsis" size="sm" />
+      </button>
+      {open ? (
+        <span className={rowMenuListStyle} role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            className={rowMenuItemStyle}
+            onClick={() => {
+              setDocument((current) =>
+                toggleOutputFlag(current, stepId, outputName),
+              );
+              setOpen(false);
+            }}
+          >
+            <Icon name="rightToLine" size="sm" />
+            {flagged ? "Remove from flow outputs" : "Mark as flow output"}
+          </button>
+        </span>
+      ) : null}
+    </span>
+  );
+};
+
 /** An output's type as the icon left of its name (2 Nov): its kind decides it. */
 const kindIcon = (kind: string | null): IconName => {
   const name = (kind ?? "").replace(/^List of /, "");
@@ -320,11 +517,12 @@ export const OutputRows = ({
   kindOf: (outputName: string) => string | null;
   iconOf: (id: string) => IconName;
 }) => {
-  const { ui, setUi } = useEditor();
+  const { document, ui, setUi } = useEditor();
   // A run, or a past version, is read-only: nothing is added from it.
   const runView = useRunView();
   const viewingVersion = useLocation().query.has("version");
   const readOnly = Boolean(runView) || viewingVersion || !!ui.run;
+  const take = useFlowOutputTake();
   return (
     <>
       {outputs.map((output) => {
@@ -373,40 +571,60 @@ export const OutputRows = ({
                 minWidth: "[0]",
               })}
             >
-              <UsedByTree
-                iconOf={iconOf}
-                action={
-                  readOnly
-                    ? undefined
-                    : {
-                        anchor: `${stepId}:${output.name}`,
-                        open,
-                        onOpen: () =>
-                          setUi((current) => ({
-                            ...current,
-                            openField: null,
-                            picker: {
-                              anchor: "output",
-                              after: { stepId, port: "next" },
-                              feed: {
-                                outputName: output.name,
-                                label: output.label,
+              <span
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "2",
+                  minWidth: "[0]",
+                })}
+              >
+                {take !== null &&
+                take >= 3 &&
+                isOutputFlagged(document, stepId, output.name) ? (
+                  <FlowOutputTag />
+                ) : null}
+                <UsedByTree
+                  iconOf={iconOf}
+                  action={
+                    readOnly
+                      ? undefined
+                      : {
+                          anchor: `${stepId}:${output.name}`,
+                          open,
+                          onOpen: () =>
+                            setUi((current) => ({
+                              ...current,
+                              openField: null,
+                              picker: {
+                                anchor: "output",
+                                after: { stepId, port: "next" },
+                                feed: {
+                                  outputName: output.name,
+                                  label: output.label,
+                                },
                               },
-                            },
-                          })),
-                      }
-                }
-                match={(source) =>
-                  source.kind === "step-output" &&
-                  source.stepId === stepId &&
-                  source.outputName === output.name
-                }
-              />
-              <OutputFlag
-                stepId={stepId}
-                outputName={output.name}
-                readOnly={readOnly}
-              />
+                            })),
+                        }
+                  }
+                  match={(source) =>
+                    source.kind === "step-output" &&
+                    source.stepId === stepId &&
+                    source.outputName === output.name
+                  }
+                />
+              </span>
+              {take === 2 && !readOnly ? (
+                <FlowOutputCheck stepId={stepId} outputName={output.name} />
+              ) : take === 3 && !readOnly ? (
+                <FlowOutputMenu stepId={stepId} outputName={output.name} />
+              ) : take === 4 || take === 5 ? null : (
+                <OutputFlag
+                  stepId={stepId}
+                  outputName={output.name}
+                  readOnly={readOnly}
+                />
+              )}
             </span>
           </PropertyRow>
         );

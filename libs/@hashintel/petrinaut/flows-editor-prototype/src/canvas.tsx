@@ -43,6 +43,8 @@ import {
   stepTitle,
   updateStep,
 } from "./document";
+import { FLOW_OUTPUTS_ID, FlowOutputsCard } from "./flow-outputs";
+import { useFlowOutputTake } from "./outputs";
 import {
   type CanvasMenu,
   showDebug,
@@ -95,7 +97,7 @@ const GROUP_PADDING = 32;
 type StepData = { stepId: string };
 type StepNode = Node<
   StepData,
-  "step" | "forEach" | "start" | "trigger" | "ghost"
+  "step" | "forEach" | "start" | "trigger" | "ghost" | "flowOutputs"
 >;
 
 const portRows = (step: DraftStep) =>
@@ -1494,6 +1496,9 @@ const nodeTypes = {
   forEach: GroupNodeView,
   trigger: RunTriggerView,
   ghost: GhostTriggerView,
+  flowOutputs: ({ selected }: NodeProps<StepNode>) => (
+    <FlowOutputsCard selected={selected} />
+  ),
 };
 
 const edgeCloseStyle = css({
@@ -1860,6 +1865,7 @@ export const FlowCanvas = ({
   // A run, or a past version open from the version menu (V6), is read-only.
   const viewingVersion = useLocation().query.has("version");
   const readOnly = Boolean(runView) || viewingVersion;
+  const flowTake = useFlowOutputTake();
   const [dragPositions, setDragPositions] = useState<
     Record<string, { x: number; y: number }>
   >({});
@@ -2024,6 +2030,29 @@ export const FlowCanvas = ({
           deletable: false,
         })),
         ...stepNodes,
+        // ?flowoutput=5: the Outputs card, one card width after the right-most top-level step.
+        ...(flowTake === 5
+          ? [
+              {
+                id: FLOW_OUTPUTS_ID,
+                type: "flowOutputs" as const,
+                position: {
+                  x:
+                    Math.max(
+                      start.x,
+                      ...stepNodes
+                        .filter((node) => !node.parentId)
+                        .map((node) => node.position.x),
+                    ) + 320,
+                  y: start.y,
+                },
+                data: { stepId: FLOW_OUTPUTS_ID },
+                selected: ui.selectedId === FLOW_OUTPUTS_ID,
+                draggable: false,
+                deletable: false,
+              },
+            ]
+          : []),
       ];
   const edges: Edge[] = [
     ...(readOnly

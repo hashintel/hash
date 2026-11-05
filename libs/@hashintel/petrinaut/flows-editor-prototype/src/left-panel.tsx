@@ -17,6 +17,20 @@ import {
   isOffered,
 } from "./catalog";
 
+/** ?flowoutput=: the faint glyph after a step with a flow output, and the Flow outputs row's count. */
+const flowGlyphStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  color: "neutral.fg.subtle",
+  "& svg": { width: "[12px]", height: "[12px]" },
+});
+
+const flowCountStyle = css({
+  marginLeft: "auto",
+  textStyle: "xxs",
+  color: "neutral.fg.subtle",
+});
+
 /** Manual journeys only (ledger, 21 Oct): AI steps are parked. */
 const catalog = fullCatalog.filter(isOffered);
 import {
@@ -25,10 +39,13 @@ import {
   type DraftStep,
   type EditorDocument,
   findStep,
+  flaggedOutputsOf,
   flattenSteps,
   stepLabel,
   stepTitle,
 } from "./document";
+import { FLOW_OUTPUTS_ID } from "./flow-outputs";
+import { useFlowOutputTake } from "./outputs";
 import { type EditorUi, useEditor } from "./editor-context";
 import { cellText, StatusCell } from "./status-cell";
 import { tileColor } from "./status-colors";
@@ -169,6 +186,16 @@ const FlowList = ({
   statusFor?: (stepId: string) => StepRun;
 }) => {
   const { document, ui, setUi } = useEditor();
+  const flowTake = useFlowOutputTake();
+  // ?flowoutput=1..3: a faint glyph on a step that has a flow output (the star in 1, a flag in 2 and 3).
+  const flowMark = (stepId: string) =>
+    flowTake !== null &&
+    flowTake <= 3 &&
+    flaggedOutputsOf(document).some((key) => key.startsWith(`${stepId}.`)) ? (
+      <span className={flowGlyphStyle} data-flow-output-glyph>
+        <Icon name={flowTake === 1 ? "star" : "rightToLine"} size="xs" />
+      </span>
+    ) : null;
   // One status cell per row: the count or reason only where it adds something, then the glyph at the right edge.
   const mark = (stepId: string) => {
     if (!statusFor) {
@@ -249,6 +276,7 @@ const FlowList = ({
             </span>
             <Tile icon={look.icon} tone={look.tone} />
             <span className={labelStyle}>{stepLabel(step)}</span>
+            {flowMark(step.stepId)}
             {statusFor ? (
               mark(step.stepId)
             ) : (
@@ -274,6 +302,7 @@ const FlowList = ({
           <span className={chevronSlotStyle} />
           <Tile icon={look.icon} tone={look.tone} />
           <span className={labelStyle}>{stepLabel(step)}</span>
+          {flowMark(step.stepId)}
           {mark(step.stepId)}
         </button>,
       ];
@@ -380,6 +409,24 @@ const FlowList = ({
           {mark(START_ID)}
         </button>
         {withParallel(document.steps, 0)}
+        {flowTake === 4 || flowTake === 5 ? (
+          <button
+            type="button"
+            className={rowStyle}
+            aria-current={ui.selectedId === FLOW_OUTPUTS_ID || undefined}
+            data-flow-row={FLOW_OUTPUTS_ID}
+            onClick={() => select(FLOW_OUTPUTS_ID)}
+          >
+            <span className={chevronSlotStyle} />
+            <Tile icon="rightToLine" tone="neutral" />
+            <span className={labelStyle}>
+              {flowTake === 4 ? "Flow outputs" : "Outputs"}
+            </span>
+            <span className={flowCountStyle}>
+              {flaggedOutputsOf(document).length}
+            </span>
+          </button>
+        ) : null}
       </div>
     </div>
   );
