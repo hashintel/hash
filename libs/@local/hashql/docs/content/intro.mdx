@@ -1,4 +1,6 @@
-# Introduction to HashQL
+---
+title: Introduction to HashQL
+---
 
 HashQL is unlike other query languages you may be familiar with, such as SQL. It is a functional, strongly typed, side-effect-free language designed specifically to query the HASH graph.
 
@@ -153,9 +155,9 @@ matches_foo(2)
 
 `fn` produces a closure, and `let` gives that closure the name `matches_foo`. A closure does not need a name, though: it can also be invoked immediately. Here, its parameter, `value`, is an integer, and its result is a Boolean. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
 
-> **Note.** HashQL closures fully participate in the type system. You can also use `_` in any type position to indicate a type that should be inferred as a concrete type at call time. This makes HashQL closures easy to use in functional composition.
+> **Note.** HashQL closures participate in the type system like other values. You can write `_` in any type position to let the compiler infer a concrete type from its use. This is useful when composing closures without spelling out every intermediate type.
 
-The closure also refers to `foo`, which was defined outside its body. Closures can “pull in” values from the surrounding scope; this is called capturing a binding. We do not need to pass `foo` as another argument. This is safe because bindings are immutable: the value of `foo` cannot change after the closure captures it. The empty `[]` in the functional notation means that this closure declares no generic type parameters.
+The closure also refers to `foo`, which was defined outside its body. This is called capturing a binding: the closure can use `foo` without receiving it as another argument. Since bindings are immutable, `foo` keeps the value it had when the closure was created. The empty `[]` in the functional notation means that this closure declares no generic type parameters.
 
 > **Note.** HashQL closures are values: they can be passed to other functions or returned as results. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015/build-typed-hashql-functions-in-draft). A TypeScript callback used to build a Draft program is not itself a HashQL closure.
 
@@ -188,11 +190,11 @@ use(::core::cmp, {eq: same},
 
 This still evaluates to `true`. The name `same` refers to the existing `eq` function rather than defining a new one. Like a `let` binding, the imported name is available within the body of the `use` expression. The import does not rename the function in its original module.
 
-> **Note.** Why do we need a dedicated syntax if we can't just use `let`? The reason is `*`, it allows you to import everything from a module under the same name. It also allows you to import modules, which you otherwise cannot reference via either `let` or `type`.
+> **Note.** Why have a dedicated import form when we could use `let`? A `*` import brings every public item from a module into scope under its original name. It can also import modules themselves, which neither `let` nor `type` can bind.
 
 Draft spells this operation `$.import`. `$.modules().cmp` selects the comparison module, and `{ eq: "same" }` selects `eq` under its new local name.
 
-> **Important.** The SDKs use the `import` function to import, it is different to imports in the language itself. Imports are only scoped to the HashQL program body and have nothing to do with the host language and do not interact with it in any way.
+> **Important.** The SDK's `import` constructs a HashQL import, not a host-language import. The imported names belong to the HashQL program's scope. They do not become imports in the host language's module system.
 
 ### Reading a field with `access`
 
