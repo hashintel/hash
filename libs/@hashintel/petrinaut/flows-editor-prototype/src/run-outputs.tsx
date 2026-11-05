@@ -1,4 +1,5 @@
 import { useReactFlow, type Viewport } from "@xyflow/react";
+import { Mail, Paperclip } from "lucide-react";
 /**
  * What a step produced in a run, and the viewer that opens it (4 Nov call: "each node's outputs show in that node's
  * right panel, with click-through to the artifact, inline where possible, else link out", Dora [29:11]–[35:49]).
@@ -68,6 +69,23 @@ export type StepOutputsTake = "a" | "b" | "c" | "d";
 export const useStepOutputsTake = (): StepOutputsTake => {
   const value = useLocation().query.get("stepoutputs")?.toLowerCase();
   return value === "b" || value === "c" || value === "d" ? value : "a";
+};
+
+/**
+ * ?emailrow=1..4 (inbox `picks/email-rows`), from the URL only; no param keeps today's page thumbnail.
+ * 1. Recipient first: initials, recipient, subject, sent time; a status mark only when an email bounced.
+ * 2. Delivery status first: an F3 mark (sent or bounced) leads, then recipient and subject.
+ * 3. A plain mail glyph, recipient, subject and a one-line snippet.
+ * 4. Take 1 plus a paperclip and the attached file's name.
+ * Page thumbnails stay for real files (PDFs) only in every take.
+ */
+export type EmailRowTake = "1" | "2" | "3" | "4" | null;
+
+export const useEmailRowTake = (): EmailRowTake => {
+  const value = useLocation().query.get("emailrow");
+  return value === "1" || value === "2" || value === "3" || value === "4"
+    ? value
+    : null;
 };
 
 export type EntityTypesTake = "a" | "b";
@@ -214,6 +232,9 @@ export type Email = {
   messageId: string;
   attachment: string;
   sizeKb: number;
+  /** MOCK: Run 16 has one bounced email, so every email-row take shows the case. */
+  delivery: "sent" | "bounced";
+  bounce?: string;
 };
 
 export type OutputFile = Certificate | Email;
@@ -247,6 +268,10 @@ const certificateOf = (supplier: string, item: number): Certificate => {
     url: `${slug}.com/quality/iso9001.pdf`,
   };
 };
+
+/** MOCK: the run with one bounced review email, and which supplier's it was (Halden Chemicals, the third row). */
+const bouncedRunId = 16;
+const bouncedItem = 2;
 
 /** MOCK: the run whose Find active suppliers returned two entity types. */
 export const mixedTypesRunId = 14;
@@ -360,6 +385,12 @@ export const runOutputs = (run: RunRecord, now: number): RunOutputs => {
         messageId: `<r${run.id}-${String(entity.item + 1).padStart(2, "0")}@mail.acme.example>`,
         attachment: certificate.fileName,
         sizeKb: certificate.sizeKb + 14,
+        ...(run.id === bouncedRunId && entity.item === bouncedItem
+          ? {
+              delivery: "bounced" as const,
+              bounce: "Mailbox not found (550 5.1.1)",
+            }
+          : { delivery: "sent" as const }),
       };
     });
   return {
@@ -799,13 +830,154 @@ const typeTagStyle = css({
   color: "neutral.fg.subtle",
 });
 
-const FileRow = ({
+const emailLeadStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  // The certificate thumbnails' slot, so text lines up across a list of several types.
+  width: "[44px]",
+  color: "neutral.fg.subtle",
+});
+
+const avatarStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[28px]",
+  height: "[28px]",
+  borderRadius: "full",
+  backgroundColor: "neutral.a10",
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+});
+
+const emailLineStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: "3",
+  minWidth: "[0]",
+  "& > span:first-child": { minWidth: "[0]" },
+});
+
+const emailAsideStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+  fontVariantNumeric: "tabular-nums",
+});
+
+const attachmentStyle = css({
+  flexShrink: 1,
+  minWidth: "[0]",
+  maxWidth: "[140px]",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+  "& > span": {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+});
+
+const initialsOf = (name: string) =>
+  name
+    .split(" ")
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2);
+
+/** An email in a list, by ?emailrow= take: what leads the row. */
+const EmailRow = ({
+  file,
+  take,
+  tag,
+  onOpen,
+}: {
+  file: Email;
+  take: Exclude<EmailRowTake, null>;
+  tag?: string;
+  onOpen: () => void;
+}) => {
+  const bounced = file.delivery === "bounced";
+  const time = file.sentAt.slice(0, 5);
+  const lead =
+    take === "2" ? (
+      <RunGlyph
+        state={bounced ? "failed" : "done"}
+        size={16}
+        detail={bounced ? `Bounced · ${file.bounce ?? ""}` : `Sent ${time}`}
+      />
+    ) : take === "3" ? (
+      <Mail size={16} aria-hidden />
+    ) : (
+      <span className={avatarStyle}>{initialsOf(file.contact)}</span>
+    );
+  // Takes 1, 3 and 4 show a status mark only when the email bounced; take 2 leads with it.
+  const aside =
+    bounced && take !== "2" ? (
+      <span className={emailAsideStyle} data-email-bounced>
+        <RunGlyph state="failed" size={12} detail={file.bounce} />
+        Bounced
+      </span>
+    ) : (
+      <span className={emailAsideStyle}>{time}</span>
+    );
+  return (
+    <button
+      type="button"
+      className={cx(
+        rowButtonStyle,
+        css({
+          width: "[calc(100% + 16px)]",
+          "& > span:nth-child(2)": { minWidth: "[0]" },
+        }),
+        tag && css({ gridTemplateColumns: "[auto 1fr auto]" }),
+      )}
+      data-output-file="email"
+      data-email-row={take}
+      onClick={onOpen}
+    >
+      <span className={emailLeadStyle}>{lead}</span>
+      <span>
+        <span className={emailLineStyle}>
+          <span className={titleLineStyle}>{file.contact}</span>
+          {aside}
+        </span>
+        {take === "4" ? (
+          <span className={emailLineStyle}>
+            <span className={metaLineStyle}>{file.subject}</span>
+            <span className={attachmentStyle} title={file.attachment}>
+              <Paperclip size={12} aria-hidden />
+              <span>{file.attachment}</span>
+            </span>
+          </span>
+        ) : (
+          <span className={metaLineStyle}>{file.subject}</span>
+        )}
+        {take === "3" ? (
+          <span className={metaLineStyle}>{file.body[1]}</span>
+        ) : null}
+      </span>
+      {tag ? <span className={typeTagStyle}>{tag}</span> : null}
+    </button>
+  );
+};
+
+/** A file with its drawn first page (today's row, and every take's PDF row). */
+const PageRow = ({
   file,
   tag,
   onOpen,
 }: {
   file: OutputFile;
-  /** The row's type, in a list of several types (?entitytypes=b). */
   tag?: string;
   onOpen: () => void;
 }) => (
@@ -832,6 +1004,24 @@ const FileRow = ({
     {tag ? <span className={typeTagStyle}>{tag}</span> : null}
   </button>
 );
+
+const FileRow = ({
+  file,
+  tag,
+  onOpen,
+}: {
+  file: OutputFile;
+  /** The row's type, in a list of several types (?entitytypes=b). */
+  tag?: string;
+  onOpen: () => void;
+}) => {
+  const emailTake = useEmailRowTake();
+  return file.kind === "email" && emailTake ? (
+    <EmailRow file={file} take={emailTake} tag={tag} onOpen={onOpen} />
+  ) : (
+    <PageRow file={file} tag={tag} onOpen={onOpen} />
+  );
+};
 
 const gridCardStyle = css({
   display: "flex",
@@ -1235,24 +1425,29 @@ const FileFacts = ({ file, run }: { file: OutputFile; run: RunRecord }) => {
           ["To", `${file.contact} · ${file.to}`],
           ["Supplier", file.supplier],
           ["Sent", `${run.when.split(",")[0]}, ${file.sentAt}`],
+          ...(file.bounce ? [["Bounced", file.bounce] as [string, string]] : []),
           ["Attachment", file.attachment],
           ["Message ID", file.messageId],
         ];
-  const good = file.kind === "email" || !file.expiring;
+  const bounced = file.kind === "email" && file.delivery === "bounced";
+  const good = (file.kind === "email" && !bounced) || (file.kind === "certificate" && !file.expiring);
+  const tone = bounced ? "failed" : good ? "done" : "needsReview";
   return (
     <dl className={factsGridStyle}>
       <span
         className={pillStyle}
         style={{
-          backgroundColor: good
-            ? "var(--flows-done-badgeBg)"
-            : "var(--flows-needsReview-badgeBg)",
-          color: good
-            ? "var(--flows-done-badgeFg)"
-            : "var(--flows-needsReview-badgeFg)",
+          backgroundColor: `var(--flows-${tone}-badgeBg)`,
+          color: `var(--flows-${tone}-badgeFg)`,
         }}
       >
-        {file.kind === "email" ? "Sent" : good ? "Valid" : "Expires soon"}
+        {file.kind === "email"
+          ? bounced
+            ? "Bounced"
+            : "Sent"
+          : good
+            ? "Valid"
+            : "Expires soon"}
       </span>
       {rows.map(([key, value]) => (
         <div key={key}>
@@ -2417,7 +2612,11 @@ const OutputColumn = ({
           ) : null}
         </span>
       </div>
-      <div className={columnBodyStyle}>
+      <div
+        // A new view starts at the top, not at the list's scroll position.
+        key={`${depth}.${view.kind === "files" ? view.index : ""}`}
+        className={columnBodyStyle}
+      >
         {file ? (
           <>
             <div className={headBlockStyle}>
