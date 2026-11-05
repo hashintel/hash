@@ -12,7 +12,8 @@
  * `tileColor`, and `var(--flows-sel-border)` and friends in styles). Card bars stay the faint 2 px ones in every
  * palette; `today` keeps its neutral alpha bars.
  *
- * Pick: ?colours=today|o2|o4, or ⌘K "Colours: …". Remembered in localStorage; the default is `today`.
+ * O2 is decided (4 Nov, inbox `picks/flows-colours`), so it is the default. ?colours=today|o4, or ⌘K "Colours: …",
+ * shows the others for comparison, read from the URL only and never remembered.
  */
 
 export type PaletteId = "today" | "o2" | "o4";
@@ -472,12 +473,10 @@ const reviewToneVariables = (): Record<string, string> => {
   return variables;
 };
 
-const storageKey = "flows-proto:colours:v1";
-
 const isPaletteId = (value: string | null): value is PaletteId =>
   value === "today" || value === "o2" || value === "o4";
 
-let current: PaletteId = "today";
+let current: PaletteId = "o2";
 const listeners = new Set<() => void>();
 
 export const currentPalette = () => current;
@@ -488,7 +487,7 @@ export const subscribePalette = (listener: () => void) => {
 };
 
 /**
- * Writes the palette's variables (live, no reload) and remembers it. They go on `.petrinaut-root`, the element the
+ * Writes the palette's variables (live, no reload). They go on `.petrinaut-root`, the element the
  * DS token variables are defined on, so each `var(--colors-…)` resolves there.
  */
 export const applyPalette = (id: PaletteId) => {
@@ -511,30 +510,17 @@ export const applyPalette = (id: PaletteId) => {
   document.documentElement.dataset.flowsColours = id;
   document.documentElement.dataset.flowsDone = doneTone;
   document.documentElement.dataset.flowsReview = reviewTone;
-  try {
-    globalThis.localStorage.setItem(storageKey, id);
-  } catch {
-    // Blocked storage: the pick lasts for this page.
-  }
   for (const listener of listeners) {
     listener();
   }
 };
 
-/** At start: ?colours= wins, then the remembered pick, then `today`. */
+/** At start: ?colours= if the URL names a palette, else O2. */
 export const initPalette = () => {
   const fromQuery = new URLSearchParams(globalThis.location.search).get(
     "colours",
   );
-  let stored: string | null = null;
-  try {
-    stored = globalThis.localStorage.getItem(storageKey);
-  } catch {
-    // Blocked storage.
-  }
-  applyPalette(
-    isPaletteId(fromQuery) ? fromQuery : isPaletteId(stored) ? stored : "today",
-  );
+  applyPalette(isPaletteId(fromQuery) ? fromQuery : "o2");
 };
 
 /** Run-state glyph colours. */

@@ -53,7 +53,7 @@ const dotStyle = css({
   width: "[6px]",
   height: "[6px]",
   borderRadius: "full",
-  backgroundColor: "blue.fg.link",
+  backgroundColor: "neutral.fg.subtle",
 });
 
 const goesToStyle = css({ color: "neutral.fg.subtle" });

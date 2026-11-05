@@ -32,7 +32,7 @@ const dividerStyle = css({
   backgroundColor: "neutral.bd.solid",
 });
 
-/** DS icon buttons at the toolbar's 32 px square, icons in #646464 unless active. */
+/** DS icon buttons at the toolbar's 32 px square, icons in #646464; the active tool is a neutral fill, not brand blue. */
 const toolStyle = css({
   "&[class]": {
     width: "[32px]",
@@ -42,6 +42,7 @@ const toolStyle = css({
     justifyContent: "center",
   },
   "&[class]:not([data-variant=solid])": { color: "neutral.fg.muted" },
+  "&[class][data-variant=subtle]": { color: "neutral.fg.heading" },
 });
 
 /** The zoom button's text: 14 px medium #646464 between two 14 px icons. */
@@ -227,8 +228,8 @@ export const FlowToolbar = ({
       <Button
         size="sm"
         className={toolStyle}
-        variant={mode === "hand" ? "solid" : "ghost"}
-        tone={mode === "hand" ? "brand" : "neutral"}
+        variant={mode === "hand" ? "subtle" : "ghost"}
+        tone="neutral"
         iconName="hand"
         aria-label="Hand"
         tooltip="Hand (H)"
@@ -238,8 +239,8 @@ export const FlowToolbar = ({
       <Button
         size="sm"
         className={toolStyle}
-        variant={mode === "select" ? "solid" : "ghost"}
-        tone={mode === "select" ? "brand" : "neutral"}
+        variant={mode === "select" ? "subtle" : "ghost"}
+        tone="neutral"
         iconName="cursor"
         aria-label="Select"
         tooltip="Select (V)"

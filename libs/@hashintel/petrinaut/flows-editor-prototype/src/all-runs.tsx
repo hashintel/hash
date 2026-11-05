@@ -1158,6 +1158,8 @@ const failureRowStyle = css({
   cursor: "pointer",
   borderRadius: "md",
   _hover: { backgroundColor: "neutral.bg.surface.active" },
+  // The run line is neutral, underlined on hover; the whole row opens the run, so no link blue.
+  "&:hover [data-run-line]": { textDecorationLine: "underline" },
 });
 
 const Overview = ({ history }: { history: HistoryValue }) => {
@@ -1174,7 +1176,8 @@ const Overview = ({ history }: { history: HistoryValue }) => {
       ? {
           label: "Last failure",
           text: `Run ${lastFailure.id} · ${lastFailure.when}`,
-          color: "var(--flows-failed-text)",
+          // The status marks' s85 red, not the strong text red: one soft red for failure (flows-colours O2).
+          color: "var(--flows-failed-mark)",
           onOpen: () => history.open(lastFailure.id),
         }
       : { label: "Last failure", text: "None" },
@@ -1323,7 +1326,10 @@ const Overview = ({ history }: { history: HistoryValue }) => {
               >
                 {failure.title}
               </span>
-              <span className={css({ textStyle: "xs", color: "blue.fg.link" })}>
+              <span
+                className={css({ textStyle: "xs", color: "neutral.fg.muted" })}
+                data-run-line
+              >
                 {failure.line}
               </span>
             </span>
