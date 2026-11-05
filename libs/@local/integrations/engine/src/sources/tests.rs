@@ -130,8 +130,10 @@ fn run() -> CaptureRun {
 }
 
 fn reader(directory: &Path) -> SourceReader {
+    let local = directory.join("local");
+    fs::create_dir_all(&local).expect("should create the local source root");
     SourceReader::new(
-        CaptureStore::new(directory, &directory.join("captures"))
+        CaptureStore::new(&local, &directory.join("captures"))
             .expect("should open capture storage"),
         CaptureLimits::default(),
     )
@@ -226,13 +228,29 @@ async fn capture_run_isolation(#[case] change_identity: fn(CaptureRun) -> Captur
 }
 
 #[rstest]
+#[case::same(".")]
+#[case::captures_in_local("captures")]
+#[case::local_in_captures("..")]
+fn overlapping_roots(#[case] captures: &str) {
+    let directory = TempDir::new().expect("should create the directory");
+    let local = directory.path().join("local");
+    fs::create_dir_all(&local).expect("should create the local source root");
+    let error = CaptureStore::new(&local, &local.join(captures))
+        .expect_err("should keep captures outside the local source root");
+    assert!(
+        matches!(error.current_context(), SourceError::Configuration),
+        "overlapping roots should be rejected as invalid configuration"
+    );
+}
+
+#[rstest]
 #[case::parent_traversal("../source.parquet")]
 #[case::absolute_path("/etc/passwd")]
 #[case::empty_path("")]
 fn local_root_invalid_key(#[case] key: &str) {
     let directory = TempDir::new().expect("should create the directory");
-    let store = CaptureStore::new(directory.path(), &directory.path().join("captures"))
-        .expect("should open storage");
+    let captures = TempDir::new().expect("should create the capture directory");
+    let store = CaptureStore::new(directory.path(), captures.path()).expect("should open storage");
     let error = store
         .local_file(key)
         .expect_err("should reject an invalid source key");
@@ -248,8 +266,8 @@ fn local_root_symlink() {
     let directory = TempDir::new().expect("should create the directory");
     let outside = TempDir::new().expect("should create the outside directory");
     fs::write(outside.path().join("source.parquet"), b"outside").expect("should write a source");
-    let store = CaptureStore::new(directory.path(), &directory.path().join("captures"))
-        .expect("should open storage");
+    let captures = TempDir::new().expect("should create the capture directory");
+    let store = CaptureStore::new(directory.path(), captures.path()).expect("should open storage");
     symlink(outside.path(), directory.path().join("escape"))
         .expect("should create the test symlink");
     let error = store

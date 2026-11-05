@@ -102,13 +102,21 @@ impl CaptureStore {
     ///
     /// # Errors
     ///
-    /// Returns [`SourceError::Read`] if the local root cannot be opened or
-    /// [`SourceError::Write`] if the capture root cannot be created.
+    /// Returns [`SourceError::Read`] if the local root cannot be opened,
+    /// [`SourceError::Write`] if the capture root cannot be created, or
+    /// [`SourceError::Configuration`] if either root is not a directory or one contains the
+    /// other.
     pub fn new(local: &Path, captures: &Path) -> Result<Self, Report<SourceError>> {
         let local = local.canonicalize().change_context(SourceError::Read)?;
         fs::create_dir_all(captures).change_context(SourceError::Write)?;
         let captures = captures.canonicalize().change_context(SourceError::Write)?;
-        if !local.is_dir() || !captures.is_dir() {
+        // A capture inside the local root could be read as a local source by any definition,
+        // bypassing the web and run isolation of the capture store.
+        if !local.is_dir()
+            || !captures.is_dir()
+            || local.starts_with(&captures)
+            || captures.starts_with(&local)
+        {
             return Err(Report::new(SourceError::Configuration));
         }
         Ok(Self { local, captures })
