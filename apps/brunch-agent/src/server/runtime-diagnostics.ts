@@ -27,7 +27,8 @@ type DiagnosticStage =
   | "http.admission-body"
   | "provider.accounting"
   | "database.configuration"
-  | "database.operation";
+  | "database.operation"
+  | "model.configuration";
 
 /** Correlation and classification only; string values must never be content. */
 type DiagnosticFields = Record<string, string | number | boolean | undefined>;
