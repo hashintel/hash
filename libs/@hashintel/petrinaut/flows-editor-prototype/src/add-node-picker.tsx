@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
+import { Icon, type ItemOrGroup, type MenuItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -19,13 +19,21 @@ import {
   findStep,
   flattenSteps,
   setInputSource,
+  stepTitle,
   updateStep,
 } from "./document";
 import { showDebug, useEditor } from "./editor-context";
-import { tileMenu, tiledRowsStyle } from "./menu-rows";
+import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { getSourceShape, sourceOptions } from "./shapes";
 import { SearchHeader } from "./source-menu";
+import { tileColor } from "./status-colors";
+import {
+  FloatingStepPicker,
+  groupHue,
+  pickerColour,
+  pickerTake,
+} from "./step-picker";
 import { OriginMark } from "./ui";
 
 /** How far Insert step here moves the steps after it: a card and the gap between cards (J1.1: 200 + 96). */
@@ -124,6 +132,14 @@ const pickerWidthStyle = css({
   "&:has([data-menu-row=two])": { width: "[288px]" },
   // A group's chevron sits at the right edge, as in Figma.
   "& [role=menuitem] > svg:last-child": { marginLeft: "auto" },
+});
+
+/** `?pickercolour=2`: a Browse all group's icon in its hue, 8 px from its name, as a DS Menu item lays them. */
+const groupRowStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "2",
+  "& svg": { width: "[14px]", height: "[14px]" },
 });
 
 /** A submenu of steps: 288 px (Figma J0.6). */
@@ -304,6 +320,7 @@ export const AddNodePicker = ({
     setSearch("");
   };
 
+  const colour = pickerColour();
   const query = search.trim().toLowerCase();
   const recent = ui.recent.flatMap((id) =>
     catalog.filter((entry) => entry.id === id),
@@ -326,20 +343,37 @@ export const AddNodePicker = ({
     entry: CatalogEntry,
     key: string,
     side?: string,
-  ): MenuItem => ({
+  ): TiledItem => ({
     id: `${key}:${entry.id}`,
     text: entry.title,
     description: stepLine(entry),
     icon: entry.icon,
     suffix: originSuffix(entry) ?? side,
+    // `?pickercolour=` only: 1 and 2 tint the tile and its icon (T1), 3 tints the icon on the grey tile.
+    tint:
+      colour === 1 || colour === 2
+        ? tileColor(entry.icon)
+        : colour === 3
+          ? { color: tileColor(entry.icon).color }
+          : undefined,
     onClick: () => pick(entry),
   });
   const browseAll: MenuItem[] = stepGroups.map((group) => {
     const groupSteps = groupEntries(group, available);
     return {
       id: `group:${group.name}`,
-      text: group.name,
-      icon: group.icon,
+      ...(colour === 2
+        ? {
+            text: (
+              <span className={groupRowStyle}>
+                <span style={groupHue(group)}>
+                  <Icon name={group.icon} size="sm" />
+                </span>
+                {group.name}
+              </span>
+            ),
+          }
+        : { text: group.name, icon: group.icon }),
       menuClassName: cx(stepSubmenuStyle, tiledRowsStyle),
       subItems:
         groupSteps.length > 0
@@ -355,7 +389,7 @@ export const AddNodePicker = ({
     };
   });
   // From an output: only the steps that can take it, one line each and grouped flat by kind, as Attio's step list is.
-  const feedItem = (entry: CatalogEntry, key: string): MenuItem => ({
+  const feedItem = (entry: CatalogEntry, key: string): TiledItem => ({
     ...entryItem(entry, key),
     description: undefined,
   });
@@ -369,7 +403,7 @@ export const AddNodePicker = ({
   const ungrouped = usable.filter(
     (entry) => !stepGroups.some((group) => group.ids.includes(entry.id)),
   );
-  const feedItems: Array<ItemOrGroup<MenuItem>> = !feed
+  const feedItems: Array<ItemOrGroup<TiledItem>> = !feed
     ? []
     : usable.length === 0
       ? [
@@ -421,7 +455,7 @@ export const AddNodePicker = ({
             },
           ].filter((group) => group.items.length > 0);
 
-  const items: Array<ItemOrGroup<MenuItem>> = feed
+  const items: Array<ItemOrGroup<TiledItem>> = feed
     ? feedItems
     : query
       ? [
@@ -466,6 +500,71 @@ export const AddNodePicker = ({
             : []),
           { id: "browse", label: "Browse all", items: browseAll },
         ];
+
+  // `?picker=1..4` only: one picker for the canvas, the Add tab and "Use in a step".
+  const take = pickerTake();
+  if (take) {
+    const afterId = picker.after?.stepId;
+    const afterStep = afterId ? findStep(document, afterId)?.step : undefined;
+    const selectedStep =
+      picker.anchor === "toolbar" && ui.selectedId
+        ? findStep(document, ui.selectedId)?.step
+        : undefined;
+    const parentStep = picker.parentId
+      ? findStep(document, picker.parentId)?.step
+      : undefined;
+    const context = feed
+      ? `Steps that can take ${feed.label}`
+      : afterId === START_ID
+        ? "After Start"
+        : afterStep
+          ? `After ${stepTitle(afterStep)}`
+          : parentStep
+            ? `Inside ${stepTitle(parentStep)}`
+            : selectedStep
+              ? `After ${stepTitle(selectedStep)}`
+              : "At the end of the flow";
+    const recommended = recommendedFirstSteps.flatMap((id) =>
+      available.filter((entry) => entry.id === id),
+    );
+    // Suggested: the steps that can take the previous step's first output.
+    const fromId = afterId ?? (selectedStep ? ui.selectedId : null);
+    const fromStep = fromId ? findStep(document, fromId)?.step : undefined;
+    const fromOutput =
+      fromStep?.kind === "action"
+        ? getCatalogEntry(fromStep.actionDefinitionId)?.outputs[0]
+        : undefined;
+    const fromOutputSuggestions =
+      fromId && fromOutput
+        ? available
+            .filter(
+              (entry) =>
+                feedStep(document, entry, fromId, fromOutput.name) !== null,
+            )
+            .slice(0, 4)
+        : [];
+    return (
+      <FloatingStepPicker
+        take={take}
+        anchor={anchor}
+        above={picker.anchor === "toolbar"}
+        title={feed ? `Use ${feed.label} in a step` : "Add a step"}
+        context={context}
+        entries={feed ? usable : available}
+        recent={feed ? [] : recent}
+        suggested={
+          feed
+            ? undefined
+            : picker.anchor === "port" && document.steps.length === 0
+              ? recommended
+              : fromOutputSuggestions
+        }
+        allLabel={feed ? `Steps that take ${feed.label}` : undefined}
+        onPick={pick}
+        onClose={close}
+      />
+    );
+  }
 
   return (
     <OpenMenu

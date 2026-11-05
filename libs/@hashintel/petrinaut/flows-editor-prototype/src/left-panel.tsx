@@ -32,6 +32,7 @@ import {
 import { type EditorUi, useEditor } from "./editor-context";
 import { cellText, StatusCell } from "./status-cell";
 import { tileColor } from "./status-colors";
+import { InlineStepPicker, pickerTake } from "./step-picker";
 
 import type { StepRun } from "./run-history";
 
@@ -440,6 +441,32 @@ const Library = () => {
       <span className={labelStyle}>{entry.title}</span>
     </button>
   );
+  // `?picker=1..4` only: the same picker as the canvas, laid flat in the tab.
+  const take = pickerTake();
+  if (take) {
+    const selectedStep =
+      ui.selectedId && ui.selectedId !== START_ID
+        ? findStep(document, ui.selectedId)?.step
+        : undefined;
+    return (
+      <InlineStepPicker
+        take={take}
+        title="Add a step"
+        context={
+          selectedStep
+            ? `After ${stepTitle(selectedStep)}`
+            : ui.selectedId === START_ID
+              ? "After Start"
+              : "At the end of the flow"
+        }
+        entries={catalog.filter(isOffered)}
+        recent={ui.recent.flatMap((id) =>
+          catalog.filter((entry) => entry.id === id),
+        )}
+        onPick={add}
+      />
+    );
+  }
   return (
     <div
       className={css({

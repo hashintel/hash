@@ -160,11 +160,14 @@ export const MenuRow = ({
   title,
   description,
   lines = "value",
+  tint,
 }: {
   icon?: IconName | React.ReactElement;
   title: React.ReactNode;
   description?: React.ReactNode;
   lines?: RowLines;
+  /** `?pickercolour=` takes only: the step kind's tile colours, on the same tile at the same size. */
+  tint?: React.CSSProperties;
 }) => {
   const twoLine = description !== undefined && description !== null && description !== "";
   const glyph = typeof icon === "string" ? <Icon name={icon} size="sm" /> : icon;
@@ -172,11 +175,17 @@ export const MenuRow = ({
     <span className={rowStyle} data-menu-row={twoLine ? "two" : "one"}>
       {twoLine ? (
         <span className={tileColumnStyle} aria-hidden="true">
-          <span className={tileStyle({ lines })}>{glyph}</span>
+          <span className={tileStyle({ lines })} style={tint}>
+            {glyph}
+          </span>
         </span>
       ) : (
         <span className={slotStyle} aria-hidden="true">
-          {glyph ? <span className={smallTileStyle}>{glyph}</span> : null}
+          {glyph ? (
+            <span className={smallTileStyle} style={tint}>
+              {glyph}
+            </span>
+          ) : null}
         </span>
       )}
       <span className={textStyle}>
@@ -192,7 +201,11 @@ export const MenuRow = ({
 };
 
 /** A DS Menu item that may draw a glyph the DS icon set lacks (the [x] variable glyph). */
-export type TiledItem = MenuItem & { glyph?: React.ReactElement };
+export type TiledItem = MenuItem & {
+  glyph?: React.ReactElement;
+  /** `?pickercolour=` takes only: see `MenuRow`. */
+  tint?: React.CSSProperties;
+};
 
 const isGroup = <T,>(
   entry: ItemOrGroup<T>,
@@ -213,7 +226,7 @@ export const tileMenu = (
   const rows = entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]));
   const tiled = rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
-    const { glyph, ...rest } = item;
+    const { glyph, tint, ...rest } = item;
     const subItems = rest.subItems
       ? {
           subItems: tileMenu(
@@ -235,6 +248,7 @@ export const tileMenu = (
           title={rest.text}
           description={rest.description}
           lines={lines}
+          tint={tint}
         />
       ),
       icon: undefined,
