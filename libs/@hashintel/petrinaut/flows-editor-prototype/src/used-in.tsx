@@ -8,6 +8,8 @@
  *   14 px; then the inputs it fills at 12 px. Only › joins names. A faint vertical line joins the three lines through
  *   the step's tile (K3).
  * - Which part of the output goes in is left out (Q1).
+ * - Hovering a using step shows ⋮ (its inputs that take the value, the filled one ticked; picking another moves it;
+ *   Open step) and × (stop using it there). Inbox output-used-in, spec E13.
  * - The last row of every tree is "Use in a step", which opens the later-steps menu (W1): the inputs of later steps
  *   that take this value, each with its step under it. Picking one connects it.
  *
@@ -23,6 +25,8 @@ import {
   type EditorDocument,
   findStep,
   flattenSteps,
+  mapSteps,
+  type RefSource,
   setInputSource,
   stepLabel,
 } from "./document";
@@ -387,6 +391,119 @@ const typeSuffixStyle = css({
  * The later-steps menu (W1): every input of a later step that can take this output, as the @ menu (X) turned
  * around. Rows: the input's name, its step under it on the step's tile, its type on the right.
  */
+/** Connects `source` to a step's input: one more reference in a free-text or list field, else the input's value. */
+const connect = (
+  document: EditorDocument,
+  userId: string,
+  inputName: string,
+  source: StepInputSource,
+): EditorDocument => {
+  const key = `${userId}.${inputName}`;
+  const parts = document.templates[key];
+  if (parts) {
+    return {
+      ...document,
+      templates: {
+        ...document.templates,
+        [key]: [...parts, { kind: "ref", source: source as RefSource }],
+      },
+    };
+  }
+  const items = document.lists[key];
+  if (items) {
+    return { ...document, lists: { ...document.lists, [key]: [...items, source] } };
+  }
+  return setInputSource(document, userId, inputName, source);
+};
+
+/** Takes an output out of one step: every input, free-text reference, list item and change that reads it. */
+const disconnect = (
+  document: EditorDocument,
+  userId: string,
+  match: (source: StepInputSource | undefined) => boolean,
+  only?: string,
+): EditorDocument => {
+  const mine = (key: string) =>
+    key.split(".")[0] === userId && (!only || key.split(".")[1] === only);
+  const steps = mapSteps(document.steps, (step) => {
+    if (step.stepId !== userId) {
+      return step;
+    }
+    if (step.kind === "for-each") {
+      return only || !match(step.over) ? step : { ...step, over: undefined };
+    }
+    const inputs = Object.fromEntries(
+      Object.entries(step.inputs).filter(
+        ([name, source]) => !(match(source) && (!only || name === only)),
+      ),
+    );
+    return { ...step, inputs };
+  });
+  const templates = Object.fromEntries(
+    Object.entries(document.templates).map(([key, parts]) => [
+      key,
+      mine(key)
+        ? parts.filter((part) => !(part.kind === "ref" && match(part.source)))
+        : parts,
+    ]),
+  );
+  const lists = Object.fromEntries(
+    Object.entries(document.lists).map(([key, items]) => [
+      key,
+      mine(key) ? items.filter((item) => !match(item)) : items,
+    ]),
+  );
+  const patches = only
+    ? document.patches
+    : Object.fromEntries(
+        Object.entries(document.patches).map(([id, list]) => [
+          id,
+          id === userId
+            ? list.map((patch) =>
+                match(patch.source ?? undefined) ? { ...patch, source: null } : patch,
+              )
+            : list,
+        ]),
+      );
+  return { ...document, steps, templates, lists, patches };
+};
+
+/** A step's inputs that can take the output, each with the source to connect and whether it already reads it. */
+const inputsTaking = (
+  document: EditorDocument,
+  userId: string,
+  match: (source: StepInputSource | undefined) => boolean,
+) => {
+  const step = findStep(document, userId)?.step;
+  const entry =
+    step?.kind === "action" ? getCatalogEntry(step.actionDefinitionId) : undefined;
+  if (step?.kind !== "action" || !entry) {
+    return [];
+  }
+  return entry.inputs.flatMap((input) => {
+    const option = sourceOptions(document, userId, input, entry).find((candidate) =>
+      match(candidate.source),
+    );
+    if (!option) {
+      return [];
+    }
+    const key = `${userId}.${input.name}`;
+    const filled =
+      match(step.inputs[input.name]) ||
+      (document.templates[key]?.some(
+        (part) => part.kind === "ref" && match(part.source),
+      ) ??
+        false) ||
+      (document.lists[key]?.some(match) ?? false);
+    return [{ step, entry, input, source: option.source, filled }];
+  });
+};
+
+const typeSuffix = (kinds: readonly string[] | null, array: boolean) => {
+  const kind = kinds?.[0];
+  return kind ? <span className={typeSuffixStyle}>{kindLabel(kind, array)}</span> : undefined;
+};
+
 const LaterStepsMenu = ({
   anchor,
   stepId,
@@ -402,66 +519,22 @@ const LaterStepsMenu = ({
   const order = flattenSteps(document.steps);
   const from = order.findIndex(({ step }) => step.stepId === stepId);
   const match = sameOutput(stepId, outputName);
-  const items: MenuItem[] = order.slice(from + 1).flatMap(({ step }) => {
-    if (step.kind !== "action") {
-      return [];
-    }
-    const entry = getCatalogEntry(step.actionDefinitionId);
-    if (!entry) {
-      return [];
-    }
-    return entry.inputs.flatMap((input) => {
-      const option = sourceOptions(document, step.stepId, input, entry).find(
-        (candidate) => match(candidate.source),
-      );
-      if (!option) {
-        return [];
-      }
-      const key = `${step.stepId}.${input.name}`;
-      const filled =
-        match(step.inputs[input.name]) ||
-        (document.templates[key]?.some(
-          (part) => part.kind === "ref" && match(part.source),
-        ) ??
-          false) ||
-        (document.lists[key]?.some(match) ?? false);
-      const kind = input.kinds?.[0];
-      return [
-        {
-          id: key,
-          text: input.label,
-          description: stepLabel(step),
-          icon: entry.icon as IconName,
-          selected: filled,
-          selectedStyle: "tick" as const,
-          suffix: kind ? (
-            <span className={typeSuffixStyle}>{kindLabel(kind, input.array)}</span>
-          ) : undefined,
-          onClick: () => {
-            setDocument((current) => {
-              if (current.templates[key]) {
-                return {
-                  ...current,
-                  templates: {
-                    ...current.templates,
-                    [key]: [...current.templates[key], { kind: "ref", source: option.source as never }],
-                  },
-                };
-              }
-              if (current.lists[key]) {
-                return {
-                  ...current,
-                  lists: { ...current.lists, [key]: [...current.lists[key], option.source] },
-                };
-              }
-              return setInputSource(current, step.stepId, input.name, option.source);
-            });
-            onClose();
-          },
-        },
-      ];
-    });
-  });
+  const items: MenuItem[] = order
+    .slice(from + 1)
+    .flatMap(({ step }) => inputsTaking(document, step.stepId, match))
+    .map(({ step, entry, input, source, filled }) => ({
+      id: `${step.stepId}.${input.name}`,
+      text: input.label,
+      description: stepLabel(step),
+      icon: entry.icon as IconName,
+      selected: filled,
+      selectedStyle: "tick" as const,
+      suffix: typeSuffix(input.kinds, input.array),
+      onClick: () => {
+        setDocument((current) => connect(current, step.stepId, input.name, source));
+        onClose();
+      },
+    }));
   return (
     <OpenMenu
       anchor={anchor}
@@ -480,6 +553,153 @@ const LaterStepsMenu = ({
         },
       ])}
     />
+  );
+};
+
+/**
+ * A using step's ⋮ (inbox output-used-in, "I like 1"; spec E13): its inputs that take the value, the one it fills
+ * ticked; picking another moves the value there. Then "Open step".
+ */
+const UseMenu = ({
+  anchor,
+  userId,
+  match,
+  onOpenStep,
+  onClose,
+}: {
+  anchor: React.RefObject<Element | null>;
+  userId: string;
+  match: (source: StepInputSource | undefined) => boolean;
+  onOpenStep: () => void;
+  onClose: () => void;
+}) => {
+  const { document, setDocument } = useEditor();
+  const step = findStep(document, userId)?.step;
+  const inputs: MenuItem[] = inputsTaking(document, userId, match).map(
+    ({ input, source, filled }) => ({
+      id: input.name,
+      text: input.label,
+      selected: filled,
+      selectedStyle: "tick" as const,
+      suffix: typeSuffix(input.kinds, input.array),
+      onClick: () => {
+        if (!filled) {
+          setDocument((current) =>
+            connect(disconnect(current, userId, match), userId, input.name, source),
+          );
+        }
+        onClose();
+      },
+    }),
+  );
+  return (
+    <OpenMenu
+      anchor={anchor}
+      position="bottom-end"
+      onClose={onClose}
+      label={step ? stepLabel(step) : userId}
+      className={menuWidthStyle}
+      items={[
+        ...(inputs.length > 0
+          ? [{ id: "inputs", label: step ? stepLabel(step) : userId, items: inputs }]
+          : []),
+        {
+          id: "open",
+          label: "",
+          items: [
+            {
+              id: "open-step",
+              text: "Open step",
+              onClick: () => {
+                onOpenStep();
+                onClose();
+              },
+            },
+          ],
+        },
+      ]}
+    />
+  );
+};
+
+/** The row's × and ⋮: 24 px ghost squares at the row's top right, over a fade, shown on hover (playground ctls). */
+const controlsStyle = css({
+  position: "absolute",
+  top: "[8px]",
+  right: "[4px]",
+  display: "none",
+  gap: "[2px]",
+  paddingLeft: "3",
+  borderRadius: "md",
+  "[data-use]:hover &, [data-use]:focus-within &, &[data-open]": { display: "flex" },
+  // The fade only over the hovered row's fill, so a row left with its menu open stays white.
+  "[data-use]:hover &": {
+    background:
+      "[linear-gradient(to right, transparent, var(--colors-neutral-bg-surface-hover) 12px)]",
+  },
+});
+
+const controlStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[24px]",
+  height: "[24px]",
+  padding: "[0]",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  color: "neutral.fg.subtle",
+  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.a10" },
+  "&[data-open]": { color: "neutral.fg.heading", backgroundColor: "neutral.a10" },
+  "& > svg": { width: "[14px !important]", height: "[14px !important]" },
+});
+
+const UseControls = ({
+  userId,
+  name,
+  match,
+  onOpenStep,
+}: {
+  userId: string;
+  name: string;
+  match: (source: StepInputSource | undefined) => boolean;
+  onOpenStep: () => void;
+}) => {
+  const { setDocument } = useEditor();
+  const anchor = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  return (
+    <span className={controlsStyle} data-open={open || undefined}>
+      <button
+        ref={anchor}
+        type="button"
+        className={controlStyle}
+        data-open={open || undefined}
+        aria-label={`Input for ${name}`}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <Icon name="ellipsisVertical" size="sm" />
+      </button>
+      <button
+        type="button"
+        className={controlStyle}
+        aria-label={`Stop using in ${name}`}
+        onClick={() => setDocument((current) => disconnect(current, userId, match))}
+      >
+        <Icon name="close" size="sm" />
+      </button>
+      {open ? (
+        <UseMenu
+          anchor={anchor}
+          userId={userId}
+          match={match}
+          onOpenStep={onOpenStep}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </span>
   );
 };
 
@@ -593,6 +813,14 @@ export const UsedInBlock = ({
                     ))}
                   </span>
                 </button>
+                {readOnly ? null : (
+                  <UseControls
+                    userId={use.stepId}
+                    name={step ? stepLabel(step) : use.stepId}
+                    match={sameOutput(stepId, outputName)}
+                    onOpenStep={() => select(use.stepId)}
+                  />
+                )}
               </div>
             );
           })}
