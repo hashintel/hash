@@ -42,10 +42,10 @@ describe("IntegrationIcon", () => {
     }
   });
 
-  it("maps the 43 directory entries and Kinaxis corporate brand separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(44);
+  it("maps the directory entries and additional brands separately", () => {
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(49);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      40,
+      45,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",

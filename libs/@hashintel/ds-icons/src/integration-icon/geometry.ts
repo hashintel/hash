@@ -27,8 +27,13 @@ import * as kinaxis from "./geometry/kinaxis";
 import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
 import * as linear from "./geometry/linear";
 import * as messenger from "./geometry/messenger";
+import * as microsoftExcel from "./geometry/microsoft-excel";
+import * as microsoftOneNote from "./geometry/microsoft-onenote";
+import * as microsoftOutlook from "./geometry/microsoft-outlook";
+import * as microsoftPowerPoint from "./geometry/microsoft-powerpoint";
 import * as microsoftTeams from "./geometry/microsoft-teams";
 import * as microsoftTeamsLegacy from "./geometry/microsoft-teams-legacy";
+import * as microsoftWord from "./geometry/microsoft-word";
 import * as notion from "./geometry/notion";
 import * as omp from "./geometry/omp";
 import * as oracle from "./geometry/oracle";
@@ -259,6 +264,41 @@ export const integrationGeometry = {
     ...microsoftTeams,
     markViewBox: "4 4 36 38",
     logoViewBox: "0 0 683.7612323491655 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftWord: {
+    ...microsoftWord,
+    markViewBox: "0 0 35 36",
+    logoViewBox: "0 0 694.487737257411 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftOutlook: {
+    ...microsoftOutlook,
+    markViewBox: "60 90.4 570.02 539.67",
+    logoViewBox: "0 0 802.1765902508063 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftExcel: {
+    ...microsoftExcel,
+    markViewBox: "0 0 486 500",
+    logoViewBox: "0 0 673.838515674984 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftPowerPoint: {
+    ...microsoftPowerPoint,
+    markViewBox: "60 78.75 581.25 562.5",
+    logoViewBox: "0 0 923.3307741522713 100",
+    ratio: 2,
+    alignment: "center",
+  },
+  microsoftOneNote: {
+    ...microsoftOneNote,
+    markViewBox: "60 90 525 540",
+    logoViewBox: "0 0 827.0558754531883 100",
     ratio: 2,
     alignment: "center",
   },

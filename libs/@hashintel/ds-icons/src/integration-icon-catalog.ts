@@ -695,6 +695,121 @@ export const integrationIconCatalog = [
     logoRaster: false,
   },
   {
+    name: "microsoftWord",
+    slug: "microsoft-word",
+    label: "Microsoft Word",
+    integrationNames: ["Microsoft Word"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/e/e8/Microsoft_Office_Word_%282025%E2%80%93present%29.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    logoNotes:
+      "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    logoRaster: false,
+  },
+  {
+    name: "microsoftOutlook",
+    slug: "microsoft-outlook",
+    label: "Microsoft Outlook",
+    integrationNames: ["Microsoft Outlook"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/c/cc/Microsoft_Outlook_Icon_%282025%E2%80%93present%29.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    logoNotes:
+      "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    logoRaster: false,
+  },
+  {
+    name: "microsoftExcel",
+    slug: "microsoft-excel",
+    label: "Microsoft Excel",
+    integrationNames: ["Microsoft Excel"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/6/60/Microsoft_Office_Excel_%282025%E2%80%93present%29.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    logoNotes:
+      "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    logoRaster: false,
+  },
+  {
+    name: "microsoftPowerPoint",
+    slug: "microsoft-powerpoint",
+    label: "Microsoft PowerPoint",
+    integrationNames: ["Microsoft PowerPoint"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_PowerPoint_%282025%E2%80%93present%29.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    logoNotes:
+      "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    logoRaster: false,
+  },
+  {
+    name: "microsoftOneNote",
+    slug: "microsoft-onenote",
+    label: "Microsoft OneNote",
+    integrationNames: ["Microsoft OneNote"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/3/34/Microsoft_OneNote_Icon_%282025_-_present%29.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2",
+    logoNotes:
+      "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
+    logoRaster: false,
+  },
+  {
     name: "microsoftTeamsLegacy",
     slug: "microsoft-teams-legacy",
     label: "Microsoft Teams (legacy)",
