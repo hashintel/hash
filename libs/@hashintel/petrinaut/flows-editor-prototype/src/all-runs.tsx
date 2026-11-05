@@ -5,7 +5,8 @@
  *
  * DS gaps: ds-components has no Tabs (the status tabs are a local tablist with DS Badge-like counts), no table, and
  * no stacked bar chart; the DS Filter is one property's chip, not a Sort / Filter ribbon, so Sort and Filter are DS
- * subtle buttons that do nothing yet.
+ * ghost buttons that open DS Menus (ledger 4 Nov: status tabs, plus a filter, plus sorting). The DS SortMenu marks the
+ * active sort in brand blue, which here means running, so Sort is a plain DS Menu with ticks.
  */
 import { useLayoutEffect, useRef, useState } from "react";
 
@@ -182,6 +183,68 @@ const rowButtonStyle = css({
   "&[class]": { color: "neutral.fg.muted" },
 });
 
+/** Sort or Filter while it changes the table: the label reads dark, as a selected status tab does. */
+const rowButtonActiveStyle = css({
+  "&[class]": { color: "neutral.fg.heading" },
+});
+
+/**
+ * `?runsort=old`: Sort and Filter as they were, buttons that open nothing. URL only, never remembered. Without it
+ * Sort orders by start time, duration or status, and Filter narrows by status, trigger and who ran it.
+ */
+const oldRunsSort =
+  new URLSearchParams(globalThis.location.search).get("runsort") === "old";
+
+type SortKey = "started" | "duration" | "status";
+
+/** Each sort's two orders, first the one it starts in. */
+const sortOrders: Record<SortKey, { label: string; orders: [string, string] }> =
+  {
+    started: { label: "Start time", orders: ["Newest first", "Oldest first"] },
+    duration: {
+      label: "Duration",
+      orders: ["Longest first", "Shortest first"],
+    },
+    status: { label: "Status", orders: ["Failed first", "Completed first"] },
+  };
+
+/** Status order for sorting: what needs a look first. */
+const statusRank: Record<RunOutcome, number> = {
+  error: 0,
+  abandoned: 1,
+  needsReview: 2,
+  running: 3,
+  warnings: 4,
+  completed: 5,
+};
+
+/** The Filter menu's status words, finer than the tabs (a run with warnings is one way of Completed). */
+const statusFilterLabel: Record<RunOutcome, string> = {
+  running: "Running",
+  needsReview: "Needs review",
+  completed: "Completed",
+  warnings: "Completed with warnings",
+  error: "Failed",
+  abandoned: "Abandoned",
+};
+
+/** "1m 52s", "48h 02m": a past run's duration in seconds; a live run counts its clock. */
+const durationSeconds = (run: RunRecord, now: number) => {
+  if (run.kind === "live") {
+    return runClock(run, now);
+  }
+  const part = (unit: string) =>
+    Number(new RegExp(`(\\d+)\\s*${unit}`).exec(run.duration ?? "")?.[1] ?? 0);
+  return part("h") * 3600 + part("m") * 60 + part("s");
+};
+
+/** One Filter choice: "status:error", "trigger:manual", "by:Dora". */
+const filterKeysOf = (run: RunRecord, now: number) => [
+  `status:${outcomeOf(run, now)}`,
+  `trigger:${run.trigger.kind}`,
+  ...(run.trigger.kind === "manual" ? [`by:${run.trigger.by}`] : []),
+];
+
 const tableStyle = css({
   width: "[100%]",
   borderCollapse: "collapse",
@@ -273,6 +336,11 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
   const [older, setOlder] = useState(false);
   const [extraRows, setExtraRows] = useState(0);
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{ key: SortKey; flipped: boolean }>({
+    key: "started",
+    flipped: false,
+  });
+  const [filters, setFilters] = useState<string[]>([]);
   // How many rows fit in the height the page has, with and without the footer row under them.
   const [fits, setFits] = useState({ bare: pageSize, withFooter: pageSize });
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -303,13 +371,116 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
     value === "all"
       ? runs.length
       : runs.filter((run) => tabOf[outcomeOf(run, now)] === value).length;
-  const matching = runs.filter(
-    (run) =>
-      (tab === "all" || tabOf[outcomeOf(run, now)] === tab) &&
-      `Run ${run.id} ${run.when} ${triggerLabel(run).row}`
-        .toLowerCase()
-        .includes(search.trim().toLowerCase()),
+  // Within a group a run matches any picked choice; across groups it matches every group with a pick.
+  const filterGroups = ["status", "trigger", "by"].map((group) =>
+    filters.filter((key) => key.startsWith(`${group}:`)),
   );
+  const passesFilters = (run: RunRecord) => {
+    const keys = filterKeysOf(run, now);
+    return filterGroups.every(
+      (picked) =>
+        picked.length === 0 || picked.some((key) => keys.includes(key)),
+    );
+  };
+  const sortValue = (run: RunRecord) =>
+    sort.key === "started"
+      ? run.id
+      : sort.key === "duration"
+        ? durationSeconds(run, now)
+        : -statusRank[outcomeOf(run, now)];
+  const matching = runs
+    .filter(
+      (run) =>
+        (tab === "all" || tabOf[outcomeOf(run, now)] === tab) &&
+        passesFilters(run) &&
+        `Run ${run.id} ${run.when} ${triggerLabel(run).row}`
+          .toLowerCase()
+          .includes(search.trim().toLowerCase()),
+    )
+    // Newest, longest or failed first; a tie keeps the newest run on top.
+    .toSorted(
+      (a, b) =>
+        (sortValue(b) - sortValue(a)) * (sort.flipped ? -1 : 1) || b.id - a.id,
+    );
+  const toggleFilter = (key: string) =>
+    setFilters((current) =>
+      current.includes(key)
+        ? current.filter((picked) => picked !== key)
+        : [...current, key],
+    );
+  // Only choices some run has, so no group is ever empty.
+  const choices = (
+    group: string,
+    label: (value: string) => string,
+  ): { id: string; text: string }[] =>
+    [
+      ...new Set(
+        runs.flatMap((run) =>
+          filterKeysOf(run, now).filter((key) => key.startsWith(`${group}:`)),
+        ),
+      ),
+    ].map((key) => ({ id: key, text: label(key.slice(group.length + 1)) }));
+  const filterItems = [
+    {
+      id: "status",
+      label: "Status",
+      items: choices(
+        "status",
+        (value) => statusFilterLabel[value as RunOutcome],
+      ).toSorted(
+        (a, b) =>
+          statusRank[a.id.slice(7) as RunOutcome] -
+          statusRank[b.id.slice(7) as RunOutcome],
+      ),
+    },
+    {
+      id: "trigger",
+      label: "Trigger",
+      items: choices("trigger", (value) =>
+        value === "manual" ? "Manual" : "Schedule",
+      ),
+    },
+    { id: "by", label: "Started by", items: choices("by", (value) => value) },
+  ]
+    .filter((group) => group.items.length > 0)
+    .map((group) => ({
+      ...group,
+      items: group.items.map((item) => ({
+        ...item,
+        selected: filters.includes(item.id),
+        selectedStyle: "checkbox" as const,
+        keepOpenOnSelect: true,
+        onClick: () => toggleFilter(item.id),
+      })),
+    }));
+  const sortItems = [
+    {
+      id: "sort-by",
+      label: "Sort by",
+      items: (Object.keys(sortOrders) as SortKey[]).map((key) => ({
+        id: `sort:${key}`,
+        text: sortOrders[key].label,
+        selected: sort.key === key,
+        selectedStyle: "tick" as const,
+        keepOpenOnSelect: true,
+        onClick: () => setSort({ key, flipped: false }),
+      })),
+    },
+    {
+      id: "order",
+      label: "Order",
+      items: sortOrders[sort.key].orders.map((text, index) => ({
+        id: `order:${index}`,
+        text,
+        selected: sort.flipped === (index === 1),
+        selectedStyle: "tick" as const,
+        keepOpenOnSelect: true,
+        onClick: () =>
+          setSort((current) => ({ ...current, flipped: index === 1 })),
+      })),
+    },
+  ];
+  const sorted = sort.key !== "started" || sort.flipped;
   const total = matching.length;
   const allFit = total <= fits.bare;
   const fill = Math.min(pageSize, fits.withFooter);
@@ -403,24 +574,81 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
           ))}
         </div>
         <span className={css({ flex: "1" })} />
-        <Button
-          size="sm"
-          variant="ghost"
-          tone="neutral"
-          iconName="sortDown"
-          className={rowButtonStyle}
-        >
-          Sort
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          tone="neutral"
-          iconName="filter"
-          className={rowButtonStyle}
-        >
-          Filter
-        </Button>
+        {oldRunsSort ? (
+          <>
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              iconName="sortDown"
+              className={rowButtonStyle}
+            >
+              Sort
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              iconName="filter"
+              className={rowButtonStyle}
+            >
+              Filter
+            </Button>
+          </>
+        ) : (
+          <>
+            <Menu
+              position="bottom-end"
+              items={sortItems}
+              trigger={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="neutral"
+                  iconName={sort.flipped ? "sortUp" : "sortDown"}
+                  className={cx(rowButtonStyle, sorted && rowButtonActiveStyle)}
+                >
+                  {sorted ? sortOrders[sort.key].label : "Sort"}
+                </Button>
+              }
+            />
+            <Menu
+              position="bottom-end"
+              items={
+                filters.length > 0
+                  ? [
+                      ...filterItems,
+                      {
+                        id: "clear",
+                        label: "",
+                        items: [
+                          {
+                            id: "clear-filters",
+                            text: "Clear filters",
+                            onClick: () => setFilters([]),
+                          },
+                        ],
+                      },
+                    ]
+                  : filterItems
+              }
+              trigger={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="neutral"
+                  iconName="filter"
+                  className={cx(
+                    rowButtonStyle,
+                    filters.length > 0 && rowButtonActiveStyle,
+                  )}
+                >
+                  {filters.length > 0 ? `Filter · ${filters.length}` : "Filter"}
+                </Button>
+              }
+            />
+          </>
+        )}
         <span className={css({ width: "[200px]", marginLeft: "2" })}>
           <TextInput
             value={search}
@@ -519,6 +747,16 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                 </td>
               </tr>
             ))}
+            {shown.length === 0 && filters.length > 0 ? (
+              <tr data-runs-empty>
+                <td
+                  colSpan={statusTake === "c" ? 7 : 6}
+                  className={css({ color: "neutral.fg.muted" })}
+                >
+                  No runs match these filters
+                </td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
         {runsPage === "p1" && !allFit && !older ? (
