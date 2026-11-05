@@ -24,12 +24,18 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
 
   const [definition, setDefinition] = useState(() => ({
     source: instance.definition,
-    store: createVisualizerDefinitionStore(instance.definition),
+    store: createVisualizerDefinitionStore(
+      instance.definition,
+      instance.handle,
+    ),
   }));
   if (definition.source !== instance.definition) {
     setDefinition({
       source: instance.definition,
-      store: createVisualizerDefinitionStore(instance.definition),
+      store: createVisualizerDefinitionStore(
+        instance.definition,
+        instance.handle,
+      ),
     });
   }
   useEffect(() => {
