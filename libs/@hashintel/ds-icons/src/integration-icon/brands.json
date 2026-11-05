@@ -1769,6 +1769,360 @@
     }
   },
   {
+    "name": "primeIntellect",
+    "slug": "prime-intellect",
+    "label": "Prime Intellect",
+    "integrationNames": ["Prime Intellect"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.primeintellect.ai/backgrounds/refactor/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.primeintellect.ai/backgrounds/refactor/logo.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "ramp",
+    "slug": "ramp",
+    "label": "Ramp",
+    "integrationNames": ["Ramp"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ramp.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://ramp.com/",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "fireworksAi",
+    "slug": "fireworks-ai",
+    "label": "Fireworks AI",
+    "integrationNames": ["Fireworks AI"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://fireworks.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://fireworks.ai/",
+    "logoNotes": "Native mark and current serif wordmark from the official header, composed in the header’s proportions.",
+    "logoLayout": {
+      "wordmarkHeight": 1,
+      "gap": 0.5
+    }
+  },
+  {
+    "name": "uber",
+    "slug": "uber",
+    "label": "Uber",
+    "integrationNames": ["Uber"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/uber_light.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/uber_light.svg",
+    "logoNotes": "Uber uses its wordmark as the primary identity; no obsolete U or unrelated pictogram is substituted."
+  },
+  {
+    "name": "mongoDb",
+    "slug": "mongodb",
+    "label": "MongoDB",
+    "integrationNames": ["MongoDB"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://webimages.mongodb.com/_com_assets/cms/kuyjf3vea2hg34taa-horizontal_default_slate_blue.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#001E2B": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://webimages.mongodb.com/_com_assets/cms/kuyjf3vea2hg34taa-horizontal_default_slate_blue.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "doorDash",
+    "slug": "doordash",
+    "label": "DoorDash",
+    "integrationNames": ["DoorDash"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://about.doordash.com/en-ca/company",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://about.doordash.com/en-ca/company",
+    "logoNotes": "Native DoorDash symbol and lettering from its official company header, composed horizontally.",
+    "logoLayout": {
+      "wordmarkHeight": 0.74,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "hubSpot",
+    "slug": "hubspot",
+    "label": "HubSpot",
+    "integrationNames": ["HubSpot"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.hubspot.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.hubspot.com/",
+    "logoNotes": "Current native all-orange HubSpot identity from its homepage. The sprocket remains integrated in the full wordmark."
+  },
+  {
+    "name": "harvey",
+    "slug": "harvey",
+    "label": "Harvey",
+    "integrationNames": ["Harvey"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.harvey.ai/downloadable/press/harvey_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0F0E0D": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.harvey.ai/downloadable/press/harvey_logo.svg",
+    "logoNotes": "Native Harvey wordmark, with its initial H extracted for the compact identity."
+  },
+  {
+    "name": "legora",
+    "slug": "legora",
+    "label": "Legora",
+    "integrationNames": ["Legora"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://framerusercontent.com/images/t4E7HtGvgFipxaYtePy1dSQAjks.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#005230": "#F3F2EE"
+    },
+    "logoDarkColors": {
+      "#005032": "#F3F2EE"
+    },
+    "logoSource": "https://framerusercontent.com/images/y4dDNSLl5ofNEicU6irKeZsehSE.svg",
+    "logoNotes": "Current 2026 symbol vectorized from the official favicon, without its cream background. Composed with the native outlined wordmark; the lettering is not traced.",
+    "logoLayout": {
+      "wordmarkHeight": 0.57,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "vanta",
+    "slug": "vanta",
+    "label": "Vanta",
+    "integrationNames": ["Vanta"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.vanta.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#260048": "#AC55FF"
+    },
+    "logoDarkColors": {
+      "#240642": "#F8F4F3"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/64009032676f24f376f002fc/6400ac82429afb0f7b31fa6c_vanta-logo.svg",
+    "logoNotes": "Llama-head artwork vectorized from the current official 512px favicon, with its lavender circle removed. Composed with the native Vanta wordmark.",
+    "logoLayout": {
+      "wordmarkHeight": 0.47,
+      "gap": 0.25
+    }
+  },
+  {
+    "name": "secureframe",
+    "slug": "secureframe",
+    "label": "Secureframe",
+    "integrationNames": ["Secureframe"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://secureframe.com/images/sf-logo-2.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#091922": "#F5F7FA"
+    },
+    "logoSource": "https://secureframe.com/images/sf-logo.svg",
+    "logoNotes": "Native Secureframe S symbol and outlined wordmark from the official site, composed horizontally.",
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "carta",
+    "slug": "carta",
+    "label": "Carta",
+    "integrationNames": ["Carta"],
+    "ratio": 1.6,
+    "alignment": "center",
+    "source": "https://drive.google.com/file/d/1eQypaSv4_w1IJddUOJopFe2XlzIK0A5-/view",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://drive.google.com/file/d/1eQypaSv4_w1IJddUOJopFe2XlzIK0A5-/view",
+    "logoNotes": "Official February 2026 press-kit artwork. Carta’s framed wordmark is its primary identity and is preserved in mark and full-logo views."
+  },
+  {
+    "name": "deepseek",
+    "slug": "deepseek",
+    "label": "DeepSeek",
+    "integrationNames": ["DeepSeek"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/deepseek-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#4D6BFE": "#8096FF"
+    },
+    "logoDarkColors": {
+      "#4D6BFE": "#8096FF"
+    },
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/deepseek.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "kimi",
+    "slug": "kimi",
+    "label": "Kimi",
+    "integrationNames": ["Kimi"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/kimi-icon-clean.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/kimi.svg",
+    "logoNotes": "Native Kimi K symbol and blue accent, with the app-tile background removed. Composed with its native outlined KIMI wordmark.",
+    "logoLayout": {
+      "wordmarkHeight": 0.62,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "nvidia",
+    "slug": "nvidia",
+    "label": "NVIDIA",
+    "integrationNames": ["NVIDIA"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nvidia.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://www.nvidia.com/",
+    "logoNotes": "Native horizontal NVIDIA lock-up from its official header, preserving the green eye and original wordmark proportions."
+  },
+  {
+    "name": "miniMax",
+    "slug": "minimax",
+    "label": "MiniMax",
+    "integrationNames": ["MiniMax"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/minimax-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/minimax.svg",
+    "logoNotes": "Native gradient waveform and MINIMAX wordmark, checked against the current official horizontal logo."
+  },
+  {
+    "name": "meta",
+    "slug": "meta",
+    "label": "Meta",
+    "integrationNames": ["Meta"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/meta.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#192830": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/meta.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "zAi",
+    "slug": "z-ai",
+    "label": "Z.ai",
+    "integrationNames": ["Z.ai"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/z-ai.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://github.com/lobehub/lobe-icons/blob/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/zai-text.svg",
+    "logoNotes": "Native Z mark without its app-tile background, composed with the native Z.ai lettering from Lobe Icons (MIT).",
+    "logoLayout": {
+      "wordmarkHeight": 0.7,
+      "gap": 0.3
+    }
+  },
+  {
+    "name": "qwen",
+    "slug": "qwen",
+    "label": "Qwen",
+    "integrationNames": ["Qwen"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/qwen-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#623AE7": "#9B7AFF"
+    },
+    "logoDarkColors": {
+      "#623AE7": "#9B7AFF"
+    },
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/qwen.svg",
+    "logoNotes": "Native SVG artwork, retrieved 2026-11-05."
+  },
+  {
+    "name": "factory",
+    "slug": "factory",
+    "label": "Factory",
+    "integrationNames": ["Factory"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://factory.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://factory.com/",
+    "logoNotes": "Native Factory AI aperture mark and full lock-up from its official header."
+  },
+  {
     "name": "genericApp",
     "slug": "generic-app",
     "label": "Other integration",

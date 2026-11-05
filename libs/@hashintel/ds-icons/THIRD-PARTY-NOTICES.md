@@ -130,3 +130,58 @@ These entries use standalone product artwork. DynamoDB, RDS, and CloudFront reta
 | AWS Lambda | [Source](https://cdn.worldvectorlogo.com/logos/aws-lambda-1.svg) | [Typeface](https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2) | Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups. |
 | AWS Amplify | [Source](https://docs.amplify.aws/) | [Typeface](https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2) | Native Amplify product mark from the official documentation header, using its purple primary-60 token. Dark mode uses the lighter purple token. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups. |
 | Amazon Q | [Source](https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/amazon-q.svg) | [Typeface](https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2) | Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups. |
+
+## Additional company and AI identities
+
+Native outlined wordmarks are retained. Legora’s current symbol and Vanta’s llama head were vectorized from their official favicon artwork; background tiles were removed. Where marks and lettering are sourced separately, the horizontal compositions are described below. Uber and Carta use their primary wordmark identities in compact and full-logo views.
+
+| Brand | Mark source | Full-logo source | Notes |
+| --- | --- | --- | --- |
+| Prime Intellect | [Source](https://www.primeintellect.ai/backgrounds/refactor/logo.svg) | [Source](https://www.primeintellect.ai/backgrounds/refactor/logo.svg) | Native SVG artwork, retrieved 2026-11-05. |
+| Ramp | [Source](https://ramp.com/) | [Source](https://ramp.com/) | Native SVG artwork, retrieved 2026-11-05. |
+| Fireworks AI | [Source](https://fireworks.ai/) | [Source](https://fireworks.ai/) | Native mark and current serif wordmark from the official header, composed in the header’s proportions. |
+| Uber | [Source](https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/uber_light.svg) | [Source](https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/uber_light.svg) | Uber uses its wordmark as the primary identity; no obsolete U or unrelated pictogram is substituted. |
+| MongoDB | [Source](https://webimages.mongodb.com/_com_assets/cms/kuyjf3vea2hg34taa-horizontal_default_slate_blue.svg) | [Source](https://webimages.mongodb.com/_com_assets/cms/kuyjf3vea2hg34taa-horizontal_default_slate_blue.svg) | Native SVG artwork, retrieved 2026-11-05. |
+| DoorDash | [Source](https://about.doordash.com/en-ca/company) | [Source](https://about.doordash.com/en-ca/company) | Native DoorDash symbol and lettering from its official company header, composed horizontally. |
+| HubSpot | [Source](https://www.hubspot.com/) | [Source](https://www.hubspot.com/) | Current native all-orange HubSpot identity from its homepage. The sprocket remains integrated in the full wordmark. |
+| Harvey | [Source](https://www.harvey.ai/downloadable/press/harvey_logo.svg) | [Source](https://www.harvey.ai/downloadable/press/harvey_logo.svg) | Native Harvey wordmark, with its initial H extracted for the compact identity. |
+| Legora | [Source](https://framerusercontent.com/images/t4E7HtGvgFipxaYtePy1dSQAjks.png) | [Source](https://framerusercontent.com/images/y4dDNSLl5ofNEicU6irKeZsehSE.svg) | Current 2026 symbol vectorized from the official favicon, without its cream background. Composed with the native outlined wordmark; the lettering is not traced. |
+| Vanta | [Source](https://www.vanta.com/) | [Source](https://cdn.prod.website-files.com/64009032676f24f376f002fc/6400ac82429afb0f7b31fa6c_vanta-logo.svg) | Llama-head artwork vectorized from the current official 512px favicon, with its lavender circle removed. Composed with the native Vanta wordmark. |
+| Secureframe | [Source](https://secureframe.com/images/sf-logo-2.svg) | [Source](https://secureframe.com/images/sf-logo.svg) | Native Secureframe S symbol and outlined wordmark from the official site, composed horizontally. |
+| Carta | [Source](https://drive.google.com/file/d/1eQypaSv4_w1IJddUOJopFe2XlzIK0A5-/view) | [Source](https://drive.google.com/file/d/1eQypaSv4_w1IJddUOJopFe2XlzIK0A5-/view) | Official February 2026 press-kit artwork. Carta’s framed wordmark is its primary identity and is preserved in mark and full-logo views. |
+| DeepSeek | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/deepseek-icon.svg) | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/deepseek.svg) | Native SVG artwork, retrieved 2026-11-05. |
+| Kimi | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/kimi-icon-clean.svg) | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/kimi.svg) | Native Kimi K symbol and blue accent, with the app-tile background removed. Composed with its native outlined KIMI wordmark. |
+| NVIDIA | [Source](https://www.nvidia.com/) | [Source](https://www.nvidia.com/) | Native horizontal NVIDIA lock-up from its official header, preserving the green eye and original wordmark proportions. |
+| MiniMax | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/minimax-icon.svg) | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/minimax.svg) | Native gradient waveform and MINIMAX wordmark, checked against the current official horizontal logo. |
+| Meta | [Source](https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/meta.svg) | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/meta.svg) | Native SVG artwork, retrieved 2026-11-05. |
+| Z.ai | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/z-ai.svg) | [Source](https://github.com/lobehub/lobe-icons/blob/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/zai-text.svg) | Native Z mark without its app-tile background, composed with the native Z.ai lettering from Lobe Icons (MIT). |
+| Qwen | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/qwen-icon.svg) | [Source](https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/qwen.svg) | Native SVG artwork, retrieved 2026-11-05. |
+| Factory | [Source](https://factory.com/) | [Source](https://factory.com/) | Native Factory AI aperture mark and full lock-up from its official header. |
+
+### Lobe Icons
+
+The Z.ai wordmark is sourced from Lobe Icons at commit `ea434b96e75813517b377825e01c0df61dee8836`. Its MIT notice follows. The license does not grant trademark rights.
+
+```text
+MIT License
+
+Copyright (c) 2023 LobeHub
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

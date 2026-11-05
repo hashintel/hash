@@ -24,6 +24,7 @@ import * as blueYonder from "./geometry/blue-yonder";
 import * as box from "./geometry/box";
 import * as calCom from "./geometry/cal-com";
 import * as calendly from "./geometry/calendly";
+import * as carta from "./geometry/carta";
 import * as celonis from "./geometry/celonis";
 import * as chatgpt from "./geometry/chatgpt";
 import * as claude from "./geometry/claude";
@@ -34,11 +35,15 @@ import * as composio from "./geometry/composio";
 import * as coupa from "./geometry/coupa";
 import * as cursor from "./geometry/cursor";
 import * as databricks from "./geometry/databricks";
+import * as deepseek from "./geometry/deepseek";
 import * as discord from "./geometry/discord";
 import * as docusign from "./geometry/docusign";
+import * as doorDash from "./geometry/doordash";
 import * as dropbox from "./geometry/dropbox";
 import * as evernote from "./geometry/evernote";
+import * as factory from "./geometry/factory";
 import * as figma from "./geometry/figma";
+import * as fireworksAi from "./geometry/fireworks-ai";
 import * as fourkites from "./geometry/fourkites";
 import * as genericApp from "./geometry/generic-app";
 import * as github from "./geometry/github";
@@ -51,16 +56,21 @@ import * as googleSheets from "./geometry/google-sheets";
 import * as googleSlides from "./geometry/google-slides";
 import * as granola from "./geometry/granola";
 import * as granolaLegacy from "./geometry/granola-legacy";
+import * as harvey from "./geometry/harvey";
 import * as hash from "./geometry/hash";
+import * as hubSpot from "./geometry/hubspot";
 import * as hunter from "./geometry/hunter";
 import * as instagram from "./geometry/instagram";
+import * as kimi from "./geometry/kimi";
 import * as kinaxis from "./geometry/kinaxis";
 import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
+import * as legora from "./geometry/legora";
 import * as linear from "./geometry/linear";
 import * as luma from "./geometry/luma";
 import * as mailchimp from "./geometry/mailchimp";
 import * as messenger from "./geometry/messenger";
 import * as messengerLegacy from "./geometry/messenger-legacy";
+import * as meta from "./geometry/meta";
 import * as microsoftCopilot from "./geometry/microsoft-copilot";
 import * as microsoftExcel from "./geometry/microsoft-excel";
 import * as microsoftOneDrive from "./geometry/microsoft-onedrive";
@@ -70,10 +80,13 @@ import * as microsoftPowerPoint from "./geometry/microsoft-powerpoint";
 import * as microsoftTeams from "./geometry/microsoft-teams";
 import * as microsoftTeamsLegacy from "./geometry/microsoft-teams-legacy";
 import * as microsoftWord from "./geometry/microsoft-word";
+import * as miniMax from "./geometry/minimax";
 import * as miro from "./geometry/miro";
 import * as mixmax from "./geometry/mixmax";
 import * as modal from "./geometry/modal";
+import * as mongoDb from "./geometry/mongodb";
 import * as notion from "./geometry/notion";
+import * as nvidia from "./geometry/nvidia";
 import * as okta from "./geometry/okta";
 import * as omp from "./geometry/omp";
 import * as openai from "./geometry/openai";
@@ -81,8 +94,12 @@ import * as oracle from "./geometry/oracle";
 import * as pandadoc from "./geometry/pandadoc";
 import * as pasX from "./geometry/pas-x";
 import * as postgres from "./geometry/postgres";
+import * as primeIntellect from "./geometry/prime-intellect";
+import * as qwen from "./geometry/qwen";
+import * as ramp from "./geometry/ramp";
 import * as rudderstack from "./geometry/rudderstack";
 import * as sap from "./geometry/sap";
+import * as secureframe from "./geometry/secureframe";
 import * as segment from "./geometry/segment";
 import * as sentry from "./geometry/sentry";
 import * as slack from "./geometry/slack";
@@ -94,10 +111,13 @@ import * as trello from "./geometry/trello";
 import * as turbopuffer from "./geometry/turbopuffer";
 import * as twitterLegacy from "./geometry/twitter-legacy";
 import * as typeform from "./geometry/typeform";
+import * as uber from "./geometry/uber";
+import * as vanta from "./geometry/vanta";
 import * as veevaVault from "./geometry/veeva-vault";
 import * as vercel from "./geometry/vercel";
 import * as whalesync from "./geometry/whalesync";
 import * as x from "./geometry/x";
+import * as zAi from "./geometry/z-ai";
 import * as zapier from "./geometry/zapier";
 import * as zendesk from "./geometry/zendesk";
 import * as zoho from "./geometry/zoho";
@@ -826,6 +846,146 @@ export const integrationGeometry = {
     ...amazonQ,
     markViewBox: "210.227091 64.490833 420.454181 464.334",
     logoViewBox: "0 0 415.8430483155481 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  primeIntellect: {
+    ...primeIntellect,
+    markViewBox: "0 0 33.06445 20.9212",
+    logoViewBox: "0 0 161.29 20.9212",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  ramp: {
+    ...ramp,
+    markViewBox: "51.654384 0 18.41169 15.733333",
+    logoViewBox: "0 0 70.171667 20",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  fireworksAi: {
+    ...fireworksAi,
+    markViewBox: "0 0.615385 40.2825 18.769231",
+    logoViewBox: "0 0 818.3247288565566 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  uber: {
+    ...uber,
+    markViewBox: "0 0 926.905 321.777",
+    logoViewBox: "0 0 926.905 321.777",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  mongoDb: {
+    ...mongoDb,
+    markViewBox: "0 0 121.22 257.815182",
+    logoViewBox: "0 0 1102 278",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  doorDash: {
+    ...doorDash,
+    markViewBox: "0 0 99.5 56.5",
+    logoViewBox: "0 0 842.3300042140751 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hubSpot: {
+    ...hubSpot,
+    markViewBox: "804.771317 0 338.024883 352.848912",
+    logoViewBox: "0 0 1255.82 355.99",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  harvey: {
+    ...harvey,
+    markViewBox: "0 0 80.099167 80.991736",
+    logoViewBox: "0 0 347 105",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  legora: {
+    ...legora,
+    markViewBox: "51 51 258 258",
+    logoViewBox: "0 0 425.23076923076917 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  vanta: {
+    ...vanta,
+    markViewBox: "122.026667 26.453333 283.306667 485.546667",
+    logoViewBox: "0 0 274.00528663127136 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  secureframe: {
+    ...secureframe,
+    markViewBox: "0 0 53.533679 56",
+    logoViewBox: "0 0 520.7326601488096 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  carta: {
+    ...carta,
+    markViewBox: "0 0 528 264",
+    logoViewBox: "0 0 528 264",
+    ratio: 1.6,
+    alignment: "center",
+  },
+  deepseek: {
+    ...deepseek,
+    markViewBox: "0 0 256 189",
+    logoViewBox: "0.853333 0 511.146667 109",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  kimi: {
+    ...kimi,
+    markViewBox: "73.386667 44.8 143.36 138.24",
+    logoViewBox: "0 0 319.3411306042885 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  nvidia: {
+    ...nvidia,
+    markViewBox: "0 11.406685 31.395 21.253482",
+    logoViewBox: "0 11.406685 108.9075 21.253482",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  miniMax: {
+    ...miniMax,
+    markViewBox: "0 0 256 214",
+    logoViewBox: "0 0 512 123",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  meta: {
+    ...meta,
+    markViewBox: "0 0 256 170.43",
+    logoViewBox: "0 0 512 104",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  zAi: {
+    ...zAi,
+    markViewBox: "41.386667 54.186667 173.226667 147.626667",
+    logoViewBox: "0 0 300.4833353346132 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  qwen: {
+    ...qwen,
+    markViewBox: "0 0 256 253",
+    logoViewBox: "0 0 512 150",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  factory: {
+    ...factory,
+    markViewBox: "0.325243 0 66.024272 64.241667",
+    logoViewBox: "0.211667 0 126.788333 18.681564",
     ratio: 1.8,
     alignment: "center",
   },
