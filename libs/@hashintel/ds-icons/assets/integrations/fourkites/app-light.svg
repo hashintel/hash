@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x=".5" y=".5" width="63" height="63" rx="10" fill="#FFFFFF" fill-opacity="0.64" stroke="#62758A" stroke-opacity=".16"/><defs><clipPath id="fourkites-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#fourkites-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 38 38" x="16.0" y="16.0" width="32.0" height="32.0">
+    <path d="M20.1465 19.0001L26.0339 24.9112H26.0721L37.9997 19.0001L26.0721 13.089H26.0339" fill="#4F5457" />
+    <path d="M17.8535 19.0001L11.9661 13.089H11.9279L0.000244141 19.0001L11.9279 24.9112H11.9661" fill="#F0574A" />
+    <path d="M18.9233 20.0748L13.0359 25.9859V26.0243L18.9233 38L24.8106 26.0243V25.9859" fill="#00B8DE" />
+    <path d="M18.9233 17.9252L24.8106 12.0141V11.9757L18.9233 0L13.0359 11.9757V12.0141" fill="#E5E545" />
+  </svg></g></svg>

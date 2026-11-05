@@ -164,3 +164,51 @@ Every name also has a named component, such as `SortDownShapesIcon` or
 alphabetical, and numeric exports remain available. Related-icon metadata links
 each opposite and alternative sort family. Sort icons use the same one-time
 hover feedback as the rest of the set; continuous effects remain opt-in.
+## Integrations
+
+`IntegrationIcon` provides a separate **Integrations** category for the 39 brands used by HASH's 43 integration listings. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
+
+```tsx
+import {
+  IntegrationIcon,
+  integrationIconNameByIntegration,
+} from "@hashintel/ds-icons/integrations";
+
+<IntegrationIcon name="slack" variant="mark-mono" fill="#60758A" size={24} />;
+<IntegrationIcon name="sap" variant="app-light" size={44} />;
+<IntegrationIcon name="linear" variant="logo-dark" size={28} title="Linear" />;
+<IntegrationIcon
+  name={integrationIconNameByIntegration["Oracle Cloud SCM"] ?? "genericApp"}
+  variant="app-light"
+  size={44}
+/>;
+```
+
+The same exports are available from the package root for applications using legacy TypeScript module resolution.
+
+| Variant      | Appearance                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `mark-mono`  | Backgroundless mark in `currentColor`, `color`, or `fill`. Alpha tones preserve internal detail while keeping one hue. |
+| `mark-light` | Backgroundless brand colors for a light background.                                                                    |
+| `mark-dark`  | Backgroundless brand colors adjusted for a dark background.                                                            |
+| `app-light`  | Brand artwork on a rounded, partly transparent light tile.                                                             |
+| `app-dark`   | Brand artwork on a rounded, partly transparent dark tile.                                                              |
+| `logo-mono`  | Full wordmark or lock-up in one hue, with alpha tones where the artwork needs them.                                    |
+| `logo-light` | Full wordmark or lock-up in brand colors for a light background.                                                       |
+| `logo-dark`  | Full wordmark or lock-up adjusted for a dark background.                                                               |
+
+`size` is the height in pixels. Marks and app tiles are square; full logos use their natural aspect ratio. SVG props such as `width`, `height`, `className`, and `style` remain available. App tiles preserve the catalogue's brand sizing and SAP's left alignment. Every instance gets unique gradient, mask, clip, filter, and title IDs.
+
+Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. Mono variants apply the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
+
+38 brands have all eight variants. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback also has only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+
+Gmail and Microsoft Teams full logos embed authentic PNG artwork. All other full logos are vectors. Veeva Vault uses Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
+
+Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
+
+### Maintaining the artwork
+
+Edit the reviewed SVGs in `src/integration-icon/artwork` and the source, alias, sizing, and palette metadata in `src/integration-icon/brands.json`. Then run `yarn generate:integrations` and the package checks. The generator writes both React geometry and standalone variants from those sources.
+
+After building the package, run `node scripts/preview-integrations.ts /path/to/integration-icons.html` to create a self-contained review grid. It includes light and dark backgrounds, a transparency toggle, and a mono color toggle.

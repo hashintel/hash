@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="aws-redshift-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -.13819 -.46488 -.04693 1 0" result="tones"/><feFlood flood-color="currentColor"/><feComposite in2="tones" operator="in"/></filter></defs><g filter="url(#aws-redshift-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 26" x="0.0" y="0.0" width="64" height="64">
+    <path d="M12 6.12061L21.66 3.76652V22.2859L12 19.9318V6.12061Z" fill="#205B97" />
+    <path d="M21.66 22.2859L23.5 21.3443V4.70816L21.66 3.76652V22.2859ZM12 6.12061L2.33997 3.76652V22.2859L12 19.9318V6.12061Z" fill="#5193CE" />
+    <path d="M2.34 22.2859L0.5 21.3443V4.70816L2.34 3.76652V22.2859Z" fill="#205B97" />
+    <path d="M14.4538 1.53692e-07L18.1338 1.88328V24.1167L14.4538 26L13.3287 13.6538L14.4538 1.53692e-07Z" fill="#5193CE" />
+    <path d="M9.54621 1.53692e-07L5.86621 1.88328V24.1167L9.54621 26L10.6713 13.6538L9.54621 1.53692e-07Z" fill="#205B97" />
+    <path d="M9.54614 26H14.5036V0.052475H9.54614V26Z" fill="#2E73B7" />
+  </svg></g></svg>
