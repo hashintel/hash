@@ -1,11 +1,11 @@
+use alloc::sync::Arc;
 use core::str;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use duckdb::Connection;
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::SourceName;
 
-use super::local::recovered;
 use crate::{CaptureError, CaptureRun, SecretValue, SourceCapture, sql::literal};
 
 #[derive(Debug)]
@@ -25,9 +25,31 @@ impl S3Bucket {
         format!("{}/{}/{}/{source}.parquet", self.uri, run.web, run.id)
     }
 
-    /// Returns the stored capture of `source`, staged at `target`, or `None` if the bucket has
+    /// Copies the stored capture of `source` to `target`, or returns `None` if the bucket has
     /// none.
-    pub(super) fn download(
+    pub(super) async fn download(
+        self: Arc<Self>,
+        run: CaptureRun,
+        source: SourceName,
+        target: PathBuf,
+    ) -> Result<Option<SourceCapture>, Report<CaptureError>> {
+        tokio::task::spawn_blocking(move || self.download_blocking(run, &source, &target))
+            .await
+            .change_context(CaptureError::Read)?
+    }
+
+    pub(super) async fn upload(
+        self: Arc<Self>,
+        run: CaptureRun,
+        source: SourceName,
+        capture: SourceCapture,
+    ) -> Result<(), Report<CaptureError>> {
+        tokio::task::spawn_blocking(move || self.upload_blocking(run, &source, &capture))
+            .await
+            .change_context(CaptureError::Write)?
+    }
+
+    fn download_blocking(
         &self,
         run: CaptureRun,
         source: &SourceName,
@@ -50,33 +72,20 @@ impl S3Bucket {
         if stored == 0 {
             return Ok(None);
         }
-        if let Some(capture) = recovered(target)? {
-            return Ok(Some(capture));
-        }
-        let partial = SourceCapture::stage(target)?;
-        let path = partial
-            .path()
+        let path = target
             .to_str()
             .ok_or_else(|| Report::new(CaptureError::Read))?;
-        let rows = connection
-            .execute(
-                &format!(
-                    "COPY (FROM read_parquet({})) TO {} (FORMAT PARQUET)",
-                    literal(&uri),
-                    literal(path)
-                ),
-                [],
-            )
+        connection
+            .execute_batch(&format!(
+                "COPY (FROM read_parquet({})) TO {} (FORMAT PARQUET)",
+                literal(&uri),
+                literal(path)
+            ))
             .change_context(CaptureError::Read)?;
-        SourceCapture::publish(
-            partial,
-            target,
-            u64::try_from(rows).change_context(CaptureError::Read)?,
-        )
-        .map(Some)
+        SourceCapture::open(target.to_owned()).map(Some)
     }
 
-    pub(super) fn upload(
+    fn upload_blocking(
         &self,
         run: CaptureRun,
         source: &SourceName,

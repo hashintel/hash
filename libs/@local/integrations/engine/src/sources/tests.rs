@@ -18,12 +18,6 @@ use reqwest::{
 };
 use rstest::rstest;
 use tempfile::TempDir;
-use testcontainers::{
-    ContainerAsync, ImageExt as _,
-    core::{CmdWaitFor, ExecCommand},
-    runners::AsyncRunner as _,
-};
-use testcontainers_modules::minio::MinIO;
 use tokio::{net::TcpListener, task::JoinHandle};
 use uuid::Uuid;
 
@@ -31,7 +25,10 @@ use super::{
     CaptureLimits, CaptureRun, CaptureStore, SecretStore, SecretValue, SourceError, SourceReader,
     fingerprint,
 };
-use crate::{CaptureStorage, S3Bucket, Workspace, WorkspaceConfig};
+use crate::{
+    CaptureStorage, Workspace, WorkspaceConfig,
+    storage::tests::{minio, s3_storage},
+};
 
 pub(super) struct Server {
     url: String,
@@ -208,47 +205,6 @@ fn reader_with(directory: &Path, captures: CaptureStorage) -> SourceReader {
     )
 }
 
-/// Starts MinIO with an empty `captures` bucket and returns it with its API port.
-async fn minio() -> (ContainerAsync<MinIO>, u16) {
-    let minio = MinIO::default()
-        .with_name("ghcr.io/hashdeps/minio")
-        .with_tag("RELEASE.2025-09-07T16-13-09Z")
-        .start()
-        .await
-        .expect("the MinIO fixture should start");
-    minio
-        .exec(
-            ExecCommand::new([
-                "sh",
-                "-c",
-                "mc alias set local http://localhost:9000 minioadmin minioadmin && mc mb \
-                 local/captures",
-            ])
-            .with_cmd_ready_condition(CmdWaitFor::exit_code(0)),
-        )
-        .await
-        .expect("should create the bucket");
-    let port = minio
-        .get_host_port_ipv4(9000)
-        .await
-        .expect("the MinIO port should be mapped");
-    (minio, port)
-}
-
-fn s3_storage(port: u16, staging: PathBuf) -> CaptureStorage {
-    CaptureStorage::S3 {
-        staging,
-        bucket: S3Bucket {
-            uri: "s3://captures/tenants".into(),
-            region: "us-east-1".into(),
-            endpoint: Some(format!("localhost:{port}").into()),
-            use_ssl: false,
-            key_id: "minioadmin".into(),
-            secret: Secret::from_vec(b"minioadmin".to_vec()),
-        },
-    }
-}
-
 async fn open_workspace(directory: &Path, name: &str) -> Workspace {
     Workspace::open(directory.join(name), WorkspaceConfig::default())
         .await
@@ -262,14 +218,15 @@ async fn open_workspace(directory: &Path, name: &str) -> Workspace {
 async fn capture_retry_and_restore(#[case] s3: bool) {
     let directory = TempDir::new().expect("should create source storage");
     let minio = if s3 { Some(minio().await) } else { None };
-    // In S3 each reader stages in its own directory, so the restore has to download the capture.
-    let captures = |staging: &str| match &minio {
-        Some((_, port)) => s3_storage(*port, directory.path().join(staging)),
+    // In S3 each reader stages in its own temporary directory, so the restore has to download
+    // the capture.
+    let captures = || match &minio {
+        Some((_, port)) => s3_storage(*port, directory.path()),
         None => CaptureStorage::Local(directory.path().join("captures")),
     };
     let run = run();
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
-    let first = reader_with(directory.path(), captures("first"))
+    let first = reader_with(directory.path(), captures())
         .capture_sources(&workspace, &sql_definition(), run, &NoSecrets)
         .await
         .expect("should publish the earlier capture");
@@ -280,7 +237,8 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
 
     let restored = open_workspace(directory.path(), "restored.duckdb").await;
     let definition = remote_definition();
-    let captures = reader_with(directory.path(), captures("restore"))
+    let reader = reader_with(directory.path(), captures());
+    let captures = reader
         .capture_sources(&restored, &definition, run, &NoSecrets)
         .await
         .expect("should reuse a capture without contacting the source or secret store");

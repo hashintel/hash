@@ -44,6 +44,7 @@ pub(super) fn target(
     run: CaptureRun,
     source: &SourceName,
 ) -> Result<PathBuf, Report<CaptureError>> {
+    fs::create_dir_all(root).change_context(CaptureError::Write)?;
     let mut directory = root.to_owned();
     for component in [run.web, run.id] {
         let parent = directory.clone();
@@ -72,7 +73,7 @@ pub(super) fn target(
     clippy::filetype_is_file,
     reason = "captures must be regular files rather than symlinks or special files"
 )]
-pub(super) fn recovered(path: &Path) -> Result<Option<SourceCapture>, Report<CaptureError>> {
+fn recovered(path: &Path) -> Result<Option<SourceCapture>, Report<CaptureError>> {
     match path.symlink_metadata() {
         Ok(metadata) if metadata.file_type().is_file() => {
             SourceCapture::open(path.to_owned()).map(Some)

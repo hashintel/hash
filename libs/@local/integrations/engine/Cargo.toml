@@ -15,8 +15,9 @@ hash-integrations-definition = { workspace = true, public = true }
 type-system                  = { workspace = true, public = true }
 
 # Public third-party dependencies
-duckdb = { workspace = true, public = true, features = ["appender-arrow", "bundled", "json"] }
-uuid   = { workspace = true, public = true, features = ["v4", "v5"] }
+duckdb   = { workspace = true, public = true, features = ["appender-arrow", "bundled", "json"] }
+tempfile = { workspace = true, public = true }
+uuid     = { workspace = true, public = true, features = ["v4", "v5"] }
 
 # Private workspace dependencies
 hash-graph-store = { workspace = true }
@@ -33,7 +34,6 @@ reqwest        = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true, features = ["raw_value"] }
 simple-mermaid = { workspace = true }
-tempfile       = { workspace = true }
 time           = { workspace = true, features = ["parsing"] }
 tokio          = { workspace = true, features = ["net", "rt", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
