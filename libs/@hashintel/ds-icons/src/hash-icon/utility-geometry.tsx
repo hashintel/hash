@@ -1,5 +1,12 @@
 const calendarFrame = <path d="M4 5h16v16H4ZM4 10h16M8 3v4m8-4v4" />;
 
+const chainLink = (
+  <>
+    <path d="M10 13a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-2 2" />
+    <path d="M14 11a4 4 0 0 0-6 0l-4 4a4 4 0 0 0 6 6l2-2" />
+  </>
+);
+
 export const utilityGeometry = {
   arrowTrendUp: <path d="m3 17 6-6 4 4 8-10m-6 0h6v6" />,
   arrowTrendDown: <path d="m3 7 6 6 4-4 8 10m-6 0h6v-6" />,
@@ -111,10 +118,19 @@ export const utilityGeometry = {
     </>
   ),
   inputPipe: <path d="M3 12h12m-4-4 4 4-4 4M18 3h3v18h-3" />,
-  link: (
+  link: <g fill="none">{chainLink}</g>,
+  linkCopy: (
     <g fill="none">
-      <path d="M10 13a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-2 2" />
-      <path d="M14 11a4 4 0 0 0-6 0l-4 4a4 4 0 0 0 6 6l2-2" />
+      <path data-link-part="copy" d="M3 15V5a2 2 0 0 1 2-2h10" />
+      <g data-link-part="chain" transform="translate(5 5) scale(0.75)">
+        {chainLink}
+      </g>
+    </g>
+  ),
+  linkBroken: (
+    <g fill="none">
+      <path d="m14 9-2-2 3-3a4 4 0 0 1 6 6l-3 3-2-2" />
+      <path d="m10 15 2 2-3 3a4 4 0 0 1-6-6l3-3 2 2" />
     </g>
   ),
   lightbulbOn: (
