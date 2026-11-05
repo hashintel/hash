@@ -691,8 +691,8 @@ export const integrationIconCatalog = [
     logoSource:
       "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
     logoNotes:
-      "Official Microsoft PDF page 1 embedded transparent raster image (583 x 189); original white wordmark, four-color Microsoft symbol. ViewBox trims transparent padding.",
-    logoRaster: true,
+      "Composed lock-up pairing the Teams product mark with the Microsoft Teams wordmark vectorized from page 1 of the official Microsoft PDF. The Microsoft corporate square is excluded. Charcoal lettering in light mode and near-white lettering in dark mode; no embedded raster artwork.",
+    logoRaster: false,
   },
   {
     name: "messenger",

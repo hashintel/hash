@@ -257,7 +257,7 @@ export const integrationGeometry = {
   microsoftTeams: {
     ...microsoftTeams,
     markViewBox: "0 0 32 30",
-    logoViewBox: "65 62 455 65",
+    logoViewBox: "0 0 695.6910569105692 100",
     ratio: 2,
     alignment: "center",
   },

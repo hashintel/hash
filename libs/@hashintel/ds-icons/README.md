@@ -205,7 +205,7 @@ Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. T
 
 39 brands have all seven variants. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
-Gmail and Microsoft Teams full logos embed authentic PNG artwork. All other full logos are vectors. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
+Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with a vectorized wordmark from an official Microsoft PDF. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
 Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 

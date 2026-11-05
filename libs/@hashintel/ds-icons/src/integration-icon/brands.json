@@ -460,11 +460,15 @@
     "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/microsoft-teams-icon.tsx",
     "markLightColors": {},
     "markDarkColors": {},
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#242424": "#F5F7FA"
+    },
     "logoSource": "https://info.microsoft.com/rs/157-GQE-382/images/TelefoniemitMicrosoftTeamseinberblick-SREVM22254.pdf",
-    "logoNotes": "Official Microsoft PDF page 1 embedded transparent raster image (583 x 189); original white wordmark, four-color Microsoft symbol. ViewBox trims transparent padding.",
-    "logoRaster": true,
-    "logoRasterDarkOriginal": true
+    "logoNotes": "Composed lock-up pairing the Teams product mark with the Microsoft Teams wordmark vectorized from page 1 of the official Microsoft PDF. The Microsoft corporate square is excluded. Charcoal lettering in light mode and near-white lettering in dark mode; no embedded raster artwork.",
+    "logoLayout": {
+      "wordmarkHeight": 0.62,
+      "gap": 0.28
+    }
   },
   {
     "name": "messenger",
