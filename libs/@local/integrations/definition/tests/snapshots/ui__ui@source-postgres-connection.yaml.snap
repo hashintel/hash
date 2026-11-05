@@ -13,3 +13,6 @@ input_file: libs/@local/integrations/definition/tests/ui/source-postgres-connect
 59:3: sources.socket-abstract: connection must use a network host, not a Unix socket
 67:3: sources.socket-list: connection must use a network host, not a Unix socket
 75:3: sources.hostaddr: connection must not set hostaddr
+83:3: sources.keylog: connection parameter is not supported
+91:3: sources.rootcert-file: sslrootcert must be system
+99:3: sources.unlisted: connection parameter is not supported

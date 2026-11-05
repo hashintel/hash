@@ -80,6 +80,38 @@ sources:
       credentials:
         secretEntityUuid: 22222222-2222-4222-8222-222222222222
     primaryKey: [id]
+  keylog:
+    postgres:
+      connection: postgresql://database.example/demo?sslkeylogfile=%2Ftmp%2Fkeys
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  rootcert-file:
+    postgres:
+      connection: postgresql://database.example/demo?sslrootcert=%2Fetc%2Fssl%2Fca.pem
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  unlisted:
+    postgres:
+      connection: postgresql://database.example/demo?options=-csearch_path%3Dprivate
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  allowed:
+    postgres:
+      connection: postgresql://database.example/demo?sslmode=verify-full&sslrootcert=system&application_name=sync&connect_timeout=5&keepalives=1
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
 pipelines:
   entities:
     - source: scheme
@@ -101,4 +133,12 @@ pipelines:
     - source: socket-list
       steps: []
     - source: hostaddr
+      steps: []
+    - source: keylog
+      steps: []
+    - source: rootcert-file
+      steps: []
+    - source: unlisted
+      steps: []
+    - source: allowed
       steps: []
