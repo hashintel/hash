@@ -506,7 +506,7 @@ export const applyPalette = (id: PaletteId) => {
   })
     .map(([name, value]) => `${name}: ${value};`)
     .join(" ");
-  sheet.textContent = `.petrinaut-root { ${declarations} }`;
+  sheet.textContent = `.petrinaut-root { ${declarations} } ${runTileVariables}`;
   document.documentElement.dataset.flowsColours = id;
   document.documentElement.dataset.flowsDone = doneTone;
   document.documentElement.dataset.flowsReview = reviewTone;
@@ -700,12 +700,27 @@ export const groupPalettes: Record<
   },
 };
 
+/**
+ * P-a is the default (Aakarsh's provisional pick on add-picker, 5 Nov; may be revisited). `?palette=b|c|d` shows the
+ * other takes, `?palette=today` the kind tints from before, and an explicit `?pickercolour=` its own take.
+ */
 export const pickerPalette = (): "a" | "b" | "c" | "d" | null => {
-  const value = new URLSearchParams(globalThis.location.search).get("palette");
-  return value === "a" || value === "b" || value === "c" || value === "d"
-    ? value
-    : null;
+  const query = new URLSearchParams(globalThis.location.search);
+  const value = query.get("palette");
+  if (value === "a" || value === "b" || value === "c" || value === "d") {
+    return value;
+  }
+  return value === "today" || query.has("pickercolour") ? null : "a";
 };
+
+/**
+ * With a palette, tiles are neutral in the run view and Logs: `app.tsx` marks the root `data-run-tiles` there, and
+ * `applyPalette` points these variables at the neutral steps under it.
+ */
+const runTile = (property: "bg" | "icon", colour: string) =>
+  pickerPalette() ? `var(--flows-run-tile-${property}, ${colour})` : colour;
+
+const runTileVariables = `.petrinaut-root[data-run-tiles] { --flows-run-tile-bg: ${tokenVar("neutral.s25")}; --flows-run-tile-icon: ${tokenVar("neutral.s105")}; }`;
 
 /** A group's tile and icon tokens in the `?palette=` take, or null without one. */
 const paletteSwatch = (group: string) => {
@@ -760,8 +775,8 @@ const groupTileColor = (icon: string) => {
   const swatch = group ? paletteSwatch(group) : null;
   if (swatch) {
     return {
-      backgroundColor: tokenVar(swatch.tile),
-      color: tokenVar(swatch.icon),
+      backgroundColor: runTile("bg", tokenVar(swatch.tile)),
+      color: runTile("icon", tokenVar(swatch.icon)),
     };
   }
   const colour = pickerColourFlag();
@@ -786,6 +801,6 @@ export const tileColor = (icon: string, ghost = false) =>
         color: flowsVar("ghost-tile-icon"),
       }
     : (groupTileColor(icon) ?? {
-        backgroundColor: flowsVar(`tile-${tileKindOf(icon)}-bg`),
-        color: flowsVar(`tile-${tileKindOf(icon)}-icon`),
+        backgroundColor: runTile("bg", flowsVar(`tile-${tileKindOf(icon)}-bg`)),
+        color: runTile("icon", flowsVar(`tile-${tileKindOf(icon)}-icon`)),
       });

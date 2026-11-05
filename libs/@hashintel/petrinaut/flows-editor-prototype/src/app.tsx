@@ -430,7 +430,11 @@ export const Editor = ({
     <PortalContainerContext value={portalRef}>
       <EditorContext value={context}>
         <HistoryContext value={history}>
-          <div ref={portalRef} className={`${rootStyle} petrinaut-root`}>
+          <div
+            ref={portalRef}
+            className={`${rootStyle} petrinaut-root`}
+            data-run-tiles={ui.history ? true : undefined}
+          >
             <HashShellStrip />
             <div className={workspaceStyle}>
               <header className={topBarStyle}>
