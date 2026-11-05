@@ -31,10 +31,11 @@ import {
   stepLabel,
 } from "./document";
 import { useEditor } from "./editor-context";
-import { tileMenu, tiledRowsStyle } from "./menu-rows";
+import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { useLocation } from "./router";
 import { sourceOptions } from "./shapes";
+import { SearchHeader } from "./source-menu";
 import { kindLabel } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -416,6 +417,34 @@ const addStyle = css({
   "& > svg": { width: "[16px !important]", height: "[16px !important]" },
 });
 
+/** Playground `.xr .xd`: a later-steps row's second line (its step) is muted, not subtle. */
+const laterMenuStyle = css({
+  // Playground `wide`: the menu spans the panel's content width.
+  "&[class]": { width: "[352px]", minWidth: "[352px]", maxWidth: "[352px]" },
+  "& [data-menu-row=two] > span:last-child > span:last-child": { color: "neutral.fg.muted" },
+});
+
+/** The input's type in words, as the playground's menu shows it: "Email", "URL", "File", an entity type, or the kind. */
+const typeWords = (input: {
+  format?: string;
+  entityTypeTitle?: string;
+  kinds: readonly string[] | null;
+}) => {
+  if (input.format === "email") {
+    return "Email";
+  }
+  if (input.format === "url") {
+    return "URL";
+  }
+  if (input.format === "file") {
+    return "File";
+  }
+  if (input.entityTypeTitle) {
+    return input.entityTypeTitle;
+  }
+  return kindLabel(input.kinds?.[0], false);
+};
+
 const menuWidthStyle = css({ "&[class]": { minWidth: "[260px]" }, maxWidth: "[380px]" });
 
 const typeSuffixStyle = css({
@@ -555,20 +584,30 @@ const LaterStepsMenu = ({
   onClose: () => void;
 }) => {
   const { document, setDocument } = useEditor();
+  const [search, setSearch] = useState("");
+  const text = search.trim().toLowerCase();
   const order = flattenSteps(document.steps);
   const from = order.findIndex(({ step }) => step.stepId === stepId);
   const match = sameOutput(stepId, outputName);
-  const items: MenuItem[] = order
+  const items: TiledItem[] = order
     .slice(from + 1)
     .flatMap(({ step }) => inputsTaking(document, step.stepId, match))
+    .filter(
+      ({ step, input }) =>
+        !text ||
+        input.label.toLowerCase().includes(text) ||
+        stepLabel(step).toLowerCase().includes(text),
+    )
     .map(({ step, entry, input, source, filled }) => ({
       id: `${step.stepId}.${input.name}`,
       text: input.label,
-      description: stepLabel(step),
+      // Playground `ctxOf`: the innermost loop the step sits in, then the step.
+      description: [...loopsOf(document, step.stepId).slice(-1), stepLabel(step)].join(" › "),
       icon: entry.icon as IconName,
+      tint: kTile(document, step.stepId),
       selected: filled,
       selectedStyle: "tick" as const,
-      suffix: typeSuffix(input.kinds, input.array),
+      suffix: <span className={typeSuffixStyle}>{typeWords(input)}</span>,
       onClick: () => {
         setDocument((current) => connect(current, step.stepId, input.name, source));
         onClose();
@@ -580,7 +619,10 @@ const LaterStepsMenu = ({
       position="bottom-start"
       onClose={onClose}
       label="Use in a step"
-      className={`${menuWidthStyle} ${tiledRowsStyle}`}
+      className={`${menuWidthStyle} ${tiledRowsStyle} ${laterMenuStyle}`}
+      header={
+        <SearchHeader value={search} onChange={setSearch} placeholder="Search inputs" focusOnOpen />
+      }
       items={tileMenu([
         {
           id: "later",
@@ -588,17 +630,19 @@ const LaterStepsMenu = ({
           items:
             items.length > 0
               ? items
-              : [{ id: "none", text: "No later step takes it", disabled: true }],
+              : [
+                  {
+                    id: "none",
+                    text: text ? `No input matches “${search}”` : "No later step takes it",
+                    disabled: true,
+                  },
+                ],
         },
       ])}
     />
   );
 };
 
-/**
- * A using step's ⋮ (inbox output-used-in, "I like 1"; spec E13): its inputs that take the value, the one it fills
- * ticked; picking another moves the value there. Then "Open step".
- */
 const UseMenu = ({
   anchor,
   userId,
