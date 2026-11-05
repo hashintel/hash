@@ -1,5 +1,3 @@
-import { useEffect, useEffectEvent } from "react";
-
 import { definePetrinautPlugin, type PluginHook } from "../plugin";
 import { FpsCounter } from "./fps-counter-plugin/counter";
 
@@ -30,25 +28,6 @@ const useFpsCounterPlugin: PluginHook<typeof FpsCounterPlugin> = (api) => {
   const showFps = api.settings.get("showFps");
   const toggle = () =>
     api.settings.set("showFps", !api.settings.get("showFps"));
-  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    if (
-      !event.defaultPrevented &&
-      !event.isComposing &&
-      !event.repeat &&
-      !event.altKey &&
-      event.metaKey !== event.ctrlKey &&
-      event.shiftKey &&
-      event.key.toLowerCase() === "f"
-    ) {
-      event.preventDefault();
-      toggle();
-    }
-  });
-  useEffect(() => {
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
   return {
     commands: { toggleFps: { run: toggle } },
     root: showFps ? (
