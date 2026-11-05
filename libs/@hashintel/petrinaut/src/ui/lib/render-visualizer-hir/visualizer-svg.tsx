@@ -5,6 +5,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { useVisualizerBackground } from "../../shared/visualizer-frame";
 import {
   cameraViewBox,
   panCamera,
@@ -70,6 +71,10 @@ export const VisualizerSvg = ({
   legacyProps?: SVGProps<SVGSVGElement>;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
+  const frameBackground = useVisualizerBackground(
+    options.backgroundColor ?? legacyProps?.style?.backgroundColor,
+    legacyProps?.style?.background,
+  );
   const { camera, homeZoom, changed, navigate, reset } = useSceneCamera(
     options,
     size,
@@ -128,6 +133,7 @@ export const VisualizerSvg = ({
         panRef.current?.focus({ preventScroll: true });
       }}
     >
+      {frameBackground.background}
       <svg
         {...legacyProps}
         ref={svgRef}
@@ -138,8 +144,12 @@ export const VisualizerSvg = ({
         style={{
           ...legacyProps?.style,
           display: "block",
-          backgroundColor:
-            options.backgroundColor ?? legacyProps?.style?.backgroundColor,
+          background: frameBackground.inFrame
+            ? "transparent"
+            : legacyProps?.style?.background,
+          backgroundColor: frameBackground.inFrame
+            ? "transparent"
+            : (options.backgroundColor ?? legacyProps?.style?.backgroundColor),
           cursor: exploring ? (dragging ? "grabbing" : "grab") : undefined,
           touchAction: exploring ? "none" : undefined,
         }}
