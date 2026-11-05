@@ -1,7 +1,7 @@
 import { renderMermaidSVG } from "beautiful-mermaid";
 import { Array, Function, HashMap, Option, pipe } from "effect";
 
-import type * as Components from "../../lib/components.js";
+import type * as Components from "../../src/components.js";
 
 /** The types of a hierarchy, and the edges between them. */
 type Graph = Pick<Components.HierarchyProps, "nodes" | "edges">;

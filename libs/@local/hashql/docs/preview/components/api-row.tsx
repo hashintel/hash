@@ -1,19 +1,20 @@
 import * as Colours from "./colours.js";
 import { Glyph } from "./glyph.js";
 
-import type * as Components from "../../lib/components.js";
+import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
 /** A row with the kind's glyph, then the name in the colour the themes give that kind of name in code, then the first sentence. */
-export function ApiIndexRow({
+export function ApiRow({
   href,
   kind,
   depth,
-  title,
+  names,
   summary,
   deprecated,
-}: Components.IndexRowProps): ReactNode {
+}: Components.RowProps): ReactNode {
   const colours = Colours.coloursOf(kind);
+  const title = names.join(".");
 
   return (
     <li

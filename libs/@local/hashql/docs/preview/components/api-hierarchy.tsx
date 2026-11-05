@@ -1,13 +1,13 @@
 import * as Diagram from "./diagram.js";
 
-import type * as Components from "../../lib/components.js";
+import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
 const label = "Type hierarchy";
 const legend = "An arrow points from a type to the one it extends.";
 
 /**
- * The button for an export's type hierarchy, which opens the diagram with the export's relations under it.
+ * The button for an entry's type hierarchy, which opens the diagram.
  *
  * The server renders the diagram, so the page carries no diagram code.
  */
@@ -15,7 +15,6 @@ export function ApiHierarchy({
   name,
   nodes,
   edges,
-  children,
 }: Components.HierarchyProps): ReactNode {
   const popover = `hierarchy-${name.replaceAll(/[^\w-]/gu, "-")}`;
   const current = nodes.find(({ role }) => role === "current")?.label ?? name;
@@ -23,7 +22,7 @@ export function ApiHierarchy({
   const diagram = { __html: Diagram.diagramOf(popover, { nodes, edges }) };
 
   return (
-    <>
+    <div className="api-part" data-part="hierarchy">
       <button
         type="button"
         className="api-hierarchy-button"
@@ -52,8 +51,7 @@ export function ApiHierarchy({
           // oxlint-disable-next-line react/no-danger -- the SVG is rendered here, from the names the extraction gives
           dangerouslySetInnerHTML={diagram}
         />
-        {children}
       </div>
-    </>
+    </div>
   );
 }
