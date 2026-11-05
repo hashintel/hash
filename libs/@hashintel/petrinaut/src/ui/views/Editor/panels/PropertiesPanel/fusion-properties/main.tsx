@@ -5,7 +5,10 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   checkFusion,
   describeFusionMember,
+  describePortDirection,
+  effectivePortDirection,
   getArcEndpointKey,
+  resolveFusionMember,
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
 
@@ -118,6 +121,7 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
   const { removeFusionMember } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
   const label = describeFusionMember(petriNetDefinition, activeNet, member);
+  const resolved = resolveFusionMember(petriNetDefinition, activeNet, member);
 
   return (
     <div className={memberRowStyle}>
@@ -139,7 +143,11 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
           />
           <span className={memberNameStyle}>{label}</span>
           <span className={cx(hintTextStyle, memberKindStyle)}>
-            {member.kind === "place" ? "place of this net" : "instance port"}
+            {resolved?.kind === "port"
+              ? `${describePortDirection(effectivePortDirection(resolved.subnet, resolved.place))} port`
+              : member.kind === "place"
+                ? "place of this net"
+                : "instance port"}
           </span>
         </button>
       </Tooltip>

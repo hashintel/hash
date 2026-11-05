@@ -12,6 +12,17 @@ To use a component, place an **instance** of it: pick the component from the cub
 
 A transition of the net can connect to a port with an arc, as to any place. The arc reaches the place inside the instance.
 
+## Ports and their direction
+
+A port can declare a **direction** in the place properties, under Component port:
+
+- **Input** -- the component only takes tokens from it.
+- **Output** -- the component only puts tokens into it.
+- **Input and output** -- both, as a shared pool of resources is.
+- **Inferred** -- whatever the component's arcs do with it.
+
+Input ports draw on the left of an instance, output ports on the right, two-way ports on both sides. The checks tell you when a component uses a port against its declaration, in the **Diagnostics** tab under **Composition**.
+
 ## Fusing places
 
 Drag between a place and an instance's port, or between the ports of two instances, to **fuse** them. The fusion draws as a dashed line with a knot in the middle; click it to see its name and the fused places. A new fusion is named **Fusion 1**, **Fusion 2** and so on: rename it in its properties. A fusion always has a name, so an empty one is refused.

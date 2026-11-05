@@ -238,6 +238,10 @@ export const placeSchema = z
       description:
         "When true, this place is exposed as a component port on instances of the subnet that contains it.",
     }),
+    portDirection: z.enum(["in", "out", "inout"]).optional().meta({
+      description:
+        'For a port: the direction the component promises. `"in"` means only its transitions consume from the port, `"out"` only produce into it, `"inout"` both. Omit to infer it from the subnet\'s arcs.',
+    }),
     visualizerCode: z.string().optional().meta({
       description:
         'Optional JavaScript function body with JSX returning one `<Visualizer.Svg>…</Visualizer.Svg>`. `tokens` holds this place\'s current tokens; `parameters` is keyed by each parameter\'s `variableName`. Ambient `width` and `height` are the drawable window dimensions. Optional root properties: `origin` ("top-left" or "center"), `viewBox` (instead of origin), and `navigation` ("none" or "pan-zoom"). Native `<svg>` is forbidden. No function wrapper or export is needed. Use `backgroundColor="#eff6ff"` for the background; Petrinaut controls the SVG size and window corners. SVG elements only; no imports, hooks or event handlers. Legacy `export default Visualization(({ tokens, parameters }) => …)` wrappers remain supported.',

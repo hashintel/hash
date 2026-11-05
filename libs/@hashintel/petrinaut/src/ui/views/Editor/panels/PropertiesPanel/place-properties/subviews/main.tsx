@@ -11,7 +11,11 @@ import {
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { validateEntityName } from "@hashintel/petrinaut-core";
+import {
+  inferPortDirection,
+  validateEntityName,
+  type PortDirection,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
@@ -65,6 +69,12 @@ const capacityFieldStyle = css({
   "& label": { fontWeight: "normal" },
 });
 
+const portDirectionLabels: Record<PortDirection, string> = {
+  in: "Input",
+  out: "Output",
+  inout: "Input and output",
+};
+
 const typeColorDotStyle = css({
   width: "3",
   height: "3",
@@ -90,9 +100,9 @@ const PlaceMainContent: React.FC = () => {
     place.capacity !== undefined && place.capacity !== null;
 
   const { extensions } = use(SDCPNContext);
-  const {
-    activeNet: { types: availableTypes },
-  } = use(ActiveNetContext);
+  const { activeNet } = use(ActiveNetContext);
+  const { types: availableTypes } = activeNet;
+  const inferredDirection = inferPortDirection(activeNet, place.id);
 
   const placeTypeName =
     types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
@@ -210,6 +220,42 @@ const PlaceMainContent: React.FC = () => {
           />
           <HelpTooltip content="Expose this place as a port when its subnet is used as a component: fuse it with a place of the net that holds the instance, or connect it to a transition there." />
         </div>
+        {place.isPort && (
+          <div className={capacityFieldStyle}>
+            <Form.Field
+              label="Direction"
+              size="sm"
+              labelTooltip="What the component promises about the port: input ports are only consumed by its transitions, output ports only produced into. Inferred from the arcs unless set."
+            >
+              <Select
+                required
+                size="sm"
+                value={place.portDirection ?? "auto"}
+                disabled={isReadOnly}
+                onChange={(value: PortDirection | "auto") =>
+                  updatePlace({
+                    placeId: place.id,
+                    update: {
+                      portDirection: value === "auto" ? undefined : value,
+                    },
+                  })
+                }
+                items={[
+                  {
+                    value: "auto",
+                    text: `Inferred (${portDirectionLabels[inferredDirection]})`,
+                  },
+                  ...(
+                    Object.entries(portDirectionLabels) as [
+                      PortDirection,
+                      string,
+                    ][]
+                  ).map(([value, text]) => ({ value, text })),
+                ]}
+              />
+            </Form.Field>
+          </div>
+        )}
         <Collapsible.Root open={capacityEnabled} lazyMount unmountOnExit>
           <div className={optionRowStyle}>
             <Checkbox

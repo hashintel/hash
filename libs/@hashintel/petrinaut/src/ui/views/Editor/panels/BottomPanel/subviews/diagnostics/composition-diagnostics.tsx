@@ -14,16 +14,16 @@ import {
   diagnosticsListStyle,
 } from "./diagnostics-group";
 
-import type { FusionProblem } from "@hashintel/petrinaut-core";
+import type { CompositionProblem } from "@hashintel/petrinaut-core";
 
 /**
- * The problems with the net's fusions. Clicking one opens the net the fusion
- * is in and selects it.
+ * The problems with the net's composition, its fusions and its ports.
+ * Clicking one opens the net it is in and selects the fusion or the port.
  */
 export const CompositionDiagnostics = ({
   problems,
 }: {
-  problems: FusionProblem[];
+  problems: CompositionProblem[];
 }) => {
   const { setActiveSubnetId } = use(ActiveNetContext);
   const { selectItem } = use(EditorContext);
@@ -38,9 +38,13 @@ export const CompositionDiagnostics = ({
     [countWith("info"), "note"],
   ] as const;
 
-  const reveal = (problem: FusionProblem) => {
+  const reveal = (problem: CompositionProblem) => {
     setActiveSubnetId(problem.subnetId);
-    selectItem({ type: "fusion", id: problem.fusionId });
+    selectItem(
+      problem.kind === "fusion"
+        ? { type: "fusion", id: problem.fusionId }
+        : { type: "place", id: problem.placeId },
+    );
   };
 
   return (
