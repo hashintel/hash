@@ -5,8 +5,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { ExperimentCard } from "./experiment-card";
 import { getChronologicalRenderItems } from "./get-message-render-items";
 import { AiAssistantReasoning } from "./reasoning";
-import { AssistantMarkdown } from "./shared/assistant-markdown";
 import { markdownStyle } from "./shared/markdown-style";
+import { ModelMarkdown } from "./shared/model-markdown";
 import { SentUsingVoiceMark } from "./shared/sent-using-voice-mark";
 import { AiAssistantToolList } from "./tool-list";
 
@@ -116,7 +116,7 @@ const StockMessage = memo(
                 </div>
               ) : (
                 <div className={markdownStyle} key={item.key}>
-                  <AssistantMarkdown>{item.part.text}</AssistantMarkdown>
+                  <ModelMarkdown>{item.part.text}</ModelMarkdown>
                 </div>
               );
             case "reasoning":

@@ -3573,6 +3573,53 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Planning the net")).not.toBeNull();
   });
 
+  test("renders no model-written image in a reply or reasoning", async () => {
+    const startedAt = Date.parse("2026-05-14T12:00:00Z");
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        messages={[
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [
+              {
+                type: "reasoning",
+                state: "done",
+                text: "**Planning**\n\nThinking ![r](https://attacker.example/r.png)",
+                providerMetadata: {
+                  petrinaut: { startedAt, finishedAt: startedAt + 4_500 },
+                },
+              },
+              {
+                type: "text",
+                state: "done",
+                text: "Done ![x](https://attacker.example/a.png) [docs](https://hash.ai/docs) [bad](javascript:alert(1))",
+              },
+            ],
+          },
+        ]}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="ready"
+      />,
+    );
+
+    await expandWork();
+    fireEvent.click(screen.getByRole("button", { name: "Thought for 4s" }));
+    await waitFor(() => expect(screen.getByText(/^Thinking/u)).not.toBeNull());
+
+    expect(screen.getByText(/^Thinking/u).querySelector("img")).toBeNull();
+    expect(screen.getByText(/^Done/u).querySelector("img")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "docs" }).getAttribute("href"),
+    ).toBe("https://hash.ai/docs");
+    expect(container.querySelector("[href^='javascript']")).toBeNull();
+  });
+
   test("calls the clear handler from the header", () => {
     const onClearMessages = vi.fn();
 
@@ -5100,6 +5147,49 @@ describe("AiAssistantContents in the stock presentation", () => {
     expect(screen.getByText("Thinking: Planning the net")).not.toBeNull();
     expect(screen.queryByTestId("reasoning-status")).toBeNull();
     expect(screen.getByLabelText(/Reasoning time/u)).not.toBeNull();
+  });
+
+  test("renders no model-written image in a reply or reasoning", async () => {
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        messages={[
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [
+              {
+                type: "reasoning",
+                state: "done",
+                text: "**Planning**\n\nThinking ![r](https://attacker.example/r.png)",
+              },
+              {
+                type: "text",
+                state: "done",
+                text: "Done ![x](https://attacker.example/a.png) [docs](https://hash.ai/docs) [bad](javascript:alert(1))",
+              },
+            ],
+          },
+        ]}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Thinking: Planning/u }),
+    );
+    await waitFor(() => expect(screen.getByText(/^Thinking$/u)).not.toBeNull());
+
+    expect(screen.getByText(/^Thinking$/u).querySelector("img")).toBeNull();
+    expect(screen.getByText(/^Done/u).querySelector("img")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "docs" }).getAttribute("href"),
+    ).toBe("https://hash.ai/docs");
+    expect(container.querySelector("[href^='javascript']")).toBeNull();
   });
 
   test("selects a target from a completed tool summary without a single-item chevron", () => {
