@@ -64,6 +64,7 @@ const controlsStyle = css({
   alignItems: "center",
   justifyContent: "center",
   color: "neutral.s100",
+  "& svg": { filter: "[drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35))]" },
   backgroundColor: "[rgba(255, 255, 255, 0.58)]",
   backdropFilter: "[blur(10px) saturate(140%)]",
   borderRadius: "[8px]",

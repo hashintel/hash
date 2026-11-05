@@ -35,6 +35,7 @@ const controlsStyle = css({
   borderRadius: "[8px]",
   backgroundColor: "[rgba(255, 255, 255, 0.58)]",
   color: "neutral.s100",
+  "& svg": { filter: "[drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35))]" },
   pointerEvents: "none",
   backdropFilter: "[blur(10px) saturate(140%)]",
   opacity: "[0]",
