@@ -42,6 +42,8 @@ const placeVisualizerSubView = createDeferredSubView({
       .placeVisualizerSubView,
 });
 
+placeVisualizerSubView.preload();
+
 interface PlacePropertiesProps {
   place: Place;
   types: Color[];
