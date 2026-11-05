@@ -3,21 +3,17 @@ import { Overloads } from "./overloads.js";
 import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
-/** One comment of an entry. A comment that holds in some overloads only starts with their numbers. */
+/** Sections of one comment of an entry, which the entry places in reading order. A comment that holds in some overloads only starts with their numbers. */
 export function ApiComment({
   overloads,
   children,
 }: Components.CommentProps): ReactNode {
   if (overloads === undefined) {
-    return (
-      <div className="api-part api-comment" data-part="description">
-        {children}
-      </div>
-    );
+    return <div className="api-comment">{children}</div>;
   }
 
   return (
-    <div className="api-part api-comment api-note" data-part="description">
+    <div className="api-comment api-note">
       <Overloads numbers={overloads} />
       <div className="api-note-body">{children}</div>
     </div>

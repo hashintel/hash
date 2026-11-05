@@ -222,7 +222,7 @@
   margin-inline-start: auto;
 }
 
-/* An entry is one grid of its parts. A comment without overload numbers lends its sections to the grid, so an entry reads as its description, its declaration and hierarchy, what its comments say about the calls, the remarks and examples, then its members, its relations and a merged namespace. A wide entry puts its description beside its declaration, and every other part across both columns, so neither column runs on alone. */
+/* An entry is one grid of its parts, in the order the page writes them. A comment without overload numbers lends its sections to the grid. A wide entry puts its description beside its declaration, and every other part across both columns, so neither column runs on alone. */
 
 .api-export-body {
   display: grid;
@@ -240,42 +240,10 @@
   display: contents;
 }
 
-.api-export-body > .api-part[data-part="declaration"] {
-  order: 1;
-}
+/* A paragraph of the entry's own, such as where a trait is declared, takes the grid's gap as its margin. */
 
-.api-export-body > .api-part[data-part="hierarchy"] {
-  order: 2;
-}
-
-.api-export-body > .api-part[data-part="details"] {
-  order: 3;
-}
-
-.api-export-body > .api-comment > [data-section="remarks"] {
-  order: 4;
-}
-
-.api-export-body > .api-comment > [data-section="example"] {
-  order: 5;
-}
-
-.api-export-body
-  > .api-comment
-  > :is([data-section="custom"], [data-section="see"]) {
-  order: 6;
-}
-
-.api-export-body > .api-part[data-part="members"] {
-  order: 7;
-}
-
-.api-export-body > .api-part[data-part="references"] {
-  order: 8;
-}
-
-.api-export-body > .api-part[data-part="namespace"] {
-  order: 9;
+.prose .api-export-body > p {
+  margin-block: 0;
 }
 
 /* Prose keeps a readable measure on a full-width page. */
@@ -294,11 +262,7 @@
     grid-column: 1;
   }
 
-  .api-export-body
-    > :is(
-      .api-part[data-part="declaration"],
-      .api-part[data-part="hierarchy"]
-    ) {
+  .api-export-body > .api-part[data-part="declaration"] {
     grid-column: 2;
   }
 }
@@ -495,10 +459,10 @@
   font-weight: inherit;
 }
 
-/* A description keeps a readable measure in its text, so that it still takes a line of its own in its item. */
+/* A description keeps a readable measure in its text, so that it still takes a line of its own in its item. An example in a note keeps the width of its code. */
 
 .api-item-description > p,
-.api-note-body,
+.api-note-body > .api-description,
 .api-member .api-description {
   max-width: 68ch;
 }
@@ -548,10 +512,28 @@
   grid-row: 1;
 }
 
-/* A member's declarations need no title, and an accessor's halves no numbers. */
-.api-member > .api-part[data-part="declaration"] > .api-section-title,
-.api-accessor-half .api-signature-header {
+/* A member's declarations need no title, and its overloads no panel. */
+.api-member > .api-part[data-part="declaration"] .api-section-header {
   display: none;
+}
+
+.api-member .api-signatures {
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+
+.api-member .api-signatures > .api-signature + .api-signature {
+  border-top: none;
+}
+
+.api-member .api-signature > .api-overloads {
+  top: 0.125rem;
+  left: 0;
+}
+
+.prose .api-member .api-signatures > .api-signature > figure.shiki {
+  --padding-left: 1.75rem;
 }
 
 /* The variables are fumadocs' own, which pad every line of a `.shiki` code block. */
@@ -1050,42 +1032,36 @@
   overflow-wrap: anywhere;
 }
 
-/* Overloads: one panel with a rule between declarations, each starting with the numbers of its overloads and its own facts. A single declaration is its code block alone, its facts on the entry's heading. */
+/* Overloads: one panel with a rule between declarations, each numbered in its margin. A single declaration is its code block alone. */
 
-.api-signatures[data-overloads="1"] {
-  display: contents;
-}
-
-.api-signatures[data-overloads="1"] .api-signature-header {
-  display: none;
-}
-
-.api-signature-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 1rem 0;
-}
-
-.api-signatures:not([data-overloads="1"]) {
+.api-signatures {
   display: flex;
   flex-direction: column;
-  margin-block: 1rem 0;
   border: 1px solid var(--color-fd-border);
   border-radius: 0.75rem;
   overflow: hidden;
   background: var(--color-fd-card);
 }
 
-.api-signature {
+.api-signatures > .api-signature {
   position: relative;
 }
 
-.api-signature + .api-signature {
+.api-signatures > .api-signature + .api-signature {
   border-top: 1px solid var(--color-fd-border);
 }
 
-.api-signatures:not([data-overloads="1"]) .api-signature > figure.shiki {
+.api-signature > .api-overloads {
+  position: absolute;
+  top: 0.875rem;
+  left: 1rem;
+  z-index: 1;
+  flex-direction: column;
+}
+
+/* The variable is fumadocs' own, which it sets on every `.shiki` code block. */
+.api-signatures > .api-signature > figure.shiki {
+  --padding-left: 2.75rem;
   margin: 0;
   border: none;
   border-radius: 0;
@@ -1108,19 +1084,6 @@
   margin-bottom: 0;
 }
 
-/* An entry's hierarchy opens from a button at the end of its declaration. */
-
-.api-part[data-part="hierarchy"] {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.api-export-body
-  > .api-part[data-part="declaration"]
-  + .api-part[data-part="hierarchy"] {
-  margin-top: -1rem;
-}
-
 /* An example's caption is the bar above its code. */
 
 .api-example > .api-caption {
@@ -1137,11 +1100,4 @@
   margin-top: 0;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-}
-
-/* A trait links to the declaration it is from its heading's line. */
-
-.api-export-tools .api-declaration-link {
-  font-family: var(--api-mono);
-  font-size: 0.8125rem;
 }

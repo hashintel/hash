@@ -7,7 +7,7 @@ const label = "Type hierarchy";
 const legend = "An arrow points from a type to the one it extends.";
 
 /**
- * The button for an entry's type hierarchy, which opens the diagram.
+ * The button for an entry's type hierarchy, which opens the diagram. The entry places it on the line of its declarations' title, or of its heading.
  *
  * The server renders the diagram, so the page carries no diagram code.
  */
@@ -22,7 +22,7 @@ export function ApiHierarchy({
   const diagram = { __html: Diagram.diagramOf(popover, { nodes, edges }) };
 
   return (
-    <div className="api-part" data-part="hierarchy">
+    <>
       <button
         type="button"
         className="api-hierarchy-button"
@@ -52,6 +52,6 @@ export function ApiHierarchy({
           dangerouslySetInnerHTML={diagram}
         />
       </div>
-    </div>
+    </>
   );
 }
