@@ -433,7 +433,14 @@ export const Editor = ({
           <div
             ref={portalRef}
             className={`${rootStyle} petrinaut-root`}
-            data-run-tiles={ui.history ? true : undefined}
+            data-run-tiles={
+              ui.history &&
+              new URLSearchParams(globalThis.location.search).get(
+                "runtiles",
+              ) !== "pa"
+                ? true
+                : undefined
+            }
           >
             <HashShellStrip />
             <div className={workspaceStyle}>
