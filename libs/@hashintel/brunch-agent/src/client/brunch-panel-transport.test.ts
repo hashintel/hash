@@ -118,7 +118,7 @@ test("announces a typed or comment submission before Flue admits it, but not an 
   const transport = createBrunchPanelTransport(
     Promise.resolve({ send } as unknown as FlueClient),
     new BrunchPanelConversationTracker(),
-    { onSubmission: () => events.push("submission") },
+    { onSubmission: (messageId) => events.push(`submission ${messageId}`) },
   );
   const submit = (messages: PetrinautAiMessage[]) =>
     transport.sendMessages({
@@ -154,9 +154,9 @@ test("announces a typed or comment submission before Flue admits it, but not an 
     ]),
   ).rejects.toMatchObject({ failure: { kind: "rejected" } });
   expect(events).toEqual([
-    "submission",
+    "submission user-one",
     "send user",
-    "submission",
+    "submission comments",
     "send signal",
   ]);
 
@@ -172,6 +172,45 @@ test("announces a typed or comment submission before Flue admits it, but not an 
     ]),
   ).rejects.toThrow("The submitted user message has no text.");
   expect(events).toHaveLength(4);
+});
+
+test("a retried delivery of the same message is no new submission, even from a recreated transport", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(403, "Refused");
+  });
+  const client = Promise.resolve({ send } as unknown as FlueClient);
+  const tracker = new BrunchPanelConversationTracker();
+  const onSubmission = vi.fn<(messageId: string) => void>();
+  const submit = (id: string) =>
+    // The panel recreates its transport whenever the history it reads moves.
+    createBrunchPanelTransport(client, tracker, { onSubmission }).sendMessages({
+      trigger: "submit-message",
+      chatId: "one",
+      messageId: id,
+      messages: [{ id, role: "user", parts: [{ type: "text", text: "Ok" }] }],
+      abortSignal: undefined,
+    });
+  await expect(submit("comments")).rejects.toThrow();
+  await expect(submit("comments")).rejects.toThrow();
+  await expect(submit("retried-answer")).rejects.toThrow();
+  expect(send).toHaveBeenCalledTimes(3);
+  expect(onSubmission.mock.calls).toEqual([["comments"], ["retried-answer"]]);
+
+  // Another conversation's tracker has not seen the message.
+  await expect(
+    createBrunchPanelTransport(client, new BrunchPanelConversationTracker(), {
+      onSubmission,
+    }).sendMessages({
+      trigger: "submit-message",
+      chatId: "two",
+      messageId: "comments",
+      messages: [
+        { id: "comments", role: "user", parts: [{ type: "text", text: "Ok" }] },
+      ],
+      abortSignal: undefined,
+    }),
+  ).rejects.toThrow();
+  expect(onSubmission).toHaveBeenCalledTimes(3);
 });
 
 test("an empty words snapshot without an allowance sends an ordinary message", async () => {

@@ -41,6 +41,17 @@ export type BrunchPanelAdmissionTarget = Pick<
 
 export class BrunchPanelConversationTracker {
   readonly #wordsByMessage = new Map<string, readonly string[]>();
+  readonly #submittedMessageIds = new Set<string>();
+
+  /**
+   * Whether this is the first time the user message is submitted here: a
+   * retry of the same delivery, from whichever transport, is not a new one.
+   */
+  public recordSubmission(messageId: string): boolean {
+    if (this.#submittedMessageIds.has(messageId)) return false;
+    this.#submittedMessageIds.add(messageId);
+    return true;
+  }
 
   /**
    * The words snapshot for one user message, read once so that a retry of the
@@ -356,9 +367,10 @@ export const createBrunchPanelTransport = (
     /**
      * The user sent a turn of their own, typed or of comments: called once its
      * payload is built and before Flue is asked to admit it, so whether Flue
-     * admits it or not. A continuation after client tool results is no turn.
+     * admits it or not. A retry of the same message, which delivers it again,
+     * and a continuation after client tool results are no new turn.
      */
-    readonly onSubmission?: () => void;
+    readonly onSubmission?: (messageId: string) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
     readonly onReattach?: FlueChatTransportOptions["onReattach"];
@@ -398,7 +410,8 @@ export const createBrunchPanelTransport = (
               messages,
               submissionContext,
             );
-            options?.onSubmission?.();
+            if (tracker.recordSubmission(submitted.messageId))
+              options?.onSubmission?.(submitted.messageId);
             return submitted;
           },
           initialData: options?.initialData,

@@ -422,16 +422,49 @@ export const useBrunchAssistant = ({
   // The user moves past the latest turn's highlights when they send the next
   // turn, before Flue admits it; a refused send does not bring them back. Only
   // a new canonical turn in the same conversation marks its own changes again.
+  // A conversation Flue does not have yet is known to have no turn. Sent while
+  // the history is still being read, a message moves past the latest turn of
+  // the history first read, unless that turn is the one Flue's receipt for the
+  // message names: nothing else orders a refused or unacknowledged message
+  // against it, so a turn another tab opened meanwhile, or this tab's own
+  // whose receipt was lost until a retry returns it, stays unmarked until the
+  // next turn. Only the latest message counts: one sent after another moves
+  // past whatever the earlier one opened.
+  const historyKnown =
+    flueHistory.snapshot !== undefined || flueHistory.phase === "absent";
   const latestTurnId = latestLedgerTurnId(
     flueHistory.snapshot ?? { messages: [] },
   );
   const [highlightDismissal, setHighlightDismissal] = useState<{
     readonly tracker: BrunchPanelConversationTracker;
-    readonly turnId: string | undefined;
+    /**
+     * The latest turn the user moved past: the latest the history showed when
+     * they sent their message or, sent while it was still being read, the
+     * latest of the history first read.
+     */
+    readonly turn?: { readonly id: string | undefined };
+    /** The message the user sent last. */
+    readonly messageId: string;
+    /** The submission Flue's receipt names for it, once one arrives. */
+    readonly submissionId?: string;
   }>();
+  const dismissal =
+    highlightDismissal?.tracker === conversationTracker
+      ? highlightDismissal
+      : undefined;
+  if (dismissal !== undefined && dismissal.turn === undefined && historyKnown) {
+    setHighlightDismissal({ ...dismissal, turn: { id: latestTurnId } });
+  }
   const highlightChanges = !(
-    highlightDismissal?.tracker === conversationTracker &&
-    highlightDismissal.turnId === latestTurnId
+    dismissal &&
+    historyKnown &&
+    (dismissal.turn === undefined ? latestTurnId : dismissal.turn.id) ===
+      latestTurnId &&
+    !(
+      dismissal.submissionId !== undefined &&
+      flueHistory.snapshot?.messages.find(({ id }) => id === latestTurnId)
+        ?.submissionId === dismissal.submissionId
+    )
   );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
@@ -508,6 +541,7 @@ export const useBrunchAssistant = ({
       voice.realtime,
     ],
   );
+  const { refresh: refreshHistory } = flueHistory;
   const brunchChatTransport = useMemo(
     () =>
       flueClientPromise === null
@@ -532,11 +566,23 @@ export const useBrunchAssistant = ({
                   ),
                 }),
             adapter: flueAdapter,
-            onAdmission: flueHistory.refresh,
-            onSubmission: () =>
+            onAdmission: (admission) => {
+              refreshHistory();
+              setHighlightDismissal((current) =>
+                current?.tracker === conversationTracker &&
+                conversationTracker.submissionForInput(current.messageId) ===
+                  admission.submissionId
+                  ? { ...current, submissionId: admission.submissionId }
+                  : current,
+              );
+            },
+            onSubmission: (messageId) =>
               setHighlightDismissal({
                 tracker: conversationTracker,
-                turnId: latestTurnId,
+                // The latest turn the user saw when they sent the message,
+                // or, while the history is being read, of the first read.
+                ...(historyKnown ? { turn: { id: latestTurnId } } : {}),
+                messageId,
               }),
             onToolOutputError: (event) =>
               reportBrunchFailure("server-tool", new Error(event.errorText), {
@@ -549,7 +595,7 @@ export const useBrunchAssistant = ({
                 submissionId: event.submissionId,
                 attempt: event.attempt,
               }),
-            onDisconnect: flueHistory.refresh,
+            onDisconnect: refreshHistory,
           }),
     [
       conversationTracker,
@@ -557,7 +603,8 @@ export const useBrunchAssistant = ({
       constructionBrowser,
       flueAdapter,
       flueClientPromise,
-      flueHistory.refresh,
+      refreshHistory,
+      historyKnown,
       interviewBudgetLevel,
       interviewRepliesAsked,
       latestTurnId,
