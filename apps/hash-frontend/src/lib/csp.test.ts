@@ -87,20 +87,13 @@ describe("buildCspHeader in development", () => {
     },
   );
 
-  test("still keeps data: fonts to the process editor", () => {
-    vi.stubEnv("NODE_ENV", "development");
+  test.each([...processEditorPaths, ...otherPaths])(
+    "allows data: fonts on %s",
+    (pathname) => {
+      vi.stubEnv("NODE_ENV", "development");
+      const header = buildCspHeader({ nonce: "abc", pathname });
 
-    expect(
-      directiveSources(
-        buildCspHeader({ nonce: "abc", pathname: "/processes" }),
-        "font-src",
-      ),
-    ).toEqual(["'self'"]);
-    expect(
-      directiveSources(
-        buildCspHeader({ nonce: "abc", pathname: "/processes/draft" }),
-        "font-src",
-      ),
-    ).toEqual(["'self'", "data:"]);
-  });
+      expect(directiveSources(header, "font-src")).toEqual(["'self'", "data:"]);
+    },
+  );
 });

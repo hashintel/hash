@@ -80,7 +80,13 @@ export const buildCspHeader = ({
     "font-src": [
       "'self'",
       // Petrinaut, rendered in the process editor, ships its fonts as data: URLs.
-      ...(isProcessEditor ? ["data:"] : []),
+      // Development allows them everywhere, as it does string evaluation:
+      // there the editor never reloads into its own policy, because
+      // evaluation already works, so a document that arrived from another
+      // route would otherwise render Petrinaut without its fonts.
+      ...(process.env.NODE_ENV === "development" || isProcessEditor
+        ? ["data:"]
+        : []),
     ],
 
     "connect-src": [
