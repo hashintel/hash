@@ -1,9 +1,10 @@
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-static-element-interactions -- The SVG switches from an image to a keyboard-accessible application while exploring. */
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import {
   cameraViewBox,
   fitCamera,
@@ -11,6 +12,7 @@ import {
   pointerFrame,
   zoomCamera,
 } from "./visualizer-svg/camera";
+import { useSceneCamera } from "./visualizer-svg/use-scene-camera";
 
 import type { Point, Size } from "./visualizer-svg/camera";
 import type { VisualizerSvgOptions } from "@hashintel/petrinaut-core";
@@ -31,14 +33,16 @@ const controlsStyle = css({
   zIndex: "[1]",
   padding: "[2px]",
   borderRadius: "[8px]",
-  backgroundColor: "[rgba(255,255,255,0.8)]",
-  backdropFilter: "[blur(8px)]",
+  backgroundColor: "[rgba(255, 255, 255, 0.58)]",
+  color: "neutral.s100",
+  pointerEvents: "none",
+  backdropFilter: "[blur(10px) saturate(140%)]",
   opacity: "[0]",
-  transition: "[opacity 100ms ease]",
-  "[data-visualizer-scene]:hover &": { opacity: "[1]" },
-  _focusWithin: { opacity: "[1]" },
-  "&[data-exploring='true']": { opacity: "[1]" },
-  "@media (hover: none)": { opacity: "[1]" },
+  transition: "[opacity 140ms ease-out]",
+  "[data-visualizer-scene]:hover &": { opacity: "[1]", pointerEvents: "auto" },
+  _focusWithin: { opacity: "[1]", pointerEvents: "auto" },
+  "@media (hover: none)": { opacity: "[1]", pointerEvents: "auto" },
+  "[data-animated='false'] &": { transition: "[none]" },
   "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
 });
 
@@ -63,11 +67,16 @@ export const VisualizerSvg = ({
   size: Size;
   children?: ReactNode;
 }) => {
-  const [camera, setCamera] = useState(() => fitCamera(options, size));
+  const { showAnimations } = use(UserSettingsContext);
+  const { camera, changed, navigate, reset } = useSceneCamera(
+    options,
+    size,
+    showAnimations,
+  );
   const [exploring, setExploring] = useState(false);
   const [dragging, setDragging] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
-  const exploreRef = useRef<HTMLButtonElement>(null);
+  const panRef = useRef<HTMLButtonElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const navigable = options.navigation === "pan-zoom";
   const displayedCamera = navigable ? camera : fitCamera(options, size);
@@ -82,7 +91,7 @@ export const VisualizerSvg = ({
         event.deltaY *
         (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? size.height : 1);
       const anchor = localPoint(svg, event, size);
-      setCamera((previous) =>
+      navigate((previous) =>
         zoomCamera(
           previous,
           Math.exp(-Math.max(-200, Math.min(200, delta)) * 0.005),
@@ -93,7 +102,7 @@ export const VisualizerSvg = ({
     };
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => svg.removeEventListener("wheel", onWheel);
-  }, [exploring, size]);
+  }, [exploring, size, navigate]);
 
   const endPointer = (event: PointerEvent<SVGSVGElement>) => {
     if (!pointers.current.delete(event.pointerId)) return;
@@ -107,13 +116,14 @@ export const VisualizerSvg = ({
     <div
       className={containerStyle}
       data-visualizer-scene
+      data-animated={showAnimations}
       role="group"
       onKeyDown={(event) => {
         if (event.key !== "Escape" || !exploring) return;
         event.preventDefault();
         event.stopPropagation();
         setExploring(false);
-        exploreRef.current?.focus({ preventScroll: true });
+        panRef.current?.focus({ preventScroll: true });
       }}
     >
       <svg
@@ -130,7 +140,7 @@ export const VisualizerSvg = ({
         }}
         role={exploring ? "application" : "img"}
         tabIndex={exploring ? 0 : -1}
-        aria-label={exploring ? "Explore SVG scene" : undefined}
+        aria-label={exploring ? "Pan and zoom SVG scene" : undefined}
         onPointerDown={(event) => {
           if (!exploring || event.button !== 0) return;
           event.preventDefault();
@@ -152,7 +162,7 @@ export const VisualizerSvg = ({
             localPoint(event.currentTarget, event, size),
           );
           const next = pointerFrame(pointers.current)!;
-          setCamera((current) => {
+          navigate((current) => {
             const panned = panCamera(current, {
               x: next.center.x - previous.center.x,
               y: next.center.y - previous.center.y,
@@ -180,10 +190,9 @@ export const VisualizerSvg = ({
             ArrowDown: { x: 0, y: -delta },
           };
           const direction = movement[event.key];
-          if (direction)
-            setCamera((previous) => panCamera(previous, direction));
+          if (direction) navigate((previous) => panCamera(previous, direction));
           else if (["+", "=", "-"].includes(event.key))
-            setCamera((previous) =>
+            navigate((previous) =>
               zoomCamera(
                 previous,
                 event.key === "-" ? 1 / 1.2 : 1.2,
@@ -191,7 +200,7 @@ export const VisualizerSvg = ({
                 size,
               ),
             );
-          else if (event.key === "0") setCamera(fitCamera(options, size));
+          else if (event.key === "0") reset();
           else return;
           event.preventDefault();
           event.stopPropagation();
@@ -200,32 +209,41 @@ export const VisualizerSvg = ({
         {children}
       </svg>
       {navigable && (
-        <div
-          className={controlsStyle}
-          data-exploring={exploring}
-          data-visualizer-control
-        >
+        <div className={controlsStyle} data-visualizer-control>
           <Button
-            ref={exploreRef}
+            ref={panRef}
             size="xxs"
             variant="ghost"
+            iconName="hand"
+            aria-label="Pan and zoom"
             aria-pressed={exploring}
-            tooltip="Drag to pan · Scroll to zoom · Arrow keys, +/−, 0 to reset · Escape to exit"
+            tooltip="Pan and zoom"
+            className={css({
+              "&[aria-pressed='true']": {
+                color: "blue.s80",
+                backgroundColor: "blue.s20",
+              },
+            })}
             onClick={() => {
               setExploring(!exploring);
               if (!exploring) svgRef.current?.focus({ preventScroll: true });
             }}
-          >
-            Explore
-          </Button>
-          {exploring && (
+          />
+          {changed && (
             <Button
               size="xxs"
               variant="ghost"
-              onClick={() => setCamera(fitCamera(options, size))}
-            >
-              Reset view
-            </Button>
+              iconName="collapse"
+              aria-label="Reset view"
+              aria-keyshortcuts="0"
+              tooltip="Reset view"
+              onClick={() => {
+                reset();
+                (exploring ? svgRef.current : panRef.current)?.focus({
+                  preventScroll: true,
+                });
+              }}
+            />
           )}
         </div>
       )}

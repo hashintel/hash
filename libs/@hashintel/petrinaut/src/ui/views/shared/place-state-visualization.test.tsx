@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, expect, it, vi } from "vitest";
@@ -81,7 +82,10 @@ const setup = () => {
   return { Harness, complete };
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 it("keeps the last drawing visible until the newest compilation completes", async () => {
   const { Harness, complete } = setup();
@@ -130,6 +134,15 @@ it("shows a compilation error only when ready and recovers on the next edit", as
 });
 
 it("preserves the scene camera while new code compiles", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   const { Harness, complete } = setup();
   const first = source("First scene").replace(
     'viewBox="0 0 400 200"',
@@ -138,8 +151,10 @@ it("preserves the scene camera while new code compiles", async () => {
   const second = first.replace("First scene", "Updated scene");
   const { rerender } = await act(() => render(<Harness code={first} />));
   await complete(first);
-  fireEvent.click(screen.getByRole("button", { name: "Explore" }));
-  const scene = screen.getByLabelText("Explore SVG scene");
+  expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Pan and zoom" }));
+  expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+  const scene = screen.getByLabelText("Pan and zoom SVG scene");
   const original = scene.getAttribute("viewBox");
   fireEvent.keyDown(scene, { key: "+" });
   fireEvent.keyDown(scene, { key: "ArrowLeft" });
@@ -150,10 +165,14 @@ it("preserves the scene camera while new code compiles", async () => {
   expect(
     screen.getByText("Updated scene").closest("svg")?.getAttribute("viewBox"),
   ).toBe(navigated);
-  fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
-  expect(scene.getAttribute("viewBox")).toBe(original);
   fireEvent.keyDown(scene, { key: "Escape" });
-  expect(screen.queryByLabelText("Explore SVG scene")).toBeNull();
+  expect(screen.queryByLabelText("Pan and zoom SVG scene")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
+  await waitFor(() => expect(scene.getAttribute("viewBox")).toBe(original));
+  expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "Pan and zoom" }),
+  );
 });
 
 it("recovers from a computed root-property error on the next edit", async () => {

@@ -64,3 +64,21 @@ export const pointerFrame = (
     distance: Math.hypot(second.x - first.x, second.y - first.y),
   };
 };
+
+export const camerasMatch = (camera: Camera, other: Camera): boolean =>
+  Math.abs(camera.x - other.x) * camera.zoom < 0.01 &&
+  Math.abs(camera.y - other.y) * camera.zoom < 0.01 &&
+  Math.abs(Math.log(camera.zoom / other.zoom)) < 0.000001;
+
+export const interpolateCamera = (
+  from: Camera,
+  to: Camera,
+  progress: number,
+): Camera => {
+  const eased = 1 - (1 - progress) ** 3;
+  return {
+    x: from.x + (to.x - from.x) * eased,
+    y: from.y + (to.y - from.y) * eased,
+    zoom: from.zoom * (to.zoom / from.zoom) ** eased,
+  };
+};
