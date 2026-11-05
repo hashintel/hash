@@ -9,7 +9,12 @@
 import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { barColor, barMotionColor, statusColor } from "./status-colors";
+import {
+  barColor,
+  barMotionColor,
+  statusBarHeight,
+  statusColor,
+} from "./status-colors";
 
 import type { BarSegment, StepState } from "./run-history";
 
@@ -735,7 +740,7 @@ const barHitPartStyle = css({
  */
 export const RunBar = ({
   segments,
-  height = 2,
+  height: heightProp = 2,
   gap = 1.5,
   colors = barColor,
   radius = "lg",
@@ -759,6 +764,7 @@ export const RunBar = ({
    */
   breakdown?: string;
 }) => {
+  const height = heightProp === 2 ? (statusBarHeight() ?? 2) : heightProp;
   const reviewMotion =
     reviewMotionProp ?? (motion === "bar-review" ? "loop" : "off");
   if (motion !== "pulse" || reviewMotion !== "off") {
