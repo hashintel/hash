@@ -53,6 +53,11 @@ const snapshot = {
           x: 0,
           y: 0,
         }),
+        applied("place-moved", "petrinaut_update_place", {
+          editor_id: "process-editor",
+          placeId: "queue",
+          position: { x: 100, y: 200 },
+        }),
         applied("arc-moved", "petrinaut_update_arc", {
           editor_id: "process-editor",
           transitionId: "serve",

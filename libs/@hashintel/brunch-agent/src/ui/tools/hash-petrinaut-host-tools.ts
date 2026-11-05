@@ -4,8 +4,11 @@ import {
   hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 import {
+  arcMatchesEndpoint,
   petrinautExperimentRequestSchema,
+  placeArcEndpoint,
   readPetrinautDocToolInputSchema,
+  type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import { zNetDetail } from "../../hash/petrinaut-tools";
@@ -62,6 +65,36 @@ const combinedOutput = (
  * the first call. The server refuses any other editor before issuing the
  * call; one arriving here fails as an input the tool doesn't accept would.
  */
+/** Whether `call`'s `updateArcPlace` names an arc that exists on the target net. */
+const sourceArcExists = (
+  definition: SDCPN,
+  call: Extract<
+    ReturnType<
+      (typeof hashPetrinautTools)[HashPetrinautToolName]["parseCall"]
+    >["calls"][number],
+    { toolName: "updateArcPlace" }
+  >,
+): boolean => {
+  const {
+    transitionId,
+    arcDirection,
+    oldPlaceId,
+    oldEndpoint,
+    targetSubnetId,
+  } = call.input;
+  const net = targetSubnetId
+    ? definition.subnets?.find(({ id }) => id === targetSubnetId)
+    : definition;
+  const transition = net?.transitions.find(({ id }) => id === transitionId);
+  if (!transition) return false;
+  const endpoint =
+    oldEndpoint ?? (oldPlaceId ? placeArcEndpoint(oldPlaceId) : null);
+  if (!endpoint) return false;
+  const arcs =
+    arcDirection === "input" ? transition.inputArcs : transition.outputArcs;
+  return arcs.some((arc) => arcMatchesEndpoint(arc, endpoint));
+};
+
 /**
  * The tools that change no element, each run from the call's input through
  * the plugin, as the canonical operation it stands for runs.
@@ -95,9 +128,8 @@ const standIns: Partial<
       },
       applyAutoLayout: document.edit.applyAutoLayout,
     }),
-  // Run as the canonical experiment runs, on its own: Stop doesn't cancel it.
-  petrinaut_create_experiment: (input, { experiments }) =>
-    experiments.run(petrinautExperimentRequestSchema.parse(input)),
+  petrinaut_create_experiment: (input, { experiments, signal }) =>
+    experiments.run(petrinautExperimentRequestSchema.parse(input), { signal }),
   // The page `readPetrinautDoc` reads: Brunch's own for its assistant.
   petrinaut_read_guide: (input) =>
     readUserGuidePage(readPetrinautDocToolInputSchema.parse(input).doc),
@@ -126,13 +158,16 @@ const hashPetrinautHostTool = (
       };
       const outputs: Output[] = [];
       for (const call of calls) {
+        const missingSourceArc =
+          call.toolName === "updateArcPlace" &&
+          !sourceArcExists(getDefinition(), call);
         // Refused while the editor is read-only: the refusal is the output.
         const output = executePetrinautAiMutation({
           aiToolCall: call,
           getDefinition,
           edit,
         });
-        if ("blocked" in output) return output;
+        if ("blocked" in output || missingSourceArc) return output;
         outputs.push(output);
       }
       return combinedOutput(toolName, outputs);

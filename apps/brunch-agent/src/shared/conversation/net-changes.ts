@@ -130,9 +130,14 @@ export const callsForElement = (
       ? canonicalCalls.some((canonical) =>
           canonicalCallMatchesArc(canonical, arc),
         )
-      : browserToolFacts(call.toolName).targets.includes(element.kind) &&
-          (canonicalCalls.some(({ input }) => hasId(input, element.id)) ||
-            hasId(call.output, element.id));
+      : canonicalCalls.some(
+          (canonical) =>
+            browserToolFacts(canonical.toolName).targets.includes(
+              element.kind,
+            ) &&
+            (hasId(canonical.input, element.id) ||
+              hasId(call.output, element.id)),
+        );
   });
 
 /** Where an assistant tool call sits in the conversation, by message and part index. */

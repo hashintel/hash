@@ -190,19 +190,24 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
 
     if (toolName === brunchTools.appSaveNet) {
       // A save the page refused, or the person declined, saved nothing; one
-      // whose result never came back may or may not have saved.
+      // whose result never came back may or may not have saved. The browser
+      // reports `status`, and the history stores `hashSaveForModel`'s
+      // `{ saved: false, reason }` or `{ saved: false, error, note }`.
       const status = stringProperty(context.output, "status");
-      if (status === "not-started") {
+      const notSaved = asRecord(context.output)?.saved === false;
+      const reason = stringProperty(context.output, "reason");
+      const error = stringProperty(context.output, "error");
+      if (status === "not-started" || (notSaved && reason !== undefined)) {
         return {
           title: "Did not save the net",
-          detail: stringProperty(context.output, "reason"),
+          detail: reason,
           tone: "neutral",
         };
       }
-      if (status === "unconfirmed") {
+      if (status === "unconfirmed" || (notSaved && error !== undefined)) {
         return {
           title: "Could not confirm the save",
-          detail: stringProperty(context.output, "error"),
+          detail: error,
           tone: "danger",
         };
       }
