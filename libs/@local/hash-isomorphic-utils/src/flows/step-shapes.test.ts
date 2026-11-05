@@ -280,7 +280,11 @@ describe("outputs that take their kind from an input", () => {
 
     /* An unconnected required input is reported as missing instead. */
     expect(diagnosticsOf(flowWith([step("filter", "filter")]))).toEqual([
-      { severity: "error", code: "missingInput", path: ["steps", 0, "inputs"] },
+      {
+        severity: "error",
+        code: "missingInput",
+        path: ["steps", 0, "inputs", "items"],
+      },
     ]);
   });
 

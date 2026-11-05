@@ -118,6 +118,13 @@ describe("createFlowEditor", () => {
     editor.moveStep("first", { x: 10, y: 10 });
     editor.setInputSource("second", "question", null);
     editor.addConnection({ from: added, to: "each" });
+    editor.setStepDescription("second", "Answers again");
+    editor.addFlowInput({
+      name: "context",
+      payloadKind: "Text",
+      array: false,
+      required: false,
+    });
     editor.removeStep("first");
     editor.disconnectStep("each");
 
@@ -296,6 +303,71 @@ describe("createFlowEditor", () => {
     });
   });
 
+  describe("setting a step's description", () => {
+    it("sets the description of an action step or a for-each step, leaving the steps inside it as they were", () => {
+      const editor = loadFlow();
+
+      editor.setStepDescription("second", "Answer the follow-up");
+      editor.setStepDescription("each", "Answer every question");
+
+      expect(stepOf(editor, "second")).toStrictEqual({
+        ...flowDefinition.steps[1],
+        description: "Answer the follow-up",
+      });
+      expect(stepOf(editor, "each")).toStrictEqual({
+        ...flowDefinition.steps[2],
+        description: "Answer every question",
+      });
+      expect(stepOf(editor, "first")?.description).toBe("");
+    });
+  });
+
+  describe("adding a flow input", () => {
+    it("adds an input after the others, unused until a step takes its value from it", () => {
+      const editor = loadFlow();
+      const deadline: FlowDefinition["inputs"][number] = {
+        name: "deadline",
+        payloadKind: "Date",
+        array: false,
+        required: true,
+        label: "Deadline",
+      };
+
+      editor.addFlowInput(deadline);
+
+      expect(editor.getState().flowDefinition.inputs).toStrictEqual([
+        ...flowDefinition.inputs,
+        deadline,
+      ]);
+      expect(editor.getState().flowProblems).toMatchObject([
+        { code: "unusedFlowInput", path: ["inputs", 2] },
+      ]);
+
+      editor.setInputSource("second", "context", {
+        kind: "flow-input",
+        inputName: "deadline",
+      });
+
+      expect(editor.getState().flowProblems).toEqual([]);
+    });
+
+    it("lists a name that's already taken as a problem rather than refusing it", () => {
+      const editor = loadFlow();
+
+      editor.addFlowInput({
+        name: "question",
+        payloadKind: "Number",
+        array: false,
+        required: false,
+      });
+
+      expect(editor.getState().flowDefinition.inputs).toHaveLength(3);
+      expect(editor.getState().flowProblems).toMatchObject([
+        { code: "duplicateInputName", path: ["inputs", 2, "name"] },
+      ]);
+    });
+  });
+
   describe("connections", () => {
     it("adds a connection once", () => {
       const editor = loadFlow();
@@ -359,6 +431,9 @@ describe("createFlowEditor", () => {
     expect(() => editor.moveStep("answerQuestion", { x: 0, y: 0 })).toThrow(
       'The flow has no top-level step "answerQuestion"',
     );
+    expect(() =>
+      editor.setStepDescription("answer", "Answer one question"),
+    ).toThrow('The flow has no top-level step "answer"');
     expect(() =>
       editor.addStep("webSearch", { into: { from: "second", to: "first" } }),
     ).toThrow('Step "first" doesn\'t run after step "second"');

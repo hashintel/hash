@@ -646,7 +646,7 @@ export const validateFlowDefinition = (
         report(
           "missingInput",
           `Required input "${actionInput.name}" of action "${step.actionDefinitionId}" is not connected`,
-          [...entry.path, "inputs"],
+          [...entry.path, "inputs", actionInput.name],
         );
       }
     }
