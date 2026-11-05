@@ -1,6 +1,29 @@
-# Rust
-*.rs @hashintel/rust
-Cargo.toml @hashintel/rust
+# Rust workspace
+/Cargo.toml @hashintel/rust
+/Cargo.lock @hashintel/rust
+/rust-toolchain.toml @hashintel/rust
+/.cargo/ @hashintel/rust
+/.clippy.toml @hashintel/rust
+/.rustfmt.toml @hashintel/rust
+
+# Rust crates without an area team
+/libs/error-stack/ @hashintel/rust
+/libs/darwin-kperf/ @hashintel/rust
+/libs/problematic/rust/ @hashintel/rust
+/libs/@blockprotocol/type-system/rust/ @hashintel/rust
+/libs/@local/codec/rust/ @hashintel/rust
+/libs/@local/codegen/ @hashintel/rust
+/libs/@local/config/ @hashintel/rust
+/libs/@local/crypto/ @hashintel/rust
+/libs/@local/durable-kernel/ @hashintel/rust
+/libs/@local/middleware/ @hashintel/rust
+/libs/@local/repo-chores/rust/ @hashintel/rust
+/libs/@local/status/rust/ @hashintel/rust
+/libs/@local/telemetry/ @hashintel/rust
+/libs/@local/temporal-client/ @hashintel/rust
+/libs/@local/typst-railroad/ @hashintel/rust
+
+# HashQL and HaRPC
 /libs/@local/hashql/ @hashintel/hashql
 /libs/@local/harpc/ @hashintel/harpc
 
