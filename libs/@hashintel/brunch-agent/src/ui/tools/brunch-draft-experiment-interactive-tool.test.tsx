@@ -1092,10 +1092,12 @@ describe("BrunchDraftExperimentWidget", () => {
       throw new Error("Response failed after admission");
     });
     const tracker = new BrunchPanelConversationTracker();
+    const onSubmission = vi.fn<(messageId: string) => void>();
     const chat = new Chat<PetrinautAiMessage>({
       transport: createBrunchPanelTransport(
         Promise.resolve({ send, wait } as unknown as FlueClient),
         tracker,
+        { onSubmission },
       ),
     });
     const rawSubmitText: PetrinautAiComposerControlContext["submitText"] =
@@ -1191,6 +1193,8 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(send.mock.calls[0]?.[0].message).toEqual(
       send.mock.calls[1]?.[0].message,
     );
+    // Retrying the delivery is not the user's next turn.
+    expect(onSubmission.mock.calls).toEqual([[submission?.id]]);
     followUp.unmount();
     render(
       <BrunchExperimentFollowUp

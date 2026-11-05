@@ -1,9 +1,10 @@
 /** @vitest-environment jsdom */
+import { FlueApiError } from "@flue/sdk";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { Children, isValidElement, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools, ledgerCommentsMessage } from "@hashintel/brunch-agent";
 import {
   createExperimentToolName,
   createJsonDocHandle,
@@ -33,7 +34,10 @@ import type {
 } from "../client/brunch-panel-transport";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type { BrunchOpenDocument } from "./use-brunch-assistant";
-import type { AgentConversationObservationSnapshot } from "@flue/sdk";
+import type {
+  AgentConversationObservationSnapshot,
+  AgentSendResult,
+} from "@flue/sdk";
 
 const netOneId = toPetrinautId("net-1");
 const netTwoId = toPetrinautId("net-2");
@@ -994,3 +998,439 @@ test.each(["standard", "thorough", "off"] as const)(
     expectBudget(false);
   },
 );
+
+// Canonical messages as Flue materializes them: ids of its own, distinct from
+// the client message ids, and the submission that delivered each.
+const highlightUser = (id: string, text: string, submissionId?: string) => ({
+  id,
+  role: "user",
+  purpose: "user",
+  ...(submissionId === undefined ? {} : { submissionId }),
+  parts: [{ type: "text", text }],
+});
+const highlightComments = ledgerCommentsMessage([
+  { id: "n1", records: ["e1"], text: "It is a pump." },
+]);
+const highlightCommentTurn = (id: string, submissionId?: string) => ({
+  id,
+  role: "system",
+  purpose: "dispatch",
+  ...(submissionId === undefined ? {} : { submissionId }),
+  signal: { tagName: highlightComments.tagName },
+  parts: [{ type: "text", text: highlightComments.body }],
+});
+const highlightFirstTurn = [
+  highlightUser("user-1", "The reservoir holds a day of supply.", "sub-1"),
+  {
+    id: "assistant-1",
+    role: "assistant",
+    purpose: "assistant",
+    submissionId: "sub-1",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: brunchTools.ledgerCommit,
+        toolCallId: "ledger-1",
+        state: "output-available",
+        input: {
+          entries: [
+            [
+              "entity/create",
+              {
+                name: "Reservoir",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        output: {
+          status: "recorded",
+          commitId: "ledger-1",
+          revision: 1,
+          ids: ["e1"],
+        },
+      },
+    ],
+  },
+];
+const observedHistory = (
+  messages: readonly unknown[],
+): AgentConversationObservationSnapshot => ({
+  conversation: {
+    conversationId: "conversation-highlights",
+    settlements: [],
+    messages: messages as never,
+  },
+  offset: `offset-${messages.length}`,
+  phase: "live",
+  error: undefined,
+});
+const historyNotYetRead: AgentConversationObservationSnapshot = {
+  conversation: undefined,
+  offset: undefined,
+  phase: "loading",
+  error: undefined,
+};
+
+/**
+ * Brunch's assistant over an observed conversation whose history and
+ * admissions the test releases, submitting through the panel transport.
+ */
+const renderLedgerHighlights = (
+  initial: AgentConversationObservationSnapshot,
+) => {
+  let snapshot = initial;
+  const subscribers = new Set<() => void>();
+  const notify = () => {
+    for (const subscriber of subscribers) subscriber();
+  };
+  const deliveries: {
+    readonly admit: (submissionId: string) => void;
+    readonly refuse: () => void;
+    readonly lose: () => void;
+  }[] = [];
+  const send = vi.fn(
+    (_submission: { readonly idempotencyKey?: string }) =>
+      new Promise<AgentSendResult>((resolve, reject) => {
+        deliveries.push({
+          admit: (submissionId) =>
+            resolve({
+              submissionId,
+              uid: "uid",
+              offset: `admitted-${submissionId}`,
+              streamUrl: "http://brunch.test/stream",
+            }),
+          refuse: () => reject(new FlueApiError(403, "Refused")),
+          lose: () =>
+            reject(new TypeError("Connection lost after request write")),
+        });
+      }),
+  );
+  flueClientMock.current = {
+    send,
+    wait: () => new Promise<never>(() => {}),
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => snapshot,
+      // Flue publishes again as it re-reads the history.
+      refresh: notify,
+      subscribe: (subscriber: () => void) => {
+        subscribers.add(subscriber);
+        return () => subscribers.delete(subscriber);
+      },
+    }),
+  };
+
+  const rendered = renderAssistant();
+  const ledgerTab = () => {
+    const content = rendered.assistant().additionalTab?.content;
+    if (
+      !isValidElement<{ highlightChanges?: boolean; messages: unknown[] }>(
+        content,
+      )
+    )
+      throw new Error("Missing Ledger tab");
+    return content.props;
+  };
+  return {
+    rendered,
+    send,
+    ledgerTab,
+    highlighted: () => ledgerTab().highlightChanges ?? true,
+    /** Observe the next history without rendering it yet. */
+    observe: (next: AgentConversationObservationSnapshot) => {
+      snapshot = next;
+      notify();
+    },
+    publish: (next: AgentConversationObservationSnapshot) =>
+      act(() => {
+        snapshot = next;
+        notify();
+      }),
+    /** Send a message, returning once Flue has been asked to admit it. */
+    submit: async (id: string, text: string) => {
+      const sent = send.mock.calls.length;
+      const response = rendered.assistant().transport.sendMessages({
+        trigger: "submit-message",
+        chatId: "chat",
+        messageId: id,
+        messages: [{ id, role: "user", parts: [{ type: "text", text }] }],
+        abortSignal: undefined,
+      });
+      const settled = response.then(
+        () => "admitted",
+        () => "failed",
+      );
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(sent + 1));
+      const delivery = deliveries.at(-1);
+      if (delivery === undefined) throw new Error("Missing delivery");
+      const release = (settle: () => void, expected: string) =>
+        act(async () => {
+          settle();
+          expect(await settled).toBe(expected);
+        });
+      return {
+        admit: (submissionId: string) =>
+          release(() => delivery.admit(submissionId), "admitted"),
+        refuse: () => release(delivery.refuse, "failed"),
+        lose: () => release(delivery.lose, "failed"),
+      };
+    },
+  };
+};
+
+test("a submission clears the Ledger's highlights before admission, until a new canonical turn opens", async () => {
+  const { rendered, ledgerTab, highlighted, publish, submit } =
+    renderLedgerHighlights(observedHistory(highlightFirstTurn));
+  /**
+   * The highlights clear while Flue holds the admission, and stay cleared once
+   * it refuses.
+   */
+  const submitRefused = async (id: string, text: string) => {
+    const delivery = await submit(id, text);
+    expect(highlighted()).toBe(false);
+    await delivery.refuse();
+    expect(highlighted()).toBe(false);
+  };
+  await waitFor(() => expect(ledgerTab().messages).toHaveLength(2));
+  expect(highlighted()).toBe(true);
+
+  await submitRefused("draft-2", "A pump fills it.");
+  // A refresh to the same history still has no new turn.
+  publish(observedHistory([...highlightFirstTurn]));
+  expect(highlighted()).toBe(false);
+
+  // A comment turn opens canonically, wherever it was sent from.
+  const commented = [...highlightFirstTurn, highlightCommentTurn("comments-2")];
+  publish(observedHistory(commented));
+  expect(highlighted()).toBe(true);
+
+  await submitRefused("draft-3", "And a valve.");
+  publish(
+    observedHistory([...commented, highlightUser("user-3", "And a valve.")]),
+  );
+  expect(highlighted()).toBe(true);
+
+  // A replaced conversation does not inherit the dismissal.
+  await submitRefused("draft-4", "Start over.");
+  act(() => rendered.assistant().onClearMessages?.());
+  await waitFor(() => expect(highlighted()).toBe(true));
+});
+
+test("delivering the same message again keeps the marks of the turn it opened, while a fresh message clears them", async () => {
+  const { ledgerTab, highlighted, publish, submit, send } =
+    renderLedgerHighlights(observedHistory(highlightFirstTurn));
+  await waitFor(() => expect(ledgerTab().messages).toHaveLength(2));
+
+  const delivery = await submit("comments-2", highlightComments.body);
+  expect(highlighted()).toBe(false);
+  // Flue admits the comments and the turn they open is observed, but the
+  // acknowledgement is lost; the canonical turn has an id of Flue's own.
+  const commented = [
+    ...highlightFirstTurn,
+    highlightCommentTurn("entry_direct_comments", "sub-2"),
+  ];
+  publish(observedHistory(commented));
+  expect(highlighted()).toBe(true);
+  await delivery.lose();
+  expect(highlighted()).toBe(true);
+
+  // Retry delivers the same message, which Flue answers with its receipt.
+  const retried = await submit("comments-2", highlightComments.body);
+  expect(highlighted()).toBe(true);
+  await retried.admit("sub-2");
+  expect(send.mock.calls[1]?.[0].idempotencyKey).toBe(
+    send.mock.calls[0]?.[0].idempotencyKey,
+  );
+  publish(observedHistory([...commented]));
+  expect(highlighted()).toBe(true);
+
+  // Retry answer sends a fresh message, which is the user's next turn.
+  await submit("retry-answer", "It is a pump.");
+  expect(highlighted()).toBe(false);
+});
+
+test("a turn observed in the same render as a submission is newer than the turn it moves past", async () => {
+  const { rendered, ledgerTab, highlighted, observe, send } =
+    renderLedgerHighlights(observedHistory(highlightFirstTurn));
+  await waitFor(() => expect(ledgerTab().messages).toHaveLength(2));
+  const external = [
+    ...highlightFirstTurn,
+    highlightUser("entry_direct_other", "And a valve.", "sub-other"),
+  ];
+  await act(async () => {
+    void rendered
+      .assistant()
+      .transport.sendMessages({
+        trigger: "submit-message",
+        chatId: "chat",
+        messageId: "draft-2",
+        messages: [
+          {
+            id: "draft-2",
+            role: "user",
+            parts: [{ type: "text", text: "A pump fills it." }],
+          },
+        ],
+        abortSignal: undefined,
+      })
+      .catch(() => {});
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    // Another tab's turn arrives before React renders the submission.
+    observe(observedHistory(external));
+  });
+  expect(ledgerTab().messages).toHaveLength(3);
+  expect(highlighted()).toBe(true);
+});
+
+test("a message refused before the history is read leaves the turn the history shows unmarked, but not a later one", async () => {
+  const { ledgerTab, highlighted, publish, submit } =
+    renderLedgerHighlights(historyNotYetRead);
+  const delivery = await submit("draft-2", "A pump fills it.");
+  await delivery.refuse();
+
+  publish(observedHistory(highlightFirstTurn));
+  expect(ledgerTab().messages).toHaveLength(2);
+  expect(highlighted()).toBe(false);
+  publish(observedHistory([...highlightFirstTurn]));
+  expect(highlighted()).toBe(false);
+
+  // A turn opened afterwards, from any tab, marks its changes.
+  publish(
+    observedHistory([
+      ...highlightFirstTurn,
+      highlightUser("entry_direct_other", "And a valve.", "sub-other"),
+    ]),
+  );
+  expect(highlighted()).toBe(true);
+
+  // Accepted limit: nothing orders a refused message against the history, so
+  // another tab's turn admitted while the history was still being read is
+  // taken for the turn moved past, and stays unmarked until the next turn.
+  cleanup();
+  const concurrent = renderLedgerHighlights(historyNotYetRead);
+  const refused = await concurrent.submit("draft-2", "A pump fills it.");
+  await refused.refuse();
+  const other = [
+    ...highlightFirstTurn,
+    highlightUser("entry_direct_other", "And a valve.", "sub-other"),
+  ];
+  concurrent.publish(observedHistory(other));
+  expect(concurrent.highlighted()).toBe(false);
+  concurrent.publish(
+    observedHistory([
+      ...other,
+      highlightUser("entry_direct_next", "And a tap.", "sub-next"),
+    ]),
+  );
+  expect(concurrent.highlighted()).toBe(true);
+});
+
+test("a message admitted before the history is read, whose acknowledgement is lost, marks its turn once a retry returns Flue's receipt", async () => {
+  const { highlighted, publish, submit } =
+    renderLedgerHighlights(historyNotYetRead);
+  const delivery = await submit("comments-2", highlightComments.body);
+  await delivery.lose();
+  const commented = observedHistory([
+    ...highlightFirstTurn,
+    highlightCommentTurn("entry_direct_comments", "sub-2"),
+  ]);
+  // Accepted limit: without a receipt the turn reads as the one moved past.
+  publish(commented);
+  expect(highlighted()).toBe(false);
+
+  const retried = await submit("comments-2", highlightComments.body);
+  expect(highlighted()).toBe(false);
+  await retried.admit("sub-2");
+  expect(highlighted()).toBe(true);
+});
+
+test.each(["before", "after"] as const)(
+  "a fresh message sent while the history is read moves past the turn an earlier one opened, with that one's receipt %s it",
+  async (receipt) => {
+    const { highlighted, publish, submit } =
+      renderLedgerHighlights(historyNotYetRead);
+    const first = await submit("draft-a", "A pump fills it.");
+    if (receipt === "before") await first.admit("sub-a");
+    const next = await submit("draft-b", "And a valve.");
+    await next.refuse();
+    if (receipt === "after") await first.admit("sub-a");
+    publish(
+      observedHistory([
+        ...highlightFirstTurn,
+        highlightUser("entry_direct_a", "A pump fills it.", "sub-a"),
+      ]),
+    );
+    expect(highlighted()).toBe(false);
+  },
+);
+
+test("a receipt restores the marks only of the turn it opened, not of a turn its settlement follows", async () => {
+  const { highlighted, publish, submit } =
+    renderLedgerHighlights(historyNotYetRead);
+  const delivery = await submit("draft-2", "A pump fills it.");
+  await delivery.admit("sub-2");
+  publish(
+    observedHistory([
+      ...highlightFirstTurn,
+      {
+        id: "entry_submission_interrupted_sub-2",
+        role: "system",
+        purpose: "advisory",
+        submissionId: "sub-2",
+        settlement: { outcome: "failed" },
+        parts: [{ type: "text", text: "The submission failed." }],
+      },
+    ]),
+  );
+  expect(highlighted()).toBe(false);
+});
+
+test("a message Flue admits before the history is read marks the turn it opens", async () => {
+  const ownTurn = [
+    ...highlightFirstTurn,
+    highlightUser("entry_direct_two", "A pump fills it.", "sub-2"),
+  ];
+
+  // The history was read before the admission; the turn follows live.
+  const before = renderLedgerHighlights(historyNotYetRead);
+  const first = await before.submit("draft-2", "A pump fills it.");
+  before.publish(observedHistory(highlightFirstTurn));
+  expect(before.highlighted()).toBe(false);
+  await first.admit("sub-2");
+  before.publish(observedHistory(ownTurn));
+  expect(before.highlighted()).toBe(true);
+  cleanup();
+
+  // The history already shows the turn when it is first read.
+  const after = renderLedgerHighlights(historyNotYetRead);
+  const second = await after.submit("draft-2", "A pump fills it.");
+  await second.admit("sub-2");
+  after.publish(observedHistory(ownTurn));
+  expect(after.ledgerTab().messages).toHaveLength(3);
+  expect(after.highlighted()).toBe(true);
+  cleanup();
+
+  // The history shows the turn before Flue's acknowledgement arrives.
+  const acknowledged = renderLedgerHighlights(historyNotYetRead);
+  const third = await acknowledged.submit("draft-2", "A pump fills it.");
+  acknowledged.publish(observedHistory(ownTurn));
+  await third.admit("sub-2");
+  expect(acknowledged.highlighted()).toBe(true);
+});
+
+test("a conversation Flue does not have yet is a known, empty history", async () => {
+  const { highlighted, publish, submit } = renderLedgerHighlights({
+    conversation: undefined,
+    offset: undefined,
+    phase: "absent",
+    error: undefined,
+  });
+  const delivery = await submit("draft-1", "The reservoir holds a day.");
+  await delivery.refuse();
+  // The first turn, from another tab, is new to this one.
+  publish(observedHistory(highlightFirstTurn));
+  expect(highlighted()).toBe(true);
+});

@@ -194,6 +194,18 @@ const composerWrapStyle = css({
   },
 });
 
+// The composer's place while a review tab shows: its host controls and Stop,
+// with no footer at all when it has none. Its own class rather than a variant
+// of the composer's, because another package's `display: flex` utility can
+// outrank a conditional override in the shared stylesheet.
+const reviewFooterStyle = css({
+  padding: "3",
+  borderTop: "[1px solid {colors.neutral.bd.subtle}]",
+  backgroundColor: "neutral.s00",
+  flexShrink: 0,
+  "&:has(> form > div:empty)": { display: "none" },
+});
+
 const getPartScrollSignature = (
   part: PetrinautAiMessage["parts"][number],
 ): string => {
@@ -307,6 +319,8 @@ export const AiAssistantContents = ({
   const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
   const isBrunchChat = presentation === "brunch";
+  // Brunch's host tab (the Ledger) is for review: composing stays in Chat.
+  const reviewingHostTab = isBrunchChat && showingHostTab;
   const transcriptLabel = getTranscriptLabel(
     primaryLabel,
     inputMode,
@@ -443,6 +457,7 @@ export const AiAssistantContents = ({
 
   const showChips =
     !chipsDismissed &&
+    !reviewingHostTab &&
     onSendPrompt !== undefined &&
     promptChips !== undefined &&
     promptChips.length > 0;
@@ -696,7 +711,12 @@ export const AiAssistantContents = ({
           </div>
         ) : (
           <>
-            <div className={composerWrapStyle}>
+            <div
+              className={
+                reviewingHostTab ? reviewFooterStyle : composerWrapStyle
+              }
+              data-review={reviewingHostTab || undefined}
+            >
               {showChips && (
                 <div
                   className={css({
@@ -732,6 +752,7 @@ export const AiAssistantContents = ({
                 onStop={onStop}
                 onSubmit={onSubmit}
                 presentation={presentation}
+                textEntry={!reviewingHostTab}
                 voiceModeAvailable={voiceModeAvailable}
               />
             </div>

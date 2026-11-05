@@ -970,6 +970,163 @@ describe("AiAssistantContents", () => {
     expect(contentMounted).toHaveBeenCalledOnce();
   });
 
+  test("keeps the stock composer, quick actions and Voice launch on a stock host tab", () => {
+    render(
+      <AiAssistantContents
+        additionalTab={{ label: "Workpiece", content: <p>Saved account</p> }}
+        hostTabSelected
+        input=""
+        messages={[]}
+        onInputChange={noop}
+        onInputModeChange={noop}
+        onSendPrompt={noop}
+        onStop={noop}
+        onSubmit={noop}
+        promptChips={[{ id: "review", label: "Review", prompt: "Review" }]}
+        status="ready"
+        voiceModeAvailable
+      />,
+    );
+    expect(screen.getByRole("tabpanel", { name: "Workpiece" })).not.toBeNull();
+    expect(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Dismiss quick actions" }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Start voice mode" }),
+    ).not.toBeNull();
+  });
+
+  test("leaves composing and Voice launch to Chat while the host tab reviews", () => {
+    const onInputModeChange = vi.fn();
+    const onSendPrompt = vi.fn();
+    const onStop = vi.fn();
+    const onSubmit = vi.fn();
+    const props = {
+      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
+      composerControl: (
+        <button type="button" aria-label="Send Ledger comments">
+          Send
+        </button>
+      ),
+      composerStatus: <span>Budget pill</span>,
+      input: "",
+      messages: [] as PetrinautAiMessage[],
+      onInputChange: noop,
+      onInputModeChange,
+      onSendPrompt,
+      onStop,
+      onSubmit,
+      primaryLabel: "Chat",
+      presentation: "brunch" as const,
+      promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
+      status: "ready" as const,
+      voiceModeAvailable: true,
+    };
+    const view = render(<AiAssistantContents {...props} />);
+    expect(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: /Review/u })).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Start voice mode" }),
+    ).not.toBeNull();
+
+    const chatTab = screen.getByRole("tab", { name: "Chat" });
+    chatTab.focus();
+    fireEvent.keyDown(chatTab, { key: "ArrowRight" });
+    const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
+    expect(ledgerTab.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(ledgerTab);
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /Review/u })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Dismiss quick actions" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Stop AI response" }),
+    ).toBeNull();
+    // The host's explicit controls stay on the review tab.
+    expect(screen.getByText("Budget pill")).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send Ledger comments" }),
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    view.rerender(<AiAssistantContents {...props} status="submitted" />);
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(onStop).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+
+    // A focus request on the review tab lands on the panel, not a hidden field.
+    view.rerender(
+      <AiAssistantContents
+        {...props}
+        status="submitted"
+        composerFocusRequest={1}
+      />,
+    );
+    expect(document.activeElement).toBe(
+      screen.getByRole("complementary", { name: "AI assistant" }),
+    );
+
+    fireEvent.keyDown(ledgerTab, { key: "ArrowLeft" });
+    expect(chatTab.getAttribute("aria-selected")).toBe("true");
+    expect(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
+    expect(onInputModeChange).not.toHaveBeenCalled();
+    expect(onSendPrompt).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onStop).toHaveBeenCalledOnce();
+  });
+
+  test("keeps an active Voice session's controls and Stop on the host tab", () => {
+    const store = createVoiceSessionStore();
+    const end = vi.fn();
+    const onStop = vi.fn();
+    store.setActions({ end, pause: noop });
+    store.setState({
+      errorMessage: null,
+      microphoneLevel: 0,
+      microphoneMuted: false,
+      phase: "thinking",
+    });
+    render(
+      <VoiceSessionContext.Provider value={store}>
+        <AiAssistantContents
+          additionalTab={{ label: "Ledger", content: <p>Ledger body</p> }}
+          composerControl={<span>Ledger comments</span>}
+          hostTabSelected
+          input=""
+          inputMode="voice"
+          messages={[]}
+          onInputChange={noop}
+          onStop={onStop}
+          onSubmit={noop}
+          presentation="brunch"
+          status="streaming"
+        />
+      </VoiceSessionContext.Provider>,
+    );
+
+    expect(screen.getByRole("tabpanel", { name: "Ledger" })).not.toBeNull();
+    expect(screen.getByText("Ledger comments")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(onStop).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "End voice mode" }));
+    expect(end).toHaveBeenCalledOnce();
+  });
+
   test.each(["stock", "brunch"] as const)(
     "keeps tab names stable and one tab live region mounted across announcements in the %s presentation",
     (presentation) => {
