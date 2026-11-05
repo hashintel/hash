@@ -24,7 +24,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { getCatalogEntry } from "./catalog";
-import { findStep, START_ID, stepLabel } from "./document";
+import { findStep, flattenSteps, START_ID, stepLabel } from "./document";
 import { useEditor } from "./editor-context";
 import { useRunView } from "./history-view";
 import { pathsTake } from "./paths-flags";
@@ -89,15 +89,19 @@ const labelStackStyle = css({
   gap: "1",
 });
 
-/** I1: name, muted value, target; one column each. */
+/**
+ * I1 (inbox `if-panel`, picked crop `screenshots/fidelity-1105/09-if-I1.png`): name, muted value, target; one column
+ * each, one path every 40 px. The name is neutral s120 (#202020), the value fg.muted (#8d8d8d).
+ */
 const ifPathsStyle = css({
   display: "grid",
   gridTemplateColumns: "[max-content max-content minmax(0, 1fr)]",
+  gridAutoRows: "[40px]",
   alignItems: "center",
   columnGap: "3",
-  rowGap: "2",
+  rowGap: "0",
   textStyle: "sm",
-  color: "neutral.fg.body",
+  color: "neutral.s120",
   "& > [data-path-target]": {
     display: "flex",
     alignItems: "center",
@@ -106,7 +110,14 @@ const ifPathsStyle = css({
   },
 });
 
-const pathValueStyle = css({ color: "neutral.fg.subtle" });
+const pathValueStyle = css({ color: "neutral.fg.muted" });
+
+/** I1's target: a 32 px Select across the rest of the row, with the step's icon. */
+const ifTargetStyle = css({
+  flex: "1",
+  minWidth: "[0]",
+  "& > button, & [data-part='trigger']": { height: "[32px]" },
+});
 
 /** Where a port leads: a chip per step it is wired to, or "Ends here". */
 const useGoesTo = (stepId: string, iconOf: (id: string) => IconName) => {
@@ -212,6 +223,66 @@ const DecisionRow = ({
   );
 };
 
+/**
+ * I1's target for a connected path: a 32 px Select holding the step it leads to, with that step's icon; picking
+ * another step moves the path there. An open path keeps "Ends here" as text: the picked crop shows no Select for one.
+ */
+const IfTarget = ({
+  stepId,
+  port,
+  label,
+  iconOf,
+  fallback,
+}: {
+  stepId: string;
+  port: string;
+  label: string;
+  iconOf: (id: string) => IconName;
+  fallback: React.ReactNode;
+}) => {
+  const { document, setDocument } = useEditor();
+  const readOnly = useReadOnlyPanel();
+  const wire = document.wires.find(
+    (candidate) => candidate.source === stepId && candidate.sourcePort === port,
+  );
+  if (!wire) {
+    return fallback;
+  }
+  const items = flattenSteps(document.steps)
+    .filter(({ step }) => step.stepId !== stepId)
+    .map(({ step }) => ({ value: step.stepId, text: stepLabel(step) }));
+  return (
+    <span className={ifTargetStyle}>
+      <Select
+        size="sm"
+        width="fullWidth"
+        aria-label={`${label} leads to`}
+        readonly={readOnly}
+        prefix={{ iconName: iconOf(wire.target) }}
+        items={items}
+        value={wire.target}
+        onChange={(target) => {
+          if (!target) {
+            return;
+          }
+          setDocument((current) => ({
+            ...current,
+            wires: current.wires.map((candidate) =>
+              candidate.id === wire.id
+                ? {
+                    ...candidate,
+                    id: `${stepId}:${port}->${target}`,
+                    target,
+                  }
+                : candidate,
+            ),
+          }));
+        }}
+      />
+    </span>
+  );
+};
+
 type ExtraPath = { id: string };
 
 export const BranchRows = ({
@@ -259,7 +330,15 @@ export const BranchRows = ({
           <Fragment key={port.outputName}>
             <span>{port.label}</span>
             <span className={pathValueStyle}>{port.outputName}</span>
-            <span data-path-target>{goesTo(port.outputName)}</span>
+            <span data-path-target>
+              <IfTarget
+                stepId={stepId}
+                port={port.outputName}
+                label={port.label}
+                iconOf={iconOf}
+                fallback={goesTo(port.outputName)}
+              />
+            </span>
           </Fragment>
         ))}
       </div>
