@@ -167,7 +167,7 @@ hover feedback as the rest of the set; continuous effects remain opt-in.
 
 ## Integrations
 
-`IntegrationIcon` provides a separate **Integrations** category for the 39 brands used by HASH's 43 integration listings. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
+`IntegrationIcon` provides a separate **Integrations** category for HASH's 43 integration listings, plus a separate Kinaxis corporate entry (40 brands in total). `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
 
 ```tsx
 import {
@@ -201,11 +201,13 @@ The same exports are available from the package root for applications using lega
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-38 brands have all seven variants. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback also has only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+39 brands have all seven variants. Apple Notes has the five mark and tile variants because no authentic full-logo lock-up was verified. The `genericApp` fallback also has only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
 Gmail and Microsoft Teams full logos embed authentic PNG artwork. All other full logos are vectors. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
 Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
+
+`kinaxis` provides the corporate wordmark. `kinaxisMaestro` provides the Maestro emblem and the full “Maestro by Kinaxis” lock-up. The “Kinaxis Maestro” integration alias resolves to `kinaxisMaestro`. Both entries use vector artwork without embedded raster images.
 
 Where a source provides only a wordmark, the full logo pairs it with the sourced brand mark. These composed lock-ups are identified in `logoNotes`; brands whose mark is already their wordmark keep that artwork.
 

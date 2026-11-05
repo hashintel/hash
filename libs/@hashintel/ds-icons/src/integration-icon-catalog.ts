@@ -323,6 +323,27 @@ export const integrationIconCatalog = [
   {
     name: "kinaxis",
     slug: "kinaxis",
+    label: "Kinaxis",
+    integrationNames: ["Kinaxis"],
+    source: "https://www.kinaxis.com/themes/custom/ka/src/images/logo.svg",
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource: "https://www.kinaxis.com/themes/custom/ka/src/images/logo.svg",
+    logoNotes:
+      "Official corporate wordmark. Red on light backgrounds and white on dark backgrounds, as shown in the Kinaxis brand guide.",
+    logoRaster: false,
+  },
+  {
+    name: "kinaxisMaestro",
+    slug: "kinaxis-maestro",
     label: "Kinaxis Maestro",
     integrationNames: ["Kinaxis Maestro"],
     source:
@@ -337,9 +358,10 @@ export const integrationIconCatalog = [
       "logo-light",
       "logo-dark",
     ],
-    logoSource: "https://www.kinaxis.com/themes/custom/ka/src/images/logo.svg",
+    logoSource:
+      "https://www.kinaxis.com/sites/default/files/2026-01/knx-28926_identity_logo_rgb_horz_color-full.png",
     logoNotes:
-      "Official site header logo. Lock-up composed from the sourced brand mark and wordmark.",
+      "Maestro by Kinaxis lock-up. Native vector contours and outlined lettering extracted from the official Demand Planning brochure, page 8, and positioned to match the January 2026 media-kit PNG. The PDF mesh gradient is represented by vector color patches; no raster artwork or font dependencies are embedded. Dark-mode lettering is white.",
     logoRaster: false,
   },
   {

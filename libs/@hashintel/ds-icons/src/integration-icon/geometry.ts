@@ -23,6 +23,7 @@ import * as gmail from "./geometry/google-mail";
 import * as granola from "./geometry/granola";
 import * as instagram from "./geometry/instagram";
 import * as kinaxis from "./geometry/kinaxis";
+import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
 import * as linear from "./geometry/linear";
 import * as messenger from "./geometry/messenger";
 import * as microsoftTeams from "./geometry/microsoft-teams";
@@ -142,8 +143,15 @@ export const integrationGeometry = {
   },
   kinaxis: {
     ...kinaxis,
+    markViewBox: "0 0 146 20",
+    logoViewBox: "0 0 146 20",
+    ratio: 1.25,
+    alignment: "center",
+  },
+  kinaxisMaestro: {
+    ...kinaxisMaestro,
     markViewBox: "0 0 42 24",
-    logoViewBox: "0 0 684.5 100",
+    logoViewBox: "0 0 1801 864",
     ratio: 1.52,
     alignment: "center",
   },

@@ -42,10 +42,14 @@ describe("IntegrationIcon", () => {
     }
   });
 
-  it("covers the 43 directory entries with 39 brand marks", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(43);
+  it("maps the 43 directory entries and Kinaxis corporate brand separately", () => {
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(44);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      39,
+      40,
+    );
+    expect(integrationIconNameByIntegration["Kinaxis"]).toBe("kinaxis");
+    expect(integrationIconNameByIntegration["Kinaxis Maestro"]).toBe(
+      "kinaxisMaestro",
     );
     expect(integrationIconNameByIntegration["Oracle Cloud HCM"]).toBe("oracle");
     expect(integrationIconNameByIntegration["Cloudflare D1"]).toBe(
