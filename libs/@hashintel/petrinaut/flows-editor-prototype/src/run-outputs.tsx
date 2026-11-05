@@ -1,3 +1,4 @@
+import { useReactFlow, type Viewport } from "@xyflow/react";
 /**
  * What a step produced in a run, and the viewer that opens it (4 Nov call: "each node's outputs show in that node's
  * right panel, with click-through to the artifact, inline where possible, else link out", Dora [29:11]–[35:49]).
@@ -30,13 +31,7 @@
  *
  * MOCK: no flow runs and no files exist; the certificates and emails are drawn from the seed suppliers.
  */
-import {
-  Fragment,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -223,7 +218,8 @@ export type Email = {
 
 export type OutputFile = Certificate | Email;
 
-const slugOf = (supplier: string) => supplier.toLowerCase().replace(/\s+/g, "-");
+const slugOf = (supplier: string) =>
+  supplier.toLowerCase().replace(/\s+/g, "-");
 
 const certificateOf = (supplier: string, item: number): Certificate => {
   const slug = slugOf(supplier);
@@ -263,7 +259,14 @@ const typeNoun: Record<EntityTypeName, string> = {
   Distributor: "distributor",
 };
 
-const regions = ["UK and Ireland", "Benelux", "Nordics", "Iberia", "DACH", "France"];
+const regions = [
+  "UK and Ireland",
+  "Benelux",
+  "Nordics",
+  "Iberia",
+  "DACH",
+  "France",
+];
 
 export type SupplierEntity = {
   name: string;
@@ -328,10 +331,7 @@ export const runOutputs = (run: RunRecord, now: number): RunOutputs => {
     entity.certificate ? [entity.certificate] : [],
   );
   const emails = entities
-    .filter(
-      (entity) =>
-        entity.certificate && entity.item < facts.processed[2],
-    )
+    .filter((entity) => entity.certificate && entity.item < facts.processed[2])
     .map((entity): Email => {
       const certificate = entity.certificate!;
       const first = entity.contact.split(" ")[0]!;
@@ -388,7 +388,10 @@ const byType = (rows: SupplierEntity[]) => {
   for (const row of rows) {
     groups.set(row.type, [...(groups.get(row.type) ?? []), row]);
   }
-  return [...groups.entries()].map(([type, members]) => ({ type, rows: members }));
+  return [...groups.entries()].map(([type, members]) => ({
+    type,
+    rows: members,
+  }));
 };
 
 /** "14 suppliers · 6 distributors" (take A) or "20 entities" (take B); one type is always "20 suppliers". */
@@ -442,7 +445,9 @@ const CertificatePage = ({ file }: { file: Certificate }) => (
       css({ alignItems: "center", paddingX: "[40px]", paddingTop: "[44px]" }),
     )}
   >
-    <div className={css({ display: "flex", alignItems: "center", gap: "[10px]" })}>
+    <div
+      className={css({ display: "flex", alignItems: "center", gap: "[10px]" })}
+    >
       <span
         className={css({
           width: "[26px]",
@@ -550,9 +555,7 @@ const EmailPage = ({ file }: { file: Email }) => (
         {file.contact} · {file.to}
       </span>
     </div>
-    <div className={subjectStyle}>
-      {file.subject}
-    </div>
+    <div className={subjectStyle}>{file.subject}</div>
     <div
       className={css({
         height: "[1px]",
@@ -647,7 +650,9 @@ const Page = ({
  * ------------------------------------------------------------------------------------------------------------- */
 
 const fileTitle = (file: OutputFile) =>
-  file.kind === "certificate" ? file.fileName : `${file.contact} · ${file.supplier}`;
+  file.kind === "certificate"
+    ? file.fileName
+    : `${file.contact} · ${file.supplier}`;
 
 const fileMeta = (file: OutputFile) =>
   file.kind === "certificate"
@@ -926,7 +931,9 @@ const failureRowStyle = css({
 const Failures = ({ failures }: { failures: Failure[] }) =>
   failures.length > 0 ? (
     <Block title={`Failed · ${failures.length}`}>
-      <div className={css({ display: "flex", flexDirection: "column", gap: "2" })}>
+      <div
+        className={css({ display: "flex", flexDirection: "column", gap: "2" })}
+      >
         {failures.map((failure) => (
           <div key={failure.supplier} className={failureRowStyle}>
             <span className={css({ display: "flex", paddingTop: "[2px]" })}>
@@ -1016,7 +1023,13 @@ const FileList = ({
             <span className={metaLineStyle}>{fileDetail(first!)}</span>
           </span>
         </button>
-        <div className={css({ display: "flex", flexDirection: "column", gap: "1" })}>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "1",
+          })}
+        >
           {shown.map((file, index) => (
             <FileRow
               key={file.supplier}
@@ -1037,9 +1050,15 @@ const FileList = ({
   const shown = all ? files : files.slice(0, take === "d" ? 2 : 4);
   return (
     <Block title={title} flagged={flagged} action={linkOut}>
-      <div className={css({ display: "flex", flexDirection: "column", gap: "1" })}>
+      <div
+        className={css({ display: "flex", flexDirection: "column", gap: "1" })}
+      >
         {shown.map((file, index) => (
-          <FileRow key={file.supplier} file={file} onOpen={() => onOpen(index)} />
+          <FileRow
+            key={file.supplier}
+            file={file}
+            onOpen={() => onOpen(index)}
+          />
         ))}
       </div>
       <MoreButton
@@ -1355,12 +1374,21 @@ const fileHeading = (file: OutputFile) =>
   file.kind === "certificate" ? file.fileName : file.subject;
 
 /** The page large and its facts beside it: the modal's body, and the side sheet's. */
-const FileWide = ({ file, run }: { file: OutputFile; run: RunRecord }) => (
+const FileWide = ({
+  file,
+  run,
+  narrow = false,
+}: {
+  file: OutputFile;
+  run: RunRecord;
+  /** The 640 px side sheet: a smaller page and a narrower facts column. */
+  narrow?: boolean;
+}) => (
   <div
     data-output-modal={file.kind}
     className={css({
       display: "grid",
-      gridTemplateColumns: "[1fr 264px]",
+      gridTemplateColumns: narrow ? "[1fr 220px]" : "[1fr 264px]",
       minHeight: "[0]",
       // Edge to edge inside the overlay body's own padding (16 px top, 20 px bottom).
       marginTop: "[-16px]",
@@ -1372,12 +1400,12 @@ const FileWide = ({ file, run }: { file: OutputFile; run: RunRecord }) => (
       className={css({
         display: "flex",
         justifyContent: "center",
-        padding: "8",
+        padding: narrow ? "6" : "8",
         backgroundColor: "neutral.bgSolid.surface",
         borderBottomLeftRadius: "xl",
       })}
     >
-      <Page file={file} width={420} />
+      <Page file={file} width={narrow ? 300 : 420} />
     </div>
     <div className={css({ padding: "6" })}>
       <FileFacts file={file} run={run} />
@@ -1450,6 +1478,9 @@ const tableStyle = css({
   "& tbody tr:last-child td": { borderBottomWidth: "[0]" },
 });
 
+/** A table wider than its sheet scrolls sideways; cells never wrap. */
+const tableScrollStyle = css({ overflowX: "auto" });
+
 const linkStyle = css({
   display: "inline",
   padding: "[0]",
@@ -1489,44 +1520,47 @@ const EntityTable = ({
   outputs: RunOutputs;
   onChange: (next: ViewerState) => void;
 }) => (
-  <table className={tableStyle}>
-    <thead>
-      <tr>
-        {columns.map((column) => (
-          <th key={column.label}>{column.label}</th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      {rows.map((row) => (
-        <tr key={row.name}>
+  <div className={tableScrollStyle}>
+    <table className={tableStyle}>
+      <thead>
+        <tr>
           {columns.map((column) => (
-            <td key={column.label}>
-              {column.types && !column.types.includes(row.type) ? null : column.label ===
-                  "Certificate" && row.certificate ? (
-                <button
-                  type="button"
-                  className={linkStyle}
-                  onClick={() =>
-                    onChange({
-                      kind: "files",
-                      files: outputs.certificates,
-                      index: outputs.certificates.indexOf(row.certificate!),
-                      from: "Fetch certificate",
-                    })
-                  }
-                >
-                  {column.cell(row)}
-                </button>
-              ) : (
-                column.cell(row)
-              )}
-            </td>
+            <th key={column.label}>{column.label}</th>
           ))}
         </tr>
-      ))}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.name}>
+            {columns.map((column) => (
+              <td key={column.label}>
+                {column.types &&
+                !column.types.includes(row.type) ? null : column.label ===
+                    "Certificate" && row.certificate ? (
+                  <button
+                    type="button"
+                    className={linkStyle}
+                    onClick={() =>
+                      onChange({
+                        kind: "files",
+                        files: outputs.certificates,
+                        index: outputs.certificates.indexOf(row.certificate!),
+                        from: "Fetch certificate",
+                      })
+                    }
+                  >
+                    {column.cell(row)}
+                  </button>
+                ) : (
+                  column.cell(row)
+                )}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 );
 
 /** "For each supplier · Run 16 · Today, 08:15"; a run's own outputs say where they are listed instead. */
@@ -1597,47 +1631,49 @@ const FileTable = ({
 }) => {
   const certificates = files[0]?.kind === "certificate";
   return (
-    <table className={tableStyle}>
-      <thead>
-        <tr>
-          {(certificates
-            ? ["File", "Supplier", "Issued by", "Valid until"]
-            : ["Email", "To", "Subject", "Sent"]
-          ).map((label) => (
-            <th key={label}>{label}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {files.map((file, index) => (
-          <tr key={file.supplier}>
-            <td>
-              <button
-                type="button"
-                className={linkStyle}
-                data-output-file={file.kind}
-                onClick={() => onOpen(index)}
-              >
-                {file.kind === "certificate" ? file.fileName : file.supplier}
-              </button>
-            </td>
-            {file.kind === "certificate" ? (
-              <>
-                <td>{file.supplier}</td>
-                <td>{file.issuerShort}</td>
-                <td>{file.validUntil}</td>
-              </>
-            ) : (
-              <>
-                <td>{file.contact}</td>
-                <td>{file.subject}</td>
-                <td>{file.sentAt}</td>
-              </>
-            )}
+    <div className={tableScrollStyle}>
+      <table className={tableStyle}>
+        <thead>
+          <tr>
+            {(certificates
+              ? ["File", "Supplier", "Issued by", "Valid until"]
+              : ["Email", "To", "Subject", "Sent"]
+            ).map((label) => (
+              <th key={label}>{label}</th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {files.map((file, index) => (
+            <tr key={file.supplier}>
+              <td>
+                <button
+                  type="button"
+                  className={linkStyle}
+                  data-output-file={file.kind}
+                  onClick={() => onOpen(index)}
+                >
+                  {file.kind === "certificate" ? file.fileName : file.supplier}
+                </button>
+              </td>
+              {file.kind === "certificate" ? (
+                <>
+                  <td>{file.supplier}</td>
+                  <td>{file.issuerShort}</td>
+                  <td>{file.validUntil}</td>
+                </>
+              ) : (
+                <>
+                  <td>{file.contact}</td>
+                  <td>{file.subject}</td>
+                  <td>{file.sentAt}</td>
+                </>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 
@@ -1723,9 +1759,11 @@ const MixedBody = ({
                 className={linkStyle}
                 data-output-file={file.kind}
                 onClick={() =>
-                  openFilesIn(onChange, group.files, groupLabel[group.type][1])(
-                    index,
-                  )
+                  openFilesIn(
+                    onChange,
+                    group.files,
+                    groupLabel[group.type][1],
+                  )(index)
                 }
               >
                 {fileTitle(file)}
@@ -1739,29 +1777,36 @@ const MixedBody = ({
           })),
     );
     return (
-      <table className={tableStyle} data-entity-table="b">
-        <thead>
-          <tr>
-            {["Name", "Type", "Supplier", "Contact", "Valid until", "Sent"].map(
-              (label) => (
+      <div className={tableScrollStyle}>
+        <table className={tableStyle} data-entity-table="b">
+          <thead>
+            <tr>
+              {[
+                "Name",
+                "Type",
+                "Supplier",
+                "Contact",
+                "Valid until",
+                "Sent",
+              ].map((label) => (
                 <th key={label}>{label}</th>
-              ),
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.key}>
-              <td>{row.name}</td>
-              <td>{row.type}</td>
-              <td>{row.supplier}</td>
-              <td>{row.contact}</td>
-              <td>{row.validUntil}</td>
-              <td>{row.sent}</td>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key}>
+                <td>{row.name}</td>
+                <td>{row.type}</td>
+                <td>{row.supplier}</td>
+                <td>{row.contact}</td>
+                <td>{row.validUntil}</td>
+                <td>{row.sent}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   }
   // A: every type in view at once, each table cut to a few rows until "+ N more".
@@ -1817,7 +1862,6 @@ const MixedBody = ({
     </div>
   );
 };
-
 
 /** A list's wide body: the modal's and the side sheet's. */
 const ListWide = ({
@@ -1954,7 +1998,10 @@ export const loopView = (
   take: EntityTypesTake,
 ): MixedView => {
   const groups: OutputGroup[] = [
-    ...entityGroups(outputs.updated, entityViews(outputs, take).reviewed.columns),
+    ...entityGroups(
+      outputs.updated,
+      entityViews(outputs, take).reviewed.columns,
+    ),
     { type: "Certificate" as const, files: outputs.certificates },
     { type: "Email" as const, files: outputs.emails },
   ].filter((group) => groupSize(group) > 0);
@@ -2158,13 +2205,7 @@ const entityLineStyle = css({
 });
 
 /** An entity in the narrow list: its name, and the properties that fit on one line. */
-const EntityLine = ({
-  row,
-  tag,
-}: {
-  row: SupplierEntity;
-  tag?: string;
-}) => (
+const EntityLine = ({ row, tag }: { row: SupplierEntity; tag?: string }) => (
   <div className={entityLineStyle} data-output-entity={row.type}>
     <span>
       <Icon name="cube" size="sm" />
@@ -2407,6 +2448,9 @@ const OutputColumn = ({
   );
 };
 
+/** The DS Drawer's md width. */
+const sheetWidth = 640;
+
 /** The wide side sheet (?outputs=expand): non-modal, so the canvas and the run stay in view and live. */
 const OutputSheet = ({
   view,
@@ -2425,14 +2469,17 @@ const OutputSheet = ({
   const file = view.kind === "files" ? view.files[view.index]! : null;
   return (
     <Drawer
-      size="lg"
+      // 640 px (`sheetWidth`): at 1440 the For each box stays in view beside it.
+      size="md"
       position="right"
       variant="plain"
       showBackdrop={false}
       // A layer over the column: Esc and collapse go back to the column, whose ← then closes the outputs.
       shouldCloseOn="none"
       onClose={onCollapse}
-      aria-label={file ? fileHeading(file) : view.kind === "files" ? "" : view.title}
+      aria-label={
+        file ? fileHeading(file) : view.kind === "files" ? "" : view.title
+      }
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -2446,7 +2493,9 @@ const OutputSheet = ({
       }}
     >
       <Drawer.Header
-        title={file ? fileHeading(file) : view.kind === "files" ? "" : view.title}
+        title={
+          file ? fileHeading(file) : view.kind === "files" ? "" : view.title
+        }
         description={
           file
             ? `${fileMeta(file)} · ${file.supplier} · Run ${run.id}`
@@ -2478,7 +2527,7 @@ const OutputSheet = ({
       <Drawer.Body>
         <div data-output-sheet>
           {file ? (
-            <FileWide file={file} run={run} />
+            <FileWide file={file} run={run} narrow />
           ) : view.kind === "files" ? null : (
             <div className={css({ marginX: "[-12px]" })}>
               <ListWide view={view} outputs={outputs} onChange={onPush} />
@@ -2499,11 +2548,46 @@ export const useOutputViewer = (
   anchor: React.RefObject<HTMLElement | null>,
 ) => {
   const container = useOutputsContainer();
+  const { ui } = useEditor();
+  const flow = useReactFlow();
   const [stack, setStack] = useState<ViewerState[]>([]);
   const [wide, setWide] = useState(false);
+  /** The canvas view before the sheet panned it, put back when the sheet closes. */
+  const before = useRef<Viewport | null>(null);
+  /** Pans the canvas, at the same zoom, so the selected step sits in what the sheet leaves visible. */
+  const expand = () => {
+    setWide(true);
+    const pane = document.querySelector<HTMLElement>(".react-flow");
+    const stepId = ui.selectedId;
+    if (!pane || !stepId) {
+      return;
+    }
+    const rect = pane.getBoundingClientRect();
+    const visible = Math.min(rect.right, window.innerWidth - sheetWidth - 8);
+    const box = flow.getNodesBounds([stepId]);
+    if (box.width === 0 || visible >= rect.right) {
+      return;
+    }
+    const viewport = flow.getViewport();
+    before.current = viewport;
+    const centre = rect.left + (visible - rect.left) / 2;
+    const now =
+      rect.left + viewport.x + (box.x + box.width / 2) * viewport.zoom;
+    void flow.setViewport(
+      { ...viewport, x: viewport.x + (centre - now) },
+      { duration: 200 },
+    );
+  };
+  const collapse = () => {
+    setWide(false);
+    if (before.current) {
+      void flow.setViewport(before.current, { duration: 200 });
+      before.current = null;
+    }
+  };
   const open = (next: ViewerState) => {
     setStack([next]);
-    setWide(false);
+    collapse();
   };
   const push = (next: ViewerState) => setStack((current) => [...current, next]);
   const replace = (next: ViewerState) =>
@@ -2511,7 +2595,7 @@ export const useOutputViewer = (
   const back = () => setStack((current) => current.slice(0, -1));
   const close = () => {
     setStack([]);
-    setWide(false);
+    collapse();
   };
   const view = stack.at(-1);
   if (!view || !outputs) {
@@ -2567,7 +2651,7 @@ export const useOutputViewer = (
               onPush={push}
               onReplace={replace}
               onBack={back}
-              {...(container === "expand" ? { onExpand: () => setWide(true) } : {})}
+              {...(container === "expand" ? { onExpand: expand } : {})}
             />
           )}
         </ColumnHost>
@@ -2577,7 +2661,7 @@ export const useOutputViewer = (
             outputs={outputs}
             onPush={push}
             onReplace={replace}
-            onCollapse={() => setWide(false)}
+            onCollapse={collapse}
           />
         ) : null}
       </>
@@ -2751,8 +2835,14 @@ export const StepOutputs = ({
                     {files.slice(0, 3).map((file) => (
                       <tr key={file.supplier}>
                         <td>{file.supplier}</td>
-                        <td>{file.kind === "certificate" && file.expiring ? "expiring" : "valid"}</td>
-                        <td>{file.kind === "certificate" ? file.validUntil : ""}</td>
+                        <td>
+                          {file.kind === "certificate" && file.expiring
+                            ? "expiring"
+                            : "valid"}
+                        </td>
+                        <td>
+                          {file.kind === "certificate" ? file.validUntil : ""}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -2842,7 +2932,12 @@ const cellStyle = css({
 
 const dotStyle = css({ color: "neutral.fg.subtle" });
 
-type CellPart = { key: string; text: string; count: number; onOpen: () => void };
+type CellPart = {
+  key: string;
+  text: string;
+  count: number;
+  onOpen: () => void;
+};
 
 /** The parts one flagged output adds to the cell; an output the prototype has no run data for adds none. */
 const partsOf = (
