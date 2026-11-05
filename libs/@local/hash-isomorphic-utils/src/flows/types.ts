@@ -535,7 +535,12 @@ export type ActionStepCheck = (params: {
   step: ActionStepDefinition<string>;
   /** The kind of the value connected to an input of the step, or `null` if it isn't connected or doesn't resolve. */
   getInputKind: (inputName: string) => PayloadKind | null;
-  report: (inputName: string, message: string) => void;
+  /** Reports a problem with an input, or with the part of its source at `pathInSource`, e.g. `["payload", "value", "limit"]`. */
+  report: (
+    inputName: string,
+    message: string,
+    pathInSource?: (string | number)[],
+  ) => void;
 }) => void;
 
 /**
