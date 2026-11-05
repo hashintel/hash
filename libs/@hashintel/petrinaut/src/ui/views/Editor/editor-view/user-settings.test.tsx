@@ -20,6 +20,7 @@ import { CommandRegistryProvider } from "../../../../react/commands/command-regi
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
+import { codeEditorThemes } from "../../../monaco/code-editor-themes";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
 import { UserSettings } from "./user-settings";
@@ -354,30 +355,64 @@ describe("user settings", () => {
     }
   });
 
-  it("offers every code editor theme under General and saves the choice", async () => {
+  it("offers every code editor theme as a card under General and saves the choice", async () => {
     renderSettings({ overlay: { type: "user-settings", section: "general" } });
-    const theme = await screen.findByRole("combobox", { name: "Theme" });
-    expect(theme.textContent).toContain("Petrinaut Light");
-
-    act(() => theme.focus());
-    fireEvent.keyDown(theme, { key: "Enter" });
-    await waitFor(() =>
-      expect(theme.getAttribute("aria-expanded")).toBe("true"),
+    const picker = await screen.findByRole("radiogroup", { name: "Theme" });
+    const cards = within(picker).getAllByRole("radio");
+    expect(cards.map((card) => card.getAttribute("aria-label"))).toEqual(
+      codeEditorThemes.map((theme) => theme.label),
     );
-    const listbox = screen.getByRole("listbox");
     expect(
-      within(listbox)
-        .getAllByRole("option")
-        .map((option) => option.textContent),
-    ).toEqual(["Petrinaut Light", "HASH Light"]);
+      within(picker)
+        .getByRole("radio", { checked: true })
+        .getAttribute("aria-label"),
+    ).toBe("Petrinaut Light");
 
-    fireEvent.click(
-      within(listbox).getByRole("option", { name: "HASH Light" }),
-    );
-    await waitFor(() => expect(theme.textContent).toContain("HASH Light"));
+    fireEvent.click(within(picker).getByRole("radio", { name: "HASH Light" }));
+    expect(
+      within(picker).getByRole("radio", { name: "HASH Light" }),
+    ).toHaveProperty("ariaChecked", "true");
     expect(
       JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
     ).toMatchObject({ codeEditorTheme: "hash-light" });
+  });
+
+  it("moves the theme selection with Left, Right, Home and End, and leaves Up and Down to the rows", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "general" } });
+    const picker = await screen.findByRole("radiogroup", { name: "Theme" });
+    const [first, second] = codeEditorThemes;
+    const last = codeEditorThemes.at(-1);
+    const checkedLabel = () =>
+      within(picker)
+        .getByRole("radio", { checked: true })
+        .getAttribute("aria-label");
+
+    const keepPanels = screen.getByRole("checkbox", {
+      name: "Keep panels mounted",
+    });
+    act(() => keepPanels.focus());
+    fireEvent.keyDown(keepPanels, { key: "ArrowDown" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      first?.label,
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowRight" });
+    expect(checkedLabel()).toBe(second?.label);
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      second?.label,
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "End" });
+    expect(checkedLabel()).toBe(last?.label);
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowRight" });
+    expect(checkedLabel()).toBe(first?.label);
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
+    expect(checkedLabel()).toBe(last?.label);
+    fireEvent.keyDown(document.activeElement!, { key: "Home" });
+    expect(checkedLabel()).toBe(first?.label);
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(keepPanels);
   });
 
   it("walks settings with worksheet arrows and restores focus across columns", async () => {

@@ -4,7 +4,7 @@ Open **User settings** from the menu in the top-left corner, press **Cmd+,** on 
 
 Settings are available in **Edit** (Canvas or Definitions), **Simulate**, and **Actual** when that mode is available. The **gear icon** in the bottom-right viewport controls opens the **Viewport** section directly.
 
-Use the vertical tabs to browse the sections. With a tab focused, use **Up/Down** to switch sections and **Home/End** to jump to the first or last section. **Right** moves into the section's settings, **Up/Down** moves between controls, and **Left** returns to the selected tab. Moving back into the same section restores the last focused control. **Tab** and **Shift+Tab** also reach every control. Use **Space** to toggle a switch and **Enter** to open a dropdown; an open dropdown uses its own arrow keys. Press **Escape**, click the close button, or click outside the dialog to close it.
+Use the vertical tabs to browse the sections. With a tab focused, use **Up/Down** to switch sections and **Home/End** to jump to the first or last section. **Right** moves into the section's settings, **Up/Down** moves between controls, and **Left** returns to the selected tab. Moving back into the same section restores the last focused control. **Tab** and **Shift+Tab** also reach every control. Use **Space** to toggle a switch and **Enter** to open a dropdown; an open dropdown uses its own arrow keys, and theme cards use **Left** and **Right**. Press **Escape**, click the close button, or click outside the dialog to close it.
 
 Scroll within a section to reach its remaining settings. The heading, section tabs, and close button stay in place. A soft blur and gradient at the top or bottom indicate more settings in that direction. Experimental settings have an inline **Experimental** badge beside their name.
 
@@ -38,7 +38,9 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 
 ### Code editor theme
 
-Choose the colours of every [code editor](code-editor.md) in Petrinaut. **Petrinaut Light** is the default. **HASH Light** uses HASH's brand colours on a white surface: slate text, purple keywords, blue types and green strings. The change applies to open editors immediately and is saved with your other preferences.
+Choose the colours of every [code editor](code-editor.md) in Petrinaut. Each theme is a card that previews it: its background and text, a sample of its cursor colour, and dots for the colours it gives comments, keywords, types, strings and numbers. **Petrinaut Light**, the default, sits apart from the built-in themes, and a blue ring marks the selected card. **HASH Light** uses HASH's colours on a white surface: near-black text, magenta keywords, blue types, green strings and orange numbers.
+
+Click a card to apply it. With a card focused, **Left** and **Right** move the selection along the cards and **Home** and **End** jump to the first or last; **Up** and **Down** move to the neighbouring settings as elsewhere in the dialog. The change applies to open editors immediately and is saved with your other preferences.
 
 ### AI assistant
 

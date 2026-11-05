@@ -25,6 +25,7 @@ import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
+import { CodeEditorThemePicker } from "./user-settings-dialog/code-editor-theme-picker";
 import { PluginsSection } from "./user-settings-dialog/plugins-section";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
 import { SettingsPanel } from "./user-settings-dialog/settings-panel";
@@ -178,6 +179,11 @@ const rowStyle = css({
     gap: "2",
     "&[data-wide-control]": { gridTemplateColumns: "[minmax(0, 1fr)]" },
   },
+  "&[data-layout=stacked]": {
+    gridTemplateColumns: "[minmax(0, 1fr)]",
+    alignItems: "stretch",
+    gap: "2",
+  },
 });
 const labelStyle = css({
   display: "flex",
@@ -208,12 +214,15 @@ const SettingRow = ({
   description,
   experimental,
   wideControl,
+  layout = "inline",
   children,
 }: {
   label: string;
   description: string;
   experimental?: boolean;
   wideControl?: boolean;
+  /** `stacked` puts the control under the label, across the full width. */
+  layout?: "inline" | "stacked";
   children: (aria: AriaAttributes) => ReactNode;
 }) => {
   const id = useId();
@@ -221,7 +230,7 @@ const SettingRow = ({
   const member = useFocusMember(() =>
     focusLands(
       elementRef.current?.querySelector<HTMLElement>(
-        'input[type="checkbox"]:not(:disabled), button[role="combobox"]:not(:disabled)',
+        'input[type="checkbox"]:not(:disabled), button[role="combobox"]:not(:disabled), [role="radio"][aria-checked="true"]',
       ),
     ),
   );
@@ -233,6 +242,7 @@ const SettingRow = ({
       }}
       className={rowStyle}
       data-wide-control={wideControl || undefined}
+      data-layout={layout}
       onKeyDownCapture={(event) => {
         const target = event.target;
         if (
@@ -243,7 +253,10 @@ const SettingRow = ({
           event.shiftKey ||
           !(target instanceof HTMLElement) ||
           !event.currentTarget.contains(target) ||
-          target.getAttribute("aria-expanded") === "true"
+          target.getAttribute("aria-expanded") === "true" ||
+          // A radio group moves its own selection sideways.
+          (target.getAttribute("role") === "radio" &&
+            (event.key === "ArrowLeft" || event.key === "ArrowRight"))
         ) {
           return;
         }
@@ -524,23 +537,17 @@ export const UserSettingsDialog = ({
                       <SettingsGroup title="Code editor">
                         <SettingRow
                           label="Theme"
-                          description="Choose the theme of the code editors."
-                          wideControl
+                          description="Choose the colours of every code editor."
+                          layout="stacked"
                         >
                           {(aria) => (
-                            <Select
+                            <CodeEditorThemePicker
                               {...aria}
-                              size="sm"
-                              className={selectStyle}
-                              required
+                              themes={codeEditorThemes}
                               value={resolveCodeEditorThemeId(
                                 settings.codeEditorTheme,
                               )}
                               onChange={settings.setCodeEditorTheme}
-                              items={codeEditorThemes.map((theme) => ({
-                                value: theme.id,
-                                text: theme.label,
-                              }))}
                             />
                           )}
                         </SettingRow>
