@@ -873,3 +873,42 @@ export const tileColor = (icon: string, ghost = false) =>
         backgroundColor: runTile("bg", flowsVar(`tile-${tileKindOf(icon)}-bg`)),
         color: runTile("icon", flowsVar(`tile-${tileKindOf(icon)}-icon`)),
       });
+
+/**
+ * `?treetiles=b|c|d` (inbox status-colour-steps, open): the Steps tree's tiles apart from the canvas and Add menu.
+ * Unset or `a` is P-a everywhere, as now. b: neutral tree tiles (the 2 Nov rule); c: the group hue on the icon only,
+ * on a neutral tile (P-c); d: P-a one step fainter (tile s15, yellow s20; icon one step lighter). Under P-a the run
+ * view still makes them neutral unless `?runtiles=pa`.
+ */
+const fainterIcon: Record<string, string> = {
+  yellow: "yellow.s105",
+  blue: "blue.s100",
+  orange: "orange.s100",
+  green: "green.s100",
+  purple: "purple.s80",
+};
+
+export const treeTileColor = (icon: string) => {
+  const take = new URLSearchParams(globalThis.location.search).get("treetiles");
+  if (take !== "b" && take !== "c" && take !== "d") {
+    return tileColor(icon);
+  }
+  const hue = groupHues.find((entry) => entry.icons.includes(icon))?.hue;
+  const neutral = {
+    backgroundColor: runTile("bg", flowsVar(`tile-${tileKindOf(icon)}-bg`)),
+    color: runTile("icon", flowsVar(`tile-${tileKindOf(icon)}-icon`)),
+  };
+  if (take === "b" || !hue) {
+    return neutral;
+  }
+  if (take === "c") {
+    return {
+      backgroundColor: runTile("bg", tokenVar("neutral.s25")),
+      color: runTile("icon", tokenVar(equalSteps[hue]?.icon ?? "neutral.s105")),
+    };
+  }
+  return {
+    backgroundColor: runTile("bg", tokenVar(hue === "yellow" ? "yellow.s20" : `${hue}.s15`)),
+    color: runTile("icon", tokenVar(fainterIcon[hue] ?? "neutral.s105")),
+  };
+};

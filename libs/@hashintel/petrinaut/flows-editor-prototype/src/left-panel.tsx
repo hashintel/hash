@@ -48,7 +48,7 @@ import { FLOW_OUTPUTS_ID } from "./flow-outputs";
 import { useFlowOutputTake } from "./outputs";
 import { type EditorUi, useEditor } from "./editor-context";
 import { cellText, StatusCell } from "./status-cell";
-import { tileColor } from "./status-colors";
+import { treeTileColor } from "./status-colors";
 import { InlineStepPicker, pickerTake } from "./step-picker";
 
 import type { StepRun } from "./run-history";
@@ -149,7 +149,7 @@ const labelStyle = css({
 const countStyle = css({ textStyle: "xxs", color: "neutral.fg.subtle" });
 
 const Tile = ({ icon, tone }: { icon: IconName; tone: Tone }) => (
-  <span className={tileStyle({ tone })} style={tileColor(icon)}>
+  <span className={tileStyle({ tone })} style={treeTileColor(icon)}>
     <Icon name={icon} size="sm" />
   </span>
 );
