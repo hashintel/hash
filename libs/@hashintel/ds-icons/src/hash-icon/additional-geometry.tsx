@@ -42,8 +42,8 @@ export const additionalGeometry = {
   ),
   externalLink: (
     <>
-      <path d="M10 4H4v16h16v-6" />
-      <path data-icon-detail="out" d="M12 3h9v9M10 14 21 3" />
+      <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+      <path data-icon-detail="out" d="M15 3h6v6M10 14 21 3" />
     </>
   ),
   ellipsis: (
