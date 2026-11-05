@@ -29,10 +29,7 @@ use crate::SourceCapture;
 ///
 /// Reaching it is an error rather than a stop, so an endpoint that keeps issuing new pages cannot
 /// spool without bound or silently drop the rows beyond the ceiling.
-#[cfg(not(test))]
 const PAGE_CEILING: u64 = 10_000;
-#[cfg(test)]
-const PAGE_CEILING: u64 = 3;
 
 /// Distinct fields a source may produce before its responses are rejected.
 const MAX_COLUMNS: usize = 1_024;
@@ -99,6 +96,18 @@ async fn capture_with_client(
     target: PathBuf,
     client: &Client,
 ) -> Result<SourceCapture, Report<SourceError>> {
+    capture_pages(endpoint, key, secret, target, client, PAGE_CEILING).await
+}
+
+/// Captures pages until the source ends, failing after `page_ceiling` pages without `maxPages`.
+async fn capture_pages(
+    endpoint: &RestSource,
+    key: &PrimaryKey,
+    secret: Option<&Secret<[u8]>>,
+    target: PathBuf,
+    client: &Client,
+    page_ceiling: u64,
+) -> Result<SourceCapture, Report<SourceError>> {
     let origin =
         Url::parse(&endpoint.url).map_err(|_error| Report::new(SourceError::Configuration))?;
     let mut current = origin.clone();
@@ -113,9 +122,9 @@ async fn capture_with_client(
     let mut seen = BTreeSet::new();
     let mut previous: Option<Arc<Vec<Value>>> = None;
     loop {
-        if endpoint.max_pages.is_none() && page >= PAGE_CEILING {
+        if endpoint.max_pages.is_none() && page >= page_ceiling {
             return Err(Report::new(SourceError::Pagination).attach(format!(
-                "pagination did not end within {PAGE_CEILING} pages; set `maxPages` to capture \
+                "pagination did not end within {page_ceiling} pages; set `maxPages` to capture \
                  fewer"
             )));
         }
@@ -378,7 +387,7 @@ mod tests {
     use tempfile::TempDir;
     use uuid::Uuid;
 
-    use super::capture_with_client;
+    use super::{capture_pages, capture_with_client};
     use crate::{
         Workspace, WorkspaceConfig,
         sources::{
@@ -592,7 +601,7 @@ mod tests {
         .expect("should describe the endpoint");
         let directory = TempDir::new().expect("should create output storage");
         let target = directory.path().join("rows.parquet");
-        let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
+        let error = capture_pages(&endpoint, &key(), None, target.clone(), &client, 3)
             .await
             .expect_err("should reject pagination that does not end");
         assert!(
@@ -606,7 +615,8 @@ mod tests {
     async fn pagination_honours_max_pages_beyond_the_ceiling() {
         let server = server(Router::new().route("/", get(endless))).await;
         let (client, url) = public_client(&server);
-        let max_pages = super::PAGE_CEILING + 2;
+        let ceiling = 3;
+        let max_pages = ceiling + 2;
         let endpoint = serde_json::from_value(json!({
             "url": url,
             "resultsField": "results",
@@ -615,12 +625,13 @@ mod tests {
         }))
         .expect("should describe the endpoint");
         let directory = TempDir::new().expect("should create output storage");
-        let capture = capture_with_client(
+        let capture = capture_pages(
             &endpoint,
             &key(),
             None,
             directory.path().join("rows.parquet"),
             &client,
+            ceiling,
         )
         .await
         .expect("should capture up to the configured page limit");
