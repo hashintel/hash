@@ -6,6 +6,8 @@ export const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
  */
 export const localStorageKeys = {
   workspaceWebId: "workspaceWebId",
+  /** Suffixed with the user's account ID, so it's kept for each user after signing out. */
+  recentFlowActions: "recentFlowActions",
 } as const;
 
 export const resetLocalStorage = () => {
