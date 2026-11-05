@@ -208,8 +208,8 @@ describe("document", () => {
   test("navigation_directories", () => {
     expect.hasAssertions();
     expect(reference().folders).toStrictEqual([
-      { directory: "", pages: ["index", "pkg", "traits"] },
-      { directory: "pkg", pages: ["index", "Other", "Model"] },
+      { directory: "", pages: ["pkg", "pkg/Other", "traits"] },
+      { directory: "pkg", pages: ["Model"] },
       { directory: "pkg/Model", pages: ["Helpers"] },
     ]);
   });

@@ -11,6 +11,7 @@ export const letters: Readonly<Record<string, string>> = {
   property: "p",
   method: "m",
   accessor: "a",
+  enumMember: "e",
   module: "M",
   entrypoint: "@",
   namespace: "N",
@@ -18,7 +19,7 @@ export const letters: Readonly<Record<string, string>> = {
 };
 
 /** The kinds whose heading names a member, which starts with no keyword. */
-const members = HashSet.make("property", "method", "accessor");
+const members = HashSet.make("property", "method", "accessor", "enumMember");
 
 /** The keyword a declaration of `kind` starts with, for a heading that reads like code. */
 export const keywordOf = (kind: string): string =>

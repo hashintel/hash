@@ -4,7 +4,7 @@ import { highlight } from "fumadocs-core/highlight";
 import { ApiQuickInfo } from "./api-quick-info.js";
 import * as Colours from "./colours.js";
 
-import type * as Components from "../../lib/components.js";
+import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
 /** The colours of a link naming `kind`, as a `style` attribute, or none for a kind the themes do not colour. */
@@ -78,13 +78,15 @@ const components = { "api-quick-info": ApiQuickInfo };
 /** What the highlighter reads before code that is part of something else, and does not show, so that it highlights the code as it reads there. */
 const contexts = { type: "let _: ", member: "interface _ {\n" } as const;
 
+/** The language of code that names none, which the highlighter shows as plain text. */
+const plain = "text";
+
 /** A code block, or a type on a line of text, highlighted with the themes the code blocks use. */
 export async function ApiCode({
-  lang,
+  lang = plain,
   code,
   links,
   quickInfo,
-  title,
   context,
 }: Components.CodeProps): Promise<ReactNode> {
   // Shiki wraps each name in an element, across the tokens it splits the name into.
@@ -107,8 +109,6 @@ export async function ApiCode({
     );
   }
 
-  // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- rendered once, on the server
-  const codeblock = { title };
   if (context === "member") {
     return (
       <ServerCodeBlock
@@ -117,7 +117,6 @@ export async function ApiCode({
         themes={Colours.themes}
         decorations={decorations}
         grammarContextCode={contexts.member}
-        codeblock={codeblock}
         components={components}
       />
     );
@@ -129,7 +128,6 @@ export async function ApiCode({
       lang={lang}
       themes={Colours.themes}
       decorations={decorations}
-      codeblock={codeblock}
       components={components}
     />
   );

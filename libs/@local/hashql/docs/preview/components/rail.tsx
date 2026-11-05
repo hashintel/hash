@@ -14,6 +14,7 @@ const memberKinds: ReadonlySet<string> = new Set([
   "property",
   "method",
   "accessor",
+  "enumMember",
 ]);
 
 /** A row of the rail and the element on the page it links to. */
@@ -71,14 +72,23 @@ const currentOf = (targets: readonly Target[]): Target | null => {
   return current ?? targets[0] ?? null;
 };
 
-/** Scrolls `root` to keep the row of `target` and of its owner in view. */
+/** Scrolls `root` to keep the row of `target` and of its owner in view. When the two are further apart than the rail shows below the owner's place, the row of `target` takes that place instead. */
 const reveal = (root: HTMLElement, target: Target): void => {
   const box = root.getBoundingClientRect();
   const owner = target.owner.getBoundingClientRect();
-  const end = target.row.getBoundingClientRect().bottom;
-  if (owner.top < box.top || Math.max(owner.bottom, end) > box.bottom) {
-    root.scrollTop += owner.top - box.top - box.height * scrolledTo;
+  const row = target.row.getBoundingClientRect();
+  if (
+    owner.top >= box.top &&
+    Math.max(owner.bottom, row.bottom) <= box.bottom
+  ) {
+    return;
   }
+
+  let first = owner;
+  if (row.bottom - owner.top > box.height * (1 - scrolledTo)) {
+    first = row;
+  }
+  root.scrollTop += first.top - box.top - box.height * scrolledTo;
 };
 
 /**
