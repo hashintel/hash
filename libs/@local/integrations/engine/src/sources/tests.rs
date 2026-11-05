@@ -7,7 +7,11 @@ use axum::Router;
 use duckdb::types::Value;
 use error_stack::Report;
 use hash_integrations_definition::{Definition, SecretReference};
-use reqwest::{Client, Url, redirect::Policy};
+use reqwest::{
+    Client, Url,
+    dns::{Addrs, Name, Resolve, Resolving},
+    redirect::Policy,
+};
 use rstest::rstest;
 use tempfile::TempDir;
 use tokio::{net::TcpListener, task::JoinHandle};
@@ -61,6 +65,18 @@ pub(super) fn public_client(server: &Server) -> (Client, String) {
         .build()
         .expect("should build the test client");
     (client, format!("http://public.test:{port}"))
+}
+
+/// Resolves names without the public destination policy, for fixtures on the local machine.
+pub(super) struct AnyResolver;
+
+impl Resolve for AnyResolver {
+    fn resolve(&self, name: Name) -> Resolving {
+        Box::pin(async move {
+            let addresses = tokio::net::lookup_host((name.as_str().to_owned(), 0)).await?;
+            Ok(Box::new(addresses) as Addrs)
+        })
+    }
 }
 
 struct NoSecrets;

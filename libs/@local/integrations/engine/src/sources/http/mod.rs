@@ -32,7 +32,10 @@ pub(super) fn client() -> Result<Client, Report<SourceError>> {
         .map_err(|_error| Report::new(SourceError::Request))
 }
 
-struct PublicResolver;
+/// Resolves a name only if every address it resolves to is public.
+///
+/// Fails with an [`io::ErrorKind::PermissionDenied`] error otherwise.
+pub(super) struct PublicResolver;
 
 impl Resolve for PublicResolver {
     fn resolve(&self, name: Name) -> Resolving {
@@ -50,7 +53,7 @@ impl Resolve for PublicResolver {
     }
 }
 
-pub(super) fn public(address: IpAddr) -> bool {
+fn public(address: IpAddr) -> bool {
     match address {
         IpAddr::V4(address) => address.is_global() && !address.is_multicast(),
         IpAddr::V6(address) => address.to_ipv4_mapped().map_or_else(
