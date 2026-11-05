@@ -32,6 +32,7 @@ export const hashIconHints = {
   copy: "detail",
   download: "detail",
   externalLink: "detail",
+  link: "grow",
   ellipsis: "detail",
   ellipsisVertical: "detail",
   circleEllipsis: "sequence",

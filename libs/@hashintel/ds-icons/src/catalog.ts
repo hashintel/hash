@@ -150,6 +150,7 @@ const categories = {
     "chevronLeft",
     "chevronRight",
     "externalLink",
+    "link",
     "rightToLine",
     "sidebar",
     "menu",
