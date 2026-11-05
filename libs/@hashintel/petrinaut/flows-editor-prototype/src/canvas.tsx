@@ -63,7 +63,9 @@ import { mockRuns, stepRunStatus } from "./mock-runs";
 import { navigate, setQuery, useLocation } from "./router";
 import {
   type BarMotion,
+  barBreakdown,
   ensureBarKeyframes,
+  glyphTooltip,
   reviewMotionOf,
   reviewOnceStyle,
   RunBar,
@@ -568,16 +570,18 @@ const nodeStatusTake: NodeStatusTake = (() => {
 type NodeGlowTake = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 /**
- * Bar only (Alex, 5 Nov: "our design language is very flat with almost no shadows, so I would avoid glows… go for
- * crisper lines instead"): ?nodeglow=bar draws no glow or shadow; a running segment carries a band across it every
- * 2 s. ?nodeglow=bar-review also shifts a needs-review segment light to dark and back over 4 s. Failed stays still.
+ * Bar only (Alex), decided provisionally 5 Nov (Aakarsh; Alex: "our design language is very flat with almost no
+ * shadows, so I would avoid glows… go for crisper lines instead"): the default. A flat 2 px bar with no glow or words;
+ * a light band shimmers along a running segment every 2 s; needs review and failed stay still.
+ * ?nodeglow=pulse brings back the running fade it replaced; ?nodeglow=bar the darker sweep; ?nodeglow=bar-review that
+ * sweep plus a needs-review shift light to dark and back over 4 s.
  */
 const barMotion: BarMotion = (() => {
   const value = new URLSearchParams(globalThis.location.search).get("nodeglow");
-  if (value === "bar" || value === "bar-review") {
+  if (value === "bar" || value === "bar-review" || value === "pulse") {
     return value;
   }
-  return nodeStatusTake === "4bar" ? "bar" : "pulse";
+  return nodeStatusTake === "4bar" ? "bar" : "shimmer";
 })();
 
 /**
@@ -787,6 +791,13 @@ const RunMarkTake = ({
 }) => {
   // A step repeats when it runs per item: its bar is split by item.
   const repeats = Boolean(mark.bar && mark.bar.length > 0);
+  // Hovering the bar gives the full breakdown: a step that ran once says its state and detail ("Done", "Failed ·
+  // Timed out after 48 h"), one that ran per item counts each state ("18 done · 1 failed · 1 running").
+  const total = segments.reduce((sum, segment) => sum + segment.count, 0);
+  const breakdown =
+    total > 1
+      ? barBreakdown(segments)
+      : glyphTooltip(mark.state, mark.progress);
   if (nodeStatusTake === 2) {
     return repeats ? (
       <RunBar
@@ -796,6 +807,7 @@ const RunMarkTake = ({
         finish={finish}
         motion={barMotion}
         reviewMotion={reviewMotion}
+        breakdown={breakdown}
       />
     ) : (
       <span
@@ -820,6 +832,7 @@ const RunMarkTake = ({
         finish={finish}
         motion={barMotion}
         reviewMotion={reviewMotion}
+        breakdown={breakdown}
       />
     ) : null;
   }
@@ -885,6 +898,7 @@ const RunMarkTake = ({
             finish={finish}
             motion={barMotion}
             reviewMotion={wordsReviewMotion}
+            breakdown={breakdown}
           />
         ) : repeats ? (
           <RunBar
@@ -893,6 +907,7 @@ const RunMarkTake = ({
             finish={finish}
             motion={barMotion}
             reviewMotion={wordsReviewMotion}
+            breakdown={breakdown}
           />
         ) : null}
       </>
@@ -906,6 +921,7 @@ const RunMarkTake = ({
       finish={finish}
       motion={barMotion}
       reviewMotion={reviewMotion}
+      breakdown={breakdown}
     />
   );
 };

@@ -591,6 +591,7 @@ export const ensureBarKeyframes = () => {
   sheet.id = "flows-bar-keyframes";
   sheet.textContent = [
     "@keyframes flowsBarSweep { from { transform: translateX(-70%); } to { transform: translateX(70%); } }",
+    "@keyframes flowsBarShimmer { from { transform: translateX(-100%); } to { transform: translateX(166.67%); } }",
     `@keyframes flowsBarShift { 0%, 100% { background-color: var(--flows-seg); } 50% { background-color: ${barMotionColor.reviewShift}; } }`,
     "@keyframes flowsReviewOnce { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }",
   ].join("\n");
@@ -606,6 +607,26 @@ const sweepStyle = css({
   animationName: "[flowsBarSweep]",
   animationDuration: "[2s]",
   animationTimingFunction: "ease-in-out",
+  animationIterationCount: "infinite",
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "none",
+    display: "none",
+  },
+});
+
+/**
+ * Running, Bar only (the default): a light band, 60% of the segment wide, travels along it every 2 s, as the card
+ * status playground's "Bar only (Alex)" draws it.
+ */
+const shimmerStyle = css({
+  position: "absolute",
+  top: "[0]",
+  bottom: "[0]",
+  left: "[0]",
+  width: "[60%]",
+  animationName: "[flowsBarShimmer]",
+  animationDuration: "[2s]",
+  animationTimingFunction: "linear",
   animationIterationCount: "infinite",
   "@media (prefers-reduced-motion: reduce)": {
     animation: "none",
@@ -651,13 +672,55 @@ export const reviewMotionOf = (fallback: ReviewMotion): ReviewMotion => {
 
 /**
  * How a bar's segments move:
- * - `pulse` (default): a running segment fades in and out.
+ * - `shimmer` (Bar only, decided 5 Nov): a light band travels along a running segment; nothing else moves.
+ * - `pulse` (?nodeglow=pulse, and RunBar's own default): a running segment fades in and out.
  * - `bar` (?nodeglow=bar, Alex 5 Nov: "crisper lines instead … pulse over the line"): a running segment carries a
  *   darker band across it; nothing else moves.
  * - `bar-review`: `bar`, and a needs-review segment shifts slowly from light to dark and back.
  * `reviewMotion` sets needs review on its own and wins over `bar-review`. Nothing moves under reduced motion.
  */
-export type BarMotion = "pulse" | "bar" | "bar-review";
+export type BarMotion = "shimmer" | "pulse" | "bar" | "bar-review";
+
+const barStateWord: Record<BarSegment["state"], string> = {
+  done: "done",
+  failed: "failed",
+  skipped: "skipped",
+  running: "running",
+  review: "needs review",
+  rest: "not run",
+};
+
+/** A bar's full breakdown, for its hover: "18 done · 1 failed · 1 running", each state once, in bar order. */
+export const barBreakdown = (segments: BarSegment[]) => {
+  const counts = new Map<BarSegment["state"], number>();
+  for (const segment of segments) {
+    if (segment.count > 0) {
+      counts.set(
+        segment.state,
+        (counts.get(segment.state) ?? 0) + segment.count,
+      );
+    }
+  }
+  return [...counts]
+    .map(([state, count]) => `${count} ${barStateWord[state]}`)
+    .join(" · ");
+};
+
+const barHitStyle = css({
+  position: "absolute",
+  left: "[0]",
+  right: "[0]",
+  bottom: "[-4px]",
+  height: "[9px]",
+  display: "flex",
+});
+
+const barHitPartStyle = css({
+  display: "block",
+  width: "[100%]",
+  height: "[100%]",
+  "& > span": { display: "block", width: "[100%]", height: "[100%]" },
+});
 
 /**
  * A card's run bar, inside its bottom edge. A clip box the size of the card (radius = the card's less its 1 px border,
@@ -679,6 +742,7 @@ export const RunBar = ({
   finish = "solid",
   motion = "pulse",
   reviewMotion: reviewMotionProp,
+  breakdown,
 }: {
   segments: BarSegment[];
   height?: number;
@@ -689,6 +753,11 @@ export const RunBar = ({
   finish?: "solid" | "reflect";
   motion?: BarMotion;
   reviewMotion?: ReviewMotion;
+  /**
+   * The hover text (Figma 343:2807; Aakarsh, 5 Nov: "upon hovering on these bars you get the full breakdown"). Each
+   * segment carries a hover band a few px either side of the bar, and its tooltip opens under that segment.
+   */
+  breakdown?: string;
 }) => {
   const reviewMotion =
     reviewMotionProp ?? (motion === "bar-review" ? "loop" : "off");
@@ -707,74 +776,109 @@ export const RunBar = ({
   const reflect = finish === "reflect";
   const reflection = 10;
   return (
-    <span
-      aria-hidden
-      data-run-clip
-      style={{ borderRadius: `calc(var(--radii-${radius}) - 1px)` }}
-      className={css({
-        position: "absolute",
-        inset: "[0]",
-        overflow: "hidden",
-        pointerEvents: "none",
-      })}
-    >
+    <>
       <span
-        data-run-bar
-        style={{ height: reflect ? height + reflection : height, gap }}
+        aria-hidden
+        data-run-clip
+        style={{ borderRadius: `calc(var(--radii-${radius}) - 1px)` }}
         className={css({
           position: "absolute",
-          left: "[0]",
-          right: "[0]",
-          bottom: "[0]",
-          display: "flex",
+          inset: "[0]",
+          overflow: "hidden",
+          pointerEvents: "none",
         })}
       >
-        {parts.map((part, index) => {
-          const color = colors[part.state];
-          const sweeps = motion !== "pulse" && part.state === "running";
-          const review = part.state === "review";
-          const shifts = review && reviewMotion === "loop";
-          const once = review && reviewMotion === "once";
-          return (
+        <span
+          data-run-bar
+          style={{ height: reflect ? height + reflection : height, gap }}
+          className={css({
+            position: "absolute",
+            left: "[0]",
+            right: "[0]",
+            bottom: "[0]",
+            display: "flex",
+          })}
+        >
+          {parts.map((part, index) => {
+            const color = colors[part.state];
+            const sweeps =
+              (motion === "bar" || motion === "bar-review") &&
+              part.state === "running";
+            const shimmers = motion === "shimmer" && part.state === "running";
+            const review = part.state === "review";
+            const shifts = review && reviewMotion === "loop";
+            const once = review && reviewMotion === "once";
+            return (
+              <span
+                // eslint-disable-next-line react/no-array-index-key -- runs of one state, in order
+                key={`${part.state}-${index}`}
+                data-segment={part.state}
+                data-count={part.count}
+                style={{
+                  ["--flows-seg" as string]: color,
+                  flexGrow: part.count,
+                  flexBasis: 0,
+                  minWidth: 2,
+                  background: reflect
+                    ? `linear-gradient(to top, ${color} 0px, color-mix(in srgb, ${color} 45%, transparent) ${height}px, color-mix(in srgb, ${color} 14%, transparent) ${height}px, transparent 100%)`
+                    : color,
+                }}
+                className={
+                  sweeps || shimmers
+                    ? segmentStyle
+                    : shifts
+                      ? shiftStyle
+                      : once
+                        ? reviewOnceStyle
+                        : part.state === "running" && motion === "pulse"
+                          ? pulseStyle
+                          : undefined
+                }
+              >
+                {sweeps ? (
+                  <span
+                    data-bar-sweep
+                    className={sweepStyle}
+                    style={{
+                      background: `linear-gradient(90deg, transparent 30%, ${barMotionColor.runningSweep} 50%, transparent 70%)`,
+                    }}
+                  />
+                ) : null}
+                {shimmers ? (
+                  <span
+                    data-bar-shimmer
+                    className={shimmerStyle}
+                    style={{
+                      background:
+                        "linear-gradient(90deg, transparent, var(--colors-white-a90), transparent)",
+                    }}
+                  />
+                ) : null}
+              </span>
+            );
+          })}
+        </span>
+      </span>
+      {breakdown ? (
+        <span data-run-bar-hover className={barHitStyle} style={{ gap }}>
+          {parts.map((part, index) => (
             <span
               // eslint-disable-next-line react/no-array-index-key -- runs of one state, in order
               key={`${part.state}-${index}`}
-              data-segment={part.state}
-              data-count={part.count}
-              style={{
-                ["--flows-seg" as string]: color,
-                flexGrow: part.count,
-                flexBasis: 0,
-                minWidth: 2,
-                background: reflect
-                  ? `linear-gradient(to top, ${color} 0px, color-mix(in srgb, ${color} 45%, transparent) ${height}px, color-mix(in srgb, ${color} 14%, transparent) ${height}px, transparent 100%)`
-                  : color,
-              }}
-              className={
-                sweeps
-                  ? segmentStyle
-                  : shifts
-                    ? shiftStyle
-                    : once
-                      ? reviewOnceStyle
-                      : part.state === "running" && motion === "pulse"
-                        ? pulseStyle
-                        : undefined
-              }
+              style={{ flexGrow: part.count, flexBasis: 0, minWidth: 2 }}
             >
-              {sweeps ? (
-                <span
-                  data-bar-sweep
-                  className={sweepStyle}
-                  style={{
-                    background: `linear-gradient(90deg, transparent 30%, ${barMotionColor.runningSweep} 50%, transparent 70%)`,
-                  }}
-                />
-              ) : null}
+              <Tooltip
+                content={breakdown}
+                position="bottom"
+                openDelay="fast"
+                className={barHitPartStyle}
+              >
+                <span data-bar-hover-part={part.state} aria-label={breakdown} />
+              </Tooltip>
             </span>
-          );
-        })}
-      </span>
-    </span>
+          ))}
+        </span>
+      ) : null}
+    </>
   );
 };
