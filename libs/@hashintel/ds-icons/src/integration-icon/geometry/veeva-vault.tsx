@@ -78,7 +78,7 @@ export const logoLight = ({ id }: { id: string }) => (
         <path
           id={`${id}-wordmark-Vector_6`}
           d="M11.082 6.46339L16.8377 17.9954L22.5841 6.46339C22.5841 6.46339 11.082 6.44469 11.082 6.46339Z"
-          fill="#F58220"
+          fill="#898B8D"
         />
       </g>
     </svg>
@@ -140,7 +140,7 @@ export const logoDark = ({ id }: { id: string }) => (
         <path
           id={`${id}-wordmark-Vector_6`}
           d="M11.082 6.46339L16.8377 17.9954L22.5841 6.46339C22.5841 6.46339 11.082 6.44469 11.082 6.46339Z"
-          fill="#F58220"
+          fill="#898B8D"
         />
       </g>
     </svg>
