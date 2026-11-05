@@ -427,9 +427,10 @@ const amberWarnings = {
 
 /**
  * `?statusstep=b|c|d` (inbox status-colour-steps, open): how loud done, failed, needs review and warnings read beside
- * the P-a tiles. Unset or `a` is O2 as it is. b: bars and charts one step lighter, marks at the lightest step that
- * keeps 3:1 on white; c: marks at a mid step, bars and charts at a faint step; d: O2's steps mixed halfway toward
- * neutral, so the status hues sit below the tile tints. Warnings take yellow in b–d.
+ * the P-a tiles. Unset or `a` is O2 as it is. Round 2 (5 Nov: "i literally see no difference between the 4 pictures")
+ * spreads the takes wide: b marks at the lightest step with 3:1 on white, bars as today; c clearly quieter, marks and
+ * bars about two steps lighter; d clearly bolder, marks at the text step (s110) and bars at the mark step (s80–s90).
+ * Warnings take yellow in b–d.
  */
 type StatusStep = "b" | "c" | "d";
 
@@ -441,28 +442,34 @@ export const statusStep = (): StatusStep | null => {
 };
 
 const statusSteps: Record<
-  "b" | "c",
+  "b" | "c" | "d",
   Record<
     "done" | "failed" | "needsReview" | "warnings",
     { mark: string; bar: string; chart: string; node: string }
   >
 > = {
+  // b: marks at the lightest step with 3:1 on white; bars as today.
   b: {
-    done: { mark: "green.s90", bar: "green.s40", chart: "green.s50", node: "green.s60" },
-    failed: { mark: "red.s85", bar: "red.s50", chart: "red.s60", node: "red.s70" },
-    needsReview: { mark: "orange.s95", bar: "orange.s40", chart: "orange.s50", node: "orange.s60" },
-    warnings: { mark: "yellow.s110", bar: "yellow.s50", chart: "yellow.s70", node: "yellow.s70" },
+    done: { mark: "green.s90", bar: "green.s50", chart: "green.s60", node: "green.s70" },
+    failed: { mark: "red.s85", bar: "red.s60", chart: "red.s60", node: "red.s75" },
+    needsReview: { mark: "orange.s95", bar: "orange.s50", chart: "orange.s60", node: "orange.s70" },
+    warnings: { mark: "yellow.s110", bar: "yellow.s50", chart: "yellow.s80", node: "yellow.s80" },
   },
+  // c: clearly quieter, marks and bars about two steps lighter than today.
   c: {
-    done: { mark: "green.s90", bar: "green.s30", chart: "green.s40", node: "green.s40" },
-    failed: { mark: "red.s90", bar: "red.s30", chart: "red.s40", node: "red.s50" },
-    needsReview: { mark: "orange.s90", bar: "orange.s30", chart: "orange.s40", node: "orange.s40" },
-    warnings: { mark: "yellow.s110", bar: "yellow.s40", chart: "yellow.s60", node: "yellow.s60" },
+    done: { mark: "green.s70", bar: "green.s30", chart: "green.s40", node: "green.s45" },
+    failed: { mark: "red.s70", bar: "red.s35", chart: "red.s40", node: "red.s50" },
+    needsReview: { mark: "orange.s70", bar: "orange.s30", chart: "orange.s40", node: "orange.s45" },
+    warnings: { mark: "yellow.s85", bar: "yellow.s40", chart: "yellow.s60", node: "yellow.s60" },
+  },
+  // d: clearly bolder, marks at the text step and bars at the mark step.
+  d: {
+    done: { mark: "green.s110", bar: "green.s80", chart: "green.s90", node: "green.s90" },
+    failed: { mark: "red.s110", bar: "red.s85", chart: "red.s90", node: "red.s90" },
+    needsReview: { mark: "orange.s110", bar: "orange.s80", chart: "orange.s90", node: "orange.s90" },
+    warnings: { mark: "yellow.s110", bar: "yellow.s100", chart: "yellow.s105", node: "yellow.s105" },
   },
 };
-
-const towardNeutral = (token: string) =>
-  `color-mix(in oklab, ${tokenVar(token)} 50%, ${tokenVar(`neutral.${token.split(".")[1] ?? "s80"}`)})`;
 
 const statusStepVariables = (): Record<string, string> => {
   const step = statusStep();
@@ -471,17 +478,6 @@ const statusStepVariables = (): Record<string, string> => {
   }
   const variables: Record<string, string> = {};
   const nodeRole = { done: "doneBar", failed: "failedBar", needsReview: "reviewBar" } as const;
-  if (step === "d") {
-    for (const state of ["done", "failed", "needsReview"] as const) {
-      for (const role of ["mark", "bar", "chart"] as const) {
-        variables[`--flows-${state}-${role}`] = towardNeutral(subtleStates[state][role]);
-      }
-      variables[`--flows-node-${nodeRole[state]}`] = towardNeutral(subtleNodeRoles[nodeRole[state]]);
-    }
-    variables["--flows-warnings-mark"] = towardNeutral("yellow.s105");
-    variables["--flows-warnings-chart"] = towardNeutral("yellow.s80");
-    return variables;
-  }
   for (const [state, roles] of Object.entries(statusSteps[step])) {
     variables[`--flows-${state}-mark`] = tokenVar(roles.mark);
     variables[`--flows-${state}-chart`] = tokenVar(roles.chart);
