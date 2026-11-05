@@ -71,7 +71,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
-    "test:unit": "vitest"
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@ark-ui/react": "5.38.1",
