@@ -1,0 +1,376 @@
+# @scope/pkg
+
+[Source](index.d.ts#L1)
+
+Module with `code` and [`Value`](#Value).
+
+```ts
+import * as pkg from "@scope/pkg";
+```
+
+## <a id="page-index"></a>Index
+
+**Modules**
+
+* [`Cycle`](./index.html) Module with code and Value.
+* [`Empty`](./Empty.html) Namespace with rich content.
+
+**Types**
+
+* [`Value`](#Value) A value.
+  * [`text`](#Value.text)
+* [`Pair`](#Pair) Type side.
+* [`Derived`](#Derived) Implements the trait.
+  * [`own`](#Derived.own)
+
+**Classes**
+
+* [`Model`](#Model) Model.
+  * [`make`](#Model.make) Static make.
+  * [`make`](#Model.make-2) Instance make.
+  * [`value`](#Model.value) Getter.
+  * [`child`](#Model.child)
+  * [`Alias`](#Value) A value.
+  * [`Helpers`](./Model/Helpers.html)
+
+**Functions**
+
+* [`choose`](#choose) First call.
+* [`callable`](#callable) Container docs.
+* [`partial`](#partial) Documented.
+* [`old`](#old) Both deprecated.
+* [`again`](#choose) First call.
+* [`identity`](#identity) Generic docs.
+
+## <a id="category-types"></a>Types
+
+### <a id="Value"></a>Value
+
+A value. More detail.
+
+**Signature**
+
+[Source](index.d.ts#L2)
+
+```ts
+export interface Value {
+  readonly text: string;
+}
+```
+
+**Members**
+
+<a id="Value.text"></a>**`text`**
+
+[Source](index.d.ts#L2)
+
+```ts
+readonly text: string;
+```
+
+**Accepted by**
+
+* [`callable`](#callable) Container docs.
+* [`choose`](#choose) First call.
+* [`partial`](#partial) Documented.
+
+**Returned by**
+
+* [`callable`](#callable) Container docs.
+* [`choose`](#choose) First call.
+
+### <a id="Pair"></a>Pair
+
+(1) Type side.
+
+(2) Value side.
+
+**Signatures · 2 overloads**
+
+(1) · [Source](index.d.ts#L22)
+
+```ts
+export type Pair = Value;
+```
+
+(2) · [Source](index.d.ts#L23)
+
+```ts
+export const Pair: number;
+```
+
+### <a id="Derived"></a>Derived
+
+Implements the trait.
+
+**Signature**
+
+[Source](index.d.ts#L51)
+
+```ts
+export interface Derived extends Trait {
+  readonly own: true;
+}
+```
+
+**Traits**
+
+* [`Trait`](../traits.html#Trait) Trait lead.
+
+**Members**
+
+<a id="Derived.own"></a>**`own`**
+
+[Source](index.d.ts#L51)
+
+```ts
+readonly own: true;
+```
+
+## <a id="category-classes"></a>Classes
+
+### <a id="Model"></a>Model
+
+Model.
+
+**Signature**
+
+[Source](index.d.ts#L28)
+
+```ts
+export class Model {
+  static make(): Model;
+  make(): Model;
+  get value(): Value;
+  set value(input: Value);
+}
+```
+
+**Members**
+
+<a id="Model.make"></a>**`make`**
+
+[Source](index.d.ts#L29)
+
+```ts
+static make(): Model;
+```
+
+Static make.
+
+<a id="Model.make-2"></a>**`make`**
+
+[Source](index.d.ts#L30)
+
+```ts
+make(): Model;
+```
+
+Instance make.
+
+<a id="Model.value"></a>**`value`**
+
+(1) · [Source](index.d.ts#L31)
+
+```ts
+get value(): Value;
+```
+
+(2) · [Source](index.d.ts#L32)
+
+```ts
+set value(input: Value);
+```
+
+(1) Getter.
+
+(2) Setter.
+
+**Returned by**
+
+* [`Model.make`](#Model.make) Static make.
+* [`Model.make`](#Model.make-2) Instance make.
+
+**namespace Model**
+
+Namespace with [`Value`](#Value).
+
+**Exports**
+
+* [`child`](#Model.child)
+* [`Alias`](#Value) A value.
+* [`Helpers`](./Model/Helpers.html)
+
+#### <a id="Model.child"></a>Model.child
+
+**Signature**
+
+[Source](index.d.ts#L35)
+
+```ts
+export const child: Value;
+```
+
+## <a id="category-functions"></a>Functions
+
+### <a id="choose"></a>choose
+
+(1) **Deprecated:** Use the other form.
+
+First call.
+
+(2) Second call.
+
+**Signatures · 2 overloads**
+
+(1) · Since 1.0.0 · [Source](index.d.ts#L13)
+
+```ts
+export function choose(input: Value): Value;
+```
+
+(2) · [Source](index.d.ts#L15)
+
+```ts
+export function choose(input: readonly Value[]): readonly Value[];
+```
+
+**Parameters**
+
+`input`: `Value` (1), `readonly Value[]` (2)
+
+(1) First input.
+
+(2) Second input.
+
+**Returns**
+
+`Value` (1), `readonly Value[]` (2)
+
+(2) A list.
+
+(1) **Example**
+
+```ts
+import { choose } from "@scope/pkg";
+choose({ text: "first" });
+```
+
+### <a id="callable"></a>callable
+
+Container docs.
+
+(1) Inner call.
+
+**Signatures · 2 overloads**
+
+[Source](index.d.ts#L17)
+
+```ts
+export const callable: {
+  (input: Value): Value;
+  (input: number): number;
+  readonly flag: true;
+};
+```
+
+**Parameters**
+
+`input`: `Value` (1), `number` (2)
+
+(1) Inner input.
+
+### <a id="partial"></a>partial
+
+Documented.
+
+**Signatures · 2 overloads**
+
+(1) · [Source](index.d.ts#L24)
+
+```ts
+export function partial(input: Value): void;
+```
+
+(2) · [Source](index.d.ts#L25)
+
+```ts
+export function partial(input: string): void;
+```
+
+### <a id="old"></a>old
+
+(1) **Deprecated:** No replacement.
+
+Both deprecated.
+
+(2) **Deprecated:** No replacement.
+
+Also deprecated.
+
+**Signatures · 2 overloads**
+
+(1) · [Source](index.d.ts#L26)
+
+```ts
+export function old(input: number): void;
+```
+
+(2) · [Source](index.d.ts#L27)
+
+```ts
+export function old(input: string): void;
+```
+
+### <a id="identity"></a>identity
+
+Generic docs.
+
+**Signature**
+
+[Source](index.d.ts#L65)
+
+```ts
+export function identity<T>(value: T): T;
+```
+
+**Type parameters**
+
+`T`
+
+A generic input.
+
+**Parameters**
+
+`value: T`
+
+Input docs.
+
+**Returns**
+
+`T`
+
+Return docs.
+
+**Throws**
+
+[`Value`](#Value)
+
+When unavailable.
+
+**Remarks**
+
+Details of the call.
+
+**Example**
+
+Caption with [`Value`](#Value).
+
+```ts
+import { identity } from "@scope/pkg";
+identity(1);
+```
+
+**See also**
+
+[`choose`](#choose)
