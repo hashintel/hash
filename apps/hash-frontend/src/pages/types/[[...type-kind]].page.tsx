@@ -1,10 +1,12 @@
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useBlockProtocolQueryEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { isSpecialEntityType } from "../../shared/entity-types-context/shared/is-special-entity-type";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
@@ -12,8 +14,7 @@ import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
-import { useDataTypesContext } from "../shared/data-types-context";
-import { DataTypesLoadError } from "../shared/data-types-load-error";
+import { DataTypeEditorDrawer } from "../shared/data-type-editor-drawer";
 import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
@@ -21,7 +22,11 @@ import { tabTitles } from "./[[...type-kind]].page/tab-titles";
 import { TypesPageTabs } from "./[[...type-kind]].page/types-page-tabs";
 
 import type { NextPageWithLayout } from "../../shared/layout";
-import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import type { GetServerSideProps } from "next";
 
 type ParsedQueryKindParam =
@@ -36,21 +41,25 @@ type ParsedQueryParams = {
 
 export type TabId = "all" | ParsedQueryKindParam;
 
-const createButtonByTab: Record<TabId, { label: string; href: string } | null> =
-  {
-    all: { label: "Create type", href: "/new/types/entity-type" },
-    "entity-type": {
-      label: "Create entity type",
-      href: "/new/types/entity-type",
-    },
-    "link-type": {
-      label: "Create link type",
-      href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
-    },
-    // TODO(H-773): add the property type creation button
-    "property-type": null,
-    "data-type": { label: "Create data type", href: "/new/types/data-type" },
-  };
+const createButtonByTab: Record<
+  TabId,
+  | { label: string; href: string }
+  | { label: string; opensDataTypeDrawer: true }
+  | null
+> = {
+  all: { label: "Create type", href: "/new/types/entity-type" },
+  "entity-type": {
+    label: "Create entity type",
+    href: "/new/types/entity-type",
+  },
+  "link-type": {
+    label: "Create link type",
+    href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
+  },
+  // TODO(H-773): add the property type creation button
+  "property-type": null,
+  "data-type": { label: "Create data type", opensDataTypeDrawer: true },
+};
 
 type TypesPageProps = {
   currentTab: TabId;
@@ -67,12 +76,25 @@ export const getServerSideProps: GetServerSideProps<
 };
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
+  const router = useRouter();
+
+  const [showCreateDataTypeDrawer, setShowCreateDataTypeDrawer] =
+    useState(false);
+
+  // `/types/data-type?new` deep-links to the creation drawer
+  useEffect(() => {
+    if (router.isReady && router.query.new !== undefined) {
+      setShowCreateDataTypeDrawer(true);
+      void router.replace("/types/data-type", undefined, { shallow: true });
+    }
+  }, [router]);
+
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
 
   const [latestEntityTypesByKind, setLatestEntityTypesByKind] = useState<{
     nonLink: EntityTypeWithMetadata[];
     link: EntityTypeWithMetadata[];
-  } | null>();
+  }>();
 
   /**
    * This page only lists the latest version of each entity type, so it runs
@@ -101,7 +123,6 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     if (!subgraph) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Error fetching entity types:", errors);
-      setLatestEntityTypesByKind(null);
       return;
     }
 
@@ -135,15 +156,13 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     fetchEntityTypes().catch((error) => {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Error fetching entity types:", error);
-      setLatestEntityTypesByKind(null);
     });
   }, [fetchEntityTypes]);
 
   const latestNonLinkEntityTypes = latestEntityTypesByKind?.nonLink;
   const latestLinkEntityTypes = latestEntityTypesByKind?.link;
 
-  const { latestDataTypes: latestDataTypesObject, error: dataTypesError } =
-    useDataTypesContext();
+  const { queryDataTypes } = useBlockProtocolQueryDataTypes();
 
   const { propertyTypes: latestPropertyTypesObject } = usePropertyTypes({
     latestOnly: true,
@@ -158,11 +177,22 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     [latestPropertyTypesObject],
   );
 
-  const latestDataTypes = useMemo(
-    () =>
-      latestDataTypesObject ? Object.values(latestDataTypesObject) : undefined,
-    [latestDataTypesObject],
+  const [latestDataTypes, setLatestDataTypes] =
+    useState<DataTypeWithMetadata[]>();
+
+  const fetchDataTypes = useCallback(
+    async () =>
+      await queryDataTypes({ data: {} }).then(({ data: dataTypesSubgraph }) => {
+        if (dataTypesSubgraph) {
+          setLatestDataTypes(getRoots<DataTypeRootType>(dataTypesSubgraph));
+        }
+      }),
+    [queryDataTypes],
   );
+
+  useEffect(() => {
+    void fetchDataTypes();
+  }, [fetchDataTypes]);
 
   const allTypes = useMemo(
     () =>
@@ -256,7 +286,9 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             <TypesPageTabs currentTab={currentTab} />
             {createButton ? (
               <CreateButton
-                href={createButton.href}
+                {...("opensDataTypeDrawer" in createButton
+                  ? { onClick: () => setShowCreateDataTypeDrawer(true) }
+                  : { href: createButton.href })}
                 variant="tertiary_quiet"
                 endIcon={<PlusRegularIcon />}
               >
@@ -277,23 +309,18 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         </Container>
       </Box>
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
-        {dataTypesError &&
-        latestDataTypesObject === null &&
-        (currentTab === "all" || currentTab === "data-type") ? (
-          <DataTypesLoadError />
-        ) : (
-          <TypesTable
-            allTypes={
-              latestEntityTypesByKind === null ||
-              (dataTypesError && latestDataTypesObject === null)
-                ? null
-                : allTypes
-            }
-            kind={currentTab}
-            types={currentTypes}
-          />
-        )}
+        <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
+      {showCreateDataTypeDrawer && (
+        <DataTypeEditorDrawer
+          mode="create"
+          onClose={() => setShowCreateDataTypeDrawer(false)}
+          onCreated={() => {
+            setShowCreateDataTypeDrawer(false);
+            void fetchDataTypes();
+          }}
+        />
+      )}
     </>
   );
 };
