@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nexperia-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="nexperia-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nexperia-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nexperia-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nexperia-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nexperia-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nexperia-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nexperia-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.37129 -0.37952 230.74257 57.11204" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill="#298892" d="M21.904 41.223h4.681V19.117a9.136 9.136 0 0 0-9.16-9.16H4.083C1.792 9.957 0 11.75 0 14.038v27.185h4.679c.4 0 .797-.301.797-.8v-25.39h11.949a3.677 3.677 0 0 1 3.684 3.686v21.704c0 .499.397.8.795.8zm96.582-31.266H103.05c-1.094 0-1.99.896-1.99 1.891v44.504h4.679c.4 0 .797-.297.797-.796V41.124h11.95a9.14 9.14 0 0 0 9.159-9.164V19.117c-.103-5.079-4.082-9.16-9.159-9.16zm3.684 22.501a3.678 3.678 0 0 1-3.684 3.684h-11.95V15.134h11.95a3.676 3.676 0 0 1 3.684 3.684v13.64zm56.255-17.324a3.68 3.68 0 0 0-3.688 3.684v21.704c0 .4-.297.8-.791.8h-4.681V19.117a9.133 9.133 0 0 1 9.159-9.16h6.271v4.38a.788.788 0 0 1-.795.797h-5.475zm19.114-4.382a.783.783 0 0 0-.795-.795h-4.676v30.466c0 .399.296.8.79.8h4.681V10.752zm23.302-.795h-13.145v4.479c0 .4.301.699.696.699h12.448a3.676 3.676 0 0 1 3.684 3.684v2.289H213.37a9.134 9.134 0 0 0-9.155 9.164v1.985a9.134 9.134 0 0 0 9.155 9.164h14.636c1.096 0 1.994-.898 1.994-1.896V19.316c0-5.278-4.083-9.359-9.159-9.359zm-7.471 26.185a3.677 3.677 0 0 1-3.684-3.684v-2.592a3.679 3.679 0 0 1 3.684-3.682h11.154v9.957H213.37z" /><circle fill="#F05128" cx="194.854" cy="2.688" r="2.688" /><path fill="#298892" d="M55.261 22.8H39.628v-4.082a3.676 3.676 0 0 1 3.684-3.686h8.263a3.678 3.678 0 0 1 3.686 3.686V22.8zM43.312 41.223H59.44v-4.385a.681.681 0 0 0-.696-.696H43.312a3.676 3.676 0 0 1-3.684-3.684v-4.479h19.514c1.494 0 1.595-.898 1.595-1.894v-6.969a9.136 9.136 0 0 0-9.162-9.16h-8.263a9.134 9.134 0 0 0-9.16 9.16v13.04c0 4.983 4.081 9.067 9.16 9.067M156.319 22.8h-15.633v-4.082a3.678 3.678 0 0 1 3.684-3.686h8.266a3.675 3.675 0 0 1 3.684 3.686V22.8zm-12.048 18.423h16.131v-4.385a.683.683 0 0 0-.696-.696h-15.435a3.677 3.677 0 0 1-3.684-3.684v-4.479h19.514c1.496 0 1.595-.898 1.595-1.894v-6.969a9.135 9.135 0 0 0-9.159-9.16h-8.266a9.136 9.136 0 0 0-9.16 9.16v13.04c.104 4.983 4.183 9.067 9.16 9.067" /><path fill="#F05128" d="M79.456 23.696c-.4-.797-6.076-11.947-6.372-12.446-.301-.597-.499-1.195-1.694-1.195h-4.281c-.4 0-.896.299-.598.896 0 .099 7.567 14.736 7.567 14.736s-7.468 14.636-7.567 14.734c-.299.598.198.898.598.898h4.281c1.195 0 1.393-.7 1.694-1.194.296-.499 5.972-11.752 6.372-12.448.198-.301.595-1.195.595-1.891 0-.895-.398-1.791-.595-2.09zm8.263 1.891s7.466-14.635 7.567-14.734c.299-.597-.2-.896-.598-.896h-4.281c-1.195 0-1.395.696-1.694 1.195-.299.497-5.975 11.747-6.372 12.446-.2.397-.696 1.293-.696 1.99 0 .699.397 1.592.598 1.893.397.796 6.073 11.945 6.372 12.448.299.593.496 1.195 1.691 1.195h4.283c.397 0 .896-.302.595-.898.001.098-7.465-14.639-7.465-14.639z" /></svg></g></svg>

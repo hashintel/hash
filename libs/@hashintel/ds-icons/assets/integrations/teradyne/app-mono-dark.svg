@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="teradyne-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="teradyne-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="teradyne-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#teradyne-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#teradyne-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#teradyne-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="teradyne-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.304069970924 -1.02291083351 -0.10326364958 0 1.43024445402" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#teradyne-app-mono-dark-mono)"><defs><clipPath id="teradyne-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#teradyne-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="teradyne-app-mono-dark-Layer_1" x="11.35483870967742" y="11.35483870967742" viewBox="-0.29623 -0.57483 432.59246 66.04966" fill="#111111" color="black" width="41.29032258064516" height="41.29032258064516">
+<path d="M18.4,12H0L0,0l50.2,0v12H31.8v52.9H18.4V12z M53,0l45.8,0v12H66.4v13.9h29.7V37H66.4v15.9h33v12H53V0z   M104.5,0l33,0c11,0,17.9,8.1,17.9,17.9c0,7.6-2.9,13.4-9.7,16.3v0.2c6.6,1.8,8.5,8.6,8.9,15.2c0.3,4.1,0.2,11.7,2.6,15.4h-13.5  c-1.6-4.1-1.4-10.4-2.1-15.6c-0.9-6.8-3.4-9.8-10.2-9.8H118v25.4h-13.5V0z M118,29.4h14.8c6,0,9.3-2.7,9.3-9.3c0-6.3-3.3-9-9.3-9  H118V29.4z M181.8,0l13.8,0l22.9,64.9h-14l-4.6-14.5H177l-4.8,14.5h-13.6L181.8,0z M180.5,39.8h15.9L188.7,16h-0.2L180.5,39.8z   M219.5,0L246,0c15.9,0,27.8,10.5,27.8,32.1c0,18.8-9.1,32.8-27.8,32.8h-26.4V0z M233,52.9h12c7.8,0,15.3-5.1,15.3-19.5  c0-13.1-4.3-21.5-17.7-21.5H233V52.9z M289.8,39.6L267.3,0l15.2,0l14.3,25.6L311,0l15,0l-22.7,40v24.9h-13.5V39.6z M328,0l13.4,0  l25.6,43.5h0.2V0l12.6,0v64.9h-13.5l-25.5-43.5h-0.2v43.5H328V0z M385.5,0l45.8,0v12H399v13.9h29.7V37H399v15.9h33v12h-46.5V0z" fill="#215299" />
+</svg></g></g></svg>

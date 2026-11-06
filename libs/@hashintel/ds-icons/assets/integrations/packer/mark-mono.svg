@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="packer-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.462704859967 -1.55656874811 -0.157136833912 0 2.17641044199" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#packer-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" id="packer-mark-mono-Logos" viewBox="-0.06732 7.1712 35.23464 57.6576" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+  <defs>
+    </defs>
+  <path d="m0,14.25l18.6,10.8v39.7L0,53.95V14.25Z" fill-rule="evenodd" fill="#02A8EF" stroke-width="0px" />
+  <path d="m27.8,18.85L7.6,7.25v8.1l13.7,8v24.3l6.5,3.7c4,2.3,7.3,1,7.3-3.1v-17.9c-.1-4-3.4-9.2-7.3-11.5Z" fill="#02A8EF" stroke-width="0px" />
+</svg></g></svg>

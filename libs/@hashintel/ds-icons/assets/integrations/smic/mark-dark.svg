@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" id="smic-mark-dark-Layer_1" x="0.0" y="0.0" viewBox="5.03763 8.67926 235.2088 117.58449" fill="#F5F7FA" width="64" height="64">
+<path d="M9.2,74.2c0,0,0.8-0.1,0.9-0.2c0,0,4.1,3.6,13.6,4c9.5,0.4,14.3-3.2,9.9-6.3c0,0-1-0.7-5.1-2.1  c-4.1-1.4-14.7-4.4-15.7-10.6c-1-6.2,4.7-12.5,17.5-14.5c12.7-2,27,1.4,29.2,2.5l0.4,0.4L56,56.1L55,56.3c0,0-4.4-3.6-13.4-4  c-9-0.3-9.4,4.4-6.8,5.6c0,0,1.6,1.6,12.3,4.9c10.7,3.3,13.3,14.1,0.5,20.4c-12.9,6.3-37,2.6-42,0.3l-0.3-0.6L9.2,74.2z" fill="#627BAD" />
+<path d="M56.8,85.5l0.4,0.6h15.6l0.7-0.7L86,54.1l2.3,31.4l0.6,0.4h14.9l0.8-0.5L129,54l-10.1,31.5l0.4,0.5h18.1  l0.7-0.6L148.7,45l-0.4-0.5h-25.5c0,0-0.9,0.6-1.3,1l-18.3,24.2l-1.7-24.8l-0.6-0.4H75.2l-0.9,0.6L56.8,85.5z" fill="#627BAD" />
+<polygon points="146.5,85.6 147,86 167.2,86 167.9,85.5 183,44.8 182.6,44.5 162.2,44.5 161.6,45.1 " fill="#627BAD" />
+<path d="M231.2,74.5l0.6,0.2l-3.7,9.4c0,0-0.2,0.6-1.6,0.8c0,0-27.2,6.8-40.7-6.3c0,0-5.4-4.8-3.3-14.6  c2.1-9.8,11.9-15.6,21.1-18.1c9.2-2.5,23.5-3.5,36.1,0.7l0.3,0.5l-4,9.2l-0.8,0.2c0,0-5.3-4.7-18.7-2.5c0,0-9.1,1-13.3,10.4  c0,0-2.8,8,5,11.3C215.8,79.1,226.4,76.6,231.2,74.5" fill="#627BAD" />
+<g>
+	<defs>
+		<path id="smic-mark-dark-SVGID_11_" d="M184.9,18.3c0,0,28.2-9,31.6,25.6c3.8-0.2,7.8-0.2,11.8,0.3c0-0.2,0-0.3,0-0.5c-0.1-11-2.5-34.7-20.2-34.7    C202.3,9,194.7,11.7,184.9,18.3" />
+	</defs>
+	<clipPath id="smic-mark-dark-SVGID_1_">
+		<use ns1:href="#smic-mark-dark-SVGID_11_" />
+	</clipPath>
+
+		<linearGradient id="smic-mark-dark-SVGID_2_" gradientUnits="userSpaceOnUse" x1="-213.4984" y1="493.2073" x2="-211.4474" y2="493.2073" gradientTransform="matrix(28.3339 2.2422 2.2422 -28.3339 5129.8608 14478.2334)">
+		<stop offset="0" stop-color="#DE4243" />
+		<stop offset="0.6118" stop-color="#E79722" />
+		<stop offset="1" stop-color="#F0E428" />
+	</linearGradient>
+	<polygon points="185.2,5.6 231.1,9.3 228.1,47.6 182.2,44  " clip-path="url(#smic-mark-dark-SVGID_1_)" fill="url(#smic-mark-dark-SVGID_2_)" />
+</g>
+<g>
+	<defs>
+		<path id="smic-mark-dark-SVGID_14_" d="M190.1,103.3c0,0-26.3,22.6-42.5-6c0,0,0.2,30.7,24,28.5c23.8-2.2,43.6-39,43.6-39s0-0.1,0.1-0.2    c-3.2,0.2-6.8,0.2-10.5-0.1C197.8,97.1,190.1,103.3,190.1,103.3" />
+	</defs>
+	<clipPath id="smic-mark-dark-SVGID_3_">
+		<use ns1:href="#smic-mark-dark-SVGID_14_" />
+	</clipPath>
+
+		<linearGradient id="smic-mark-dark-SVGID_4_" gradientUnits="userSpaceOnUse" x1="-213.4986" y1="491.7012" x2="-211.4476" y2="491.7012" gradientTransform="matrix(28.3385 2.2425 2.2425 -28.3385 5127.5571 14520.0303)">
+		<stop offset="0" stop-color="#DE4243" />
+		<stop offset="0.6118" stop-color="#E79722" />
+		<stop offset="1" stop-color="#F0E428" />
+	</linearGradient>
+	<polygon points="148,81.1 218.6,86.7 214.9,133.4 144.4,127.8  " clip-path="url(#smic-mark-dark-SVGID_3_)" fill="url(#smic-mark-dark-SVGID_4_)" />
+</g>
+</svg></svg>

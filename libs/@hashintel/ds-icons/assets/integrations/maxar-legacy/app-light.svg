@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="maxar-legacy-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="maxar-legacy-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="maxar-legacy-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#maxar-legacy-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#maxar-legacy-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#maxar-legacy-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="maxar-legacy-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#maxar-legacy-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.36806 -0.27008 228.73611 41.54016" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+ <g>
+  <path d="m130 40.999h9v-9l-32-32h-9v9l11 12-11 11v9h9l11-11z" fill="#FDB913" />
+  <g>
+   <path d="m128-.001h11v11h-11z" fill="#FDB913" />
+  </g>
+ </g>
+ <path d="m174 33 4 8h8v-9l-14-31v-1h-12v1l-15 31v9h9l4-8zm-8-22 5 13h-10z" fill="#FDB913" />
+ <path d="m79 33 4 8h9v-9l-15-31v-1h-12v1l-14 31v9h8l4-8zm-8-22 5 13h-10z" fill="#FDB913" />
+ <g fill="#FDB913">
+  <path d="m207 25.999 13 15h7v-8l-7-8 1-1a10.792 10.792 0 0 0 4-3 12.494 12.494 0 0 0 3-8 13.41 13.41 0 0 0 -5-10c-2.619-2.158-5.728-3-10-3h-20v41h10v-15zm-4-9v-8h11c2.034 0 3 1.966 3 4s-.966 4-3 4z" />
+  <path d="m34 40.999h10v-41h-11l-1 1-10 17-10-17-1-1h-11v41h10v-21l8 13h8l8-13z" />
+ </g>
+</svg></g></svg>

@@ -50721,5 +50721,2105 @@
     "categories": ["Consumer goods", "Health & wellbeing"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
+  },
+  {
+    "name": "strategyAnd",
+    "slug": "strategy-and",
+    "label": "Strategy&",
+    "integrationNames": ["Strategy&", "Strategy and", "Strategy& PwC"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7c/Strategy%26_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://strategyand.pwc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Services & consulting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7c/Strategy%26_logo.svg"
+  },
+  {
+    "name": "pwc",
+    "slug": "pwc",
+    "label": "PwC",
+    "integrationNames": [
+      "PwC",
+      "PricewaterhouseCoopers",
+      "Pricewaterhouse Coopers"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c3/PwC_Company_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FD5108": "#FD5108"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FD5108": "#FD5108"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://pwc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Services & consulting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c3/PwC_Company_Logo.svg",
+    "monoInkScale": 1.66667
+  },
+  {
+    "name": "ey",
+    "slug": "ey",
+    "label": "EY",
+    "integrationNames": ["EY", "Ernst & Young", "Ernst and Young"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/34/EY_logo_2019.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#161D23": "#F5F7FA",
+      "#FFE600": "#FFE600"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#161D23": "#F5F7FA",
+      "#FFE600": "#FFE600"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://ey.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Services & consulting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/34/EY_logo_2019.svg"
+  },
+  {
+    "name": "brand7Eleven",
+    "slug": "7-eleven",
+    "label": "7-Eleven",
+    "integrationNames": ["7-Eleven", "7 Eleven", "Seven Eleven"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e0/7-Eleven_logo_2021.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#EB0F2A": "#EB0F2A",
+      "#147350": "#2FAA7F",
+      "#FF6C00": "#FF6C00"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#EB0F2A": "#EB0F2A",
+      "#147350": "#2FAA7F",
+      "#FF6C00": "#FF6C00"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://7-eleven.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e0/7-Eleven_logo_2021.svg"
+  },
+  {
+    "name": "brand23andme",
+    "slug": "23andme",
+    "label": "23andMe",
+    "integrationNames": ["23andMe", "23AndMe", "23 and Me"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.23andme.org/favicon.svg?v=2026",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#111111": "#F5F7FA",
+      "#D50F67": "#DD3A82",
+      "#3BA510": "#3BA510",
+      "#92C746": "#92C746"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D50F67": "#DD3A82",
+      "#3BA510": "#3BA510",
+      "#92C746": "#92C746",
+      "#9C9EA1": "#9C9EA1"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://23andme.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Health & wellbeing", "Life sciences"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.23andme.org/assets/svg/logo-registered.svg"
+  },
+  {
+    "name": "kpmg",
+    "slug": "kpmg",
+    "label": "KPMG",
+    "integrationNames": ["KPMG"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/db/KPMG_blue_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003087": "#5D7CB3",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003087": "#5D7CB3",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://kpmg.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Services & consulting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/db/KPMG_blue_logo.svg"
+  },
+  {
+    "name": "tsmc",
+    "slug": "tsmc",
+    "label": "TSMC",
+    "integrationNames": ["TSMC", "Taiwan Semiconductor Manufacturing Company"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/tsmc.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#211714": "#211714",
+      "#111111": "#111111",
+      "#E60012": "#E60012",
+      "#221815": "#221815"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#211714": "#211714",
+      "#111111": "#111111",
+      "#E60012": "#E60012",
+      "#221815": "#221815"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://tsmc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/tsmc.svg"
+  },
+  {
+    "name": "skHynix",
+    "slug": "sk-hynix",
+    "label": "SK hynix",
+    "integrationNames": ["SK hynix", "SK Hynix"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/sk-hynix.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E31837": "#E6344F",
+      "#F58025": "#F58025"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E31837": "#E6344F",
+      "#F58025": "#F58025"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://skhynix.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/sk-hynix.svg"
+  },
+  {
+    "name": "mediatek",
+    "slug": "mediatek",
+    "label": "MediaTek",
+    "integrationNames": ["MediaTek"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1a/MediaTek_Logo_wiki.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF9800": "#FF9800"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF9800": "#FF9800"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://mediatek.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1a/MediaTek_Logo_wiki.svg"
+  },
+  {
+    "name": "stmicroelectronics",
+    "slug": "stmicroelectronics",
+    "label": "STMicroelectronics",
+    "integrationNames": ["STMicroelectronics", "ST Microelectronics"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/stmicroelectronics.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#03234B": "#6A7D95"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#03234B": "#6A7D95"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://st.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1b/ST_logo_2020_blue_V.svg"
+  },
+  {
+    "name": "analogDevices",
+    "slug": "analog-devices",
+    "label": "Analog Devices",
+    "integrationNames": ["Analog Devices"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/86/Analog_Devices_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://analog.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/86/Analog_Devices_Logo.svg"
+  },
+  {
+    "name": "renesas",
+    "slug": "renesas",
+    "label": "Renesas",
+    "integrationNames": ["Renesas"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.renesas.com/themes/kachow/src/components/common/images/renesas-logo-blue.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2A289D": "#7573BF"
+    },
+    "logoDarkColors": {
+      "#2A289D": "#7573BF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://renesas.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.renesas.com/themes/kachow/src/components/common/images/renesas-logo-blue.svg"
+  },
+  {
+    "name": "onsemi",
+    "slug": "onsemi",
+    "label": "onsemi",
+    "integrationNames": ["onsemi", "ON Semiconductor"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Onsemi_logo_2021.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#DA7F3A": "#DA7F3A",
+      "#3A4D54": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#DA7F3A": "#DA7F3A",
+      "#3A4D54": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://onsemi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Onsemi_logo_2021.svg"
+  },
+  {
+    "name": "microchipTechnology",
+    "slug": "microchip-technology",
+    "label": "Microchip Technology",
+    "integrationNames": ["Microchip Technology"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/99/Microchip_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#EE2223": "#EE2829",
+      "#231F20": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#EE2223": "#EE2829",
+      "#231F20": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://microchip.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/99/Microchip_logo.svg"
+  },
+  {
+    "name": "marvell",
+    "slug": "marvell",
+    "label": "Marvell",
+    "integrationNames": ["Marvell"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/83/Marvell_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://marvell.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/83/Marvell_Logo.svg"
+  },
+  {
+    "name": "globalfoundries",
+    "slug": "globalfoundries",
+    "label": "GlobalFoundries",
+    "integrationNames": ["GlobalFoundries"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0f/GF_logo_horz_rgb_R_2025.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF6012": "#FF6012"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF6012": "#FF6012"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://gf.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/0f/GF_logo_horz_rgb_R_2025.svg"
+  },
+  {
+    "name": "umc",
+    "slug": "umc",
+    "label": "UMC",
+    "integrationNames": ["UMC", "United Microelectronics Corporation"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9d/UMC-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0057A6": "#3D7FBB",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0057A6": "#3D7FBB",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://umc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9d/UMC-Logo.svg"
+  },
+  {
+    "name": "smic",
+    "slug": "smic",
+    "label": "SMIC",
+    "integrationNames": [
+      "SMIC",
+      "Semiconductor Manufacturing International Corporation"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b0/SMIC_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#173C85": "#627BAD",
+      "#111111": "#F5F7FA",
+      "#F0E428": "#F0E428",
+      "#D71718": "#DE4243",
+      "#E79722": "#E79722"
+    },
+    "logoDarkColors": {
+      "#173C85": "#627BAD",
+      "#111111": "#F5F7FA",
+      "#F0E428": "#F0E428",
+      "#D71718": "#DE4243",
+      "#E79722": "#E79722"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://smics.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b0/SMIC_logo.svg"
+  },
+  {
+    "name": "kioxia",
+    "slug": "kioxia",
+    "label": "Kioxia",
+    "integrationNames": ["Kioxia"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.kioxia.com/etc.clientlibs/kioxia-libs/clientlibs/kioxia/resources/component/kioxia_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://kioxia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.kioxia.com/etc.clientlibs/kioxia-libs/clientlibs/kioxia/resources/component/kioxia_logo.svg"
+  },
+  {
+    "name": "appliedMaterials",
+    "slug": "applied-materials",
+    "label": "Applied Materials",
+    "integrationNames": ["Applied Materials"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7e/Applied_Materials_Inc._Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#569BBE": "#569BBE"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#569BBE": "#569BBE"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://appliedmaterials.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7e/Applied_Materials_Inc._Logo.svg"
+  },
+  {
+    "name": "lamResearch",
+    "slug": "lam-research",
+    "label": "Lam Research",
+    "integrationNames": ["Lam Research"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Lam_Research_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://lamresearch.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Lam_Research_logo.svg"
+  },
+  {
+    "name": "kla",
+    "slug": "kla",
+    "label": "KLA",
+    "integrationNames": ["KLA"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/08/KLA_Corp._logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#41007F": "#916BB5",
+      "#FFFFFF": "#FFFFFF",
+      "#00A7E1": "#00A7E1"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#41007F": "#916BB5",
+      "#FFFFFF": "#FFFFFF",
+      "#00A7E1": "#00A7E1"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://kla.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/08/KLA_Corp._logo.svg"
+  },
+  {
+    "name": "tokyoElectron",
+    "slug": "tokyo-electron",
+    "label": "Tokyo Electron",
+    "integrationNames": ["Tokyo Electron"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/53/Tokyo_Electron_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#54555A": "#F5F7FA",
+      "#75B42B": "#75B42B",
+      "#199ECF": "#199ECF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#54555A": "#F5F7FA",
+      "#75B42B": "#75B42B",
+      "#199ECF": "#199ECF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://tel.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/53/Tokyo_Electron_logo.svg"
+  },
+  {
+    "name": "asmInternational",
+    "slug": "asm-international",
+    "label": "ASM International",
+    "integrationNames": ["ASM International"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.asm.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://asm.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.asm.com/"
+  },
+  {
+    "name": "advantest",
+    "slug": "advantest",
+    "label": "Advantest",
+    "integrationNames": ["Advantest"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.advantest.com/img/common/logo-advantest.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#91003C": "#BA5E84",
+      "#222222": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#91003C": "#BA5E84",
+      "#222222": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://advantest.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.advantest.com/img/common/logo-advantest.svg"
+  },
+  {
+    "name": "teradyne",
+    "slug": "teradyne",
+    "label": "Teradyne",
+    "integrationNames": ["Teradyne"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/04/Teradyne_logo_2014.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#215299": "#597DB3"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#215299": "#597DB3"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://teradyne.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/04/Teradyne_logo_2014.svg"
+  },
+  {
+    "name": "synopsys",
+    "slug": "synopsys",
+    "label": "Synopsys",
+    "integrationNames": ["Synopsys", "Synopsys EDA"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Synopsys_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#573885": "#8872A8"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#573885": "#8872A8"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://synopsys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Developer tools"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Synopsys_Logo.svg"
+  },
+  {
+    "name": "cadence",
+    "slug": "cadence",
+    "label": "Cadence",
+    "integrationNames": ["Cadence", "Cadence Design Systems"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/48/Cadence-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D21C2E": "#DA4655",
+      "#231F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D21C2E": "#DA4655",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://cadence.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Developer tools"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/48/Cadence-Logo.svg"
+  },
+  {
+    "name": "latticeSemiconductor",
+    "slug": "lattice-semiconductor",
+    "label": "Lattice Semiconductor",
+    "integrationNames": ["Lattice Semiconductor"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Lattice_Semiconductor_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFC221": "#FFC221",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFC221": "#FFC221",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://latticesemi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Lattice_Semiconductor_logo.svg"
+  },
+  {
+    "name": "qorvo",
+    "slug": "qorvo",
+    "label": "Qorvo",
+    "integrationNames": ["Qorvo"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Qorvo_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://qorvo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Qorvo_logo.svg"
+  },
+  {
+    "name": "skyworks",
+    "slug": "skyworks",
+    "label": "Skyworks",
+    "integrationNames": ["Skyworks", "Skyworks Solutions"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.skyworksinc.com:443/-/media/SkyWorks/Images/Logo/Skyworks-Vector-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#5487B2": "#5487B2",
+      "#111111": "#F5F7FA",
+      "#002C55": "#637E97"
+    },
+    "logoDarkColors": {
+      "#5487B2": "#5487B2",
+      "#111111": "#F5F7FA",
+      "#002C55": "#637E97"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://skyworksinc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.skyworksinc.com:443/-/media/SkyWorks/Images/Logo/Skyworks-Vector-Logo.svg",
+    "monoInkScale": 1.7
+  },
+  {
+    "name": "wolfspeed",
+    "slug": "wolfspeed",
+    "label": "Wolfspeed",
+    "integrationNames": ["Wolfspeed"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/9/9f/Wolfspeed_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4B2B6D": "#88739F"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4B2B6D": "#88739F"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://wolfspeed.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/9/9f/Wolfspeed_logo.svg"
+  },
+  {
+    "name": "rohm",
+    "slug": "rohm",
+    "label": "ROHM",
+    "integrationNames": ["ROHM"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/97/Logo_ROHM.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#FFFFFF": "#FFFFFF",
+      "#D90013": "#D90013"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#FFFFFF": "#FFFFFF",
+      "#D90013": "#D90013"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://rohm.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/97/Logo_ROHM.svg"
+  },
+  {
+    "name": "nexperia",
+    "slug": "nexperia",
+    "label": "Nexperia",
+    "integrationNames": ["Nexperia"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Nexperia-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#F05128": "#F05128",
+      "#00717D": "#298892"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#F05128": "#F05128",
+      "#00717D": "#298892"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://nexperia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Nexperia-logo.svg"
+  },
+  {
+    "name": "toshiba",
+    "slug": "toshiba",
+    "label": "Toshiba",
+    "integrationNames": ["Toshiba"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/01/Toshiba_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E61E1E": "#E83333",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#E61E1E": "#E83333",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://toshiba.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/01/Toshiba_logo.svg"
+  },
+  {
+    "name": "starlink",
+    "slug": "starlink",
+    "label": "Starlink",
+    "integrationNames": ["Starlink"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/71/Starlink_Logo_2024.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Native circular orbital symbol and stacked wordmark from Starlink’s 2024 identity. The symbol also appears in its official 2024 sustainability report.",
+    "brandWebsite": "https://starlink.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/71/Starlink_Logo_2024.svg"
+  },
+  {
+    "name": "ses",
+    "slug": "ses",
+    "label": "SES",
+    "integrationNames": ["SES"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e1/SES_S.A._2025.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#16023D": "#817696",
+      "#111111": "#F5F7FA",
+      "#3C269D": "#7F71BF",
+      "#270953": "#85749E",
+      "#D1BAFE": "#D1BAFE",
+      "#AA96E8": "#AA96E8",
+      "#30087B": "#8770B2"
+    },
+    "logoDarkColors": {
+      "#16023D": "#817696",
+      "#111111": "#F5F7FA",
+      "#3C269D": "#7F71BF",
+      "#270953": "#85749E",
+      "#D1BAFE": "#D1BAFE",
+      "#AA96E8": "#AA96E8",
+      "#30087B": "#8770B2"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://ses.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e1/SES_S.A._2025.svg",
+    "monoInkScale": 1.13333
+  },
+  {
+    "name": "eutelsat",
+    "slug": "eutelsat",
+    "label": "Eutelsat",
+    "integrationNames": ["Eutelsat"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.eutelsat.com:443/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF4F64": "#FF4F64"
+    },
+    "logoDarkColors": {
+      "#FF4F64": "#FF4F64"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://eutelsat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.eutelsat.com:443/"
+  },
+  {
+    "name": "oneweb",
+    "slug": "oneweb",
+    "label": "OneWeb",
+    "integrationNames": ["OneWeb"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Eutelsat_OneWeb_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FBFBFB": "#FBFBFB",
+      "#FFFBFB": "#FFFBFB",
+      "#FFF4F5": "#FFF4F5",
+      "#111111": "#F5F7FA",
+      "#999999": "#999999",
+      "#989898": "#989898",
+      "#FF4F64": "#FF4F64"
+    },
+    "logoDarkColors": {
+      "#FBFBFB": "#FBFBFB",
+      "#FFFBFB": "#FFFBFB",
+      "#FFF4F5": "#FFF4F5",
+      "#111111": "#F5F7FA",
+      "#999999": "#999999",
+      "#989898": "#989898",
+      "#FF4F64": "#FF4F64"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://oneweb.net/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Eutelsat_OneWeb_logo.svg"
+  },
+  {
+    "name": "viasat",
+    "slug": "viasat",
+    "label": "Viasat",
+    "integrationNames": ["Viasat"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.viasat.com/etc.clientlibs/viasat-base/clientlibs/clientlib-resources/resources/logos/ViasatLogoDefault.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#263942": "#F5F7FA",
+      "#CCD600": "#CCD600",
+      "#C5D41F": "#C5D41F",
+      "#00A7CE": "#00A7CE",
+      "#0077A3": "#1A85AC",
+      "#68BE94": "#68BE94",
+      "#B9D13B": "#B9D13B",
+      "#01B3B1": "#01B3B1",
+      "#24343C": "#F5F7FA",
+      "#009FE3": "#009FE3",
+      "#202E39": "#F5F7FA",
+      "#2B4652": "#F5F7FA",
+      "#A7CC58": "#A7CC58",
+      "#8EC676": "#8EC676",
+      "#CED700": "#CED700",
+      "#2A5668": "#5F808E",
+      "#007EB5": "#0B84B8",
+      "#008ECB": "#008ECB",
+      "#036885": "#34859D",
+      "#0082BB": "#0383BC"
+    },
+    "logoDarkColors": {
+      "#263942": "#F5F7FA",
+      "#CCD600": "#CCD600",
+      "#C5D41F": "#C5D41F",
+      "#00A7CE": "#00A7CE",
+      "#0077A3": "#1A85AC",
+      "#68BE94": "#68BE94",
+      "#B9D13B": "#B9D13B",
+      "#01B3B1": "#01B3B1",
+      "#24343C": "#F5F7FA",
+      "#009FE3": "#009FE3",
+      "#202E39": "#F5F7FA",
+      "#2B4652": "#F5F7FA",
+      "#A7CC58": "#A7CC58",
+      "#8EC676": "#8EC676",
+      "#CED700": "#CED700",
+      "#2A5668": "#5F808E",
+      "#007EB5": "#0B84B8",
+      "#008ECB": "#008ECB",
+      "#036885": "#34859D",
+      "#0082BB": "#0383BC"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://viasat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.viasat.com/etc.clientlibs/viasat-base/clientlibs/clientlib-resources/resources/logos/ViasatLogoDefault.svg",
+    "monoInkScale": 1.0241
+  },
+  {
+    "name": "inmarsat",
+    "slug": "inmarsat",
+    "label": "Inmarsat",
+    "integrationNames": ["Inmarsat"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.inmarsat.com/content/dam/viasat-maritime/decorative-images/Inmarsat_Logo_Vertical_RGB_Black.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://inmarsat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.inmarsat.com/content/dam/viasat-maritime/decorative-images/Inmarsat_Logo_Vertical_RGB_Black.svg"
+  },
+  {
+    "name": "iridium",
+    "slug": "iridium",
+    "label": "Iridium",
+    "integrationNames": ["Iridium"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Iridium_Satellite_LLC_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F2B207": "#F2B207",
+      "#111111": "#F5F7FA",
+      "#89959F": "#89959F"
+    },
+    "logoDarkColors": {
+      "#F2B207": "#F2B207",
+      "#111111": "#F5F7FA",
+      "#89959F": "#89959F"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://iridium.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Iridium_Satellite_LLC_logo.svg",
+    "monoInkScale": 1.42458
+  },
+  {
+    "name": "globalstar",
+    "slug": "globalstar",
+    "label": "Globalstar",
+    "integrationNames": ["Globalstar"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.globalstar.com/en-us",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF6C10": "#FF6C10",
+      "#111111": "#F5F7FA",
+      "#54585A": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FF6C10": "#FF6C10",
+      "#111111": "#F5F7FA",
+      "#54585A": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://globalstar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.globalstar.com/en-us",
+    "monoInkScale": 1.37097
+  },
+  {
+    "name": "hughes",
+    "slug": "hughes",
+    "label": "Hughes",
+    "integrationNames": ["Hughes"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Hughes_Communications_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#005DAC": "#3780BE",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#005DAC": "#3780BE",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://hughes.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Hughes_Communications_logo.svg",
+    "monoInkScale": 1.03239
+  },
+  {
+    "name": "echostar",
+    "slug": "echostar",
+    "label": "EchoStar",
+    "integrationNames": ["EchoStar"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://echostar.com/content/dam/echostar/logos/Navigation_Echostar.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#C4262E": "#D05158"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#C4262E": "#D05158"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://echostar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://echostar.com/content/dam/echostar/logos/Navigation_Echostar.svg"
+  },
+  {
+    "name": "planet",
+    "slug": "planet",
+    "label": "Planet",
+    "integrationNames": ["Planet", "Planet Labs"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/planet.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#009DB1": "#009DB1"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#009DA5": "#009DA5"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://planet.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Planet_Labs_logo.svg"
+  },
+  {
+    "name": "maxarLegacy",
+    "slug": "maxar-legacy",
+    "label": "Maxar (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Maxar_yellow_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FDB913": "#FDB913"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FDB913": "#FDB913"
+    },
+    "logoNotes": "Historical Maxar identity; Maxar Intelligence became Vantor and Maxar Space Systems became Lanteris in October 2025. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://maxar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Maxar_yellow_logo.svg"
+  },
+  {
+    "name": "mdaSpace",
+    "slug": "mda-space",
+    "label": "MDA Space",
+    "integrationNames": ["MDA Space"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://mda.space/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://mda.space/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://mda.space/"
+  },
+  {
+    "name": "ohb",
+    "slug": "ohb",
+    "label": "OHB",
+    "integrationNames": ["OHB"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/37/OHB_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#639DB5": "#639DB5",
+      "#003D62": "#598199"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#639DB5": "#639DB5",
+      "#003D62": "#598199"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://ohb.de/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/37/OHB_Logo.svg"
+  },
+  {
+    "name": "rocketLab",
+    "slug": "rocket-lab",
+    "label": "Rocket Lab",
+    "integrationNames": ["Rocket Lab"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Rocket_Lab_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E42727": "#E63737",
+      "#111111": "#F5F7FA",
+      "#130C0E": "#F5F7FA",
+      "#919498": "#919498"
+    },
+    "logoDarkColors": {
+      "#E42727": "#E63737",
+      "#111111": "#F5F7FA",
+      "#130C0E": "#F5F7FA",
+      "#919498": "#919498"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://rocketlabcorp.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Rocket_Lab_logo.svg"
+  },
+  {
+    "name": "iceye",
+    "slug": "iceye",
+    "label": "ICEYE",
+    "integrationNames": ["ICEYE"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.iceye.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://iceye.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.iceye.com/"
+  },
+  {
+    "name": "astranis",
+    "slug": "astranis",
+    "label": "Astranis",
+    "integrationNames": ["Astranis"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/66d8f757eb129d1a1706d930/66f9bdfc6b6fd608f72931d5_Astranis%20Logo%20Main.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://astranis.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.prod.website-files.com/66d8f757eb129d1a1706d930/66f9bdfc6b6fd608f72931d5_Astranis%20Logo%20Main.svg"
+  },
+  {
+    "name": "capellaSpace",
+    "slug": "capella-space",
+    "label": "Capella Space",
+    "integrationNames": ["Capella Space"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.capellaspace.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://capellaspace.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.capellaspace.com/"
+  },
+  {
+    "name": "gilat",
+    "slug": "gilat",
+    "label": "Gilat",
+    "integrationNames": ["Gilat"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Gilat_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00E6DA": "#00E6DA",
+      "#00849D": "#06879F",
+      "#1B115D": "#7C76A2"
+    },
+    "logoDarkColors": {
+      "#00E6DA": "#00E6DA",
+      "#00849D": "#06879F",
+      "#1B115D": "#7C76A2"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://gilat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Gilat_logo.svg"
+  },
+  {
+    "name": "amazonLeo",
+    "slug": "amazon-leo",
+    "label": "Amazon Leo",
+    "integrationNames": ["Amazon Leo", "Project Kuiper", "Amazon Kuiper"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/55/Amazon_Leo_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#0F141A": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#0F141A": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://leo.amazon.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/55/Amazon_Leo_logo.svg"
+  },
+  {
+    "name": "satellogic",
+    "slug": "satellogic",
+    "label": "Satellogic",
+    "integrationNames": ["Satellogic"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://satellogic.com/wp-content/uploads/2021/07/logo-satellogic.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00B6DB": "#00B6DB",
+      "#59C9E6": "#59C9E6"
+    },
+    "logoDarkColors": {
+      "#59C9E6": "#59C9E6",
+      "#111111": "#F5F7FA",
+      "#00B6DB": "#00B6DB",
+      "#CFD1D2": "#CFD1D2",
+      "#002440": "#6A7F8F"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://satellogic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://satellogic.com/wp-content/uploads/2021/07/logo-satellogic.svg"
+  },
+  {
+    "name": "thalesAleniaSpace",
+    "slug": "thales-alenia-space",
+    "label": "Thales Alenia Space",
+    "integrationNames": ["Thales Alenia Space"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Thales_Alenia_Space_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#232F5D": "#737B98",
+      "#111111": "#F5F7FA",
+      "#00A3C9": "#00A3C9",
+      "#242A75": "#7478A7"
+    },
+    "logoDarkColors": {
+      "#232F5D": "#737B98",
+      "#111111": "#F5F7FA",
+      "#00A3C9": "#00A3C9",
+      "#242A75": "#7478A7"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://thalesaleniaspace.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Thales_Alenia_Space_Logo.svg"
+  },
+  {
+    "name": "aseTechnology",
+    "slug": "ase-technology",
+    "label": "ASE Technology",
+    "integrationNames": [
+      "ASE Technology",
+      "ASE Holdings",
+      "ASE Technology Holding"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ff5eb_logo-white-zh-en.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://aseglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ff5eb_logo-white-zh-en.svg"
+  },
+  {
+    "name": "spireGlobal",
+    "slug": "spire-global",
+    "label": "Spire Global",
+    "integrationNames": ["Spire Global"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://spire.com/wp-content/themes/spire2021/img/spire-global-cubesat-satellite-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#BE0000": "#D24F4F",
+      "#111111": "#F5F7FA",
+      "#04060F": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#BE0000": "#D24F4F",
+      "#111111": "#F5F7FA",
+      "#04060F": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://spire.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://spire.com/wp-content/themes/spire2021/img/spire-global-cubesat-satellite-logo.svg",
+    "monoInkScale": 1.15909
+  },
+  {
+    "name": "astSpacemobile",
+    "slug": "ast-spacemobile",
+    "label": "AST SpaceMobile",
+    "integrationNames": ["AST SpaceMobile", "AST Space Mobile"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://ast-science.com/wp-content/uploads/2025/08/a.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#F5A145": "#F5A145"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#F5A145": "#F5A145"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://ast-science.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ast-science.com/wp-content/uploads/2025/08/a.svg"
+  },
+  {
+    "name": "blacksky",
+    "slug": "blacksky",
+    "label": "BlackSky",
+    "integrationNames": ["BlackSky"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/BKSY-0da1b20a.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FAB216": "#FAB216",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FAB216": "#FAB216",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://blacksky.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/BKSY_BIG-1feb98a6.svg"
+  },
+  {
+    "name": "vantor",
+    "slug": "vantor",
+    "label": "Vantor",
+    "integrationNames": ["Vantor", "Maxar Intelligence"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://vantor.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#010102": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://vantor.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://vantor.com/"
+  },
+  {
+    "name": "telesat",
+    "slug": "telesat",
+    "label": "Telesat",
+    "integrationNames": ["Telesat"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.telesat.com/wp-content/uploads/2020/03/Telesat-Registered-Logo-Navy-RGB_29-43-80.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1D2B50": "#737C93",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1D2B50": "#737C93",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Faithfully vectorized from the 1970 × 275 source raster; original lettering, spacing and geometry retained. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://telesat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.telesat.com/wp-content/uploads/2020/03/Telesat-Registered-Logo-Navy-RGB_29-43-80.png"
+  },
+  {
+    "name": "lanteris",
+    "slug": "lanteris",
+    "label": "Lanteris Space Systems",
+    "integrationNames": ["Lanteris Space Systems", "Maxar Space Systems"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Lanteris_Space_Systems_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FDBA12": "#FDBA12"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FDBA12": "#FDBA12"
+    },
+    "logoNotes": "Faithfully vectorized from the 1199 × 276 source raster; original lettering, spacing and geometry retained. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lanterisspace.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Aerospace & defense"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Lanteris_Space_Systems_logo.png"
+  },
+  {
+    "name": "hashicorp",
+    "slug": "hashicorp",
+    "label": "HashiCorp",
+    "integrationNames": ["HashiCorp"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347594-hashicorp-brand-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://hashicorp.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347594-hashicorp-brand-logos.zip",
+    "searchAliases": [
+      "HashiCorp",
+      "IBM",
+      "Terraform",
+      "Vault",
+      "Consul",
+      "Nomad",
+      "Packer",
+      "Boundary",
+      "Vagrant",
+      "Waypoint",
+      "Vault Radar",
+      "HCP",
+      "Sentinel",
+      "Serf"
+    ]
+  },
+  {
+    "name": "terraform",
+    "slug": "terraform",
+    "label": "Terraform",
+    "integrationNames": [
+      "Terraform",
+      "HashiCorp Terraform",
+      "HCP Terraform",
+      "Terraform Enterprise",
+      "Terraform Cloud"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/terraform/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "vault",
+    "slug": "vault",
+    "label": "Vault",
+    "integrationNames": [
+      "Vault",
+      "HashiCorp Vault",
+      "HCP Vault",
+      "Vault Enterprise",
+      "HCP Vault Dedicated"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/vault/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Security & privacy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "consul",
+    "slug": "consul",
+    "label": "Consul",
+    "integrationNames": ["Consul", "HashiCorp Consul", "Consul Enterprise"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/consul/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "nomad",
+    "slug": "nomad",
+    "label": "Nomad",
+    "integrationNames": ["Nomad", "HashiCorp Nomad", "Nomad Enterprise"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/nomad/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "packer",
+    "slug": "packer",
+    "label": "Packer",
+    "integrationNames": ["Packer", "HashiCorp Packer", "HCP Packer"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/packer/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "boundary",
+    "slug": "boundary",
+    "label": "Boundary",
+    "integrationNames": [
+      "Boundary",
+      "HashiCorp Boundary",
+      "HCP Boundary",
+      "Boundary Enterprise"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/boundary/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Security & privacy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "vagrant",
+    "slug": "vagrant",
+    "label": "Vagrant",
+    "integrationNames": ["Vagrant", "HashiCorp Vagrant"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/vagrant/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "waypoint",
+    "slug": "waypoint",
+    "label": "Waypoint",
+    "integrationNames": ["Waypoint", "HashiCorp Waypoint", "HCP Waypoint"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native SVGs from HashiCorp’s official 2026 brand pack, including supplied light/dark artwork and attributed product lock-ups.",
+    "brandWebsite": "https://developer.hashicorp.com/waypoint/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "vaultRadar",
+    "slug": "vault-radar",
+    "label": "Vault Radar",
+    "integrationNames": ["Vault Radar", "HCP Vault Radar"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://developer.hashicorp.com/hcp/docs/vault-radar/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Security & privacy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "searchAliases": ["HashiCorp", "IBM"],
+    "monoInkScale": 4.72222
+  },
+  {
+    "name": "hcpVaultSecretsLegacy",
+    "slug": "hcp-vault-secrets-legacy",
+    "label": "HCP Vault Secrets (legacy)",
+    "integrationNames": [],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Official historical hosted-product identity, retained as legacy after the service reached end of life.",
+    "brandWebsite": "https://developer.hashicorp.com/hcp/docs/vault-secrets",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Security & privacy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "monoInkScale": 4.72222
+  },
+  {
+    "name": "hcpConsulDedicatedLegacy",
+    "slug": "hcp-consul-dedicated-legacy",
+    "label": "HCP Consul Dedicated (legacy)",
+    "integrationNames": [],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Official historical hosted-product identity, retained as legacy after the service reached end of life.",
+    "brandWebsite": "https://developer.hashicorp.com/hcp/docs/consul",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.datocms-assets.com/2885/1776347329-hashicorp-product-logos.zip",
+    "monoInkScale": 1.5
+  },
+  {
+    "name": "hashicorpCloudPlatform",
+    "slug": "hashicorp-cloud-platform",
+    "label": "HashiCorp Cloud Platform",
+    "integrationNames": ["HashiCorp Cloud Platform", "HCP"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://developer.hashicorp.com/hcp",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://developer.hashicorp.com/hcp/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://developer.hashicorp.com/hcp",
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "sentinel",
+    "slug": "sentinel",
+    "label": "Sentinel",
+    "integrationNames": ["Sentinel", "HashiCorp Sentinel"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datocms-assets.com/2885/1776347594-hashicorp-brand-logos.zip",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Sentinel is presented under the HashiCorp corporate identity on its official documentation and playground. Uses the official corporate mark; no separate verified Sentinel wordmark lock-up is supplied.",
+    "brandWebsite": "https://developer.hashicorp.com/sentinel/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Security & privacy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "searchAliases": ["HashiCorp", "IBM"]
+  },
+  {
+    "name": "serf",
+    "slug": "serf",
+    "label": "Serf",
+    "integrationNames": ["Serf", "HashiCorp Serf"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/hashicorp/serf/blob/v0.10.1/website/source/assets/images/logo-text.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#B03C44": "#BE5E65"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#B03C44": "#BE5E65"
+    },
+    "logoNotes": "Native Serf artwork from the project’s official website source at v0.10.1; the site has moved to GitHub documentation.",
+    "brandWebsite": "https://github.com/hashicorp/serf",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/hashicorp/serf/blob/v0.10.1/website/source/assets/images/logo-text.svg",
+    "searchAliases": ["HashiCorp", "IBM"],
+    "monoInkScale": 1.5
+  },
+  {
+    "name": "amplifyPartners",
+    "slug": "amplify-partners",
+    "label": "Amplify Partners",
+    "integrationNames": ["Amplify Partners", "Amplify Ventures"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.amplifypartners.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#FFFFFF"
+    },
+    "logoSource": "https://www.amplifypartners.com/",
+    "logoNotes": "Native outlined striped-A mark from the official website footer and wordmark from its navigation. Matches the supplied reference without its orange background; light artwork is black and dark artwork white. No substitute typography or raster tracing.",
+    "brandWebsite": "https://www.amplifypartners.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
   }
 ]

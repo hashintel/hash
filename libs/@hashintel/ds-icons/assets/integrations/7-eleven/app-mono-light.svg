@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="7-eleven-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="7-eleven-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="7-eleven-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#7-eleven-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#7-eleven-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#7-eleven-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="7-eleven-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.283424282696 -0.95345741761 -0.0962522728627 0 1.33313397317" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#7-eleven-app-mono-light-mono)"><defs><clipPath id="7-eleven-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#7-eleven-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" id="7-eleven-app-mono-light-Layer_1" x="14.222222222222221" y="14.222222222222221" viewBox="-0.07543 -0.09686 45.15086 60.08229" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556">
+<g>
+	<defs>
+		<rect id="7-eleven-app-mono-light-SVGID_1_" width="45" height="59.9" />
+	</defs>
+	<clipPath id="7-eleven-app-mono-light-SVGID_2_">
+		<use ns1:href="#7-eleven-app-mono-light-SVGID_1_" />
+	</clipPath>
+	<path d="M34.2,45c0.9,0,1.7,0.8,1.7,1.7c0,0.9-0.7,1.7-1.7,1.7c-0.9,0-1.6-0.8-1.6-1.7C32.6,45.8,33.3,45,34.2,45    M34.2,48c0.7,0,1.3-0.6,1.3-1.3c0-0.8-0.6-1.3-1.3-1.3c-0.7,0-1.3,0.6-1.3,1.3C32.9,47.5,33.5,48,34.2,48 M34,47.6h-0.3v-1.8h0.6   c0.4,0,0.6,0.2,0.6,0.6c0,0.3-0.2,0.5-0.4,0.5l0.4,0.7h-0.4l-0.4-0.7H34V47.6z M34.2,46.6c0.2,0,0.3-0.1,0.3-0.3   c0-0.2-0.1-0.3-0.3-0.3H34v0.5H34.2z" clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#147350" />
+	<path d="M42.2,32.3c-0.9,0-1.5,0.4-2.1,0.9l-0.4,0.6l-0.1-0.1l0.5-0.8v-0.5h-3.2v10.6h2.9v-6.7c0-1.1,0.7-1.4,1.2-1.5   c0.5-0.1,1.1,0.2,1.1,0.8v7.4H45v-7.3C45,33.4,44,32.3,42.2,32.3" clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#147350" />
+	<polygon points="9.9,40.6 12.9,40.6 12.9,42.9 7,42.9 7,32.3 9.9,32.3  " clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#147350" />
+	<polygon points="0,42.9 5.9,42.9 5.9,40.8 2.9,40.8 2.9,38.5 5.9,38.5 5.9,36.5 2.9,36.5 2.9,34.5 5.9,34.5 5.9,32.3    0,32.3  " clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#147350" />
+	<polygon points="13.9,42.9 19.9,42.9 19.9,40.8 16.8,40.8 16.8,38.5 19.9,38.5 19.9,36.5 16.8,36.5 16.8,34.5    19.9,34.5 19.9,32.3 13.9,32.3  " clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#147350" />
+	<polygon points="29.9,42.9 35.9,42.9 35.9,40.8 32.8,40.8 32.8,38.5 35.9,38.5 35.9,36.5 32.8,36.5 32.8,34.5    35.9,34.5 35.9,32.3 29.9,32.3  " clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#147350" />
+	<polygon points="26.1,32.3 26.1,32.3 26.1,32.3 25,39 24.9,40.2 24.9,40.3 24.8,40.3 24.8,40.2 24.7,39 23.6,32.3    23.6,32.3 20.7,32.3 23.1,42.9 26.7,42.9 29.1,32.3  " clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#147350" />
+	<path d="M37.7,0H0v15h19.9C24.4,8.5,30.5,3.3,37.7,0" clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#FF6C00" />
+	<polygon points="15,59.9 30,59.9 30,44.9 15,44.9  " clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#EB0F2A" />
+	<path d="M45,15V0C30.7,3.9,19.5,15.4,16.1,30h15.3C33.7,23.3,38.7,17.9,45,15" clip-path="url(#7-eleven-app-mono-light-SVGID_2_)" fill="#EB0F2A" />
+</g>
+</svg></g></g></svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mediatek-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="mediatek-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mediatek-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mediatek-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mediatek-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mediatek-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="mediatek-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.588781514522 -1.98069867914 -0.199953082542 0 2.76943327621" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#mediatek-app-mono-light-mono)"><defs><clipPath id="mediatek-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mediatek-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="mediatek-app-mono-light-Logo" x="11.35483870967742" y="11.35483870967742" viewBox="-0.70217 71.9353 1025.40434 124.1294" fill="#111111" color="black" width="41.29032258064516" height="41.29032258064516">
+<g>
+	<rect x="906.72" y="74.04" width="33.71" height="119.89" fill="#FF9800" />
+	<polygon points="988.9,134.13 988.83,134.13 988.9,133.86 1023.5,74.04 989.8,74.04 955.19,133.86 955.38,134.13    955.19,134.13 955.19,134.13 955.19,134.13 989.8,193.94 1023.5,193.94 1023.5,193.94 1023.5,193.94  " fill="#FF9800" />
+	<polygon points="617.04,74.06 604.14,74.06 595.36,74.06 589.97,74.06 520.74,193.94 554.84,193.94 604.14,108.58    604.14,193.94 638.21,193.94 638.21,74.06 619.91,74.06  " fill="#FF9800" />
+	<polygon points="247.78,143.96 300.85,143.96 312.33,124.3 258.51,124.3  " fill="#FF9800" />
+	<path d="M236.93,119.52l0.03,0.01c0-15.15,4.53-20.84,19.27-20.84h47.96l14.35-24.85H251.2   c-28.68,0-47.63,10.05-47.63,46.39v73.95h103.61l14.34-24.85h-84.6V119.52z" fill="#FF9800" />
+	<polygon points="819.35,143.96 872.42,143.96 883.91,124.3 830.08,124.3  " fill="#FF9800" />
+	<path d="M809.67,119.52l0.03,0.01c0-15.15,4.54-20.84,19.28-20.84h47.95l14.36-24.85h-67.34   c-28.68,0-47.62,10.05-47.62,46.39v73.95h103.61l14.35-24.85h-84.61V119.52z" fill="#FF9800" />
+	<polygon points="653.09,98.99 695.03,98.99 695.03,193.94 728.02,193.94 728.02,98.99 759.05,98.99 773.44,74.06    667.5,74.06  " fill="#FF9800" />
+	<path d="M398.17,73.83h-57.8v120.34h59.35c41.68,0,60.43-16.08,60.43-61.12C460.15,90.46,441.58,73.83,398.17,73.83z    M390.99,169.37h-18.3V98.63h18.3c26.65,0,35,4.7,35,34.46C425.99,162.86,417.64,169.37,390.99,169.37z" fill="#FF9800" />
+	<rect x="478.97" y="74.06" width="33.7" height="119.88" fill="#FF9800" />
+	<polygon points="109.72,134.98 109.72,74.06 69.64,74.18 0.5,193.81 33.56,193.81 76.01,120.38 76.01,193.32    75.72,193.81 76.01,193.81 76.01,193.94 109.72,193.94 151.23,120.38 151.23,193.94 184.94,193.94 184.94,74.06 144.85,74.18  " fill="#FF9800" />
+</g>
+</svg></g></g></svg>
