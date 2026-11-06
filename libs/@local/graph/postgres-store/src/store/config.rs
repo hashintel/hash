@@ -185,8 +185,8 @@ impl DatabaseConnectionInfo {
     ///
     /// # Errors
     ///
-    /// Returns [`RootCertificateError`] if TLS is enabled and the root certificate is missing or
-    /// cannot be loaded.
+    /// - [`RootCertificateError::Missing`] if TLS is enabled without a root certificate
+    /// - the other [`RootCertificateError`] variants if the root certificate cannot be loaded
     pub fn tls(&self) -> Result<MakeRustlsConnect, Report<RootCertificateError>> {
         match (self.ssl_mode, &self.ssl_root_cert) {
             // `config` sets `SslMode::Disable`, so tokio-postgres never uses the connector.
@@ -194,9 +194,7 @@ impl DatabaseConnectionInfo {
             (DatabaseSslMode::VerifyFull, Some(path)) => load_root_certificates(path)
                 .map(connector)
                 .attach_with(|| path.display().to_string()),
-            (DatabaseSslMode::VerifyFull, None) => {
-                Err(Report::new(RootCertificateError).attach("TLS is enabled without one"))
-            }
+            (DatabaseSslMode::VerifyFull, None) => Err(Report::new(RootCertificateError::Missing)),
         }
     }
 
@@ -274,7 +272,7 @@ mod tests {
     use hash_crypto::Secret;
     use tokio_postgres::config::Host;
 
-    use super::{DatabaseConnectionInfo, DatabaseSslMode, DatabaseType};
+    use super::{DatabaseConnectionInfo, DatabaseSslMode, DatabaseType, RootCertificateError};
 
     #[test]
     fn config_reserved_characters() {
@@ -332,8 +330,12 @@ mod tests {
 
     #[test]
     fn tls_enabled_without_root_cert() {
+        let report = local_info(DatabaseSslMode::VerifyFull)
+            .tls()
+            .err()
+            .expect("verify-full without a root certificate should be rejected");
         assert!(
-            local_info(DatabaseSslMode::VerifyFull).tls().is_err(),
+            matches!(report.current_context(), RootCertificateError::Missing),
             "verify-full should require a root certificate"
         );
     }

@@ -38,12 +38,12 @@ mod upload;
 
 pub(crate) use self::{
     document::GenerationDocument,
-    download::{Download, DownloadError, DownloadOptions, DownloadTask},
+    download::{Download, DownloadOptions, DownloadTask},
     error::{ActivateError, CurrentError, OpenError, RemoveError, SealError},
     open::Generation,
     scratch::ScratchDirectory,
     staging::{PublishedGeneration, StagedGeneration},
-    upload::{Promotion, PromotionOptions, Upload, UploadError},
+    upload::{Promotion, PromotionOptions, Upload},
 };
 
 /// The metadata document's file name within a generation directory.

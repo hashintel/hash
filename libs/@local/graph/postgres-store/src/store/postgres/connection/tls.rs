@@ -11,8 +11,23 @@ use rustls::{
 use tokio_postgres_rustls::MakeRustlsConnect;
 
 #[derive(Debug, derive_more::Display)]
-#[display("could not load the root certificate")]
-pub struct RootCertificateError;
+pub enum RootCertificateError {
+    /// TLS is enabled, but no root certificate is configured.
+    #[display("TLS is enabled without a root certificate")]
+    Missing,
+    /// The root certificate file could not be opened.
+    #[display("the root certificate file could not be read")]
+    Read,
+    /// The root certificate file is not valid PEM.
+    #[display("the root certificate file could not be parsed")]
+    Parse,
+    /// A certificate in the file was rejected.
+    #[display("the root certificate is invalid")]
+    Invalid,
+    /// The root certificate file contains no certificate.
+    #[display("the root certificate file contains no certificate")]
+    Empty,
+}
 
 impl Error for RootCertificateError {}
 
@@ -20,19 +35,29 @@ impl Error for RootCertificateError {}
 ///
 /// # Errors
 ///
-/// Returns [`RootCertificateError`] if `path` cannot be read or holds no valid certificate.
+/// - [`Read`] if `path` cannot be opened
+/// - [`Parse`] if `path` is not valid PEM
+/// - [`Invalid`] if a certificate in `path` is rejected
+/// - [`Empty`] if `path` contains no certificate
+///
+/// [`Read`]: RootCertificateError::Read
+/// [`Parse`]: RootCertificateError::Parse
+/// [`Invalid`]: RootCertificateError::Invalid
+/// [`Empty`]: RootCertificateError::Empty
 pub(crate) fn load_root_certificates(
     path: &Path,
 ) -> Result<RootCertStore, Report<RootCertificateError>> {
     let mut roots = RootCertStore::empty();
-    for certificate in CertificateDer::pem_file_iter(path).change_context(RootCertificateError)? {
+    for certificate in
+        CertificateDer::pem_file_iter(path).change_context(RootCertificateError::Read)?
+    {
         roots
-            .add(certificate.change_context(RootCertificateError)?)
-            .change_context(RootCertificateError)?;
+            .add(certificate.change_context(RootCertificateError::Parse)?)
+            .change_context(RootCertificateError::Invalid)?;
     }
 
     if roots.is_empty() {
-        return Err(Report::new(RootCertificateError).attach("the file contains no certificate"));
+        return Err(Report::new(RootCertificateError::Empty));
     }
     Ok(roots)
 }
@@ -51,22 +76,26 @@ pub(crate) fn connector(roots: RootCertStore) -> MakeRustlsConnect {
 mod tests {
     use std::path::Path;
 
-    use super::load_root_certificates;
+    use super::{RootCertificateError, load_root_certificates};
 
     #[test]
     fn missing_file() {
+        let report = load_root_certificates(Path::new("/nonexistent/root.pem"))
+            .expect_err("a missing file should be rejected");
         assert!(
-            load_root_certificates(Path::new("/nonexistent/root.pem")).is_err(),
-            "a missing file should be rejected"
+            matches!(report.current_context(), RootCertificateError::Read),
+            "a missing file should fail to be read"
         );
     }
 
     #[test]
     fn file_without_certificate() {
         let not_pem = Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
+        let report = load_root_certificates(&not_pem)
+            .expect_err("a file without a certificate should be rejected");
         assert!(
-            load_root_certificates(&not_pem).is_err(),
-            "a file without a certificate should be rejected"
+            matches!(report.current_context(), RootCertificateError::Empty),
+            "a file without a certificate should be reported as empty"
         );
     }
 }

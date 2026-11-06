@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::ValueHint;
+use error_stack::{Report, ResultExt as _};
 use tokio_postgres::Client;
 
 use self::error::FitError;
@@ -286,7 +287,7 @@ where
         self,
         client: &mut Client,
         credential: EmbedderArgs,
-    ) -> Result<FitVerdict, FitError>
+    ) -> Result<FitVerdict, Report<FitError>>
     where
         P::Detached: UnwindSafe,
     {
@@ -309,12 +310,15 @@ where
         );
 
         // the provider retains its observer across requests.
-        let embedder =
-            embedder::openai(credential.into_key(), self.options.progress.detach()).await?;
+        let embedder = embedder::openai(credential.into_key(), self.options.progress.detach())
+            .await
+            .change_context(FitError::Embedder)?;
 
         let upload = match self.upload.as_ref() {
             Some(path) => {
-                let upload = Upload::prepare(&self.storage, &self.root, path).await?;
+                let upload = Upload::prepare(&self.storage, &self.root, path)
+                    .await
+                    .change_context(FitError::Upload)?;
                 Some(upload)
             }
             None => None,
@@ -322,7 +326,10 @@ where
 
         if let Some(download) = self.download {
             let mut download = Download::new(&self.storage, &self.root, &download);
-            download.synchronize().await?;
+            download
+                .synchronize()
+                .await
+                .change_context(FitError::Download)?;
         }
 
         let started = Instant::now();
@@ -334,18 +341,29 @@ where
             self.options,
             &embedder,
         )
-        .await?;
+        .await
+        .change_context(FitError::Run)?;
         let elapsed = started.elapsed();
 
         let mut buffer = Vec::new();
-        serde_json::to_writer_pretty(&mut buffer, &summary.report)?;
-        tokio::fs::write(&self.report, buffer).await?;
+        serde_json::to_writer_pretty(&mut buffer, &summary.report)
+            .change_context(FitError::Serialize)?;
+        tokio::fs::write(&self.report, buffer)
+            .await
+            .change_context(FitError::Write)
+            .attach_with(|| self.report.clone())?;
 
         if let Some(upload) = upload {
-            upload.upload(summary.generation).await?;
+            upload
+                .upload(summary.generation)
+                .await
+                .change_context(FitError::Upload)?;
 
             if summary.activated {
-                let Promotion { id } = upload.promote(summary.generation, self.promotion).await?;
+                let Promotion { id } = upload
+                    .promote(summary.generation, self.promotion)
+                    .await
+                    .change_context(FitError::Upload)?;
                 tracing::info!(%id, "promoted generation");
             }
         }
@@ -375,7 +393,7 @@ where
         clippy::significant_drop_tightening,
         reason = "storage is active for the lifetime of the closure"
     )]
-    pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, FitError>
+    pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, Report<FitError>>
     where
         P::Detached: UnwindSafe,
     {
@@ -400,25 +418,39 @@ where
 
         let upload = match self.upload.as_ref() {
             Some(path) => {
-                let upload = Upload::prepare(&self.storage, &self.root, path).await?;
+                let upload = Upload::prepare(&self.storage, &self.root, path)
+                    .await
+                    .change_context(FitError::Upload)?;
                 Some(upload)
             }
             None => None,
         };
 
         let started = Instant::now();
-        let summary = offline(dump, &self.root, self.device, self.options).await?;
+        let summary = offline(dump, &self.root, self.device, self.options)
+            .await
+            .change_context(FitError::Run)?;
         let elapsed = started.elapsed();
 
         let mut buffer = Vec::new();
-        serde_json::to_writer_pretty(&mut buffer, &summary.report)?;
-        tokio::fs::write(&self.report, buffer).await?;
+        serde_json::to_writer_pretty(&mut buffer, &summary.report)
+            .change_context(FitError::Serialize)?;
+        tokio::fs::write(&self.report, buffer)
+            .await
+            .change_context(FitError::Write)
+            .attach_with(|| self.report.clone())?;
 
         if let Some(upload) = upload {
-            upload.upload(summary.generation).await?;
+            upload
+                .upload(summary.generation)
+                .await
+                .change_context(FitError::Upload)?;
 
             if summary.activated {
-                let Promotion { id } = upload.promote(summary.generation, self.promotion).await?;
+                let Promotion { id } = upload
+                    .promote(summary.generation, self.promotion)
+                    .await
+                    .change_context(FitError::Upload)?;
                 tracing::info!(%id, "promoted generation");
             }
         }
@@ -442,7 +474,7 @@ impl FitCommand<NoProgress> {
         root: super::RootArgs,
         args: FitArgs,
         storage: Storage,
-    ) -> Result<Self, StorageError> {
+    ) -> Result<Self, Report<StorageError>> {
         let classifier = match (args.annotations, args.classifier) {
             (Some(annotations), None) => {
                 let path = annotations.into_local_file(&storage).await?;

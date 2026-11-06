@@ -1,15 +1,12 @@
 //! The store connection: flags and dialing.
 
 use core::{error::Error, fmt, pin::Pin};
-use std::{io, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::Args;
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
-use hash_graph_postgres_store::store::{
-    DatabaseConnectionInfo, DatabaseSslMode, DatabaseType,
-    postgres::connection::RootCertificateError,
-};
+use hash_graph_postgres_store::store::{DatabaseConnectionInfo, DatabaseSslMode, DatabaseType};
 use tokio::net::TcpStream;
 use tokio_postgres::{Client, config::Host, tls::MakeTlsConnect};
 
@@ -87,7 +84,7 @@ impl PostgresArgs {
     ///
     /// Returns a [`ConnectError`] when the root certificate cannot be loaded, when the host flag
     /// names no TCP host, or when the store refuses the connection or handshake.
-    pub async fn connect(self) -> Result<Client, ConnectError> {
+    pub async fn connect(self) -> Result<Client, Report<ConnectError>> {
         let info = DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
             self.user,
@@ -106,36 +103,27 @@ impl PostgresArgs {
 #[derive(Debug)]
 pub enum ConnectError {
     /// The root certificate could not be loaded.
-    RootCertificate(Report<RootCertificateError>),
+    RootCertificate,
     /// The configuration names no TCP host.
     NoTcpHost,
     /// The store refused the TCP connection.
-    Connect(io::Error),
+    Connect,
     /// The store handshake failed.
-    Handshake(tokio_postgres::Error),
+    Handshake,
 }
 
 impl fmt::Display for ConnectError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::RootCertificate(_) => fmt.write_str("the root certificate could not be loaded"),
+            Self::RootCertificate => fmt.write_str("the root certificate could not be loaded"),
             Self::NoTcpHost => fmt.write_str("the configuration names no TCP host"),
-            Self::Connect(_) => fmt.write_str("the store refused the TCP connection"),
-            Self::Handshake(_) => fmt.write_str("the store handshake failed"),
+            Self::Connect => fmt.write_str("the store refused the TCP connection"),
+            Self::Handshake => fmt.write_str("the store handshake failed"),
         }
     }
 }
 
-impl Error for ConnectError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::RootCertificate(report) => Some(report.as_error()),
-            Self::Handshake(error) => Some(error),
-            Self::NoTcpHost => None,
-            Self::Connect(error) => Some(error),
-        }
-    }
-}
+impl Error for ConnectError {}
 
 /// Dials the store `info` names, over TLS if `info` enables it, and drives the connection on a
 /// background task.
@@ -144,8 +132,8 @@ impl Error for ConnectError {
 ///
 /// Returns a [`ConnectError`] when the root certificate cannot be loaded, when `info` names no TCP
 /// host, when the socket refuses the connection, or when the store rejects the handshake.
-pub async fn connect(info: &DatabaseConnectionInfo) -> Result<Client, ConnectError> {
-    let mut tls = info.tls().map_err(ConnectError::RootCertificate)?;
+pub async fn connect(info: &DatabaseConnectionInfo) -> Result<Client, Report<ConnectError>> {
+    let mut tls = info.tls().change_context(ConnectError::RootCertificate)?;
     let config = info.config();
     let host = config
         .get_hosts()
@@ -155,18 +143,19 @@ pub async fn connect(info: &DatabaseConnectionInfo) -> Result<Client, ConnectErr
             #[cfg(unix)]
             Host::Unix(_) => None,
         })
-        .ok_or(ConnectError::NoTcpHost)?;
+        .ok_or_else(|| Report::new(ConnectError::NoTcpHost))?;
     // 5432 is the protocol's registered port, which tokio-postgres also dials when no port is set.
     let port = config.get_ports().first().copied().unwrap_or(5432);
 
     let stream = TcpStream::connect((host.as_str(), port))
         .await
-        .map_err(ConnectError::Connect)?;
+        .change_context(ConnectError::Connect)
+        .attach_with(|| format!("store address: {host}:{port}"))?;
     let Ok(tls) = MakeTlsConnect::<TcpStream>::make_tls_connect(&mut tls, &host);
     let (client, connection) = config
         .connect_raw(stream, tls)
         .await
-        .map_err(ConnectError::Handshake)?;
+        .change_context(ConnectError::Handshake)?;
     tokio::spawn(async move {
         if let Err(error) = connection.await {
             tracing::error!(%error, "the store connection failed");
