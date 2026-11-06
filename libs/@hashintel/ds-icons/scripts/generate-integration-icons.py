@@ -6,6 +6,7 @@
 import argparse
 import json
 import re
+from datetime import date
 from pathlib import Path
 # defusedxml provides the parsers; these imports only build and serialize elements.
 from xml.etree.ElementTree import Comment, Element, SubElement, register_namespace, tostring  # nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
@@ -17,6 +18,79 @@ source = root / "src/integration-icon"
 register_namespace("", "http://www.w3.org/2000/svg")
 svg_ns = "{http://www.w3.org/2000/svg}"
 variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "logo-light", "logo-dark"]
+
+market_country_codes = set("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW XK".split())
+
+
+def validate_geographic_markets(brands, markets):
+    names = {brand["name"] for brand in brands}
+    if not isinstance(markets, dict) or set(markets) != names:
+        raise ValueError("Geographic markets must contain exactly one record per catalogue identity")
+    for name, profile in markets.items():
+        if name == "genericApp":
+            if profile is not None:
+                raise ValueError("The generic fallback cannot have brand markets")
+            continue
+        if not isinstance(profile, dict):
+            raise ValueError(f"Missing geographic markets for {name}")
+        required = {"scope", "basis", "primaryCountries", "countries", "regions", "countryCoverage", "localities", "assessment", "assessedOn", "verifiedOn", "temporalContext", "notes", "sources", "referenceUrls"}
+        if not required <= set(profile) or set(profile) - required - {"relatedBrand"}:
+            raise ValueError(f"Invalid geographic-market fields for {name}")
+        choices = {
+            "scope": {"global", "regional", "country", "local", "unknown"},
+            "basis": {"brand-presence", "business-presence", "digital-service", "service-footprint", "audience", "project-adoption", "institution"},
+            "countryCoverage": {"complete", "partial", "not-enumerated"},
+            "assessment": {"source-supported", "provisional", "unknown"},
+            "temporalContext": {"current", "historical"},
+        }
+        for key, allowed in choices.items():
+            if not isinstance(profile[key], str) or profile[key] not in allowed:
+                raise ValueError(f"Invalid geographic-market {key} for {name}")
+        for key in ("primaryCountries", "countries", "regions", "referenceUrls"):
+            values = profile[key]
+            if not isinstance(values, list) or any(not isinstance(value, str) for value in values) or len(values) != len(set(values)):
+                raise ValueError(f"Invalid geographic-market {key} list for {name}")
+        if not set(profile["primaryCountries"]) <= set(profile["countries"]) <= market_country_codes:
+            raise ValueError(f"Invalid or missing market country codes for {name}")
+        if not set(profile["regions"]) <= {"Africa", "Asia", "Europe", "NorthAmerica", "SouthAmerica", "Oceania"}:
+            raise ValueError(f"Invalid market regions for {name}")
+        if (profile["countryCoverage"] == "not-enumerated") != (not profile["countries"]):
+            raise ValueError(f"Country-list coverage contradicts market countries for {name}")
+        if profile["scope"] in {"country", "local"} and len(profile["countries"]) != 1:
+            raise ValueError(f"Country/local market scope requires one country for {name}")
+        if not isinstance(profile["localities"], list) or any(not isinstance(place, dict) or set(place) != {"country", "name"} or place["country"] not in profile["countries"] or not isinstance(place["name"], str) or not place["name"].strip() for place in profile["localities"]):
+            raise ValueError(f"Invalid market localities for {name}")
+        if profile["scope"] == "local" and not profile["localities"]:
+            raise ValueError(f"Local market scope requires a locality for {name}")
+        if profile["scope"] == "unknown" and (profile["assessment"] != "unknown" or profile["countries"] or profile["regions"] or profile["localities"]):
+            raise ValueError(f"Unknown market scope cannot assert geography for {name}")
+        if (profile["scope"] == "unknown") != (profile["assessment"] == "unknown"):
+            raise ValueError(f"Unknown market assessment and scope must agree for {name}")
+        if not isinstance(profile["notes"], str) or not profile["notes"].strip():
+            raise ValueError(f"Missing geographic-market qualification for {name}")
+        if not isinstance(profile["sources"], list):
+            raise ValueError(f"Invalid geographic-market sources for {name}")
+        dates = [profile["assessedOn"]]
+        if profile["assessment"] == "source-supported":
+            if not profile["sources"] or not profile["verifiedOn"]:
+                raise ValueError(f"Source-supported market assessment needs evidence and a date for {name}")
+            dates.append(profile["verifiedOn"])
+        elif profile["verifiedOn"] is not None:
+            raise ValueError(f"Unverified market assessment cannot have a verification date for {name}")
+        urls = list(profile["referenceUrls"])
+        for evidence in profile["sources"]:
+            if not isinstance(evidence, dict) or set(evidence) != {"url", "checkedOn", "summary"} or not isinstance(evidence["summary"], str) or not evidence["summary"].strip():
+                raise ValueError(f"Invalid geographic-market evidence for {name}")
+            dates.append(evidence["checkedOn"])
+            urls.append(evidence["url"])
+        if any(not isinstance(url, str) or not re.fullmatch(r"https?://[^\s/]+(?:/[^\s]*)?", url) for url in urls):
+            raise ValueError(f"Invalid geographic-market source URL for {name}")
+        for value in dates:
+            if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                raise ValueError(f"Invalid geographic-market date for {name}")
+            date.fromisoformat(value)
+        if "relatedBrand" in profile and (not isinstance(profile["relatedBrand"], str) or profile["relatedBrand"] not in names or profile["relatedBrand"] in {name, "genericApp"}):
+            raise ValueError(f"Invalid related geographic-market identity for {name}")
 
 
 def tag_name(element):
@@ -298,6 +372,8 @@ def variant_svg(brand, variant):
 
 def generate(catalog_only=False):
     brands = json.loads((source / "brands.json").read_text())
+    markets = json.loads((source / "geographic-markets.json").read_text())
+    validate_geographic_markets(brands, markets)
     imports = []
     registry = []
     files = {}
@@ -344,6 +420,14 @@ def generate(catalog_only=False):
     files[root / "src/integration-icon-catalog.ts"] += '\nexport const integrationIconCategories = ' + json.dumps(sorted({category for brand in brands for category in brand["categories"]})) + ' as const;\n\nexport type IntegrationIconCategory = (typeof integrationIconCategories)[number];\n'
     if catalog_only:
         files = {root / "src/integration-icon-catalog.ts": files[root / "src/integration-icon-catalog.ts"]}
+    files[root / "src/integration-icon-geographic-markets.ts"] = (
+        'import type { IntegrationIconName } from "./integration-icon-catalog";\n'
+        'import type { BrandGeographicMarkets } from "./integration-icon/geographic-market-types";\n'
+        '\n'
+        'export type { BrandGeographicMarkets } from "./integration-icon/geographic-market-types";\n\n'
+        'export const integrationIconGeographicMarkets: { readonly [Name in IntegrationIconName]: Name extends "genericApp" ? null : BrandGeographicMarkets } = '
+        + json.dumps(markets, indent=2, ensure_ascii=False) + ';\n'
+    )
     for path, contents in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(contents)

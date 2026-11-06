@@ -239,6 +239,54 @@ The package includes 8,093 standalone SVGs. They are exported as `@hashintel/ds-
 
 Where a source provides only a wordmark, the full logo pairs it with the sourced brand mark. These composed lock-ups are identified in `logoNotes`; brands whose mark is already their wordmark keep that artwork.
 
+### Geographic market metadata
+
+Every brand has a separate market profile keyed by its `IntegrationIconName`.
+Import it explicitly; it is not part of the normal icon exports or the
+hash.design catalogue, and no geographic controls are shown in the site.
+
+```ts
+import { integrationIconGeographicMarkets } from "@hashintel/ds-icons/integrations/markets";
+
+const markets = integrationIconGeographicMarkets.rewe;
+// markets.scope === "country"; markets.countries includes "DE".
+```
+
+The source is `src/integration-icon/geographic-markets.json`. It describes
+geographic relevance, not headquarters, legal service eligibility, language,
+or guaranteed availability of every product. A brand's `basis` identifies
+whether its profile concerns brand or business presence, digital services,
+service coverage, audience, project adoption, or an institution's remit.
+
+| Field                             | Meaning                                                                                                                                                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scope`                           | `global` for broad international relevance, `regional` for a bounded multinational or regional core, `country` for a national core, `local` for a named locality, or `unknown`. Global does not mean every country. |
+| `primaryCountries`                | Core customer, audience or hub markets where assessed; not a country-of-origin field. Always a subset of `countries`.                                                                                               |
+| `countries`                       | Assessed country/territory markets. Codes follow ISO 3166-1 alpha-2, with `XK` for Kosovo; use `GB`, not `UK`.                                                                                                      |
+| `countryCoverage`                 | Whether the country list is `complete`, `partial`, or `not-enumerated`. An empty list is unenumerated, not a claim of no markets.                                                                                   |
+| `regions`, `localities`           | Broad geographic hints and named local areas. Regions are not a complete service-territory definition.                                                                                                              |
+| `assessment`                      | `source-supported` for an assessment backed by reviewed evidence, `provisional` for an initial assessment needing verification, or `unknown` when no geographic assertion is made.                                  |
+| `assessedOn`, `verifiedOn`        | Assessment and evidence-review dates, independent of artwork checks. Unverified profiles have a null verification date.                                                                                             |
+| `sources`                         | Reviewed evidence URLs, check dates and a summary of what each supports.                                                                                                                                            |
+| `referenceUrls`                   | Research starting points only; their presence does not mean they support the assessment.                                                                                                                            |
+| `temporalContext`, `relatedBrand` | Current or historical footprint, with an optional related identity. Legacy artwork for a continuing brand uses its current footprint; a retired service keeps historical context.                                   |
+| `notes`                           | Qualifications such as franchise coverage, separate subsidiary brands or distinctions between an airline's home markets and destinations.                                                                           |
+
+The initial dataset combines source-supported records with provisional
+assessments; it is not a verified global availability database. Do not use
+provisional, unknown, partial or unenumerated profiles to hard-exclude a brand
+from a country. Even a complete list applies only to the stated basis and
+review date. Future filtering should account for these qualifications and
+refresh evidence before relying on exact coverage.
+
+Add or update profiles alongside brand identities, retaining unknown reach
+explicitly when evidence is missing. Record the source and review date only
+after checking it; generation preserves dates. `genericApp` has a null profile.
+The generator validates identity coverage, country codes, evidence and dates,
+then writes `src/integration-icon-geographic-markets.ts`. For metadata-only
+changes, run the generator with `--catalog-only` and format both generated
+catalogue files.
+
 ### Maintaining the artwork
 
 Each catalogue entry records `lastCheckedAutomated` and `lastCheckedManually` as ISO dates (`YYYY-MM-DD`) or `null` when no check is recorded. Update these dates only after the corresponding check; generation preserves them without advancing them. The generic fallback is not a brand and has no check dates.

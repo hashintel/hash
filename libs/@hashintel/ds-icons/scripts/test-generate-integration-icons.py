@@ -2,8 +2,10 @@
 # requires-python = ">=3.9"
 # dependencies = ["defusedxml==0.7.1"]
 # ///
-"""Check that SVG generation rejects document types and entity expansion."""
+"""Check SVG safety, mono contrast and geographic-market validation."""
+import copy
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -95,6 +97,64 @@ class MonoContrastTests(unittest.TestCase):
         artwork = '<svg fill="white"><use href="#mark"/><symbol id="mark"><path fill="#006FCF"/><path/></symbol></svg>'
         self.assertAlmostEqual(self.alpha(artwork, (0, 111 / 255, 207 / 255)), 1)
         self.assertAlmostEqual(self.alpha(artwork, (1, 1, 1)), 0)
+
+
+class GeographicMarketTests(unittest.TestCase):
+    def setUp(self):
+        self.brands = [{"name": "example"}, {"name": "genericApp"}]
+        self.profile = {
+            "scope": "country",
+            "basis": "service-footprint",
+            "primaryCountries": ["GB"],
+            "countries": ["GB"],
+            "regions": ["Europe"],
+            "countryCoverage": "partial",
+            "localities": [],
+            "assessment": "provisional",
+            "assessedOn": "2026-11-06",
+            "verifiedOn": None,
+            "temporalContext": "current",
+            "notes": "UK service core; individual service areas need verification.",
+            "sources": [],
+            "referenceUrls": ["https://example.com/"],
+        }
+        self.markets = {"example": self.profile, "genericApp": None}
+
+    def test_complete_catalogue_validates_without_mutating_dates(self):
+        brands = json.loads((generator.source / "brands.json").read_text())
+        markets = json.loads((generator.source / "geographic-markets.json").read_text())
+        original = copy.deepcopy(markets)
+        generator.validate_geographic_markets(brands, markets)
+        self.assertEqual(markets, original)
+
+    def test_requires_exact_identity_coverage_and_an_empty_generic_fallback(self):
+        for markets in ({"genericApp": None}, {**self.markets, "extra": self.profile}, {"example": self.profile, "genericApp": self.profile}):
+            with self.subTest(markets=markets), self.assertRaises(ValueError):
+                generator.validate_geographic_markets(self.brands, markets)
+
+    def test_country_codes_and_primary_markets_must_be_consistent(self):
+        for update in ({"countries": ["UK"]}, {"primaryCountries": ["US"]}, {"countries": ["GB", "GB"]}, {"countries": ["GB", "ZZ"]}, {"countryCoverage": "not-enumerated"}):
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                generator.validate_geographic_markets(self.brands, {**self.markets, "example": {**self.profile, **update}})
+
+    def test_unknown_reach_asserts_no_geography(self):
+        profile = {**self.profile, "scope": "unknown", "assessment": "unknown", "countries": [], "primaryCountries": [], "regions": [], "countryCoverage": "not-enumerated"}
+        generator.validate_geographic_markets(self.brands, {**self.markets, "example": profile})
+        for update in ({"regions": ["Europe"]}, {"assessment": "provisional"}, {"countries": ["GB"], "countryCoverage": "partial"}):
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                generator.validate_geographic_markets(self.brands, {**self.markets, "example": {**profile, **update}})
+
+    def test_verified_assessments_need_dated_evidence_not_just_a_reference_link(self):
+        for update in ({"assessment": "source-supported"}, {"assessment": "source-supported", "verifiedOn": "2026-11-06"}, {"verifiedOn": "2026-11-06"}, {"assessedOn": "2026-02-30"}):
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                generator.validate_geographic_markets(self.brands, {**self.markets, "example": {**self.profile, **update}})
+        profile = {**self.profile, "assessment": "source-supported", "verifiedOn": "2026-11-06", "sources": [{"url": "https://example.com/markets", "checkedOn": "2026-11-06", "summary": "The service lists its UK operations."}]}
+        generator.validate_geographic_markets(self.brands, {**self.markets, "example": profile})
+
+    def test_local_scope_and_related_identity_are_checked(self):
+        for update in ({"scope": "local"}, {"localities": [{"country": "US", "name": "London"}]}, {"relatedBrand": "missing"}, {"relatedBrand": "example"}, {"relatedBrand": "genericApp"}):
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                generator.validate_geographic_markets(self.brands, {**self.markets, "example": {**self.profile, **update}})
 
 
 if __name__ == "__main__":
