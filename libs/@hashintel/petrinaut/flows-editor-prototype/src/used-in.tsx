@@ -15,7 +15,7 @@
  *
  * `?usedin=old` keeps the rows from before (label column, "Used in …" text, chips on hover).
  */
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 
 import { Icon, type IconName, type MenuItem, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -41,6 +41,25 @@ import { kindLabel } from "./ui";
 import type { StepInputSource } from "./engine";
 
 export const useOldUsedIn = () => useLocation().query.get("usedin") === "old";
+
+/**
+ * 6 Nov sync (B5): minimal "used in" takes, URL only; no param keeps T1 + K3. Collapsed is a count and one "used here"
+ * icon, never an icon per step; expanded is the steps' names, the input on hover; hovering a name highlights its card.
+ * u1 count at the row's end, a flat list below; u2 the count under the name; u3 count at the row's end, a menu;
+ * u4 count at the row's end, the names on one wrapping line.
+ */
+export type MinimalUsedIn = "u1" | "u2" | "u3" | "u4";
+
+export const useMinimalUsedIn = (): MinimalUsedIn | null => {
+  const value = useLocation().query.get("usedin");
+  return value === "u1" || value === "u2" || value === "u3" || value === "u4"
+    ? value
+    : null;
+};
+
+/** The one "used here" icon: an outbound arrow; ?usedicon=pipe tries the input pipe instead. */
+const useUsedIcon = (): IconName =>
+  useLocation().query.get("usedicon") === "pipe" ? "inputPipe" : "arrowUpRight";
 
 type Use = { stepId: string; inputs: string[] };
 
@@ -822,6 +841,316 @@ const AddRow = ({
   );
 };
 
+/** The count and its one icon: 12 px muted, a ghost button at the row's control size. */
+const countStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  height: "[24px]",
+  paddingX: "1.5",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
+  fontVariantNumeric: "tabular-nums",
+  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
+  "&[aria-expanded=true]": { color: "neutral.fg.heading" },
+  "& > svg": { width: "[14px !important]", height: "[14px !important]" },
+});
+
+/** u2: the count as the name's second line, 12 px, starting under the name. */
+const countLineStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  alignSelf: "flex-start",
+  marginTop: "[2px]",
+  padding: "[0]",
+  border: "none",
+  background: "[transparent]",
+  cursor: "pointer",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
+  _hover: { color: "neutral.fg.heading" },
+  "& > svg": { width: "[12px !important]", height: "[12px !important]" },
+});
+
+/** The expanded list: names only, starting under the output's name (8 + 16 + 10 px in), no lines. */
+const namesStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  paddingLeft: "[28px]",
+  paddingTop: "[2px]",
+});
+
+const nameRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minHeight: "[32px]",
+  paddingX: "1.5",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  textAlign: "left",
+  textStyle: "sm",
+  lineHeight: "[20px]",
+  color: "neutral.fg.muted",
+  "& [data-input]": { visibility: "hidden", marginLeft: "auto", textStyle: "xs", color: "neutral.fg.subtle" },
+  _hover: {
+    color: "neutral.fg.heading",
+    backgroundColor: "neutral.bg.surface.hover",
+    "& [data-input]": { visibility: "visible" },
+  },
+});
+
+/** u4: the names on one line that wraps, joined by a faint ·. */
+const inlineNamesStyle = css({
+  paddingLeft: "[34px]",
+  paddingRight: "2",
+  marginTop: "[-6px]",
+  textStyle: "sm",
+  lineHeight: "[20px]",
+  color: "neutral.fg.muted",
+  // The tooltip's trigger wraps each name with no line height of its own; the name sets it back.
+  "& [data-scope=tooltip]": { lineHeight: "[20px]" },
+  "& button": {
+    lineHeight: "[20px]",
+    padding: "[0]",
+    border: "none",
+    background: "[transparent]",
+    cursor: "pointer",
+    color: "inherit",
+    font: "inherit",
+    _hover: { color: "neutral.fg.heading", textDecoration: "underline", textUnderlineOffset: "[3px]" },
+  },
+  "& [data-dot]": { color: "neutral.fg.subtle", paddingX: "1.5" },
+});
+
+const addNameStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "2",
+  minHeight: "[32px]",
+  paddingX: "1.5",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  textStyle: "sm",
+  color: "neutral.fg.muted",
+  opacity: "[0.7]",
+  _hover: { opacity: "[1]", color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
+  "& > svg": { width: "[14px !important]", height: "[14px !important]" },
+});
+
+const hoverAddStyle = css({
+  paddingLeft: "[28px]",
+  visibility: "hidden",
+  "[data-output]:hover &, [data-output]:focus-within &, &[data-open]": { visibility: "visible" },
+});
+
+const MinimalBlock = ({
+  take,
+  stepId,
+  outputName,
+  label,
+  kind,
+  typeIcon,
+  readOnly,
+  end,
+}: {
+  take: MinimalUsedIn;
+  stepId: string;
+  outputName: string;
+  label: string;
+  kind: string | null;
+  typeIcon: IconName;
+  readOnly: boolean;
+  end: React.ReactNode;
+}) => {
+  const { document, setUi } = useEditor();
+  const uses = usesOf(document, stepId, outputName);
+  const usedIcon = useUsedIcon();
+  const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const countRef = useRef<HTMLButtonElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const nameOf = (id: string) => {
+    const step = findStep(document, id)?.step;
+    return step ? stepLabel(step) : id;
+  };
+  const select = (id: string) =>
+    setUi((current) => ({ ...current, selectedId: id, openField: null, hoverSourceId: null }));
+  // Hovering a name highlights its card on the canvas (the reference-hover highlight; journeys-rebuild owns its look).
+  const hover = (id: string | null) =>
+    setUi((current) => ({ ...current, hoverSourceId: id }));
+  const count = uses.length;
+  const words = `Used in ${String(count)} ${count === 1 ? "step" : "steps"}`;
+  const toggle = () => setOpen((current) => !current);
+  const countButton =
+    count > 0 ? (
+      <Tooltip content={words} position="top">
+        <button
+          ref={countRef}
+          type="button"
+          className={countStyle}
+          aria-expanded={open}
+          aria-label={words}
+          data-used-count={`${stepId}.${outputName}`}
+          onClick={toggle}
+        >
+          <Icon name={usedIcon} size="sm" />
+          {count}
+        </button>
+      </Tooltip>
+    ) : null;
+  const addButton = readOnly ? null : (
+    <>
+      <button
+        ref={addRef}
+        type="button"
+        className={addNameStyle}
+        data-output-use={`${stepId}:${outputName}`}
+        onClick={() => setAdding((current) => !current)}
+      >
+        <Icon name="plus" size="sm" />
+        Use in a step
+      </button>
+      {adding ? (
+        <LaterStepsMenu
+          anchor={addRef}
+          stepId={stepId}
+          outputName={outputName}
+          onClose={() => setAdding(false)}
+        />
+      ) : null}
+    </>
+  );
+  const list =
+    open && take !== "u3" ? (
+      take === "u4" ? (
+        <div className={inlineNamesStyle} data-used-names>
+          {uses.map((use, index) => (
+            // Each name keeps its trailing · on its line, so a wrapped line never starts with a dot.
+            <Fragment key={use.stepId}>
+            <span className={css({ whiteSpace: "nowrap" })}>
+              <Tooltip content={use.inputs.join(", ")} position="top">
+                <button
+                  type="button"
+                  onPointerEnter={() => hover(use.stepId)}
+                  onPointerLeave={() => hover(null)}
+                  onClick={() => select(use.stepId)}
+                >
+                  {nameOf(use.stepId)}
+                </button>
+              </Tooltip>
+              {index < uses.length - 1 ? <span data-dot>·</span> : null}
+            </span>{" "}
+            </Fragment>
+          ))}
+        </div>
+      ) : (
+        <div className={namesStyle} data-used-names>
+          {uses.map((use) => (
+            <button
+              key={use.stepId}
+              type="button"
+              className={nameRowStyle}
+              onPointerEnter={() => hover(use.stepId)}
+              onPointerLeave={() => hover(null)}
+              onClick={() => select(use.stepId)}
+            >
+              {nameOf(use.stepId)}
+              <span data-input>{use.inputs.join(", ")}</span>
+            </button>
+          ))}
+          {addButton}
+        </div>
+      )
+    ) : null;
+  return (
+    <div className={blockStyle} data-output={`${stepId}.${outputName}`} data-used-take={take}>
+      <div
+        className={headStyle}
+        data-row
+        style={take === "u2" ? { alignItems: "flex-start", paddingTop: 10, paddingBottom: 6 } : undefined}
+      >
+        <span data-type-icon style={take === "u2" ? { marginTop: 2 } : undefined}>
+          <Icon name={typeIcon} size="sm" />
+        </span>
+        {take === "u2" ? (
+          <span className={css({ display: "flex", flexDirection: "column", minWidth: "[0]" })}>
+            <span className={css({ display: "flex", alignItems: "center", gap: "[10px]" })}>
+              <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
+                <span className={headNameStyle}>{label}</span>
+              </Tooltip>
+              {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+            </span>
+            {count > 0 ? (
+              <button
+                type="button"
+                className={countLineStyle}
+                aria-expanded={open}
+                data-used-count={`${stepId}.${outputName}`}
+                onClick={toggle}
+              >
+                <Icon name={usedIcon} size="sm" />
+                {count === 1 ? "1 step" : `${String(count)} steps`}
+              </button>
+            ) : null}
+          </span>
+        ) : (
+          <>
+            <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
+              <span className={headNameStyle}>{label}</span>
+            </Tooltip>
+            {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+          </>
+        )}
+        <span className={headEndStyle}>
+          {take === "u2" ? null : countButton}
+          {end}
+        </span>
+      </div>
+      {list}
+      {take === "u3" && open ? (
+        <OpenMenu
+          anchor={countRef}
+          position="bottom-end"
+          onClose={() => setOpen(false)}
+          label={words}
+          className={menuWidthStyle}
+          items={[
+            {
+              id: "used",
+              label: words,
+              items: uses.map((use) => ({
+                id: use.stepId,
+                text: nameOf(use.stepId),
+                suffix: <span className={typeSuffixStyle}>{use.inputs.join(", ")}</span>,
+                onClick: () => select(use.stepId),
+              })),
+            },
+          ]}
+        />
+      ) : null}
+      {/* W1 on every output: in the open list (u1, u2); otherwise under the name, shown while the output is hovered. */}
+      {!readOnly && !(open && (take === "u1" || take === "u2")) ? (
+        <div className={hoverAddStyle} data-open={adding || undefined}>
+          {addButton}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export const UsedInBlock = ({
   stepId,
   outputName,
@@ -847,6 +1176,21 @@ export const UsedInBlock = ({
   const rows = uses.length + (readOnly ? 0 : 1);
   const select = (id: string) =>
     setUi((current) => ({ ...current, selectedId: id, openField: null }));
+  const minimal = useMinimalUsedIn();
+  if (minimal) {
+    return (
+      <MinimalBlock
+        take={minimal}
+        stepId={stepId}
+        outputName={outputName}
+        label={label}
+        kind={kind}
+        typeIcon={typeIcon}
+        readOnly={readOnly}
+        end={end}
+      />
+    );
+  }
   return (
     <div className={blockStyle} data-output={`${stepId}.${outputName}`}>
       <div className={headStyle} data-row>
@@ -916,3 +1260,4 @@ export const UsedInBlock = ({
     </div>
   );
 };
+

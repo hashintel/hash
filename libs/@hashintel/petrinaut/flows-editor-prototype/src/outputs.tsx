@@ -28,7 +28,10 @@ import { useEditor } from "./editor-context";
 import { useRunView } from "./history-view";
 import { useLocation } from "./router";
 import { PropertyRow, SourceChip } from "./ui";
+import { kindIcon } from "./kind-icon";
 import { UsedInBlock, useOldUsedIn } from "./used-in";
+
+export { kindIcon };
 
 import type { StepInputSource } from "./engine";
 
@@ -245,6 +248,59 @@ const flagStyle = css({
   },
 });
 
+/**
+ * 6 Nov sync (B3): the star's words. The star stays; it is "Featured outputs", explained by its tooltip. URL only,
+ * ?starcopy=s1..s3; no param keeps "Show in Logs". s1 "Feature this output" / "Featured output"; s2 "Add to
+ * Featured outputs" / "In Featured outputs"; s3 s1's words with a second line on what it does.
+ */
+export type StarCopy = "s1" | "s2" | "s3";
+
+export const useStarCopy = (): StarCopy | null => {
+  const value = useLocation().query.get("starcopy");
+  return value === "s1" || value === "s2" || value === "s3" ? value : null;
+};
+
+/**
+ * 6 Nov sync (B2): in a run, filled read-only stars mark the steps that hold a featured output. URL only, ?runstars=a|b;
+ * no param keeps today's faint outline star in the Steps list. a: filled star in the Steps list and on the canvas card;
+ * b: on the canvas card only, none in the Steps list (Ciarán's lean if the Featured outputs list is clear, L114).
+ */
+export type RunStars = "a" | "b";
+
+export const useRunStars = (): RunStars | null => {
+  const value = useLocation().query.get("runstars");
+  return value === "a" || value === "b" ? value : null;
+};
+
+const starTipLineStyle = css({ display: "block", opacity: "[0.7]" });
+
+const starWords = (copy: StarCopy | null, flagged: boolean, readOnly: boolean) => {
+  if (!copy) {
+    return { tip: readOnly ? "Shown in Logs" : "Show in Logs", label: "Show in Logs" };
+  }
+  if (copy === "s2") {
+    const tip = readOnly
+      ? "In Featured outputs"
+      : flagged
+        ? "Remove from Featured outputs"
+        : "Add to Featured outputs";
+    return { tip, label: tip };
+  }
+  const head = readOnly || flagged ? "Featured output" : "Feature this output";
+  if (copy === "s3") {
+    return {
+      tip: (
+        <span>
+          <span className={starTipLineStyle}>{head}</span>
+          <span className={starTipLineStyle}>Listed in Featured outputs when the flow runs</span>
+        </span>
+      ),
+      label: head,
+    };
+  }
+  return { tip: head, label: head };
+};
+
 const OutputFlag = ({
   stepId,
   outputName,
@@ -256,15 +312,17 @@ const OutputFlag = ({
 }) => {
   const { document, setDocument } = useEditor();
   const flagged = isOutputFlagged(document, stepId, outputName);
+  const copy = useStarCopy();
   if (readOnly && !flagged) {
     return null;
   }
+  const words = starWords(copy, flagged, readOnly);
   return (
-    <Tooltip content={readOnly ? "Shown in Logs" : "Show in Logs"}>
+    <Tooltip content={words.tip}>
       <button
         type="button"
         className={flagStyle}
-        aria-label="Show in Logs"
+        aria-label={words.label}
         aria-pressed={flagged}
         data-output-flag={`${stepId}.${outputName}`}
         data-flagged={flagged || undefined}
@@ -479,31 +537,6 @@ const FlowOutputMenu = ({
       ) : null}
     </span>
   );
-};
-
-/** An output's type as the icon left of its name (2 Nov): its kind decides it. */
-export const kindIcon = (kind: string | null): IconName => {
-  const name = (kind ?? "").replace(/^List of /, "");
-  const list = kind?.startsWith("List of ") ?? false;
-  if (/entity/i.test(name)) {
-    return list ? "cubes" : "cube";
-  }
-  if (/date|time/i.test(name)) {
-    return "calendar";
-  }
-  if (/number|integer/i.test(name)) {
-    return "oneHundred";
-  }
-  if (/boolean|choice|decision/i.test(name)) {
-    return "list";
-  }
-  if (/person|user|actor/i.test(name)) {
-    return "user";
-  }
-  if (/file/i.test(name)) {
-    return "file";
-  }
-  return list ? "list" : "text";
 };
 
 /** The outputs one under another, 24 px apart (playground spacing 40 / 36 / 24), across both panel columns. */

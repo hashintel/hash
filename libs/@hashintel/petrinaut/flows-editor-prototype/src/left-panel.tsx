@@ -23,6 +23,8 @@ const flowGlyphStyle = css({
   display: "inline-flex",
   color: "neutral.fg.subtle",
   "& svg": { width: "[12px]", height: "[12px]" },
+  // A run's read-only star (?runstars=a): filled, one step darker.
+  "&[data-filled]": { color: "neutral.fg.muted", "& svg": { fill: "[currentColor]" } },
 });
 
 const flowCountStyle = css({
@@ -45,7 +47,7 @@ import {
   stepTitle,
 } from "./document";
 import { FLOW_OUTPUTS_ID } from "./flow-outputs";
-import { useFlowOutputTake } from "./outputs";
+import { useFlowOutputTake, useRunStars, useStarCopy } from "./outputs";
 import { type EditorUi, useEditor } from "./editor-context";
 import { useLocation } from "./router";
 import { cellText, StatusCell } from "./status-cell";
@@ -218,10 +220,19 @@ const FlowList = ({
   // M1 (decided 5 Nov, inbox flow-output-mark): a faint star on a step that has a flow output, by default.
   // ?flowoutput=2|3 show a flag instead; 4 and 5 move the mark to the flow-level view.
   const flowTake = useFlowOutputTake() ?? 1;
+  const starCopy = useStarCopy();
+  // B2 (6 Nov): in a run, ?runstars=a fills the star (read-only); b leaves it out of the Steps list.
+  const runStars = useRunStars();
+  const inRun = Boolean(statusFor);
   const flowMark = (stepId: string) =>
     flowTake <= 3 &&
+    !(inRun && runStars === "b") &&
     flaggedOutputsOf(document).some((key) => key.startsWith(`${stepId}.`)) ? (
-      <span className={flowGlyphStyle} data-flow-output-glyph>
+      <span
+        className={flowGlyphStyle}
+        data-flow-output-glyph
+        data-filled={(inRun && runStars === "a") || undefined}
+      >
         <Icon name={flowTake === 1 ? "star" : "rightToLine"} size="xs" />
       </span>
     ) : null;
@@ -472,7 +483,7 @@ const FlowList = ({
             <span className={chevronSlotStyle} />
             <Tile icon="rightToLine" tone="neutral" />
             <span className={labelStyle}>
-              {flowTake === 4 ? "Flow outputs" : "Outputs"}
+              {starCopy ? "Featured outputs" : flowTake === 4 ? "Flow outputs" : "Outputs"}
             </span>
             <span className={flowCountStyle}>
               {flaggedOutputsOf(document).length}

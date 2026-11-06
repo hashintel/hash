@@ -20,7 +20,7 @@ import {
   toggleOutputFlag,
 } from "./document";
 import { useEditor } from "./editor-context";
-import { useFlowOutputTake } from "./outputs";
+import { useFlowOutputTake, useStarCopy } from "./outputs";
 
 export const FLOW_OUTPUTS_ID = "flow-outputs";
 
@@ -280,9 +280,10 @@ export const FlowOutputsPanel = () => {
   const [names, setNames] = useState<Record<string, string>>({});
   const outputs = flowOutputsOf(document);
   const editable = take === 4;
+  const featured = useStarCopy() !== null;
   return (
     <div data-flow-outputs-panel>
-      <div className={titleStyle}>{editable ? "Flow outputs" : "Outputs"}</div>
+      <div className={titleStyle}>{featured ? "Featured outputs" : editable ? "Flow outputs" : "Outputs"}</div>
       <div className={leadStyle}>
         {editable
           ? "What the flow hands back when a run ends."

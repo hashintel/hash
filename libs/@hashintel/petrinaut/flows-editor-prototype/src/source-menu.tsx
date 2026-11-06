@@ -43,7 +43,7 @@ import {
   valueTiles,
 } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
-import { kindIcon } from "./outputs";
+import { kindIcon } from "./kind-icon";
 import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { iconStroke } from "./thin-icons";
 import { kindLabel } from "./ui";
