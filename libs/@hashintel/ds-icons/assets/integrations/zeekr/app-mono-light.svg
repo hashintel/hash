@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zeekr-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="zeekr-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="zeekr-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zeekr-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zeekr-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#zeekr-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="zeekr-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#zeekr-app-mono-light-mono)"><defs><clipPath id="zeekr-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#zeekr-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.30238 -0.04925 28.13942 28.19481" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="zeekr-app-mono-light-symbol-crop"><rect x="0.13471" y="-0.2062" width="30.9772539" height="28.45122" /></clipPath></defs><g clip-path="url(#zeekr-app-mono-light-symbol-crop)"><path d="M26.0757 25.7588H19.0554V17.0847L12.035 10.0663V2.33946H26.0675L26.0757 25.7588ZM2.67723 25.7588V2.33946H9.68937V11.0301L16.7097 18.0485V25.7506L2.67723 25.7588ZM28.4131 0H0.339844V28.0982H28.4131V0Z" fill="#000000" />
+<path d="M50.3248 9.49053L43.0493 17.0855H49.9462V18.6342H39.2305V18.6013L46.506 11.0145H39.6338V9.46582H50.333V9.49053H50.3248Z" fill="#000000" />
+<path d="M95.8193 18.6424L89.0952 13.9059V18.6424H87.2188V9.46582H89.0952V13.8811L95.63 9.46582H98.5188L91.9511 13.8482L98.7411 18.6342H95.8193V18.6424Z" fill="#000000" />
+<path d="M114.741 18.6424L109.647 15.2156H110.593C112.387 15.2156 113.959 14.1859 113.959 12.4396V12.316C113.959 10.5367 112.371 9.46582 110.527 9.46582H103.062V18.6342H104.939V13.8482L111.976 18.6342H114.741V18.6424ZM104.931 11.0227H110.56C111.26 11.0227 111.91 11.3028 112.091 11.8712C112.099 11.97 112.124 12.2089 112.124 12.4478C112.124 12.6949 112.108 12.9338 112.091 13.0244C111.902 13.5269 111.26 13.8317 110.56 13.8317H104.931V11.0227Z" fill="#000000" />
+<path d="M65.5477 17.0114V18.6424H56.0254V9.46582H65.5477V11.0969H57.8443V13.0656H65.1445V14.6967H57.8443V17.0032H65.5477V17.0114Z" fill="#000000" />
+<path d="M81.1454 17.0114V18.6424H71.623V9.46582H81.1454V11.0969H73.4419V13.0656H80.7421V14.6967H73.4419V17.0032H81.1454V17.0114Z" fill="#000000" />
+</g></svg></g></g></svg>

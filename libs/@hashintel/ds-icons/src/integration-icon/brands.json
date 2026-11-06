@@ -2807,7 +2807,15 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "factory",
@@ -5889,7 +5897,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Ant Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Ant Group"],
+        "url": "https://www.antgroup.com/en/home",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amazonPay",
@@ -11495,7 +11511,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. Color mark from SuperTiny Icons, with the outer square background removed.",
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Tencent"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Tencent"],
+        "url": "https://www.tencent.com/what-we-create/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "quinscape",
@@ -13356,7 +13380,15 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["ByteDance", "Bytedance"],
+    "searchAliasSources": [
+      {
+        "aliases": ["ByteDance", "Bytedance"],
+        "url": "https://www.bytedance.com/products-services",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "torBrowser",
@@ -14105,7 +14137,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Tencent"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Tencent"],
+        "url": "https://www.tencent.com/what-we-create/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "whmcs",
@@ -17544,7 +17584,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Technology & electronics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Tencent"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Tencent"],
+        "url": "https://www.tencent.com/what-we-create/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "ibm",
@@ -21509,7 +21557,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Technology & electronics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["ByteDance", "Bytedance"],
+    "searchAliasSources": [
+      {
+        "aliases": ["ByteDance", "Bytedance"],
+        "url": "https://www.bytedance.com/products-services",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "paramountPlus",
@@ -28587,7 +28643,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/en/2/2f/Lotus_Cars_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/2/2f/Lotus_Cars_logo.svg",
+    "searchAliases": ["Geely", "Geely Holding"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Geely", "Geely Holding"],
+        "url": "https://zgh.com/our-business/?lang=en",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "mini",
@@ -30952,7 +31016,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/79/Smart_2022.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/79/Smart_2022.svg",
+    "searchAliases": ["Geely", "Geely Holding"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Geely", "Geely Holding"],
+        "url": "https://zgh.com/our-business/?lang=en",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "zeiss",
@@ -40707,7 +40779,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/29/Volvo-Iron-Mark-Black.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/29/Volvo-Iron-Mark-Black.svg",
+    "searchAliases": ["Geely", "Geely Holding"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Geely", "Geely Holding"],
+        "url": "https://zgh.com/our-business/?lang=en",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "scania",
@@ -61761,5 +61841,3059 @@
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
     "logoSource": "https://static.toss.im/assets/homepage/brand/2026-CI/Toss_Logo_Primary.zip"
+  },
+  {
+    "name": "xiaomi",
+    "slug": "xiaomi",
+    "label": "Xiaomi",
+    "integrationNames": ["Xiaomi", "Mi", "小米"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Xiaomi_logo_%282021-%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://mi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "lenovo",
+    "slug": "lenovo",
+    "label": "Lenovo",
+    "integrationNames": ["Lenovo", "联想"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Lenovo_%282015%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://lenovo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Lenovo_%282015%29.svg"
+  },
+  {
+    "name": "byd",
+    "slug": "byd",
+    "label": "BYD",
+    "integrationNames": ["BYD", "Build Your Dreams", "比亚迪"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.denza.com/static_material/byd/overseas/public-icon/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E50012": "#EA2F3E",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#E50012": "#EA2F3E",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://byd.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive", "Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.denza.com/static_material/byd/overseas/public-icon/logo.svg"
+  },
+  {
+    "name": "haier",
+    "slug": "haier",
+    "label": "Haier",
+    "integrationNames": ["Haier", "海尔"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/64/Haier_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005BAA": "#3980BD"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005BAA": "#3980BD"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://haier.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Consumer goods"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/64/Haier_logo.svg"
+  },
+  {
+    "name": "midea",
+    "slug": "midea",
+    "label": "Midea",
+    "integrationNames": ["Midea", "美的"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Midea.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FEFEFE": "#FEFEFE",
+      "#A9CF48": "#A9CF48",
+      "#A9D048": "#A9D048",
+      "#A9CF47": "#A9CF47",
+      "#111111": "#F5F7FA",
+      "#00B0F0": "#00B0F0"
+    },
+    "logoDarkColors": {
+      "#FEFEFE": "#FEFEFE",
+      "#A9CF48": "#A9CF48",
+      "#A9D048": "#A9D048",
+      "#A9CF47": "#A9CF47",
+      "#111111": "#F5F7FA",
+      "#00B0F0": "#00B0F0"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://midea.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Consumer goods"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Midea.svg"
+  },
+  {
+    "name": "gree",
+    "slug": "gree",
+    "label": "Gree",
+    "integrationNames": ["Gree", "Gree Electric", "格力"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/01/Gree_electric_appliances_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F04D24": "#F04D24",
+      "#111111": "#F5F7FA",
+      "#034DA2": "#487EBC"
+    },
+    "logoDarkColors": {
+      "#F04D24": "#F04D24",
+      "#111111": "#F5F7FA",
+      "#034DA2": "#487EBC"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://gree.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/01/Gree_electric_appliances_logo.svg"
+  },
+  {
+    "name": "hisense",
+    "slug": "hisense",
+    "label": "Hisense",
+    "integrationNames": ["Hisense", "海信"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/47/Hisense.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#009999": "#009999"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#009999": "#009999"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://hisense.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/47/Hisense.svg"
+  },
+  {
+    "name": "tcl",
+    "slug": "tcl",
+    "label": "TCL",
+    "integrationNames": ["TCL"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://aws-obg-image-lb-5.tcl.com/content/dam/brandsite/it-resources/common/navigation/tcl-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E64C3D": "#E64C3D"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E64C3D": "#E64C3D"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://tcl.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://aws-obg-image-lb-5.tcl.com/content/dam/brandsite/it-resources/common/navigation/tcl-logo.svg"
+  },
+  {
+    "name": "dji",
+    "slug": "dji",
+    "label": "DJI",
+    "integrationNames": ["DJI", "Da-Jiang Innovations", "大疆"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/dji.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://dji.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/dji.svg"
+  },
+  {
+    "name": "oppo",
+    "slug": "oppo",
+    "label": "OPPO",
+    "integrationNames": ["OPPO"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.oppo.com/en/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://oppo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.oppo.com/en/"
+  },
+  {
+    "name": "vivo",
+    "slug": "vivo",
+    "label": "vivo",
+    "integrationNames": ["vivo"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/04/Vivo_%28China%29_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#415FFF": "#526DFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#415FFF": "#526DFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://vivo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/04/Vivo_%28China%29_logo.svg"
+  },
+  {
+    "name": "honor",
+    "slug": "honor",
+    "label": "HONOR",
+    "integrationNames": ["HONOR", "荣耀"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www-file.honor.com/content/dam/honor/common/logo/honor-logo-black.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Current 2026 HONOR open-ring symbol and wordmark from its official global website.",
+    "brandWebsite": "https://honor.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www-file.honor.com/content/dam/honor/common/logo/honor-logo-black.svg"
+  },
+  {
+    "name": "oneplus",
+    "slug": "oneplus",
+    "label": "OnePlus",
+    "integrationNames": ["OnePlus", "一加"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/oneplus.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F5010C": "#F60E18"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#F50514": "#F50E1C"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://oneplus.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f8/OP_LU_Reg_1L_RGB_red_copy-01.svg"
+  },
+  {
+    "name": "realme",
+    "slug": "realme",
+    "label": "realme",
+    "integrationNames": ["realme"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/03/Realme_2024_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://realme.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/03/Realme_2024_logo.svg"
+  },
+  {
+    "name": "zte",
+    "slug": "zte",
+    "label": "ZTE",
+    "integrationNames": ["ZTE", "Zhongxing", "中兴"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/20/ZTE-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00BFFE": "#00BFFE"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00BFFE": "#00BFFE"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://zte.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/20/ZTE-logo.svg"
+  },
+  {
+    "name": "anker",
+    "slug": "anker",
+    "label": "Anker",
+    "integrationNames": ["Anker", "安克"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.anker.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#080A0F": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#080A0F": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://anker.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.anker.com/"
+  },
+  {
+    "name": "roborock",
+    "slug": "roborock",
+    "label": "Roborock",
+    "integrationNames": ["Roborock", "石头科技"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/41/Roborock_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#727479": "#F5F7FA",
+      "#EA0029": "#ED2649"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#727479": "#F5F7FA",
+      "#EA0029": "#ED2649"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://roborock.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Consumer goods", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/41/Roborock_logo.svg"
+  },
+  {
+    "name": "ecovacs",
+    "slug": "ecovacs",
+    "label": "Ecovacs",
+    "integrationNames": ["Ecovacs", "科沃斯"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/ecovacs.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1E384B": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://ecovacs.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Consumer goods", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "dreame",
+    "slug": "dreame",
+    "label": "Dreame",
+    "integrationNames": ["Dreame", "追觅"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.shopify.com/s/files/1/0553/1320/3405/files/dreame-favicon_32x32.svg?v=1773309496",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#9B7648": "#9B7648",
+      "#111111": "#F5F7FA",
+      "#C79F6C": "#C79F6C",
+      "#E2D5AF": "#E2D5AF"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://dreametech.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Consumer goods", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.shopify.com/s/files/1/0553/1320/3405/files/LOGO_B.svg"
+  },
+  {
+    "name": "insta360",
+    "slug": "insta360",
+    "label": "Insta360",
+    "integrationNames": ["Insta360"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/insta360.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFEE00": "#FFEE00"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://insta360.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Insta360_logo_%28transparent%29.svg"
+  },
+  {
+    "name": "bambuLab",
+    "slug": "bambu-lab",
+    "label": "Bambu Lab",
+    "integrationNames": ["Bambu Lab", "BambuLab", "拓竹"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/bambulab.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00AE42": "#00AE42"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#333333": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://bambulab.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f4/BambuLab_logo.svg"
+  },
+  {
+    "name": "hikvision",
+    "slug": "hikvision",
+    "label": "Hikvision",
+    "integrationNames": ["Hikvision", "海康威视"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Hikvision_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#6C6E71": "#F5F7FA",
+      "#D71820": "#DE4248"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#6C6E71": "#F5F7FA",
+      "#D71820": "#DE4248"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://hikvision.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Security & privacy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Hikvision_logo.svg"
+  },
+  {
+    "name": "boe",
+    "slug": "boe",
+    "label": "BOE",
+    "integrationNames": ["BOE", "BOE Technology", "京东方"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Boe_Technology_Group_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#3E3A39": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#3E3A39": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://boe.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Boe_Technology_Group_logo.svg"
+  },
+  {
+    "name": "catl",
+    "slug": "catl",
+    "label": "CATL",
+    "integrationNames": ["CATL", "Contemporary Amperex Technology", "宁德时代"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Contemporary_Amperex_Technology_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#172A7E": "#6D79AE"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#172A7E": "#6D79AE"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://catl.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Contemporary_Amperex_Technology_logo.svg"
+  },
+  {
+    "name": "alibaba",
+    "slug": "alibaba",
+    "label": "Alibaba",
+    "integrationNames": ["Alibaba", "Alibaba Group", "阿里巴巴"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/80/Alibaba-Group-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF5A00": "#FF5A00"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF5A00": "#FF5A00"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://alibabagroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/8/80/Alibaba-Group-Logo.svg",
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "aliexpress",
+    "slug": "aliexpress",
+    "label": "AliExpress",
+    "integrationNames": ["AliExpress", "Ali Express"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/41/AliExpress_2024.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FCC836": "#FCC836",
+      "#FD2751": "#FD2751"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FCC836": "#FCC836",
+      "#FD2751": "#FD2751"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://aliexpress.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/41/AliExpress_2024.svg",
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "taobao",
+    "slug": "taobao",
+    "label": "Taobao",
+    "integrationNames": ["Taobao", "淘宝"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/taobao.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E94F20": "#E94F20"
+    },
+    "logoDarkColors": {
+      "#FF5F00": "#FF5F00",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://taobao.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/0/04/Taobao_logo_%282021%29.svg",
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "tmall",
+    "slug": "tmall",
+    "label": "Tmall",
+    "integrationNames": ["Tmall", "天猫"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Tmall_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF0036": "#FF0036",
+      "#111111": "#F5F7FA",
+      "#00FF00": "#00FF00"
+    },
+    "logoDarkColors": {
+      "#FF0036": "#FF0036",
+      "#111111": "#F5F7FA",
+      "#00FF00": "#00FF00"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://tmall.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Tmall_logo.svg",
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "meituan",
+    "slug": "meituan",
+    "label": "Meituan",
+    "integrationNames": ["Meituan", "美团"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/meituan.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined app-badge artwork. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://meituan.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "pinduoduo",
+    "slug": "pinduoduo",
+    "label": "Pinduoduo",
+    "integrationNames": ["Pinduoduo", "拼多多"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/d/d1/Pinduoduo_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#D72E29": "#DC4642",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#D72E29": "#DC4642",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://pinduoduo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/d/d1/Pinduoduo_logo.svg",
+    "searchAliases": ["PDD Holdings", "PDD"],
+    "searchAliasSources": [
+      {
+        "aliases": ["PDD Holdings", "PDD"],
+        "url": "https://investor.pddholdings.com/static-files/e9586d93-bb1d-4e98-af8a-4e73b62350f2",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "temu",
+    "slug": "temu",
+    "label": "Temu",
+    "integrationNames": ["Temu"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/5/5f/Temu_app_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://temu.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Temu_logo.svg",
+    "searchAliases": ["PDD Holdings", "PDD"],
+    "searchAliasSources": [
+      {
+        "aliases": ["PDD Holdings", "PDD"],
+        "url": "https://investor.pddholdings.com/static-files/e9586d93-bb1d-4e98-af8a-4e73b62350f2",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "baidu",
+    "slug": "baidu",
+    "label": "Baidu",
+    "integrationNames": ["Baidu", "百度"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/baidu.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2932E1": "#676DEA"
+    },
+    "logoDarkColors": {
+      "#2319DC": "#726CE9",
+      "#111111": "#F5F7FA",
+      "#E10601": "#E73733",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://baidu.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Browsers & search", "AI"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/f/f4/Baidu.svg"
+  },
+  {
+    "name": "netease",
+    "slug": "netease",
+    "label": "NetEase",
+    "integrationNames": ["NetEase", "网易"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/4/41/Netease_logo_2.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#241A17": "#F5F7FA",
+      "#C22B2F": "#CE5357"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#241A17": "#F5F7FA",
+      "#C22B2F": "#CE5357"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://netease.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Gaming", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/4/41/Netease_logo_2.svg"
+  },
+  {
+    "name": "iqiyi",
+    "slug": "iqiyi",
+    "label": "iQIYI",
+    "integrationNames": ["iQIYI", "爱奇艺"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.iq.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D8D8D8": "#D8D8D8",
+      "#00DC5A": "#00DC5A"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D8D8D8": "#D8D8D8",
+      "#00DC5A": "#00DC5A"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://iq.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television", "Music & video"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.iq.com/"
+  },
+  {
+    "name": "youku",
+    "slug": "youku",
+    "label": "Youku",
+    "integrationNames": ["Youku", "优酷"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/08/Youku_logo_%282%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#08A9FD": "#08A9FD",
+      "#111111": "#F5F7FA",
+      "#FC0160": "#FC0160",
+      "#00FF00": "#00FF00"
+    },
+    "logoDarkColors": {
+      "#08A9FD": "#08A9FD",
+      "#111111": "#F5F7FA",
+      "#FC0160": "#FC0160",
+      "#00FF00": "#00FF00"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://youku.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television", "Music & video"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/08/Youku_logo_%282%29.svg",
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "kuaishou",
+    "slug": "kuaishou",
+    "label": "Kuaishou",
+    "integrationNames": ["Kuaishou", "快手", "Kwai"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/kuaishou.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF4906": "#FF4906"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://kuaishou.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Social & communities", "Music & video"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "xiaohongshu",
+    "slug": "xiaohongshu",
+    "label": "Xiaohongshu",
+    "integrationNames": ["Xiaohongshu", "Rednote", "RED", "小红书"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/xiaohongshu.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF2442": "#FF2442"
+    },
+    "logoDarkColors": {
+      "#FF2442": "#FF2442"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://xiaohongshu.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Social & communities", "Websites & commerce"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/xiaohongshu.svg"
+  },
+  {
+    "name": "douyin",
+    "slug": "douyin",
+    "label": "Douyin",
+    "integrationNames": ["Douyin", "抖音"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://lf3-static.bytednsdoc.com/obj/eden-cn/ulkphgeh7nuvspognuhbo/douyin_web/img/images/logo-horizontal.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF0050": "#FF0050",
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#00FAF0": "#00FAF0"
+    },
+    "logoDarkColors": {
+      "#FF0050": "#FF0050",
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#00FAF0": "#00FAF0"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://douyin.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Social & communities", "Music & video"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://lf3-static.bytednsdoc.com/obj/eden-cn/ulkphgeh7nuvspognuhbo/douyin_web/img/images/logo-horizontal.svg",
+    "searchAliases": ["ByteDance", "Bytedance"],
+    "searchAliasSources": [
+      {
+        "aliases": ["ByteDance", "Bytedance"],
+        "url": "https://www.bytedance.com/products-services",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "didi",
+    "slug": "didi",
+    "label": "DiDi",
+    "integrationNames": ["DiDi", "Didi Chuxing", "滴滴"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/75/DiDi_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF6400": "#FF6400",
+      "#2D2D2D": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FF6400": "#FF6400",
+      "#2D2D2D": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://didiglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/75/DiDi_Logo.svg",
+    "monoInkScale": 1.6242
+  },
+  {
+    "name": "tripCom",
+    "slug": "trip-com",
+    "label": "Trip.com",
+    "integrationNames": ["Trip.com"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/tripdotcom.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#287DFA": "#287DFA"
+    },
+    "logoDarkColors": {
+      "#fcaf17": "#fcaf17",
+      "#047bc1": "#1182C4"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://trip.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Trip.com_logo.svg",
+    "searchAliases": ["Trip.com Group", "Ctrip"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Trip.com Group", "Ctrip"],
+        "url": "https://group.trip.com/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "tripComGroup",
+    "slug": "trip-com-group",
+    "label": "Trip.com Group",
+    "integrationNames": ["Trip.com Group", "携程集团"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Trip.com_Group_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#7AAADB": "#7AAADB",
+      "#047BC1": "#1182C4",
+      "#FCAF17": "#FCAF17"
+    },
+    "logoDarkColors": {
+      "#7AAADB": "#7AAADB",
+      "#047BC1": "#1182C4",
+      "#FCAF17": "#FCAF17"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://group.trip.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Trip.com_Group_logo.svg",
+    "searchAliases": ["Trip.com Group", "Ctrip"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Trip.com Group", "Ctrip"],
+        "url": "https://group.trip.com/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "taobaoShangou",
+    "slug": "taobao-shangou",
+    "label": "Taobao Shangou",
+    "integrationNames": [
+      "Taobao Shangou",
+      "Ele.me",
+      "Taobao Flash Purchase",
+      "淘宝闪购",
+      "饿了么"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/3/38/Taobao_Shangou_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF6200": "#FF6200"
+    },
+    "logoDarkColors": {
+      "#FF6200": "#FF6200"
+    },
+    "logoNotes": "Current Taobao Shangou wordmark used by the former Ele.me service; older service names are search aliases. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://ele.me/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink", "Websites & commerce"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/3/38/Taobao_Shangou_logo.svg",
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "wpsOffice",
+    "slug": "wps-office",
+    "label": "WPS Office",
+    "integrationNames": ["WPS Office", "WPS", "金山办公"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/84/WPS-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF1522": "#FF1522",
+      "#881000": "#B3665C",
+      "#FF9B27": "#FF9B27",
+      "#FF5100": "#FF5100",
+      "#3A3A3A": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#FD7821": "#FD7821"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#FF1B1F": "#FF1B1F"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://wps.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.wps.com/",
+    "searchAliases": ["Kingsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kingsoft"],
+        "url": "https://www.kingsoft.com/",
+        "checkedOn": "2026-11-06"
+      }
+    ],
+    "monoInkScale": 1.0119
+  },
+  {
+    "name": "iflytek",
+    "slug": "iflytek",
+    "label": "iFlytek",
+    "integrationNames": ["iFlytek", "科大讯飞"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.iflytek.com/en/Public/Uploads/uploadfile/images/20230812/comlogo1.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0D3552": "#657F91",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#0D3552": "#657F91",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://iflytek.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["AI", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.iflytek.com/en/Public/Uploads/uploadfile/images/20230812/comlogo1.svg"
+  },
+  {
+    "name": "icbc",
+    "slug": "icbc",
+    "label": "ICBC",
+    "integrationNames": [
+      "ICBC",
+      "Industrial and Commercial Bank of China",
+      "工商银行"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/3/33/Industrial_and_Commercial_Bank_of_China_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#201E1D": "#F5F7FA",
+      "#CB0202": "#D94848",
+      "#231F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#201E1D": "#F5F7FA",
+      "#CB0202": "#D94848",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://icbc.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/3/33/Industrial_and_Commercial_Bank_of_China_logo.svg",
+    "monoInkScale": 1.06695
+  },
+  {
+    "name": "chinaConstructionBank",
+    "slug": "china-construction-bank",
+    "label": "China Construction Bank",
+    "integrationNames": ["China Construction Bank", "CCB", "建设银行"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/e/e8/China_Construction_Bank.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#2D64AA": "#507EB8",
+      "#221F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#2D64AA": "#507EB8",
+      "#221F20": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://ccb.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/e/e8/China_Construction_Bank.svg",
+    "monoInkScale": 1.37838
+  },
+  {
+    "name": "bankOfChina",
+    "slug": "bank-of-china",
+    "label": "Bank of China",
+    "integrationNames": ["Bank of China", "BOC", "中国银行"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/7/72/Bank_of_China.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#B10A32": "#C95571"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#B10A32": "#C95571"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://boc.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/7/72/Bank_of_China.svg",
+    "monoInkScale": 1.15385
+  },
+  {
+    "name": "agriculturalBankOfChina",
+    "slug": "agricultural-bank-of-china",
+    "label": "Agricultural Bank of China",
+    "integrationNames": ["Agricultural Bank of China", "ABC Bank", "农业银行"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/6/69/Agricultural_Bank_of_China_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#12806A": "#258A76",
+      "#231F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#12806A": "#258A76",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://abchina.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/6/69/Agricultural_Bank_of_China_logo.svg",
+    "monoInkScale": 1.46552
+  },
+  {
+    "name": "pingAn",
+    "slug": "ping-an",
+    "label": "Ping An",
+    "integrationNames": ["Ping An", "Ping An Insurance", "平安"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://pa18-pweb.pingan.com/node-pc/gl/official/component/index-footer/img/footer-logo-842d51b430.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E95506": "#E95506",
+      "#111111": "#F5F7FA",
+      "#005D3C": "#448870"
+    },
+    "logoDarkColors": {
+      "#E95506": "#E95506",
+      "#111111": "#F5F7FA",
+      "#005D3C": "#448870"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://pingan.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://pa18-pweb.pingan.com/node-pc/gl/official/component/index-footer/img/footer-logo-842d51b430.svg"
+  },
+  {
+    "name": "chinaLife",
+    "slug": "china-life",
+    "label": "China Life",
+    "integrationNames": ["China Life", "中国人寿"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/5/5b/China_Life_logo_3.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#B9B9BA": "#B9B9BA",
+      "#000000": "#F5F7FA",
+      "#F7F7F8": "#F7F7F8",
+      "#00A86D": "#00A86D",
+      "#7B7B7C": "#7B7B7C",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#B9B9BA": "#B9B9BA",
+      "#000000": "#F5F7FA",
+      "#F7F7F8": "#F7F7F8",
+      "#00A86D": "#00A86D",
+      "#7B7B7C": "#7B7B7C",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://chinalife.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/5/5b/China_Life_logo_3.svg",
+    "monoInkScale": 1.44068
+  },
+  {
+    "name": "bankOfCommunications",
+    "slug": "bank-of-communications",
+    "label": "Bank of Communications",
+    "integrationNames": ["Bank of Communications", "交通银行", "BOCOM"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Bank_of_Communications_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003B77": "#587FA6"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003B77": "#587FA6"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://bankcomm.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Bank_of_Communications_Logo.svg"
+  },
+  {
+    "name": "postalSavingsBankOfChina",
+    "slug": "postal-savings-bank-of-china",
+    "label": "Postal Savings Bank of China",
+    "integrationNames": ["Postal Savings Bank of China", "PSBC", "邮储银行"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/b/bf/Postal_Savings_Bank_of_China_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#006647": "#3B8971"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#006647": "#3B8971"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://psbc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/b/bf/Postal_Savings_Bank_of_China_logo.svg",
+    "monoInkScale": 1.34211
+  },
+  {
+    "name": "unionpay",
+    "slug": "unionpay",
+    "label": "UnionPay",
+    "integrationNames": ["UnionPay", "China UnionPay", "银联"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1b/UnionPay_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://unionpayintl.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1b/UnionPay_logo.svg"
+  },
+  {
+    "name": "chinaMobile",
+    "slug": "china-mobile",
+    "label": "China Mobile",
+    "integrationNames": ["China Mobile", "中国移动"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/9/90/China_Mobile_logo_%282019%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#8EC320": "#8EC320",
+      "#0086D0": "#0086D0"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#8EC320": "#8EC320",
+      "#0086D0": "#0086D0"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://chinamobileltd.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/9/90/China_Mobile_logo_%282019%29.svg"
+  },
+  {
+    "name": "chinaTelecom",
+    "slug": "china-telecom",
+    "label": "China Telecom",
+    "integrationNames": ["China Telecom", "中国电信"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/a/aa/China_Telecom_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#02489D": "#4D7EBA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#02489D": "#4D7EBA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://chinatelecom-h.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/a/aa/China_Telecom_Logo.svg"
+  },
+  {
+    "name": "chinaUnicom",
+    "slug": "china-unicom",
+    "label": "China Unicom",
+    "integrationNames": ["China Unicom", "中国联通"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/f/fd/China_Unicom_logo_%282022%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E60027": "#EA2D4D"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E60027": "#EA2D4D"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://chinaunicom.com.hk/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Communication"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/f/fd/China_Unicom_logo_%282022%29.svg",
+    "monoInkScale": 1.16972
+  },
+  {
+    "name": "stateGrid",
+    "slug": "state-grid",
+    "label": "State Grid",
+    "integrationNames": [
+      "State Grid",
+      "State Grid Corporation of China",
+      "国家电网"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/f/f5/State_Grid_Corporation_of_China_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#F8FBFB": "#F8FBFB",
+      "#00706B": "#2B8884"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#F8FBFB": "#F8FBFB",
+      "#00706B": "#2B8884"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://sgcc.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/f/f5/State_Grid_Corporation_of_China_logo.svg"
+  },
+  {
+    "name": "sinopec",
+    "slug": "sinopec",
+    "label": "Sinopec",
+    "integrationNames": [
+      "Sinopec",
+      "China Petroleum and Chemical Corporation",
+      "中国石化"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/6/6f/Sinopec_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E50012": "#EA2F3E",
+      "#111111": "#F5F7FA",
+      "#231815": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#E50012": "#EA2F3E",
+      "#111111": "#F5F7FA",
+      "#231815": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://sinopec.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/6/6f/Sinopec_logo.svg"
+  },
+  {
+    "name": "petrochina",
+    "slug": "petrochina",
+    "label": "PetroChina",
+    "integrationNames": ["PetroChina", "中国石油"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/2/2b/Petrochina_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#C7000D": "#D74A53",
+      "#FFE200": "#FFE200",
+      "#111111": "#F5F7FA",
+      "#F08300": "#F08300"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#C7000D": "#D74A53",
+      "#FFE200": "#FFE200",
+      "#111111": "#F5F7FA",
+      "#F08300": "#F08300"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://petrochina.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/2/2b/Petrochina_logo.svg",
+    "monoInkScale": 1.20283
+  },
+  {
+    "name": "cnooc",
+    "slug": "cnooc",
+    "label": "CNOOC",
+    "integrationNames": [
+      "CNOOC",
+      "China National Offshore Oil Corporation",
+      "中国海油"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/0/00/CNOOC_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#005CA5": "#3981B9",
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#F8192F": "#F8192F"
+    },
+    "logoDarkColors": {
+      "#005CA5": "#3981B9",
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#F8192F": "#F8192F"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://cnooc.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/0/00/CNOOC_Logo.svg"
+  },
+  {
+    "name": "cscec",
+    "slug": "cscec",
+    "label": "CSCEC",
+    "integrationNames": [
+      "CSCEC",
+      "China State Construction Engineering Corporation",
+      "中国建筑"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/62/China_State_Construction_Engineering_Corporation_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://cscec.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "coscoShipping",
+    "slug": "cosco-shipping",
+    "label": "COSCO Shipping",
+    "integrationNames": ["COSCO Shipping", "COSCO", "中远海运"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f6/COSCOCS-ver1.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E60012": "#EB2E3D",
+      "#111111": "#F5F7FA",
+      "#BD1D21": "#CD5356",
+      "#154B83": "#597FA7"
+    },
+    "logoDarkColors": {
+      "#E60012": "#EB2E3D",
+      "#111111": "#F5F7FA",
+      "#BD1D21": "#CD5356",
+      "#154B83": "#597FA7"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://coscoshipping.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f6/COSCOCS-ver1.svg",
+    "monoInkScale": 1.05372
+  },
+  {
+    "name": "ztoExpress",
+    "slug": "zto-express",
+    "label": "ZTO Express",
+    "integrationNames": ["ZTO Express", "ZTO", "中通快递"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/5/5a/ZTO_Express.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4492CC": "#4492CC",
+      "#366AB4": "#4F7DBD"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4492CC": "#4492CC",
+      "#366AB4": "#4F7DBD"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://zto.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/5/5a/ZTO_Express.svg"
+  },
+  {
+    "name": "cainiao",
+    "slug": "cainiao",
+    "label": "Cainiao",
+    "integrationNames": ["Cainiao", "菜鸟"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/20/CainiaoLogo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0066FF": "#1774FF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0066FF": "#1774FF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://cainiao.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/20/CainiaoLogo.svg",
+    "searchAliases": ["Alibaba", "Alibaba Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alibaba", "Alibaba Group"],
+        "url": "https://www.alibabagroup.com/en-US/about-alibaba-businesses",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "geely",
+    "slug": "geely",
+    "label": "Geely",
+    "integrationNames": ["Geely", "Geely Auto", "吉利"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.geely.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://geely.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.geely.com/",
+    "searchAliases": ["Geely", "Geely Holding"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Geely", "Geely Holding"],
+        "url": "https://zgh.com/our-business/?lang=en",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "nio",
+    "slug": "nio",
+    "label": "NIO",
+    "integrationNames": ["NIO", "蔚来"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/ca/NIO_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://nio.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/ca/NIO_logo.svg"
+  },
+  {
+    "name": "xpeng",
+    "slug": "xpeng",
+    "label": "XPENG",
+    "integrationNames": ["XPENG", "Xpeng Motors", "小鹏"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://a-cdn.xpeng.com/mall/public/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0A0A1A": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://xpeng.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/ca/XPeng_logo.svg"
+  },
+  {
+    "name": "liAuto",
+    "slug": "li-auto",
+    "label": "Li Auto",
+    "integrationNames": ["Li Auto", "Li Xiang", "理想汽车"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/17/Li_Auto_English_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://lixiang.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/17/Li_Auto_English_logo.svg"
+  },
+  {
+    "name": "chery",
+    "slug": "chery",
+    "label": "Chery",
+    "integrationNames": ["Chery", "奇瑞"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Chery_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#313131": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#313131": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://cheryinternational.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Chery_logo.svg"
+  },
+  {
+    "name": "changan",
+    "slug": "changan",
+    "label": "Changan",
+    "integrationNames": ["Changan", "长安汽车"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.globalchangan.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0B457F": "#577FA7",
+      "#D9D9D9": "#D9D9D9"
+    },
+    "logoDarkColors": {
+      "#0B457F": "#577FA7",
+      "#D9D9D9": "#D9D9D9"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://globalchangan.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.globalchangan.com/"
+  },
+  {
+    "name": "hongqi",
+    "slug": "hongqi",
+    "label": "Hongqi",
+    "integrationNames": ["Hongqi", "红旗"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/7/7a/Hongqi_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FF0000": "#FF0000"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FF0000": "#FF0000"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://hongqi-auto.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/7/7a/Hongqi_logo.svg"
+  },
+  {
+    "name": "saicMotor",
+    "slug": "saic-motor",
+    "label": "SAIC Motor",
+    "integrationNames": ["SAIC Motor", "SAIC", "上汽集团"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/30/SAIC_Motor.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#0166FE": "#1975FE"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#0166FE": "#1975FE"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://saicmotor.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/30/SAIC_Motor.svg"
+  },
+  {
+    "name": "mg",
+    "slug": "mg",
+    "label": "MG",
+    "integrationNames": ["MG", "Morris Garages", "MG Motor"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.mgmotor.eu:443/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://mgmotor.eu/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.mgmotor.eu:443/"
+  },
+  {
+    "name": "zeekr",
+    "slug": "zeekr",
+    "label": "Zeekr",
+    "integrationNames": ["Zeekr", "极氪"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Zeekr_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://zeekrlife.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Zeekr_logo.svg",
+    "searchAliases": ["Geely", "Geely Holding"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Geely", "Geely Holding"],
+        "url": "https://zgh.com/our-business/?lang=en",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "leapmotor",
+    "slug": "leapmotor",
+    "label": "Leapmotor",
+    "integrationNames": ["Leapmotor", "零跑汽车"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Leapmotor_logo_en.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://leapmotor.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Leapmotor_logo_en.svg"
+  },
+  {
+    "name": "anta",
+    "slug": "anta",
+    "label": "Anta",
+    "integrationNames": ["Anta", "ANTA Sports", "安踏"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/anta.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#D70010": "#E13E4B"
+    },
+    "logoDarkColors": {
+      "#D70010": "#E13E4B"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://anta.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/anta.svg"
+  },
+  {
+    "name": "liNing",
+    "slug": "li-ning",
+    "label": "Li-Ning",
+    "integrationNames": ["Li-Ning", "李宁"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/lining.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#EE3424": "#EE3424"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E83928": "#E83928"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://lining.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/31/Li-Ning_logo_red.svg"
+  },
+  {
+    "name": "shein",
+    "slug": "shein",
+    "label": "SHEIN",
+    "integrationNames": ["SHEIN", "SheIn"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://ch.shein.com/?cdn_rsite=ak&ref=www&rep=dir&ret=ch",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://shein.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ch.shein.com/?cdn_rsite=ak&ref=www&rep=dir&ret=ch"
+  },
+  {
+    "name": "popMart",
+    "slug": "pop-mart",
+    "label": "POP MART",
+    "integrationNames": ["POP MART", "泡泡玛特"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.popmart.com/de",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://popmart.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Consumer goods", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.popmart.com/de"
+  },
+  {
+    "name": "miniso",
+    "slug": "miniso",
+    "label": "Miniso",
+    "integrationNames": ["Miniso", "名创优品"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Miniso_2023.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://miniso.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Consumer goods"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Miniso_2023.svg"
+  },
+  {
+    "name": "luckinCoffee",
+    "slug": "luckin-coffee",
+    "label": "Luckin Coffee",
+    "integrationNames": ["Luckin Coffee", "Luckin", "瑞幸咖啡"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/d/d0/Luckin_Coffee_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#0022AB": "#6277CB"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#0022AB": "#6277CB"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://lkcoffee.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/d/d0/Luckin_Coffee_Logo.svg",
+    "monoInkScale": 1.16972
+  },
+  {
+    "name": "mixue",
+    "slug": "mixue",
+    "label": "Mixue",
+    "integrationNames": ["Mixue", "蜜雪冰城"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/3/37/Mixue_Ice_Cream_%26_Tea_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E60012": "#EB2E3D",
+      "#FFFFFF": "#FFFFFF",
+      "#F9BF2C": "#F9BF2C",
+      "#231815": "#F5F7FA",
+      "#F29600": "#F29600",
+      "#0B308E": "#637BB7",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#E60012": "#EB2E3D",
+      "#FFFFFF": "#FFFFFF",
+      "#F9BF2C": "#F9BF2C",
+      "#231815": "#F5F7FA",
+      "#F29600": "#F29600",
+      "#0B308E": "#637BB7",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://mixue.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/3/37/Mixue_Ice_Cream_%26_Tea_logo.svg"
+  },
+  {
+    "name": "haidilao",
+    "slug": "haidilao",
+    "label": "Haidilao",
+    "integrationNames": ["Haidilao", "海底捞"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/1/13/Haidilao_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E60012": "#EB2E3D",
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#E60012": "#EB2E3D",
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://haidilao.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/1/13/Haidilao_logo.svg"
+  },
+  {
+    "name": "nongfuSpring",
+    "slug": "nongfu-spring",
+    "label": "Nongfu Spring",
+    "integrationNames": ["Nongfu Spring", "农夫山泉"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0a/Nongfu_Spring.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://nongfuspring.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/0a/Nongfu_Spring.svg"
+  },
+  {
+    "name": "wuliangye",
+    "slug": "wuliangye",
+    "label": "Wuliangye",
+    "integrationNames": ["Wuliangye", "五粮液"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/1/1c/Wuliangye_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#DF0615": "#E53844"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://wuliangye.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "sany",
+    "slug": "sany",
+    "label": "SANY",
+    "integrationNames": ["SANY", "Sany Heavy Industry", "三一"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/44/SANY_Group_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#C6000B": "#D74A52"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#C6000B": "#D74A52"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://sanyglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/44/SANY_Group_logo.svg"
+  },
+  {
+    "name": "xcmg",
+    "slug": "xcmg",
+    "label": "XCMG",
+    "integrationNames": ["XCMG", "徐工"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.xcmgglobal.com/resources/web/img/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0062B0": "#3281BF"
+    },
+    "logoDarkColors": {
+      "#0062B0": "#3281BF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://xcmgglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.xcmgglobal.com/resources/web/img/logo.svg",
+    "monoInkScale": 1.37838
+  },
+  {
+    "name": "jinkosolar",
+    "slug": "jinkosolar",
+    "label": "JinkoSolar",
+    "integrationNames": ["JinkoSolar", "Jinko Solar", "晶科能源"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/7/74/Jinko_Solar_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#7AC251": "#7AC251",
+      "#FFFFFF": "#FFFFFF",
+      "#2EAB47": "#2EAB47"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#7AC251": "#7AC251",
+      "#FFFFFF": "#FFFFFF",
+      "#2EAB47": "#2EAB47"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://jinkosolar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/7/74/Jinko_Solar_logo.svg"
+  },
+  {
+    "name": "wuxiApptec",
+    "slug": "wuxi-apptec",
+    "label": "WuXi AppTec",
+    "integrationNames": ["WuXi AppTec", "药明康德"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/67/WuXi_AppTec.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#6B6769": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#0F8ECE": "#0F8ECE",
+      "#136AB3": "#3680BE"
+    },
+    "logoDarkColors": {
+      "#6B6769": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#0F8ECE": "#0F8ECE",
+      "#136AB3": "#3680BE"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://wuxiapptec.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Life sciences"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/67/WuXi_AppTec.svg"
+  },
+  {
+    "name": "jdCom",
+    "slug": "jd-com",
+    "label": "JD.com",
+    "integrationNames": ["JD.com", "JD", "Jingdong", "京东"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/c/c4/JD.com_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E41C1A": "#E73634",
+      "#111111": "#F5F7FA",
+      "#E41C19": "#E73633",
+      "#E31D19": "#E63733"
+    },
+    "logoDarkColors": {
+      "#E41C1A": "#E73634",
+      "#111111": "#F5F7FA",
+      "#E41C19": "#E73633",
+      "#E31D19": "#E63733"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used. Uses the JD.COM wordmark without the three-dimensional mascot. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://jd.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/c/c4/JD.com_logo.png"
+  },
+  {
+    "name": "antGroup",
+    "slug": "ant-group",
+    "label": "Ant Group",
+    "integrationNames": ["Ant Group", "蚂蚁集团"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/d/de/Ant_Group_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0F83FF": "#0F83FF",
+      "#000000": "#F5F7FA",
+      "#F2F8FF": "#F2F8FF",
+      "#111111": "#F5F7FA",
+      "#0D94FF": "#0D94FF"
+    },
+    "logoDarkColors": {
+      "#0F83FF": "#0F83FF",
+      "#000000": "#F5F7FA",
+      "#F2F8FF": "#F2F8FF",
+      "#111111": "#F5F7FA",
+      "#0D94FF": "#0D94FF"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://antgroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/d/de/Ant_Group_logo.png",
+    "monoInkScale": 1.82143,
+    "searchAliases": ["Ant Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Ant Group"],
+        "url": "https://www.antgroup.com/en/home",
+        "checkedOn": "2026-11-06"
+      }
+    ]
+  },
+  {
+    "name": "kingsoft",
+    "slug": "kingsoft",
+    "label": "Kingsoft",
+    "integrationNames": ["Kingsoft", "金山软件"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/d/dd/Kingsoft_headquarters.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://kingsoft.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Business software", "Gaming"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/d/dd/Kingsoft_headquarters.png",
+    "searchAliases": ["Kingsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kingsoft"],
+        "url": "https://www.kingsoft.com/",
+        "checkedOn": "2026-11-06"
+      }
+    ],
+    "monoInkScale": 1.25616
+  },
+  {
+    "name": "kingdee",
+    "slug": "kingdee",
+    "label": "Kingdee",
+    "integrationNames": ["Kingdee", "金蝶"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Kingdee_logo_wiki.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#8373B4": "#8373B4",
+      "#787EB6": "#787EB6",
+      "#866FB1": "#8770B1",
+      "#8274B5": "#8274B5",
+      "#3BBCDA": "#3BBCDA",
+      "#8670B2": "#8670B2",
+      "#816FB2": "#8371B3",
+      "#797EBC": "#797EBC",
+      "#3BC0EC": "#3BC0EC",
+      "#6F88C3": "#6F88C3",
+      "#7186C2": "#7186C2",
+      "#8077B6": "#8077B6",
+      "#7E79B8": "#7E79B8",
+      "#8670B1": "#8771B1",
+      "#8671B2": "#8671B2",
+      "#3BB8BF": "#3BB8BF",
+      "#8373B1": "#8373B1",
+      "#7681BC": "#7681BC",
+      "#797EBA": "#797EBA",
+      "#7284BC": "#7284BC",
+      "#6F87BE": "#6F87BE",
+      "#7D79B8": "#7D79B8",
+      "#698DBF": "#698DBF",
+      "#7681BE": "#7681BE",
+      "#8077B7": "#8077B7",
+      "#7582BF": "#7582BF",
+      "#7C79B5": "#7C79B5",
+      "#8175B3": "#8175B3",
+      "#7C7BB9": "#7C7BB9",
+      "#7B7CBA": "#7B7CBA",
+      "#3BBCD7": "#3BBCD7",
+      "#8076B6": "#8076B6",
+      "#698FC8": "#698FC8",
+      "#777FBD": "#777FBD",
+      "#8175B4": "#8175B4",
+      "#797CB5": "#797CB5",
+      "#7481B7": "#7481B7",
+      "#8275B5": "#8275B5",
+      "#8175B5": "#8175B5",
+      "#6C88BD": "#6C88BD",
+      "#7777B8": "#7777B8",
+      "#8176B5": "#8176B5",
+      "#7F77B5": "#7F77B5",
+      "#7285C1": "#7285C1",
+      "#8176B6": "#8176B6",
+      "#7681BB": "#7681BB",
+      "#8571B2": "#8571B2",
+      "#6C8BC0": "#6C8BC0",
+      "#8274B4": "#8274B4",
+      "#8472B3": "#8472B3",
+      "#7A73B5": "#7B74B5",
+      "#397BC1": "#3E7EC3",
+      "#7E78B7": "#7E78B7",
+      "#3AB2DA": "#3AB2DA",
+      "#8472B2": "#8472B2",
+      "#7F77B7": "#7F77B7",
+      "#6D89BE": "#6D89BE",
+      "#7185BD": "#7185BD",
+      "#6B8BBF": "#6B8BBF",
+      "#111111": "#F5F7FA",
+      "#7681BD": "#7681BD",
+      "#7483BF": "#7483BF",
+      "#7B7BBA": "#7B7BBA",
+      "#698DC0": "#698DC0",
+      "#397BC0": "#3E7EC2",
+      "#886FB1": "#8970B1",
+      "#7F77B2": "#7F77B2",
+      "#7D79B5": "#7D79B5",
+      "#7B7CB8": "#7B7CB8",
+      "#856FB1": "#8670B2",
+      "#876FB1": "#8870B1",
+      "#7F78B7": "#7F78B7",
+      "#7D7AB9": "#7D7AB9",
+      "#6B8BBE": "#6B8BBE",
+      "#787EB5": "#787EB5",
+      "#8374B4": "#8374B4",
+      "#6E89C2": "#6E89C2",
+      "#7C79B4": "#7C79B4",
+      "#8473B3": "#8473B3",
+      "#6E8AC4": "#6E8AC4",
+      "#7E78B8": "#7E78B8",
+      "#6E88B9": "#6E88B9",
+      "#8571B3": "#8571B3",
+      "#8274B3": "#8274B3",
+      "#8572B3": "#8572B3",
+      "#8473B4": "#8473B4",
+      "#7C7BBA": "#7C7BBA",
+      "#7D73B3": "#7D73B3",
+      "#7384BF": "#7384BF",
+      "#6C8ABF": "#6C8ABF",
+      "#7D79B6": "#7D79B6",
+      "#3ABBDB": "#3ABBDB",
+      "#6692C9": "#6692C9",
+      "#8076B5": "#8076B5",
+      "#787FBC": "#787FBC"
+    },
+    "logoDarkColors": {
+      "#8373B4": "#8373B4",
+      "#787EB6": "#787EB6",
+      "#866FB1": "#8770B1",
+      "#8274B5": "#8274B5",
+      "#3BBCDA": "#3BBCDA",
+      "#8670B2": "#8670B2",
+      "#816FB2": "#8371B3",
+      "#797EBC": "#797EBC",
+      "#3BC0EC": "#3BC0EC",
+      "#6F88C3": "#6F88C3",
+      "#7186C2": "#7186C2",
+      "#8077B6": "#8077B6",
+      "#7E79B8": "#7E79B8",
+      "#8670B1": "#8771B1",
+      "#8671B2": "#8671B2",
+      "#3BB8BF": "#3BB8BF",
+      "#8373B1": "#8373B1",
+      "#7681BC": "#7681BC",
+      "#797EBA": "#797EBA",
+      "#7284BC": "#7284BC",
+      "#6F87BE": "#6F87BE",
+      "#7D79B8": "#7D79B8",
+      "#698DBF": "#698DBF",
+      "#7681BE": "#7681BE",
+      "#8077B7": "#8077B7",
+      "#7582BF": "#7582BF",
+      "#7C79B5": "#7C79B5",
+      "#8175B3": "#8175B3",
+      "#7C7BB9": "#7C7BB9",
+      "#7B7CBA": "#7B7CBA",
+      "#3BBCD7": "#3BBCD7",
+      "#8076B6": "#8076B6",
+      "#698FC8": "#698FC8",
+      "#777FBD": "#777FBD",
+      "#8175B4": "#8175B4",
+      "#797CB5": "#797CB5",
+      "#7481B7": "#7481B7",
+      "#8275B5": "#8275B5",
+      "#8175B5": "#8175B5",
+      "#6C88BD": "#6C88BD",
+      "#7777B8": "#7777B8",
+      "#8176B5": "#8176B5",
+      "#7F77B5": "#7F77B5",
+      "#7285C1": "#7285C1",
+      "#8176B6": "#8176B6",
+      "#7681BB": "#7681BB",
+      "#8571B2": "#8571B2",
+      "#6C8BC0": "#6C8BC0",
+      "#8274B4": "#8274B4",
+      "#8472B3": "#8472B3",
+      "#7A73B5": "#7B74B5",
+      "#397BC1": "#3E7EC3",
+      "#7E78B7": "#7E78B7",
+      "#3AB2DA": "#3AB2DA",
+      "#8472B2": "#8472B2",
+      "#7F77B7": "#7F77B7",
+      "#6D89BE": "#6D89BE",
+      "#7185BD": "#7185BD",
+      "#6B8BBF": "#6B8BBF",
+      "#111111": "#F5F7FA",
+      "#7681BD": "#7681BD",
+      "#7483BF": "#7483BF",
+      "#7B7BBA": "#7B7BBA",
+      "#698DC0": "#698DC0",
+      "#397BC0": "#3E7EC2",
+      "#886FB1": "#8970B1",
+      "#7F77B2": "#7F77B2",
+      "#7D79B5": "#7D79B5",
+      "#7B7CB8": "#7B7CB8",
+      "#856FB1": "#8670B2",
+      "#876FB1": "#8870B1",
+      "#7F78B7": "#7F78B7",
+      "#7D7AB9": "#7D7AB9",
+      "#6B8BBE": "#6B8BBE",
+      "#787EB5": "#787EB5",
+      "#8374B4": "#8374B4",
+      "#6E89C2": "#6E89C2",
+      "#7C79B4": "#7C79B4",
+      "#8473B3": "#8473B3",
+      "#6E8AC4": "#6E8AC4",
+      "#7E78B8": "#7E78B8",
+      "#6E88B9": "#6E88B9",
+      "#8571B3": "#8571B3",
+      "#8274B3": "#8274B3",
+      "#8572B3": "#8572B3",
+      "#8473B4": "#8473B4",
+      "#7C7BBA": "#7C7BBA",
+      "#7D73B3": "#7D73B3",
+      "#7384BF": "#7384BF",
+      "#6C8ABF": "#6C8ABF",
+      "#7D79B6": "#7D79B6",
+      "#3ABBDB": "#3ABBDB",
+      "#6692C9": "#6692C9",
+      "#8076B5": "#8076B5",
+      "#787FBC": "#787FBC"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://kingdee.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Business software"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Kingdee_logo_wiki.jpg"
+  },
+  {
+    "name": "crrc",
+    "slug": "crrc",
+    "label": "CRRC",
+    "integrationNames": ["CRRC", "中国中车"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/e/ee/CRRC_Corporation_Logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#C51E2B": "#D14E59",
+      "#CB3743": "#D14F5A",
+      "#141414": "#F5F7FA",
+      "#757575": "#F5F7FA",
+      "#CA323F": "#D14F5A",
+      "#C62230": "#D24F5A",
+      "#161616": "#F5F7FA",
+      "#191919": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#CB3844": "#D14F5A"
+    },
+    "logoDarkColors": {
+      "#C51E2B": "#D14E59",
+      "#CB3743": "#D14F5A",
+      "#141414": "#F5F7FA",
+      "#757575": "#F5F7FA",
+      "#CA323F": "#D14F5A",
+      "#C62230": "#D24F5A",
+      "#161616": "#F5F7FA",
+      "#191919": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#CB3844": "#D14F5A"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://crrcgc.cc/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy", "Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/e/ee/CRRC_Corporation_Logo.png",
+    "monoInkScale": 1.2439
+  },
+  {
+    "name": "chinaRailwayGroup",
+    "slug": "china-railway-group",
+    "label": "China Railway Group",
+    "integrationNames": ["China Railway Group", "CREC", "中国中铁"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/8f/China_Railway_Group_Limited_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0062B2": "#3080C1",
+      "#0061B2": "#3280C1",
+      "#0061B1": "#3280C0",
+      "#0062B1": "#3281C0",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0062B2": "#3080C1",
+      "#0061B2": "#3280C1",
+      "#0061B1": "#3280C0",
+      "#0062B1": "#3281C0",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://crecg.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy", "Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/8/8f/China_Railway_Group_Limited_logo.png"
+  },
+  {
+    "name": "chinaPost",
+    "slug": "china-post",
+    "label": "China Post",
+    "integrationNames": ["China Post", "中国邮政"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/a/a9/China_Post_Logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#414141": "#F5F7FA",
+      "#AEAEAE": "#AEAEAE",
+      "#393838": "#F5F7FA",
+      "#888787": "#888787",
+      "#3A3939": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#A7A7A7": "#A7A7A7",
+      "#A3A2A2": "#A3A2A2",
+      "#302F2F": "#F5F7FA",
+      "#ABABAB": "#ABABAB",
+      "#2E2D2D": "#F5F7FA",
+      "#1A1919": "#F5F7FA",
+      "#99C2B5": "#99C2B5",
+      "#605F5F": "#F5F7FA",
+      "#515050": "#F5F7FA",
+      "#848383": "#848383",
+      "#B9B9B9": "#B9B9B9",
+      "#1A7758": "#39896F",
+      "#3C3B3B": "#F5F7FA",
+      "#9B9B9B": "#9B9B9B",
+      "#8B8A8A": "#8B8A8A",
+      "#1B1A1A": "#F5F7FA",
+      "#201F1F": "#F5F7FA",
+      "#1F1E1E": "#F5F7FA",
+      "#989898": "#989898",
+      "#212020": "#F5F7FA",
+      "#9A9A9A": "#9A9A9A",
+      "#535353": "#F5F7FA",
+      "#4F4E4E": "#F5F7FA",
+      "#A8A7A7": "#A8A7A7",
+      "#9D9D9D": "#9D9D9D",
+      "#2B2A2A": "#F5F7FA",
+      "#ACACAC": "#ACACAC",
+      "#929191": "#929191",
+      "#595858": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#414141": "#F5F7FA",
+      "#AEAEAE": "#AEAEAE",
+      "#393838": "#F5F7FA",
+      "#888787": "#888787",
+      "#3A3939": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#A7A7A7": "#A7A7A7",
+      "#A3A2A2": "#A3A2A2",
+      "#302F2F": "#F5F7FA",
+      "#ABABAB": "#ABABAB",
+      "#2E2D2D": "#F5F7FA",
+      "#1A1919": "#F5F7FA",
+      "#99C2B5": "#99C2B5",
+      "#605F5F": "#F5F7FA",
+      "#515050": "#F5F7FA",
+      "#848383": "#848383",
+      "#B9B9B9": "#B9B9B9",
+      "#1A7758": "#39896F",
+      "#3C3B3B": "#F5F7FA",
+      "#9B9B9B": "#9B9B9B",
+      "#8B8A8A": "#8B8A8A",
+      "#1B1A1A": "#F5F7FA",
+      "#201F1F": "#F5F7FA",
+      "#1F1E1E": "#F5F7FA",
+      "#989898": "#989898",
+      "#212020": "#F5F7FA",
+      "#9A9A9A": "#9A9A9A",
+      "#535353": "#F5F7FA",
+      "#4F4E4E": "#F5F7FA",
+      "#A8A7A7": "#A8A7A7",
+      "#9D9D9D": "#9D9D9D",
+      "#2B2A2A": "#F5F7FA",
+      "#ACACAC": "#ACACAC",
+      "#929191": "#929191",
+      "#595858": "#F5F7FA"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://chinapost.com.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/a/a9/China_Post_Logo.png",
+    "monoInkScale": 1.45714
+  },
+  {
+    "name": "sfExpress",
+    "slug": "sf-express",
+    "label": "SF Express",
+    "integrationNames": ["SF Express", "SF", "顺丰速运"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/8c/SF_Express_Logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1F1F1F": "#F5F7FA",
+      "#2D2B2B": "#F5F7FA",
+      "#292827": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#1E1D1D": "#F5F7FA",
+      "#211F1E": "#F5F7FA",
+      "#1D1D1D": "#F5F7FA",
+      "#212121": "#F5F7FA",
+      "#222121": "#F5F7FA",
+      "#2C2B2A": "#F5F7FA",
+      "#C50B21": "#D44C5C",
+      "#313030": "#F5F7FA",
+      "#242323": "#F5F7FA",
+      "#2A2828": "#F5F7FA",
+      "#1E1E1D": "#F5F7FA",
+      "#282727": "#F5F7FA",
+      "#2E2D2C": "#F5F7FA",
+      "#1F1E1E": "#F5F7FA",
+      "#232221": "#F5F7FA",
+      "#201F1E": "#F5F7FA",
+      "#1A1A1A": "#F5F7FA",
+      "#2C2A2A": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1F1F1F": "#F5F7FA",
+      "#2D2B2B": "#F5F7FA",
+      "#292827": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#1E1D1D": "#F5F7FA",
+      "#211F1E": "#F5F7FA",
+      "#1D1D1D": "#F5F7FA",
+      "#212121": "#F5F7FA",
+      "#222121": "#F5F7FA",
+      "#2C2B2A": "#F5F7FA",
+      "#C50B21": "#D44C5C",
+      "#313030": "#F5F7FA",
+      "#242323": "#F5F7FA",
+      "#2A2828": "#F5F7FA",
+      "#1E1E1D": "#F5F7FA",
+      "#282727": "#F5F7FA",
+      "#2E2D2C": "#F5F7FA",
+      "#1F1E1E": "#F5F7FA",
+      "#232221": "#F5F7FA",
+      "#201F1E": "#F5F7FA",
+      "#1A1A1A": "#F5F7FA",
+      "#2C2A2A": "#F5F7FA"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://sf-express.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/8/8c/SF_Express_Logo.png",
+    "monoInkScale": 1.0119
+  },
+  {
+    "name": "greatWallMotor",
+    "slug": "great-wall-motor",
+    "label": "Great Wall Motor",
+    "integrationNames": [
+      "Great Wall Motor",
+      "GWM",
+      "Great Wall Motors",
+      "长城汽车"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Great_Wall_Motor_2025_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E60000": "#EB2F2F"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E60000": "#EB2F2F"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://gwm-global.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Great_Wall_Motor_2025_logo.png"
+  },
+  {
+    "name": "wuling",
+    "slug": "wuling",
+    "label": "Wuling",
+    "integrationNames": ["Wuling", "五菱"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/36/Wuling_Motor_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#BB262C": "#CA565A",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://wuling.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "heytea",
+    "slug": "heytea",
+    "label": "HEYTEA",
+    "integrationNames": ["HEYTEA", "喜茶"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a8/HEYTEA_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://heytea.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a8/HEYTEA_logo.png"
+  },
+  {
+    "name": "yili",
+    "slug": "yili",
+    "label": "Yili",
+    "integrationNames": ["Yili", "伊利"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/44/Yili_Logo.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used.",
+    "brandWebsite": "https://yili.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/44/Yili_Logo.png"
+  },
+  {
+    "name": "trinaSolar",
+    "slug": "trina-solar",
+    "label": "Trina Solar",
+    "integrationNames": ["Trina Solar", "Trinasolar", "天合光能"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/46/Trinasolar_Logo_EN.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#008CD6": "#008CD6",
+      "#111111": "#F5F7FA",
+      "#E83428": "#E83529"
+    },
+    "logoDarkColors": {
+      "#008CD6": "#008CD6",
+      "#111111": "#F5F7FA",
+      "#E83428": "#E83529"
+    },
+    "logoNotes": "Vector outlines traced from the referenced brand artwork; flat canvas background removed. No embedded raster image or replacement font is used. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://trinasolar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/46/Trinasolar_Logo_EN.png"
   }
 ]

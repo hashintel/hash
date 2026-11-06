@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cnooc-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="cnooc-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="cnooc-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cnooc-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cnooc-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#cnooc-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="cnooc-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#cnooc-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.63509 -0.58486 479.77137 436.70269" id="cnooc-app-dark-Layer_1" xml:space="preserve" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs id="cnooc-app-dark-defs34" />
+<g id="cnooc-app-dark-g3">
+	<polygon points="167.745,0 138.879,160.419 246.778,160.419 212.99,0 167.745,0 " id="cnooc-app-dark-polygon5" fill="#FFFFFF" />
+	<ellipse cx="200.19901" cy="240.448" rx="200.19901" ry="195.08501" id="cnooc-app-dark-ellipse7" fill="#FFFFFF" />
+	<polygon points="460.994,255.929 322.32,255.929 322.32,169.145 478.501,169.145 460.994,255.929 " id="cnooc-app-dark-polygon9" fill="#FFFFFF" />
+	<g id="cnooc-app-dark-g11">
+		<g id="cnooc-app-dark-g13">
+			<path d="M 17.732,214.436 C 30.623,128.041 107.12,61.675 199.559,61.675 C 273.061,61.675 336.482,103.642 365.863,164.267 L 316.916,164.267 C 299.899,117.429 253.633,83.84 199.243,83.84 C 130.393,83.84 74.575,137.654 74.575,204.037 C 74.575,270.411 130.393,324.225 199.243,324.225 C 249.182,324.225 292.262,295.919 312.168,255.036 L 382.68,255.036 C 381.738,266.246 379.739,277.174 376.761,287.704 L 372.108,287.704 C 298.755,287.704 264.821,352.575 178.487,352.575 C 107.941,352.575 22.612,297.156 17.732,214.436" id="cnooc-app-dark-path15" fill="#3981B9" />
+			<path d="M 369.653,308.008 C 365.445,317.987 360.338,327.516 354.425,336.493 C 289.883,340.356 261.342,383.124 183.444,383.124 C 111.386,383.124 24.846,337.574 16.469,243.05 C 37.659,323.942 116.883,361.35 181.932,361.35 C 268.799,361.35 300.003,309.208 369.653,308.008" id="cnooc-app-dark-path17" fill="#3981B9" />
+			<path d="M 339.381,356.225 C 305.671,394.613 255.545,418.954 199.558,418.954 C 123.482,418.954 58.203,374.005 30.29,309.93 C 66.869,362.009 132.006,392.106 183.443,392.106 C 278.516,392.105 276.624,357.629 339.381,356.225" id="cnooc-app-dark-path19" fill="#3981B9" />
+		</g>
+		<g id="cnooc-app-dark-g21">
+			<polyline fill="#F8192F" points="408.794,185.055 459.636,185.055 456.196,201.972 423.017,201.972 419.194,222.004      452.12,222.004 448.924,237.735 397.6,237.735 408.794,185.055    " id="cnooc-app-dark-polyline23" />
+			<polyline fill="#F8192F" points="137.22,269.17 182.24,18.971 198.745,18.971 244.345,235.473 254.951,185.737 276.283,185.737      261.438,267.998 224.195,267.998 191.673,120.091 163.857,269.17 137.22,269.17    " id="cnooc-app-dark-polyline25" />
+			<path d="M 86.323,205.154 C 86.323,144.037 137.125,94.496 199.788,94.496 C 249.074,94.496 291.028,125.151 306.692,167.976 L 282.629,167.976 C 268.233,136.846 236.433,115.219 199.524,115.219 C 149.086,115.219 108.191,155.605 108.191,205.428 C 108.191,255.265 149.087,295.661 199.524,295.661 C 231.414,295.661 259.483,279.503 275.82,255.034 L 301.104,255.034 C 282.404,291.09 244.054,315.811 199.788,315.811 C 137.125,315.813 86.323,266.271 86.323,205.154" id="cnooc-app-dark-path27" fill="#F8192F" />
+			<path d="M 347.162,185.055 L 401.024,185.055 L 390.295,237.735 L 335.96,237.735 L 347.162,185.055 M 361.392,201.972 L 381.048,201.972 L 377.224,222.004 L 357.561,222.004 L 361.392,201.972 z " id="cnooc-app-dark-path29" fill="#F8192F" fill-rule="evenodd" />
+			<path d="M 284.786,185.055 L 338.649,185.055 L 327.92,237.735 L 273.595,237.735 L 284.786,185.055 M 299.01,201.972 L 318.673,201.972 L 314.848,222.004 L 295.186,222.004 L 299.01,201.972 z " id="cnooc-app-dark-path31" fill="#F8192F" fill-rule="evenodd" />
+		</g>
+	</g>
+</g>
+</svg></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><svg xmlns="http://www.w3.org/2000/svg" id="xcmg-mark-dark-图层_1" viewBox="-0.01209 -0.04918 32.64824 32.70235" fill="#F5F7FA" x="0.0" y="0.0" width="64" height="64">
+  <defs><clipPath id="xcmg-mark-dark-symbol-crop"><rect x="-0.25146" y="-0.27885" width="33.59867565" height="33.85328" /></clipPath></defs><g clip-path="url(#xcmg-mark-dark-symbol-crop)"><defs>
+    </defs>
+  <g>
+    <g>
+      <polygon points="115.21 4.12 107.9 18.18 106.3 4.12 96.55 4.12 86.77 32.63 96.53 32.63 100.43 21.27 101.8 32.63 108.12 32.63 114.33 20.96 113.72 32.63 123.47 32.63 124.97 4.12 115.21 4.12" fill-rule="evenodd" />
+      <g>
+        <path d="M64.78,16.11A18,18,0,0,1,74.91,4.71H68.27L54.94,18.51,63.1,33.22h7.56A15.63,15.63,0,0,1,64.78,16.11Z" transform="translate(-0.23 -0.59)" fill-rule="evenodd" />
+        <path d="M39,33.22l14.38-14.9L45.84,4.71H42.62l7.49,13.5-14.49,15Z" transform="translate(-0.23 -0.59)" fill-rule="evenodd" />
+        <path d="M66.51,4.71H63.14L58.53,9.49,55.88,4.71H47.29l7,12.65Z" transform="translate(-0.23 -0.59)" fill-rule="evenodd" />
+        <path d="M54,19.47,40.74,33.22h10l4.86-5,2.77,5h3.22Z" transform="translate(-0.23 -0.59)" fill-rule="evenodd" />
+      </g>
+      <path d="M90.8,14.39l3.06-8.9C83.37,2,67.3,6.16,66.51,19.88c-.33,9.56,8.72,15.87,17.85,13.32l3.18-9.38c-2.74.63-6.09,1.08-8.11-1.35a5.05,5.05,0,0,1,.09-6.36C82,12.88,87.34,13.42,90.8,14.39Z" transform="translate(-0.23 -0.59)" fill-rule="evenodd" />
+      <path d="M155.75,16.12H140.12L138.67,23h6.24a6,6,0,0,1-6.8,1.82A6.19,6.19,0,0,1,135,16.7a6.12,6.12,0,0,1,7.88-3.6A5.64,5.64,0,0,1,145.34,15l8.52-3.61A16.22,16.22,0,0,0,140,3.9c-8.87,0-16,6.75-16,15.07S131.11,34,140,34C149.76,34,157.5,26,155.75,16.12Z" transform="translate(-0.23 -0.59)" fill-rule="evenodd" />
+    </g>
+    <g>
+      <path d="M30.83.59H2.27a2,2,0,0,0-2,2V31.2a2,2,0,0,0,2,2H30.83a2,2,0,0,0,2-2V2.63A2,2,0,0,0,30.83.59ZM23.62,29.16H9.48L2.41,16.92,9.48,4.68H23.62l3.53,6.12h0l3.54,6.12Z" transform="translate(-0.23 -0.59)" fill="#3281BF" />
+      <polygon points="26.93 10.2 26.93 10.2 26.93 10.2 26.93 10.2" fill="#3281BF" />
+      <polygon points="16.32 28.57 16.32 28.57 16.32 28.57 16.32 28.57" fill="#3281BF" />
+      <polygon points="26.93 10.2 5.72 10.2 16.32 28.57 16.32 28.57 26.93 10.2 26.93 10.2" fill="#3281BF" />
+    </g>
+  </g>
+</g></svg></svg>

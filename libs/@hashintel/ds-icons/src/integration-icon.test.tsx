@@ -110,9 +110,9 @@ describe("IntegrationIcon", () => {
   });
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(2462);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(2706);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      2095,
+      2197,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -298,7 +298,12 @@ describe("IntegrationIcon", () => {
   });
 
   it("recolors mono app artwork without filtering its themed tile or moving edge-aligned marks", () => {
-    for (const name of ["hash", "sap", "berryBrosRudd", "appleHealth"] as const) {
+    for (const name of [
+      "hash",
+      "sap",
+      "berryBrosRudd",
+      "appleHealth",
+    ] as const) {
       for (const theme of ["light", "dark"] as const) {
         const parse = (
           variant:

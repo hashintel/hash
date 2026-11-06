@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="catl-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="catl-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="catl-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#catl-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#catl-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#catl-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="catl-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#catl-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="catl-app-dark-svg10747" viewBox="-0.4122 -0.42972 243.42765 49.32234" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="catl-app-dark-defs10749" />
+  <path id="catl-app-dark-path10650" d="M 26.45504,0 C 12.3747,4e-4 0,11.1468 0,24.8965 0,38.6453 12.37595,48.4629 26.36134,48.4629 l 24.957,-0.016 4.3887,-0.01 c 0.456,0 4.647,0.023 5.1094,0 3.42,-0.016 6.3491,-2.0482 7.6523,-4.9687 l 0.3887,-0.8692 4.3183,-8.0507 22.4278,0 4.8789,10.7578 c 0.8191,1.7797 2.7839,3.0345 5.2207,3.1504 l 16.6719,0 L 104.02344,4.06 c -0.8305,-2.2231 -3.1647,-3.9375 -5.8906,-3.9375 l -11.9004,0 c -2.5803,0 -4.6128,1.7891 -5.7969,4.0098 L 61.44334,39.769 c -0.9201,1.9045 -3.0914,3.3606 -5.4863,3.3593 l -16.4375,0.045 c -0.3271,0 -1.5778,-0.012 -1.9102,-0.016 -10.4361,0.01 -18.88864,-8.4401 -18.88864,-18.8652 0,-10.4262 8.45144,-18.8769 18.87694,-18.8769 0.5286,-0.035 1.4778,-0.043 2.0156,-0.043 l 18.0938,0.01 1.584,0 0.2109,0 c 0.3919,0 0.5168,-0.2899 0.5176,-0.5703 l 0,-0.5742 0.01,-4.1465 -3.8145,0 -29.7578,-0.086 z m 91.879,0.086 0,4.4844 c 0,0.354 0.3064,0.6718 0.6699,0.6718 l 17.7461,-0.01 c 0.7721,0 1.4023,0.6278 1.4023,1.3907 l -0.01,41.832 20.8086,0 c 0.4886,0 0.6055,-0.3625 0.6055,-0.6055 l -0.2266,-41.2168 c 0,-0.772 0.6299,-1.4023 1.3906,-1.4023 l 17.8575,-0.012 0.01,-5.1328 -30.5938,0 -29.664,0 z m 64.9511,0 -0.01,42.0137 c 0,3.5097 2.8455,6.3554 6.3555,6.3554 l 52.4277,-0.01 c 0.5339,0 0.5449,-0.4955 0.5449,-0.6738 l 0,-4.6172 -32.8105,0 c -0.788,-0.1346 -1.5278,-0.5294 -1.7227,-1.6133 l 0,-41.457 -24.7871,0 z m -98.2344,17.0644 c 1.7037,0.017 3.159,1.045 3.7579,2.4141 l 4.3945,9.6895 -17.1875,0 5.4336,-10.1329 c 0.7696,-1.2356 2.1349,-1.9852 3.6015,-1.9707 z" fill="#6D79AE" fill-opacity="1" fill-rule="evenodd" stroke="none" />
+</svg></g></svg>

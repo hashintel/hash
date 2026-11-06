@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gree-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="gree-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="gree-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gree-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gree-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#gree-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="gree-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.288988962416 -0.972177356161 -0.0981420653172 0 1.35930838389" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#gree-app-mono-light-mono)"><defs><clipPath id="gree-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#gree-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.07913 -0.06595 44.90012 38.18592" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="gree-app-mono-light-symbol-crop"><rect x="-0.13363" y="-0.30806" width="44.8841021" height="38.67011" /></clipPath></defs><g clip-path="url(#gree-app-mono-light-symbol-crop)"><g fill-rule="evenodd"><path d="M45.754 16.65c.118.786.207 1.57.207 2.374 0 10.495-10.342 19.03-22.996 19.03-1.862 0-3.68-.168-5.416-.544.721-1.504 2.334-4.859 4.95-10.893 3.825-8.826-3.086-9.195-3.086-9.195l.154-.772z" fill="#F04D24" /><g fill="#034DA2"><path d="M22.965 0c10.216 0 18.894 5.563 21.872 13.201H20.022L9.885 34.671C3.925 31.206 0 25.493 0 19.024 0 8.54 10.31 0 22.965 0M194.881 7.729h-18.68s-12.602-.566-14.19 12.879c-1.588 13.447 5.238 15.642 11.854 15.642h14.693l.953-3.725h-13.168s-6.334-.544-5.378-9.642c.01-.075.02-.148.02-.2h19.069l1.035-3.25h-19.582c1.368-6.37 4.346-8.397 8.628-8.397h13.711zm-31.994 0h-18.665s-12.615-.566-14.2 12.879c-1.589 13.447 5.224 15.642 11.851 15.642h14.681l.954-3.725h-13.162s-6.34-.544-5.388-9.642a.58.58 0 0 0 .04-.2h19.07l1.026-3.25h-19.58c1.368-6.37 4.363-8.397 8.643-8.397h13.701zm-64.614 0h22.446s9.184-.36 7.701 7.23c-1.51 7.617-7.916 7.906-9.404 7.906l7.3 13.431h-6.64s-3.5 1.113-6.555-4.547c-3.058-5.671-6.627-12.38-6.627-12.38h6.627s4.77.136 6.117-3.573c1.338-3.735-1.42-4.563-3.667-4.563h-8.717L99.99 36.45h-9.389zm-4.875-.08h-22.24s-11.902-.226-15.592 13.37c0 0-4.749 13.606 9.23 15.227h16.49s5.094.885 7.226-7.539c2.151-8.429 2.293-9.381 2.293-9.381H74.772l-1.249 3.844h7.528l-1.933 6.72s-.503 2.455-2.51 2.58c-1.99.16-7.165 0-7.165 0s-4.647.246-5.095-4.928c-.44-5.194 2.223-15.892 10.562-15.892h17.136z" /></g></g></g></svg></g></g></svg>
