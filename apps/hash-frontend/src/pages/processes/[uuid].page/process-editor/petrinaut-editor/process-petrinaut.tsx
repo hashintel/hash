@@ -28,7 +28,7 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { createHashSaveTool, type SaveNetForAgent } from "./brunch-hash-save";
-import { useBrunchHashHostTools } from "./process-petrinaut/brunch-hash-graph-reads";
+import { useBrunchHashGraphReadTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
@@ -37,7 +37,7 @@ const editorPlugins = [topBarPlugin];
 const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 
 /** Brunch's HASH agent, reached through hash-api's Brunch route. */
-const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/hash`;
+const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.hashAgent}`;
 
 /** Returns `{ ownerKey }` for the signed-in account. */
 const brunchIdentityEndpoint = `${apiOrigin}/api/brunch/identity`;
@@ -213,7 +213,7 @@ export const ProcessPetrinaut = ({
   title: string;
 }) => {
   const ownerKey = useBrunchOwnerKey();
-  const graphReads = useBrunchHashHostTools();
+  const graphReads = useBrunchHashGraphReadTools();
   const hostTools = useMemo(
     () => [...graphReads, createHashSaveTool(saveNetForAgent)],
     [graphReads, saveNetForAgent],

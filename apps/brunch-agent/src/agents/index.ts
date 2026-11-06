@@ -26,5 +26,5 @@ export const agents: readonly MountedAgent[] = [
     aliases: ["chat"],
   },
   // HASH's process page; kept off production until it is released.
-  { route: "hash", agent: HashAgent, devOnly: true },
+  { route: brunchRoutes.hashAgent, agent: HashAgent, devOnly: true },
 ];

@@ -1,8 +1,8 @@
 "use agent";
 /**
  * Brunch for HASH: the Petrinaut agent's guidance (prompt and skills, copied
- * here so they can diverge) and its Ledger and `query_basis` tools (imported
- * from `../petrinaut/tools/`), over the shared Petrinaut browser tools, net
+ * here so they can diverge), the Ledger and `query_basis` tools both agents
+ * mount from `../shared/`, over the shared Petrinaut browser tools, net
  * freshness and transport, plus reads of the HASH graph that HASH's process
  * page executes. HASH's process page talks to it.
  */
@@ -20,6 +20,7 @@ import { createFlueClient } from "@flue/sdk";
 import {
   browserToolMutatesDocument,
   canonicalContent,
+  hashGraphReadToolNames,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
@@ -46,7 +47,7 @@ import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
 import { createHashSaveTool } from "./tools/hash-save.ts";
 import { withVersionLoadNotes } from "./version-load-note.ts";
 
-import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
+import type { BrowserToolExecutor } from "../../shared/conversation/browser-tool-executor.ts";
 
 const chatModelSpecifier = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
@@ -85,6 +86,8 @@ export const HashAgent = ({ id }: AgentProps): string => {
     withVersionLoadNotes(
       createBrunchContextProjection({
         observe: (entries) => netViewTracker.observe(id, entries),
+        // The HASH graph reads are rendered as compact text for the model.
+        textResultToolNames: hashGraphReadToolNames,
       }),
     ),
   );

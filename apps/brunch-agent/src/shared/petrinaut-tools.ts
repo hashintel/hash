@@ -13,8 +13,9 @@ import { createDraftExperimentTool } from "./petrinaut-tools/draft-experiment.ts
 import {
   asyncCanonicalPetrinautTools,
   netReaderTools,
-  type BrowserToolExecutor,
 } from "./petrinaut-tools/petrinaut-construction.ts";
+
+import type { BrowserToolExecutor } from "./conversation/browser-tool-executor.ts";
 
 type SdcpnToolOptions = {
   readonly executeBrowserTool?: BrowserToolExecutor;
