@@ -1,5 +1,5 @@
-import { Array, Effect, ManagedRuntime, Option, pipe } from "effect";
-import { afterAll, describe, expect, test } from "vitest";
+import { expect, layer } from "@effect/vitest";
+import { Array, Effect, Option, pipe } from "effect";
 
 import * as AST from "../src/AST/index.js";
 import * as QuickInfo from "../src/QuickInfo.js";
@@ -7,16 +7,12 @@ import * as Api from "../src/TypeScript/Api.js";
 import * as TypeScript from "../src/TypeScript/index.js";
 import * as ParserFixture from "./fixtures/parser.js";
 
-const runtime = ManagedRuntime.make(Api.layer);
-
 /** Each name in `code`, compiled as an example, with what an editor shows on hover over it. */
-const inspect = async (
-  code: string,
-): Promise<readonly (readonly [string, string])[]> => {
+const inspect = Effect.fnUntraced(function* (code: string) {
   const comment = Array.map(code.split("\n"), (line) => ` * ${line}`).join(
     "\n",
   );
-  const ast = await ParserFixture.success({
+  const ast = yield* ParserFixture.success({
     source: `/** Example.\n * @example\n * \`\`\`ts\n${comment}\n * \`\`\`\n */ export const sample: string;`,
   });
   const program = pipe(
@@ -28,53 +24,52 @@ const inspect = async (
     Option.getOrThrow,
   );
 
-  return runtime.runPromise(
-    Effect.forEach(
-      Array.flatMap(TypeScript.Node.identifiers(program), (name) =>
-        pipe(
-          ast.referenceAt(name),
-          Option.flatMap(({ quickInfo }) => quickInfo),
-          Option.map((info) => [name, info] as const),
-          Option.toArray,
-        ),
+  return yield* Effect.forEach(
+    Array.flatMap(TypeScript.Node.identifiers(program), (name) =>
+      pipe(
+        ast.nameOf(name),
+        Option.flatMap(({ quickInfo }) => quickInfo),
+        Option.map((info) => [name, info] as const),
+        Option.toArray,
       ),
-      ([name, info]) =>
-        Effect.map(
-          QuickInfo.display(info, name),
-          (text) => [name.text, text] as const,
-        ),
     ),
+    ([name, info]) =>
+      Effect.map(
+        QuickInfo.display(info, name),
+        (text) => [name.text, text] as const,
+      ),
   );
-};
+});
 
-describe("quick info", () => {
-  afterAll(async () => {
-    await runtime.dispose();
-  });
-
-  test("bindings", async () => {
-    expect.hasAssertions();
-    const names = await inspect(`const fixed = "text";
+layer(Api.layer, { excludeTestServices: true })("quick info", (it) => {
+  it.effect(
+    "bindings",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const names = yield* inspect(`const fixed = "text";
 let mutable = 1;
 var legacy = true;
 const { nested } = { nested: "value" };
 function run({ input }: { input: string }) { return input; }
 fixed; mutable; legacy; nested;`);
-    expect(names).toStrictEqual(
-      expect.arrayContaining([
-        ["fixed", 'const fixed: "text"'],
-        ["mutable", "let mutable: number"],
-        ["legacy", "var legacy: boolean"],
-        ["nested", "const nested: string"],
-        ["input", "(parameter) input: string"],
-        ["nested", "(property) nested: string"],
-      ]),
-    );
-  });
+      expect(names).toStrictEqual(
+        expect.arrayContaining([
+          ["fixed", 'const fixed: "text"'],
+          ["mutable", "let mutable: number"],
+          ["legacy", "var legacy: boolean"],
+          ["nested", "const nested: string"],
+          ["input", "(parameter) input: string"],
+          ["nested", "(property) nested: string"],
+        ]),
+      );
+    }),
+  );
 
-  test("declarations", async () => {
-    expect.hasAssertions();
-    const names = await inspect(`type Text = string;
+  it.effect(
+    "declarations",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const names = yield* inspect(`type Text = string;
 type Wrapped = { value: string };
 interface Box<T> { value: T }
 class Model<T> { run(value: T): T { return value; } }
@@ -89,48 +84,55 @@ let box: Box<Text>;
 let model: Model<Text>;
 model.run("value");
 Space.value; overloaded("value"); single("value");`);
-    expect(names).toStrictEqual(
-      expect.arrayContaining([
-        ["Text", "type Text = string"],
-        ["Wrapped", "type Wrapped = {\n    value: string;\n}"],
-        ["Box", "interface Box<T>"],
-        ["Model", "class Model<T>"],
-        ["Space", "namespace Space"],
-        [
-          "overloaded",
-          "function overloaded(value: string): string (+2 overloads)",
-        ],
-        ["single", "function single(value: string): string"],
-        ["run", "(method) run(value: string): string"],
-      ]),
-    );
-  });
+      expect(names).toStrictEqual(
+        expect.arrayContaining([
+          ["Text", "type Text = string"],
+          ["Wrapped", "type Wrapped = {\n    value: string;\n}"],
+          ["Box", "interface Box<T>"],
+          ["Model", "class Model<T>"],
+          ["Space", "namespace Space"],
+          [
+            "overloaded",
+            "function overloaded(value: string): string (+2 overloads)",
+          ],
+          ["single", "function single(value: string): string"],
+          ["run", "(method) run(value: string): string"],
+        ]),
+      );
+    }),
+  );
 
-  test("type_parameters", async () => {
-    expect.hasAssertions();
-    const names =
-      await inspect(`type Make<T extends string = "a"> = (value: T) => T;
+  it.effect(
+    "type_parameters",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const names =
+        yield* inspect(`type Make<T extends string = "a"> = (value: T) => T;
 interface Box<T extends string = "a"> { value: T }
 class Counter<T extends number> { run(value: T): T { return value; } }
 let make: Make;
 let box: Box;
 let counter: Counter<1>;`);
-    expect(names).toStrictEqual(
-      expect.arrayContaining([
-        ["Make", 'type Make<T extends string = "a"> = (value: T) => T'],
-        ["Box", 'interface Box<T extends string = "a">'],
-        ["Counter", "class Counter<T extends number>"],
-      ]),
-    );
-  });
+      expect(names).toStrictEqual(
+        expect.arrayContaining([
+          ["Make", 'type Make<T extends string = "a"> = (value: T) => T'],
+          ["Box", 'interface Box<T extends string = "a">'],
+          ["Counter", "class Counter<T extends number>"],
+        ]),
+      );
+    }),
+  );
 
-  test("unsupported_and_unknown", async () => {
-    expect.hasAssertions();
-    const names = await inspect(`enum Colour { Red }
+  it.effect(
+    "unsupported_and_unknown",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const names = yield* inspect(`enum Colour { Red }
 Colour.Red;
 unknownName;
 import { missing } from "missing-package";
 missing;`);
-    expect(names).toStrictEqual([]);
-  });
+      expect(names).toStrictEqual([]);
+    }),
+  );
 });

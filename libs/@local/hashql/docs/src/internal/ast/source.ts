@@ -1,18 +1,30 @@
 import { Array, Function, Option } from "effect";
 import {
   SyntaxKind,
+  isClassDeclaration,
   isComputedPropertyName,
+  isEnumDeclaration,
+  isFunctionDeclaration,
+  isInterfaceDeclaration,
   isJSDoc,
+  isModuleDeclaration,
   isSourceFile,
+  isTypeAliasDeclaration,
   isVariableDeclaration,
 } from "typescript/ast";
 
 import type {
   ClassDeclaration,
+  EnumDeclaration,
+  FunctionDeclaration,
   HeritageClause,
+  InterfaceDeclaration,
   JSDoc,
+  ModuleDeclaration,
   Node,
   PropertyName,
+  TypeAliasDeclaration,
+  VariableDeclaration,
 } from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
@@ -96,6 +108,25 @@ export const heritageOf: {
     clause.token === token ? clause.types : [],
   ),
 );
+
+export type Definition =
+  | ClassDeclaration
+  | InterfaceDeclaration
+  | TypeAliasDeclaration
+  | FunctionDeclaration
+  | VariableDeclaration
+  | EnumDeclaration
+  | ModuleDeclaration;
+
+/** Whether `node` declares a name of its module or namespace, as a statement does. */
+export const isDefinition = (node: Node): node is Definition =>
+  isClassDeclaration(node) ||
+  isInterfaceDeclaration(node) ||
+  isTypeAliasDeclaration(node) ||
+  isFunctionDeclaration(node) ||
+  isVariableDeclaration(node) ||
+  isEnumDeclaration(node) ||
+  isModuleDeclaration(node);
 
 /** Describes source syntax without following its parents or children. */
 export const inspectNode = (

@@ -6,10 +6,7 @@ import * as Parts from "./parts.js";
 import type * as AST from "../AST/index.js";
 import type { DocDeclarationReference } from "@microsoft/tsdoc";
 
-type Local = Extract<
-  AST.Reference.Reference.Target,
-  { readonly _tag: "Local" }
->;
+type Local = AST.Interned.Interned<AST.Target.Local>;
 
 /** Where a comment's names resolve: below its owner's public name, or nowhere for a comment whose owner has none. */
 export interface Scope {
@@ -38,7 +35,7 @@ const memberOf = (
       Option.filter(() => matches.length === 1),
     );
 
-    return { _tag: "Local", node: member.id } satisfies Local;
+    return member.id;
   });
 
 /** The export a public name spells, or else the member it spells below an export. */
@@ -47,7 +44,7 @@ const named = (
   name: Catalogue.Name,
 ): Option.Option<Local> =>
   Catalogue.lookup(catalogue, name).pipe(
-    Option.map(({ id }): Local => ({ _tag: "Local", node: id })),
+    Option.map(({ id }): Local => id),
     Option.orElse(() => memberOf(catalogue, name)),
   );
 

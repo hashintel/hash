@@ -1,6 +1,7 @@
-import { DocExcerpt } from "@microsoft/tsdoc";
+import { DocExcerpt, DocLinkTag } from "@microsoft/tsdoc";
 import { Array, Option, pipe } from "effect";
 
+import type * as AST from "../../AST/index.js";
 import type { DocNode, TextRange } from "@microsoft/tsdoc";
 
 const excerptsOf = (node: DocNode): readonly DocExcerpt[] => {
@@ -45,3 +46,22 @@ export const inspectNode = (
     onNone: () => ({ kind: node.kind }),
     onSome: ({ pos, end }) => ({ kind: node.kind, pos, end }),
   });
+
+/** The links below `node`. A link holds no other link. */
+const linksIn = (node: DocNode): readonly DocLinkTag[] => {
+  if (node instanceof DocLinkTag) {
+    return [node];
+  }
+
+  return Array.flatMap(node.getChildNodes(), linksIn);
+};
+
+/** The links in everything a reader of `documentation` sees. The walk skips private remarks, so their links never have to resolve. */
+export const linksOf = ({
+  source,
+}: AST.Documentation.Documentation): readonly DocLinkTag[] =>
+  pipe(
+    source.getChildNodes(),
+    Array.filter((node) => node !== source.privateRemarks),
+    Array.flatMap(linksIn),
+  );

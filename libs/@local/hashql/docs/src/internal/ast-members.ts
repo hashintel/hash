@@ -4,17 +4,16 @@ import * as Syntax from "typescript/ast";
 import * as AST from "../AST/index.js";
 import * as TypeScript from "../TypeScript/index.js";
 import * as Comments from "./ast-comments.js";
-import * as References from "./ast-references.js";
 import * as Types from "./ast-type-parser.js";
 import * as Source from "./ast/source.js";
 
 import type { Interned } from "../AST/Interned.js";
-import type { Failure } from "./ast-context.js";
+import type { Failure } from "./ast-type-parser.js";
+import type { Symbol as CompilerSymbol } from "typescript/async";
 
 export type Requirements =
   | AST.Store
   | Types.TypeParser
-  | References.References
   | Comments.CommentParser
   | TypeScript.Checker.Checker;
 
@@ -186,42 +185,45 @@ const commonMember = (
 };
 
 /** The symbol a declaration's member shares with the member's other declarations. An index signature has no named symbol. */
-const symbolOf = (node: CommonSource): Parsed<Option.Option<number>> => {
+const symbolOf = (
+  node: CommonSource,
+): Parsed<Option.Option<CompilerSymbol>> => {
   if (Syntax.isIndexSignatureDeclaration(node)) {
     return Effect.succeedNone;
   }
 
-  return TypeScript.Checker.getSymbolOfDeclaration(node).pipe(
-    Effect.map(({ id }) => Option.some(id)),
-  );
+  return Effect.asSome(TypeScript.Checker.getSymbolOfDeclaration(node));
 };
+
+/** Declarations sharing a symbol, which is the member's own. */
+interface Group {
+  readonly nodes: Array.NonEmptyArray<CommonSource>;
+  readonly symbol: Option.Option<CompilerSymbol>;
+}
 
 /** Declarations of one member share their symbol, and each index signature stays a member of its own. Members keep the order of their first declarations. */
 const groupsOf = (
   keyed: readonly {
     readonly node: CommonSource;
-    readonly symbol: Option.Option<number>;
+    readonly symbol: Option.Option<CompilerSymbol>;
   }[],
-): readonly Array.NonEmptyReadonlyArray<CommonSource>[] => {
-  const groups: Array.NonEmptyArray<CommonSource>[] = [];
-  const bySymbol = MutableHashMap.empty<
-    number,
-    Array.NonEmptyArray<CommonSource>
-  >();
+): readonly Group[] => {
+  const groups: Group[] = [];
+  const bySymbol = MutableHashMap.empty<number, Group>();
 
   for (const { node, symbol } of keyed) {
-    const group = Option.flatMap(symbol, (id) =>
+    const group = Option.flatMap(symbol, ({ id }) =>
       MutableHashMap.get(bySymbol, id),
     );
 
     if (Option.isSome(group)) {
-      group.value.push(node);
+      group.value.nodes.push(node);
     } else {
-      const created: Array.NonEmptyArray<CommonSource> = [node];
+      const created: Group = { nodes: [node], symbol };
       groups.push(created);
 
       if (Option.isSome(symbol)) {
-        MutableHashMap.set(bySymbol, symbol.value, created);
+        MutableHashMap.set(bySymbol, symbol.value.id, created);
       }
     }
   }
@@ -229,27 +231,15 @@ const groupsOf = (
   return groups;
 };
 
-/** Binds every named declaration to the member's identity before parsing it, so references inside the member can resolve to it. */
-const groupedMember = (
-  members: Array.NonEmptyReadonlyArray<CommonSource>,
-): Parsed<Interned<CommonMember>> =>
-  Effect.flatMap(AST.reserve<CommonMember>(), (reservation) =>
-    Effect.forEach(
-      Array.filter(
-        members,
-        (member) => !Syntax.isIndexSignatureDeclaration(member),
-      ),
-      (member) => References.bind(member, reservation.id),
-      { discard: true },
-    ).pipe(
-      Effect.andThen(commonMember(members)),
-      Effect.map((parsed) => {
-        reservation.complete(parsed);
-
-        return reservation.id;
-      }),
-    ),
-  );
+/** A member named by its symbol, reserved before parsing so references inside it can resolve to it. */
+const groupedMember = ({
+  nodes,
+  symbol,
+}: Group): Parsed<Interned<CommonMember>> =>
+  Option.match(symbol, {
+    onNone: () => AST.reserve(() => commonMember(nodes)),
+    onSome: (named) => AST.reserveSymbol([named], () => commonMember(nodes)),
+  });
 
 const commonMembers = (
   nodes: readonly CommonSource[],

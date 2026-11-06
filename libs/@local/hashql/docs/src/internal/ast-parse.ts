@@ -1,15 +1,5 @@
 // oxlint-disable import/max-dependencies -- The parser composes every AST service into one layer.
-import {
-  Array,
-  Chunk,
-  Context,
-  Effect,
-  Layer,
-  MutableHashMap,
-  Option,
-  flow,
-  pipe,
-} from "effect";
+import { Array, Chunk, Effect, Layer, Option, flow, pipe } from "effect";
 import * as Syntax from "typescript/ast";
 
 import * as AST from "../AST/index.js";
@@ -21,11 +11,11 @@ import * as Examples from "./ast-examples.js";
 import * as Exposure from "./ast-exposure.js";
 import * as Heritage from "./ast-heritage.js";
 import * as Links from "./ast-links.js";
-import * as References from "./ast-references.js";
-import * as Targets from "./ast-targets.js";
+import * as Names from "./ast-names.js";
 import * as TypeParser from "./ast-types.js";
 
-import type { Failure } from "./ast-context.js";
+import type { Failure } from "./ast-type-parser.js";
+import type { Cause } from "effect";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 const statementsOf = (
@@ -70,22 +60,14 @@ const localDeclarations: (
   }),
 );
 
-class ParserState extends Context.Service<
-  ParserState,
-  MutableHashMap.MutableHashMap<number, AST.Declaration.Interned>
->()("@local/hashql-docs/internal/ast-parse/ParserState") {}
-
 type Requirements =
   | AST.Store
-  | ParserState
   | Comments.CommentParser
   | TypeScript.Checker.Checker
   | TypeScript.Program.Program
   | DeclarationParser.DeclarationParser
   | Exposure.Exposure
-  | Heritage.Heritage
-  | References.References
-  | Targets.Targets;
+  | Heritage.Heritage;
 type ParseDeclaration = (
   symbol: CompilerSymbol,
 ) => Effect.Effect<AST.Declaration.Interned, Failure, Requirements>;
@@ -111,7 +93,7 @@ const parseNamespace = (
       Effect.flatMap(
         Effect.forEach(({ symbol: alias, typeOnlyExport }) =>
           pipe(
-            References.target(alias),
+            TypeScript.Checker.resolveAlias(alias),
             Effect.flatMap(parse),
             Effect.map((target) =>
               AST.Alias.make({ name: alias.name, target, typeOnlyExport }),
@@ -138,7 +120,7 @@ const declarationNodes = (
   symbol: CompilerSymbol,
 ): Effect.Effect<
   Array.NonEmptyReadonlyArray<Syntax.Declaration | Syntax.SourceFile>,
-  Failure,
+  Cause.UnknownError | AST.ParseError.ParseError,
   Requirements
 > =>
   pipe(
@@ -157,29 +139,14 @@ const declarationNodes = (
     }),
   );
 
-/** The interfaces and classes `symbol` extends or implements directly. A base the package declares is parsed, so the hierarchy keeps the private types between public ones. */
+/** The interfaces and classes `symbol` extends or implements directly. Each names a node once `discover` has run, so the hierarchy keeps the private types between public ones. */
 const basesOf = (
   symbol: CompilerSymbol,
-  parse: ParseDeclaration,
 ): Effect.Effect<
-  readonly AST.Reference.Reference.Target[],
-  Failure,
-  Requirements
-> =>
-  pipe(
-    Heritage.bases(symbol),
-    Effect.flatMap(
-      Effect.forEach(
-        Effect.fnUntraced(function* (base) {
-          if (yield* References.local(base)) {
-            yield* parse(base);
-          }
-
-          return yield* Targets.target(base);
-        }),
-      ),
-    ),
-  );
+  readonly AST.Target.InternedSymbol[],
+  Cause.UnknownError,
+  Heritage.Heritage
+> => Heritage.bases(symbol);
 
 /** A symbol's type and value meanings form its leaf, and at most one module or namespace declares its namespace meaning. */
 const declarationOf = (
@@ -188,7 +155,6 @@ const declarationOf = (
 ): Effect.Effect<AST.Declaration.Declaration, Failure, Requirements> =>
   pipe(
     declarationNodes(symbol),
-    Effect.tap(Effect.forEach(References.source, { discard: true })),
     Effect.flatMap((nodes) => {
       const namespaces = Array.filter(nodes, isNamespace);
 
@@ -214,39 +180,15 @@ const declarationOf = (
             parseNamespace(symbol, namespace, parse),
           ),
         ),
-        bases: basesOf(symbol, parse),
+        bases: basesOf(symbol),
       });
     }),
     Effect.map((fields) => AST.Declaration.make({ symbol, ...fields })),
   );
 
-/** Reserves a symbol's identity and binds the symbol to it before parsing, so its own declarations can refer to it. A symbol parses once. */
+/** Reserves the identity `symbol` names before parsing, so its own declarations can refer to it. A symbol parses once. */
 const declaration: ParseDeclaration = (symbol) =>
-  Effect.flatMap(
-    Effect.all({ store: AST.Store, declarations: ParserState }),
-    ({
-      store,
-      declarations,
-    }): Effect.Effect<AST.Declaration.Interned, Failure, Requirements> => {
-      const existing = MutableHashMap.get(declarations, symbol.id);
-
-      if (Option.isSome(existing)) {
-        return Effect.succeed(existing.value);
-      }
-
-      const reservation = store.reserve<AST.Declaration.Declaration>();
-      MutableHashMap.set(declarations, symbol.id, reservation.id);
-      store.bindSymbol(symbol, reservation.id);
-
-      return declarationOf(symbol, declaration).pipe(
-        Effect.map((parsed) => {
-          reservation.complete(parsed);
-
-          return reservation.id;
-        }),
-      );
-    },
-  );
+  AST.reserveSymbol([symbol], () => declarationOf(symbol, declaration));
 
 const entrypoint = (
   name: string,
@@ -270,36 +212,24 @@ const entrypoint = (
     ),
   );
 
-const references = References.layer.pipe(
-  Layer.provideMerge(Targets.layer),
-  Layer.provideMerge(Heritage.layer),
-);
+const types = TypeParser.layer.pipe(Layer.provideMerge(Comments.layer));
 
-const types = TypeParser.layer.pipe(
-  Layer.provideMerge(Comments.layer),
-  Layer.provideMerge(references),
-);
-
-const services = Layer.merge(DeclarationParser.layer, Exposure.layer).pipe(
-  Layer.provideMerge(types),
-  Layer.provideMerge(
-    Layer.merge(
-      AST.layer,
-      Layer.sync(ParserState, () => MutableHashMap.empty()),
-    ),
-  ),
-);
+const services = Layer.mergeAll(
+  DeclarationParser.layer,
+  Exposure.layer,
+  Heritage.layer,
+).pipe(Layer.provideMerge(types), Layer.provideMerge(AST.layer));
 
 /**
  * Builds all entrypoints together so references can cross module and namespace cycles, and returns the catalogue of their public names.
  *
- * Names resolve once every entrypoint is parsed. A comment's link the compiler does not bind resolves through the catalogue, and the examples compile last, in a program that stays open with the calling scope.
+ * Each name resolves where the parse meets it, and `discover` parses the private declarations the names reach once every entrypoint is in. A comment's link the compiler does not bind resolves through the catalogue, and the examples compile last, in a program that stays open with the calling scope.
  */
 export const parse = Effect.fn("Parser.parse")(
   function* (
     roots: Iterable<readonly [name: string, module: TypeScript.Module.Module]>,
   ) {
-    // References resolve after every entrypoint, and may reach private declarations that need the same services.
+    // `discover` runs after every entrypoint, and may reach private declarations that need the same services.
     const parseDeclaration = flow(
       declaration,
       Effect.provide(yield* Effect.context<Requirements>()),
@@ -310,7 +240,7 @@ export const parse = Effect.fn("Parser.parse")(
       ([name, module]) => entrypoint(name, module, parseDeclaration),
       { discard: true },
     );
-    yield* References.resolve(parseDeclaration);
+    yield* Names.discover(parseDeclaration);
 
     const store = yield* AST.Store;
     const catalogue = Catalogue.fromAST(store);

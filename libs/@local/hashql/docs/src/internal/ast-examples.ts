@@ -8,14 +8,12 @@ import {
   Path,
   pipe,
 } from "effect";
-import { SymbolFlags } from "typescript/async";
 
 import * as AST from "../AST/index.js";
-import * as ExternalTarget from "../ExternalTarget.js";
 import * as QuickInfo from "../QuickInfo.js";
 import * as TypeScript from "../TypeScript/index.js";
 import * as Heritage from "./ast-heritage.js";
-import * as Targets from "./ast-targets.js";
+import * as Names from "./ast-names.js";
 
 import type { Cause, Scope } from "effect";
 
@@ -70,21 +68,23 @@ const compile = Effect.fnUntraced(function* ({ example, file }: Compiled) {
 
   for (const [name, found] of Array.zip(names, symbols)) {
     if (Option.isSome(found)) {
-      let symbol = found.value;
-
-      if (TypeScript.Symbol.hasFlag(symbol, SymbolFlags.Alias)) {
-        symbol = yield* checker.getAliasedSymbol(symbol);
-      }
+      const symbol = yield* TypeScript.Checker.resolveAlias(found.value);
 
       // A name that resolves to nothing, such as an import the program cannot find, has no meaning to show.
-      if (!(yield* checker.isUnknownSymbol(symbol))) {
-        const reference = yield* Targets.reference({
-          node: name,
-          symbol,
-          reading: ExternalTarget.meaning(name),
+      const isUnknown = yield* checker.isUnknownSymbol(symbol);
+      if (!isUnknown) {
+        // The AST already holds every name the package declares, so a name it does not hold is outside the package, the example's own included.
+        const target = yield* store.internedSymbol(symbol).pipe(
+          Option.match({
+            onSome: Effect.succeed,
+            onNone: () => Names.external(symbol),
+          }),
+        );
+
+        store.name(name, {
+          target,
           quickInfo: yield* QuickInfo.of(name, found.value),
         });
-        store.reference(name, store.intern(reference));
       }
     }
   }
@@ -114,9 +114,8 @@ export const resolve = Effect.fnUntraced(function* (): Effect.fn.Return<
     ),
   );
 
-  // The parse built these layers over its own program, and a layer built once is shared, so these are built fresh over the examples' program. A symbol of the examples' program sent to the parse's checker is refused.
-  const services = Layer.fresh(Targets.layer).pipe(
-    Layer.provideMerge(Layer.fresh(Heritage.layer)),
+  // The parse built this layer over its own program, and Effect shares a layer it has built once, so this phase builds it again over the examples' program. The parse's checker refuses a symbol of the examples' program.
+  const services = Layer.fresh(Heritage.layer).pipe(
     Layer.provideMerge(Layer.succeedContext(compiler)),
   );
 

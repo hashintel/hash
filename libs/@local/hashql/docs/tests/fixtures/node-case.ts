@@ -1,4 +1,5 @@
 import { Array, Option } from "effect";
+import { SymbolFlags } from "typescript/async";
 
 import type * as Interned from "../../src/AST/Interned.js";
 import type * as Node from "../../src/AST/Node.js";
@@ -11,6 +12,25 @@ export const firstHandle = 1 as Interned.Interned<never>;
 // SAFETY: The fixtures compare these child identities without looking them up in an AST.
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- No fixture dereferences this child identity.
 export const secondHandle = 2 as Interned.Interned<never>;
+
+/** A compiler symbol the fixtures hold by identity, with the fields a node's inspection reads. */
+const symbolHandle = (
+  name: string,
+  id: number,
+): Interned.InternedSymbol<never> => {
+  const handle: Pick<CompilerSymbol, "name" | "id" | "flags"> = {
+    name,
+    id,
+    flags: SymbolFlags.None,
+  };
+
+  // SAFETY: The fixtures compare these symbols by identity and inspect only their name and flags.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- No fixture asks the compiler about this symbol.
+  return handle as Interned.InternedSymbol<never>;
+};
+
+export const firstSymbol = symbolHandle("first", 1);
+export const secondSymbol = symbolHandle("second", 2);
 
 /** One constructor's equal input and one change to each participating field. */
 export interface NodeCase {

@@ -1,9 +1,15 @@
-import { Array, Chunk, Option, Struct } from "effect";
+import { Chunk, Option, Struct } from "effect";
 import { SyntaxKind } from "typescript/ast";
 import { getSynthesizedDeepClone } from "typescript/ast/clone";
 import * as factory from "typescript/ast/factory";
 
-import { firstHandle, nodeCase, secondHandle, shield } from "./node-case.js";
+import {
+  firstSymbol,
+  nodeCase,
+  secondHandle,
+  secondSymbol,
+  shield,
+} from "./node-case.js";
 import * as Nodes from "./nodes.js";
 
 import type { NodeCase } from "./node-case.js";
@@ -227,57 +233,49 @@ const objectType = nodeCase({
     Struct.assign(fields, { node: shield(objectTypeSource) }),
 });
 
-const referenceSource = factory.createIdentifier("reference");
-const reference = nodeCase({
-  name: "Reference",
-  make: Nodes.Reference.make,
+const externalItem = nodeCase({
+  name: "ExternalItem",
+  make: Nodes.ExternalItem.make,
   fields: {
-    node: referenceSource,
-    target: { _tag: "Local", node: firstHandle },
-    url: Option.none(),
-    quickInfo: Option.none(),
+    symbol: firstSymbol,
+    name: "Entry",
+    pages: {
+      type: Option.none(),
+      value: Option.none(),
+      namespace: Option.none(),
+    },
+    bases: [],
   },
   changes: [
     {
-      field: "node",
-      apply: (fields): Nodes.Reference.Reference.Fields =>
+      field: "symbol",
+      apply: (fields): Nodes.ExternalItem.ExternalItem.Fields =>
+        Struct.assign(fields, { symbol: secondSymbol }),
+    },
+    {
+      field: "name",
+      apply: (fields): Nodes.ExternalItem.ExternalItem.Fields =>
+        Struct.assign(fields, { name: "Other" }),
+    },
+    {
+      field: "pages",
+      apply: (fields): Nodes.ExternalItem.ExternalItem.Fields =>
         Struct.assign(fields, {
-          node: getSynthesizedDeepClone(referenceSource),
+          pages: Struct.assign(fields.pages, {
+            type: Option.some(new URL("https://hash.dev/docs/entry")),
+          }),
         }),
     },
     {
-      field: "target",
-      apply: (fields): Nodes.Reference.Reference.Fields =>
-        Struct.assign(fields, {
-          target: { _tag: "Local" as const, node: secondHandle },
-        }),
-    },
-    {
-      field: "url",
-      apply: (fields): Nodes.Reference.Reference.Fields =>
-        Struct.assign(fields, {
-          url: Option.some(new URL("https://hash.dev/docs/entry")),
-        }),
-    },
-    {
-      field: "quickInfo",
-      apply: (fields): Nodes.Reference.Reference.Fields =>
-        Struct.assign(fields, {
-          quickInfo: Option.some(
-            Array.of({ parts: ["namespace Space"], signature: Option.none() }),
-          ),
-        }),
+      field: "bases",
+      apply: (fields): Nodes.ExternalItem.ExternalItem.Fields =>
+        Struct.assign(fields, { bases: [secondSymbol] }),
     },
   ],
-  trapped: (fields): Nodes.Reference.Reference.Fields =>
+  trapped: (fields): Nodes.ExternalItem.ExternalItem.Fields =>
     Struct.assign(fields, {
-      node: shield(referenceSource),
-      quickInfo: Option.some(
-        Array.of({
-          parts: ["function Box<", shield(syntaxType), ">.run"],
-          signature: Option.some(shield(callSignatureSource)),
-        }),
-      ),
+      symbol: shield(firstSymbol),
+      bases: [shield(secondSymbol)],
     }),
 });
 
@@ -306,11 +304,14 @@ const typeExpression = nodeCase({
     {
       field: "references",
       apply: (fields): Nodes.TypeExpression.TypeExpression.Fields =>
-        Struct.assign(fields, { references: Chunk.of(secondHandle) }),
+        Struct.assign(fields, { references: Chunk.of(secondSymbol) }),
     },
   ],
   trapped: (fields): Nodes.TypeExpression.TypeExpression.Fields =>
-    Struct.assign(fields, { node: shield(typeExpressionSource) }),
+    Struct.assign(fields, {
+      node: shield(typeExpressionSource),
+      references: Chunk.of(shield(firstSymbol)),
+    }),
 });
 
 const typeReferenceSource = factory.createTypeReferenceNode(name);
@@ -319,7 +320,8 @@ const typeReference = nodeCase({
   make: Nodes.TypeReference.make,
   fields: {
     node: typeReferenceSource,
-    reference: firstHandle,
+    qualifiers: Chunk.empty(),
+    target: firstSymbol,
     typeArguments: Chunk.empty(),
   },
   changes: [
@@ -331,9 +333,14 @@ const typeReference = nodeCase({
         }),
     },
     {
-      field: "reference",
+      field: "qualifiers",
       apply: (fields): Nodes.TypeReference.TypeReference.Fields =>
-        Struct.assign(fields, { reference: secondHandle }),
+        Struct.assign(fields, { qualifiers: Chunk.of(secondSymbol) }),
+    },
+    {
+      field: "target",
+      apply: (fields): Nodes.TypeReference.TypeReference.Fields =>
+        Struct.assign(fields, { target: secondSymbol }),
     },
     {
       field: "typeArguments",
@@ -342,7 +349,11 @@ const typeReference = nodeCase({
     },
   ],
   trapped: (fields): Nodes.TypeReference.TypeReference.Fields =>
-    Struct.assign(fields, { node: shield(typeReferenceSource) }),
+    Struct.assign(fields, {
+      node: shield(typeReferenceSource),
+      qualifiers: Chunk.of(shield(firstSymbol)),
+      target: shield(firstSymbol),
+    }),
 });
 
 export const cases: readonly NodeCase[] = [
@@ -351,7 +362,7 @@ export const cases: readonly NodeCase[] = [
   constructSignature,
   functionType,
   objectType,
-  reference,
+  externalItem,
   typeExpression,
   typeReference,
 ];
