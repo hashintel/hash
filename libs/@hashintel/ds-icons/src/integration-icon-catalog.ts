@@ -33,6 +33,8 @@ export const integrationIconCatalog = [
       "https://www.anaplan.com/etc.clientlibs/anaplan/clientlibs/clientlib-site/resources/images/icons/logo.svg",
     logoNotes: "Official site logo",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "blueYonder",
@@ -56,6 +58,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Blue-Yonder.svg download, credited to blueyonder.com; preserves full official lock-up",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "celonis",
@@ -79,6 +83,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official site metadata logo. Lock-up composed from the sourced brand mark and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "databricks",
@@ -102,6 +108,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/databricks.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "snowflake",
@@ -125,6 +133,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/snowflake.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bigQuery",
@@ -148,6 +158,8 @@ export const integrationIconCatalog = [
       "https://i.logos-download.com/88905/33163-85dd2fe97c1155616625cc31084e3a35.svg/Google_BigQuery_Logo_2015.svg?dl=",
     logoNotes: "Archived Google BigQuery product lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazon",
@@ -170,6 +182,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native SVG of Amazon's current corporate logo from its Sustainability site, with navigation padding removed. Marks use its Smile Orange (#FF6200) smile; full logos preserve the complete wordmark and smile. Squid Ink (#161D26) light-mode lettering is verified against the official press asset and becomes white in dark mode. Separate from Amazon Redshift.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonRedshift",
@@ -194,6 +208,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Archived Amazon Redshift product lock-up using the blue column mark shown in HASH.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cloudflare",
@@ -217,6 +233,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/cloudflare.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "azure",
@@ -240,6 +258,8 @@ export const integrationIconCatalog = [
       "https://raw.githubusercontent.com/devicons/devicon/master/icons/azure/azure-original-wordmark.svg",
     logoNotes: "Vector artwork archive",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "postgres",
@@ -263,6 +283,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/postgresql-wordmark-light.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "veevaVault",
@@ -287,6 +309,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official Veeva corporate wordmark; no separate Vault lock-up was verified. Lock-up composed from the sourced brand mark and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pasX",
@@ -310,6 +334,8 @@ export const integrationIconCatalog = [
       "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/pas-x-dark-icon.tsx",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fourkites",
@@ -332,6 +358,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.fourkites.com/",
     logoNotes: "Official site inline SVG header logo",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "omp",
@@ -355,6 +383,8 @@ export const integrationIconCatalog = [
       "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/omp-icon.tsx",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kinaxis",
@@ -377,6 +407,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official corporate wordmark. Red on light backgrounds and white on dark backgrounds, as shown in the Kinaxis brand guide.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kinaxisMaestro",
@@ -401,6 +433,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Custom horizontal Maestro by Kinaxis lock-up, with the emblem to the left of the outlined wordmark. Native contours and lettering come from the official Demand Planning brochure, page 8; text proportions follow the January 2026 media-kit artwork. The PDF mesh gradient is represented by vector color patches; no raster artwork or font dependencies are embedded. Dark-mode lettering is white.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "coupa",
@@ -424,6 +458,8 @@ export const integrationIconCatalog = [
       "https://companieslogo.com/img/orig/COUP_BIG-615c6aaa.svg?t=1720244491",
     logoNotes: "Vector artwork archive",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "linear",
@@ -447,6 +483,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/linear.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "slack",
@@ -470,6 +508,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/slack.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "oracle",
@@ -498,6 +538,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/oracle.svg",
     logoNotes: "Lock-up composed from the sourced brand mark and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sap",
@@ -521,6 +563,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/sap.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "docusign",
@@ -543,6 +587,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.docusign.com/",
     logoNotes: "Official site inline SVG header logo",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gmail",
@@ -567,6 +613,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official Google header lockup raster (218 x 80); transparent PNG embedded in SVG. Dark mode preserves the original icon colors and uses the same light wordmark color as Google Drive and Calendar.",
     logoRaster: true,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleDrive",
@@ -591,6 +639,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Horizontal logo vector archive; https://logo-teka.com/en/google-drive/",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleCalendar",
@@ -615,6 +665,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Original full logo from public vector archive; https://logos-download.com/brands/google-calendar",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dropbox",
@@ -638,6 +690,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/dropbox_wordmark.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "box",
@@ -661,6 +715,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/box.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "trello",
@@ -684,6 +740,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/trello-wordmark.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "apple",
@@ -698,6 +756,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Corporate Apple symbol sourced as a native SVG from Apple's website navigation, with navigation padding removed. No separate full-logo lock-up was verified. Only mark and app-tile variants are provided.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "appleNotes",
@@ -713,6 +773,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No authentic full-logo lock-up was verified. Only mark and app-tile variants are provided.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "appleHealth",
@@ -727,6 +789,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Heart vectorized from Apple's current App Store icon, preserving its pink-to-red gradient and bevel. The mark omits the app's white tile; app variants preserve the original upper-right placement and scale on the shared translucent tile. No authentic full-logo lock-up was verified. Only mark and app-tile variants are provided.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "discord",
@@ -750,6 +814,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/discord.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftTeams",
@@ -774,6 +840,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current Teams product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Uses the same lettering, spacing, and charcoal/light, near-white/dark text treatment as the other Microsoft product logos. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftWord",
@@ -798,6 +866,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftOutlook",
@@ -822,6 +892,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftExcel",
@@ -846,6 +918,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftPowerPoint",
@@ -870,6 +944,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftOneNote",
@@ -894,6 +970,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current product mark (October 2025 redesign) with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftOneDrive",
@@ -918,6 +996,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftCopilot",
@@ -942,6 +1022,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the current product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Matches the Teams lock-up spacing and charcoal/light, near-white/dark text treatment. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoftTeamsLegacy",
@@ -966,6 +1048,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing the previous Teams product mark with the product name outlined in Microsoft's Segoe UI Semibold, version 5.32. Uses the same lettering, spacing, and charcoal/light, near-white/dark text treatment as the other Microsoft product logos. No embedded raster artwork or runtime font dependency; not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "messenger",
@@ -989,6 +1073,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed lock-up pairing Meta\u2019s official February 2025 blue Messenger mark with the sourced Messenger wordmark. Both use Facebook Blue (#0866FF); the earlier multicolor mark remains available as messengerLegacy. The main letter shapes are optically centered with the speech bubble.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "messengerLegacy",
@@ -1013,6 +1099,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Previous multicolor Messenger mark retained in all seven variants. Full logos pair the mark with black lettering in light mode and white lettering in dark mode. The main letter shapes are optically centered with the speech bubble.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "instagram",
@@ -1037,6 +1125,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Lock-up composed from the sourced brand mark and wordmark. The wordmark is black on light backgrounds and white on dark backgrounds; the mark retains its gradient.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "notion",
@@ -1060,6 +1150,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/notion.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "granola",
@@ -1084,6 +1176,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current hand-drawn swirl identity, verified against the official Granola website and February 2026 rebrand announcement. The retired mark is available separately as granolaLegacy.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "granolaLegacy",
@@ -1099,6 +1193,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Retired g-and-cursor artwork, retained as an explicit legacy option. No verified legacy full-logo lock-up is included.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sentry",
@@ -1122,6 +1218,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/sentry.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zoom",
@@ -1145,6 +1243,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/zoom.svg",
     logoNotes: "Lock-up composed from the sourced brand mark and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "github",
@@ -1168,6 +1268,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/github.svg",
     logoNotes: "Lock-up composed from the sourced brand mark and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "figma",
@@ -1192,6 +1294,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official Figma Brand Assets bundle, linked from https://www.figma.com/using-the-figma-brand/",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "asana",
@@ -1215,6 +1319,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/asana.svg",
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hash",
@@ -1237,6 +1343,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Blue gradient mark and outlined wordmark from the live hash.ai navigation logo, retrieved 2026-11-05. Preserves the original gradient, path opacity, wordmark geometry, and lock-up spacing. App tiles place the mark flush against the bottom-right edge at 60% of the tile height; logo lettering is dark in light mode and white in dark mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: "2026-11-06",
   },
   {
     name: "openai",
@@ -1260,6 +1368,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current OpenAI wordmark, kept separate from the Blossom as specified in the brand guidelines.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "chatgpt",
@@ -1281,6 +1391,8 @@ export const integrationIconCatalog = [
     logoSource: "https://asvg.app/assets/svg/chatgpt/chatgpt-lockup-mono.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "anthropic",
@@ -1302,6 +1414,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.anthropic.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "claude",
@@ -1323,6 +1437,8 @@ export const integrationIconCatalog = [
     logoSource: "https://claude.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "segment",
@@ -1346,6 +1462,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/segment.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rudderstack",
@@ -1367,6 +1485,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.rudderstack.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zapier",
@@ -1388,6 +1508,8 @@ export const integrationIconCatalog = [
     logoSource: "https://zapier.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "whalesync",
@@ -1409,6 +1531,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.whalesync.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "clickup",
@@ -1432,6 +1556,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/clickup-wordmark.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "okta",
@@ -1453,6 +1579,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.okta.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cursor",
@@ -1474,6 +1602,8 @@ export const integrationIconCatalog = [
     logoSource: "https://cursor.com/brand",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "x",
@@ -1487,6 +1617,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "twitterLegacy",
@@ -1501,6 +1633,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "calCom",
@@ -1522,6 +1656,8 @@ export const integrationIconCatalog = [
     logoSource: "https://cal.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "composio",
@@ -1543,6 +1679,8 @@ export const integrationIconCatalog = [
     logoSource: "https://composio.dev/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "attio",
@@ -1564,6 +1702,8 @@ export const integrationIconCatalog = [
     logoSource: "https://attio.com/brand",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stripe",
@@ -1586,6 +1726,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/stripe.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pandadoc",
@@ -1608,6 +1750,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced PD mark without its app-tile background, using PandaDoc green, composed with the native outlined wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zoho",
@@ -1632,6 +1776,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Zoho\u2019s primary identity is its four-letter colored-block wordmark; no separate pictorial mark is substituted.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleMeet",
@@ -1656,6 +1802,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleSheets",
@@ -1680,6 +1828,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleDocs",
@@ -1704,6 +1854,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleSlides",
@@ -1728,6 +1880,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed product lock-up using the current Google Workspace mark and Google Sans Regular outlines. Not a downloaded official full lock-up.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "telegram",
@@ -1750,6 +1904,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zendesk",
@@ -1773,6 +1929,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/zendesk.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "apollo",
@@ -1795,6 +1953,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current native Apollo lock-up. Light mode uses the brand\u2019s black for contrast; dark mode retains the neon-yellow mark and light lettering.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hunter",
@@ -1816,6 +1976,8 @@ export const integrationIconCatalog = [
     logoSource: "https://hunter.io/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "airtable",
@@ -1838,6 +2000,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "luma",
@@ -1860,6 +2024,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Luma events platform: native star mark and outlined wordmark from luma.com, composed horizontally.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "aws",
@@ -1884,6 +2050,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "AWS uses the aws lettermark and Amazon smile as its primary wordmark identity.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonS3",
@@ -1908,6 +2076,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Red geometric Amazon S3 brand mark from SuperTinyIcons (MIT), matching the supplied Jitterbit reference at https://www.jitterbit.com/wp-content/uploads/Amazon-S3.png. The source\u2019s white square is removed. Dark mode modestly lifts the shadow faces while preserving the red palette. Full logos compose this mark with Amazon Ember Regular outlines; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mailchimp",
@@ -1931,6 +2101,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "evernote",
@@ -1952,6 +2124,8 @@ export const integrationIconCatalog = [
     logoSource: "https://evernote.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mixmax",
@@ -1973,6 +2147,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.mixmax.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "turbopuffer",
@@ -1994,6 +2170,8 @@ export const integrationIconCatalog = [
     logoSource: "https://turbopuffer.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "typeform",
@@ -2016,6 +2194,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "calendly",
@@ -2038,6 +2218,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "modal",
@@ -2060,6 +2242,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Horizontal composition of the sourced native SVG mark and outlined wordmark, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "taskrabbit",
@@ -2081,6 +2265,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.taskrabbit.com/press",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vercel",
@@ -2104,6 +2290,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/vercel.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "miro",
@@ -2125,6 +2313,8 @@ export const integrationIconCatalog = [
     logoSource: "https://miro.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "clay",
@@ -2147,6 +2337,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official Clay Kiln primary lock-up. The kit embeds a raster mark; this copy vectorizes that mark while preserving the original outlined wordmark and placement.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonEc2",
@@ -2171,6 +2363,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Standalone orange stacked-square EC2 product mark, rather than the processor architecture glyph or the generic three-dimensional Compute category symbol. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonDynamoDb",
@@ -2195,6 +2389,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonRds",
@@ -2219,6 +2415,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonCloudFront",
@@ -2243,6 +2441,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "awsLambda",
@@ -2266,6 +2466,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "awsAmplify",
@@ -2289,6 +2491,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Amplify product mark from the official documentation header, using its purple primary-60 token. Dark mode uses the lighter purple token. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonQ",
@@ -2313,6 +2517,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "primeIntellect",
@@ -2334,6 +2540,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.primeintellect.ai/backgrounds/refactor/logo.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ramp",
@@ -2355,6 +2563,8 @@ export const integrationIconCatalog = [
     logoSource: "https://ramp.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fireworksAi",
@@ -2377,6 +2587,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native mark and current serif wordmark from the official header, composed in the header\u2019s proportions.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "uber",
@@ -2401,6 +2613,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Uber uses its wordmark as the primary identity; no obsolete U or unrelated pictogram is substituted.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mongoDb",
@@ -2424,6 +2638,8 @@ export const integrationIconCatalog = [
       "https://webimages.mongodb.com/_com_assets/cms/kuyjf3vea2hg34taa-horizontal_default_slate_blue.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "doorDash",
@@ -2446,6 +2662,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native DoorDash symbol and lettering from its official company header, composed horizontally.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hubSpot",
@@ -2468,6 +2686,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current native all-orange HubSpot identity from its homepage. The sprocket remains integrated in the full wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "harvey",
@@ -2490,6 +2710,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Harvey wordmark, with its initial H extracted for the compact identity.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "legora",
@@ -2514,6 +2736,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current 2026 symbol vectorized from the official favicon, without its cream background. Composed with the native outlined wordmark; the lettering is not traced.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vanta",
@@ -2537,6 +2761,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Llama-head artwork vectorized from the current official 512px favicon, with its lavender circle removed. Composed with the native Vanta wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "secureframe",
@@ -2559,6 +2785,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Secureframe S symbol and outlined wordmark from the official site, composed horizontally.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "carta",
@@ -2583,6 +2811,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official February 2026 press-kit artwork. Carta\u2019s framed wordmark is its primary identity and is preserved in mark and full-logo views.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deepseek",
@@ -2606,6 +2836,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/deepseek.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kimi",
@@ -2630,6 +2862,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Kimi K symbol and blue accent, with the app-tile background removed. Composed with its native outlined KIMI wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nvidia",
@@ -2652,6 +2886,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native horizontal NVIDIA lock-up from its official header, preserving the green eye and original wordmark proportions.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "miniMax",
@@ -2676,6 +2912,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native gradient waveform and MINIMAX wordmark, checked against the current official horizontal logo.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "meta",
@@ -2699,6 +2937,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/meta.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zAi",
@@ -2723,6 +2963,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Z mark without its app-tile background, composed with the native Z.ai lettering from Lobe Icons (MIT).",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "qwen",
@@ -2746,6 +2988,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/qwen.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "factory",
@@ -2768,6 +3012,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Factory AI aperture mark and full lock-up from its official header.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tigerBeetle",
@@ -2789,6 +3035,8 @@ export const integrationIconCatalog = [
     logoSource: "https://tigerbeetle.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "antithesis",
@@ -2810,6 +3058,8 @@ export const integrationIconCatalog = [
     logoSource: "https://antithesis.com/_astro/iris.C79y6VkI.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brex",
@@ -2831,6 +3081,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.brex.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "monzo",
@@ -2854,6 +3106,8 @@ export const integrationIconCatalog = [
       "https://static-assets.monzo.com/monzo-com/d2e59eb7c625559ca59f3e1e6318530f7211e4a2/_next/static/media/favicon.4c6ebc6f.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "revolut",
@@ -2876,6 +3130,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.revolut.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "chase",
@@ -2897,6 +3153,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.chase.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "redBull",
@@ -2918,6 +3176,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.redbull.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wellsFargo",
@@ -2940,6 +3200,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Wells Fargo\u2019s current two-line wordmark is the primary identity; the obsolete yellow-on-red version is not used.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "siliconValleyBank",
@@ -2961,6 +3223,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.svb.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "alphabet",
@@ -2982,6 +3246,8 @@ export const integrationIconCatalog = [
     logoSource: "https://abc.xyz/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "waymo",
@@ -3003,6 +3269,8 @@ export const integrationIconCatalog = [
     logoSource: "https://waymo.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lyft",
@@ -3024,6 +3292,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.lyft.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bolt",
@@ -3046,6 +3316,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Bolt\u2019s rideshare wordmark, sourced from bolt.eu. Distinct from Bolt.new and Bolt payments.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleMaps",
@@ -3070,6 +3342,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Composed product lock-up using the native Maps pin and Google Sans Regular outlines, following the other Google product entries.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "appleMaps",
@@ -3093,6 +3367,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Apple Maps wordmark. The light map artwork is vectorized from Apple\u2019s published icon with flattened shading; the dark artwork uses dashboard-icons SVG geometry (Apache 2.0). Rounded corners are retained.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "duckDb",
@@ -3114,6 +3390,8 @@ export const integrationIconCatalog = [
     logoSource: "https://duckdb.org/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "airOps",
@@ -3137,6 +3415,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current ao symbol vectorized from the official 512px favicon with the background removed, composed with the native AirOps wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "raindropAi",
@@ -3158,6 +3438,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.raindrop.ai/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mercury",
@@ -3179,6 +3461,8 @@ export const integrationIconCatalog = [
     logoSource: "https://mercury.com/icon.svg?icon.2sq_8nnp61c03.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "steam",
@@ -3200,6 +3484,8 @@ export const integrationIconCatalog = [
     logoSource: "https://store.steampowered.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "epicGames",
@@ -3221,6 +3507,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.epicgames.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pokemon",
@@ -3242,6 +3530,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.pokemon.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nintendo",
@@ -3263,6 +3553,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.nintendo.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tesla",
@@ -3285,6 +3577,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.tesla.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "audi",
@@ -3299,6 +3593,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "landRover",
@@ -3320,6 +3616,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.landrover.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jaguar",
@@ -3341,6 +3639,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.jaguar.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mclaren",
@@ -3365,6 +3665,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "McLaren Automotive\u2019s speedmark and native wordmark; kept distinct from McLaren Group\u2019s corporate lettering.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mercedesBenz",
@@ -3378,6 +3680,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "petronas",
@@ -3399,6 +3703,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.petronas.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "palantir",
@@ -3422,6 +3728,8 @@ export const integrationIconCatalog = [
       "https://raw.githubusercontent.com/palantir/conjure/1b0d450dc52c4822b4c9d1da8c61ad7f78855fe5/docs/media/palantir-logo.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ferrari",
@@ -3443,6 +3751,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.ferrari.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lamborghini",
@@ -3456,6 +3766,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "volkswagen",
@@ -3469,6 +3781,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dhl",
@@ -3492,6 +3806,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/dhl.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deutscheBahn",
@@ -3513,6 +3829,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.deutschebahn.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deutschePost",
@@ -3536,6 +3854,8 @@ export const integrationIconCatalog = [
       "https://www.deutschepost.de/.resources/dpag/webresources/assets/img/logo/brand-logo.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "royalMail",
@@ -3557,6 +3877,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.royalmail.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nationalRail",
@@ -3578,6 +3900,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.nationalrail.co.uk/nrestatic/images/icon.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "astraZeneca",
@@ -3599,6 +3923,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.astrazeneca.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gsk",
@@ -3622,6 +3948,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/gsk.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "merck",
@@ -3645,6 +3973,8 @@ export const integrationIconCatalog = [
       "https://www.companieslogo.com/img/orig/MRK.DE_BIG-1da33c86.svg?download=true&t=1720415064",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "merckCo",
@@ -3666,6 +3996,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.merck.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "clariant",
@@ -3687,6 +4019,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.clariant.com/images/clariant-logo.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "astellas",
@@ -3708,6 +4042,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.astellas.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bain",
@@ -3729,6 +4065,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.bain.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "quantumBlack",
@@ -3743,6 +4081,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "teamViewer",
@@ -3764,6 +4104,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.teamviewer.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "snapdragon",
@@ -3786,6 +4128,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.qualcomm.com/snapdragon",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "signify",
@@ -3807,6 +4151,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.signify.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ubs",
@@ -3828,6 +4174,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.ubs.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ineos",
@@ -3849,6 +4197,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.ineos.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "adidas",
@@ -3871,6 +4221,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.adidas-group.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nike",
@@ -3885,6 +4237,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "puma",
@@ -3907,6 +4261,8 @@ export const integrationIconCatalog = [
     logoSource: "https://about.puma.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "selfridges",
@@ -3928,6 +4284,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.selfridges.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kaDeWe",
@@ -3949,6 +4307,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.kadewe.de/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "harrods",
@@ -3970,6 +4330,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.harrods.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "boots",
@@ -3993,6 +4355,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/boots.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rewe",
@@ -4016,6 +4380,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/rewe.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tesco",
@@ -4039,6 +4405,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/tesco.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sainsburys",
@@ -4060,6 +4428,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.sainsburys.co.uk/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "asda",
@@ -4083,6 +4453,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/asda.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wolt",
@@ -4104,6 +4476,8 @@ export const integrationIconCatalog = [
     logoSource: "https://wolt.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "uberEats",
@@ -4125,6 +4499,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.ubereats.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deliveroo",
@@ -4147,6 +4523,8 @@ export const integrationIconCatalog = [
     logoSource: "https://deliveroo.co.uk/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "whatsApp",
@@ -4169,6 +4547,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.whatsapp.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pepsi",
@@ -4190,6 +4570,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.pepsi.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nasdaq",
@@ -4212,6 +4594,8 @@ export const integrationIconCatalog = [
       "https://www.companieslogo.com/img/orig/NDAQ_BIG-18e04add.svg?download=true&t=1740420328",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "marriott",
@@ -4234,6 +4618,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.marriott.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "marriottBonvoy",
@@ -4255,6 +4641,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.marriott.com/loyalty.mi",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "generalCatalyst",
@@ -4278,6 +4666,8 @@ export const integrationIconCatalog = [
       "https://cdn.prod.website-files.com/69df4e62ff62d7b5568fc58b/69e8832670eb5345d6b87a6d_GC_Wordmark_Black_RGB.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lightspeed",
@@ -4299,6 +4689,8 @@ export const integrationIconCatalog = [
     logoSource: "https://lsvp.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "a16z",
@@ -4321,6 +4713,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official Andreessen Horowitz stacked wordmark from the current a16z footer.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "accel",
@@ -4342,6 +4736,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.accel.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "insightPartners",
@@ -4363,6 +4759,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.insightpartners.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "indexVentures",
@@ -4376,6 +4774,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nea",
@@ -4397,6 +4797,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.nea.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "khoslaVentures",
@@ -4418,6 +4820,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.khoslaventures.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sequoia",
@@ -4439,6 +4843,8 @@ export const integrationIconCatalog = [
     logoSource: "https://sequoiacap.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "angelList",
@@ -4460,6 +4866,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.angellist.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "crunchbase",
@@ -4482,6 +4890,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.crunchbase.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cohere",
@@ -4503,6 +4913,8 @@ export const integrationIconCatalog = [
     logoSource: "https://cohere.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleDeepMind",
@@ -4527,6 +4939,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native Google DeepMind symbol composed with the official outlined wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mistral",
@@ -4548,6 +4962,8 @@ export const integrationIconCatalog = [
     logoSource: "https://mistral.ai/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "darpa",
@@ -4570,6 +4986,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official DARPA oval identity, vectorized from the 2250px artwork embedded in the official SVG.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "aria",
@@ -4592,6 +5010,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native ARIA lock-up and compact A/divider symbol, checked against the official favicon.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pirelli",
@@ -4613,6 +5033,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.pirelli.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "continental",
@@ -4634,6 +5056,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.continental.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mous",
@@ -4658,6 +5082,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official compact M paired with the current geometric wordmark. The full wordmark is vectorized from the official 3311px artwork.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mckinsey",
@@ -4682,6 +5108,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native current two-line script mark, introduced in 2019. Trademark use requires the owner\u2019s permission.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bcg",
@@ -4703,6 +5131,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.bcg.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "superdrug",
@@ -4724,6 +5154,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.superdrug.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "duPont",
@@ -4748,6 +5180,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current open-oval DuPont wordmark, vectorized from the official 2400px transparent artwork.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "thriveCapital",
@@ -4771,6 +5205,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official red three-bar symbol vectorized from the 1200px site artwork. Wordmark outlined in Helvetica Neue with the site\u2019s 0.025em tracking; composed horizontally.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "petrinaut",
@@ -4795,6 +5231,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Color mark vectorized from the official high-resolution artwork. Native outlined light and dark wordmarks, composed horizontally using the product site\u2019s lock-up proportions.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: "2026-11-06",
   },
   {
     name: "hgres",
@@ -4819,6 +5257,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Color mark vectorized from the official high-resolution artwork. Native outlined light and dark wordmarks, composed horizontally using the product site\u2019s lock-up proportions.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: "2026-11-06",
   },
   {
     name: "semType",
@@ -4843,6 +5283,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native geometric symbol and full outlined lock-ups from SemType\u2019s site, with the original light and dark artwork.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: "2026-11-06",
   },
   {
     name: "muse",
@@ -4856,6 +5298,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xAi",
@@ -4880,6 +5324,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "The geometric xAI lettermark is the corporate identity and is retained in the full-logo slots.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "grok",
@@ -4903,6 +5349,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/grok-wordmark-light.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "typeSafeAi",
@@ -4926,6 +5374,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/typesafe-ai-wordmark-light.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "higgsfieldAi",
@@ -4949,6 +5399,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current native glyph and outlined wordmark. The wordmark uses the neutral navigation color; the promotional gold treatment is omitted.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "elevenLabs",
@@ -4972,6 +5424,8 @@ export const integrationIconCatalog = [
       "https://11labs-nonprd-15f22c1d.s3.eu-west-3.amazonaws.com/0b9cd3e1-9fad-4a5b-b3a0-c96b0a1f1d2b/elevenlabs-logo-black.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tailscale",
@@ -4993,6 +5447,8 @@ export const integrationIconCatalog = [
     logoSource: "https://tailscale.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "encord",
@@ -5014,6 +5470,8 @@ export const integrationIconCatalog = [
     logoSource: "https://encord.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "trunk",
@@ -5035,6 +5493,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.trunk.io/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "linktree",
@@ -5056,6 +5516,8 @@ export const integrationIconCatalog = [
     logoSource: "https://linktr.ee/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "formstack",
@@ -5080,6 +5542,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current Formstack by Intellistack lock-up from the official site; compact mark extracted from the same native artwork.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "featherlessAi",
@@ -5101,6 +5565,8 @@ export const integrationIconCatalog = [
     logoSource: "https://featherless.ai/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fal",
@@ -5122,6 +5588,8 @@ export const integrationIconCatalog = [
     logoSource: "https://fal.ai/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "huggingFace",
@@ -5144,6 +5612,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/hugging-face.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "monaco",
@@ -5167,6 +5637,8 @@ export const integrationIconCatalog = [
       "https://www.monaco.com/global/logo-mark.svg?dpl=dpl_HrYkjBfjJB77pcKkwr8HxtVYew4C",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "paper",
@@ -5188,6 +5660,8 @@ export const integrationIconCatalog = [
     logoSource: "https://paper.design/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pencil",
@@ -5209,6 +5683,8 @@ export const integrationIconCatalog = [
     logoSource: "https://trypencil.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "beam",
@@ -5230,6 +5706,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.beam.cloud/beam-logo-white.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cocaCola",
@@ -5253,6 +5731,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/cocacola.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ogilvy",
@@ -5274,6 +5754,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.ogilvy.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "netflix",
@@ -5297,6 +5779,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/netflix.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "linkedIn",
@@ -5321,6 +5805,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native LinkedIn wordmark and in-brandmark, with white letter counters retained inside the blue square; dark full logo uses white lettering.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "youTube",
@@ -5344,6 +5830,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/youtube-wordmark-light.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amd",
@@ -5367,6 +5855,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/amd.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "intel",
@@ -5390,6 +5880,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/intel.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "atari",
@@ -5413,6 +5905,8 @@ export const integrationIconCatalog = [
       "https://upload.wikimedia.org/wikipedia/commons/5/58/Atari_Official_2012_Logo.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kickstarter",
@@ -5436,6 +5930,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/kickstarter.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "reddit",
@@ -5460,6 +5956,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current three-dimensional Snoo mark and outlined Reddit Sans wordmark from Reddit\u2019s official brand assets.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "twitch",
@@ -5483,6 +5981,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current Glitch symbol paired horizontally with the native 2019 outlined wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "airbnb",
@@ -5506,6 +6006,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/airbnb.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "shopify",
@@ -5529,6 +6031,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/shopify-wordmark-light.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "eliLilly",
@@ -5552,6 +6056,8 @@ export const integrationIconCatalog = [
       "https://delivery-p137454-e1438138.adobeaemcloud.com/adobe/assets/urn:aaid:aem:2843cade-80ee-42b6-b285-a1450fef6b77/renditions/original/as/LillyLogo_RGB_Red_v3.svg?assetname=LillyLogo_RGB_Red_v3.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "johnsonAndJohnson",
@@ -5576,6 +6082,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official J&J shorthand mark vectorized from the 1710px media-library artwork. Full native 2023 wordmark retained. Artwork credit: Johnson & Johnson.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "abbVie",
@@ -5599,6 +6107,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/abbvie.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "roche",
@@ -5620,6 +6130,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.roche.com/",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "novartis",
@@ -5641,6 +6153,8 @@ export const integrationIconCatalog = [
     logoSource: "https://www.novartis.com/themes/custom/cosmos/logo.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "novoNordisk",
@@ -5665,6 +6179,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current Novo identity introduced September 2026, extracted as paths from the official site\u2019s logo glyph (U+E956). The source icon font is not distributed. Novo Nordisk remains a searchable name.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amgen",
@@ -5688,6 +6204,8 @@ export const integrationIconCatalog = [
       "https://www.amgen.com/-/media/Themes/Global/Global/Global/images/migration/Common/amgen-blue.svg?la=en&hash=2F9332F2F46EA1E1EF9CCF9D40B8C7B8",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pfizer",
@@ -5711,6 +6229,8 @@ export const integrationIconCatalog = [
       "https://upload.wikimedia.org/wikipedia/commons/5/57/Pfizer_%282021%29.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amway",
@@ -5733,6 +6253,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current Amway wordmark and arc, preserved as the brand\u2019s complete primary identity.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gileadSciences",
@@ -5756,6 +6278,8 @@ export const integrationIconCatalog = [
       "https://gilead.stylelabs.cloud/api/public/content/89749f3b535e4eebb8ae07c8e9607b17?v=c1371898",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "myspace",
@@ -5779,6 +6303,8 @@ export const integrationIconCatalog = [
       "https://upload.wikimedia.org/wikipedia/commons/4/48/Myspacelogo2013.svg",
     logoNotes: "Native SVG artwork, retrieved 2026-11-05.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "docker",
@@ -5801,6 +6327,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current native primary logo and Moby Dock symbol from Docker\u2019s official media kit. Ocean Blue in light mode; official white artwork in dark mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brand42Group",
@@ -5816,6 +6344,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Font Awesome\u2019s 42 Group identity, distinct from the unrelated 42 coding-school wordmark. No verified full logo.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brand500px",
@@ -5840,6 +6370,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "a11yProject",
@@ -5855,6 +6387,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "accessibleIcon",
@@ -5870,6 +6404,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "accusoft",
@@ -5885,6 +6421,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "appNetLegacy",
@@ -5900,6 +6438,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "adversal",
@@ -5915,6 +6455,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "affiliatetheme",
@@ -5930,6 +6472,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "algolia",
@@ -5952,6 +6496,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current native symbol and full wordmark from Algolia\u2019s site header.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "alipay",
@@ -5967,6 +6513,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amazonPay",
@@ -5982,6 +6530,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "amilia",
@@ -5997,6 +6547,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "android",
@@ -6021,6 +6573,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "angrycreative",
@@ -6045,6 +6599,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "angular",
@@ -6069,6 +6625,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "appleAppStore",
@@ -6084,6 +6642,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "apper",
@@ -6099,6 +6659,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "applePay",
@@ -6122,6 +6684,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/applepay.svg",
     logoNotes: "Complete primary wordmark retained in full-logo mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "archLinux",
@@ -6137,6 +6701,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "artstation",
@@ -6152,6 +6718,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "asymmetrik",
@@ -6167,6 +6735,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "atlassian",
@@ -6182,6 +6752,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "audible",
@@ -6197,6 +6769,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "autoprefixer",
@@ -6212,6 +6786,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "avianex",
@@ -6227,6 +6803,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bandcamp",
@@ -6242,6 +6820,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "battleNet",
@@ -6257,6 +6837,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "behance",
@@ -6281,6 +6863,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bilibili",
@@ -6296,6 +6880,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bimobject",
@@ -6311,6 +6897,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bitbucket",
@@ -6326,6 +6914,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bitcoin",
@@ -6341,6 +6931,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bity",
@@ -6356,6 +6948,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "blackTie",
@@ -6371,6 +6965,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "blackberry",
@@ -6386,6 +6982,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "blogger",
@@ -6401,6 +6999,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bluesky",
@@ -6416,6 +7016,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bluetooth",
@@ -6431,6 +7033,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "boardGameGeek",
@@ -6446,6 +7050,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bootstrap",
@@ -6461,6 +7067,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brave",
@@ -6476,6 +7084,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "buffer",
@@ -6491,6 +7101,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "buildAwesome",
@@ -6506,6 +7118,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "buromobelexperte",
@@ -6521,6 +7135,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "buysellads",
@@ -6536,6 +7152,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cashApp",
@@ -6551,6 +7169,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "americanExpress",
@@ -6574,6 +7194,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/amex.svg",
     logoNotes: "Complete primary wordmark retained in full-logo mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dinersClub",
@@ -6598,6 +7220,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "discover",
@@ -6622,6 +7246,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jcb",
@@ -6645,6 +7271,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/jcb.svg",
     logoNotes: "Complete primary wordmark retained in full-logo mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mastercard",
@@ -6668,6 +7296,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/mastercard.svg",
     logoNotes: "Native two-circle symbol and complete Mastercard wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "paypal",
@@ -6691,6 +7321,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current PayPal symbol and outlined wordmark from the official homepage, composed horizontally.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "visa",
@@ -6715,6 +7347,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "centercode",
@@ -6730,6 +7364,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "centos",
@@ -6754,6 +7390,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "chrome",
@@ -6769,6 +7407,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "chromecast",
@@ -6784,6 +7424,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zulip",
@@ -6808,6 +7450,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cloudscale",
@@ -6823,6 +7467,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cloudsmith",
@@ -6838,6 +7484,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cloudversify",
@@ -6853,6 +7501,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cmplid",
@@ -6868,6 +7518,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "codeberg",
@@ -6883,6 +7535,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "codepen",
@@ -6907,6 +7561,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "codiepie",
@@ -6922,6 +7578,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "confluence",
@@ -6937,6 +7595,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "connectdevelop",
@@ -6952,6 +7612,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "contao",
@@ -6967,6 +7629,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "githubCopilot",
@@ -6982,6 +7646,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cottonBureau",
@@ -6997,6 +7663,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cpanel",
@@ -7021,6 +7689,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "creativeCommons",
@@ -7036,6 +7706,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "criticalRole",
@@ -7051,6 +7723,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "css",
@@ -7066,6 +7740,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "css3Legacy",
@@ -7081,6 +7757,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cuttlefish",
@@ -7096,6 +7774,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dAndD",
@@ -7111,6 +7791,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dAndDBeyond",
@@ -7126,6 +7808,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dailymotion",
@@ -7141,6 +7825,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dartLang",
@@ -7156,6 +7842,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dashcube",
@@ -7171,6 +7859,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "debian",
@@ -7186,6 +7876,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deezer",
@@ -7201,6 +7893,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deliciousLegacy",
@@ -7216,6 +7910,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deploydog",
@@ -7231,6 +7927,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deskpro",
@@ -7246,6 +7944,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dev",
@@ -7270,6 +7970,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deviantart",
@@ -7294,6 +7996,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "devpost",
@@ -7309,6 +8013,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "diaspora",
@@ -7324,6 +8030,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "digg",
@@ -7348,6 +8056,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "digitalOcean",
@@ -7372,6 +8082,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native complete outlined logo from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "discourse",
@@ -7395,6 +8107,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/discourse.svg",
     logoNotes: "Native outlined lock-up from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "disqus",
@@ -7410,6 +8124,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dochub",
@@ -7425,6 +8141,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dolibarr",
@@ -7440,6 +8158,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "draft2digital",
@@ -7455,6 +8175,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dribbble",
@@ -7479,6 +8201,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "drupal",
@@ -7503,6 +8227,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "duolingo",
@@ -7518,6 +8244,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dyalog",
@@ -7533,6 +8261,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "earlybirds",
@@ -7548,6 +8278,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ebay",
@@ -7571,6 +8303,8 @@ export const integrationIconCatalog = [
       "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/ebay.svg",
     logoNotes: "Complete primary wordmark retained in full-logo mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "edge",
@@ -7586,6 +8320,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "edgeLegacy",
@@ -7601,6 +8337,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "elementor",
@@ -7616,6 +8354,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "eleventy",
@@ -7631,6 +8371,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "elloLegacy",
@@ -7646,6 +8388,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ember",
@@ -7670,6 +8414,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "envira",
@@ -7685,6 +8431,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "erlang",
@@ -7708,6 +8456,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/erlang.svg",
     logoNotes: "Complete primary wordmark retained in full-logo mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ethereum",
@@ -7723,6 +8473,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "etsy",
@@ -7738,6 +8490,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "expeditedssl",
@@ -7753,6 +8507,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "facebook",
@@ -7777,6 +8533,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fantasyFlightGames",
@@ -7792,6 +8550,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fedex",
@@ -7816,6 +8576,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Primary outlined FedEx wordmark, with the Fed and Ex lettering in the corporate purple and orange.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fediverse",
@@ -7831,6 +8593,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned. Color mark from SuperTiny Icons, with the outer square background removed.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fedora",
@@ -7846,6 +8610,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "firefox",
@@ -7861,6 +8627,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "firstdraft",
@@ -7876,6 +8644,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "flickr",
@@ -7900,6 +8670,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "flipboard",
@@ -7915,6 +8687,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "flutter",
@@ -7939,6 +8713,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fly",
@@ -7962,6 +8738,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/fly.svg",
     logoNotes: "Native outlined lock-up from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fontAwesome",
@@ -7977,6 +8755,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fonticons",
@@ -7992,6 +8772,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "forgejo",
@@ -8007,6 +8789,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fortAwesome",
@@ -8022,6 +8806,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "forumbee",
@@ -8037,6 +8823,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "foursquare",
@@ -8052,6 +8840,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "freeCodeCamp",
@@ -8067,6 +8857,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "freebsd",
@@ -8082,6 +8874,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "getPocketLegacy",
@@ -8097,6 +8891,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gg",
@@ -8112,6 +8908,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "git",
@@ -8136,6 +8934,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gitee",
@@ -8151,6 +8951,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gitkraken",
@@ -8166,6 +8968,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gitlab",
@@ -8190,6 +8994,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gitter",
@@ -8205,6 +9011,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "glide",
@@ -8229,6 +9037,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "globaleaks",
@@ -8244,6 +9054,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gofore",
@@ -8259,6 +9071,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "golang",
@@ -8283,6 +9097,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "goodreads",
@@ -8298,6 +9114,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "google",
@@ -8322,6 +9140,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googlePay",
@@ -8346,6 +9166,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googlePlay",
@@ -8370,6 +9192,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googlePlusLegacy",
@@ -8385,6 +9209,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleScholar",
@@ -8400,6 +9226,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleWallet",
@@ -8415,6 +9243,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. Color mark from SuperTiny Icons, with the outer square background removed.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gratipayLegacy",
@@ -8430,6 +9260,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "grav",
@@ -8445,6 +9277,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gripfire",
@@ -8460,6 +9294,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "grunt",
@@ -8475,6 +9311,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "guildedLegacy",
@@ -8490,6 +9328,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gulp",
@@ -8505,6 +9345,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hackerNews",
@@ -8520,6 +9362,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hackerrank",
@@ -8535,6 +9379,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hashnode",
@@ -8559,6 +9405,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hips",
@@ -8583,6 +9431,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hireAHelper",
@@ -8598,6 +9448,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hive",
@@ -8613,6 +9465,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hornbill",
@@ -8628,6 +9482,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hotjar",
@@ -8643,6 +9499,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "houzz",
@@ -8658,6 +9516,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "html5",
@@ -8673,6 +9533,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ideal",
@@ -8688,6 +9550,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "imdb",
@@ -8712,6 +9576,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "instalod",
@@ -8727,6 +9593,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "intercom",
@@ -8751,6 +9619,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "internetArchive",
@@ -8766,6 +9636,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "internetExplorerLegacy",
@@ -8781,6 +9653,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "invisionLegacy",
@@ -8796,6 +9670,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ioxhost",
@@ -8811,6 +9687,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "itchIo",
@@ -8826,6 +9704,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "itunes",
@@ -8841,6 +9721,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "java",
@@ -8856,6 +9738,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jenkins",
@@ -8880,6 +9764,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native complete outlined logo from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jira",
@@ -8895,6 +9781,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "joget",
@@ -8910,6 +9798,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "joomla",
@@ -8925,6 +9815,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "js",
@@ -8940,6 +9832,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jsfiddle",
@@ -8955,6 +9849,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "julia",
@@ -8970,6 +9866,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jxl",
@@ -8985,6 +9883,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kaggle",
@@ -9000,6 +9900,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kakaoTalk",
@@ -9015,6 +9917,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "keybase",
@@ -9030,6 +9934,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "keycdn",
@@ -9054,6 +9960,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "koFi",
@@ -9069,6 +9977,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "korvue",
@@ -9084,6 +9994,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kubernetes",
@@ -9099,6 +10011,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "laravel",
@@ -9114,6 +10028,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lastfm",
@@ -9138,6 +10054,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "leanpub",
@@ -9153,6 +10071,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "leetcode",
@@ -9168,6 +10088,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "less",
@@ -9192,6 +10114,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "letsEncrypt",
@@ -9216,6 +10140,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native complete outlined logo from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "letterboxd",
@@ -9238,6 +10164,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native positive and negative full logos from Letterboxd\u2019s official brand page. Backgroundless dots are extracted from the same artwork.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "line",
@@ -9253,6 +10181,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "linode",
@@ -9268,6 +10198,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "linux",
@@ -9283,6 +10215,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "magento",
@@ -9298,6 +10232,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "markdown",
@@ -9313,6 +10249,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mastodon",
@@ -9337,6 +10275,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Full lock-up composes the current purple symbol with the sourced outlined Mastodon wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "matrix",
@@ -9352,6 +10292,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mattermost",
@@ -9375,6 +10317,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/mattermost.svg",
     logoNotes: "Native outlined lock-up from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "maxcdnLegacy",
@@ -9390,6 +10334,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mdbootstrap",
@@ -9414,6 +10360,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "medapps",
@@ -9429,6 +10377,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "medium",
@@ -9453,6 +10403,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "medrt",
@@ -9468,6 +10420,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "meetup",
@@ -9483,6 +10437,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "megaport",
@@ -9498,6 +10454,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mendeley",
@@ -9513,6 +10471,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microblog",
@@ -9528,6 +10488,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "microsoft",
@@ -9552,6 +10514,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mintbit",
@@ -9567,6 +10531,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mix",
@@ -9582,6 +10548,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mixcloud",
@@ -9597,6 +10565,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mixerLegacy",
@@ -9612,6 +10582,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mizuni",
@@ -9627,6 +10599,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "modx",
@@ -9651,6 +10625,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "monero",
@@ -9666,6 +10642,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "napster",
@@ -9681,6 +10659,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "neos",
@@ -9696,6 +10676,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nextcloud",
@@ -9711,6 +10693,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nimblr",
@@ -9726,6 +10710,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nodeJs",
@@ -9749,6 +10735,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/nodejs.svg",
     logoNotes: "Native Node.js wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "npm",
@@ -9773,6 +10761,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ns8",
@@ -9797,6 +10787,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nutritionix",
@@ -9812,6 +10804,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "obsStudio",
@@ -9827,6 +10821,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "obsidian",
@@ -9850,6 +10846,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/obsidian.svg",
     logoNotes: "Native outlined lock-up from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "octopusDeploy",
@@ -9865,6 +10863,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "odnoklassniki",
@@ -9880,6 +10880,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "odysee",
@@ -9895,6 +10897,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "opencart",
@@ -9919,6 +10923,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "openid",
@@ -9934,6 +10940,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "openstreetmap",
@@ -9949,6 +10957,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "opensuse",
@@ -9964,6 +10974,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "opera",
@@ -9979,6 +10991,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "optinMonster",
@@ -9994,6 +11008,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "orcid",
@@ -10009,6 +11025,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "openSourceInitiative",
@@ -10024,6 +11042,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "padlet",
@@ -10039,6 +11059,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "page4",
@@ -10054,6 +11076,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pagelines",
@@ -10069,6 +11093,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "palfed",
@@ -10084,6 +11110,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pandora",
@@ -10099,6 +11127,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "patreon",
@@ -10114,6 +11144,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "perbyte",
@@ -10129,6 +11161,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "periscopeLegacy",
@@ -10144,6 +11178,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "phabricatorLegacy",
@@ -10159,6 +11195,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "phoenixFramework",
@@ -10174,6 +11212,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "php",
@@ -10198,6 +11238,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pinterest",
@@ -10213,6 +11255,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pix",
@@ -10228,6 +11272,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pixelfed",
@@ -10243,6 +11289,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pixiv",
@@ -10258,6 +11306,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "playstation",
@@ -10273,6 +11323,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "productHunt",
@@ -10288,6 +11340,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pushed",
@@ -10303,6 +11357,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "python",
@@ -10318,6 +11374,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "qq",
@@ -10333,6 +11391,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. Color mark from SuperTiny Icons, with the outer square background removed.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "quinscape",
@@ -10348,6 +11408,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "quora",
@@ -10372,6 +11434,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rProject",
@@ -10387,6 +11451,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "raspberryPi",
@@ -10402,6 +11468,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ravelry",
@@ -10417,6 +11485,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "react",
@@ -10441,6 +11511,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "reacteurope",
@@ -10456,6 +11528,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "readme",
@@ -10471,6 +11545,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "redRiver",
@@ -10486,6 +11562,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "redhat",
@@ -10510,6 +11588,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "renren",
@@ -10525,6 +11605,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "replyd",
@@ -10540,6 +11622,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "researchgate",
@@ -10555,6 +11639,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "resolving",
@@ -10570,6 +11656,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rev",
@@ -10585,6 +11673,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "robloxCreatorStudio",
@@ -10600,6 +11690,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rocketchat",
@@ -10624,6 +11716,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rockrms",
@@ -10639,6 +11733,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "researchOrganizationRegistry",
@@ -10663,6 +11759,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rust",
@@ -10678,6 +11776,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "safari",
@@ -10693,6 +11793,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "salesforce",
@@ -10717,6 +11819,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sass",
@@ -10741,6 +11845,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "scaleway",
@@ -10756,6 +11862,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "schlix",
@@ -10771,6 +11879,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "screenpal",
@@ -10786,6 +11896,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "scribd",
@@ -10810,6 +11922,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "searchengin",
@@ -10825,6 +11939,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sellcast",
@@ -10840,6 +11956,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sellsy",
@@ -10855,6 +11973,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "servicestack",
@@ -10870,6 +11990,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "shirtsinbulk",
@@ -10885,6 +12007,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "shoelace",
@@ -10900,6 +12024,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "shopware",
@@ -10915,6 +12041,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "signalMessenger",
@@ -10930,6 +12058,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "simplybuilt",
@@ -10945,6 +12075,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sistrix",
@@ -10960,6 +12092,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sitrox",
@@ -10975,6 +12109,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sketch",
@@ -10990,6 +12126,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "skyatlas",
@@ -11005,6 +12143,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "skypeLegacy",
@@ -11020,6 +12160,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "slideshare",
@@ -11035,6 +12177,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "snapchat",
@@ -11050,6 +12194,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "solana",
@@ -11065,6 +12211,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "soundcloud",
@@ -11089,6 +12237,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sourcetree",
@@ -11104,6 +12254,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "spaceAwesome",
@@ -11119,6 +12271,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "speakap",
@@ -11134,6 +12288,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "speakerDeck",
@@ -11149,6 +12305,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "spotify",
@@ -11173,6 +12331,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "threads",
@@ -11197,6 +12357,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tumblr",
@@ -11221,6 +12383,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "upwork",
@@ -11245,6 +12409,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "viadeo",
@@ -11260,6 +12426,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vimeo",
@@ -11284,6 +12452,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "webAwesome",
@@ -11299,6 +12469,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xing",
@@ -11314,6 +12486,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "squarespace",
@@ -11329,6 +12503,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stackExchange",
@@ -11344,6 +12520,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stackOverflow",
@@ -11368,6 +12546,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stackpathLegacy",
@@ -11383,6 +12563,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "staylinked",
@@ -11398,6 +12580,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stickerMule",
@@ -11422,6 +12606,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "storybook",
@@ -11446,6 +12632,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "strava",
@@ -11461,6 +12649,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stubber",
@@ -11476,6 +12666,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "studiovinari",
@@ -11491,6 +12683,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stumbleuponLegacy",
@@ -11506,6 +12700,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "substack",
@@ -11521,6 +12717,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "superpowers",
@@ -11536,6 +12734,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "supple",
@@ -11560,6 +12760,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "supportnow",
@@ -11575,6 +12777,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "suse",
@@ -11598,6 +12802,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/suse.svg",
     logoNotes: "Native outlined lock-up from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "svelte",
@@ -11622,6 +12828,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "swift",
@@ -11637,6 +12845,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "symfony",
@@ -11652,6 +12862,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "symfonycasts",
@@ -11667,6 +12879,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tailwindCss",
@@ -11691,6 +12905,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "teamspeak",
@@ -11706,6 +12922,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tencentWeiboLegacy",
@@ -11721,6 +12939,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tex",
@@ -11745,6 +12965,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theRedYeti",
@@ -11760,6 +12982,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "themeco",
@@ -11775,6 +12999,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "themeisle",
@@ -11790,6 +13016,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "thinkPeaks",
@@ -11805,6 +13033,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "threema",
@@ -11820,6 +13050,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tidal",
@@ -11844,6 +13076,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tiktok",
@@ -11868,6 +13102,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "torBrowser",
@@ -11883,6 +13119,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "typescript",
@@ -11907,6 +13145,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "typo3",
@@ -11931,6 +13171,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ubuntu",
@@ -11946,6 +13188,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "uikit",
@@ -11961,6 +13205,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ultralytics",
@@ -11976,6 +13222,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ultralyticsHub",
@@ -11991,6 +13239,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ultralyticsYolo",
@@ -12006,6 +13256,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "umbraco",
@@ -12021,6 +13273,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "uncharted",
@@ -12036,6 +13290,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "uniregistryLegacy",
@@ -12051,6 +13307,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "unison",
@@ -12066,6 +13324,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "unity",
@@ -12081,6 +13341,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "unrealEngine",
@@ -12096,6 +13358,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "unsplash",
@@ -12111,6 +13375,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "untappd",
@@ -12126,6 +13392,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ups",
@@ -12141,6 +13409,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "usps",
@@ -12156,6 +13426,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ussunnah",
@@ -12171,6 +13443,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vaadin",
@@ -12186,6 +13460,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "venmo",
@@ -12201,6 +13477,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "viacoin",
@@ -12216,6 +13494,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "viber",
@@ -12231,6 +13511,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vim",
@@ -12246,6 +13528,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vineLegacy",
@@ -12261,6 +13545,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "visualStudio",
@@ -12276,6 +13562,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vk",
@@ -12291,6 +13579,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vnv",
@@ -12315,6 +13605,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vsco",
@@ -12330,6 +13622,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vuejs",
@@ -12345,6 +13639,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "w3c",
@@ -12369,6 +13665,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "watchmanMonitoring",
@@ -12384,6 +13682,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "waze",
@@ -12399,6 +13699,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "webflow",
@@ -12423,6 +13725,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "weebly",
@@ -12438,6 +13742,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "weibo",
@@ -12453,6 +13759,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wechat",
@@ -12468,6 +13776,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "whmcs",
@@ -12483,6 +13793,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wikipedia",
@@ -12498,6 +13810,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "windows",
@@ -12522,6 +13836,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wirsindhandwerk",
@@ -12537,6 +13853,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wix",
@@ -12560,6 +13878,8 @@ export const integrationIconCatalog = [
       "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/wix.svg",
     logoNotes: "Complete primary wordmark retained in full-logo mode.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wizardsOfTheCoast",
@@ -12575,6 +13895,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wodu",
@@ -12599,6 +13921,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wordpress",
@@ -12622,6 +13946,8 @@ export const integrationIconCatalog = [
       "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/wordpress.svg",
     logoNotes: "Native outlined lock-up from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wpbeginner",
@@ -12637,6 +13963,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wpexplorer",
@@ -12652,6 +13980,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wpforms",
@@ -12667,6 +13997,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wpressr",
@@ -12682,6 +14014,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xbox",
@@ -12697,6 +14031,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xmpp",
@@ -12712,6 +14048,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xrp",
@@ -12727,6 +14065,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xrpl",
@@ -12742,6 +14082,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yCombinator",
@@ -12757,6 +14099,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yahoo",
@@ -12781,6 +14125,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Native complete outlined logo from the linked vector collection.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yammerLegacy",
@@ -12796,6 +14142,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yandex",
@@ -12820,6 +14168,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yarn",
@@ -12835,6 +14185,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yelp",
@@ -12850,6 +14202,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yoast",
@@ -12865,6 +14219,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "youtubeShorts",
@@ -12880,6 +14236,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zhihu",
@@ -12904,6 +14262,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cloudflareBrand",
@@ -12928,6 +14288,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "genericApp",
@@ -12942,6 +14304,8 @@ export const integrationIconCatalog = [
     logoSource: null,
     logoNotes: null,
     logoRaster: false,
+    lastCheckedAutomated: null,
+    lastCheckedManually: null,
   },
   {
     name: "rockstarGames",
@@ -12957,6 +14321,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "takeTwoInteractive",
@@ -12981,6 +14347,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sonos",
@@ -13003,6 +14371,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "qonto",
@@ -13027,6 +14397,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wise",
@@ -13050,6 +14422,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "n26",
@@ -13072,6 +14446,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hsbc",
@@ -13096,6 +14472,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jPMorgan",
@@ -13120,6 +14498,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "palace",
@@ -13142,6 +14522,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "stockx",
@@ -13166,6 +14548,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bookingCom",
@@ -13190,6 +14574,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bbc",
@@ -13212,6 +14598,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zdf",
@@ -13236,6 +14624,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deutscheWelle",
@@ -13260,6 +14650,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theNewYorkTimes",
@@ -13284,6 +14676,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theWashingtonPost",
@@ -13308,6 +14702,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theTelegraph",
@@ -13323,6 +14719,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theGuardian",
@@ -13346,6 +14744,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dailyMail",
@@ -13370,6 +14770,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xero",
@@ -13394,6 +14796,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "namecheap",
@@ -13418,6 +14822,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "godaddy",
@@ -13442,6 +14848,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "adobe",
@@ -13466,6 +14874,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "starbucks",
@@ -13481,6 +14891,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hugoBoss",
@@ -13504,6 +14916,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "postmates",
@@ -13528,6 +14942,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "plex",
@@ -13551,6 +14967,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "appleTv",
@@ -13575,6 +14993,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "disney",
@@ -13599,6 +15019,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "formula1",
@@ -13623,6 +15045,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sony",
@@ -13647,6 +15071,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lg",
@@ -13671,6 +15097,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "samsung",
@@ -13695,6 +15123,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nasa",
@@ -13710,6 +15140,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "phaidon",
@@ -13734,6 +15166,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "penguinBooks",
@@ -13748,6 +15182,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fortnumMason",
@@ -13770,6 +15206,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "walmart",
@@ -13794,6 +15232,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nespresso",
@@ -13818,6 +15258,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "philipsHue",
@@ -13842,6 +15284,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "verizon",
@@ -13866,6 +15310,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "atT",
@@ -13890,6 +15336,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "three",
@@ -13914,6 +15362,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nanoleaf",
@@ -13938,6 +15388,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "netgear",
@@ -13962,6 +15414,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "barrys",
@@ -13986,6 +15440,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nhs",
@@ -14010,6 +15466,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "oura",
@@ -14032,6 +15490,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "jetblue",
@@ -14055,6 +15515,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "virginAtlantic",
@@ -14079,6 +15541,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "virgin",
@@ -14103,6 +15567,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "unitedAirlines",
@@ -14127,6 +15593,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "delta",
@@ -14151,6 +15619,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lufthansa",
@@ -14175,6 +15645,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "americanAirlines",
@@ -14199,6 +15671,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "britishAirways",
@@ -14223,6 +15697,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "qatarAirways",
@@ -14247,6 +15723,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "airFrance",
@@ -14271,6 +15749,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "klm",
@@ -14295,6 +15775,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wizzAir",
@@ -14319,6 +15801,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ryanair",
@@ -14343,6 +15827,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "easyjet",
@@ -14367,6 +15853,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "priorityPass",
@@ -14390,6 +15878,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "airCanada",
@@ -14414,6 +15904,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "starlingBank",
@@ -14438,6 +15930,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "curve",
@@ -14460,6 +15954,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "freeagent",
@@ -14483,6 +15979,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hmrc",
@@ -14507,6 +16005,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bonify",
@@ -14529,6 +16029,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "block",
@@ -14552,6 +16054,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "geminiExchange",
@@ -14575,6 +16079,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "helium",
@@ -14590,6 +16096,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "coinbase",
@@ -14614,6 +16122,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "authy",
@@ -14637,6 +16147,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "protonVpn",
@@ -14661,6 +16173,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "protonMail",
@@ -14685,6 +16199,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "protonDrive",
@@ -14700,6 +16216,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "proton",
@@ -14724,6 +16242,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wetransfer",
@@ -14748,6 +16268,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "klarna",
@@ -14772,6 +16294,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "raycast",
@@ -14796,6 +16320,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "shazam",
@@ -14811,6 +16337,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "smirnoff",
@@ -14834,6 +16362,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "petrossian",
@@ -14856,6 +16386,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "domPerignon",
@@ -14880,6 +16412,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "moetChandon",
@@ -14904,6 +16438,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "edeka",
@@ -14928,6 +16464,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lidl",
@@ -14951,6 +16489,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "aldiNord",
@@ -14975,6 +16515,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "aldiSud",
@@ -14998,6 +16540,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kaufland",
@@ -15022,6 +16566,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rossmann",
@@ -15037,6 +16583,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mediamarkt",
@@ -15061,6 +16609,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "saturn",
@@ -15085,6 +16635,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "morrisons",
@@ -15109,6 +16661,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "marksSpencer",
@@ -15132,6 +16686,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dpd",
@@ -15156,6 +16712,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rheinmetall",
@@ -15179,6 +16737,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "thyssenkrupp",
@@ -15203,6 +16763,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "boeing",
@@ -15227,6 +16789,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "airbus",
@@ -15251,6 +16815,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "scaleAi",
@@ -15275,6 +16841,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rollsRoyce",
@@ -15299,6 +16867,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "qinetiq",
@@ -15322,6 +16892,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "leonardo",
@@ -15346,6 +16918,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hbo",
@@ -15370,6 +16944,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "universalPictures",
@@ -15393,6 +16969,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sonyPictures",
@@ -15416,6 +16994,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nintendoSwitch",
@@ -15438,6 +17018,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brand1password",
@@ -15462,6 +17044,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lastpass",
@@ -15486,6 +17070,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "therabody",
@@ -15509,6 +17095,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "starTrek",
@@ -15524,6 +17112,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brand007",
@@ -15546,6 +17136,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "noma",
@@ -15569,6 +17161,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dior",
@@ -15593,6 +17187,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dolceGabbana",
@@ -15617,6 +17213,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "astonMartin",
@@ -15639,6 +17237,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cadillac",
@@ -15663,6 +17263,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bmw",
@@ -15687,6 +17289,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "porsche",
@@ -15711,6 +17315,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bentley",
@@ -15726,6 +17332,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "maserati",
@@ -15750,6 +17358,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "koenigsegg",
@@ -15774,6 +17384,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "peugeot",
@@ -15789,6 +17401,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "toyota",
@@ -15813,6 +17427,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mcdonalds",
@@ -15828,6 +17444,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mMs",
@@ -15852,6 +17470,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yougov",
@@ -15874,6 +17494,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tencent",
@@ -15889,6 +17511,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ibm",
@@ -15913,6 +17537,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cisco",
@@ -15937,6 +17563,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vmware",
@@ -15961,6 +17589,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "aramco",
@@ -15985,6 +17615,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "siemens",
@@ -16008,6 +17640,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bosch",
@@ -16031,6 +17665,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "adp",
@@ -16055,6 +17691,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "intuit",
@@ -16079,6 +17717,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "huawei",
@@ -16103,6 +17743,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "morganStanley",
@@ -16127,6 +17769,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "goldmanSachs",
@@ -16150,6 +17794,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deloitte",
@@ -16174,6 +17820,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "accenture",
@@ -16198,6 +17846,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zara",
@@ -16222,6 +17872,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "commonwealthBank",
@@ -16237,6 +17889,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dell",
@@ -16261,6 +17915,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "loreal",
@@ -16283,6 +17939,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bankOfAmerica",
@@ -16298,6 +17956,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kfc",
@@ -16322,6 +17982,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "berryBrosRudd",
@@ -16344,6 +18006,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hilton",
@@ -16368,6 +18032,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "uniqlo",
@@ -16392,6 +18058,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "charlesSchwab",
@@ -16414,6 +18082,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "shell",
@@ -16429,6 +18099,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "honda",
@@ -16453,6 +18125,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "blackrock",
@@ -16477,6 +18151,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "qualcomm",
@@ -16501,6 +18177,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "axa",
@@ -16523,6 +18201,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "generalElectric",
@@ -16547,6 +18227,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pampers",
@@ -16571,6 +18253,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hp",
@@ -16586,6 +18270,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hM",
@@ -16610,6 +18296,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "philips",
@@ -16634,6 +18322,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nissan",
@@ -16658,6 +18348,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "caterpillar",
@@ -16682,6 +18374,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brand3m",
@@ -16706,6 +18400,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "johnDeere",
@@ -16730,6 +18426,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kia",
@@ -16754,6 +18452,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tMobile",
@@ -16778,6 +18478,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cathayPacific",
@@ -16802,6 +18504,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "alaskaAirlines",
@@ -16826,6 +18530,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "eurowings",
@@ -16850,6 +18556,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "aegean",
@@ -16874,6 +18582,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "finnair",
@@ -16898,6 +18608,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "swiss",
@@ -16922,6 +18634,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hasbro",
@@ -16946,6 +18660,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "warnerBrosEntertainment",
@@ -16970,6 +18686,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dreamworks",
@@ -16994,6 +18712,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "marvelStudios",
@@ -17018,6 +18738,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ralphLauren",
@@ -17042,6 +18764,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pagani",
@@ -17066,6 +18790,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lexus",
@@ -17089,6 +18815,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "subway",
@@ -17113,6 +18841,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lego",
@@ -17137,6 +18867,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "costco",
@@ -17161,6 +18893,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "homeDepot",
@@ -17185,6 +18919,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "servicenow",
@@ -17209,6 +18945,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lowes",
@@ -17233,6 +18971,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "citi",
@@ -17257,6 +18997,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "santander",
@@ -17281,6 +19023,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "evri",
@@ -17303,6 +19047,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bollinger",
@@ -17325,6 +19071,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ruinart",
@@ -17349,6 +19097,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from sourced raster artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dyson",
@@ -17373,6 +19123,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "frankfurterAllgemeineZeitung",
@@ -17396,6 +19148,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "supreme",
@@ -17420,6 +19174,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lime",
@@ -17444,6 +19200,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "freenow",
@@ -17468,6 +19226,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theWallStreetJournal",
@@ -17491,6 +19251,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theTimes",
@@ -17515,6 +19277,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theInformation",
@@ -17539,6 +19303,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "opentable",
@@ -17563,6 +19329,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "resy",
@@ -17586,6 +19354,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "michelinGuide",
@@ -17601,6 +19371,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "No separate verified full-logo asset; mark and app-tile variants only.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "waitrose",
@@ -17625,6 +19397,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "traderJoes",
@@ -17649,6 +19423,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "oxfordUniversityPress",
@@ -17673,6 +19449,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ee",
@@ -17696,6 +19474,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hims",
@@ -17720,6 +19500,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "oralB",
@@ -17744,6 +19526,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "virginActive",
@@ -17768,6 +19552,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sas",
@@ -17792,6 +19578,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "mbna",
@@ -17815,6 +19603,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sonder",
@@ -17838,6 +19628,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from sourced raster artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "residentAdvisor",
@@ -17853,6 +19645,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from sourced raster artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "taittinger",
@@ -17875,6 +19669,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from sourced raster artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yubikey",
@@ -17889,6 +19685,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from sourced raster artwork; no embedded bitmap. Uses the official circle-y mark also carried by YubiKey hardware; no separate YubiKey wordmark.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "billecartSalmon",
@@ -17912,6 +19710,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kingSCollegeLondon",
@@ -17934,6 +19734,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "imperialCollegeLondon",
@@ -17957,6 +19759,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "londonSchoolOfEconomics",
@@ -17984,6 +19788,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "veuveClicquot",
@@ -18008,6 +19814,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "absolut",
@@ -18032,6 +19840,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dmDrogerieMarkt",
@@ -18056,6 +19866,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "currys",
@@ -18080,6 +19892,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "parcelforce",
@@ -18103,6 +19917,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "baeSystems",
@@ -18127,6 +19943,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "anduril",
@@ -18151,6 +19969,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "paramountPictures",
@@ -18175,6 +19995,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "waltDisneyStudios",
@@ -18199,6 +20021,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "columbiaPictures",
@@ -18223,6 +20047,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pixar",
@@ -18247,6 +20073,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "universityCollegeLondon",
@@ -18271,6 +20099,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "loewe",
@@ -18295,6 +20125,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "idealo",
@@ -18319,6 +20151,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "starWars",
@@ -18343,6 +20177,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "foundationTvSeries",
@@ -18367,6 +20203,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theFrenchLaundry",
@@ -18391,6 +20229,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "louisVuitton",
@@ -18415,6 +20255,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "chanel",
@@ -18439,6 +20281,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "balenciaga",
@@ -18463,6 +20307,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gucci",
@@ -18487,6 +20333,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "yvesSaintLaurent",
@@ -18511,6 +20359,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "texasInstruments",
@@ -18535,6 +20385,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "harryPotter",
@@ -18559,6 +20411,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "allianz",
@@ -18582,6 +20436,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "blackstone",
@@ -18606,6 +20462,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "corona",
@@ -18629,6 +20487,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sephora",
@@ -18653,6 +20513,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cambridgeUniversityPress",
@@ -18677,6 +20539,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Original vector outlines extracted from Cambridge\u2019s courseware instructor toolkit.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "johnLewis",
@@ -18701,6 +20565,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "thales",
@@ -18725,6 +20591,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "lionsgate",
@@ -18749,6 +20617,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "brand20thCenturyFoxLegacy",
@@ -18773,6 +20643,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Historical 20th Century Fox identity, distinct from 20th Century Studios.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hermes",
@@ -18796,6 +20668,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "maxMara",
@@ -18820,6 +20694,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "prada",
@@ -18844,6 +20720,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "valentino",
@@ -18868,6 +20746,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "versace",
@@ -18892,6 +20772,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kleenex",
@@ -18916,6 +20798,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "marlboro",
@@ -18940,6 +20824,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nomura",
@@ -18964,6 +20850,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "exxonmobil",
@@ -18988,6 +20876,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "budweiser",
@@ -19012,6 +20902,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tiffanyCo",
@@ -19036,6 +20928,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "monopoly",
@@ -19060,6 +20954,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Original outlined lettering retained; embedded red gradient patches converted to native SVG gradients.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zegna",
@@ -19084,6 +20980,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current identity traced from the artwork in Zegna\u2019s official 2021 rebranding announcement.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "flink",
@@ -19108,6 +21006,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced raster identity; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "helsing",
@@ -19132,6 +21032,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced raster identity; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "gameOfThrones",
@@ -19156,6 +21058,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced raster identity; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "trafigura",
@@ -19180,6 +21084,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced raster identity; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theLordOfTheRings",
@@ -19204,6 +21110,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced raster identity; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vaseline",
@@ -19228,6 +21136,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced color artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "moutai",
@@ -19252,6 +21162,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced color artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "monsterEnergy",
@@ -19276,6 +21188,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced color artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "danone",
@@ -19300,6 +21214,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Vector paths traced from the sourced color artwork; no embedded bitmap.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cartier",
@@ -19324,6 +21240,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "colgate",
@@ -19348,6 +21266,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "unitedhealthcare",
@@ -19372,6 +21292,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "royalBankOfCanada",
@@ -19395,6 +21317,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "xfinity",
@@ -19419,6 +21343,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "commerzbank",
@@ -19443,6 +21369,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "deutscheBank",
@@ -19467,6 +21395,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "activision",
@@ -19491,6 +21421,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "assassinsCreed",
@@ -19515,6 +21447,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "callOfDuty",
@@ -19539,6 +21473,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "cnn",
@@ -19563,6 +21499,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "foxNews",
@@ -19587,6 +21525,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "abcNews",
@@ -19609,6 +21549,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "pbs",
@@ -19632,6 +21574,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "skyNews",
@@ -19656,6 +21600,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "harpercollins",
@@ -19680,6 +21626,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Outlined HarperCollins Publishers identity, matching the publisher\u2019s official website artwork.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "taschen",
@@ -19704,6 +21652,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "grindr",
@@ -19728,6 +21678,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tinder",
@@ -19752,6 +21704,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Lockup composed from the sourced outlined emblem and wordmark, retaining each original shape and adapting lettering for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bumble",
@@ -19775,6 +21729,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Lockup composed from the sourced outlined emblem and wordmark, retaining each original shape and adapting lettering for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hinge",
@@ -19797,6 +21753,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleGemini",
@@ -19821,6 +21779,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bytedance",
@@ -19845,6 +21805,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "paramountPlus",
@@ -19869,6 +21831,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "alltrails",
@@ -19892,6 +21856,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "eventbrite",
@@ -19914,6 +21880,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "westernUnion",
@@ -19938,6 +21906,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "blinkist",
@@ -19962,6 +21932,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "fastly",
@@ -19986,6 +21958,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "googleCloudPlatform",
@@ -20009,6 +21983,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Lockup composed from the sourced outlined emblem and wordmark, retaining each original shape and adapting lettering for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nivea",
@@ -20033,6 +22009,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "tomFord",
@@ -20057,6 +22035,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "diptyque",
@@ -20081,6 +22061,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "malinGoetz",
@@ -20105,6 +22087,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theOrdinary",
@@ -20129,6 +22113,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Lockup composed from the sourced outlined emblem and wordmark, retaining each original shape and adapting lettering for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "kiehls",
@@ -20153,6 +22139,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "theStandard",
@@ -20177,6 +22165,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rosewood",
@@ -20201,6 +22191,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "roseBikes",
@@ -20224,6 +22216,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "hermanMiller",
@@ -20248,6 +22242,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "sweetgreen",
@@ -20272,6 +22268,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "zettaVenturePartners",
@@ -20294,6 +22292,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "wholeFoodsMarket",
@@ -20318,6 +22318,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "londonUnderground",
@@ -20342,6 +22344,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "transportForLondon",
@@ -20366,6 +22370,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "bundeswehr",
@@ -20390,6 +22396,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ukMinistryOfDefence",
@@ -20414,6 +22422,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "nescafe",
@@ -20438,6 +22448,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Faithful vectorization of the current official website logo; no substitute typesetting.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "superman",
@@ -20453,6 +22465,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Classic red-and-yellow shield. No verified matching outlined wordmark is included.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "spiderMan",
@@ -20477,6 +22491,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined film title wordmark, also used for compact mark and app tile variants.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "avengers",
@@ -20501,6 +22517,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ironMan",
@@ -20525,6 +22543,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined film title wordmark, also used for compact mark and app tile variants.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "dove",
@@ -20549,6 +22569,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "aquafresh",
@@ -20573,6 +22595,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Faithful vectorization of the current official website logo; no substitute typesetting.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "adobeCreativeCloud",
@@ -20588,6 +22612,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official Creative Cloud vector app icon from Adobe. No separate verified outlined wordmark is included.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "msnbcLegacy",
@@ -20612,6 +22638,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Former MSNBC identity, retained as legacy artwork after the rebrand to MS NOW.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "vitra",
@@ -20636,6 +22664,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "ageOfEmpires",
@@ -20660,6 +22690,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Faithful vectorization of sourced raster artwork; colors adapted for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "simcity",
@@ -20684,6 +22716,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Faithful vectorization of sourced raster artwork; colors adapted for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "usm",
@@ -20706,6 +22740,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Faithful vectorization of sourced raster artwork; colors adapted for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "rootVentures",
@@ -20728,6 +22764,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Faithful vectorization of sourced raster artwork; colors adapted for each theme.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "oneOnly",
@@ -20752,6 +22790,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Official outlined monogram and faithfully vectorized wordmark from the brand asset library.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
   {
     name: "msNow",
@@ -20776,6 +22816,8 @@ export const integrationIconCatalog = [
     logoNotes:
       "Current successor brand to MSNBC; the former peacock identity is retained separately as a legacy option.",
     logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
   },
 ] as const;
 

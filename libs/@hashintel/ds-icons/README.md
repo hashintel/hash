@@ -241,6 +241,8 @@ Where a source provides only a wordmark, the full logo pairs it with the sourced
 
 ### Maintaining the artwork
 
+Each catalogue entry records `lastCheckedAutomated` and `lastCheckedManually` as ISO dates (`YYYY-MM-DD`) or `null` when no check is recorded. Update these dates only after the corresponding check; generation preserves them without advancing them. The generic fallback is not a brand and has no check dates.
+
 The shared app-tile backgrounds live in `src/integration-icon/app-tile/`. The generator uses these SVGs for both the React tile components and standalone app variants.
 
 Edit the reviewed SVGs in `src/integration-icon/artwork` and the source, alias, sizing, and palette metadata in `src/integration-icon/brands.json`. Then run `yarn generate:integrations` and the package checks. The generator uses `uv` to install its pinned `defusedxml` dependency and rejects SVG document types and entity definitions. The generator writes both React geometry and standalone variants from those sources and removes obsolete SVG variants. `logoLayout` controls the wordmark height and gap when composing a lock-up; an optional `logo-mark.svg` supplies a mark without embedded lettering.
