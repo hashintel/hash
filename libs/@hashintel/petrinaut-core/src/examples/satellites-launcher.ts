@@ -50,11 +50,8 @@ export const probabilisticSatellitesSDCPN: {
   return (
     <svg
       viewBox={\`0 0 \${width} \${height}\`}
-      style={{ borderRadius: "4px", width: "100%" }}
+      style={{ borderRadius: "4px", width: "100%", backgroundColor: "#000014" }}
     >
-      {/* Background */}
-      <rect width={width} height={height} fill="#000014" />
-
       {/* Planet at center */}
       <circle
         cx={centerX}

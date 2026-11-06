@@ -1,4 +1,4 @@
-import { Suspense, use } from "react";
+import { Suspense, use, useDeferredValue } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -19,6 +19,7 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { renderVisualizerHir } from "../../lib/render-visualizer-hir";
 import { useVisualizerHir } from "../../lib/use-visualizer-hir";
 import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
+import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
@@ -106,6 +107,7 @@ const VisualizerPicture: React.FC<{
     hir.view,
     tokens,
     mergeParameterValues(parameterValues, defaultParameterValues),
+    { fitViewport: true },
   );
 };
 
@@ -116,7 +118,8 @@ const VisualizerPicture: React.FC<{
 export const PlaceStateVisualization: React.FC<
   PlaceStateVisualizationProps
 > = ({ place, placeType }) => {
-  if (!place.visualizerCode) {
+  const code = useDeferredValue(place.visualizerCode);
+  if (!code) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
 
@@ -125,14 +128,13 @@ export const PlaceStateVisualization: React.FC<
   }
 
   return (
-    <VisualizerErrorBoundary>
-      <Suspense fallback={null}>
-        <VisualizerPicture
-          place={place}
-          placeType={placeType}
-          code={place.visualizerCode}
-        />
+    <>
+      <Suspense fallback={<VisualizerLoading />}>
+        <VisualizerErrorBoundary key={code}>
+          <VisualizerPicture place={place} placeType={placeType} code={code} />
+        </VisualizerErrorBoundary>
       </Suspense>
-    </VisualizerErrorBoundary>
+      {code !== place.visualizerCode && <VisualizerLoading />}
+    </>
   );
 };

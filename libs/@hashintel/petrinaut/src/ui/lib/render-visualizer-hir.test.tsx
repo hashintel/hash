@@ -38,12 +38,21 @@ const render = (
 };
 
 describe("renderVisualizerHir", () => {
-  /**
-   * The markup the Babel-compiled components produced for the same frame,
-   * recorded before that compiler was removed. Every shipped visualizer must
-   * draw the same picture through the HIR.
-   */
-  describe("draws every example visualizer as the compiled component did", () => {
+  it("fits the root viewBox without overriding nested SVG aspect ratios", () => {
+    const lowered = lowerVisualizerToHir(
+      `export default Visualization(() => <><svg viewBox="0 0 400 200" style={{ backgroundColor: "#eff6ff" }} preserveAspectRatio="none"><svg preserveAspectRatio="xMinYMin meet" /></svg></>);`,
+      context,
+    );
+    if (!lowered.ok) throw new Error("The test visualizer must compile");
+    expect(
+      renderToStaticMarkup(
+        renderVisualizerHir(lowered.view, [], {}, { fitViewport: true }),
+      ),
+    ).toBe(
+      '<svg viewBox="0 0 400 200" style="background-color:#eff6ff" preserveAspectRatio="xMidYMid meet"><svg preserveAspectRatio="xMinYMin meet"></svg></svg>',
+    );
+  });
+  describe("draws every example visualizer", () => {
     const examples = new Map<string, SDCPN>(
       [
         probabilisticSatellitesSDCPN,

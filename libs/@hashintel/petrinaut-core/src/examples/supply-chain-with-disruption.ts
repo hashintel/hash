@@ -189,8 +189,7 @@ export default Visualization(({ tokens, parameters }) => {
   const height = 170;
   const maxEta = Math.max(1, parameters.max_eta_visual || 10);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#eff6ff" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px", backgroundColor: "#eff6ff" }}>
       <text x="18" y="26" fontSize="18" fontWeight="700" fill="#1e3a8a">Inbound lanes</text>
       <line x1="60" y1="82" x2="470" y2="82" stroke="#93c5fd" strokeWidth="8" strokeLinecap="round" />
       {tokens.slice(0, 18).map((t, i) => {
@@ -230,8 +229,7 @@ export default Visualization(({ tokens, parameters }) => {
   const height = 170;
   const maxTime = Math.max(1, parameters.production_time_mean || 3);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#f0fdf4" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px", backgroundColor: "#f0fdf4" }}>
       <text x="18" y="26" fontSize="18" fontWeight="700" fill="#14532d">Factory WIP</text>
       {tokens.slice(0, 14).map((b, i) => {
         const progress = 1 - Math.min(maxTime, Math.max(0, b.processing_left)) / maxTime;
@@ -270,8 +268,7 @@ export default Visualization(({ tokens, parameters }) => {
   const height = 170;
   const urgent = tokens.filter(o => o.age > o.promised_lead_time).length;
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#fff7ed" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px", backgroundColor: "#fff7ed" }}>
       <text x="18" y="26" fontSize="18" fontWeight="700" fill="#9a3412">Customer queue</text>
       {tokens.slice(0, 40).map((o, i) => {
         const x = 24 + (i % 20) * 23;
@@ -304,8 +301,7 @@ export default Visualization(({ tokens, parameters }) => {
   const height = 150;
   const maxAge = tokens.reduce((m, o) => Math.max(m, o.age), 0);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#fef2f2" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px", backgroundColor: "#fef2f2" }}>
       <text x="18" y="26" fontSize="18" fontWeight="700" fill="#991b1b">Backorder heat</text>
       {tokens.slice(0, 30).map((o, i) => {
         const h = Math.min(90, 12 + o.age * 6);
@@ -335,8 +331,7 @@ export default Visualization(({ tokens, parameters }) => {
   const height = 150;
   const maxEta = Math.max(1, parameters.outbound_lead_time * 2 || 3);
   return (
-    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width={width} height={height} fill="#f8fafc" />
+    <svg viewBox={\`0 0 \${width} \${height}\`} style={{ width: "100%", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
       <text x="18" y="26" fontSize="18" fontWeight="700" fill="#334155">Last-mile deliveries</text>
       <line x1="55" y1="82" x2="470" y2="82" stroke="#cbd5e1" strokeWidth="7" strokeLinecap="round" />
       {tokens.slice(0, 20).map((t, i) => {
@@ -370,8 +365,7 @@ export default Visualization(({ tokens, parameters }) => {
   const health = Math.max(0, Math.min(1, m.health));
   const wear = Math.max(0, Math.min(1, m.wear));
   return (
-    <svg viewBox="0 0 360 130" style={{ width: "100%", borderRadius: "8px" }}>
-      <rect width="360" height="130" fill="#f8fafc" />
+    <svg viewBox="0 0 360 130" style={{ width: "100%", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
       <text x="18" y="26" fontSize="17" fontWeight="700" fill="#334155">Machine condition</text>
       <rect x="26" y="48" width="260" height="22" rx="11" fill="#e2e8f0" />
       <rect x="26" y="48" width={260 * health} height="22" rx="11" fill={health > 0.5 ? "#22c55e" : "#f59e0b"} />

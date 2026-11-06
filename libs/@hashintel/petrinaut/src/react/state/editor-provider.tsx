@@ -31,6 +31,19 @@ const selectionFromNavigation = (
 const selectionToNavigation = (selection: SelectionMap) =>
   Array.from(selection.values());
 
+const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
+  state.visualizerStack.at(-1) === placeId
+    ? state
+    : {
+        ...state,
+        visualizerStack: [
+          ...state.visualizerStack.filter(
+            (visualizerPlaceId) => visualizerPlaceId !== placeId,
+          ),
+          placeId,
+        ],
+      };
+
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const actualMode = use(ActualModeContext);
@@ -451,32 +464,64 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         return selection;
       }),
     clearSelection: () => setSelection(new Map()),
-    // An opened visualizer belongs to the hover that opened it, so both of
-    // these drop it as soon as the pointer is somewhere else.
     setHoveredItem: (item: SelectionItem) =>
       setState((prev) => ({
         ...prev,
         hoveredItem: item,
-        openVisualizerPlaceId:
-          prev.openVisualizerPlaceId === item.id
-            ? prev.openVisualizerPlaceId
-            : null,
       })),
     clearHoveredItem: () =>
       setState((prev) => ({
         ...prev,
         hoveredItem: null,
-        openVisualizerPlaceId: null,
       })),
-    openPlaceVisualizer: (placeId: string) =>
+    openPlaceVisualizer: (placeId: string | null) =>
       setState((prev) => ({ ...prev, openVisualizerPlaceId: placeId })),
-    toggleVisualizerPin: (placeId: string) =>
-      setState((prev) => {
-        const pinnedVisualizerPlaceIds = new Set(prev.pinnedVisualizerPlaceIds);
-        if (!pinnedVisualizerPlaceIds.delete(placeId)) {
-          pinnedVisualizerPlaceIds.add(placeId);
-        }
-        return { ...prev, pinnedVisualizerPlaceIds };
+    setVisualizerEditorFocus: (placeId: string, focused: boolean) =>
+      setState((previous) => ({
+        ...(focused ? raiseVisualizer(previous, placeId) : previous),
+        focusedVisualizerPlaceId: focused
+          ? placeId
+          : previous.focusedVisualizerPlaceId === placeId
+            ? null
+            : previous.focusedVisualizerPlaceId,
+      })),
+    bringVisualizerToFront: (placeId) =>
+      setState((previous) => raiseVisualizer(previous, placeId)),
+    keepPlaceVisualizerOpen: (placeId: string) =>
+      setState((previous) => {
+        if (previous.keptOpenVisualizerPlaceIds.has(placeId)) return previous;
+        const keptOpenVisualizerPlaceIds = new Set(
+          previous.keptOpenVisualizerPlaceIds,
+        );
+        keptOpenVisualizerPlaceIds.add(placeId);
+        return {
+          ...raiseVisualizer(previous, placeId),
+          keptOpenVisualizerPlaceIds,
+        };
+      }),
+    closePlaceVisualizer: (placeId: string) =>
+      setState((previous) => {
+        const keptOpenVisualizerPlaceIds = new Set(
+          previous.keptOpenVisualizerPlaceIds,
+        );
+        keptOpenVisualizerPlaceIds.delete(placeId);
+        return {
+          ...previous,
+          keptOpenVisualizerPlaceIds,
+          visualizerStack: previous.visualizerStack.filter(
+            (visualizerPlaceId) => visualizerPlaceId !== placeId,
+          ),
+          openVisualizerPlaceId:
+            previous.openVisualizerPlaceId === placeId
+              ? null
+              : previous.openVisualizerPlaceId,
+          focusedVisualizerPlaceId:
+            previous.focusedVisualizerPlaceId === placeId
+              ? null
+              : previous.focusedVisualizerPlaceId,
+          hoveredItem:
+            previous.hoveredItem?.id === placeId ? null : previous.hoveredItem,
+        };
       }),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),

@@ -68,7 +68,7 @@ const input: CanvasSceneInput = {
     hoveredId: null,
     selectedIds: new Set(),
   }),
-  pinnedVisualizerIds: new Set(),
+  keptOpenVisualizerIds: new Set(),
 };
 
 describe("buildCanvasScene", () => {
@@ -132,17 +132,17 @@ describe("buildCanvasScene", () => {
     expect(nodes.find((node) => node.id === "p1")?.focus).toBe("none");
   });
 
-  it("marks a place whose state visualizer is pinned", () => {
+  it("marks a place whose state visualizer is kept open", () => {
     const { nodes } = buildCanvasScene({
       ...input,
-      pinnedVisualizerIds: new Set(["p1"]),
+      keptOpenVisualizerIds: new Set(["p1"]),
     });
 
     expect(nodes.find((node) => node.id === "p1")).toMatchObject({
-      visualizerPinned: true,
+      visualizerKeptOpen: true,
     });
     expect(nodes.find((node) => node.id === "p2")).toMatchObject({
-      visualizerPinned: false,
+      visualizerKeptOpen: false,
     });
   });
 

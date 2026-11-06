@@ -91,45 +91,34 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 
 ## Visualizer
 
-A visualizer renders a custom view of a place's tokens during simulation. It is a function written in JavaScript with JSX that returns SVG elements.
+Visualizers draw a place’s tokens before or during simulation. Enable **Visualizer** in the place’s properties, then open its code editor. Use **Load default template** to start.
 
-**To enable:** select a place, then turn on the **Visualizer** switch in its properties. Click the **Visualizer** header to expand its code editor.
+### Preview and edit
 
-```tsx
-export default Visualization(({ tokens, parameters }) => {
-  return (
-    <svg viewBox="0 0 800 600">
-      {tokens.map(({ x, y }, i) => (
-        <circle key={i} cx={x} cy={y} r={5} fill="red" />
-      ))}
-    </svg>
-  );
-});
+- Hover or focus the place’s eye button for a temporary preview; click to keep it open. Close it with **×** or Escape.
+- Drag the picture to move it; resize from an edge or corner. Hold Alt to resize from the center. Keyboard users can focus the move or resize handle and use arrow keys, with Shift for larger steps.
+- Windows follow their place and keep a constant screen size when the Canvas zooms. Use **Fix position on screen** to stop following, or **Follow place** to resume. Windows stay within the viewport; a small attachment identifies their place.
+- **Edit visualizer code** opens the expanded editor. Editor focus shows a highlighted preview. You can edit during simulation without restarting it; the previous drawing remains visible while code compiles.
+
+### Drawing
+
+Write a JavaScript callback receiving `tokens` and `parameters`:
+
+```jsx
+export default Visualization(({ tokens, parameters }) => (
+  <svg viewBox="0 0 400 240" style={{ backgroundColor: "#eff6ff" }}>
+    {tokens.map(({ x, y }, index) => (
+      <circle key={index} cx={x} cy={y} r={5} fill="red" />
+    ))}
+  </svg>
+));
 ```
 
-The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in the properties panel. During simulation, it updates live as token state changes.
+Petrinaut sizes the SVG to the window and preserves its `viewBox` proportions. Put the background on the SVG’s style so it fills the window.
 
-The code editor checks a visualizer as you type. `tokens` is typed from the place's type and `parameters` from the net's parameters, so completion and hover show the attributes and values available, and a misspelt SVG attribute, an attribute the type does not have, or a name such as `window` or `fetch` that visualizers cannot use is underlined in the editor and listed in the [Diagnostics](#diagnostics) tab under the place. Visualizer errors never block a simulation: a visualizer with errors draws nothing while the rest of the net runs.
+Visualizers support the [expression subset](#supported-code-subset), token collection methods (`map`, `filter`, `slice`, `reduce`), template literals, and `toFixed`, with SVG drawing elements. Types are inferred, and the [code editor](code-editor.md) reports errors as you type. Imports, hooks, arbitrary function calls, scripts, event handlers, and external URLs are rejected. Visualizer errors do not stop simulation.
 
-Visualizer code is JavaScript: the types are inferred, and a type annotation or a cast is an error. Like the other code surfaces, a visualizer is compiled by Petrinaut's own compiler to a restricted subset, so it stays a pure function of its tokens and parameters:
-
-- `const` bindings, destructuring, ternaries, `&&` and `||`, arithmetic, comparisons, `Math.*`, template literals and string concatenation.
-- `.map`, `.filter`, `.slice` and `.reduce` over tokens, `.length`, and `.toFixed` for numbers.
-- SVG elements such as `svg`, `g`, `rect`, `circle`, `line`, `path`, `polygon`, `text`, `defs`, `marker` and gradients, with their geometry, paint and text attributes, `key`, and a `style` object of common properties. `div`, `span` and `p` are available for labels.
-
-Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
-
-It is reachable from the canvas too, in two steps. Point at the place and a small round button appears above it; click that and the visualizer opens where the button was, whether or not anything has run. Before a run it draws the initial marking, so a net still being built can be checked by pointing at it.
-
-Opening it belongs to that hover: move the pointer away and it closes, and pointing at the place again offers the button rather than the visualizer. A **pin** in the visualizer's top-right corner is what makes it stay -- faint until you point at the box, solid once pinned. A pinned box stays up with the pointer somewhere else entirely, which is what makes it possible to watch one place while scrubbing the [timeline](simulation.md#timeline) or editing the initial state. Click the pin again to release it. Pin as many places as you want to watch at once; pins last until the page is reloaded.
-
-<img width="474" height="385" alt="visauliser-preview" src="https://github.com/user-attachments/assets/303f51f3-0a53-480b-9639-52c4b77aa6e0" />
-
-Use the menu in the code editor header to **Load default template** for a starting point.
-
-You can also toggle between the code, a preview, and both at once.
-
-**Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example includes a visualizer that renders the planet and orbiting satellites with velocity vectors. The [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) and [Deployment Pipeline](examples.md#deployment-pipeline) examples add visualizers on several places at once.
+See [Satellites](examples.md#probabilistic-satellite-launcher) and [Supply Chain](examples.md#supply-chain-with-disruption) for examples.
 
 ## Transition kernel
 
