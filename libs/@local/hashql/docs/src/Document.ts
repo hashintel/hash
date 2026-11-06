@@ -289,7 +289,7 @@ const overviewPage = (composition: Composition): Tree.Page.Overview => ({
         label: [Related.titleOf(page.entry)],
         depth: 0,
         summary: Related.summary(Entry.summary(entry)),
-        deprecated: false,
+        deprecated: entry.deprecated,
         origin: {
           _tag: "Reference",
           target: { _tag: "Local", node: page.entry.id } satisfies Local,
