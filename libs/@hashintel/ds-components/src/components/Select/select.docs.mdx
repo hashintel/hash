@@ -582,6 +582,43 @@ flat list scans faster when it's short.
   </DemoState>
 </Stage>
 
+### Collapsible options
+
+Give an option `subItems` to nest options beneath it as a collapsible folder —
+reach for folders over groups when the hierarchy is deep or the parents are
+themselves valid choices. The folder row still selects; only its chevron
+toggles expansion.
+
+<Stage>
+  <DemoState data-harness>
+    <Select
+      width="sm"
+      placeholder="Select a team…"
+      items={[
+        {
+          value: "engineering",
+          text: "Engineering",
+          subItems: [
+            { value: "frontend", text: "Frontend" },
+            { value: "infrastructure", text: "Infrastructure" },
+          ],
+        },
+        {
+          value: "operations",
+          text: "Operations",
+          subItems: [
+            { value: "finance", text: "Finance" },
+            { value: "people", text: "People" },
+          ],
+        },
+        { value: "leadership", text: "Leadership" },
+      ]}
+      value="frontend"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
 ### Custom rendering
 
 `renderItem` controls how options render in the dropdown and doubles as the
@@ -856,7 +893,8 @@ every enabled option out of reach.
 Multi-select items can take a `suffix` aligned to the right, and `showOnlyButton`
 can swap it for an "Only" button on hover that narrows the selection to that
 item. Items indicate selection with a checkbox by default — restyle per item
-with `selectedStyle` (`checkbox`, `tick`, `highlight`) and `selectedTone`.
+with `selectedStyle` (`checkbox`, `tick`, `highlight`, `radio`) and
+`selectedTone`.
 
 <Stage>
   <DemoState data-harness>
@@ -1036,8 +1074,9 @@ Select implements the
 Select adds handling beyond the listbox pattern:
 
 | Key                      | Action                                                                                                                                       |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Escape (multi select)    | Closes the dropdown and reverts the selection to its state when it opened.                                                                   |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Escape (multi select)                | Closes the dropdown and reverts the selection to its state when it opened.                                                                   |
+| ArrowRight / ArrowLeft (sub-items)   | Expands / collapses the highlighted collapsible option.                                                                                      |
 
 ## API reference
 

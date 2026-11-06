@@ -36,6 +36,13 @@ export const MultiItemSuffix = ({
           tone: tone === "brand" ? "brand" : "neutral",
         })}
         onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        // preventDefault lives here, not on pointerdown: it keeps focus
+        // where it is (e.g. a search input), while on pointerdown it would
+        // suppress the compatibility click on touch/pen, leaving the button
+        // dead there.
+        onMouseDown={(event) => {
           event.preventDefault();
           event.stopPropagation();
         }}

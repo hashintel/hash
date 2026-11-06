@@ -4,7 +4,7 @@ import { Button } from "../../components/Button/button";
 import { type Item, type ItemOrGroup } from "./selectable-list";
 
 const tones = ["neutral", "brand", "error"] as const;
-const selectedStyles = ["tick", "checkbox", "highlight"] as const;
+const selectedStyles = ["tick", "checkbox", "highlight", "radio"] as const;
 
 const noop = () => {};
 
@@ -320,6 +320,50 @@ export const itemsWithSubActions: ItemOrGroup<Item>[] = [
   itemWithNestedSubActions,
   itemWithoutSubActions,
   customItemButton,
+];
+
+// "Documents" demonstrates a selectable collapsible row (it has an onClick
+// that activation fires, so only its chevron and ArrowRight/ArrowLeft
+// toggle it); the onClick-less folders fall back to toggling on activation.
+export const collapsibleItems: ItemOrGroup<Item>[] = [
+  {
+    id: "col-documents",
+    text: "Documents",
+    icon: "shapes",
+    collapsible: true,
+    defaultExpanded: true,
+    keepOpenOnSelect: true,
+    onClick: noop,
+    subItems: [
+      { id: "col-report", text: "Quarterly report", onClick: noop },
+      { id: "col-notes", text: "Meeting notes", icon: "pencil", onClick: noop },
+      {
+        id: "col-drafts",
+        text: "Drafts",
+        collapsible: true,
+        subItems: [
+          { id: "col-draft-1", text: "Untitled draft", onClick: noop },
+          { id: "col-draft-2", text: "Roadmap sketch", onClick: noop },
+        ],
+      },
+    ],
+  },
+  {
+    id: "col-archive",
+    text: "Archive",
+    collapsible: true,
+    subItems: [
+      { id: "col-2023", text: "2023", onClick: noop },
+      { id: "col-2022", text: "2022", onClick: noop },
+      {
+        id: "col-locked",
+        text: "Locked entry",
+        disabled: true,
+        onClick: noop,
+      },
+    ],
+  },
+  { id: "col-plain", text: "Item after the folders", onClick: noop },
 ];
 
 const customButtonStyle = css({
