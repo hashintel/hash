@@ -198,7 +198,7 @@ const createOrUpdateHashEntity = async (params: {
     }
 
     const propertyPatches = patchesFromPropertyObjects({
-      oldProperties: existingEntity.properties,
+      oldProperties: existingEntity.propertiesWithMetadata,
       newProperties: mergePropertyObjectAndMetadata(
         partialEntity.properties,
         undefined,
