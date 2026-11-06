@@ -393,9 +393,11 @@ let foo = 2 as Number in
 foo
 ```
 
-Doesn't stating a type conflict with that you cannot tell the compiler what the type is and to therefore lie to it? Actually? No. That's because HashQL has a type-lattice. This means that types are ordered, through a hierarchy, in which types are subtypes or supertypes of other types. For example `Integer` is a subtype of `Number`: every integer is a number, but not every number is an integer. When you use `as` to cast a value to a type, the compiler proves that the cast you have just done only goes up the type lattice: it will never cast a value to a type that is not a subtype of the value's current type.
+Doesn't stating a type let us lie to the compiler after all? Actually, no! `as` can keep a type unchanged or widen it to a supertype. In the type lattice, that means moving upwards, never downwards.
 
-That's different to TypeScript's `as` operator, which lets you lie to the compiler. It let's you write `"2" as unknown as number`. HashQL let's you write the first `as` expression, as unknown (`?`) is the top type of the language, but the second one would fail, because the top type can never be the subtype of any other type.
+For example, `Integer` is a subtype of `Number`: every integer is a number, but not every number is an integer. For `2 as Number`, the compiler checks that relationship. The value itself remains `2`.
+
+That's different from TypeScript's `as` operator, which lets you lie to the compiler. It lets you write `"2" as unknown as number`. HashQL also lets us widen a string's type to `Unknown` (`?`), because every value belongs to that top type. But we cannot then assert `Number`: `Unknown` is not a subtype of `Number`.
 
 <Accordions>
   <Accordion title="How types fit together" id="type-lattice">
@@ -409,9 +411,9 @@ These subtype relationships form a type lattice. Any two types have a least comm
 
 ### Naming a type with `type`
 
-We have types, but it would be very cumbersome to always write out the full type definition every time we use it, that's where the `type` special form comes in. It is the equivalent to the `let` special form in the type universe, it allows us to give a type a name so we don't have to write out the full type definition every time we use it.
+Writing out a full type definition every time would get cumbersome. The `type` special form gives it a name, much as `let` names a value. The difference is where that name lives: `type` binds in the type universe, while `let` binds in the value universe.
 
-Let's look at our example again, this time suppose our integer represents a count. We can make this clearer by giving it a name and then use it as an annotation in the binding's type:
+Let's look at our example again. Suppose our integer represents a count. We can give that type the name `Count` and use it in the binding's annotation:
 
 ```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
@@ -436,9 +438,11 @@ let foo = 2 as Count in
 foo
 ```
 
-What's important to note is that `Count` is merely an alias for `Integer`, it isn't a distinct type! That means that you can use them interchangably. This is what we know as structural typing. Instead of looking at the name of the type, we look at the structure, in this example it is merely an alias for `Integer`, but the same applies to types like structs, or tuples, etc.
+`Count` is merely an alias for `Integer`, not a distinct type! You can use the two interchangeably.
 
-Just like with `let`, the name of the `type` is available within the body of the `type` expression, in the TypeScript Draft SDK this is any statement that follows after it. What makes this interesting, similar to other languages, is that the name of the type is in a different universe than the name of a value, which means that you can define a `type` with the same name as a value, and they will not conflict, because any use is unambiguous. `newtype` allows us to understand why this is interesting!
+Just like a `let` binding, the type name is available within the body of its `type` expression. In Draft, that body is the rest of the current construction scope.
+
+What makes this interesting is that type names and value names live in separate universes. A type and a value can share a name without conflict: the context tells the compiler which one we mean. `newtype` makes use of this!
 
 By default, HashQL compares types by their structure. Two tuples with the same element types have the same type, whatever aliases you give them. You could call `(Integer, Integer)` `Coordinates` or `Dimensions`, but the compiler would still allow one in place of the other.
 
@@ -446,7 +450,7 @@ In Draft, `$.type` returns a handle for the HashQL type. It is not a TypeScript 
 
 ### Making a distinct type with `newtype`
 
-Now an alias is fine, and sometimes we just want to know that things are equivalent on a structural level, but often the name of a type itself is meaningful, as the type not only conveys structure, but also conveys a semantic meaning. `newtype` allows us to define a nominal type. A type that is compared by the identity, instead of structure.
+Now, an alias is fine when we only need another name for the same structure. But a type can also carry a semantic meaning that we want the compiler to protect. `newtype` creates a nominal type, compared by its declared identity rather than its structure alone.
 
 Let's take our `Count` example from earlier:
 
@@ -473,14 +477,14 @@ let foo = Count(2) in
 foo
 ```
 
-This time, the result is a `Count` value constructed from `2`, what's important is that not any `Integer` is a `Count`, they are completely distinct types. The same applies to you creating a `Distance` newtype over `Integer`. That again is different to `Count`, no one nominal type is the same as another.
+This time, the result is a `Count` value constructed from `2`. A plain `Integer` is not a `Count`: you construct a `Count` explicitly. A separate `Distance` newtype over `Integer` would also be distinct from `Count`. Each declaration introduces its own type identity.
 
-This is what we call nominal opt-in in HashQL: newtype let's you opt in to a distinct type identity, while still using the same underlying structure.
+This is what we call nominal opt-in in HashQL: `newtype` lets you opt in to a distinct type identity, while still using the same underlying structure.
 
 The same applies to our tuple example. Declaring `Coordinates` and `Dimensions` with `newtype` instead of `type` would keep them distinct, even though both contain two integers.
 
-So how do we construct a new `Count` value? Well! We have seen that `type` and `let` are in two different universes, and don't interact. Therefore what if we would... combine them? That's exactly what `newtype` does. Any declaration of a `newtype` creates two entries in both universes: the nominal type, and the constructor, which is a function that takes a value of the underlying type and returns a value of the nominal type. Elegant!
+So how do we construct a new `Count` value? Well! `type` and `let` bind names in different universes. What if we... combine them? That's exactly what `newtype` does. It creates two entries under the same name: the nominal type in the type universe and its constructor in the value universe. In our example, the constructor takes an `Integer` and returns a `Count`. Elegant!
 
 ## Queries without side effects
 
-Side-effect freedom does not mean that HashQL must be read-only. HASH records when each change was stored, its transaction time. If a program's graph reads stay at or before the program's start time on that axis, later writes cannot change the graph view those reads observe. Even backdated changes have a later transaction time. This lets HashQL support graph updates while preserving the results of expressions over that earlier view.
+So how does a side-effect free query work with mutations? Can that even be supported? Yes! The key to this is the transaction time. Importantly what we say is never that side-effects are impossible, we simply say that side-effects are _never able to be observed in the transaction time that we have already committed._ Every query gets a transaction time set, and mutations set a transaction time that is later. We can never set the transaction time into the future for a query, only to now. That means that any mutation that we do, even in our own code, would never be visible, because time would have naturally advanced. That's only possible because backdated changes have a later transaction time than the current one, only their decision time changes.
