@@ -110,9 +110,9 @@ describe("IntegrationIcon", () => {
   });
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(2146);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(2188);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      1870,
+      1902,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -200,7 +200,7 @@ describe("IntegrationIcon", () => {
           (node) => node.id,
         );
         const uniqueIds = new Set(ids);
-        expect(uniqueIds.size).toBe(ids.length);
+        expect(uniqueIds.size, icon.name).toBe(ids.length);
         for (const reference of content.matchAll(/url\(#([^)]*)\)/g)) {
           expect(uniqueIds.has(reference[1] ?? "")).toBe(true);
         }

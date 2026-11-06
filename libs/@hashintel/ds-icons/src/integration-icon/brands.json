@@ -1906,8 +1906,8 @@
   {
     "name": "clay",
     "slug": "clay",
-    "label": "Clay.com",
-    "integrationNames": ["Clay.com"],
+    "label": "Clay",
+    "integrationNames": ["Clay", "Clay.com"],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://assets.clayrun.dev/Clay%20Kiln%20Logos%202025.zip",
@@ -1918,7 +1918,12 @@
     "logoNotes": "Official Clay Kiln primary lock-up. The kit embeds a raster mark; this copy vectorizes that mark while preserving the original outlined wordmark and placement.",
     "categories": ["Marketing & sales"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "markMonoColors": {
+      "#37C0E7": "#000000",
+      "#F95F64": "#888888",
+      "#FCCA01": "#DDDDDD"
+    }
   },
   {
     "name": "amazonEc2",
@@ -4677,7 +4682,13 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "markMonoColors": {
+      "#FFD21E": "#000000",
+      "#FF9D0B": "#AAAAAA",
+      "#3A3B45": "#FFFFFF",
+      "#FF323D": "#FFFFFF"
+    }
   },
   {
     "name": "monaco",
@@ -5514,7 +5525,12 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Operating systems"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "markMonoColors": {
+      "#3DDC84": "#000000",
+      "#34A853": "#000000",
+      "#202124": "#FFFFFF"
+    }
   },
   {
     "name": "angrycreative",
@@ -9069,13 +9085,16 @@
     "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/joomla.svg",
     "markLightColors": {},
     "markDarkColors": {},
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#3b3a40": "#F5F7FA"
+    },
     "fontAwesomeId": "joomla",
     "paletteSource": "https://docs.joomla.org/Joomla:Brand_Identity_Elements",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Native outlined Joomla symbol and wordmark from the supplied vector source.",
     "categories": ["Websites & commerce"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "logoSource": "https://commons.wikimedia.org/wiki/File:Joomla!-Logo.svg"
   },
   {
     "name": "js",
@@ -9093,7 +9112,12 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Languages & frameworks"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "markMonoColors": {
+      "#F7DF1E": "#000000",
+      "#f0db4f": "#000000",
+      "#323330": "#FFFFFF"
+    }
   },
   {
     "name": "jsfiddle",
@@ -16997,7 +17021,20 @@
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0451
+    "markMonoColors": {
+      "#ff0": "#000000",
+      "#fef10c": "#000000",
+      "#fde516": "#000000",
+      "#fde113": "#000000",
+      "#fed508": "#000000",
+      "#fc0": "#000000",
+      "#874400": "#707070",
+      "#d88a00": "#606060",
+      "#e79d00": "#505050",
+      "#f2b400": "#404040",
+      "#fad202": "#303030",
+      "#fedf03": "#202020"
+    }
   },
   {
     "name": "dell",
@@ -19763,9 +19800,9 @@
     "slug": "game-of-thrones",
     "label": "Game of Thrones",
     "integrationNames": ["Game of Thrones"],
-    "ratio": 1.8,
+    "ratio": 1.45,
     "alignment": "center",
-    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Game_of_thrones_HBO_logo.png",
+    "source": "https://commons.wikimedia.org/wiki/File:Game_of_Thrones_(HBO_television_series)_logo.svg",
     "markLightColors": {},
     "markDarkColors": {
       "#111111": "#F5F7FA"
@@ -19774,7 +19811,7 @@
       "#111111": "#F5F7FA"
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Game_of_thrones_HBO_logo.png",
-    "logoNotes": "Vector paths traced from the sourced raster identity; no embedded bitmap.",
+    "logoNotes": "Mark and app variants use the stacked composition, with the silhouette faithfully vectorized from the supplied SVG’s 3840px preview. Full-logo artwork is unchanged.",
     "categories": ["Film & television"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -52823,5 +52860,946 @@
     "categories": ["Investing & venture capital"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
+  },
+  {
+    "name": "automattic",
+    "slug": "automattic",
+    "label": "Automattic",
+    "integrationNames": ["Automattic"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://automattic.com/wp-content/uploads/2026/10/automattic-brand-kit.zip",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current official Automattic brand kit: native outlined wordmark and faithful vectorization of the supplied symbol alpha channel.",
+    "brandWebsite": "https://automattic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://automattic.com/wp-content/uploads/2026/10/automattic-brand-kit.zip"
+  },
+  {
+    "name": "gravatar",
+    "slug": "gravatar",
+    "label": "Gravatar",
+    "integrationNames": ["Gravatar"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Gravatar_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#4678EB": "#4678EB",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#101517": "#F5F7FA",
+      "#4678EB": "#4678EB",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://gravatar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Gravatar_logo.svg"
+  },
+  {
+    "name": "nobu",
+    "slug": "nobu",
+    "label": "Nobu",
+    "integrationNames": ["Nobu"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nobuhotels.com/marbella/content/uploads/2024/10/20241007_nb_bar_menu_qr.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#886E42": "#CBB58B"
+    },
+    "logoDarkColors": {
+      "#886E42": "#CBB58B",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Circular emblem extracted as native vector paths from the official Nobu menu. Full logo uses the native website wordmark.",
+    "brandWebsite": "https://noburestaurants.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://noburestaurants.com/themes/nobu/images/nobuLogo.svg"
+  },
+  {
+    "name": "arbys",
+    "slug": "arbys",
+    "label": "Arby’s",
+    "integrationNames": ["Arby’s", "Arby's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.arbys.com/brands/arbys/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#D71920": "#DE4248"
+    },
+    "logoDarkColors": {
+      "#D71920": "#DE4248"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://arbys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.arbys.com/brands/arbys/logo.svg"
+  },
+  {
+    "name": "cinnabon",
+    "slug": "cinnabon",
+    "label": "Cinnabon",
+    "integrationNames": ["Cinnabon"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Cinnabon_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#65CBC9": "#65CBC9",
+      "#051D49": "#051D49",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#65CBC9": "#65CBC9",
+      "#051D49": "#051D49",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://cinnabon.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Cinnabon_logo.svg"
+  },
+  {
+    "name": "dennys",
+    "slug": "dennys",
+    "label": "Denny’s",
+    "integrationNames": ["Denny’s", "Denny's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/b/b4/Denny%27s_Logo_06.2022.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ce363b": "#D44D52",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ce363b": "#D44D52",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://dennys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/b/b4/Denny%27s_Logo_06.2022.svg"
+  },
+  {
+    "name": "ihop",
+    "slug": "ihop",
+    "label": "IHOP",
+    "integrationNames": ["IHOP"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ad/IHOP_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e6252b": "#E8343A",
+      "#0e79bf": "#1C81C3",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#e6252b": "#E8343A",
+      "#0e79bf": "#1C81C3",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://ihop.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ad/IHOP_logo.svg"
+  },
+  {
+    "name": "fiveGuys",
+    "slug": "five-guys",
+    "label": "Five Guys",
+    "integrationNames": ["Five Guys"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/80/Five_Guys_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c92027": "#D44E53",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#c92027": "#D44E53",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://fiveguys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/80/Five_Guys_logo.svg"
+  },
+  {
+    "name": "paneraBread",
+    "slug": "panera-bread",
+    "label": "Panera Bread",
+    "integrationNames": ["Panera Bread"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/4/49/Panera_Bread_wordmark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#657000": "#BCCB5A",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#657000": "#BCCB5A",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://panerabread.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/4/49/Panera_Bread_wordmark.svg"
+  },
+  {
+    "name": "oliveGarden",
+    "slug": "olive-garden",
+    "label": "Olive Garden",
+    "integrationNames": ["Olive Garden"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/6/6d/Olive_Garden_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#B2BA21": "#B2BA21",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#544E47": "#F5F7FA",
+      "#B2BA21": "#B2BA21",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://olivegarden.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/6/6d/Olive_Garden_Logo.svg"
+  },
+  {
+    "name": "jackInTheBox",
+    "slug": "jack-in-the-box",
+    "label": "Jack in the Box",
+    "integrationNames": ["Jack in the Box"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/4/42/Jack_in_the_Box_2022_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#b71a2e": "#CA5664",
+      "#111111": "#F5F7FA",
+      "#ffffff": "#ffffff",
+      "#f0efe7": "#f0efe7",
+      "#e31635": "#E6334E"
+    },
+    "logoDarkColors": {
+      "#b71a2e": "#CA5664",
+      "#111111": "#F5F7FA",
+      "#ffffff": "#ffffff",
+      "#f0efe7": "#f0efe7",
+      "#e31635": "#E6334E"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://jackinthebox.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/4/42/Jack_in_the_Box_2022_logo.svg"
+  },
+  {
+    "name": "baskinRobbins",
+    "slug": "baskin-robbins",
+    "label": "Baskin-Robbins",
+    "integrationNames": ["Baskin-Robbins"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/97/Baskin-Robbins_logo_2022.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#402021": "#F8EDE1",
+      "#f05097": "#f05097",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#402021": "#F8EDE1",
+      "#f05097": "#f05097",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://baskinrobbins.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/97/Baskin-Robbins_logo_2022.svg"
+  },
+  {
+    "name": "applebees",
+    "slug": "applebees",
+    "label": "Applebee’s",
+    "integrationNames": ["Applebee’s", "Applebee's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://commons.wikimedia.org/wiki/File:AB_Brand_Refresh_Logo_R.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#AB182C": "#C35A68",
+      "#CBDB2E": "#CBDB2E",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#CBDB2E": "#CBDB2E",
+      "#403F42": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#414042": "#F5F7FA",
+      "#403F41": "#F5F7FA",
+      "#413F42": "#F5F7FA",
+      "#404041": "#F5F7FA",
+      "#413F41": "#F5F7FA",
+      "#AB182C": "#C35A68"
+    },
+    "logoNotes": "Faithful vector conversion of the 3840px rendering of the sourced Applebee’s artwork; apple isolated for mark variants.",
+    "brandWebsite": "https://applebees.com/",
+    "artworkAttribution": "Applebee’s artwork is attributed to Applebee’s and licensed under Creative Commons Attribution-ShareAlike 2.5 (https://creativecommons.org/licenses/by-sa/2.5/). Vector conversion, isolated mark, bounds, theme colors, and app tiles are adaptations distributed under the same license. Applebee’s trademarks remain the property of their owner.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://commons.wikimedia.org/wiki/File:AB_Brand_Refresh_Logo_R.svg"
+  },
+  {
+    "name": "crackerBarrel",
+    "slug": "cracker-barrel",
+    "label": "Cracker Barrel",
+    "integrationNames": ["Cracker Barrel"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/a/a3/Cracker_Barrel_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#faa61a": "#faa61a",
+      "#571d0c": "#571d0c",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#faa61a": "#faa61a",
+      "#571d0c": "#571d0c",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://crackerbarrel.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/a/a3/Cracker_Barrel_logo.svg"
+  },
+  {
+    "name": "pizzaHut",
+    "slug": "pizza-hut",
+    "label": "Pizza Hut",
+    "integrationNames": ["Pizza Hut"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Pizza_Hut_2025.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ea1c24": "#EC2D34",
+      "#c70307": "#D74B4E",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ea1c24": "#EC2D34",
+      "#c70307": "#D74B4E",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://pizzahut.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Pizza_Hut_2025.svg"
+  },
+  {
+    "name": "papaJohns",
+    "slug": "papa-johns",
+    "label": "Papa Johns",
+    "integrationNames": ["Papa Johns"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/9/92/Papa_Johns_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://papajohns.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/9/92/Papa_Johns_logo.svg"
+  },
+  {
+    "name": "littleCaesars",
+    "slug": "little-caesars",
+    "label": "Little Caesars",
+    "integrationNames": ["Little Caesars"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/7/7e/Little_Caesars_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. A thin white contour preserves the mascot silhouette on dark surfaces.",
+    "brandWebsite": "https://littlecaesars.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/7/7e/Little_Caesars_logo.svg"
+  },
+  {
+    "name": "shakeShack",
+    "slug": "shake-shack",
+    "label": "Shake Shack",
+    "integrationNames": ["Shake Shack"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/9/96/Shake_Shack_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#55a335": "#55a335",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#100f0d": "#F5F7FA",
+      "#55a335": "#55a335",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://shakeshack.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/9/96/Shake_Shack_logo.svg"
+  },
+  {
+    "name": "inNOutBurger",
+    "slug": "in-n-out-burger",
+    "label": "In-N-Out Burger",
+    "integrationNames": ["In-N-Out Burger"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/8/8c/InNOut_2021_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E02A27": "#E02A27",
+      "#FFCB05": "#FFCB05",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#E02A27": "#E02A27",
+      "#FFCB05": "#FFCB05",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://in-n-out.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/8/8c/InNOut_2021_logo.svg",
+    "monoInkScale": 2
+  },
+  {
+    "name": "sonicDriveIn",
+    "slug": "sonic-drive-in",
+    "label": "Sonic Drive-In",
+    "integrationNames": ["Sonic Drive-In"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/f/ff/SONIC_New_Logo_2020.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ffffff": "#ffffff",
+      "#0088d7": "#0088d7",
+      "#ea0045": "#ea0045",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#ffffff": "#ffffff",
+      "#0088d7": "#0088d7",
+      "#ea0045": "#ea0045",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://sonicdrivein.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/f/ff/SONIC_New_Logo_2020.svg"
+  },
+  {
+    "name": "jollibee",
+    "slug": "jollibee",
+    "label": "Jollibee",
+    "integrationNames": ["Jollibee"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/8/84/Jollibee_2011_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#221e1f": "#221e1f",
+      "#ffffff": "#ffffff",
+      "#231f20": "#231f20",
+      "#e5173f": "#e5173f"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#221e1f": "#221e1f",
+      "#ffffff": "#ffffff",
+      "#231f20": "#231f20",
+      "#e5173f": "#e5173f"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://jollibee.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/8/84/Jollibee_2011_logo.svg"
+  },
+  {
+    "name": "culvers",
+    "slug": "culvers",
+    "label": "Culver’s",
+    "integrationNames": ["Culver’s", "Culver's"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://cdn.freebiesupply.com/logos/large/2x/culvers-restaurants-1-logo-svg-vector.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ffffff": "#ffffff",
+      "#2360a5": "#4D7EB6",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ffffff": "#ffffff",
+      "#2360a5": "#4D7EB6",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://culvers.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.freebiesupply.com/logos/large/2x/culvers-restaurants-1-logo-svg-vector.svg"
+  },
+  {
+    "name": "whataburger",
+    "slug": "whataburger",
+    "label": "Whataburger",
+    "integrationNames": ["Whataburger"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/9/94/Whataburger_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ff770f": "#ff770f",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ff770f": "#ff770f",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. Registration text omitted; flying W retained as the mark.",
+    "brandWebsite": "https://whataburger.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/9/94/Whataburger_logo.svg"
+  },
+  {
+    "name": "timHortons",
+    "slug": "tim-hortons",
+    "label": "Tim Hortons",
+    "integrationNames": ["Tim Hortons"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/b/be/Tim_Hortons_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c8102f": "#D54961"
+    },
+    "logoDarkColors": {
+      "#c8102f": "#D54961"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://timhortons.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/b/be/Tim_Hortons_Logo.svg"
+  },
+  {
+    "name": "dairyQueen",
+    "slug": "dairy-queen",
+    "label": "Dairy Queen",
+    "integrationNames": ["Dairy Queen"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/a/ae/Dairy_Queen_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#007AC1": "#007AC1",
+      "#EE3E42": "#EE3E42",
+      "#F9AA53": "#F9AA53",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#007AC1": "#007AC1",
+      "#EE3E42": "#EE3E42",
+      "#F9AA53": "#F9AA53",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://dairyqueen.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/a/ae/Dairy_Queen_logo.svg"
+  },
+  {
+    "name": "raisingCanes",
+    "slug": "raising-canes",
+    "label": "Raising Cane’s",
+    "integrationNames": ["Raising Cane’s", "Raising Cane's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/9/98/Raising_Cane%27s_Chicken_Fingers_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFBDD": "#FFFBDD",
+      "#FFF9CD": "#FFF9CD",
+      "#FFFDF0": "#FFFDF0",
+      "#FFCB5C": "#FFCB5C",
+      "#FFF101": "#FFF101",
+      "#9D5825": "#9D5825",
+      "#9C5725": "#9C5725",
+      "#FDF9D1": "#FDF9D1",
+      "#111111": "#111111",
+      "#9C5614": "#9C5614",
+      "#020000": "#020000",
+      "#FFFFFB": "#FFFFFB",
+      "#FFE247": "#FFE247",
+      "#E71A2A": "#E71A2A",
+      "#FFC43F": "#FFC43F",
+      "#FCBD13": "#FCBD13",
+      "#FCED0D": "#FCED0D",
+      "#B4271B": "#B4271B",
+      "#FEBD11": "#FEBD11",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#FFFBDD": "#FFFBDD",
+      "#FFF9CD": "#FFF9CD",
+      "#FFFDF0": "#FFFDF0",
+      "#FFCB5C": "#FFCB5C",
+      "#FFF101": "#FFF101",
+      "#9D5825": "#9D5825",
+      "#9C5725": "#9C5725",
+      "#FDF9D1": "#FDF9D1",
+      "#111111": "#111111",
+      "#9C5614": "#9C5614",
+      "#020000": "#020000",
+      "#FFFFFB": "#FFFFFB",
+      "#FFE247": "#FFE247",
+      "#E71A2A": "#E71A2A",
+      "#FFC43F": "#FFC43F",
+      "#FCBD13": "#FCBD13",
+      "#FCED0D": "#FCED0D",
+      "#B4271B": "#B4271B",
+      "#FEBD11": "#FEBD11",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://raisingcanes.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/9/98/Raising_Cane%27s_Chicken_Fingers_logo.svg"
+  },
+  {
+    "name": "pandaExpress",
+    "slug": "panda-express",
+    "label": "Panda Express",
+    "integrationNames": ["Panda Express"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/8/85/Panda_Express_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c02827": "#c02827",
+      "#111111": "#111111",
+      "#ffffff": "#ffffff",
+      "#231f20": "#231f20",
+      "#1a1b21": "#1a1b21",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#c02827": "#c02827",
+      "#111111": "#111111",
+      "#ffffff": "#ffffff",
+      "#231f20": "#231f20",
+      "#1a1b21": "#1a1b21",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://pandaexpress.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/8/85/Panda_Express_logo.svg"
+  },
+  {
+    "name": "wingstop",
+    "slug": "wingstop",
+    "label": "Wingstop",
+    "integrationNames": ["Wingstop"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/0/0f/Wingstop_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#146a34": "#63AE7A",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#146a34": "#63AE7A",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://wingstop.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/0/0f/Wingstop_logo.svg"
+  },
+  {
+    "name": "zaxbys",
+    "slug": "zaxbys",
+    "label": "Zaxby’s",
+    "integrationNames": ["Zaxby’s", "Zaxby's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/d/dd/Zaxby%27s_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F6EDE8": "#F6EDE8",
+      "#EA0C2B": "#ED2944",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0C1C41": "#727B91",
+      "#EA0C2B": "#ED2944",
+      "#111111": "#F5F7FA",
+      "#0C1C40": "#727B90",
+      "#F6EDE8": "#F6EDE8",
+      "#0D1C41": "#737B91"
+    },
+    "logoNotes": "Faithful vector conversion of the sourced raster artwork; chicken emblem isolated for mark variants.",
+    "brandWebsite": "https://zaxbys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/d/dd/Zaxby%27s_logo.png"
+  },
+  {
+    "name": "hardees",
+    "slug": "hardees",
+    "label": "Hardee’s",
+    "integrationNames": ["Hardee’s", "Hardee's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/e/e2/Hardee%27s_logo_since_2022.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ce1329": "#ce1329",
+      "#000000": "#000000",
+      "#ffc72c": "#ffc72c",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#2c2523": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#000000": "#000000",
+      "#ffc72c": "#ffc72c",
+      "#ce1329": "#D94758",
+      "#2C2524": "#2C2524"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://hardees.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/e/e2/Hardee%27s_logo_since_2022.svg",
+    "markMonoColors": {
+      "#ffc72c": "#000000",
+      "#FFCF21": "#000000",
+      "#000000": "#FFFFFF",
+      "#2C2523": "#FFFFFF",
+      "#ce1329": "#555555",
+      "#E40425": "#555555"
+    }
+  },
+  {
+    "name": "carlsJr",
+    "slug": "carls-jr",
+    "label": "Carl’s Jr.",
+    "integrationNames": ["Carl’s Jr.", "Carl's Jr."],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/c/cd/Carl%27s_Jr._logo_%282022%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2C2523": "#2C2523",
+      "#E40425": "#E40425",
+      "#FFCF21": "#FFCF21",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#E40425": "#E9304B",
+      "#111111": "#F5F7FA",
+      "#FFCF21": "#FFCF21",
+      "#2C2523": "#F5F7FA",
+      "#2C2524": "#2C2524",
+      "#000000": "#000000"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://carlsjr.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/c/cd/Carl%27s_Jr._logo_%282022%29.svg",
+    "markMonoColors": {
+      "#ffc72c": "#000000",
+      "#FFCF21": "#000000",
+      "#000000": "#FFFFFF",
+      "#2C2523": "#FFFFFF",
+      "#ce1329": "#555555",
+      "#E40425": "#555555"
+    }
+  },
+  {
+    "name": "chilis",
+    "slug": "chilis",
+    "label": "Chili’s",
+    "integrationNames": ["Chili’s", "Chili's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://green.chilis.com/assets/chilis-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#EE3124": "#EE3124",
+      "#5E9732": "#5E9732"
+    },
+    "logoDarkColors": {
+      "#EE3124": "#EE3124",
+      "#5E9732": "#5E9732"
+    },
+    "logoNotes": "Outlined brand artwork with theme-specific colors and transparent bounds.",
+    "brandWebsite": "https://chilis.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://green.chilis.com/assets/chilis-logo.svg"
+  },
+  {
+    "name": "automatticLegacy",
+    "slug": "automattic-legacy",
+    "label": "Automattic (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://commons.wikimedia.org/wiki/File:Automattic_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#010101": "#F5F7FA",
+      "#3499CD": "#3499CD",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#010101": "#F5F7FA",
+      "#3499CD": "#3499CD",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Earlier Automattic wordmark with the blue O, retained as a legacy identity; superseded by the October 2026 official brand kit. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://automattic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Websites & commerce"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://commons.wikimedia.org/wiki/File:Automattic_logo.svg",
+    "searchAliases": ["Automattic"]
   }
 ]
