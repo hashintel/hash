@@ -1024,6 +1024,9 @@ export const integrationGeometry = {
   anaplan: {
     ...anaplan,
     markViewBox: "0 0 36 30",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.380602358888 -1.28037068239 -0.129254422915 0 1.7902274642",
+    monoInkScale: 1,
     logoViewBox: "0 0 135 28.6",
     ratio: 1.6,
     alignment: "center",
@@ -1031,6 +1034,9 @@ export const integrationGeometry = {
   blueYonder: {
     ...blueYonder,
     markViewBox: "0 0 34 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.508001446801 -1.70894936384 -0.172519776383 0 2.38947058702",
+    monoInkScale: 1,
     logoViewBox:
       "23.6278018951416 415.3699951171875 915.3721923828125 129.3499755859375",
     ratio: 1.88,
@@ -1039,6 +1045,9 @@ export const integrationGeometry = {
   celonis: {
     ...celonis,
     markViewBox: "0 0 50 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 424.8962352284291 100",
     ratio: 1.3,
     alignment: "center",
@@ -1046,6 +1055,9 @@ export const integrationGeometry = {
   databricks: {
     ...databricks,
     markViewBox: "0 0 24 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.339290139914 -1.14139373503 -0.11522459126 0 1.5959084662",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 81",
     ratio: 2.67,
     alignment: "center",
@@ -1053,6 +1065,9 @@ export const integrationGeometry = {
   snowflake: {
     ...snowflake,
     markViewBox: "0 0 26 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.541686900116 -1.82226938364 -0.183959521112 0 2.54791580487",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 116",
     ratio: 2.46,
     alignment: "center",
@@ -1060,6 +1075,9 @@ export const integrationGeometry = {
   bigQuery: {
     ...bigQuery,
     markViewBox: "0 0 26 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.353163968194 -1.18806618087 -0.119936211212 0 1.66116636027",
+    monoInkScale: 1,
     logoViewBox: "0 0 110 37.545",
     ratio: 2.46,
     alignment: "center",
@@ -1067,6 +1085,9 @@ export const integrationGeometry = {
   amazon: {
     ...amazon,
     markViewBox: "14.83596 39.41500 58.77356 16.08470",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.414797846017 -1.39540648858 -0.140867377622 0 1.95107171221",
+    monoInkScale: 1,
     logoViewBox: "3.50000 20.50000 102.99700 34.99970",
     ratio: 1.35,
     alignment: "center",
@@ -1074,6 +1095,9 @@ export const integrationGeometry = {
   amazonRedshift: {
     ...amazonRedshift,
     markViewBox: "0 0 24 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.314804943227 -1.05902396705 -0.106909298688 0 1.48073820897",
+    monoInkScale: 1,
     logoViewBox: "17.3 32 105 41",
     ratio: 2.46,
     alignment: "center",
@@ -1081,6 +1105,9 @@ export const integrationGeometry = {
   cloudflare: {
     ...cloudflare,
     markViewBox: "0 0 30 14",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.495176384837 -1.66580503497 -0.168164322602 0 2.32914574241",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 76",
     ratio: 2.46,
     alignment: "center",
@@ -1088,6 +1115,9 @@ export const integrationGeometry = {
   azure: {
     ...azure,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.2319,
     logoViewBox:
       "2.5114290714263916 44.57600021362305 122.97714233398438 38.847469329833984",
     ratio: 2.67,
@@ -1096,6 +1126,9 @@ export const integrationGeometry = {
   postgres: {
     ...postgres,
     markViewBox: "0 0 256 264",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 1416.8 445.5",
     ratio: 2.46,
     alignment: "center",
@@ -1103,6 +1136,9 @@ export const integrationGeometry = {
   veevaVault: {
     ...veevaVault,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.466224862574 -1.56841026206 -0.158332244016 0 2.19296736865",
+    monoInkScale: 1,
     logoViewBox: "0 0 376.1538461538462 100",
     ratio: 2,
     alignment: "center",
@@ -1110,6 +1146,9 @@ export const integrationGeometry = {
   pasX: {
     ...pasX,
     markViewBox: "0 0 36 30",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.258138212722 -0.86839346067 -0.0876649998048 0 1.2141966732",
+    monoInkScale: 1,
     logoViewBox: "0 0 36 30",
     ratio: 2,
     alignment: "center",
@@ -1117,6 +1156,9 @@ export const integrationGeometry = {
   fourkites: {
     ...fourkites,
     markViewBox: "0 0 38 38",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.315473585714 -1.06127332315 -0.107136372947 0 1.48388328181",
+    monoInkScale: 1,
     logoViewBox: "0 0 312.99 80",
     ratio: 2,
     alignment: "center",
@@ -1124,6 +1166,9 @@ export const integrationGeometry = {
   omp: {
     ...omp,
     markViewBox: "0 0 40 18",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.318175308943 -1.07036209293 -0.108053891372 0 1.49659129324",
+    monoInkScale: 1,
     logoViewBox: "0 0 40 18",
     ratio: 1.64,
     alignment: "center",
@@ -1131,6 +1176,9 @@ export const integrationGeometry = {
   kinaxis: {
     ...kinaxis,
     markViewBox: "0 0 146 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269613401447 -0.906996729608 -0.0915620300303 0 1.26817216108",
+    monoInkScale: 1,
     logoViewBox: "0 0 146 20",
     ratio: 1.25,
     alignment: "center",
@@ -1138,6 +1186,9 @@ export const integrationGeometry = {
   kinaxisMaestro: {
     ...kinaxisMaestro,
     markViewBox: "0 0 42 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.385814264303 -1.29790386562 -0.13102441149 0 1.81474254141",
+    monoInkScale: 1,
     logoViewBox: "0 0 2504 485.5",
     ratio: 1.52,
     alignment: "center",
@@ -1145,6 +1196,9 @@ export const integrationGeometry = {
   coupa: {
     ...coupa,
     markViewBox: "0 0 38 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.361108483748 -1.2147920394 -0.122634207557 0 1.69853473071",
+    monoInkScale: 1,
     logoViewBox: "0 0 1553 423",
     ratio: 2,
     alignment: "center",
@@ -1152,6 +1206,9 @@ export const integrationGeometry = {
   linear: {
     ...linear,
     markViewBox: "0 0 256 255.999966",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.246427207767 -0.828996890853 -0.0836878852343 0 1.15911198385",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 127.964481",
     ratio: 2,
     alignment: "center",
@@ -1159,6 +1216,9 @@ export const integrationGeometry = {
   slack: {
     ...slack,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.30215088762 -1.01645491452 -0.102611919502 0 1.42121772164",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 130",
     ratio: 2,
     alignment: "center",
@@ -1166,6 +1226,9 @@ export const integrationGeometry = {
   oracle: {
     ...oracle,
     markViewBox: "0 0 40 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.295460589995 -0.993948325325 -0.100339861701 0 1.38974877702",
+    monoInkScale: 1,
     logoViewBox: "0 0 726.1802525832377 100",
     ratio: 1.64,
     alignment: "center",
@@ -1173,6 +1236,9 @@ export const integrationGeometry = {
   sap: {
     ...sap,
     markViewBox: "0 0 50 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297981685666 -1.00242945244 -0.101196038124 0 1.40160717623",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 254",
     ratio: 1.28,
     alignment: "start",
@@ -1180,6 +1246,9 @@ export const integrationGeometry = {
   docusign: {
     ...docusign,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 1200 241.4",
     ratio: 2,
     alignment: "center",
@@ -1187,6 +1256,9 @@ export const integrationGeometry = {
   gmail: {
     ...gmail,
     markViewBox: "0 0 32 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290588477446 -0.977558227042 -0.0986852684458 0 1.36683197293",
+    monoInkScale: 1,
     logoViewBox: "0 13 218 51",
     ratio: 2,
     alignment: "center",
@@ -1194,6 +1266,9 @@ export const integrationGeometry = {
   googleDrive: {
     ...googleDrive,
     markViewBox: "0 0 32 28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.325975587758 -1.09660272984 -0.110702904215 0 1.53328122181",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 149.3742828",
     ratio: 2,
     alignment: "center",
@@ -1201,6 +1276,9 @@ export const integrationGeometry = {
   googleCalendar: {
     ...googleCalendar,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.337025216123 -1.13377438651 -0.114455412061 0 1.58525501469",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 223.673",
     ratio: 2,
     alignment: "center",
@@ -1208,6 +1286,9 @@ export const integrationGeometry = {
   dropbox: {
     ...dropbox,
     markViewBox: "0 0 32 30",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.365437374874 -1.22935470607 -0.12410432016 0 1.7188964011",
+    monoInkScale: 1,
     logoViewBox: "0 0 472 128",
     ratio: 2,
     alignment: "center",
@@ -1215,6 +1296,9 @@ export const integrationGeometry = {
   box: {
     ...box,
     markViewBox: "0 0 36 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.346743503316 -1.1664673263 -0.117755789931 0 1.63096661955",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 277",
     ratio: 1.78,
     alignment: "center",
@@ -1222,6 +1306,9 @@ export const integrationGeometry = {
   trello: {
     ...trello,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
+    monoInkScale: 1,
     logoViewBox: "0 0 312 64",
     ratio: 2,
     alignment: "center",
@@ -1229,6 +1316,9 @@ export const integrationGeometry = {
   apple: {
     ...apple,
     markViewBox: "0.2140 11.9507 13.5720 16.5354",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.9,
     alignment: "center",
@@ -1236,13 +1326,19 @@ export const integrationGeometry = {
   appleNotes: {
     ...appleNotes,
     markViewBox: "0 0 64 64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.474,
     logoViewBox: null,
-    ratio: 1.0,
+    ratio: 1,
     alignment: "center",
   },
   appleHealth: {
     ...appleHealth,
     markViewBox: "0 0 492 460",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273543578364 -0.920218096169 -0.092896737337 0 1.28665841187",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1,
     alignment: "center",
@@ -1251,6 +1347,9 @@ export const integrationGeometry = {
   discord: {
     ...discord,
     markViewBox: "0 0 32 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.369843556851 -1.2441773841 -0.125600681113 0 1.73962162206",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 100",
     ratio: 2,
     alignment: "center",
@@ -1258,6 +1357,9 @@ export const integrationGeometry = {
   microsoftTeams: {
     ...microsoftTeams,
     markViewBox: "4 4 36 38",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239726299982 -0.806454608407 -0.0814122241708 0 1.12759313256",
+    monoInkScale: 1.0538,
     logoViewBox: "0 0 726.6715829881806 100",
     ratio: 2,
     alignment: "center",
@@ -1265,6 +1367,9 @@ export const integrationGeometry = {
   microsoftWord: {
     ...microsoftWord,
     markViewBox: "0 0 35 36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235513731242 -0.792283257686 -0.0799816152194 0 1.10777860415",
+    monoInkScale: 1.016,
     logoViewBox: "0 0 694.487737257411 100",
     ratio: 2,
     alignment: "center",
@@ -1272,6 +1377,9 @@ export const integrationGeometry = {
   microsoftOutlook: {
     ...microsoftOutlook,
     markViewBox: "60 90.4 570.02 539.67",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243318644089 -0.818539483784 -0.0826322018026 0 1.14449032968",
+    monoInkScale: 1.0898,
     logoViewBox: "0 0 802.1765902508063 100",
     ratio: 2,
     alignment: "center",
@@ -1279,6 +1387,9 @@ export const integrationGeometry = {
   microsoftExcel: {
     ...microsoftExcel,
     markViewBox: "0 0 486 500",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.257960847174 -0.867796791623 -0.0876047655972 0 1.21336240439",
+    monoInkScale: 1.0806,
     logoViewBox: "0 0 673.838515674984 100",
     ratio: 2,
     alignment: "center",
@@ -1286,6 +1397,9 @@ export const integrationGeometry = {
   microsoftPowerPoint: {
     ...microsoftPowerPoint,
     markViewBox: "60 78.75 581.25 562.5",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.248591347456 -0.836277195203 -0.0844228376589 0 1.16929138032",
+    monoInkScale: 1.016,
     logoViewBox: "0 0 923.3307741522713 100",
     ratio: 2,
     alignment: "center",
@@ -1293,6 +1407,9 @@ export const integrationGeometry = {
   microsoftOneNote: {
     ...microsoftOneNote,
     markViewBox: "60 90 525 540",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239304294656 -0.805034955494 -0.0812689090977 0 1.12560815925",
+    monoInkScale: 1,
     logoViewBox: "0 0 827.0558754531883 100",
     ratio: 2,
     alignment: "center",
@@ -1300,6 +1417,9 @@ export const integrationGeometry = {
   microsoftOneDrive: {
     ...microsoftOneDrive,
     markViewBox: "35.98 139.2 648.03 430.85",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267095428145 -0.898526106348 -0.0907069139798 0 1.25632844847",
+    monoInkScale: 1,
     logoViewBox: "0 0 890.8321583953991 100",
     ratio: 2,
     alignment: "center",
@@ -1307,6 +1427,9 @@ export const integrationGeometry = {
   microsoftCopilot: {
     ...microsoftCopilot,
     markViewBox: "-1 15 513 481",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.349016871112 -1.17411508099 -0.118527836756 0 1.64165978886",
+    monoInkScale: 1.0324,
     logoViewBox: "0 0 770.242169787135 100",
     ratio: 2,
     alignment: "center",
@@ -1314,6 +1437,9 @@ export const integrationGeometry = {
   microsoftTeamsLegacy: {
     ...microsoftTeamsLegacy,
     markViewBox: "0 0 32 30",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.3282,
     logoViewBox: "0 0 738.6014075495841 100",
     ratio: 2,
     alignment: "center",
@@ -1321,6 +1447,9 @@ export const integrationGeometry = {
   messenger: {
     ...messenger,
     markViewBox: "0 0 502 502",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.334776685863 -1.12621018687 -0.113691800185 0 1.57467867292",
+    monoInkScale: 1,
     logoViewBox: "0 0 599.7771678907785 100",
     ratio: 2,
     alignment: "center",
@@ -1328,6 +1457,9 @@ export const integrationGeometry = {
   messengerLegacy: {
     ...messengerLegacy,
     markViewBox: "0 0 34 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.326392041315 -1.09800370625 -0.11084433388 0 1.53524008145",
+    monoInkScale: 1,
     logoViewBox: "0 0 599.7771678907785 100",
     ratio: 2,
     alignment: "center",
@@ -1335,6 +1467,9 @@ export const integrationGeometry = {
   instagram: {
     ...instagram,
     markViewBox: "0 0 36 36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302296118936 -1.01694348195 -0.102661240767 0 1.42190084165",
+    monoInkScale: 1,
     logoViewBox: "0 0 429.59946595460616 100",
     ratio: 2,
     alignment: "center",
@@ -1342,6 +1477,9 @@ export const integrationGeometry = {
   notion: {
     ...notion,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 178",
     ratio: 2.13,
     alignment: "center",
@@ -1349,6 +1487,9 @@ export const integrationGeometry = {
   granola: {
     ...granola,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240946666667 -0.81056 -0.0818266666667 0 1.13333333333",
+    monoInkScale: 1,
     logoViewBox: "0 0 148 32",
     ratio: 1.78,
     alignment: "center",
@@ -1356,6 +1497,9 @@ export const integrationGeometry = {
   granolaLegacy: {
     ...granolaLegacy,
     markViewBox: "0 0 32 38",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.268803289125 -0.904271459936 -0.0912869119231 0 1.26436166098",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 2,
     alignment: "center",
@@ -1363,6 +1507,9 @@ export const integrationGeometry = {
   sentry: {
     ...sentry,
     markViewBox: "0 0 36 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264570069367 -0.890030637871 -0.0898492897851 0 1.24444999702",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 113",
     ratio: 2,
     alignment: "center",
@@ -1370,6 +1517,9 @@ export const integrationGeometry = {
   zoom: {
     ...zoom,
     markViewBox: "0 0 32 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.331701735816 -1.11586585821 -0.112647532107 0 1.56021512613",
+    monoInkScale: 1,
     logoViewBox: "0 0 545.0854700854701 100",
     ratio: 1.88,
     alignment: "center",
@@ -1377,6 +1527,9 @@ export const integrationGeometry = {
   github: {
     ...github,
     markViewBox: "0 0 36 36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.233891057063 -0.786824477948 -0.0794305471307 0 1.10014608214",
+    monoInkScale: 1,
     logoViewBox: "0 0 387.841726618705 100",
     ratio: 2,
     alignment: "center",
@@ -1384,6 +1537,9 @@ export const integrationGeometry = {
   figma: {
     ...figma,
     markViewBox: "0 0 24 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.372344078814 -1.25258929994 -0.126449870604 0 1.75138324936",
+    monoInkScale: 1,
     logoViewBox: "192 231 640 178.72100830078125",
     ratio: 2,
     alignment: "center",
@@ -1391,6 +1547,9 @@ export const integrationGeometry = {
   asana: {
     ...asana,
     markViewBox: "0 0 34 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.449857109191 -1.51334809263 -0.152773674899 0 2.11597887672",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 102",
     ratio: 2,
     alignment: "center",
@@ -1398,6 +1557,9 @@ export const integrationGeometry = {
   hash: {
     ...hash,
     markViewBox: "0 0 21.6653 22",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290647366305 -0.977756332931 -0.0987052673904 0 1.36710896663",
+    monoInkScale: 1.0945,
     logoViewBox: "0 0 120 22",
     ratio: 1,
     alignment: "center",
@@ -1406,6 +1568,9 @@ export const integrationGeometry = {
   openai: {
     ...openai,
     markViewBox: "0 0 256 260",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "201.733333 201.777365 956.533333 260.723562",
     ratio: 1.8,
     alignment: "center",
@@ -1413,6 +1578,9 @@ export const integrationGeometry = {
   chatgpt: {
     ...chatgpt,
     markViewBox: "0 0 158.7128 157.296",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 117.41 28",
     ratio: 1.8,
     alignment: "center",
@@ -1420,6 +1588,9 @@ export const integrationGeometry = {
   anthropic: {
     ...anthropic,
     markViewBox: "0 0 256 176",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.234688311688 -0.789506493506 -0.0797012987013 0 1.1038961039",
+    monoInkScale: 1,
     logoViewBox: "0 0 570 64",
     ratio: 1.8,
     alignment: "center",
@@ -1427,6 +1598,9 @@ export const integrationGeometry = {
   claude: {
     ...claude,
     markViewBox: "0 0 256 257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.46148306542 -1.5524585531 -0.156721906507 0 2.17066352502",
+    monoInkScale: 1,
     logoViewBox: "0 0 573 125",
     ratio: 1.8,
     alignment: "center",
@@ -1434,6 +1608,9 @@ export const integrationGeometry = {
   segment: {
     ...segment,
     markViewBox: "0 0 256 265",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.549172589285 -1.84745172087 -0.186501697772 0 2.58312600793",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 105",
     ratio: 1.8,
     alignment: "center",
@@ -1441,6 +1618,9 @@ export const integrationGeometry = {
   rudderstack: {
     ...rudderstack,
     markViewBox: "0 0 256 258",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.223787995621 -0.752837132964 -0.0759994980425 0 1.05262462663",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 42",
     ratio: 1.8,
     alignment: "center",
@@ -1448,6 +1628,9 @@ export const integrationGeometry = {
   zapier: {
     ...zapier,
     markViewBox: "0 45.2253 39.0441 9.5637",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.375732398525 -1.2639878242 -0.127600560553 0 1.76732078328",
+    monoInkScale: 1,
     logoViewBox: "0 0 244 66",
     ratio: 1.6,
     alignment: "center",
@@ -1455,6 +1638,9 @@ export const integrationGeometry = {
   whalesync: {
     ...whalesync,
     markViewBox: "0.641667 0.091549 108.716667 51.267606",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.447154404487 -1.50425602112 -0.151855823161 0 2.10326624876",
+    monoInkScale: 1,
     logoViewBox: "0.271667 0 162.456667 21.45679",
     ratio: 1.55,
     alignment: "center",
@@ -1462,6 +1648,9 @@ export const integrationGeometry = {
   clickup: {
     ...clickup,
     markViewBox: "5.866667 0.64 52.266667 63.146667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297826825015 -1.0019084913 -0.101143446689 0 1.40087876301",
+    monoInkScale: 1.012,
     logoViewBox: "0 0.64 256 63.36",
     ratio: 1.8,
     alignment: "center",
@@ -1469,6 +1658,9 @@ export const integrationGeometry = {
   okta: {
     ...okta,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 109.21 36",
     ratio: 1.8,
     alignment: "center",
@@ -1476,6 +1668,9 @@ export const integrationGeometry = {
   cursor: {
     ...cursor,
     markViewBox: "0 0 466.73 533.32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.285428023574 -0.960198130105 -0.0969327530671 0 1.34255890675",
+    monoInkScale: 1,
     logoViewBox: "0 0 2238.7 533.32",
     ratio: 1.8,
     alignment: "center",
@@ -1483,6 +1678,9 @@ export const integrationGeometry = {
   x: {
     ...x,
     markViewBox: "0 0 1200 1227",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -1490,6 +1688,9 @@ export const integrationGeometry = {
   twitterLegacy: {
     ...twitterLegacy,
     markViewBox: "0 0 256 209",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.560451148029 -1.88539351397 -0.190331951494 0 2.6361766135",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -1497,6 +1698,9 @@ export const integrationGeometry = {
   calCom: {
     ...calCom,
     markViewBox: "64.6855 133.681 248.6385 132.048",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 100.326667 20.992366",
     ratio: 1.6,
     alignment: "center",
@@ -1504,6 +1708,9 @@ export const integrationGeometry = {
   composio: {
     ...composio,
     markViewBox: "0 0 76.477 88.587",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 483 93",
     ratio: 1.8,
     alignment: "center",
@@ -1511,6 +1718,9 @@ export const integrationGeometry = {
   attio: {
     ...attio,
     markViewBox: "0 0 36.2 29.45",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 120 29.5",
     ratio: 1.8,
     alignment: "center",
@@ -1518,6 +1728,9 @@ export const integrationGeometry = {
   stripe: {
     ...stripe,
     markViewBox: "119.24 119.24 273.52 273.52",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.305243066113 -1.02685720077 -0.103662038445 0 1.43576230533",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 214",
     ratio: 1.8,
     alignment: "center",
@@ -1525,6 +1738,9 @@ export const integrationGeometry = {
   pandadoc: {
     ...pandadoc,
     markViewBox: "11.413333 11.2 41.173333 41.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.374429684187 -1.25960540983 -0.127158152391 0 1.76119324641",
+    monoInkScale: 1,
     logoViewBox: "0 0 472.54475544500303 100",
     ratio: 1.8,
     alignment: "center",
@@ -1532,6 +1748,9 @@ export const integrationGeometry = {
   zoho: {
     ...zoho,
     markViewBox: "5.973333 6.83112 1012.053333 436.337761",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "5.973333 6.83112 1012.053333 436.337761",
     ratio: 1.45,
     alignment: "center",
@@ -1539,6 +1758,9 @@ export const integrationGeometry = {
   googleMeet: {
     ...googleMeet,
     markViewBox: "7.68 26.56 176.64 138.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.61920066885 -2.08303066022 -0.210283576157 0 2.91251490522",
+    monoInkScale: 1.02,
     logoViewBox: "0 0 491.5250396772282 100",
     ratio: 1.8,
     alignment: "center",
@@ -1546,6 +1768,9 @@ export const integrationGeometry = {
   googleSheets: {
     ...googleSheets,
     markViewBox: "7.68 31.68 176.64 128.64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.388596913761 -1.3072648764 -0.131969412858 0 1.82783120301",
+    monoInkScale: 1,
     logoViewBox: "0 0 543.4130178980616 100",
     ratio: 1.8,
     alignment: "center",
@@ -1553,6 +1778,9 @@ export const integrationGeometry = {
   googleDocs: {
     ...googleDocs,
     markViewBox: "31.68 7.68 128.64 176.64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.415951840951 -1.39928860136 -0.141259279947 0 1.95649972225",
+    monoInkScale: 1,
     logoViewBox: "0 0 435.10824463287037 100",
     ratio: 1.8,
     alignment: "center",
@@ -1560,6 +1788,9 @@ export const integrationGeometry = {
   googleSlides: {
     ...googleSlides,
     markViewBox: "11.52 14.4 168.96 163.2",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.835344150141 -2.81015115795 -0.283686959737 0 3.92918226783",
+    monoInkScale: 1,
     logoViewBox: "0 0 482.8706980717599 100",
     ratio: 1.8,
     alignment: "center",
@@ -1567,6 +1798,9 @@ export const integrationGeometry = {
   telegram: {
     ...telegram,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.45517898014 -1.53125120694 -0.154581008307 0 2.14101119539",
+    monoInkScale: 1,
     logoViewBox: "0 0 398.2931034482758 100",
     ratio: 1.8,
     alignment: "center",
@@ -1574,6 +1808,9 @@ export const integrationGeometry = {
   zendesk: {
     ...zendesk,
     markViewBox: "0 0 256 194.35",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.256523697674 -0.862962128769 -0.0871167025966 0 1.20660252904",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 99",
     ratio: 1.8,
     alignment: "center",
@@ -1581,6 +1818,9 @@ export const integrationGeometry = {
   apollo: {
     ...apollo,
     markViewBox: "0 0 35.7082 36.1989",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235708695652 -0.792939130435 -0.080047826087 0 1.10869565217",
+    monoInkScale: 1,
     logoViewBox: "0 0 152 40",
     ratio: 1.8,
     alignment: "center",
@@ -1588,6 +1828,9 @@ export const integrationGeometry = {
   hunter: {
     ...hunter,
     markViewBox: "0 4.843333 116.24 107.715733",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 653.08002 116.24",
     ratio: 1.8,
     alignment: "center",
@@ -1595,6 +1838,9 @@ export const integrationGeometry = {
   airtable: {
     ...airtable,
     markViewBox: "0 0 256 215",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.3637,
     logoViewBox: "0 0 459.3240318815681 100",
     ratio: 1.8,
     alignment: "center",
@@ -1602,6 +1848,9 @@ export const integrationGeometry = {
   luma: {
     ...luma,
     markViewBox: "0.446309 0.893333 132.107383 132.213333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 336.37298910042136 100",
     ratio: 1.8,
     alignment: "center",
@@ -1609,6 +1858,9 @@ export const integrationGeometry = {
   aws: {
     ...aws,
     markViewBox: "0 0 256 153",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.259338987672 -0.872432944418 -0.0880727888521 0 1.21984472094",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 153",
     ratio: 1.6,
     alignment: "center",
@@ -1616,6 +1868,9 @@ export const integrationGeometry = {
   amazonS3: {
     ...amazonS3,
     markViewBox: "97 64 318 384",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.256797826363 -0.863884315215 -0.0872097980405 0 1.20789193962",
+    monoInkScale: 1,
     logoViewBox: "0 0 494.9297413793104 100",
     ratio: 1.8,
     alignment: "center",
@@ -1623,6 +1878,9 @@ export const integrationGeometry = {
   mailchimp: {
     ...mailchimp,
     markViewBox: "0 0 256 272",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 432.3967168262654 100",
     ratio: 1.8,
     alignment: "center",
@@ -1630,6 +1888,9 @@ export const integrationGeometry = {
   evernote: {
     ...evernote,
     markViewBox: "24.64 18.293333 62.72 75.413333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.411961026586 -1.38586324654 -0.139903979866 0 1.93772825299",
+    monoInkScale: 1,
     logoViewBox: "0.745833 0.447458 177.359167 43.105085",
     ratio: 1.8,
     alignment: "center",
@@ -1637,6 +1898,9 @@ export const integrationGeometry = {
   mixmax: {
     ...mixmax,
     markViewBox: "0 0 56.364 44.469",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.282743139908 -0.951166009699 -0.0960209534399 0 1.32993010305",
+    monoInkScale: 1,
     logoViewBox: "0 0 231 45",
     ratio: 1.8,
     alignment: "center",
@@ -1644,6 +1908,9 @@ export const integrationGeometry = {
   turbopuffer: {
     ...turbopuffer,
     markViewBox: "0 0 213 131",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.218379609041 -0.734642974535 -0.0741627835032 0 1.02718536708",
+    monoInkScale: 1,
     logoViewBox: "0 0 917 132",
     ratio: 1.55,
     alignment: "center",
@@ -1651,6 +1918,9 @@ export const integrationGeometry = {
   typeform: {
     ...typeform,
     markViewBox: "0 0 33.08 21.72",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 477.7565712372342 100",
     ratio: 1.6,
     alignment: "center",
@@ -1658,6 +1928,9 @@ export const integrationGeometry = {
   calendly: {
     ...calendly,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.460196597739 -1.54813079352 -0.156285015789 0 2.16461240705",
+    monoInkScale: 1,
     logoViewBox: "0 0 424.0210778667957 100",
     ratio: 1.8,
     alignment: "center",
@@ -1665,6 +1938,9 @@ export const integrationGeometry = {
   modal: {
     ...modal,
     markViewBox: "0 0 367.36 192",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.44592960608 -1.50013572092 -0.15143987563 0 2.09750520264",
+    monoInkScale: 1,
     logoViewBox: "0 0 506.29401116663405 100",
     ratio: 1.55,
     alignment: "center",
@@ -1672,6 +1948,9 @@ export const integrationGeometry = {
   taskrabbit: {
     ...taskrabbit,
     markViewBox: "13 52.9 250 170.19",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.245667411649 -0.826440888106 -0.0834298547557 0 1.15553815451",
+    monoInkScale: 1,
     logoViewBox: "100.13 101 760.53 101.04",
     ratio: 1.8,
     alignment: "center",
@@ -1679,6 +1958,9 @@ export const integrationGeometry = {
   vercel: {
     ...vercel,
     markViewBox: "0 0 256 222",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 103",
     ratio: 1.8,
     alignment: "center",
@@ -1686,6 +1968,9 @@ export const integrationGeometry = {
   miro: {
     ...miro,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 876 320",
     ratio: 1.8,
     alignment: "center",
@@ -1693,6 +1978,9 @@ export const integrationGeometry = {
   clay: {
     ...clay,
     markViewBox: "3.783102 6.053333 595.460277 447.946667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22073121873 -0.742553939962 -0.0749614016573 0 1.03824656035",
+    monoInkScale: 1,
     logoViewBox: "3.166667 0 196.666667 63",
     ratio: 1.8,
     alignment: "center",
@@ -1700,6 +1988,9 @@ export const integrationGeometry = {
   amazonEc2: {
     ...amazonEc2,
     markViewBox: "5.833333 5.133333 58.8 59.966667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.592238079424 -1.99232678459 -0.201126948892 0 2.78569181291",
+    monoInkScale: 1,
     logoViewBox: "0 0 558.3172680773675 100",
     ratio: 1.8,
     alignment: "center",
@@ -1707,6 +1998,9 @@ export const integrationGeometry = {
   amazonDynamoDb: {
     ...amazonDynamoDb,
     markViewBox: "0 0 256 289",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.284315525045 -0.956455613885 -0.0965549431243 0 1.33732608205",
+    monoInkScale: 1,
     logoViewBox: "0 0 662.0610075243374 100",
     ratio: 1.8,
     alignment: "center",
@@ -1714,6 +2008,9 @@ export const integrationGeometry = {
   amazonRds: {
     ...amazonRds,
     markViewBox: "0 0 256 289",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.284315525045 -0.956455613885 -0.0965549431243 0 1.33732608205",
+    monoInkScale: 1,
     logoViewBox: "0 0 556.9123493616514 100",
     ratio: 1.8,
     alignment: "center",
@@ -1721,6 +2018,9 @@ export const integrationGeometry = {
   amazonCloudFront: {
     ...amazonCloudFront,
     markViewBox: "0 0 256 308",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.256797826363 -0.863884315215 -0.0872097980405 0 1.20789193962",
+    monoInkScale: 1,
     logoViewBox: "0 0 770.1301281499957 100",
     ratio: 1.8,
     alignment: "center",
@@ -1728,6 +2028,9 @@ export const integrationGeometry = {
   awsLambda: {
     ...awsLambda,
     markViewBox: "-0.856926 -0.220321 418.756926 433.540321",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.491545985703 -1.65359214005 -0.166931421297 0 2.31206954705",
+    monoInkScale: 1,
     logoViewBox: "0 0 560.5596930139059 100",
     ratio: 1.8,
     alignment: "center",
@@ -1735,6 +2038,9 @@ export const integrationGeometry = {
   awsAmplify: {
     ...awsAmplify,
     markViewBox: "0 1.063333 23.12 18.443333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327341956504 -1.10119928171 -0.111166929725 0 1.53970816794",
+    monoInkScale: 1,
     logoViewBox: "0 0 491.1851407798432 100",
     ratio: 1.8,
     alignment: "center",
@@ -1742,6 +2048,9 @@ export const integrationGeometry = {
   amazonQ: {
     ...amazonQ,
     markViewBox: "210.227091 64.490833 420.454181 464.334",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.272164271493 -0.915578019621 -0.0924283179763 0 1.28017060909",
+    monoInkScale: 1,
     logoViewBox: "0 0 415.8430483155481 100",
     ratio: 1.8,
     alignment: "center",
@@ -1749,6 +2058,9 @@ export const integrationGeometry = {
   primeIntellect: {
     ...primeIntellect,
     markViewBox: "0 0 33.06445 20.9212",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 161.29 20.9212",
     ratio: 1.8,
     alignment: "center",
@@ -1756,6 +2068,9 @@ export const integrationGeometry = {
   ramp: {
     ...ramp,
     markViewBox: "51.654384 0 18.41169 15.733333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 70.171667 20",
     ratio: 1.8,
     alignment: "center",
@@ -1763,6 +2078,9 @@ export const integrationGeometry = {
   fireworksAi: {
     ...fireworksAi,
     markViewBox: "0 0.615385 40.2825 18.769231",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 818.3247288565566 100",
     ratio: 1.8,
     alignment: "center",
@@ -1770,6 +2088,9 @@ export const integrationGeometry = {
   uber: {
     ...uber,
     markViewBox: "0 0 926.905 321.777",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.214100720106 -0.720248518439 -0.0727096518894 0 1.00705889043",
+    monoInkScale: 1,
     logoViewBox: "0 0 926.905 321.777",
     ratio: 1.55,
     alignment: "center",
@@ -1777,6 +2098,9 @@ export const integrationGeometry = {
   mongoDb: {
     ...mongoDb,
     markViewBox: "0 0 121.22 257.815182",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235259248201 -0.79142716046 -0.0798951915341 0 1.1065816002",
+    monoInkScale: 1,
     logoViewBox: "0 0 1102 278",
     ratio: 1.8,
     alignment: "center",
@@ -1784,6 +2108,9 @@ export const integrationGeometry = {
   doorDash: {
     ...doorDash,
     markViewBox: "0 0 99.5 56.5",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.287465785458 -0.967053291436 -0.0976247869711 0 1.35214386387",
+    monoInkScale: 1,
     logoViewBox: "0 0 842.3300042140751 100",
     ratio: 1.8,
     alignment: "center",
@@ -1791,6 +2118,9 @@ export const integrationGeometry = {
   hubSpot: {
     ...hubSpot,
     markViewBox: "804.771317 0 338.024883 352.848912",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.363132533026 -1.22160107065 -0.123321584593 0 1.70805518827",
+    monoInkScale: 1,
     logoViewBox: "0 0 1255.82 355.99",
     ratio: 1.8,
     alignment: "center",
@@ -1798,6 +2128,9 @@ export const integrationGeometry = {
   harvey: {
     ...harvey,
     markViewBox: "0 0 80.099167 80.991736",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22508133369 -0.757188004962 -0.0764387219775 0 1.05870806063",
+    monoInkScale: 1,
     logoViewBox: "0 0 347 105",
     ratio: 1.8,
     alignment: "center",
@@ -1805,6 +2138,9 @@ export const integrationGeometry = {
   legora: {
     ...legora,
     markViewBox: "51 51 258 258",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.281059474928 -0.945502053005 -0.0954491725768 0 1.32201070051",
+    monoInkScale: 1,
     logoViewBox: "0 0 425.23076923076917 100",
     ratio: 1.8,
     alignment: "center",
@@ -1812,6 +2148,9 @@ export const integrationGeometry = {
   vanta: {
     ...vanta,
     markViewBox: "122.026667 26.453333 283.306667 485.546667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.224277560909 -0.754484061909 -0.076165756809 0 1.05492737963",
+    monoInkScale: 1,
     logoViewBox: "0 0 274.00528663127136 100",
     ratio: 1.8,
     alignment: "center",
@@ -1819,6 +2158,9 @@ export const integrationGeometry = {
   secureframe: {
     ...secureframe,
     markViewBox: "0 0 53.533679 56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.578806663008 -1.94714264056 -0.196565574173 0 2.72251487774",
+    monoInkScale: 1,
     logoViewBox: "0 0 520.7326601488096 100",
     ratio: 1.8,
     alignment: "center",
@@ -1826,6 +2168,9 @@ export const integrationGeometry = {
   carta: {
     ...carta,
     markViewBox: "0 0 528 264",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.236737991266 -0.796401746725 -0.0803973799127 0 1.1135371179",
+    monoInkScale: 1,
     logoViewBox: "0 0 528 264",
     ratio: 1.6,
     alignment: "center",
@@ -1833,6 +2178,9 @@ export const integrationGeometry = {
   deepseek: {
     ...deepseek,
     markViewBox: "0 0 256 189",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.377095613246 -1.26857376573 -0.12806351494 0 1.77373289391",
+    monoInkScale: 1,
     logoViewBox: "0.853333 0 511.146667 109",
     ratio: 1.8,
     alignment: "center",
@@ -1840,6 +2188,9 @@ export const integrationGeometry = {
   kimi: {
     ...kimi,
     markViewBox: "73.386667 44.8 143.36 138.24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 319.3411306042885 100",
     ratio: 1.8,
     alignment: "center",
@@ -1847,6 +2198,9 @@ export const integrationGeometry = {
   nvidia: {
     ...nvidia,
     markViewBox: "0 11.406685 31.395 21.253482",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.555454236218 -1.86858358299 -0.188634975799 0 2.61267279501",
+    monoInkScale: 1,
     logoViewBox: "0 11.406685 108.9075 21.253482",
     ratio: 1.8,
     alignment: "center",
@@ -1854,6 +2208,9 @@ export const integrationGeometry = {
   miniMax: {
     ...miniMax,
     markViewBox: "0 0 256 214",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297676047986 -1.00140126773 -0.101092242072 0 1.40016955779",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 123",
     ratio: 1.8,
     alignment: "center",
@@ -1861,6 +2218,9 @@ export const integrationGeometry = {
   meta: {
     ...meta,
     markViewBox: "0 0 256 170.43",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.324032677613 -1.09006665583 -0.110043082426 0 1.52414241587",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 104",
     ratio: 1.8,
     alignment: "center",
@@ -1868,6 +2228,9 @@ export const integrationGeometry = {
   zAi: {
     ...zAi,
     markViewBox: "41.386667 54.186667 173.226667 147.626667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 300.4833353346132 100",
     ratio: 1.8,
     alignment: "center",
@@ -1875,6 +2238,9 @@ export const integrationGeometry = {
   qwen: {
     ...qwen,
     markViewBox: "0 0 256 253",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.308018958509 -1.03619548037 -0.104604745082 0 1.44881918396",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 150",
     ratio: 1.8,
     alignment: "center",
@@ -1882,6 +2248,9 @@ export const integrationGeometry = {
   factory: {
     ...factory,
     markViewBox: "0.325243 0 66.024272 64.241667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0.211667 0 126.788333 18.681564",
     ratio: 1.8,
     alignment: "center",
@@ -1889,6 +2258,9 @@ export const integrationGeometry = {
   tigerBeetle: {
     ...tigerBeetle,
     markViewBox: "0 0 27.48 23",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 126.365 23.256637",
     ratio: 1.8,
     alignment: "center",
@@ -1896,6 +2268,9 @@ export const integrationGeometry = {
   antithesis: {
     ...antithesis,
     markViewBox: "0 0 92 92",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.7077304272 -2.38085043054 -0.240348715164 0 3.3289295729",
+    monoInkScale: 1,
     logoViewBox: "0 0 153.615 24",
     ratio: 1.8,
     alignment: "center",
@@ -1903,6 +2278,9 @@ export const integrationGeometry = {
   brex: {
     ...brex,
     markViewBox: "0 0 39.955 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 121.695 32",
     ratio: 1.8,
     alignment: "center",
@@ -1910,6 +2288,9 @@ export const integrationGeometry = {
   monzo: {
     ...monzo,
     markViewBox: "0 0 1024 926",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.325884275105 -1.09629554824 -0.110671893992 0 1.53285171733",
+    monoInkScale: 1.004,
     logoViewBox: "0 0 466.0252472163453 100",
     ratio: 1.8,
     alignment: "center",
@@ -1917,6 +2298,9 @@ export const integrationGeometry = {
   revolut: {
     ...revolut,
     markViewBox: "2.36 0 19.28 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 551 125.00000000000001",
     ratio: 1.8,
     alignment: "center",
@@ -1924,6 +2308,9 @@ export const integrationGeometry = {
   chase: {
     ...chase,
     markViewBox: "101.864924 0 23.345178 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.310700432813 -1.04521613146 -0.105515386873 0 1.46143195114",
+    monoInkScale: 1,
     logoViewBox: "0.105 0 125.265 24",
     ratio: 1.8,
     alignment: "center",
@@ -1931,6 +2318,9 @@ export const integrationGeometry = {
   redBull: {
     ...redBull,
     markViewBox: "85.685484 0 825.604839 312.583333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.28465380326 -0.957593603441 -0.096669824061 0 1.33891723076",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 605",
     ratio: 1.8,
     alignment: "center",
@@ -1938,6 +2328,9 @@ export const integrationGeometry = {
   wellsFargo: {
     ...wellsFargo,
     markViewBox: "16.465378 62.405535 159.878252 67.997954",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.293127220231 -0.986098720174 -0.0995474379146 0 1.37877337832",
+    monoInkScale: 1,
     logoViewBox: "16.465378 62.405535 159.878252 67.997954",
     ratio: 1.8,
     alignment: "center",
@@ -1945,6 +2338,9 @@ export const integrationGeometry = {
   siliconValleyBank: {
     ...siliconValleyBank,
     markViewBox: "0 0 216.369379 99.79",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252523935112 -0.849506671648 -0.0857583636647 0 1.18778897042",
+    monoInkScale: 1,
     logoViewBox: "0 0 503.47 99.79",
     ratio: 1.8,
     alignment: "center",
@@ -1952,6 +2348,9 @@ export const integrationGeometry = {
   alphabet: {
     ...alphabet,
     markViewBox: "7 324 101.83989 114.107447",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802",
+    monoInkScale: 1,
     logoViewBox: "7 324 625 147",
     ratio: 1.8,
     alignment: "center",
@@ -1959,6 +2358,9 @@ export const integrationGeometry = {
   waymo: {
     ...waymo,
     markViewBox: "13.583235 12.641566 38.268307 20.2653",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.382226364757 -1.28583394202 -0.129805943252 0 1.79786625003",
+    monoInkScale: 1,
     logoViewBox: "0 0 575.4318700993437 100",
     ratio: 1.8,
     alignment: "center",
@@ -1966,6 +2368,9 @@ export const integrationGeometry = {
   lyft: {
     ...lyft,
     markViewBox: "2.962822 7.04 26.098199 17.647645",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "2.962822 7.04 26.098199 17.647645",
     ratio: 1.8,
     alignment: "center",
@@ -1973,6 +2378,9 @@ export const integrationGeometry = {
   bolt: {
     ...bolt,
     markViewBox: "0 0.48 52.7334 31.093333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.639355514357 -2.1508328498 -0.217128260285 0 3.00731662445",
+    monoInkScale: 1,
     logoViewBox: "0 0.48 52.7334 31.093333",
     ratio: 1.8,
     alignment: "center",
@@ -1980,6 +2388,9 @@ export const integrationGeometry = {
   googleMaps: {
     ...googleMaps,
     markViewBox: "0 0 256 367",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.353163968194 -1.18806618087 -0.119936211212 0 1.66116636027",
+    monoInkScale: 1,
     logoViewBox: "0 0 441.1655567741134 100",
     ratio: 1.8,
     alignment: "center",
@@ -1987,6 +2398,9 @@ export const integrationGeometry = {
   appleMaps: {
     ...appleMaps,
     markViewBox: "0 0 230 230",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.391128560978 -1.31578149958 -0.132829172637 0 1.8397392332",
+    monoInkScale: 1,
     logoViewBox: "4.43 2.63 9991.44 3045.3",
     ratio: 1.8,
     alignment: "center",
@@ -1994,6 +2408,9 @@ export const integrationGeometry = {
   duckDb: {
     ...duckDb,
     markViewBox: "0 0 144.519071 144.194458",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.236737991266 -0.796401746725 -0.0803973799127 0 1.1135371179",
+    monoInkScale: 1,
     logoViewBox: "0 0 500 144.194458",
     ratio: 1.8,
     alignment: "center",
@@ -2001,6 +2418,9 @@ export const integrationGeometry = {
   airOps: {
     ...airOps,
     markViewBox: "51.118042 141.570844 408.442938 230.097066",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 379.79944886029716 100",
     ratio: 1.8,
     alignment: "center",
@@ -2008,6 +2428,9 @@ export const integrationGeometry = {
   raindropAi: {
     ...raindropAi,
     markViewBox: "0 129.122449 247.717105 299.624489",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.249195365526 -0.838309150631 -0.0846279651504 0 1.17213248131",
+    monoInkScale: 1,
     logoViewBox: "0 123.555102 1820 358.334694",
     ratio: 1.8,
     alignment: "center",
@@ -2015,6 +2438,9 @@ export const integrationGeometry = {
   mercury: {
     ...mercury,
     markViewBox: "0 0 500 500",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252166155323 -0.84830307755 -0.0856368598981 0 1.18610609277",
+    monoInkScale: 1,
     logoViewBox: "0 0 138.6525 32",
     ratio: 1.8,
     alignment: "center",
@@ -2022,6 +2448,9 @@ export const integrationGeometry = {
   steam: {
     ...steam,
     markViewBox: "0.325 0.325 64.241667 64.35",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.233017044849 -0.783884244948 -0.0791337283071 0 1.0960350181",
+    monoInkScale: 1,
     logoViewBox: "0 0 293.8 89.333",
     ratio: 1.8,
     alignment: "center",
@@ -2029,6 +2458,9 @@ export const integrationGeometry = {
   epicGames: {
     ...epicGames,
     markViewBox: "3.2269997596740723 1.25 25.54800033569336 29.500972747802734",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "3.2269997596740723 1.25 25.54800033569336 29.500972747802734",
     ratio: 1.8,
     alignment: "center",
@@ -2036,6 +2468,9 @@ export const integrationGeometry = {
   pokemon: {
     ...pokemon,
     markViewBox: "0 0 269.5 98.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 269.5 98.8",
     ratio: 1.8,
     alignment: "center",
@@ -2043,6 +2478,9 @@ export const integrationGeometry = {
   nintendo: {
     ...nintendo,
     markViewBox: "0 0 128 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264708812006 -0.890497376984 -0.089896407464 0 1.24510259645",
+    monoInkScale: 1,
     logoViewBox: "0 0 128 32",
     ratio: 1.8,
     alignment: "center",
@@ -2050,6 +2488,9 @@ export const integrationGeometry = {
   tesla: {
     ...tesla,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302427655119 -1.01738597809 -0.102705911099 0 1.4225195443",
+    monoInkScale: 1,
     logoViewBox: "0 0 375.68595041322317 100",
     ratio: 1.8,
     alignment: "center",
@@ -2057,6 +2498,9 @@ export const integrationGeometry = {
   audi: {
     ...audi,
     markViewBox: "0 7.8 24 8.4",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2064,6 +2508,9 @@ export const integrationGeometry = {
   landRover: {
     ...landRover,
     markViewBox: "0 0 227 119",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.228213758916 -0.767725683804 -0.0775025089075 0 1.07344195163",
+    monoInkScale: 1,
     logoViewBox: "0 0 227 119",
     ratio: 1.8,
     alignment: "center",
@@ -2071,6 +2518,9 @@ export const integrationGeometry = {
   jaguar: {
     ...jaguar,
     markViewBox: "-0.023 -0.142 145.527 18.285",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.300585168847 -1.0111877364 -0.102080193748 0 1.413853099",
+    monoInkScale: 1,
     logoViewBox: "-0.023 -0.142 145.527 18.285",
     ratio: 1.8,
     alignment: "center",
@@ -2078,6 +2528,9 @@ export const integrationGeometry = {
   mclaren: {
     ...mclaren,
     markViewBox: "19.058949 10.212067 4.941051 2.7548",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 10.16 24 3.68",
     ratio: 1.8,
     alignment: "center",
@@ -2085,6 +2538,9 @@ export const integrationGeometry = {
   mercedesBenz: {
     ...mercedesBenz,
     markViewBox: "0 0.533333 64 63.466667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227072249462 -0.763885572977 -0.0771148467127 0 1.06807266915",
+    monoInkScale: 1.012,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2092,6 +2548,9 @@ export const integrationGeometry = {
   petronas: {
     ...petronas,
     markViewBox: "0 0 72.05 84.1",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.421597080946 -1.41827954982 -0.143176431064 0 1.98305306183",
+    monoInkScale: 1,
     logoViewBox: "0 0 220 84.1",
     ratio: 1.8,
     alignment: "center",
@@ -2099,6 +2558,9 @@ export const integrationGeometry = {
   palantir: {
     ...palantir,
     markViewBox: "43.333333 64.666667 212.666667 270",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0.415842 82.585289 20.446471",
     ratio: 1.8,
     alignment: "center",
@@ -2106,6 +2568,9 @@ export const integrationGeometry = {
   ferrari: {
     ...ferrari,
     markViewBox: "0 0 224.079 395.433",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 224.079 395.433",
     ratio: 1.8,
     alignment: "center",
@@ -2113,6 +2578,9 @@ export const integrationGeometry = {
   lamborghini: {
     ...lamborghini,
     markViewBox: "7.36 3.306667 49.28 57.386667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2120,6 +2588,9 @@ export const integrationGeometry = {
   volkswagen: {
     ...volkswagen,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2127,6 +2598,9 @@ export const integrationGeometry = {
   dhl: {
     ...dhl,
     markViewBox: "0 10.28 24 3.44",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264291989193 -0.889095158376 -0.0897548523976 0 1.24314199997",
+    monoInkScale: 1,
     logoViewBox: "0 10.28 24 3.44",
     ratio: 1.8,
     alignment: "center",
@@ -2134,6 +2608,9 @@ export const integrationGeometry = {
   deutscheBahn: {
     ...deutscheBahn,
     markViewBox: "0 0 30.83 21.83",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.288017723187 -0.968910045264 -0.0978122277238 0 1.35473999617",
+    monoInkScale: 1,
     logoViewBox: "0 0 30.83 21.83",
     ratio: 1.8,
     alignment: "center",
@@ -2141,6 +2618,9 @@ export const integrationGeometry = {
   deutschePost: {
     ...deutschePost,
     markViewBox: "10.59555 12.462177 36.857801 29.111289",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "69.166667 35.833333 861.666667 145.833333",
     ratio: 1.8,
     alignment: "center",
@@ -2148,6 +2628,9 @@ export const integrationGeometry = {
   royalMail: {
     ...royalMail,
     markViewBox: "0.0 0.0 83.6 56.0",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239727360041 -0.806458174512 -0.0814125841719 0 1.12759811872",
+    monoInkScale: 1.1435,
     logoViewBox: "0.0 0.0 83.6 56.0",
     ratio: 1.8,
     alignment: "center",
@@ -2155,6 +2638,9 @@ export const integrationGeometry = {
   nationalRail: {
     ...nationalRail,
     markViewBox: "0 0 23.852055 23.851397",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261605855478 -0.880058832726 -0.0888426282478 0 1.23050731645",
+    monoInkScale: 1,
     logoViewBox: "0 0 129.35 24",
     ratio: 1.8,
     alignment: "center",
@@ -2162,6 +2648,9 @@ export const integrationGeometry = {
   astraZeneca: {
     ...astraZeneca,
     markViewBox: "445.46775 0 109.63225 138.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.808261372582 -2.71904296176 -0.274489515994 0 3.80179385034",
+    monoInkScale: 1,
     logoViewBox: "0 0 555.1 138.6",
     ratio: 1.8,
     alignment: "center",
@@ -2169,6 +2658,9 @@ export const integrationGeometry = {
   gsk: {
     ...gsk,
     markViewBox: "0 8.36 24 7.28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.427865855968 -1.43936811001 -0.145305337728 0 2.01253930371",
+    monoInkScale: 1,
     logoViewBox: "0 8.36 24 7.28",
     ratio: 1.8,
     alignment: "center",
@@ -2176,6 +2668,9 @@ export const integrationGeometry = {
   merck: {
     ...merck,
     markViewBox: "0 0 1511 726",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.3583217116 -1.20541715963 -0.121687806103 0 1.68542667733",
+    monoInkScale: 1,
     logoViewBox: "0 0 1580 253",
     ratio: 1.8,
     alignment: "center",
@@ -2183,6 +2678,9 @@ export const integrationGeometry = {
   merckCo: {
     ...merckCo,
     markViewBox: "0.235999 0.236313 15.907124 15.901551",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.340015779973 -1.14383483461 -0.115471022173 0 1.59932163675",
+    monoInkScale: 1,
     logoViewBox: "0.182709 0.182952 54.401677 16.008273",
     ratio: 1.8,
     alignment: "center",
@@ -2190,6 +2688,9 @@ export const integrationGeometry = {
   clariant: {
     ...clariant,
     markViewBox: "0 0 40.133333 40",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264453658537 -0.88963902439 -0.0898097560976 0 1.24390243902",
+    monoInkScale: 1,
     logoViewBox: "0.72 0.360424 215.28 50.639576",
     ratio: 1.8,
     alignment: "center",
@@ -2197,6 +2698,9 @@ export const integrationGeometry = {
   astellas: {
     ...astellas,
     markViewBox: "14.96 10.984233 33.235714 28.081533",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.278810925122 -0.937937787616 -0.094685554063 0 1.3114342668",
+    monoInkScale: 1,
     logoViewBox: "14.96 10.89 102.1295 28.20955",
     ratio: 1.8,
     alignment: "center",
@@ -2204,6 +2708,9 @@ export const integrationGeometry = {
   bain: {
     ...bain,
     markViewBox: "248.335833 0 30.431667 30.741667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.291135596916 -0.979398771939 -0.0988710728943 0 1.36940544175",
+    monoInkScale: 1,
     logoViewBox: "0 0 279 31",
     ratio: 1.8,
     alignment: "center",
@@ -2211,6 +2718,9 @@ export const integrationGeometry = {
   quantumBlack: {
     ...quantumBlack,
     markViewBox: "0 0 36.412698 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.234958259403 -0.790414614887 -0.0797929742657 0 1.10516584856",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2218,6 +2728,9 @@ export const integrationGeometry = {
   teamViewer: {
     ...teamViewer,
     markViewBox: "0 0 111.591521 111.33",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.225076661328 -0.757172286837 -0.0764371352204 0 1.05868608338",
+    monoInkScale: 1,
     logoViewBox: "0 0 830.73 111.33",
     ratio: 1.8,
     alignment: "center",
@@ -2225,6 +2738,9 @@ export const integrationGeometry = {
   snapdragon: {
     ...snapdragon,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.310885018477 -1.04583708944 -0.105578073067 0 1.46230018098",
+    monoInkScale: 1,
     logoViewBox: "1.0025 0.668103 399.9975 75.829741",
     ratio: 1.8,
     alignment: "center",
@@ -2232,6 +2748,9 @@ export const integrationGeometry = {
   signify: {
     ...signify,
     markViewBox: "0 0 48.762336 48.44",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.613138834727 -2.06263826245 -0.208224947636 0 2.88400204481",
+    monoInkScale: 1.076,
     logoViewBox: "0 0 200 48.44",
     ratio: 1.8,
     alignment: "center",
@@ -2239,6 +2758,9 @@ export const integrationGeometry = {
   ubs: {
     ...ubs,
     markViewBox: "16.1 11.2 34.2 37.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "16.1 11.2 87.7 37.6",
     ratio: 1.8,
     alignment: "center",
@@ -2246,6 +2768,9 @@ export const integrationGeometry = {
   ineos: {
     ...ineos,
     markViewBox: "0 0 158 40",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 158 40",
     ratio: 1.8,
     alignment: "center",
@@ -2253,6 +2778,9 @@ export const integrationGeometry = {
   adidas: {
     ...adidas,
     markViewBox: "0 4.450667 24 15.149333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 416.90708234957185 100",
     ratio: 1.8,
     alignment: "center",
@@ -2260,6 +2788,9 @@ export const integrationGeometry = {
   nike: {
     ...nike,
     markViewBox: "0 7.76 24 8.48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2267,6 +2798,9 @@ export const integrationGeometry = {
   puma: {
     ...puma,
     markViewBox: "0 2.68 24 18.64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 446 221.883139",
     ratio: 1.8,
     alignment: "center",
@@ -2274,6 +2808,9 @@ export const integrationGeometry = {
   selfridges: {
     ...selfridges,
     markViewBox: "9.932824 82.389942 176.276701 28.149994",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "9.932824 82.389942 176.276701 28.149994",
     ratio: 1.8,
     alignment: "center",
@@ -2281,6 +2818,9 @@ export const integrationGeometry = {
   kaDeWe: {
     ...kaDeWe,
     markViewBox: "0 0 360 101",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 360 101",
     ratio: 1.8,
     alignment: "center",
@@ -2288,6 +2828,9 @@ export const integrationGeometry = {
   harrods: {
     ...harrods,
     markViewBox: "8.326524 54.588185 176.276701 77.796951",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264291989193 -0.889095158376 -0.0897548523976 0 1.24314199997",
+    monoInkScale: 1,
     logoViewBox: "8.326524 54.588185 176.276701 77.796951",
     ratio: 1.8,
     alignment: "center",
@@ -2295,6 +2838,9 @@ export const integrationGeometry = {
   boots: {
     ...boots,
     markViewBox: "0 5.6 24 12.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.221326333151 -0.744555942943 -0.0751635054257 0 1.04104578152",
+    monoInkScale: 1,
     logoViewBox: "0 5.6 24 12.8",
     ratio: 1.8,
     alignment: "center",
@@ -2302,6 +2848,9 @@ export const integrationGeometry = {
   rewe: {
     ...rewe,
     markViewBox: "0 8.76 24 6.48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265155739196 -0.892000868641 -0.090048186124 0 1.24720479396",
+    monoInkScale: 1,
     logoViewBox: "0 8.76 24 6.48",
     ratio: 1.8,
     alignment: "center",
@@ -2309,6 +2858,9 @@ export const integrationGeometry = {
   tesco: {
     ...tesco,
     markViewBox: "0 8.76 24 6.48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26630480167 -0.895866388309 -0.0904384133612 0 1.25260960334",
+    monoInkScale: 1,
     logoViewBox: "0 8.76 24 6.48",
     ratio: 1.8,
     alignment: "center",
@@ -2316,6 +2868,9 @@ export const integrationGeometry = {
   sainsburys: {
     ...sainsburys,
     markViewBox: "0.2475 0.082251 98.4225 18.753247",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.413088567201 -1.3896563653 -0.140286898174 0 1.94303183067",
+    monoInkScale: 1,
     logoViewBox: "0.2475 0.082251 98.4225 18.753247",
     ratio: 1.8,
     alignment: "center",
@@ -2323,6 +2878,9 @@ export const integrationGeometry = {
   asda: {
     ...asda,
     markViewBox: "0 8.44 24 7.12",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.480356193514 -1.61594896332 -0.163131313131 0 2.25943646996",
+    monoInkScale: 1,
     logoViewBox: "0 8.44 24 7.12",
     ratio: 1.8,
     alignment: "center",
@@ -2330,6 +2888,9 @@ export const integrationGeometry = {
   wolt: {
     ...wolt,
     markViewBox: "389.109333 137.441109 1141.781333 417.76214",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.428423085677 -1.4412426664 -0.145494575663 0 2.01516032774",
+    monoInkScale: 1,
     logoViewBox: "389.109333 137.441109 1141.781333 417.76214",
     ratio: 1.8,
     alignment: "center",
@@ -2337,6 +2898,9 @@ export const integrationGeometry = {
   uberEats: {
     ...uberEats,
     markViewBox: "0 0 1052 170",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243295277075 -0.818460875653 -0.0826242662502 0 1.14438041898",
+    monoInkScale: 1,
     logoViewBox: "0 0 1052 170",
     ratio: 1.8,
     alignment: "center",
@@ -2344,6 +2908,9 @@ export const integrationGeometry = {
   deliveroo: {
     ...deliveroo,
     markViewBox: "0.96 0 22.08 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.56752326078 -1.90918455367 -0.19273367558 0 2.66944149003",
+    monoInkScale: 1,
     logoViewBox: "-22.8 232.4 490.8 131.6",
     ratio: 1.8,
     alignment: "center",
@@ -2351,6 +2918,9 @@ export const integrationGeometry = {
   whatsApp: {
     ...whatsApp,
     markViewBox: "0 0 360 362",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.610079426348 -2.05234621695 -0.207185957584 0 2.86961160088",
+    monoInkScale: 1,
     logoViewBox: "0 0 1485.66 345.24",
     ratio: 1.8,
     alignment: "center",
@@ -2358,6 +2928,9 @@ export const integrationGeometry = {
   pepsi: {
     ...pepsi,
     markViewBox: "0 0 211.56 211.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 211.56 211.56",
     ratio: 1.8,
     alignment: "center",
@@ -2365,6 +2938,9 @@ export const integrationGeometry = {
   nasdaq: {
     ...nasdaq,
     markViewBox: "0 0 69.8 59.7",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.391197991081 -1.31601506689 -0.13285275144 0 1.84006580941",
+    monoInkScale: 1,
     logoViewBox: "0 0 1552 442",
     ratio: 1.8,
     alignment: "center",
@@ -2372,6 +2948,9 @@ export const integrationGeometry = {
   marriott: {
     ...marriott,
     markViewBox: "0 2.64 24 18.72",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.249865418438 -0.840563251491 -0.0848555183971 0 1.17528418833",
+    monoInkScale: 1,
     logoViewBox: "0 0 9432.102 2998.84",
     ratio: 1.8,
     alignment: "center",
@@ -2379,6 +2958,9 @@ export const integrationGeometry = {
   marriottBonvoy: {
     ...marriottBonvoy,
     markViewBox: "0 0 116.89999999999999 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.238823788546 -0.803418502203 -0.0811057268722 0 1.12334801762",
+    monoInkScale: 1,
     logoViewBox: "0 0 116.89999999999999 34",
     ratio: 1.8,
     alignment: "center",
@@ -2386,6 +2968,9 @@ export const integrationGeometry = {
   generalCatalyst: {
     ...generalCatalyst,
     markViewBox: "0 0 1006 1077",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.242022321429 -0.814178571429 -0.0821919642857 0 1.13839285714",
+    monoInkScale: 1,
     logoViewBox: "0 0 597.5655142497184 100",
     ratio: 1.8,
     alignment: "center",
@@ -2393,6 +2978,9 @@ export const integrationGeometry = {
   lightspeed: {
     ...lightspeed,
     markViewBox: "0 3.035556 21.453552 20.942222",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261898550725 -0.881043478261 -0.0889420289855 0 1.23188405797",
+    monoInkScale: 1,
     logoViewBox: "0 0.666667 199.333889 31.833333",
     ratio: 1.8,
     alignment: "center",
@@ -2400,6 +2988,9 @@ export const integrationGeometry = {
   a16z: {
     ...a16z,
     markViewBox: "0 0 52.073333 52",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 146 52",
     ratio: 1.8,
     alignment: "center",
@@ -2407,6 +2998,9 @@ export const integrationGeometry = {
   accel: {
     ...accel,
     markViewBox: "0 0 1288 405.490909",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 1288 405.490909",
     ratio: 1.8,
     alignment: "center",
@@ -2414,6 +3008,9 @@ export const integrationGeometry = {
   insightPartners: {
     ...insightPartners,
     markViewBox: "0 0 60 60",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.238628050471 -0.802760026797 -0.0810392532645 0 1.12242733053",
+    monoInkScale: 1,
     logoViewBox: "0 0 145.771 49.904",
     ratio: 1.8,
     alignment: "center",
@@ -2421,6 +3018,9 @@ export const integrationGeometry = {
   indexVentures: {
     ...indexVentures,
     markViewBox: "0 0 40 32.89",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.300976996881 -1.01250587098 -0.102213260465 0 1.41569612832",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2428,6 +3028,9 @@ export const integrationGeometry = {
   nea: {
     ...nea,
     markViewBox: "0 0 125.79 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 125.79 48",
     ratio: 1.8,
     alignment: "center",
@@ -2435,6 +3038,9 @@ export const integrationGeometry = {
   khoslaVentures: {
     ...khoslaVentures,
     markViewBox: "0 0 557 66",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
     logoViewBox: "0 0 557 66",
     ratio: 1.8,
     alignment: "center",
@@ -2442,6 +3048,9 @@ export const integrationGeometry = {
   sequoia: {
     ...sequoia,
     markViewBox: "156.650255 0.200358 23.349745 23.642283",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 180 24.043",
     ratio: 1.8,
     alignment: "center",
@@ -2449,6 +3058,9 @@ export const integrationGeometry = {
   angelList: {
     ...angelList,
     markViewBox: "0 0 256 369",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 353.89837302190904 100",
     ratio: 1.8,
     alignment: "center",
@@ -2456,6 +3068,9 @@ export const integrationGeometry = {
   crunchbase: {
     ...crunchbase,
     markViewBox: "4.196526 5.356533 15.523474 10.923467",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.381197009095 -1.28237112373 -0.129456369034 0 1.79302450186",
+    monoInkScale: 1,
     logoViewBox: "0 0 193 26.678571",
     ratio: 1.8,
     alignment: "center",
@@ -2463,6 +3078,9 @@ export const integrationGeometry = {
   cohere: {
     ...cohere,
     markViewBox: "0.459988 0 19.630039 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.299938588192 -1.00901259772 -0.101860611794 0 1.41081179771",
+    monoInkScale: 1,
     logoViewBox: "0.393333 0 116.918333 20",
     ratio: 1.8,
     alignment: "center",
@@ -2470,6 +3088,9 @@ export const integrationGeometry = {
   googleDeepMind: {
     ...googleDeepMind,
     markViewBox: "7.68 7.68 176.64 176.64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.4227793808 -1.42225688216 -0.143577945878 0 1.98861420884",
+    monoInkScale: 1,
     logoViewBox: "0 0 567.1813515243039 100",
     ratio: 1.8,
     alignment: "center",
@@ -2477,6 +3098,9 @@ export const integrationGeometry = {
   mistral: {
     ...mistral,
     markViewBox: "0 0 21 15",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.256645865347 -0.863373108637 -0.0871581913362 0 1.20717716532",
+    monoInkScale: 1,
     logoViewBox: "3.021667 3.014815 91.303333 16.296296",
     ratio: 1.8,
     alignment: "center",
@@ -2484,6 +3108,9 @@ export const integrationGeometry = {
   darpa: {
     ...darpa,
     markViewBox: "8.294931 6.22 2231.336406 1233.633333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "8.294931 6.22 2231.336406 1233.633333",
     ratio: 1.8,
     alignment: "center",
@@ -2491,6 +3118,9 @@ export const integrationGeometry = {
   aria: {
     ...aria,
     markViewBox: "39.548333 0 23.078333 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 121.288333 48",
     ratio: 1.8,
     alignment: "center",
@@ -2498,6 +3128,9 @@ export const integrationGeometry = {
   pirelli: {
     ...pirelli,
     markViewBox: "25.740154 81.077837 143.524511 30.68095",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.294072337466 -0.989278155014 -0.0998684043512 0 1.38321889683",
+    monoInkScale: 1,
     logoViewBox: "25.740154 81.077837 143.524511 30.68095",
     ratio: 1.8,
     alignment: "center",
@@ -2505,6 +3138,9 @@ export const integrationGeometry = {
   continental: {
     ...continental,
     markViewBox: "189.590689 0.469791 29.651954 30.908631",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0.55 0.366071 218.9 40.084821",
     ratio: 1.8,
     alignment: "center",
@@ -2512,6 +3148,9 @@ export const integrationGeometry = {
   mous: {
     ...mous,
     markViewBox: "0 0 36.926587 21.45",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239880530973 -0.806973451327 -0.0814646017699 0 1.12831858407",
+    monoInkScale: 1,
     logoViewBox: "0 0 3311.000000 1103.000000",
     ratio: 1.8,
     alignment: "center",
@@ -2519,6 +3158,9 @@ export const integrationGeometry = {
   mckinsey: {
     ...mckinsey,
     markViewBox: "0 0 1541 475",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.234958259403 -0.790414614887 -0.0797929742657 0 1.10516584856",
+    monoInkScale: 1,
     logoViewBox: "0 0 1541 475",
     ratio: 1.8,
     alignment: "center",
@@ -2526,6 +3168,9 @@ export const integrationGeometry = {
   bcg: {
     ...bcg,
     markViewBox: "0 0.719536 72 29.560928",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.27348644902 -0.920025909402 -0.0928773359323 0 1.28638969435",
+    monoInkScale: 1,
     logoViewBox: "0 0 191.35 40",
     ratio: 1.8,
     alignment: "center",
@@ -2533,6 +3178,9 @@ export const integrationGeometry = {
   superdrug: {
     ...superdrug,
     markViewBox: "0 0 599.90002 135.10001",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.279234278038 -0.939361973909 -0.0948293267844 0 1.31342557873",
+    monoInkScale: 1,
     logoViewBox: "0 0 599.90002 135.10001",
     ratio: 1.8,
     alignment: "center",
@@ -2540,6 +3188,9 @@ export const integrationGeometry = {
   duPont: {
     ...duPont,
     markViewBox: "98.687664 325.5 2171.128609 611.1",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265092985229 -0.89178976028 -0.0900268745697 0 1.24690962008",
+    monoInkScale: 1,
     logoViewBox: "98.687664 325.5 2171.128609 611.1",
     ratio: 1.8,
     alignment: "center",
@@ -2547,6 +3198,9 @@ export const integrationGeometry = {
   thriveCapital: {
     ...thriveCapital,
     markViewBox: "274 306 654 588",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265964857885 -0.89472279567 -0.0903229667889 0 1.25101062034",
+    monoInkScale: 1,
     logoViewBox: "0 0 575.655547359506 100",
     ratio: 1.8,
     alignment: "center",
@@ -2554,6 +3208,9 @@ export const integrationGeometry = {
   petrinaut: {
     ...petrinaut,
     markViewBox: "0 0 250 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.214115602599 -0.720298584095 -0.0727147060566 0 1.00712889275",
+    monoInkScale: 1,
     logoViewBox: "0 0 378.9990275115679 100",
     ratio: 1.8,
     alignment: "center",
@@ -2561,6 +3218,9 @@ export const integrationGeometry = {
   hgres: {
     ...hgres,
     markViewBox: "0 0 236 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.229940195954 -0.773533528439 -0.0780888153709 0 1.08156253976",
+    monoInkScale: 1,
     logoViewBox: "0 0 469.05696767346546 100",
     ratio: 1.8,
     alignment: "center",
@@ -2568,6 +3228,9 @@ export const integrationGeometry = {
   semType: {
     ...semType,
     markViewBox: "0 0 255.564626 259.695",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "26.39 19.821053 1104.61 224.638596",
     ratio: 1.8,
     alignment: "center",
@@ -2575,6 +3238,9 @@ export const integrationGeometry = {
   muse: {
     ...muse,
     markViewBox: "0 15.833333 100 68.333333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280397759011 -0.943275998328 -0.0952244506142 0 1.31889820795",
+    monoInkScale: 1.0538,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2582,6 +3248,9 @@ export const integrationGeometry = {
   xAi: {
     ...xAi,
     markViewBox: "200.308339 55.559467 441.273322 484.161067",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "200.308339 55.559467 441.273322 484.161067",
     ratio: 1.8,
     alignment: "center",
@@ -2589,6 +3258,9 @@ export const integrationGeometry = {
   grok: {
     ...grok,
     markViewBox: "0 0 1024 988.16",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22127755102 -0.744391836735 -0.0751469387755 0 1.04081632653",
+    monoInkScale: 1,
     logoViewBox: "17.066667 18.763326 989.013333 363.326226",
     ratio: 1.8,
     alignment: "center",
@@ -2596,6 +3268,9 @@ export const integrationGeometry = {
   typeSafeAi: {
     ...typeSafeAi,
     markViewBox: "0 0 98.9 144",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240946666667 -0.81056 -0.0818266666667 0 1.13333333333",
+    monoInkScale: 1,
     logoViewBox: "0 0 734 144",
     ratio: 1.8,
     alignment: "center",
@@ -2603,6 +3278,9 @@ export const integrationGeometry = {
   higgsfieldAi: {
     ...higgsfieldAi,
     markViewBox: "0 0.598167 20 18.8055",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 132.196 26.875",
     ratio: 1.8,
     alignment: "center",
@@ -2610,6 +3288,9 @@ export const integrationGeometry = {
   elevenLabs: {
     ...elevenLabs,
     markViewBox: "0 0 256 416",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 694 90",
     ratio: 1.8,
     alignment: "center",
@@ -2617,6 +3298,9 @@ export const integrationGeometry = {
   tailscale: {
     ...tailscale,
     markViewBox: "0 0 28.060941 28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.245543903321 -0.826025398188 -0.0833879107232 0 1.15495721223",
+    monoInkScale: 1,
     logoViewBox: "0 0 145 28",
     ratio: 1.8,
     alignment: "center",
@@ -2624,6 +3308,9 @@ export const integrationGeometry = {
   encord: {
     ...encord,
     markViewBox: "0 0 44.396816 50",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235922667254 -0.793658944591 -0.0801204918896 0 1.10970210373",
+    monoInkScale: 1,
     logoViewBox: "0 0 251.58 50",
     ratio: 1.8,
     alignment: "center",
@@ -2631,6 +3318,9 @@ export const integrationGeometry = {
   trunk: {
     ...trunk,
     markViewBox: "0 0.088333 52.523451 52.911667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 154.354167 53",
     ratio: 1.8,
     alignment: "center",
@@ -2638,6 +3328,9 @@ export const integrationGeometry = {
   linktree: {
     ...linktree,
     markViewBox: "413.315656 0 80.784344 98.846365",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.287212366454 -0.966200773698 -0.0975387246379 0 1.35095186479",
+    monoInkScale: 1,
     logoViewBox: "0 0 494.1 100",
     ratio: 1.8,
     alignment: "center",
@@ -2645,6 +3338,9 @@ export const integrationGeometry = {
   formstack: {
     ...formstack,
     markViewBox: "11.259108 11.284977 34.145891 28.476558",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.49181710968 -1.65450421845 -0.167023496326 0 2.31334482446",
+    monoInkScale: 1,
     logoViewBox: "11.211083 11.044871 169.767833 49.141671",
     ratio: 1.8,
     alignment: "center",
@@ -2652,6 +3348,9 @@ export const integrationGeometry = {
   featherlessAi: {
     ...featherlessAi,
     markViewBox: "279.161538 0 20.838462 48.176667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 300 62",
     ratio: 1.8,
     alignment: "center",
@@ -2659,6 +3358,9 @@ export const integrationGeometry = {
   fal: {
     ...fal,
     markViewBox: "0 0.6 46.9 47.1",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 120 48",
     ratio: 1.8,
     alignment: "center",
@@ -2666,6 +3368,9 @@ export const integrationGeometry = {
   huggingFace: {
     ...huggingFace,
     markViewBox: "3.225309 2.786667 88.402778 81.693333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.277317681771 -0.932914421461 -0.0941784413164 0 1.30441054455",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 114",
     ratio: 1.8,
     alignment: "center",
@@ -2673,6 +3378,9 @@ export const integrationGeometry = {
   monaco: {
     ...monaco,
     markViewBox: "0 0 22.073333 22",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 176 22",
     ratio: 1.8,
     alignment: "center",
@@ -2680,6 +3388,9 @@ export const integrationGeometry = {
   paper: {
     ...paper,
     markViewBox: "0 0 21.049482 21.031927",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.619428480022 -2.08379703157 -0.210360941945 0 2.91358645354",
+    monoInkScale: 1,
     logoViewBox: "0 0 87.706667 24",
     ratio: 1.8,
     alignment: "center",
@@ -2687,6 +3398,9 @@ export const integrationGeometry = {
   pencil: {
     ...pencil,
     markViewBox: "0 6.124481 20.821021 26.575996",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 5.018672 102 28.495851",
     ratio: 1.8,
     alignment: "center",
@@ -2694,6 +3408,9 @@ export const integrationGeometry = {
   beam: {
     ...beam,
     markViewBox: "0 0 220.833333 219.656475",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0.0 0.0 1000.0000000000001 219.6564749483287",
     ratio: 1.8,
     alignment: "center",
@@ -2701,6 +3418,9 @@ export const integrationGeometry = {
   cocaCola: {
     ...cocaCola,
     markViewBox: "0 8.2 24 7.58",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267750516358 -0.900729865001 -0.0909293851413 0 1.2594097665",
+    monoInkScale: 1,
     logoViewBox: "0 8.2 24 7.58",
     ratio: 1.8,
     alignment: "center",
@@ -2708,6 +3428,9 @@ export const integrationGeometry = {
   ogilvy: {
     ...ogilvy,
     markViewBox: "0 0 700 273.7",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.3494366524 -1.1755272521 -0.118670396535 0 1.64363430104",
+    monoInkScale: 1,
     logoViewBox: "0 0 700 273.7",
     ratio: 1.8,
     alignment: "center",
@@ -2715,6 +3438,9 @@ export const integrationGeometry = {
   netflix: {
     ...netflix,
     markViewBox: "78.08 39.253333 99.84 177.493333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 138",
     ratio: 1.8,
     alignment: "center",
@@ -2722,6 +3448,9 @@ export const integrationGeometry = {
   linkedIn: {
     ...linkedIn,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.326748105074 -1.09920152751 -0.110965254875 0 1.53691488746",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 128",
     ratio: 1.8,
     alignment: "center",
@@ -2729,6 +3458,9 @@ export const integrationGeometry = {
   youTube: {
     ...youTube,
     markViewBox: "0 0 256 180",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
     logoViewBox: "409.289 277.787 512 114.301",
     ratio: 1.8,
     alignment: "center",
@@ -2736,6 +3468,9 @@ export const integrationGeometry = {
   amd: {
     ...amd,
     markViewBox: "389.528918 0 122.471082 122.368629",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 123",
     ratio: 1.8,
     alignment: "center",
@@ -2743,6 +3478,9 @@ export const integrationGeometry = {
   intel: {
     ...intel,
     markViewBox: "0 0 512 216",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 216",
     ratio: 1.8,
     alignment: "center",
@@ -2750,6 +3488,9 @@ export const integrationGeometry = {
   atari: {
     ...atari,
     markViewBox: "0 2.28 24 19.44",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.293895380986 -0.988682862093 -0.0998083090648 0 1.38238655214",
+    monoInkScale: 1,
     logoViewBox: "28.623853 24.2 248.256881 277.75",
     ratio: 1.8,
     alignment: "center",
@@ -2757,6 +3498,9 @@ export const integrationGeometry = {
   kickstarter: {
     ...kickstarter,
     markViewBox: "0 0 256 290",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.553522602198 -1.86208544258 -0.187978983437 0 2.60358702821",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 55",
     ratio: 1.8,
     alignment: "center",
@@ -2764,6 +3508,9 @@ export const integrationGeometry = {
   reddit: {
     ...reddit,
     markViewBox: "0 0 216 216",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 774 216",
     ratio: 1.8,
     alignment: "center",
@@ -2771,6 +3518,9 @@ export const integrationGeometry = {
   twitch: {
     ...twitch,
     markViewBox: "1.64 0 20.72 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.348193297281 -1.17134452594 -0.118248147054 0 1.63778597028",
+    monoInkScale: 1,
     logoViewBox: "0 0 306.3333333333333 100",
     ratio: 1.8,
     alignment: "center",
@@ -2778,6 +3528,9 @@ export const integrationGeometry = {
   airbnb: {
     ...airbnb,
     markViewBox: "0 0 256 275",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.351819091538 -1.18354192976 -0.11947948452 0 1.65484050582",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 161",
     ratio: 1.8,
     alignment: "center",
@@ -2785,6 +3538,9 @@ export const integrationGeometry = {
   shopify: {
     ...shopify,
     markViewBox: "0 0 256 292",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.420318372967 -1.41397789438 -0.14274217558 0 1.97703844293",
+    monoInkScale: 1,
     logoViewBox: "0 0 100 28.6",
     ratio: 1.8,
     alignment: "center",
@@ -2792,6 +3548,9 @@ export const integrationGeometry = {
   eliLilly: {
     ...eliLilly,
     markViewBox: "3.380697 1.386667 90.238606 49.226667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.306640512318 -1.0315582992 -0.104136618012 0 1.44233542953",
+    monoInkScale: 1,
     logoViewBox: "3.380697 1.386667 90.238606 49.226667",
     ratio: 1.8,
     alignment: "center",
@@ -2799,6 +3558,9 @@ export const integrationGeometry = {
   johnsonAndJohnson: {
     ...johnsonAndJohnson,
     markViewBox: "299.328919 300.229791 1110.414498 472.468646",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.287465785458 -0.967053291436 -0.0976247869711 0 1.35214386387",
+    monoInkScale: 1,
     logoViewBox: "0 0 576.77 53.67",
     ratio: 1.8,
     alignment: "center",
@@ -2806,6 +3568,9 @@ export const integrationGeometry = {
   abbVie: {
     ...abbVie,
     markViewBox: "0 3.76 24 16.48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.238298482113 -0.801651337756 -0.0809273302377 0 1.12087715011",
+    monoInkScale: 1,
     logoViewBox: "2.329817 1.866667 554.496367 101.266667",
     ratio: 1.8,
     alignment: "center",
@@ -2813,6 +3578,9 @@ export const integrationGeometry = {
   roche: {
     ...roche,
     markViewBox: "0 0 72 39.066667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.324006339917 -1.08997805413 -0.110034138015 0 1.52401853207",
+    monoInkScale: 1,
     logoViewBox: "0 0 72 39.066667",
     ratio: 1.8,
     alignment: "center",
@@ -2820,6 +3588,9 @@ export const integrationGeometry = {
   novartis: {
     ...novartis,
     markViewBox: "0 0 37.536666 42.378",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.232673819742 -0.782729613734 -0.079017167382 0 1.09442060086",
+    monoInkScale: 1,
     logoViewBox: "0 0 283.4646 42.378",
     ratio: 1.8,
     alignment: "center",
@@ -2827,6 +3598,9 @@ export const integrationGeometry = {
   novoNordisk: {
     ...novoNordisk,
     markViewBox: "0 -960 944.775 1011.838781",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235885301952 -0.793533245325 -0.0801078024504 0 1.10952634973",
+    monoInkScale: 1,
     logoViewBox: "0 -960 3510 1024",
     ratio: 1.8,
     alignment: "center",
@@ -2834,6 +3608,9 @@ export const integrationGeometry = {
   amgen: {
     ...amgen,
     markViewBox: "0 0 1781.72 454.46",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.318682171363 -1.07206721053 -0.108226024329 0 1.49897540622",
+    monoInkScale: 1,
     logoViewBox: "0 0 1781.72 454.46",
     ratio: 1.8,
     alignment: "center",
@@ -2841,6 +3618,9 @@ export const integrationGeometry = {
   pfizer: {
     ...pfizer,
     markViewBox: "0 0 369.999685 369.407496",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.234257318786 -0.788056605812 -0.0795549314033 0 1.101868856",
+    monoInkScale: 1,
     logoViewBox: "0 0 999.99915 409.43359",
     ratio: 1.8,
     alignment: "center",
@@ -2848,6 +3628,9 @@ export const integrationGeometry = {
   amway: {
     ...amway,
     markViewBox: "0 0 1158.24 393.568",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.282716599203 -0.95107672507 -0.0960119400868 0 1.32980526436",
+    monoInkScale: 1,
     logoViewBox: "0 0 1158.24 393.568",
     ratio: 1.8,
     alignment: "center",
@@ -2855,6 +3638,9 @@ export const integrationGeometry = {
   gileadSciences: {
     ...gileadSciences,
     markViewBox: "0 0 34.710386 45",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.291965653254 -0.982191134559 -0.0991529640871 0 1.3733097519",
+    monoInkScale: 1,
     logoViewBox: "0 0 168 45",
     ratio: 1.8,
     alignment: "center",
@@ -2862,6 +3648,9 @@ export const integrationGeometry = {
   myspace: {
     ...myspace,
     markViewBox: "0 4.649333 24 14.726",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 829.94666 124.84",
     ratio: 1.8,
     alignment: "center",
@@ -2869,6 +3658,9 @@ export const integrationGeometry = {
   docker: {
     ...docker,
     markViewBox: "0 0 340 268",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.338696618094 -1.13939708966 -0.115023028346 0 1.5931167361",
+    monoInkScale: 1,
     logoViewBox: "0 0 1250 268",
     ratio: 1.8,
     alignment: "center",
@@ -2876,6 +3668,9 @@ export const integrationGeometry = {
   brand42Group: {
     ...brand42Group,
     markViewBox: "0 94.72 640 322.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2883,6 +3678,9 @@ export const integrationGeometry = {
   brand500px: {
     ...brand500px,
     markViewBox: "0 8.96 24 6.08",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.245307692308 -0.825230769231 -0.0833076923077 0 1.15384615385",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 128",
     ratio: 1.8,
     alignment: "center",
@@ -2890,6 +3688,9 @@ export const integrationGeometry = {
   a11yProject: {
     ...a11yProject,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2897,6 +3698,9 @@ export const integrationGeometry = {
   accessibleIcon: {
     ...accessibleIcon,
     markViewBox: "23.04 0 401.92 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2904,6 +3708,9 @@ export const integrationGeometry = {
   accusoft: {
     ...accusoft,
     markViewBox: "0 4.16 24 15.68",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.288196249669 -0.969510619771 -0.0978728561905 0 1.35557972563",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2911,6 +3718,9 @@ export const integrationGeometry = {
   appNetLegacy: {
     ...appNetLegacy,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2918,6 +3728,9 @@ export const integrationGeometry = {
   adversal: {
     ...adversal,
     markViewBox: "0 30.72 512 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2925,6 +3738,9 @@ export const integrationGeometry = {
   affiliatetheme: {
     ...affiliatetheme,
     markViewBox: "0 63.146667 512 418.133333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2932,6 +3748,9 @@ export const integrationGeometry = {
   algolia: {
     ...algolia,
     markViewBox: "0 0 501 501",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280951981169 -0.945140437123 -0.0954126671704 0 1.32150508546",
+    monoInkScale: 1,
     logoViewBox: "0 0 2197 501",
     ratio: 1.8,
     alignment: "center",
@@ -2939,6 +3758,9 @@ export const integrationGeometry = {
   alipay: {
     ...alipay,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.369290818308 -1.24231793628 -0.1254129684 0 1.73702172299",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2946,6 +3768,9 @@ export const integrationGeometry = {
   amazonPay: {
     ...amazonPay,
     markViewBox: "12.8 64 613.546667 384",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.258812554841 -0.870661990698 -0.0878940096874 0 1.21736855523",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2953,6 +3778,9 @@ export const integrationGeometry = {
   amilia: {
     ...amilia,
     markViewBox: "14.506667 30.72 418.986667 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2960,6 +3788,9 @@ export const integrationGeometry = {
   android: {
     ...android,
     markViewBox: "0 0 256 150",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244207102831 -0.821528315826 -0.0829339267374 0 1.14866934539",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 82",
     ratio: 1.8,
     alignment: "center",
@@ -2967,6 +3798,9 @@ export const integrationGeometry = {
   angrycreative: {
     ...angrycreative,
     markViewBox: "0 113.705874 640 285.12119",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 113.705874 640 285.12119",
     ratio: 1.8,
     alignment: "center",
@@ -2974,6 +3808,9 @@ export const integrationGeometry = {
   angular: {
     ...angular,
     markViewBox: "0 0 242 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252917888577 -0.850831956303 -0.0858921521883 0 1.18964199707",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 125",
     ratio: 1.8,
     alignment: "center",
@@ -2981,6 +3818,9 @@ export const integrationGeometry = {
   appleAppStore: {
     ...appleAppStore,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.362002099376 -1.21779821954 -0.122937683796 0 1.70273800271",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2988,6 +3828,9 @@ export const integrationGeometry = {
   apper: {
     ...apper,
     markViewBox: "0 191.146667 640 171.52",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -2995,6 +3838,9 @@ export const integrationGeometry = {
   applePay: {
     ...applePay,
     markViewBox: "0 0 512 211",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 211",
     ratio: 1.8,
     alignment: "center",
@@ -3002,6 +3848,9 @@ export const integrationGeometry = {
   archLinux: {
     ...archLinux,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.417389095053 -1.40412361609 -0.14174737847 0 1.96326008962",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3009,6 +3858,9 @@ export const integrationGeometry = {
   artstation: {
     ...artstation,
     markViewBox: "0 1.4 24 21.2",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.499785199212 -1.68130938136 -0.169729498509 0 2.35082407908",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3016,6 +3868,9 @@ export const integrationGeometry = {
   asymmetrik: {
     ...asymmetrik,
     markViewBox: "0.853333 51.2 575.146667 409.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3023,6 +3878,9 @@ export const integrationGeometry = {
   atlassian: {
     ...atlassian,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
+    monoInkScale: 1.02,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3030,6 +3888,9 @@ export const integrationGeometry = {
   audible: {
     ...audible,
     markViewBox: "0 4.52 24 14.96",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.596875412868 -2.00792707095 -0.202701810015 0 2.80750429383",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3037,6 +3898,9 @@ export const integrationGeometry = {
   autoprefixer: {
     ...autoprefixer,
     markViewBox: "0 0 256 193",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.330289951845 -1.11111652662 -0.112168083364 0 1.55357456183",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3044,6 +3908,9 @@ export const integrationGeometry = {
   avianex: {
     ...avianex,
     markViewBox: "0 30.72 512 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3051,6 +3918,9 @@ export const integrationGeometry = {
   bandcamp: {
     ...bandcamp,
     markViewBox: "0 5.2 24 13.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.393612232451 -1.3241367293 -0.133672639619 0 1.85142160137",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3058,6 +3928,9 @@ export const integrationGeometry = {
   battleNet: {
     ...battleNet,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.403322521128 -1.35680276158 -0.136970301155 0 1.89709558386",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3065,6 +3938,9 @@ export const integrationGeometry = {
   behance: {
     ...behance,
     markViewBox: "0 0 32 31.306667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.221242332853 -0.744273360567 -0.0751349785136 0 1.04065067193",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 95",
     ratio: 1.8,
     alignment: "center",
@@ -3072,6 +3948,9 @@ export const integrationGeometry = {
   bilibili: {
     ...bilibili,
     markViewBox: "0 1.28 24 21.44",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.435788813685 -1.4660214466 -0.147996012926 0 2.04980627321",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3079,6 +3958,9 @@ export const integrationGeometry = {
   bimobject: {
     ...bimobject,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3086,6 +3968,9 @@ export const integrationGeometry = {
   bitbucket: {
     ...bitbucket,
     markViewBox: "0 0 256 231",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3093,6 +3978,9 @@ export const integrationGeometry = {
   bitcoin: {
     ...bitcoin,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.567816900966 -1.91017237804 -0.192833397224 0 2.67082267623",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3100,6 +3988,9 @@ export const integrationGeometry = {
   bity: {
     ...bity,
     markViewBox: "6.826667 0 498.346667 488.106667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3107,6 +3998,9 @@ export const integrationGeometry = {
   blackTie: {
     ...blackTie,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3114,6 +4008,9 @@ export const integrationGeometry = {
   blackberry: {
     ...blackberry,
     markViewBox: "0 3.48 24 17.04",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3121,6 +4018,9 @@ export const integrationGeometry = {
   blogger: {
     ...blogger,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.436012424179 -1.46677368661 -0.148071952143 0 2.05085806293",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3128,6 +4028,9 @@ export const integrationGeometry = {
   bluesky: {
     ...bluesky,
     markViewBox: "0 0 256 226",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.393060306514 -1.32228001514 -0.133485202871 0 1.84882552452",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3135,6 +4038,9 @@ export const integrationGeometry = {
   bluetooth: {
     ...bluetooth,
     markViewBox: "0 0 256 348",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.311320267143 -1.04730129379 -0.105725885643 0 1.46434744658",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3142,6 +4048,9 @@ export const integrationGeometry = {
   boardGameGeek: {
     ...boardGameGeek,
     markViewBox: "3.92 0 16.16 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.379494567249 -1.27664400045 -0.128878211455 0 1.78501677916",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3149,6 +4058,9 @@ export const integrationGeometry = {
   bootstrap: {
     ...bootstrap,
     markViewBox: "0 0 256 204",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.275587389054 -0.927093606076 -0.0935908254456 0 1.29627182058",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3156,6 +4068,9 @@ export const integrationGeometry = {
   brave: {
     ...brave,
     markViewBox: "0 0 256 301",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.395886975813 -1.33178911148 -0.134445153592 0 1.86212124089",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3163,6 +4078,9 @@ export const integrationGeometry = {
   buffer: {
     ...buffer,
     markViewBox: "0 0 256 262",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3170,6 +4088,9 @@ export const integrationGeometry = {
   buildAwesome: {
     ...buildAwesome,
     markViewBox: "14.506667 0 418.986667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3177,6 +4098,9 @@ export const integrationGeometry = {
   buromobelexperte: {
     ...buromobelexperte,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3184,6 +4108,9 @@ export const integrationGeometry = {
   buysellads: {
     ...buysellads,
     markViewBox: "0 7.32 24 9.36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.354760437075 -1.19343680431 -0.120478379853 0 1.66867562124",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3191,6 +4118,9 @@ export const integrationGeometry = {
   cashApp: {
     ...cashApp,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.486906960202 -1.63798616151 -0.165355985544 0 2.29024910725",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3198,6 +4128,9 @@ export const integrationGeometry = {
   americanExpress: {
     ...americanExpress,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.337423771095 -1.13511515093 -0.114590763279 0 1.5871296853",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 256",
     ratio: 1.8,
     alignment: "center",
@@ -3205,6 +4138,9 @@ export const integrationGeometry = {
   dinersClub: {
     ...dinersClub,
     markViewBox: "0 1.56 24 20.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.285718652532 -0.961175824512 -0.097031452083 0 1.34392592913",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 134",
     ratio: 1.8,
     alignment: "center",
@@ -3212,6 +4148,9 @@ export const integrationGeometry = {
   discover: {
     ...discover,
     markViewBox: "0 9.92 24 4.16",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.410307293393 -1.38029998229 -0.139342363984 0 1.92994963967",
+    monoInkScale: 1,
     logoViewBox: "0.426667 0 510.293333 86",
     ratio: 1.8,
     alignment: "center",
@@ -3219,6 +4158,9 @@ export const integrationGeometry = {
   jcb: {
     ...jcb,
     markViewBox: "0 0 256 198",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.255978642713 -0.861128529014 -0.0869315992657 0 1.20403877099",
+    monoInkScale: 1.004,
     logoViewBox: "0 0 256 198",
     ratio: 1.8,
     alignment: "center",
@@ -3226,6 +4168,9 @@ export const integrationGeometry = {
   mastercard: {
     ...mastercard,
     markViewBox: "0 0 256 158.338772",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266941290938 -0.898007578921 -0.09065456823 0 1.25560343809",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 199",
     ratio: 1.8,
     alignment: "center",
@@ -3233,6 +4178,9 @@ export const integrationGeometry = {
   paypal: {
     ...paypal,
     markViewBox: "6.96 2.88 37.6 45.12",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251910014414 -0.847441403146 -0.0855498731923 0 1.18490129075",
+    monoInkScale: 1,
     logoViewBox: "0 0 248.47619047619048 100",
     ratio: 1.8,
     alignment: "center",
@@ -3240,6 +4188,9 @@ export const integrationGeometry = {
   visa: {
     ...visa,
     markViewBox: "0 8.08 24 7.84",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.247386861341 -0.832225226861 -0.0840137882822 0 1.16362587648",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 83",
     ratio: 1.8,
     alignment: "center",
@@ -3247,6 +4198,9 @@ export const integrationGeometry = {
   centercode: {
     ...centercode,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3254,6 +4208,9 @@ export const integrationGeometry = {
   centos: {
     ...centos,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.351661168143 -1.18301066536 -0.119425852963 0 1.65409768647",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 135",
     ratio: 1.8,
     alignment: "center",
@@ -3261,6 +4218,9 @@ export const integrationGeometry = {
   chrome: {
     ...chrome,
     markViewBox: "0 0 190.5 190.5",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.336263458168 -1.13121178401 -0.114196715333 0 1.58167195751",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3268,6 +4228,9 @@ export const integrationGeometry = {
   chromecast: {
     ...chromecast,
     markViewBox: "20.48 63.146667 471.893333 385.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.4227793808 -1.42225688216 -0.143577945878 0 1.98861420884",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3275,6 +4238,9 @@ export const integrationGeometry = {
   zulip: {
     ...zulip,
     markViewBox: "0 0 773.12 773.12",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.429631778154 -1.44530878521 -0.145905053541 0 2.0208456169",
+    monoInkScale: 1,
     logoViewBox: "68.96 55.62 1742.12 450.43",
     ratio: 1.8,
     alignment: "center",
@@ -3282,6 +4248,9 @@ export const integrationGeometry = {
   cloudscale: {
     ...cloudscale,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3289,6 +4258,9 @@ export const integrationGeometry = {
   cloudsmith: {
     ...cloudsmith,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.360366288971 -1.21229524869 -0.12238215458 0 1.69504369224",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3296,6 +4268,9 @@ export const integrationGeometry = {
   cloudversify: {
     ...cloudversify,
     markViewBox: "11.093333 63.146667 617.813333 385.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3303,6 +4278,9 @@ export const integrationGeometry = {
   cmplid: {
     ...cmplid,
     markViewBox: "0 75.093333 640 361.813333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3310,6 +4288,9 @@ export const integrationGeometry = {
   codeberg: {
     ...codeberg,
     markViewBox: "0 0.68 24 22.64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.393289564366 -1.32305125322 -0.133563059959 0 1.84990387754",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3317,6 +4298,9 @@ export const integrationGeometry = {
   codepen: {
     ...codepen,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 95",
     ratio: 1.8,
     alignment: "center",
@@ -3324,6 +4308,9 @@ export const integrationGeometry = {
   codiepie: {
     ...codiepie,
     markViewBox: "18.773333 6.826667 474.453333 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3331,6 +4318,9 @@ export const integrationGeometry = {
   confluence: {
     ...confluence,
     markViewBox: "0 0 256 246",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
+    monoInkScale: 1.004,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3338,6 +4328,9 @@ export const integrationGeometry = {
   connectdevelop: {
     ...connectdevelop,
     markViewBox: "12.8 14.506667 551.253333 482.986667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3345,6 +4338,9 @@ export const integrationGeometry = {
   contao: {
     ...contao,
     markViewBox: "0 1.48 24 21.04",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.473720910724 -1.59362744755 -0.160877938637 0 2.22822629692",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3352,6 +4348,9 @@ export const integrationGeometry = {
   githubCopilot: {
     ...githubCopilot,
     markViewBox: "0 0 256 208",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3359,6 +4358,9 @@ export const integrationGeometry = {
   cottonBureau: {
     ...cottonBureau,
     markViewBox: "11.093333 6.826667 489.813333 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3366,6 +4368,9 @@ export const integrationGeometry = {
   cpanel: {
     ...cpanel,
     markViewBox: "0 0 407.66 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.450391547297 -1.51514597661 -0.152955172695 0 2.1184926966",
+    monoInkScale: 1,
     logoViewBox: "0 0 1136.12 240",
     ratio: 1.8,
     alignment: "center",
@@ -3373,6 +4378,9 @@ export const integrationGeometry = {
   creativeCommons: {
     ...creativeCommons,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.394082618291 -1.32571913736 -0.133832384951 0 1.8536341406",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3380,6 +4388,9 @@ export const integrationGeometry = {
   criticalRole: {
     ...criticalRole,
     markViewBox: "1.48 0 21.04 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3387,6 +4398,9 @@ export const integrationGeometry = {
   css: {
     ...css,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.291792478726 -0.98160856437 -0.0990941531705 0 1.37249519627",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3394,6 +4408,9 @@ export const integrationGeometry = {
   css3Legacy: {
     ...css3Legacy,
     markViewBox: "0 30.72 481.28 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3401,6 +4418,9 @@ export const integrationGeometry = {
   cuttlefish: {
     ...cuttlefish,
     markViewBox: "2.56 6.826667 433.493333 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3408,6 +4428,9 @@ export const integrationGeometry = {
   dAndD: {
     ...dAndD,
     markViewBox: "21.333333 0 534.186667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3415,6 +4438,9 @@ export const integrationGeometry = {
   dAndDBeyond: {
     ...dAndDBeyond,
     markViewBox: "0 153.6 640 204.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3422,6 +4448,9 @@ export const integrationGeometry = {
   dailymotion: {
     ...dailymotion,
     markViewBox: "1.16 0 21.68 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22127755102 -0.744391836735 -0.0751469387755 0 1.04081632653",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3429,6 +4458,9 @@ export const integrationGeometry = {
   dartLang: {
     ...dartLang,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261749340955 -0.880541527052 -0.088891356618 0 1.23118222463",
+    monoInkScale: 1.1136,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3436,6 +4468,9 @@ export const integrationGeometry = {
   dashcube: {
     ...dashcube,
     markViewBox: "17.92 0 412.16 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3443,6 +4478,9 @@ export const integrationGeometry = {
   debian: {
     ...debian,
     markViewBox: "0 0 256 317",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251198234064 -0.845046928517 -0.0853081491037 0 1.18155331169",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3450,6 +4488,9 @@ export const integrationGeometry = {
   deezer: {
     ...deezer,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.334448717617 -1.12510688071 -0.113580420564 0 1.57313601889",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3457,6 +4498,9 @@ export const integrationGeometry = {
   deliciousLegacy: {
     ...deliciousLegacy,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3464,6 +4508,9 @@ export const integrationGeometry = {
   deploydog: {
     ...deploydog,
     markViewBox: "0 63.146667 512 385.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3471,6 +4518,9 @@ export const integrationGeometry = {
   deskpro: {
     ...deskpro,
     markViewBox: "48.64 30.72 382.293333 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3478,6 +4528,9 @@ export const integrationGeometry = {
   dev: {
     ...dev,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22127755102 -0.744391836735 -0.0751469387755 0 1.04081632653",
+    monoInkScale: 1,
     logoViewBox: "0 30.72 448 450.56",
     ratio: 1.8,
     alignment: "center",
@@ -3485,6 +4538,9 @@ export const integrationGeometry = {
   deviantart: {
     ...deviantart,
     markViewBox: "0 0 256 414",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.486325160485 -1.63602895004 -0.165158403514 0 2.28751251404",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 130",
     ratio: 1.8,
     alignment: "center",
@@ -3492,6 +4548,9 @@ export const integrationGeometry = {
   devpost: {
     ...devpost,
     markViewBox: "0 1.56 24 20.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264979999296 -0.891409668375 -0.0899885039943 0 1.24637817167",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3499,6 +4558,9 @@ export const integrationGeometry = {
   diaspora: {
     ...diaspora,
     markViewBox: "0 0.32 24 23.36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3506,6 +4568,9 @@ export const integrationGeometry = {
   digg: {
     ...digg,
     markViewBox: "0 4.76 24 14.48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 94.72 512 322.56",
     ratio: 1.8,
     alignment: "center",
@@ -3513,6 +4578,9 @@ export const integrationGeometry = {
   digitalOcean: {
     ...digitalOcean,
     markViewBox: "0 0.002627 49.972353 49.997373",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.373770885128 -1.25738916766 -0.126934421008 0 1.75809447379",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 192",
     ratio: 1.8,
     alignment: "center",
@@ -3520,6 +4588,9 @@ export const integrationGeometry = {
   discourse: {
     ...discourse,
     markViewBox: "0 0 256 259",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 139",
     ratio: 1.8,
     alignment: "center",
@@ -3527,6 +4598,9 @@ export const integrationGeometry = {
   disqus: {
     ...disqus,
     markViewBox: "0 0 256 249",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.479368234526 -1.61262540608 -0.162795797426 0 2.25478943804",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3534,6 +4608,9 @@ export const integrationGeometry = {
   dochub: {
     ...dochub,
     markViewBox: "14.506667 0 402.773333 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3541,6 +4618,9 @@ export const integrationGeometry = {
   dolibarr: {
     ...dolibarr,
     markViewBox: "0.48 0 23.04 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.27468145605 -0.924045989498 -0.0932831661657 0 1.29201061171",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3548,6 +4628,9 @@ export const integrationGeometry = {
   draft2digital: {
     ...draft2digital,
     markViewBox: "15.36 30.72 481.28 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3555,6 +4638,9 @@ export const integrationGeometry = {
   dribbble: {
     ...dribbble,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.367429181792 -1.23605527195 -0.124780747532 0 1.72826520128",
+    monoInkScale: 1,
     logoViewBox: "0 0 292.8474576271186 100",
     ratio: 1.8,
     alignment: "center",
@@ -3562,6 +4648,9 @@ export const integrationGeometry = {
   drupal: {
     ...drupal,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.42793475481 -1.43959989012 -0.145328736111 0 2.01286338104",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 138",
     ratio: 1.8,
     alignment: "center",
@@ -3569,6 +4658,9 @@ export const integrationGeometry = {
   duolingo: {
     ...duolingo,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.600724685859 -2.02087627152 -0.204009041952 0 2.82560999934",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3576,6 +4668,9 @@ export const integrationGeometry = {
   dyalog: {
     ...dyalog,
     markViewBox: "14.506667 30.72 418.986667 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3583,6 +4678,9 @@ export const integrationGeometry = {
   earlybirds: {
     ...earlybirds,
     markViewBox: "14.506667 6.826667 482.986667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3590,6 +4688,9 @@ export const integrationGeometry = {
   ebay: {
     ...ebay,
     markViewBox: ".1 .1 299.8 120.125",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.322086764339 -1.08352047909 -0.109382240759 0 1.51498948419",
+    monoInkScale: 1,
     logoViewBox: ".1 .1 299.8 120.125",
     ratio: 1.8,
     alignment: "center",
@@ -3597,6 +4698,9 @@ export const integrationGeometry = {
   edge: {
     ...edge,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.25,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3604,6 +4708,9 @@ export const integrationGeometry = {
   edgeLegacy: {
     ...edgeLegacy,
     markViewBox: "0 6.826667 448 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.352827474895 -1.18693419588 -0.119821936441 0 1.65958360722",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3611,6 +4718,9 @@ export const integrationGeometry = {
   elementor: {
     ...elementor,
     markViewBox: "0 0 400 400",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.246758543217 -0.830111524502 -0.0838004083739 0 1.16067047609",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3618,6 +4728,9 @@ export const integrationGeometry = {
   eleventy: {
     ...eleventy,
     markViewBox: "0 0 256 214",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3625,6 +4738,9 @@ export const integrationGeometry = {
   elloLegacy: {
     ...elloLegacy,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3632,6 +4748,9 @@ export const integrationGeometry = {
   ember: {
     ...ember,
     markViewBox: "0 0 512 213",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.361963911104 -1.21766975175 -0.122924714872 0 1.70255837772",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 213",
     ratio: 1.8,
     alignment: "center",
@@ -3639,6 +4758,9 @@ export const integrationGeometry = {
   envira: {
     ...envira,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3646,6 +4768,9 @@ export const integrationGeometry = {
   erlang: {
     ...erlang,
     markViewBox: "0 0 256 225",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 225",
     ratio: 1.8,
     alignment: "center",
@@ -3653,6 +4778,9 @@ export const integrationGeometry = {
   ethereum: {
     ...ethereum,
     markViewBox: "0 0 256 417",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.230693617021 -0.776068085106 -0.0783446808511 0 1.08510638298",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3660,6 +4788,9 @@ export const integrationGeometry = {
   etsy: {
     ...etsy,
     markViewBox: "1.48 0 21.04 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.419782013479 -1.41217354676 -0.142560025274 0 1.97451558551",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3667,6 +4798,9 @@ export const integrationGeometry = {
   expeditedssl: {
     ...expeditedssl,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3674,6 +4808,9 @@ export const integrationGeometry = {
   facebook: {
     ...facebook,
     markViewBox: "0 0 666.667 666.667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.334776685863 -1.12621018687 -0.113691800185 0 1.57467867292",
+    monoInkScale: 1,
     logoViewBox: "0 0 390.60354954841154 100",
     ratio: 1.8,
     alignment: "center",
@@ -3681,6 +4818,9 @@ export const integrationGeometry = {
   fantasyFlightGames: {
     ...fantasyFlightGames,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3688,6 +4828,9 @@ export const integrationGeometry = {
   fedex: {
     ...fedex,
     markViewBox: "0 8.68 24 6.64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.253074207652 -0.851357823673 -0.0859452389111 0 1.19037727024",
+    monoInkScale: 1,
     logoViewBox: "0 8.68 24 6.64",
     ratio: 1.8,
     alignment: "center",
@@ -3695,6 +4838,9 @@ export const integrationGeometry = {
   fediverse: {
     ...fediverse,
     markViewBox: "64 46.933333 401.066667 401.066667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3702,6 +4848,9 @@ export const integrationGeometry = {
   fedora: {
     ...fedora,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.283001139041 -0.952033935289 -0.0961085712078 0 1.33114364554",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3709,6 +4858,9 @@ export const integrationGeometry = {
   firefox: {
     ...firefox,
     markViewBox: "0.882759 0 255.117241 265",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244667571088 -0.823077360498 -0.0830903040101 0 1.1508352356",
+    monoInkScale: 1.1539,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3716,6 +4868,9 @@ export const integrationGeometry = {
   firstdraft: {
     ...firstdraft,
     markViewBox: "0 0 384 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3723,6 +4878,9 @@ export const integrationGeometry = {
   flickr: {
     ...flickr,
     markViewBox: "0 0 256 114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.283456884625 -0.953567092587 -0.0962633446375 0 1.33328732185",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 160",
     ratio: 1.8,
     alignment: "center",
@@ -3730,6 +4888,9 @@ export const integrationGeometry = {
   flipboard: {
     ...flipboard,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.308608804058 -1.03817975852 -0.104805059515 0 1.4515936221",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3737,6 +4898,9 @@ export const integrationGeometry = {
   flutter: {
     ...flutter,
     markViewBox: "0 0 256 317",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.1435,
     logoViewBox: "0 0 512 145",
     ratio: 1.8,
     alignment: "center",
@@ -3744,6 +4908,9 @@ export const integrationGeometry = {
   fly: {
     ...fly,
     markViewBox: "0 0 256 231",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241669957999 -0.81299319831 -0.0820722999412 0 1.13673545625",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 146",
     ratio: 1.8,
     alignment: "center",
@@ -3751,6 +4918,9 @@ export const integrationGeometry = {
   fontAwesome: {
     ...fontAwesome,
     markViewBox: "0 0 256 258",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.259920393297 -0.87438883013 -0.0882702370462 0 1.22257946047",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3758,6 +4928,9 @@ export const integrationGeometry = {
   fonticons: {
     ...fonticons,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3765,6 +4938,9 @@ export const integrationGeometry = {
   forgejo: {
     ...forgejo,
     markViewBox: "4.28 0 15.44 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.583649670242 -1.9634348267 -0.198210283121 0 2.74529478006",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3772,6 +4948,9 @@ export const integrationGeometry = {
   fortAwesome: {
     ...fortAwesome,
     markViewBox: "17.066667 0 477.866667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3779,6 +4958,9 @@ export const integrationGeometry = {
   forumbee: {
     ...forumbee,
     markViewBox: "0 34.133333 448 449.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3786,6 +4968,9 @@ export const integrationGeometry = {
   foursquare: {
     ...foursquare,
     markViewBox: "2.12 0 19.76 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.286430265143 -0.963569734857 -0.0972731192067 0 1.34727311921",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3793,6 +4978,9 @@ export const integrationGeometry = {
   freeCodeCamp: {
     ...freeCodeCamp,
     markViewBox: "0 3.84 24 16.32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.222919879109 -0.749916733485 -0.0757046814285 0 1.04854129402",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3800,6 +4988,9 @@ export const integrationGeometry = {
   freebsd: {
     ...freebsd,
     markViewBox: "0 0 256 252",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2524808915 -0.849361870183 -0.0857437458434 0 1.18758650753",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3807,6 +4998,9 @@ export const integrationGeometry = {
   getPocketLegacy: {
     ...getPocketLegacy,
     markViewBox: "0 63.146667 448 401.92",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3814,6 +5008,9 @@ export const integrationGeometry = {
   gg: {
     ...gg,
     markViewBox: "0 75.946667 512 360.106667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3821,6 +5018,9 @@ export const integrationGeometry = {
   git: {
     ...git,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.362510431378 -1.21950828091 -0.12311031583 0 1.70512902812",
+    monoInkScale: 1,
     logoViewBox: "0 0.639053 255.573333 107.147929",
     ratio: 1.8,
     alignment: "center",
@@ -3828,6 +5028,9 @@ export const integrationGeometry = {
   gitee: {
     ...gitee,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.286198005752 -0.962788399407 -0.0971942427813 0 1.34618064794",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3835,6 +5038,9 @@ export const integrationGeometry = {
   gitkraken: {
     ...gitkraken,
     markViewBox: "0 0 256 224",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.364467433702 -1.22609176192 -0.123774923393 0 1.71433411901",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3842,6 +5048,9 @@ export const integrationGeometry = {
   gitlab: {
     ...gitlab,
     markViewBox: "0 0.533333 32 30.986667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.347354905179 -1.16852412128 -0.117963424995 0 1.63384245146",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 111",
     ratio: 1.8,
     alignment: "center",
@@ -3849,6 +5058,9 @@ export const integrationGeometry = {
   gitter: {
     ...gitter,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269070381264 -0.905169974976 -0.0913776177198 0 1.26561797396",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3856,6 +5068,9 @@ export const integrationGeometry = {
   glide: {
     ...glide,
     markViewBox: "0 0 100 100",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244207102831 -0.821528315826 -0.0829339267374 0 1.14866934539",
+    monoInkScale: 1,
     logoViewBox: "0 0 275.8900758563748 100",
     ratio: 1.8,
     alignment: "center",
@@ -3863,6 +5078,9 @@ export const integrationGeometry = {
   globaleaks: {
     ...globaleaks,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3870,6 +5088,9 @@ export const integrationGeometry = {
   gofore: {
     ...gofore,
     markViewBox: "23.04 30.72 401.92 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3877,6 +5098,9 @@ export const integrationGeometry = {
   golang: {
     ...golang,
     markViewBox: "0.5175 0.690265 205.62 77.137168",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 192",
     ratio: 1.8,
     alignment: "center",
@@ -3884,6 +5108,9 @@ export const integrationGeometry = {
   goodreads: {
     ...goodreads,
     markViewBox: "4.88 0 14.24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.236430322114 -0.795366728013 -0.0802928939633 0 1.11208994409",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3891,6 +5118,9 @@ export const integrationGeometry = {
   google: {
     ...google,
     markViewBox: "0 0 268.152 273.883",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.369254597888 -1.24219608847 -0.125400667768 0 1.73685135413",
+    monoInkScale: 1,
     logoViewBox: "0 0.226601 270.413333 89.507389",
     ratio: 1.8,
     alignment: "center",
@@ -3898,6 +5128,9 @@ export const integrationGeometry = {
   googlePay: {
     ...googlePay,
     markViewBox: "0 7.2 24 9.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.4227793808 -1.42225688216 -0.143577945878 0 1.98861420884",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 204",
     ratio: 1.8,
     alignment: "center",
@@ -3905,6 +5138,9 @@ export const integrationGeometry = {
   googlePlay: {
     ...googlePlay,
     markViewBox: "0 0 466 511.98",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.353163968194 -1.18806618087 -0.119936211212 0 1.66116636027",
+    monoInkScale: 1,
     logoViewBox: "0 0 162.28 32",
     ratio: 1.8,
     alignment: "center",
@@ -3912,6 +5148,9 @@ export const integrationGeometry = {
   googlePlusLegacy: {
     ...googlePlusLegacy,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.347884955979 -1.17030724608 -0.11814343284 0 1.6363356349",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3919,6 +5158,9 @@ export const integrationGeometry = {
   googleScholar: {
     ...googleScholar,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.4227793808 -1.42225688216 -0.143577945878 0 1.98861420884",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3926,6 +5168,9 @@ export const integrationGeometry = {
   googleWallet: {
     ...googleWallet,
     markViewBox: "98.625129 109.357511 315.241537 293.284977",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.353163968194 -1.18806618087 -0.119936211212 0 1.66116636027",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3933,6 +5178,9 @@ export const integrationGeometry = {
   gratipayLegacy: {
     ...gratipayLegacy,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3940,6 +5188,9 @@ export const integrationGeometry = {
   grav: {
     ...grav,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241938722959 -0.81389734083 -0.0821635738365 0 1.13799963763",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3947,6 +5198,9 @@ export const integrationGeometry = {
   gripfire: {
     ...gripfire,
     markViewBox: "0 6.826667 289.28 497.493333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3954,6 +5208,9 @@ export const integrationGeometry = {
   grunt: {
     ...grunt,
     markViewBox: "0 0 256 344",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265302107618 -0.892493261376 -0.0900978935562 0 1.24789326255",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3961,6 +5218,9 @@ export const integrationGeometry = {
   guildedLegacy: {
     ...guildedLegacy,
     markViewBox: "3.413333 63.146667 442.026667 385.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.864175293064 -2.90714096707 -0.293478156911 0 4.06479441704",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3968,6 +5228,9 @@ export const integrationGeometry = {
   gulp: {
     ...gulp,
     markViewBox: "0 0 256 566",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.356452478263 -1.1991289391 -0.121053005318 0 1.67663442269",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3975,6 +5238,9 @@ export const integrationGeometry = {
   hackerNews: {
     ...hackerNews,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.424080427671 -1.42663368707 -0.14401978776 0 1.9947339025",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3982,6 +5248,9 @@ export const integrationGeometry = {
   hackerrank: {
     ...hackerrank,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.67409652936 -2.26770384665 -0.228926478926 0 3.17072685494",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -3989,6 +5258,9 @@ export const integrationGeometry = {
   hashnode: {
     ...hashnode,
     markViewBox: "0 0 1000 1000",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.340187748648 -1.14441334823 -0.115529423577 0 1.60013052045",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 88",
     ratio: 1.8,
     alignment: "center",
@@ -3996,6 +5268,9 @@ export const integrationGeometry = {
   hips: {
     ...hips,
     markViewBox: "0 71.68 640 369.493333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 71.68 640 369.493333",
     ratio: 1.8,
     alignment: "center",
@@ -4003,6 +5278,9 @@ export const integrationGeometry = {
   hireAHelper: {
     ...hireAHelper,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4010,6 +5288,9 @@ export const integrationGeometry = {
   hive: {
     ...hive,
     markViewBox: "0 0.4 24 23.2",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.286568347605 -0.964034253092 -0.0973200126863 0 1.34792261338",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4017,6 +5298,9 @@ export const integrationGeometry = {
   hornbill: {
     ...hornbill,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4024,6 +5308,9 @@ export const integrationGeometry = {
   hotjar: {
     ...hotjar,
     markViewBox: "0 0 256 288",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.34339192399 -1.15519239905 -0.116617577197 0 1.61520190024",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4031,6 +5318,9 @@ export const integrationGeometry = {
   houzz: {
     ...houzz,
     markViewBox: "1.2 0 21.6 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.528103569202 -1.77657418953 -0.179346555486 0 2.48402431421",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4038,6 +5328,9 @@ export const integrationGeometry = {
   html5: {
     ...html5,
     markViewBox: "0 0 452 513.066667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.367557225513 -1.23648601923 -0.124824231807 0 1.72886747655",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4045,6 +5338,9 @@ export const integrationGeometry = {
   ideal: {
     ...ideal,
     markViewBox: "0 30.72 512 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265404973534 -0.892839308898 -0.0901328273245 0 1.24837710976",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4052,6 +5348,9 @@ export const integrationGeometry = {
   imdb: {
     ...imdb,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.899266493934 -3.02519001158 -0.305395300386 0 4.2298518059",
+    monoInkScale: 1,
     logoViewBox: "0 29.866667 448 451.413333",
     ratio: 1.8,
     alignment: "center",
@@ -4059,6 +5358,9 @@ export const integrationGeometry = {
   instalod: {
     ...instalod,
     markViewBox: "6.826667 30.72 499.2 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4066,6 +5368,9 @@ export const integrationGeometry = {
   intercom: {
     ...intercom,
     markViewBox: "0 0 256 263",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 130",
     ratio: 1.8,
     alignment: "center",
@@ -4073,6 +5378,9 @@ export const integrationGeometry = {
   internetArchive: {
     ...internetArchive,
     markViewBox: "1.28 0 21.44 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.354333333333 -1.192 -0.120333333333 0 1.66666666667",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4080,6 +5388,9 @@ export const integrationGeometry = {
   internetExplorerLegacy: {
     ...internetExplorerLegacy,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.349410527238 -1.17543936539 -0.118661524302 0 1.64351141693",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4087,6 +5398,9 @@ export const integrationGeometry = {
   invisionLegacy: {
     ...invisionLegacy,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.345421459674 -1.16201988692 -0.117306817443 0 1.62474816403",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4094,6 +5408,9 @@ export const integrationGeometry = {
   ioxhost: {
     ...ioxhost,
     markViewBox: "0 6.826667 640 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4101,6 +5418,9 @@ export const integrationGeometry = {
   itchIo: {
     ...itchIo,
     markViewBox: "5.973333 30.72 500.053333 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.418926938734 -1.40929702061 -0.142269637707 0 1.97049359705",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4108,6 +5428,9 @@ export const integrationGeometry = {
   itunes: {
     ...itunes,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.443167215452 -1.49084286214 -0.15050175426 0 2.08451183185",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4115,6 +5438,9 @@ export const integrationGeometry = {
   java: {
     ...java,
     markViewBox: "0 0 256 346",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.4083718758 -1.3737891137 -0.138685086702 0 1.9208460762",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4122,6 +5448,9 @@ export const integrationGeometry = {
   jenkins: {
     ...jenkins,
     markViewBox: "0 0 255.304348 351.67",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 417",
     ratio: 1.8,
     alignment: "center",
@@ -4129,6 +5458,9 @@ export const integrationGeometry = {
   jira: {
     ...jira,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4136,6 +5468,9 @@ export const integrationGeometry = {
   joget: {
     ...joget,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4143,6 +5478,9 @@ export const integrationGeometry = {
   joomla: {
     ...joomla,
     markViewBox: "0 0 256 258",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.350209106096 -1.17812583575 -0.118932725588 0 1.64726766743",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4150,6 +5488,9 @@ export const integrationGeometry = {
   js: {
     ...js,
     markViewBox: "0 0 1052 1052",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265192056712 -0.892123043088 -0.0900605197301 0 1.24737561953",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4157,6 +5498,9 @@ export const integrationGeometry = {
   jsfiddle: {
     ...jsfiddle,
     markViewBox: "0 0 256 180",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.381291381646 -1.28268859903 -0.129488418414 0 1.79346839909",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4164,6 +5508,9 @@ export const integrationGeometry = {
   julia: {
     ...julia,
     markViewBox: "8.342023 0 302.314911 200",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.328070536406 -1.10365027111 -0.111414359024 0 1.54313516654",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4171,6 +5518,9 @@ export const integrationGeometry = {
   jxl: {
     ...jxl,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4178,6 +5528,9 @@ export const integrationGeometry = {
   kaggle: {
     ...kaggle,
     markViewBox: "0 7.32 24 9.36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.577361769924 -1.9422819278 -0.196074881414 0 2.71571857914",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4185,6 +5538,9 @@ export const integrationGeometry = {
   kakaoTalk: {
     ...kakaoTalk,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -1.00077532259 -3.36667220469 -0.33986819516 0 4.70731572243",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4192,6 +5548,9 @@ export const integrationGeometry = {
   keybase: {
     ...keybase,
     markViewBox: "0.84 0 22.32 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.487025937345 -1.63838640823 -0.165396390763 0 2.29080873634",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4199,6 +5558,9 @@ export const integrationGeometry = {
   keycdn: {
     ...keycdn,
     markViewBox: "0 0 256 247",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.263546031715 -0.886585709702 -0.0895015215891 0 1.23963326301",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 149",
     ratio: 1.8,
     alignment: "center",
@@ -4206,6 +5568,9 @@ export const integrationGeometry = {
   koFi: {
     ...koFi,
     markViewBox: "0 2.64 24 18.72",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.431684407667 -1.4522139622 -0.146602136564 0 2.03050050643",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4213,6 +5578,9 @@ export const integrationGeometry = {
   korvue: {
     ...korvue,
     markViewBox: "0 32.426667 448 448.853333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4220,6 +5588,9 @@ export const integrationGeometry = {
   kubernetes: {
     ...kubernetes,
     markViewBox: "9.356634 8.19 705.256311 685.62",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.359992987796 -1.21103943966 -0.122255379675 0 1.69328780713",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4227,6 +5598,9 @@ export const integrationGeometry = {
   laravel: {
     ...laravel,
     markViewBox: "0 0 256 264",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.326009696162 -1.0967174727 -0.110714487596 0 1.53344165645",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4234,6 +5608,9 @@ export const integrationGeometry = {
   lastfm: {
     ...lastfm,
     markViewBox: "0 112.64 512 286.72",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.274124780803 -0.922173298356 -0.0930941165287 0 1.28939219569",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 131",
     ratio: 1.8,
     alignment: "center",
@@ -4241,6 +5618,9 @@ export const integrationGeometry = {
   leanpub: {
     ...leanpub,
     markViewBox: "0 3.76 24 16.48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.24811146412 -0.834662836964 -0.0842598669306 0 1.16703416801",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4248,6 +5628,9 @@ export const integrationGeometry = {
   leetcode: {
     ...leetcode,
     markViewBox: "1.76 0 20.48 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.644998179685 -2.16981513693 -0.219044537033 0 3.03385785365",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4255,6 +5638,9 @@ export const integrationGeometry = {
   less: {
     ...less,
     markViewBox: "0 7.12 24 9.76",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266403995691 -0.896200083342 -0.090472100136 0 1.25307617917",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 110",
     ratio: 1.8,
     alignment: "center",
@@ -4262,6 +5648,9 @@ export const integrationGeometry = {
   letsEncrypt: {
     ...letsEncrypt,
     markViewBox: "0 0 256 199",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.263897542739 -0.887768215273 -0.0896208964524 0 1.24128665446",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 199",
     ratio: 1.8,
     alignment: "center",
@@ -4269,6 +5658,9 @@ export const integrationGeometry = {
   letterboxd: {
     ...letterboxd,
     markViewBox: "30.416667 40.416667 98.333333 37.083333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.348890639359 -1.1736904293 -0.118484967835 0 1.6410660365",
+    monoInkScale: 1,
     logoViewBox: "31.516667 30 437.8 47.5",
     ratio: 1.8,
     alignment: "center",
@@ -4276,6 +5668,9 @@ export const integrationGeometry = {
   line: {
     ...line,
     markViewBox: "0 0.52 24 22.96",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.469230369755 -1.57852098047 -0.159352928957 0 2.20710427919",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4283,6 +5678,9 @@ export const integrationGeometry = {
   linode: {
     ...linode,
     markViewBox: "0 0 256 307",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4290,6 +5688,9 @@ export const integrationGeometry = {
   linux: {
     ...linux,
     markViewBox: "9.787546 0.491667 235.440293 282.746028",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4297,6 +5698,9 @@ export const integrationGeometry = {
   magento: {
     ...magento,
     markViewBox: "0 0 448 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.425726899645 -1.43217252411 -0.144578937697 0 2.00247836145",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4304,6 +5708,9 @@ export const integrationGeometry = {
   markdown: {
     ...markdown,
     markViewBox: "0 0 208 128",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4311,6 +5718,9 @@ export const integrationGeometry = {
   mastodon: {
     ...mastodon,
     markViewBox: "0 0 61 65",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.300339046901 -1.01035976643 -0.101996609531 0 1.41269542287",
+    monoInkScale: 1,
     logoViewBox: "0 0 403.8696178198634 100",
     ratio: 1.8,
     alignment: "center",
@@ -4318,6 +5728,9 @@ export const integrationGeometry = {
   matrix: {
     ...matrix,
     markViewBox: "0 0 520 520",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4325,6 +5738,9 @@ export const integrationGeometry = {
   mattermost: {
     ...mattermost,
     markViewBox: "0 0 501 501",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 85",
     ratio: 1.8,
     alignment: "center",
@@ -4332,6 +5748,9 @@ export const integrationGeometry = {
   maxcdnLegacy: {
     ...maxcdnLegacy,
     markViewBox: "0 68.266667 512 375.466667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.373679167902 -1.25708062504 -0.126903273389 0 1.75766306633",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4339,6 +5758,9 @@ export const integrationGeometry = {
   mdbootstrap: {
     ...mdbootstrap,
     markViewBox: "6.443377 159.659903 563.113244 193.150145",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.337098144166 -1.13401972111 -0.114480178781 0 1.58559804406",
+    monoInkScale: 1,
     logoViewBox: "6.443377 159.659903 563.113244 193.150145",
     ratio: 1.8,
     alignment: "center",
@@ -4346,6 +5768,9 @@ export const integrationGeometry = {
   medapps: {
     ...medapps,
     markViewBox: "0 0 320 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4353,6 +5778,9 @@ export const integrationGeometry = {
   medium: {
     ...medium,
     markViewBox: "0 0 256 146",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 78",
     ratio: 1.8,
     alignment: "center",
@@ -4360,6 +5788,9 @@ export const integrationGeometry = {
   medrt: {
     ...medrt,
     markViewBox: "14.506667 6.826667 546.986667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4367,6 +5798,9 @@ export const integrationGeometry = {
   meetup: {
     ...meetup,
     markViewBox: "0 0.48 24 23.04",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.301237890862 -1.01338353502 -0.102301861337 0 1.41692328722",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4374,6 +5808,9 @@ export const integrationGeometry = {
   megaport: {
     ...megaport,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4381,6 +5818,9 @@ export const integrationGeometry = {
   mendeley: {
     ...mendeley,
     markViewBox: "0 5.28 24 13.44",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266302185414 -0.895857587056 -0.0904375248677 0 1.25259729734",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4388,6 +5828,9 @@ export const integrationGeometry = {
   microblog: {
     ...microblog,
     markViewBox: "0.853333 30.72 447.146667 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.523696915952 -1.7617499261 -0.177850034486 0 2.46329687654",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4395,6 +5838,9 @@ export const integrationGeometry = {
   microsoft: {
     ...microsoft,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.376785828466 -1.26753162991 -0.127958310514 0 1.77227576889",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 110",
     ratio: 1.8,
     alignment: "center",
@@ -4402,6 +5848,9 @@ export const integrationGeometry = {
   mintbit: {
     ...mintbit,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4409,6 +5858,9 @@ export const integrationGeometry = {
   mix: {
     ...mix,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.512494493423 -1.7240642601 -0.174045636995 0 2.41060439051",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4416,6 +5868,9 @@ export const integrationGeometry = {
   mixcloud: {
     ...mixcloud,
     markViewBox: "0 8.56 24 6.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.246892946111 -0.830563664434 -0.0838460522541 0 1.1613026628",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4423,6 +5878,9 @@ export const integrationGeometry = {
   mixerLegacy: {
     ...mixerLegacy,
     markViewBox: "0 56.32 448 399.36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239522730647 -0.805769788139 -0.0813430910286 0 1.12663560981",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4430,6 +5888,9 @@ export const integrationGeometry = {
   mizuni: {
     ...mizuni,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4437,6 +5898,9 @@ export const integrationGeometry = {
   modx: {
     ...modx,
     markViewBox: "0 0 256 266",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.395614836523 -1.3308736175 -0.134352733758 0 1.86084118779",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 138.009091",
     ratio: 1.8,
     alignment: "center",
@@ -4444,6 +5908,9 @@ export const integrationGeometry = {
   monero: {
     ...monero,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302865921788 -1.0188603352 -0.102854748603 0 1.42458100559",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4451,6 +5918,9 @@ export const integrationGeometry = {
   napster: {
     ...napster,
     markViewBox: "0 0.72 24 22.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327160218167 -1.10058790232 -0.111105210497 0 1.53885333098",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4458,6 +5928,9 @@ export const integrationGeometry = {
   neos: {
     ...neos,
     markViewBox: "0 0 448 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4465,6 +5938,9 @@ export const integrationGeometry = {
   nextcloud: {
     ...nextcloud,
     markViewBox: "0 6.48 24 11.04",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.367516361403 -1.23634854974 -0.124810354155 0 1.7286752653",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4472,6 +5948,9 @@ export const integrationGeometry = {
   nimblr: {
     ...nimblr,
     markViewBox: "12.8 0 357.546667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4479,6 +5958,9 @@ export const integrationGeometry = {
   nodeJs: {
     ...nodeJs,
     markViewBox: "0 0 256 292",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.387013457986 -1.30193802987 -0.13143166353 0 1.82038315139",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 314",
     ratio: 1.8,
     alignment: "center",
@@ -4486,6 +5968,9 @@ export const integrationGeometry = {
   npm: {
     ...npm,
     markViewBox: "0 0 2500 2500",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.256169269327 -0.861769809138 -0.0869963369963 0 1.20493541546",
+    monoInkScale: 1,
     logoViewBox: "1.914667 38.39486 124.176 51.215422",
     ratio: 1.8,
     alignment: "center",
@@ -4493,6 +5978,9 @@ export const integrationGeometry = {
   ns8: {
     ...ns8,
     markViewBox: "0 124.586667 640 262.826667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 124.586667 640 262.826667",
     ratio: 1.8,
     alignment: "center",
@@ -4500,6 +5988,9 @@ export const integrationGeometry = {
   nutritionix: {
     ...nutritionix,
     markViewBox: "23.04 6.826667 401.92 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4507,6 +5998,9 @@ export const integrationGeometry = {
   obsStudio: {
     ...obsStudio,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.260191343561 -0.875300324153 -0.0883622530815 0 1.2238539208",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4514,6 +6008,9 @@ export const integrationGeometry = {
   obsidian: {
     ...obsidian,
     markViewBox: "0 0 256 332",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.3564,
     logoViewBox: "0 0 512 90",
     ratio: 1.8,
     alignment: "center",
@@ -4521,6 +6018,9 @@ export const integrationGeometry = {
   octopusDeploy: {
     ...octopusDeploy,
     markViewBox: "0 0 256 271",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.438259798255 -1.47433399676 -0.148835171373 0 2.06142896639",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4528,6 +6028,9 @@ export const integrationGeometry = {
   odnoklassniki: {
     ...odnoklassniki,
     markViewBox: "5 0 14 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.489076894764 -1.64528596018 -0.166092905936 0 2.30045576088",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4535,6 +6038,9 @@ export const integrationGeometry = {
   odysee: {
     ...odysee,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.304187693789 -1.02330686076 -0.103303628841 0 1.43079818339",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4542,6 +6048,9 @@ export const integrationGeometry = {
   opencart: {
     ...opencart,
     markViewBox: "0 24.746667 640 465.066667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 100",
     ratio: 1.8,
     alignment: "center",
@@ -4549,6 +6058,9 @@ export const integrationGeometry = {
   openid: {
     ...openid,
     markViewBox: "0 0.84 24 22.32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.554671113885 -1.86594910936 -0.188369023624 0 2.60898924687",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4556,6 +6068,9 @@ export const integrationGeometry = {
   openstreetmap: {
     ...openstreetmap,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.632290886698 -2.12706699043 -0.214729078173 0 2.9740869553",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4563,6 +6078,9 @@ export const integrationGeometry = {
   opensuse: {
     ...opensuse,
     markViewBox: "1.24 0 21.56 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.57155116792 -1.92273469095 -0.194101572549 0 2.68838743142",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4570,6 +6088,9 @@ export const integrationGeometry = {
   opera: {
     ...opera,
     markViewBox: "0 0 1000 1000",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244385000703 -0.822126775649 -0.0829943417252 0 1.14950611808",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4577,6 +6098,9 @@ export const integrationGeometry = {
   optinMonster: {
     ...optinMonster,
     markViewBox: "0 13.653333 576 484.693333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4584,6 +6108,9 @@ export const integrationGeometry = {
   orcid: {
     ...orcid,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.794192359416 -2.67171390148 -0.2697116103 0 3.7356178712",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4591,6 +6118,9 @@ export const integrationGeometry = {
   openSourceInitiative: {
     ...openSourceInitiative,
     markViewBox: "0 0 256 248",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.289322400779 -0.973299064144 -0.0982553026163 0 1.36087676754",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4598,6 +6128,9 @@ export const integrationGeometry = {
   padlet: {
     ...padlet,
     markViewBox: "0 2.36 24 19.28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.372085457555 -1.25171928148 -0.126362041559 0 1.7501667806",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4605,6 +6138,9 @@ export const integrationGeometry = {
   page4: {
     ...page4,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4612,6 +6148,9 @@ export const integrationGeometry = {
   pagelines: {
     ...pagelines,
     markViewBox: "0 9.386667 384 493.226667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4619,6 +6158,9 @@ export const integrationGeometry = {
   palfed: {
     ...palfed,
     markViewBox: "6.826667 30.72 562.346667 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4626,6 +6168,9 @@ export const integrationGeometry = {
   pandora: {
     ...pandora,
     markViewBox: "1.84 0 20.32 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.283908747844 -0.955087189359 -0.096416799597 0 1.3354127368",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4633,6 +6178,9 @@ export const integrationGeometry = {
   patreon: {
     ...patreon,
     markViewBox: "1 0 22 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4640,6 +6188,9 @@ export const integrationGeometry = {
   perbyte: {
     ...perbyte,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4647,6 +6198,9 @@ export const integrationGeometry = {
   periscopeLegacy: {
     ...periscopeLegacy,
     markViewBox: "17.066667 0 413.866667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.493071370883 -1.65872363337 -0.167449449566 0 2.31924445382",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4654,6 +6208,9 @@ export const integrationGeometry = {
   phabricatorLegacy: {
     ...phabricatorLegacy,
     markViewBox: "6.826667 63.146667 498.346667 385.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.335675065199 -1.12923239243 -0.113996894202 0 1.57890435183",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4661,6 +6218,9 @@ export const integrationGeometry = {
   phoenixFramework: {
     ...phoenixFramework,
     markViewBox: "0 3.72 24 16.52",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.374628398316 -1.26027389687 -0.127225636681 0 1.76212793187",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4668,6 +6228,9 @@ export const integrationGeometry = {
   php: {
     ...php,
     markViewBox: "0 -0.083333 95.916667 48.333333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.42112090729 -1.41667767118 -0.143014720162 0 1.98081329864",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 135",
     ratio: 1.8,
     alignment: "center",
@@ -4675,6 +6238,9 @@ export const integrationGeometry = {
   pinterest: {
     ...pinterest,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290133750626 -0.976028496932 -0.0985308409935 0 1.36469308855",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4682,6 +6248,9 @@ export const integrationGeometry = {
   pix: {
     ...pix,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.620253396274 -2.08657210261 -0.21064108754 0 2.91746658643",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4689,6 +6258,9 @@ export const integrationGeometry = {
   pixelfed: {
     ...pixelfed,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.377522597178 -1.27001016699 -0.128208520773 0 1.77574128494",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4696,6 +6268,9 @@ export const integrationGeometry = {
   pixiv: {
     ...pixiv,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.418084368011 -1.4064625588 -0.141983496568 0 1.96653042338",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4703,6 +6278,9 @@ export const integrationGeometry = {
   playstation: {
     ...playstation,
     markViewBox: "0 0 122.88 95.18",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.339238760561 -1.1412208916 -0.11520714258 0 1.59566679474",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4710,6 +6288,9 @@ export const integrationGeometry = {
   productHunt: {
     ...productHunt,
     markViewBox: "0 0 960 960",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.432500610302 -1.45495972007 -0.146879322972 0 2.03433965335",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4717,6 +6298,9 @@ export const integrationGeometry = {
   pushed: {
     ...pushed,
     markViewBox: "6.826667 30.72 434.346667 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4724,6 +6308,9 @@ export const integrationGeometry = {
   python: {
     ...python,
     markViewBox: "16 16 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.343690169775 -1.15619571695 -0.116718862925 0 1.61660474965",
+    monoInkScale: 1.004,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4731,6 +6318,9 @@ export const integrationGeometry = {
   qq: {
     ...qq,
     markViewBox: "98.986667 64 314.026667 366.933333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290182203571 -0.976191495739 -0.0985472958506 0 1.36492099516",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4738,6 +6328,9 @@ export const integrationGeometry = {
   quinscape: {
     ...quinscape,
     markViewBox: "11.093333 6.826667 491.52 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4745,6 +6338,9 @@ export const integrationGeometry = {
   quora: {
     ...quora,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297710703373 -1.00151785067 -0.101104011211 0 1.40033256526",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 142",
     ratio: 1.8,
     alignment: "center",
@@ -4752,6 +6348,9 @@ export const integrationGeometry = {
   rProject: {
     ...rProject,
     markViewBox: "0 3.573333 32 24.906667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4759,6 +6358,9 @@ export const integrationGeometry = {
   raspberryPi: {
     ...raspberryPi,
     markViewBox: "0 0 274.072 350",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273654317149 -0.920590628527 -0.0929343447702 0 1.28717929045",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4766,6 +6368,9 @@ export const integrationGeometry = {
   ravelry: {
     ...ravelry,
     markViewBox: "0 0.08 24 23.84",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.45690143409 -1.53704565222 -0.155165962095 0 2.1491130484",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4773,6 +6378,9 @@ export const integrationGeometry = {
   react: {
     ...react,
     markViewBox: "0 0 569 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.358212328007 -1.20504918622 -0.1216506589 0 1.68491217313",
+    monoInkScale: 1,
     logoViewBox: "0 0 600 180.322004",
     ratio: 1.8,
     alignment: "center",
@@ -4780,6 +6388,9 @@ export const integrationGeometry = {
   reacteurope: {
     ...reacteurope,
     markViewBox: "1.706667 0 573.44 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4787,6 +6398,9 @@ export const integrationGeometry = {
   readme: {
     ...readme,
     markViewBox: "0 3.2 24 17.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.399977866313 -1.34555112882 -0.135834440018 0 1.88136343515",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4794,6 +6408,9 @@ export const integrationGeometry = {
   redRiver: {
     ...redRiver,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4801,6 +6418,9 @@ export const integrationGeometry = {
   redhat: {
     ...redhat,
     markViewBox: "0 0 256 194",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 121",
     ratio: 1.8,
     alignment: "center",
@@ -4808,6 +6428,9 @@ export const integrationGeometry = {
   renren: {
     ...renren,
     markViewBox: "0 5.2 24 13.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.375726148843 -1.26396679987 -0.12759843813 0 1.76729138685",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4815,6 +6438,9 @@ export const integrationGeometry = {
   replyd: {
     ...replyd,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4822,6 +6448,9 @@ export const integrationGeometry = {
   researchgate: {
     ...researchgate,
     markViewBox: "0.84 0 22.32 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.567094640253 -1.9077426468 -0.192588113952 0 2.667425401",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4829,6 +6458,9 @@ export const integrationGeometry = {
   resolving: {
     ...resolving,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4836,6 +6468,9 @@ export const integrationGeometry = {
   rev: {
     ...rev,
     markViewBox: "17.92 30.72 413.013333 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4843,6 +6478,9 @@ export const integrationGeometry = {
   robloxCreatorStudio: {
     ...robloxCreatorStudio,
     markViewBox: "23.04 0 529.92 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4850,6 +6488,9 @@ export const integrationGeometry = {
   rocketchat: {
     ...rocketchat,
     markViewBox: "0 0 256 230",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.368992212184 -1.24131340618 -0.125311560299 0 1.73561717866",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 87",
     ratio: 1.8,
     alignment: "center",
@@ -4857,6 +6498,9 @@ export const integrationGeometry = {
   rockrms: {
     ...rockrms,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4864,6 +6508,9 @@ export const integrationGeometry = {
   researchOrganizationRegistry: {
     ...researchOrganizationRegistry,
     markViewBox: "0 26.453333 640 459.093333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 26.453333 640 459.093333",
     ratio: 1.8,
     alignment: "center",
@@ -4871,6 +6518,9 @@ export const integrationGeometry = {
   rust: {
     ...rust,
     markViewBox: "3.36 3.36 217.28 217.28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4878,6 +6528,9 @@ export const integrationGeometry = {
   safari: {
     ...safari,
     markViewBox: "1.533645 0 63.098543 64.378046",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.340218917911 -1.14451820362 -0.115540008811 0 1.60027713035",
+    monoInkScale: 1.0852,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4885,6 +6538,9 @@ export const integrationGeometry = {
   salesforce: {
     ...salesforce,
     markViewBox: ".5 .5 999 699.242",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.438332794308 -1.47457956016 -0.14885996119 0 2.06177231565",
+    monoInkScale: 1,
     logoViewBox: ".5 .5 999 699.242",
     ratio: 1.8,
     alignment: "center",
@@ -4892,6 +6548,9 @@ export const integrationGeometry = {
   sass: {
     ...sass,
     markViewBox: "0 0 512 384",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.422374233559 -1.42089394093 -0.143440355894 0 1.98670853038",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 384",
     ratio: 1.8,
     alignment: "center",
@@ -4899,6 +6558,9 @@ export const integrationGeometry = {
   scaleway: {
     ...scaleway,
     markViewBox: "1.8 0 20.4 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.242474796719 -0.81570072725 -0.0823456271077 0 1.14052115108",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4906,6 +6568,9 @@ export const integrationGeometry = {
   schlix: {
     ...schlix,
     markViewBox: "0 71.68 448 396.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4913,6 +6578,9 @@ export const integrationGeometry = {
   screenpal: {
     ...screenpal,
     markViewBox: "14.506667 0 482.986667 501.76",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4920,6 +6588,9 @@ export const integrationGeometry = {
   scribd: {
     ...scribd,
     markViewBox: "0 0 256 316",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.358908121692 -1.20738988069 -0.121886953839 0 1.68818495622",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 114",
     ratio: 1.8,
     alignment: "center",
@@ -4927,6 +6598,9 @@ export const integrationGeometry = {
   searchengin: {
     ...searchengin,
     markViewBox: "0 30.72 448 462.506667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4934,6 +6608,9 @@ export const integrationGeometry = {
   sellcast: {
     ...sellcast,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4941,6 +6618,9 @@ export const integrationGeometry = {
   sellsy: {
     ...sellsy,
     markViewBox: "5.12 30.72 630.613333 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4948,6 +6628,9 @@ export const integrationGeometry = {
   servicestack: {
     ...servicestack,
     markViewBox: "7.68 63.146667 497.493333 385.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4955,6 +6638,9 @@ export const integrationGeometry = {
   shirtsinbulk: {
     ...shirtsinbulk,
     markViewBox: "0 2.56 448 506.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4962,6 +6648,9 @@ export const integrationGeometry = {
   shoelace: {
     ...shoelace,
     markViewBox: "30.72 0 462.506667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4969,6 +6658,9 @@ export const integrationGeometry = {
   shopware: {
     ...shopware,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.457551588809 -1.53923281428 -0.155386757817 0 2.15217116091",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4976,6 +6668,9 @@ export const integrationGeometry = {
   signalMessenger: {
     ...signalMessenger,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.384632303069 -1.29392767241 -0.130623011672 0 1.80918298715",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4983,6 +6678,9 @@ export const integrationGeometry = {
   simplybuilt: {
     ...simplybuilt,
     markViewBox: "3.413333 63.146667 506.026667 385.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4990,6 +6688,9 @@ export const integrationGeometry = {
   sistrix: {
     ...sistrix,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -4997,6 +6698,9 @@ export const integrationGeometry = {
   sitrox: {
     ...sitrox,
     markViewBox: "0 0 448 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5004,6 +6708,9 @@ export const integrationGeometry = {
   sketch: {
     ...sketch,
     markViewBox: "0 0 256 232",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.424210508195 -1.42707128627 -0.144063963743 0 1.99534575821",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5011,6 +6718,9 @@ export const integrationGeometry = {
   skyatlas: {
     ...skyatlas,
     markViewBox: "0 67.413333 640 377.173333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5018,6 +6728,9 @@ export const integrationGeometry = {
   skypeLegacy: {
     ...skypeLegacy,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.48184193686 -1.62094709898 -0.16363587884 0 2.26642491468",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5025,6 +6738,9 @@ export const integrationGeometry = {
   slideshare: {
     ...slideshare,
     markViewBox: "0 0.16 24 23.68",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.392053491621 -1.31889302544 -0.133143283608 0 1.84408980066",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5032,6 +6748,9 @@ export const integrationGeometry = {
   snapchat: {
     ...snapchat,
     markViewBox: "147.353 39.286 514.631 514.631",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.214280632411 -0.720853754941 -0.0727707509881 0 1.00790513834",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5039,6 +6758,9 @@ export const integrationGeometry = {
   solana: {
     ...solana,
     markViewBox: "5.971612 8.9716 24.056776 18.8652",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.323378217647 -1.08786501064 -0.10982082462 0 1.5210640529",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5046,6 +6768,9 @@ export const integrationGeometry = {
   soundcloud: {
     ...soundcloud,
     markViewBox: "0 0 75 33.51",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.387249544627 -1.30273224044 -0.131511839709 0 1.82149362477",
+    monoInkScale: 1,
     logoViewBox: "0 0 168 20.03",
     ratio: 1.8,
     alignment: "center",
@@ -5053,6 +6778,9 @@ export const integrationGeometry = {
   sourcetree: {
     ...sourcetree,
     markViewBox: "0 0 256 322",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5060,6 +6788,9 @@ export const integrationGeometry = {
   spaceAwesome: {
     ...spaceAwesome,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5067,6 +6798,9 @@ export const integrationGeometry = {
   speakap: {
     ...speakap,
     markViewBox: "8.533333 30.72 432.64 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5074,6 +6808,9 @@ export const integrationGeometry = {
   speakerDeck: {
     ...speakerDeck,
     markViewBox: "0 4.44 24 15.12",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.384943103147 -1.29497322376 -0.130728560899 0 1.8106448878",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5081,6 +6818,9 @@ export const integrationGeometry = {
   spotify: {
     ...spotify,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.616597742565 -2.07427424968 -0.209399609658 0 2.90027160191",
+    monoInkScale: 1,
     logoViewBox: "0 0 559 168",
     ratio: 1.8,
     alignment: "center",
@@ -5088,6 +6828,9 @@ export const integrationGeometry = {
   threads: {
     ...threads,
     markViewBox: "12.48 0 166.08 192",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 116",
     ratio: 1.8,
     alignment: "center",
@@ -5095,6 +6838,9 @@ export const integrationGeometry = {
   tumblr: {
     ...tumblr,
     markViewBox: "0 0 256 446",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.277150391138 -0.932351645071 -0.0941216285992 0 1.30362366481",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 108",
     ratio: 1.8,
     alignment: "center",
@@ -5102,6 +6848,9 @@ export const integrationGeometry = {
   upwork: {
     ...upwork,
     markViewBox: "0 3.44 24 17.12",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.768126702013 -2.58402736256 -0.260859585538 0 3.61301365011",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 153",
     ratio: 1.8,
     alignment: "center",
@@ -5109,6 +6858,9 @@ export const integrationGeometry = {
   viadeo: {
     ...viadeo,
     markViewBox: "2.64 0 18.72 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.469007102629 -1.57776989558 -0.159277106349 0 2.20605410456",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5116,6 +6868,9 @@ export const integrationGeometry = {
   vimeo: {
     ...vimeo,
     markViewBox: "0 0 256 223",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.564584661143 -1.89929891651 -0.191735712768 0 2.65561929042",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 146",
     ratio: 1.8,
     alignment: "center",
@@ -5123,6 +6878,9 @@ export const integrationGeometry = {
   webAwesome: {
     ...webAwesome,
     markViewBox: "0 2.96 24 18.08",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.439567478509 -1.47873311679 -0.149279265985 0 2.06757986129",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5130,6 +6888,9 @@ export const integrationGeometry = {
   xing: {
     ...xing,
     markViewBox: "1.72 0 20.56 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.309208672649 -1.04019775484 -0.105008777824 0 1.45441520531",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5137,6 +6898,9 @@ export const integrationGeometry = {
   squarespace: {
     ...squarespace,
     markViewBox: "0 0 256 204",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235852668324 -0.793423463714 -0.0800967199108 0 1.10937285195",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5144,6 +6908,9 @@ export const integrationGeometry = {
   stackExchange: {
     ...stackExchange,
     markViewBox: "2.2 0 19.6 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.303955747479 -1.02252657854 -0.103224858739 0 1.42970718476",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5151,6 +6918,9 @@ export const integrationGeometry = {
   stackOverflow: {
     ...stackOverflow,
     markViewBox: "0 0 169.61 200",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.497454597507 -1.67346908813 -0.16893801477 0 2.33986170041",
+    monoInkScale: 1,
     logoViewBox: "0 0 622 124",
     ratio: 1.8,
     alignment: "center",
@@ -5158,6 +6928,9 @@ export const integrationGeometry = {
   stackpathLegacy: {
     ...stackpathLegacy,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5165,6 +6938,9 @@ export const integrationGeometry = {
   staylinked: {
     ...staylinked,
     markViewBox: "2.56 0 442.026667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5172,6 +6948,9 @@ export const integrationGeometry = {
   stickerMule: {
     ...stickerMule,
     markViewBox: "0 0 576 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 149",
     ratio: 1.8,
     alignment: "center",
@@ -5179,6 +6958,9 @@ export const integrationGeometry = {
   storybook: {
     ...storybook,
     markViewBox: "0 0 256 319",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.386118177959 -1.29892625059 -0.131127622054 0 1.81617205061",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 103",
     ratio: 1.8,
     alignment: "center",
@@ -5186,6 +6968,9 @@ export const integrationGeometry = {
   strava: {
     ...strava,
     markViewBox: "3.4 0 17.2 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.368983673325 -1.24128468091 -0.125308660461 0 1.7355770147",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5193,6 +6978,9 @@ export const integrationGeometry = {
   stubber: {
     ...stubber,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5200,6 +6988,9 @@ export const integrationGeometry = {
   studiovinari: {
     ...studiovinari,
     markViewBox: "17.92 0 477.013333 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5207,6 +6998,9 @@ export const integrationGeometry = {
   stumbleuponLegacy: {
     ...stumbleuponLegacy,
     markViewBox: "0 63.146667 504.32 386.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.360866190686 -1.21397695004 -0.122551923648 0 1.69739506437",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5214,6 +7008,9 @@ export const integrationGeometry = {
   substack: {
     ...substack,
     markViewBox: "1.4 0 21.2 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.432608980149 -1.45532428317 -0.146916125902 0 2.03484938923",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5221,6 +7018,9 @@ export const integrationGeometry = {
   superpowers: {
     ...superpowers,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5228,6 +7028,9 @@ export const integrationGeometry = {
   supple: {
     ...supple,
     markViewBox: "0 94.72 640 285.013333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 94.72 640 285.013333",
     ratio: 1.8,
     alignment: "center",
@@ -5235,6 +7038,9 @@ export const integrationGeometry = {
   supportnow: {
     ...supportnow,
     markViewBox: "0 73.386667 640 365.226667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5242,6 +7048,9 @@ export const integrationGeometry = {
   suse: {
     ...suse,
     markViewBox: "0 5.9208 24 12.1584",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.253910787216 -0.85417213084 -0.0862293454232 0 1.19431226348",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 238",
     ratio: 1.8,
     alignment: "center",
@@ -5249,6 +7058,9 @@ export const integrationGeometry = {
   svelte: {
     ...svelte,
     markViewBox: "0 0 256 308",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.346531615665 -1.16575452269 -0.117683831848 0 1.6299699702",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 125",
     ratio: 1.8,
     alignment: "center",
@@ -5256,6 +7068,9 @@ export const integrationGeometry = {
   swift: {
     ...swift,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.325770304084 -1.09591214243 -0.110633188875 0 1.53231563539",
+    monoInkScale: 1.0625,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5263,6 +7078,9 @@ export const integrationGeometry = {
   symfony: {
     ...symfony,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5270,6 +7088,9 @@ export const integrationGeometry = {
   symfonycasts: {
     ...symfonycasts,
     markViewBox: "22.186667 4.266667 530.773333 482.986667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5277,6 +7098,9 @@ export const integrationGeometry = {
   tailwindCss: {
     ...tailwindCss,
     markViewBox: "0 0 54 32.505",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.602259598294 -2.02603981514 -0.204530305723 0 2.83282971916",
+    monoInkScale: 1,
     logoViewBox: "0 0 261.563333 32.781457",
     ratio: 1.8,
     alignment: "center",
@@ -5284,6 +7108,9 @@ export const integrationGeometry = {
   teamspeak: {
     ...teamspeak,
     markViewBox: "0 0.56 24 22.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.359458316149 -1.20924077004 -0.122073802568 0 1.69077288876",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5291,6 +7118,9 @@ export const integrationGeometry = {
   tencentWeiboLegacy: {
     ...tencentWeiboLegacy,
     markViewBox: "0 0 320 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.541771347368 -1.8225534696 -0.183988199812 0 2.54831301678",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5298,6 +7128,9 @@ export const integrationGeometry = {
   tex: {
     ...tex,
     markViewBox: "1.706667 85.333333 634.88 341.333333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "1.706667 85.333333 634.88 341.333333",
     ratio: 1.8,
     alignment: "center",
@@ -5305,6 +7138,9 @@ export const integrationGeometry = {
   theRedYeti: {
     ...theRedYeti,
     markViewBox: "3.413333 0 506.88 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5312,6 +7148,9 @@ export const integrationGeometry = {
   themeco: {
     ...themeco,
     markViewBox: "0 2.56 448 506.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5319,6 +7158,9 @@ export const integrationGeometry = {
   themeisle: {
     ...themeisle,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5326,6 +7168,9 @@ export const integrationGeometry = {
   thinkPeaks: {
     ...thinkPeaks,
     markViewBox: "22.186667 0 531.626667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5333,6 +7178,9 @@ export const integrationGeometry = {
   threema: {
     ...threema,
     markViewBox: "1.64 0 20.72 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.779715572738 -2.62301306501 -0.264795222727 0 3.66752386048",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5340,6 +7188,9 @@ export const integrationGeometry = {
   tidal: {
     ...tidal,
     markViewBox: "0 0 1001.000000 667.000000",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 753.000000 100.000000",
     ratio: 1.8,
     alignment: "center",
@@ -5347,6 +7198,9 @@ export const integrationGeometry = {
   tiktok: {
     ...tiktok,
     markViewBox: "0 0 352.28 398.67",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 1851.6 449.5",
     ratio: 1.8,
     alignment: "center",
@@ -5354,6 +7208,9 @@ export const integrationGeometry = {
   torBrowser: {
     ...torBrowser,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.323878972391 -1.08954958163 -0.10999088338 0 1.5234194374",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5361,6 +7218,9 @@ export const integrationGeometry = {
   typescript: {
     ...typescript,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.37527256114 -1.26244090182 -0.127444397527 0 1.76515786049",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 128",
     ratio: 1.8,
     alignment: "center",
@@ -5368,6 +7228,9 @@ export const integrationGeometry = {
   typo3: {
     ...typo3,
     markViewBox: "0 0 256 260",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.569880921346 -1.91711587463 -0.193534348641 0 2.68053114462",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 137",
     ratio: 1.8,
     alignment: "center",
@@ -5375,6 +7238,9 @@ export const integrationGeometry = {
   ubuntu: {
     ...ubuntu,
     markViewBox: "4.833333 4.833333 90.333333 90.333333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.378907860802 -1.27467028244 -0.128678963076 0 1.78225710631",
+    monoInkScale: 1.2086,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5382,6 +7248,9 @@ export const integrationGeometry = {
   uikit: {
     ...uikit,
     markViewBox: "0 0 256 297",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.441709903662 -1.48594037206 -0.150006844047 0 2.07765711976",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5389,6 +7258,9 @@ export const integrationGeometry = {
   ultralytics: {
     ...ultralytics,
     markViewBox: "0 1.6 24 20.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244526755728 -0.822603648619 -0.0830424824249 0 1.15017288677",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5396,6 +7268,9 @@ export const integrationGeometry = {
   ultralyticsHub: {
     ...ultralyticsHub,
     markViewBox: "18.773333 14.506667 473.6 482.986667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5403,6 +7278,9 @@ export const integrationGeometry = {
   ultralyticsYolo: {
     ...ultralyticsYolo,
     markViewBox: "14.506667 9.386667 482.986667 493.226667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5410,6 +7288,9 @@ export const integrationGeometry = {
   umbraco: {
     ...umbraco,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297352116508 -1.00031154152 -0.100982233358 0 1.39864589138",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5417,6 +7298,9 @@ export const integrationGeometry = {
   uncharted: {
     ...uncharted,
     markViewBox: "11.093333 30.72 425.813333 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5424,6 +7308,9 @@ export const integrationGeometry = {
   uniregistryLegacy: {
     ...uniregistryLegacy,
     markViewBox: "0 30.72 384 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5431,6 +7318,9 @@ export const integrationGeometry = {
   unison: {
     ...unison,
     markViewBox: "11.946667 0 490.666667 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5438,6 +7328,9 @@ export const integrationGeometry = {
   unity: {
     ...unity,
     markViewBox: "0 0 256 263",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.255322094948 -0.858919860332 -0.0867086324328 0 1.20095058771",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5445,6 +7338,9 @@ export const integrationGeometry = {
   unrealEngine: {
     ...unrealEngine,
     markViewBox: "4.266667 4.266667 247.466667 247.466667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5452,6 +7348,9 @@ export const integrationGeometry = {
   unsplash: {
     ...unsplash,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5459,6 +7358,9 @@ export const integrationGeometry = {
   untappd: {
     ...untappd,
     markViewBox: "0 1.92 24 20.16",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.854170408675 -2.87348389597 -0.29008044923 0 4.01773475388",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5466,6 +7368,9 @@ export const integrationGeometry = {
   ups: {
     ...ups,
     markViewBox: "1.84 0 20.32 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.218888008702 -0.736353263516 -0.0743354385149 0 1.02957671073",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5473,6 +7378,9 @@ export const integrationGeometry = {
   usps: {
     ...usps,
     markViewBox: "0 4.52 24 14.96",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270634961047 -0.910433321452 -0.0919089566679 0 1.27297723917",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5480,6 +7388,9 @@ export const integrationGeometry = {
   ussunnah: {
     ...ussunnah,
     markViewBox: "13.653333 25.6 484.693333 484.693333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5487,6 +7398,9 @@ export const integrationGeometry = {
   vaadin: {
     ...vaadin,
     markViewBox: "0 0.48 24 23.04",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.49765917603 -1.67415730337 -0.169007490637 0 2.34082397004",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5494,6 +7408,9 @@ export const integrationGeometry = {
   venmo: {
     ...venmo,
     markViewBox: "0 9.68 24 4.64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.397278343263 -1.33646976059 -0.134917668784 0 1.86866577264",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5501,6 +7418,9 @@ export const integrationGeometry = {
   viacoin: {
     ...viacoin,
     markViewBox: "0 30.72 384 449.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.30456741573 -1.02458426966 -0.10343258427 0 1.43258426966",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5508,6 +7428,9 @@ export const integrationGeometry = {
   viber: {
     ...viber,
     markViewBox: "0.56 0 22.88 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.375385855363 -1.26282203084 -0.1274828728 0 1.765690759",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5515,6 +7438,9 @@ export const integrationGeometry = {
   vim: {
     ...vim,
     markViewBox: "0 0 256 257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.288064247366 -0.969066555578 -0.0978280275625 0 1.35495883051",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5522,6 +7448,9 @@ export const integrationGeometry = {
   vineLegacy: {
     ...vineLegacy,
     markViewBox: "0 35.84 384 440.32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.465568234906 -1.56620132458 -0.158109250048 0 2.18987880953",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5529,6 +7458,9 @@ export const integrationGeometry = {
   visualStudio: {
     ...visualStudio,
     markViewBox: "8.041667 8.041667 176.916667 176.916667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.306682144178 -1.03169835144 -0.104150756396 0 1.44253125202",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5536,6 +7468,9 @@ export const integrationGeometry = {
   vk: {
     ...vk,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.357888357686 -1.20395932934 -0.121540636994 0 1.68338832402",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5543,6 +7478,9 @@ export const integrationGeometry = {
   vnv: {
     ...vnv,
     markViewBox: "0 191.146667 640 162.133333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 191.146667 640 162.133333",
     ratio: 1.8,
     alignment: "center",
@@ -5550,6 +7488,9 @@ export const integrationGeometry = {
   vsco: {
     ...vsco,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5557,6 +7498,9 @@ export const integrationGeometry = {
   vuejs: {
     ...vuejs,
     markViewBox: "0 0 256 221",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.293462339189 -0.987226081788 -0.0996612459523 0 1.38034966693",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5564,6 +7508,9 @@ export const integrationGeometry = {
   w3c: {
     ...w3c,
     markViewBox: "0 94.72 640 345.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302243199486 -1.01676545754 -0.102643269064 0 1.42165192609",
+    monoInkScale: 1,
     logoViewBox: "0 0.685 255.543265 136.315",
     ratio: 1.8,
     alignment: "center",
@@ -5571,6 +7518,9 @@ export const integrationGeometry = {
   watchmanMonitoring: {
     ...watchmanMonitoring,
     markViewBox: "14.506667 14.506667 482.986667 482.986667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5578,6 +7528,9 @@ export const integrationGeometry = {
   waze: {
     ...waze,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.678972917731 -2.28410832908 -0.230582524272 0 3.19366377108",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5585,6 +7538,9 @@ export const integrationGeometry = {
   webflow: {
     ...webflow,
     markViewBox: "0 4.4904 24 15.0192",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.351150032062 -1.18129117089 -0.11925226865 0 1.6516934716",
+    monoInkScale: 1,
     logoViewBox: "0 0 1080 181",
     ratio: 1.8,
     alignment: "center",
@@ -5592,6 +7548,9 @@ export const integrationGeometry = {
   weebly: {
     ...weebly,
     markViewBox: "0 0 256 197",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.439024271735 -1.47690573445 -0.149094790307 0 2.06502479649",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5599,6 +7558,9 @@ export const integrationGeometry = {
   weibo: {
     ...weibo,
     markViewBox: "0 30.72 512 417.28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5606,6 +7568,9 @@ export const integrationGeometry = {
   wechat: {
     ...wechat,
     markViewBox: "0 2.12 24 19.76",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.499442637751 -1.68015698269 -0.169613162962 0 2.3492127834",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5613,6 +7578,9 @@ export const integrationGeometry = {
   whmcs: {
     ...whmcs,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5620,6 +7588,9 @@ export const integrationGeometry = {
   wikipedia: {
     ...wikipedia,
     markViewBox: "0 4.32 24 15.36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5627,6 +7598,9 @@ export const integrationGeometry = {
   windows: {
     ...windows,
     markViewBox: "0 0 87.56 87.853333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.475491735269 -1.5995846146 -0.161479319315 0 2.23655566919",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 109",
     ratio: 1.8,
     alignment: "center",
@@ -5634,6 +7608,9 @@ export const integrationGeometry = {
   wirsindhandwerk: {
     ...wirsindhandwerk,
     markViewBox: "17.92 30.72 413.866667 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5641,6 +7618,9 @@ export const integrationGeometry = {
   wix: {
     ...wix,
     markViewBox: "0 7.32 24 9.36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 7.32 24 9.36",
     ratio: 1.8,
     alignment: "center",
@@ -5648,6 +7628,9 @@ export const integrationGeometry = {
   wizardsOfTheCoast: {
     ...wizardsOfTheCoast,
     markViewBox: "0 65.706667 640 380.586667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5655,6 +7638,9 @@ export const integrationGeometry = {
   wodu: {
     ...wodu,
     markViewBox: "0 168.319359 640 175.361281",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 168.319359 640 175.361281",
     ratio: 1.8,
     alignment: "center",
@@ -5662,6 +7648,9 @@ export const integrationGeometry = {
   wordpress: {
     ...wordpress,
     markViewBox: "0 0 122.52 122.523",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.354067666875 -1.19110628104 -0.120243111704 0 1.66541705962",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 117",
     ratio: 1.8,
     alignment: "center",
@@ -5669,6 +7658,9 @@ export const integrationGeometry = {
   wpbeginner: {
     ...wpbeginner,
     markViewBox: "22.186667 30.72 468.48 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5676,6 +7668,9 @@ export const integrationGeometry = {
   wpexplorer: {
     ...wpexplorer,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.340187748648 -1.14441334823 -0.115529423577 0 1.60013052045",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5683,6 +7678,9 @@ export const integrationGeometry = {
   wpforms: {
     ...wpforms,
     markViewBox: "0 30.72 448 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5690,6 +7688,9 @@ export const integrationGeometry = {
   wpressr: {
     ...wpressr,
     markViewBox: "6.826667 6.826667 498.346667 498.346667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5697,6 +7698,9 @@ export const integrationGeometry = {
   xbox: {
     ...xbox,
     markViewBox: "0.733333 0.733333 86.533333 86.533333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.335147973768 -1.12745922314 -0.113817891374 0 1.57642508828",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5704,6 +7708,9 @@ export const integrationGeometry = {
   xmpp: {
     ...xmpp,
     markViewBox: "0 3.24 24 17.52",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.249136045293 -0.838109593574 -0.0846078197092 0 1.17185345858",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5711,6 +7718,9 @@ export const integrationGeometry = {
   xrp: {
     ...xrp,
     markViewBox: "4.266667 46.933333 504.32 418.133333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5718,6 +7728,9 @@ export const integrationGeometry = {
   xrpl: {
     ...xrpl,
     markViewBox: "22.186667 30.72 595.626667 449.706667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5725,6 +7738,9 @@ export const integrationGeometry = {
   yCombinator: {
     ...yCombinator,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.426081571125 -1.43336566166 -0.144699385867 0 2.00414661865",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5732,6 +7748,9 @@ export const integrationGeometry = {
   yahoo: {
     ...yahoo,
     markViewBox: "13.653333 30.72 486.4 450.56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.247872556389 -0.833859136074 -0.0841787326965 0 1.16591042516",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 143",
     ratio: 1.8,
     alignment: "center",
@@ -5739,6 +7758,9 @@ export const integrationGeometry = {
   yammerLegacy: {
     ...yammerLegacy,
     markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.34059467895 -1.1457822878 -0.115667619098 0 1.60204458584",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5746,6 +7768,9 @@ export const integrationGeometry = {
   yandex: {
     ...yandex,
     markViewBox: "0 0 256 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.351408603168 -1.18216102063 -0.119340080662 0 1.65290970446",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 201",
     ratio: 1.8,
     alignment: "center",
@@ -5753,6 +7778,9 @@ export const integrationGeometry = {
   yarn: {
     ...yarn,
     markViewBox: "0 0 518 518",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.415152336625 -1.39659901766 -0.140987764366 0 1.95273911865",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5760,6 +7788,9 @@ export const integrationGeometry = {
   yelp: {
     ...yelp,
     markViewBox: "1.36 0 21.28 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.300657850224 -1.01143224121 -0.102104876699 0 1.41419496813",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5767,6 +7798,9 @@ export const integrationGeometry = {
   yoast: {
     ...yoast,
     markViewBox: "1.6 0 20.8 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.28432685762 -0.956493737393 -0.0965587917223 0 1.33737938674",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5774,6 +7808,9 @@ export const integrationGeometry = {
   youtubeShorts: {
     ...youtubeShorts,
     markViewBox: "2.32 0 19.36 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5781,6 +7818,9 @@ export const integrationGeometry = {
   zhihu: {
     ...zhihu,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.381291381646 -1.28268859903 -0.129488418414 0 1.79346839909",
+    monoInkScale: 1,
     logoViewBox: "0 110.08 640 291.84",
     ratio: 1.8,
     alignment: "center",
@@ -5788,6 +7828,9 @@ export const integrationGeometry = {
   cloudflareBrand: {
     ...cloudflareBrand,
     markViewBox: "0 0 256 116",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.499076653416 -1.67892578797 -0.169488872891 0 2.34749131428",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 76",
     ratio: 1.8,
     alignment: "center",
@@ -5795,6 +7838,9 @@ export const integrationGeometry = {
   genericApp: {
     ...genericApp,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 2,
     alignment: "center",
@@ -5802,6 +7848,9 @@ export const integrationGeometry = {
   rockstarGames: {
     ...rockstarGames,
     markViewBox: "0 0 216 198.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.21518919009 -0.723910201094 -0.0730793016205 0 1.0121786928",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5809,6 +7858,9 @@ export const integrationGeometry = {
   takeTwoInteractive: {
     ...takeTwoInteractive,
     markViewBox: "0 2.82514 24 18.34971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 500 420.014",
     ratio: 1.8,
     alignment: "center",
@@ -5816,6 +7868,9 @@ export const integrationGeometry = {
   sonos: {
     ...sonos,
     markViewBox: "2.13171 2.49754 511.02166 101.88492",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "2.13171 2.49754 511.02166 101.88492",
     ratio: 1.8,
     alignment: "center",
@@ -5823,6 +7878,9 @@ export const integrationGeometry = {
   qonto: {
     ...qonto,
     markViewBox: "0 0 85 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239727360041 -0.806458174512 -0.0814125841719 0 1.12759811872",
+    monoInkScale: 1,
     logoViewBox: "0 0 85 24",
     ratio: 1.8,
     alignment: "center",
@@ -5830,6 +7888,9 @@ export const integrationGeometry = {
   wise: {
     ...wise,
     markViewBox: "0 0.56229 24 22.87543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -1.14897486002 -3.8652249289 -0.390197483034 0 5.40439727195",
+    monoInkScale: 1,
     logoViewBox: "0 0 87.89945 20",
     ratio: 1.8,
     alignment: "center",
@@ -5837,6 +7898,9 @@ export const integrationGeometry = {
   n26: {
     ...n26,
     markViewBox: "0 0 46 31.4809",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 46 31.4809",
     ratio: 1.8,
     alignment: "center",
@@ -5844,6 +7908,9 @@ export const integrationGeometry = {
   hsbc: {
     ...hsbc,
     markViewBox: "0 5.97601 24 12.04799",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261629085406 -0.88013697969 -0.088850517245 0 1.23061658234",
+    monoInkScale: 1,
     logoViewBox: "0 0 315.9 85",
     ratio: 1.8,
     alignment: "center",
@@ -5851,6 +7918,9 @@ export const integrationGeometry = {
   jPMorgan: {
     ...jPMorgan,
     markViewBox: "0.88 0.88 138.24 28.24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276018145623 -0.928542698729 -0.0937371124835 0 1.29829795684",
+    monoInkScale: 1,
     logoViewBox: "0.88 0.88 138.24 28.24",
     ratio: 1.8,
     alignment: "center",
@@ -5858,6 +7928,9 @@ export const integrationGeometry = {
   palace: {
     ...palace,
     markViewBox: "0 0 139.3 121.7",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 88 20",
     ratio: 1.8,
     alignment: "center",
@@ -5865,6 +7938,9 @@ export const integrationGeometry = {
   stockx: {
     ...stockx,
     markViewBox: "1.47086 0 21.05829 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.301897152378 -1.01560133293 -0.102525749773 0 1.42002423508",
+    monoInkScale: 1,
     logoViewBox: "0 0 201 40",
     ratio: 1.8,
     alignment: "center",
@@ -5872,6 +7948,9 @@ export const integrationGeometry = {
   bookingCom: {
     ...bookingCom,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267851319864 -0.901068974445 -0.0909636185052 0 1.25988391281",
+    monoInkScale: 1,
     logoViewBox: "0.15249 0.15219 118.29453 19.81848",
     ratio: 1.8,
     alignment: "center",
@@ -5879,6 +7958,9 @@ export const integrationGeometry = {
   bbc: {
     ...bbc,
     markViewBox: "0 0 112 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 112 32",
     ratio: 1.8,
     alignment: "center",
@@ -5886,6 +7968,9 @@ export const integrationGeometry = {
   zdf: {
     ...zdf,
     markViewBox: "0 4.96458 24 14.07085",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.489972434362 -1.64829861268 -0.166397035564 0 2.30466808261",
+    monoInkScale: 1,
     logoViewBox: "0 4.96458 24 14.07085",
     ratio: 1.8,
     alignment: "center",
@@ -5893,6 +7978,9 @@ export const integrationGeometry = {
   deutscheWelle: {
     ...deutscheWelle,
     markViewBox: "0 5.15657 24 13.68686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.499949279305 -1.68186135729 -0.169785220912 0 2.3515958575",
+    monoInkScale: 1,
     logoViewBox: "0 0 742.89203 199.56",
     ratio: 1.8,
     alignment: "center",
@@ -5900,6 +7988,9 @@ export const integrationGeometry = {
   theNewYorkTimes: {
     ...theNewYorkTimes,
     markViewBox: "2.70514 0 18.58971 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0.2381 184.02307 24.52381",
     ratio: 1.8,
     alignment: "center",
@@ -5907,6 +7998,9 @@ export const integrationGeometry = {
   theWashingtonPost: {
     ...theWashingtonPost,
     markViewBox: "0 1.81371 24 20.37257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
     logoViewBox: "0.26457 0.5945 462.73543 71.4055",
     ratio: 1.8,
     alignment: "center",
@@ -5914,6 +8008,9 @@ export const integrationGeometry = {
   theTelegraph: {
     ...theTelegraph,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5921,6 +8018,9 @@ export const integrationGeometry = {
   theGuardian: {
     ...theGuardian,
     markViewBox: "0 -0.2591 300 97.2591",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 295 97",
     ratio: 1.8,
     alignment: "center",
@@ -5928,6 +8028,9 @@ export const integrationGeometry = {
   dailyMail: {
     ...dailyMail,
     markViewBox: "0 0 29.61857 22",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 157.95306",
     ratio: 1.8,
     alignment: "center",
@@ -5935,6 +8038,9 @@ export const integrationGeometry = {
   xero: {
     ...xero,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.57421239493 -1.93168722885 -0.195005338259 0 2.70090496204",
+    monoInkScale: 1,
     logoViewBox: "0 0 256 256",
     ratio: 1.8,
     alignment: "center",
@@ -5942,6 +8048,9 @@ export const integrationGeometry = {
   namecheap: {
     ...namecheap,
     markViewBox: "0 0 256 142",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.294851239166 -0.991898430158 -0.100132923179 0 1.3868825925",
+    monoInkScale: 1.0625,
     logoViewBox: "0 0 258 46.85255",
     ratio: 1.8,
     alignment: "center",
@@ -5949,6 +8058,9 @@ export const integrationGeometry = {
   godaddy: {
     ...godaddy,
     markViewBox: "0 1.296 24 21.408",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.705722006998 -2.37409397651 -0.239666645839 0 3.31948262934",
+    monoInkScale: 1,
     logoViewBox: "0 0 1024.219 210.087",
     ratio: 1.8,
     alignment: "center",
@@ -5956,6 +8068,9 @@ export const integrationGeometry = {
   adobe: {
     ...adobe,
     markViewBox: "0 0 90.50625 80",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280031901519 -0.94204523032 -0.0951002036201 0 1.31717733546",
+    monoInkScale: 1,
     logoViewBox: "0 0.03785 66.25 16.67429",
     ratio: 1.8,
     alignment: "center",
@@ -5963,6 +8078,9 @@ export const integrationGeometry = {
   starbucks: {
     ...starbucks,
     markViewBox: "0 0.06514 24 23.86971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.300820009611 -1.01197775575 -0.10215994682 0 1.41495771219",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -5970,6 +8088,9 @@ export const integrationGeometry = {
   hugoBoss: {
     ...hugoBoss,
     markViewBox: "5.11694 9.06045 36.38406 18.49635",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "7.75286 4.15723 994.51929 119.84277",
     ratio: 1.8,
     alignment: "center",
@@ -5977,6 +8098,9 @@ export const integrationGeometry = {
   postmates: {
     ...postmates,
     markViewBox: "0 3.38743 24 17.22171",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -1.37024006309 -4.60957522634 -0.465340228386 0 6.44515551781",
+    monoInkScale: 1,
     logoViewBox: "0.26093 0.19569 75.59455 14.40298",
     ratio: 1.8,
     alignment: "center",
@@ -5984,6 +8108,9 @@ export const integrationGeometry = {
   plex: {
     ...plex,
     markViewBox: "0 0 104.265 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 460.89727",
     ratio: 1.8,
     alignment: "center",
@@ -5991,6 +8118,9 @@ export const integrationGeometry = {
   appleTv: {
     ...appleTv,
     markViewBox: "0 6.09943 24 11.80114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 6.09943 24 11.80114",
     ratio: 1.8,
     alignment: "center",
@@ -5998,6 +8128,9 @@ export const integrationGeometry = {
   disney: {
     ...disney,
     markViewBox: "10.60371 16.3202 508.68745 276.31377",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.229144212115 -0.770855787885 -0.0778184953654 0 1.07781849537",
+    monoInkScale: 1,
     logoViewBox: "0 0 1033 565",
     ratio: 1.8,
     alignment: "center",
@@ -6005,6 +8138,9 @@ export const integrationGeometry = {
   formula1: {
     ...formula1,
     markViewBox: "0.328 61.47657 163.344 41.04686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267225240519 -0.898962803477 -0.0907509988969 0 1.25693904289",
+    monoInkScale: 1,
     logoViewBox: "0.328 61.47657 163.344 41.04686",
     ratio: 1.8,
     alignment: "center",
@@ -6012,6 +8148,9 @@ export const integrationGeometry = {
   sony: {
     ...sony,
     markViewBox: "0 9.86745 24 4.2651",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 1280 225.27997",
     ratio: 1.8,
     alignment: "center",
@@ -6019,6 +8158,9 @@ export const integrationGeometry = {
   lg: {
     ...lg,
     markViewBox: "0 6.68229 24 10.63543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.250792675649 -0.843682604066 -0.085170419482 0 1.1796456992",
+    monoInkScale: 1,
     logoViewBox: "0 0 5076.06 757.29",
     ratio: 1.8,
     alignment: "center",
@@ -6026,6 +8168,9 @@ export const integrationGeometry = {
   samsung: {
     ...samsung,
     markViewBox: "0 0 512 79",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.257436321158 -0.86603225255 -0.0874266339962 0 1.2108952077",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 79",
     ratio: 1.8,
     alignment: "center",
@@ -6033,6 +8178,9 @@ export const integrationGeometry = {
   nasa: {
     ...nasa,
     markViewBox: "4.3619 4.7544 98.2681 80.5047",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261030969531 -0.878124879627 -0.0886473941682 0 1.22780324333",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6040,6 +8188,9 @@ export const integrationGeometry = {
   phaidon: {
     ...phaidon,
     markViewBox: "0 0.74097 178.642 27.90132",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
     logoViewBox: "0 0.74097 178.642 27.90132",
     ratio: 1.8,
     alignment: "center",
@@ -6047,6 +8198,9 @@ export const integrationGeometry = {
   penguinBooks: {
     ...penguinBooks,
     markViewBox: "0 0.46143 66.87781 94.21286",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.238747852005 -0.803163046819 -0.0810799384513 0 1.12299083728",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6054,6 +8208,9 @@ export const integrationGeometry = {
   fortnumMason: {
     ...fortnumMason,
     markViewBox: "0.19974 0.2 348.90084 42.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0.19974 0.2 348.90084 42.8",
     ratio: 1.8,
     alignment: "center",
@@ -6061,6 +8218,9 @@ export const integrationGeometry = {
   walmart: {
     ...walmart,
     markViewBox: "0 0 532.262 600",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.90766778619 -3.05345249616 -0.308248420334 0 4.26936870268",
+    monoInkScale: 1,
     logoViewBox: "0 5.46148 547.15071 102.26431",
     ratio: 1.8,
     alignment: "center",
@@ -6068,6 +8228,9 @@ export const integrationGeometry = {
   nespresso: {
     ...nespresso,
     markViewBox: "0 0 130.36529 23.92558",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "56.46964 21.36671 656.83624 401.67209",
     ratio: 1.8,
     alignment: "center",
@@ -6075,6 +8238,9 @@ export const integrationGeometry = {
   philipsHue: {
     ...philipsHue,
     markViewBox: "5 15 38 18",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802",
+    monoInkScale: 1.008,
     logoViewBox: "5 15 38 18",
     ratio: 1.8,
     alignment: "center",
@@ -6082,6 +8248,9 @@ export const integrationGeometry = {
   verizon: {
     ...verizon,
     markViewBox: "1.98172 0 20.03656 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.260937996361 -0.877812111936 -0.0886158200248 0 1.22736592832",
+    monoInkScale: 1,
     logoViewBox: "0 0 530.95636 119.0268",
     ratio: 1.8,
     alignment: "center",
@@ -6089,6 +8258,9 @@ export const integrationGeometry = {
   atT: {
     ...atT,
     markViewBox: "0 0.04458 24 23.91085",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.432074560418 -1.45352646101 -0.146734634347 0 2.03233565577",
+    monoInkScale: 1,
     logoViewBox: "-0.082 -42.217 1000.265 411.08",
     ratio: 1.8,
     alignment: "center",
@@ -6096,6 +8268,9 @@ export const integrationGeometry = {
   three: {
     ...three,
     markViewBox: "9.55296 6.07763 24.91229 31.81331",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "9.55296 6.07763 24.91229 31.81331",
     ratio: 1.8,
     alignment: "center",
@@ -6103,6 +8278,9 @@ export const integrationGeometry = {
   nanoleaf: {
     ...nanoleaf,
     markViewBox: "1.22743 0 45.68913 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.460965107697 -1.55071611018 -0.15654600553 0 2.16822722341",
+    monoInkScale: 1,
     logoViewBox: "0 0 461 75",
     ratio: 1.8,
     alignment: "center",
@@ -6110,6 +8288,9 @@ export const integrationGeometry = {
   netgear: {
     ...netgear,
     markViewBox: "0 0 164.36413 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 164.36413 24",
     ratio: 1.8,
     alignment: "center",
@@ -6117,6 +8298,9 @@ export const integrationGeometry = {
   barrys: {
     ...barrys,
     markViewBox: "0 0 79 12.16348",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 228.54 46.66",
     ratio: 1.8,
     alignment: "center",
@@ -6124,6 +8308,9 @@ export const integrationGeometry = {
   nhs: {
     ...nhs,
     markViewBox: "0 91.62714 310 126.74571",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.310700432813 -1.04521613146 -0.105515386873 0 1.46143195114",
+    monoInkScale: 1,
     logoViewBox: "0 91.62714 310 126.74571",
     ratio: 1.8,
     alignment: "center",
@@ -6131,6 +8318,9 @@ export const integrationGeometry = {
   oura: {
     ...oura,
     markViewBox: "0 0 992.43257 309.72192",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 992.43257 309.72192",
     ratio: 1.8,
     alignment: "center",
@@ -6138,6 +8328,9 @@ export const integrationGeometry = {
   jetblue: {
     ...jetblue,
     markViewBox: "0 0 43.84 14.36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 581.12411 196.061",
     ratio: 1.8,
     alignment: "center",
@@ -6145,6 +8338,9 @@ export const integrationGeometry = {
   virginAtlantic: {
     ...virginAtlantic,
     markViewBox: "0 3.528 24 16.944",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.268898218158 -0.904590807275 -0.091319150287 0 1.26480817572",
+    monoInkScale: 1,
     logoViewBox: "0 24.30175 64 15.39648",
     ratio: 1.8,
     alignment: "center",
@@ -6152,6 +8348,9 @@ export const integrationGeometry = {
   virgin: {
     ...virgin,
     markViewBox: "0 1.33371 24 21.33257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.272029344025 -0.915124114988 -0.0923824959481 0 1.27953595496",
+    monoInkScale: 1,
     logoViewBox: "0 1.33371 24 21.33257",
     ratio: 1.8,
     alignment: "center",
@@ -6159,6 +8358,9 @@ export const integrationGeometry = {
   unitedAirlines: {
     ...unitedAirlines,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244995074159 -0.82417910178 -0.083201525655 0 1.15237570159",
+    monoInkScale: 1,
     logoViewBox: "0 26.13943 64 11.72114",
     ratio: 1.8,
     alignment: "center",
@@ -6166,6 +8368,9 @@ export const integrationGeometry = {
   delta: {
     ...delta,
     markViewBox: "0 2.25601 24 19.50171",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.247137629032 -0.831386793433 -0.0839291477711 0 1.16245357024",
+    monoInkScale: 1,
     logoViewBox: "0 27.008 64 9.984",
     ratio: 1.8,
     alignment: "center",
@@ -6173,6 +8378,9 @@ export const integrationGeometry = {
   lufthansa: {
     ...lufthansa,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.233030666703 -0.783930069738 -0.0791383543555 0 1.0960990908",
+    monoInkScale: 1,
     logoViewBox: "0 26.45943 64 11.08114",
     ratio: 1.8,
     alignment: "center",
@@ -6180,6 +8388,9 @@ export const integrationGeometry = {
   americanAirlines: {
     ...americanAirlines,
     markViewBox: "0 0.18514 24 23.62971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26782432566 -0.900978164213 -0.0909544511412 0 1.25975694101",
+    monoInkScale: 1,
     logoViewBox: "0 27.05371 64 9.89257",
     ratio: 1.8,
     alignment: "center",
@@ -6187,6 +8398,9 @@ export const integrationGeometry = {
   britishAirways: {
     ...britishAirways,
     markViewBox: "0 8.96229 24 6.07543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290655469285 -0.977783591876 -0.0987080192023 0 1.36714708036",
+    monoInkScale: 1,
     logoViewBox: "0 26.99893 64 10.00215",
     ratio: 1.8,
     alignment: "center",
@@ -6194,6 +8408,9 @@ export const integrationGeometry = {
   qatarAirways: {
     ...qatarAirways,
     markViewBox: "0 1.608 24 20.784",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.263971556338 -0.888017201754 -0.0896460318326 0 1.24163478993",
+    monoInkScale: 1,
     logoViewBox: "0 22.89371 64 18.21257",
     ratio: 1.8,
     alignment: "center",
@@ -6201,6 +8418,9 @@ export const integrationGeometry = {
   airFrance: {
     ...airFrance,
     markViewBox: "0 3.76458 24 16.47085",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
     logoViewBox: "0.03657 29.14755 63.92686 5.70491",
     ratio: 1.8,
     alignment: "center",
@@ -6208,6 +8428,9 @@ export const integrationGeometry = {
   klm: {
     ...klm,
     markViewBox: "0 4.89943 24 14.20114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.431577874758 -1.45185557868 -0.146565957467 0 2.0299994109",
+    monoInkScale: 1,
     logoViewBox: "0 27.19086 64 9.61829",
     ratio: 1.8,
     alignment: "center",
@@ -6215,6 +8438,9 @@ export const integrationGeometry = {
   wizzAir: {
     ...wizzAir,
     markViewBox: "0 6.43886 24 11.12226",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266000353274 -0.894842204428 -0.0903350211964 0 1.2511775789",
+    monoInkScale: 1,
     logoViewBox: "0 17.1703 64 29.65938",
     ratio: 1.8,
     alignment: "center",
@@ -6222,6 +8448,9 @@ export const integrationGeometry = {
   ryanair: {
     ...ryanair,
     markViewBox: "0.02743 0 23.94513 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.960025075084 -3.22958576529 -0.326029211764 0 4.51564005213",
+    monoInkScale: 1,
     logoViewBox: "0 28.19657 64 7.60686",
     ratio: 1.8,
     alignment: "center",
@@ -6229,6 +8458,9 @@ export const integrationGeometry = {
   easyjet: {
     ...easyjet,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.424320076641 -1.42743988153 -0.144101173723 0 1.9958611319",
+    monoInkScale: 1,
     logoViewBox: "0 24.768 64 14.464",
     ratio: 1.8,
     alignment: "center",
@@ -6236,6 +8468,9 @@ export const integrationGeometry = {
   priorityPass: {
     ...priorityPass,
     markViewBox: "0 0 200.34009 28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235708695652 -0.792939130435 -0.080047826087 0 1.10869565217",
+    monoInkScale: 1,
     logoViewBox: "0 0 155.9 66.7",
     ratio: 1.8,
     alignment: "center",
@@ -6243,6 +8478,9 @@ export const integrationGeometry = {
   airCanada: {
     ...airCanada,
     markViewBox: "0 0.25371 24 23.49257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290244346411 -0.976400548227 -0.0985683998629 0 1.3652132945",
+    monoInkScale: 1,
     logoViewBox: "0 27.77608 64 8.43878",
     ratio: 1.8,
     alignment: "center",
@@ -6250,6 +8488,9 @@ export const integrationGeometry = {
   starlingBank: {
     ...starlingBank,
     markViewBox: "0 0 500 500",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.247612392266 -0.832983927324 -0.0840903796879 0 1.16468669928",
+    monoInkScale: 1,
     logoViewBox: "0 0.70144 126 23.50719",
     ratio: 1.8,
     alignment: "center",
@@ -6257,6 +8498,9 @@ export const integrationGeometry = {
   curve: {
     ...curve,
     markViewBox: "0 0 181 40",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22841818312 -0.768413379905 -0.0775719323674 0 1.07440349539",
+    monoInkScale: 1,
     logoViewBox: "0 0 181 40",
     ratio: 1.8,
     alignment: "center",
@@ -6264,6 +8508,9 @@ export const integrationGeometry = {
   freeagent: {
     ...freeagent,
     markViewBox: "0 0 168 40",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "3.03464 0.67456 1175.77429 281.9645",
     ratio: 1.8,
     alignment: "center",
@@ -6271,6 +8518,9 @@ export const integrationGeometry = {
   hmrc: {
     ...hmrc,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.348754626967 -1.17323287491 -0.118438777361 0 1.64042627924",
+    monoInkScale: 1,
     logoViewBox: "0 0 400 240",
     ratio: 1.8,
     alignment: "center",
@@ -6278,6 +8528,9 @@ export const integrationGeometry = {
   bonify: {
     ...bonify,
     markViewBox: "4.40494 1.46579 783.63102 251.38722",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.226832635983 -0.763079497908 -0.0770334728033 0 1.06694560669",
+    monoInkScale: 1,
     logoViewBox: "4.40494 1.46579 783.63102 251.38722",
     ratio: 1.8,
     alignment: "center",
@@ -6285,6 +8538,9 @@ export const integrationGeometry = {
   block: {
     ...block,
     markViewBox: "0 0 44 44",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 2044 447",
     ratio: 1.8,
     alignment: "center",
@@ -6292,6 +8548,9 @@ export const integrationGeometry = {
   geminiExchange: {
     ...geminiExchange,
     markViewBox: "0 0 93.43656 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0.12053 0.24068 210.68476 45.29158",
     ratio: 1.8,
     alignment: "center",
@@ -6299,6 +8558,9 @@ export const integrationGeometry = {
   helium: {
     ...helium,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.56845277416 -1.91231149614 -0.193049342871 0 2.67381361317",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6306,6 +8568,9 @@ export const integrationGeometry = {
   coinbase: {
     ...coinbase,
     markViewBox: "0 0 48 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.304665661848 -1.02491477589 -0.103465949132 0 1.43304638687",
+    monoInkScale: 1,
     logoViewBox: "0 0 1101.64 196.79",
     ratio: 1.8,
     alignment: "center",
@@ -6313,6 +8578,9 @@ export const integrationGeometry = {
   authy: {
     ...authy,
     markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327377933014 -1.10132030899 -0.111179147524 0 1.53987738953",
+    monoInkScale: 1,
     logoViewBox: "13.05 15.9 117.57 37.19",
     ratio: 1.8,
     alignment: "center",
@@ -6320,6 +8588,9 @@ export const integrationGeometry = {
   protonVpn: {
     ...protonVpn,
     markViewBox: "0 0 918 833",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327270422331 -1.10095863618 -0.11114263637 0 1.53937169488",
+    monoInkScale: 1.1487,
     logoViewBox: "0 0 4520 787",
     ratio: 1.8,
     alignment: "center",
@@ -6327,6 +8598,9 @@ export const integrationGeometry = {
   protonMail: {
     ...protonMail,
     markViewBox: "0 0 918 745",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327270422331 -1.10095863618 -0.11114263637 0 1.53937169488",
+    monoInkScale: 1.0324,
     logoViewBox: "0 0 506 86",
     ratio: 1.8,
     alignment: "center",
@@ -6334,6 +8608,9 @@ export const integrationGeometry = {
   protonDrive: {
     ...protonDrive,
     markViewBox: "0 2.12229 24 19.75543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.393867314527 -1.32499484172 -0.13375926674 0 1.85262142299",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6341,6 +8618,9 @@ export const integrationGeometry = {
   proton: {
     ...proton,
     markViewBox: "2.448 0 19.104 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.337795063642 -1.13636420281 -0.114716856044 0 1.58887612249",
+    monoInkScale: 1,
     logoViewBox: "0 0 1964 500",
     ratio: 1.8,
     alignment: "center",
@@ -6348,6 +8628,9 @@ export const integrationGeometry = {
   wetransfer: {
     ...wetransfer,
     markViewBox: "0 6.408 24 11.184",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.496157077512 -1.66910414787 -0.168497370632 0 2.33375859601",
+    monoInkScale: 1,
     logoViewBox: "0 0.10284 39.97714 18.88004",
     ratio: 1.8,
     alignment: "center",
@@ -6355,6 +8638,9 @@ export const integrationGeometry = {
   klarna: {
     ...klarna,
     markViewBox: "0 1.968 24 20.064",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.928330228225 -3.12296227294 -0.315265486726 0 4.36655798789",
+    monoInkScale: 1,
     logoViewBox: "262.75502 260.09403 1088.41369 268.03901",
     ratio: 1.8,
     alignment: "center",
@@ -6362,6 +8648,9 @@ export const integrationGeometry = {
   raycast: {
     ...raycast,
     markViewBox: "0 0 28 28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.441350305778 -1.48473066177 -0.149884722846 0 2.07596569039",
+    monoInkScale: 1,
     logoViewBox: "0 0 108.09733 28",
     ratio: 1.8,
     alignment: "center",
@@ -6369,6 +8658,9 @@ export const integrationGeometry = {
   shazam: {
     ...shazam,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.389120726261 -1.30902701515 -0.132147302145 0 1.83029504356",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6376,6 +8668,9 @@ export const integrationGeometry = {
   smirnoff: {
     ...smirnoff,
     markViewBox: "0 260.13198 1920 555.62437",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.318610626584 -1.07182652932 -0.108201727372 0 1.49863888327",
+    monoInkScale: 1,
     logoViewBox: "4.78571 4.60533 240.42857 171.65192",
     ratio: 1.8,
     alignment: "center",
@@ -6383,6 +8678,9 @@ export const integrationGeometry = {
   petrossian: {
     ...petrossian,
     markViewBox: "0 0 2784 509",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 2784 509",
     ratio: 1.8,
     alignment: "center",
@@ -6390,6 +8688,9 @@ export const integrationGeometry = {
   domPerignon: {
     ...domPerignon,
     markViewBox: "0 0 131.92457 30.92462",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "3.81387 3.74941 409.51452 151.82489",
     ratio: 1.8,
     alignment: "center",
@@ -6397,6 +8698,9 @@ export const integrationGeometry = {
   moetChandon: {
     ...moetChandon,
     markViewBox: "0 0 396.85 41.91",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "9.65714 9.94286 380.68571 130.11429",
     ratio: 1.8,
     alignment: "center",
@@ -6404,6 +8708,9 @@ export const integrationGeometry = {
   edeka: {
     ...edeka,
     markViewBox: "0 0 200.40892 242.35304",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.263138224136 -0.885213818919 -0.0893630281403 0 1.2377150712",
+    monoInkScale: 1,
     logoViewBox: "0 0 200.40892 242.35304",
     ratio: 1.8,
     alignment: "center",
@@ -6411,6 +8718,9 @@ export const integrationGeometry = {
   lidl: {
     ...lidl,
     markViewBox: "0 0 60 60",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.27448786366 -0.923394732312 -0.0932174212429 0 1.29110001721",
+    monoInkScale: 1,
     logoViewBox: "0 0 60 60",
     ratio: 1.8,
     alignment: "center",
@@ -6418,6 +8728,9 @@ export const integrationGeometry = {
   aldiNord: {
     ...aldiNord,
     markViewBox: "0 0 283.50001 297.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241075240128 -0.810992529349 -0.0818703308431 0 1.13393810032",
+    monoInkScale: 1,
     logoViewBox: "0 0 283.50001 297.6",
     ratio: 1.8,
     alignment: "center",
@@ -6425,6 +8738,9 @@ export const integrationGeometry = {
   aldiSud: {
     ...aldiSud,
     markViewBox: "0.5 0.3 82.1 98.5",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.218476591938 -0.734969231203 -0.0741957193692 0 1.02764154251",
+    monoInkScale: 1,
     logoViewBox: "0.5 0.3 82.1 98.5",
     ratio: 1.8,
     alignment: "center",
@@ -6432,6 +8748,9 @@ export const integrationGeometry = {
   kaufland: {
     ...kaufland,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.272137220649 -0.915487018854 -0.0924191313776 0 1.28004337088",
+    monoInkScale: 1,
     logoViewBox: "0 0 346.317 99.212",
     ratio: 1.8,
     alignment: "center",
@@ -6439,6 +8758,9 @@ export const integrationGeometry = {
   rossmann: {
     ...rossmann,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.257796228138 -0.867243002653 -0.0875488601672 0 1.21258809096",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6446,6 +8768,9 @@ export const integrationGeometry = {
   mediamarkt: {
     ...mediamarkt,
     markViewBox: "0.04458 0 23.91085 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261153946574 -0.878538582264 -0.0886891577733 0 1.22838168661",
+    monoInkScale: 1,
     logoViewBox: "19.64953 92.22784 860.70093 116.68009",
     ratio: 1.8,
     alignment: "center",
@@ -6453,6 +8778,9 @@ export const integrationGeometry = {
   saturn: {
     ...saturn,
     markViewBox: "0 5.088 24 13.824",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.417459804103 -1.40436148586 -0.14177139161 0 1.96359268157",
+    monoInkScale: 1,
     logoViewBox: "0 0 654.36682 142.3045",
     ratio: 1.8,
     alignment: "center",
@@ -6460,6 +8788,9 @@ export const integrationGeometry = {
   morrisons: {
     ...morrisons,
     markViewBox: "0 0 91 39.55772",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.339007957898 -1.14044445667 -0.115128760867 0 1.59458117544",
+    monoInkScale: 1,
     logoViewBox: "0.63143 0.26006 128.73714 56.97275",
     ratio: 1.8,
     alignment: "center",
@@ -6467,6 +8798,9 @@ export const integrationGeometry = {
   marksSpencer: {
     ...marksSpencer,
     markViewBox: "0 0.91746 88 33.65526",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 194.90909",
     ratio: 1.8,
     alignment: "center",
@@ -6474,6 +8808,9 @@ export const integrationGeometry = {
   dpd: {
     ...dpd,
     markViewBox: "1.67657 0 20.64686 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264947365334 -0.891299885641 -0.0899774213412 0 1.24622467232",
+    monoInkScale: 1,
     logoViewBox: "83.28385 298.24891 445.14715 195.53956",
     ratio: 1.8,
     alignment: "center",
@@ -6481,6 +8818,9 @@ export const integrationGeometry = {
   rheinmetall: {
     ...rheinmetall,
     markViewBox: "0 0.52645 194 54.47355",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.219771265676 -0.73932459648 -0.0746353969042 0 1.03373125906",
+    monoInkScale: 1,
     logoViewBox: "0 0 4656.32 1268.483",
     ratio: 1.8,
     alignment: "center",
@@ -6488,6 +8828,9 @@ export const integrationGeometry = {
   thyssenkrupp: {
     ...thyssenkrupp,
     markViewBox: "0 0 99.3 75.94328",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.408107497742 -1.372899729 -0.13859530262 0 1.91960252936",
+    monoInkScale: 1,
     logoViewBox: "5.01286 5.0688 99.42429 76.04072",
     ratio: 1.8,
     alignment: "center",
@@ -6495,6 +8838,9 @@ export const integrationGeometry = {
   boeing: {
     ...boeing,
     markViewBox: "0 2.10514 24 19.80686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.28585363796 -0.961629924125 -0.0970772937945 0 1.34456085588",
+    monoInkScale: 1,
     logoViewBox: "1.05541 0.46626 169.86345 39.06748",
     ratio: 1.8,
     alignment: "center",
@@ -6502,6 +8848,9 @@ export const integrationGeometry = {
   airbus: {
     ...airbus,
     markViewBox: "0 0 398.971 73.885",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240366155693 -0.80860712395 -0.0816295223004 0 1.13060280194",
+    monoInkScale: 1,
     logoViewBox: "0 0 398.971 73.885",
     ratio: 1.8,
     alignment: "center",
@@ -6509,6 +8858,9 @@ export const integrationGeometry = {
   scaleAi: {
     ...scaleAi,
     markViewBox: "0 0 256 254",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 640.54 121.88",
     ratio: 1.8,
     alignment: "center",
@@ -6516,6 +8868,9 @@ export const integrationGeometry = {
   rollsRoyce: {
     ...rollsRoyce,
     markViewBox: "2.87657 0 18.24686 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.237170905846 -0.797858099063 -0.0805443998215 0 1.11557340473",
+    monoInkScale: 1,
     logoViewBox: "0 0 13.5201 21.99961",
     ratio: 1.8,
     alignment: "center",
@@ -6523,6 +8878,9 @@ export const integrationGeometry = {
   qinetiq: {
     ...qinetiq,
     markViewBox: "0 0 123 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243985533597 -0.82078294275 -0.0828586807418 0 1.14762715709",
+    monoInkScale: 1,
     logoViewBox: "0 0 123 26",
     ratio: 1.8,
     alignment: "center",
@@ -6530,6 +8888,9 @@ export const integrationGeometry = {
   leonardo: {
     ...leonardo,
     markViewBox: "0 0 236.18743 41.86452",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266504311714 -0.896537552858 -0.0905061679479 0 1.25354803252",
+    monoInkScale: 1,
     logoViewBox: "0 0 254.065 44.818",
     ratio: 1.8,
     alignment: "center",
@@ -6537,6 +8898,9 @@ export const integrationGeometry = {
   hbo: {
     ...hbo,
     markViewBox: "0 7.02514 24 9.94971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 7.02514 24 9.94971",
     ratio: 1.8,
     alignment: "center",
@@ -6544,6 +8908,9 @@ export const integrationGeometry = {
   universalPictures: {
     ...universalPictures,
     markViewBox: "0 0 689.08 365.173",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 999.99998 528.61297",
     ratio: 1.8,
     alignment: "center",
@@ -6551,6 +8918,9 @@ export const integrationGeometry = {
   sonyPictures: {
     ...sonyPictures,
     markViewBox: "0.096 0 167.088 13",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 644.448 999.999",
     ratio: 1.8,
     alignment: "center",
@@ -6558,6 +8928,9 @@ export const integrationGeometry = {
   nintendoSwitch: {
     ...nintendoSwitch,
     markViewBox: "0 0 72 72",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264708812006 -0.890497376984 -0.089896407464 0 1.24510259645",
+    monoInkScale: 1,
     logoViewBox: "0 0 72 72",
     ratio: 1.8,
     alignment: "center",
@@ -6565,6 +8938,9 @@ export const integrationGeometry = {
   brand1password: {
     ...brand1password,
     markViewBox: "0 0 32 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0.51886 0 906.96229 174",
     ratio: 1.8,
     alignment: "center",
@@ -6572,6 +8948,9 @@ export const integrationGeometry = {
   lastpass: {
     ...lastpass,
     markViewBox: "0 6.15086 24 11.69829",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.309538110877 -1.04130600611 -0.105120656657 0 1.45596477365",
+    monoInkScale: 1,
     logoViewBox: "0 0 144 21",
     ratio: 1.8,
     alignment: "center",
@@ -6579,6 +8958,9 @@ export const integrationGeometry = {
   therabody: {
     ...therabody,
     markViewBox: "0.19634 0 25.08309 25.05657",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.248683486239 -0.836587155963 -0.0844541284404 0 1.16972477064",
+    monoInkScale: 1,
     logoViewBox: "7.81371 2.89322 141.58805 27.40781",
     ratio: 1.8,
     alignment: "center",
@@ -6586,6 +8968,9 @@ export const integrationGeometry = {
   starTrek: {
     ...starTrek,
     markViewBox: "0 0.06514 24 23.86971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -1.38468729407 -4.65817663556 -0.470246578701 0 6.51311050833",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6593,6 +8978,9 @@ export const integrationGeometry = {
   brand007: {
     ...brand007,
     markViewBox: "0 0 476.22 149.39",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 476.22 149.39",
     ratio: 1.8,
     alignment: "center",
@@ -6600,6 +8988,9 @@ export const integrationGeometry = {
   noma: {
     ...noma,
     markViewBox: "0 0 344 74.31148",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 374.4 83.4",
     ratio: 1.8,
     alignment: "center",
@@ -6607,6 +8998,9 @@ export const integrationGeometry = {
   dior: {
     ...dior,
     markViewBox: "0 8.61943 24 6.76114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 494.5 138.3",
     ratio: 1.8,
     alignment: "center",
@@ -6614,6 +9008,9 @@ export const integrationGeometry = {
   dolceGabbana: {
     ...dolceGabbana,
     markViewBox: "0 0 165 16",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 165 16",
     ratio: 1.8,
     alignment: "center",
@@ -6621,6 +9018,9 @@ export const integrationGeometry = {
   astonMartin: {
     ...astonMartin,
     markViewBox: "0 0 138.52343 31.74206",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 138.52343 31.74206",
     ratio: 1.8,
     alignment: "center",
@@ -6628,6 +9028,9 @@ export const integrationGeometry = {
   cadillac: {
     ...cadillac,
     markViewBox: "49.9001 186.31156 412.69501 158.02832",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "43.68351 231.66013 413.66156 49.6473",
     ratio: 1.8,
     alignment: "center",
@@ -6635,6 +9038,9 @@ export const integrationGeometry = {
   bmw: {
     ...bmw,
     markViewBox: "77.66234 77.66234 356.67533 356.67533",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "77.66234 77.66234 356.67533 356.67533",
     ratio: 1.8,
     alignment: "center",
@@ -6642,6 +9048,9 @@ export const integrationGeometry = {
   porsche: {
     ...porsche,
     markViewBox: "127.56114 90.81217 256.87771 328.91281",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "59.39731 117.54592 392.61519 224.61101",
     ratio: 1.8,
     alignment: "center",
@@ -6649,6 +9058,9 @@ export const integrationGeometry = {
   bentley: {
     ...bentley,
     markViewBox: "0 8.088 24 7.824",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26575 -0.894 -0.09025 0 1.25",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6656,6 +9068,9 @@ export const integrationGeometry = {
   maserati: {
     ...maserati,
     markViewBox: "3.49371 0 17.01257 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243330221368 -0.818578430492 -0.0826361335033 0 1.14454478536",
+    monoInkScale: 1,
     logoViewBox: "0 0 10141 4114",
     ratio: 1.8,
     alignment: "center",
@@ -6663,6 +9078,9 @@ export const integrationGeometry = {
   koenigsegg: {
     ...koenigsegg,
     markViewBox: "130.68728 80.5845 250.62545 350.4653",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269277000715 -0.905865056028 -0.0914477866963 0 1.26658984344",
+    monoInkScale: 1,
     logoViewBox: "24.42971 196.58381 470.08914 119.83219",
     ratio: 1.8,
     alignment: "center",
@@ -6670,6 +9088,9 @@ export const integrationGeometry = {
   peugeot: {
     ...peugeot,
     markViewBox: "1.09371 0 21.81257 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6677,6 +9098,9 @@ export const integrationGeometry = {
   toyota: {
     ...toyota,
     markViewBox: "77.66234 139.67188 356.67533 232.69841",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.28668867259 -0.964439034038 -0.0973608756397 0 1.34848858227",
+    monoInkScale: 1,
     logoViewBox: "53.11324 222.14849 406.13924 67.70303",
     ratio: 1.8,
     alignment: "center",
@@ -6684,6 +9108,9 @@ export const integrationGeometry = {
   mcdonalds: {
     ...mcdonalds,
     markViewBox: "0 1.488 24 21.024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.952160992539 -3.20313048854 -0.323358530862 0 4.47865001194",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6691,6 +9118,9 @@ export const integrationGeometry = {
   mMs: {
     ...mMs,
     markViewBox: "0 0 1000 327.08398",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.259263333078 -0.872178437524 -0.0880470961818 0 1.21948886678",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 327.08398",
     ratio: 1.8,
     alignment: "center",
@@ -6698,6 +9128,9 @@ export const integrationGeometry = {
   yougov: {
     ...yougov,
     markViewBox: "0 0 135.35918 28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 135.35918 28",
     ratio: 1.8,
     alignment: "center",
@@ -6705,6 +9138,9 @@ export const integrationGeometry = {
   tencent: {
     ...tencent,
     markViewBox: "41.06743 0 765.86514 848",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.300039516023 -1.0093521254 -0.101894887379 0 1.4112865288",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6712,6 +9148,9 @@ export const integrationGeometry = {
   ibm: {
     ...ibm,
     markViewBox: "0 0 1000 400",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.3511832426 -1.18140289326 -0.119263547111 0 1.65184968297",
+    monoInkScale: 1,
     logoViewBox: "0 0 1075 401.15",
     ratio: 1.8,
     alignment: "center",
@@ -6719,6 +9158,9 @@ export const integrationGeometry = {
   cisco: {
     ...cisco,
     markViewBox: "0 0 51.27239 27.04974",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.523415791781 -1.7608042064 -0.177754563342 0 2.46197456153",
+    monoInkScale: 1,
     logoViewBox: "0 0 51.27239 27.04974",
     ratio: 1.8,
     alignment: "center",
@@ -6726,6 +9168,9 @@ export const integrationGeometry = {
   vmware: {
     ...vmware,
     markViewBox: "0 0 512 82",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.380445842977 -1.27984415285 -0.129201269346 0 1.78949126518",
+    monoInkScale: 1,
     logoViewBox: "0 0 512 82",
     ratio: 1.8,
     alignment: "center",
@@ -6733,6 +9178,9 @@ export const integrationGeometry = {
   aramco: {
     ...aramco,
     markViewBox: "94 0 23 23",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.31876499365 -1.07234583 -0.108254151183 0 1.49936497483",
+    monoInkScale: 1,
     logoViewBox: "0 0 117 24",
     ratio: 1.8,
     alignment: "center",
@@ -6740,6 +9188,9 @@ export const integrationGeometry = {
   siemens: {
     ...siemens,
     markViewBox: "0 0 555 555",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.402987337933 -1.35567518387 -0.136856471302 0 1.8955189931",
+    monoInkScale: 1,
     logoViewBox: "0 9.99086 24 4.01829",
     ratio: 1.8,
     alignment: "center",
@@ -6747,6 +9198,9 @@ export const integrationGeometry = {
   bosch: {
     ...bosch,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.326584337349 -1.09865060241 -0.110909638554 0 1.53614457831",
+    monoInkScale: 1,
     logoViewBox: "0 0 433 97",
     ratio: 1.8,
     alignment: "center",
@@ -6754,6 +9208,9 @@ export const integrationGeometry = {
   adp: {
     ...adp,
     markViewBox: "0 6.528 24 10.944",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.299862936868 -1.00875810182 -0.101834920235 0 1.41045595893",
+    monoInkScale: 1,
     logoViewBox: "0 6.528 24 10.944",
     ratio: 1.8,
     alignment: "center",
@@ -6761,6 +9218,9 @@ export const integrationGeometry = {
   intuit: {
     ...intuit,
     markViewBox: "0 9.56229 24 4.87543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.356884239242 -1.20058141066 -0.121199633458 0 1.67866528336",
+    monoInkScale: 1,
     logoViewBox: "0 9.56229 24 4.87543",
     ratio: 1.8,
     alignment: "center",
@@ -6768,6 +9228,9 @@ export const integrationGeometry = {
   huawei: {
     ...huawei,
     markViewBox: "0 2.928 24 18.144",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
     logoViewBox: "0 0 66.77 66.77",
     ratio: 1.8,
     alignment: "center",
@@ -6775,6 +9238,9 @@ export const integrationGeometry = {
   morganStanley: {
     ...morganStanley,
     markViewBox: "0 0 1000 143.77",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 1331.95 191.23",
     ratio: 1.8,
     alignment: "center",
@@ -6782,6 +9248,9 @@ export const integrationGeometry = {
   goldmanSachs: {
     ...goldmanSachs,
     markViewBox: "0.20743 0 32.0718 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.0494,
     logoViewBox: "0 0 86 36",
     ratio: 1.8,
     alignment: "center",
@@ -6789,6 +9258,9 @@ export const integrationGeometry = {
   deloitte: {
     ...deloitte,
     markViewBox: "0 0 181.53221 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "16.85966 16.40192 886.28064 167.19619",
     ratio: 1.8,
     alignment: "center",
@@ -6796,6 +9268,9 @@ export const integrationGeometry = {
   accenture: {
     ...accenture,
     markViewBox: "0.63086 0 22.73829 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267903206359 -0.901243523931 -0.0909812394125 0 1.2601279697",
+    monoInkScale: 1,
     logoViewBox: "0 0 163.4 43",
     ratio: 1.8,
     alignment: "center",
@@ -6803,6 +9278,9 @@ export const integrationGeometry = {
   zara: {
     ...zara,
     markViewBox: "0 6.97371 24 10.05257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 420.62616",
     ratio: 1.8,
     alignment: "center",
@@ -6810,6 +9288,9 @@ export const integrationGeometry = {
   commonwealthBank: {
     ...commonwealthBank,
     markViewBox: "0 0 64 64",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.305141012262 -1.02651388509 -0.103627380458 0 1.43528227781",
+    monoInkScale: 1.0451,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6817,6 +9298,9 @@ export const integrationGeometry = {
   dell: {
     ...dell,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.355926394739 -1.19735916048 -0.12087434478 0 1.6741599",
+    monoInkScale: 1,
     logoViewBox: "0 0 72 72",
     ratio: 1.8,
     alignment: "center",
@@ -6824,6 +9308,9 @@ export const integrationGeometry = {
   loreal: {
     ...loreal,
     markViewBox: "0 0 137 36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.279448453608 -0.940082474227 -0.0949020618557 0 1.31443298969",
+    monoInkScale: 1,
     logoViewBox: "0 0 137 36",
     ratio: 1.8,
     alignment: "center",
@@ -6831,6 +9318,9 @@ export const integrationGeometry = {
   bankOfAmerica: {
     ...bankOfAmerica,
     markViewBox: "0 5.46514 24 13.06971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.242450072628 -0.815617553827 -0.0823372306856 0 1.14040485714",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6838,6 +9328,9 @@ export const integrationGeometry = {
   kfc: {
     ...kfc,
     markViewBox: "0 8.208 24 7.584",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270645769703 -0.910469682462 -0.0919126273402 0 1.2730280795",
+    monoInkScale: 1,
     logoViewBox: "0 8.208 24 7.584",
     ratio: 1.8,
     alignment: "center",
@@ -6845,6 +9338,9 @@ export const integrationGeometry = {
   berryBrosRudd: {
     ...berryBrosRudd,
     markViewBox: "0 0 243 65.51368",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 243 65.51368",
     ratio: 1.8,
     alignment: "center",
@@ -6852,6 +9348,9 @@ export const integrationGeometry = {
   hilton: {
     ...hilton,
     markViewBox: "0 7.52229 24 8.95543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
     logoViewBox: "0 7.52229 24 8.95543",
     ratio: 1.8,
     alignment: "center",
@@ -6859,6 +9358,9 @@ export const integrationGeometry = {
   uniqlo: {
     ...uniqlo,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
     logoViewBox: "0 0 24 24",
     ratio: 1.8,
     alignment: "center",
@@ -6866,6 +9368,9 @@ export const integrationGeometry = {
   charlesSchwab: {
     ...charlesSchwab,
     markViewBox: "0 0 50 50",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.424810174193 -1.42908860105 -0.144267613249 0 1.99816638849",
+    monoInkScale: 1,
     logoViewBox: "0 0 50 50",
     ratio: 1.8,
     alignment: "center",
@@ -6873,6 +9378,9 @@ export const integrationGeometry = {
   shell: {
     ...shell,
     markViewBox: "0 4.55314 128 118.89371",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.293214417065 -0.986392055903 -0.0995770503862 0 1.37918352335",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6880,6 +9388,9 @@ export const integrationGeometry = {
   honda: {
     ...honda,
     markViewBox: "77.66234 110.57663 356.67533 289.86025",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.256169269327 -0.861769809138 -0.0869963369963 0 1.20493541546",
+    monoInkScale: 1,
     logoViewBox: "89.52686 224.68011 358.912 62.47875",
     ratio: 1.8,
     alignment: "center",
@@ -6887,6 +9398,9 @@ export const integrationGeometry = {
   blackrock: {
     ...blackrock,
     markViewBox: "0 0 140 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 152 21.69655",
     ratio: 1.8,
     alignment: "center",
@@ -6894,6 +9408,9 @@ export const integrationGeometry = {
   qualcomm: {
     ...qualcomm,
     markViewBox: "1.55657 0 20.88686 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.320551026345 -1.07835415824 -0.108860696623 0 1.50776588121",
+    monoInkScale: 1,
     logoViewBox: "0 0 783.6 144",
     ratio: 1.8,
     alignment: "center",
@@ -6901,6 +9418,9 @@ export const integrationGeometry = {
   axa: {
     ...axa,
     markViewBox: "0 0 283.46698 283.46699",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.221571110132 -0.745379388365 -0.0752466328859 0 1.04219713138",
+    monoInkScale: 1,
     logoViewBox: "0 0 283.46698 283.46699",
     ratio: 1.8,
     alignment: "center",
@@ -6908,6 +9428,9 @@ export const integrationGeometry = {
   generalElectric: {
     ...generalElectric,
     markViewBox: "4.57143 4.57143 490.85714 490.85714",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.369168602862 -1.2419067957 -0.125371463437 0 1.736446862",
+    monoInkScale: 1,
     logoViewBox: "4.57143 4.57143 490.85714 490.85714",
     ratio: 1.8,
     alignment: "center",
@@ -6915,6 +9438,9 @@ export const integrationGeometry = {
   pampers: {
     ...pampers,
     markViewBox: "0 0 98.66057 50",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.42804084836 -1.43995679561 -0.145364766 0 2.01336240997",
+    monoInkScale: 1,
     logoViewBox: "0 0 98.66057 50",
     ratio: 1.8,
     alignment: "center",
@@ -6922,6 +9448,9 @@ export const integrationGeometry = {
   hp: {
     ...hp,
     markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.40986866179 -1.37882439752 -0.139193402546 0 1.92788646185",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -6929,6 +9458,9 @@ export const integrationGeometry = {
   hM: {
     ...hM,
     markViewBox: "0 4.05943 24 15.88114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264248189457 -0.888947813261 -0.0897399777929 0 1.24293598051",
+    monoInkScale: 1,
     logoViewBox: "10.63 8.863 708.662 467.493",
     ratio: 1.8,
     alignment: "center",
@@ -6936,6 +9468,9 @@ export const integrationGeometry = {
   philips: {
     ...philips,
     markViewBox: "0 0 786.27576 1001",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.319205310491 -1.07382708402 -0.108403684936 0 1.50143607945",
+    monoInkScale: 1,
     logoViewBox: "0 0 786.27576 1001",
     ratio: 1.8,
     alignment: "center",
@@ -6943,6 +9478,9 @@ export const integrationGeometry = {
   nissan: {
     ...nissan,
     markViewBox: "49.53452 83.54601 412.93097 346.00511",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "49.53452 83.54601 412.93097 346.00511",
     ratio: 1.8,
     alignment: "center",
@@ -6950,6 +9488,9 @@ export const integrationGeometry = {
   caterpillar: {
     ...caterpillar,
     markViewBox: "0 0 112 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 112 20",
     ratio: 1.8,
     alignment: "center",
@@ -6957,6 +9498,9 @@ export const integrationGeometry = {
   brand3m: {
     ...brand3m,
     markViewBox: "0 5.65371 24 12.69599",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
     logoViewBox: "0.77074 0.59991 298.45851 156.49064",
     ratio: 1.8,
     alignment: "center",
@@ -6964,6 +9508,9 @@ export const integrationGeometry = {
   johnDeere: {
     ...johnDeere,
     markViewBox: "227.05827 93.2 337.89188 306.71612",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.358302765936 -1.2053534252 -0.121681372063 0 1.6853375632",
+    monoInkScale: 1,
     logoViewBox: "72.52 93.2 642.38 425.8",
     ratio: 1.8,
     alignment: "center",
@@ -6971,6 +9518,9 @@ export const integrationGeometry = {
   kia: {
     ...kia,
     markViewBox: "57.57166 209.70866 397.95382 93.67983",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0.91429 100 23.74286",
     ratio: 1.8,
     alignment: "center",
@@ -6978,6 +9528,9 @@ export const integrationGeometry = {
   tMobile: {
     ...tMobile,
     markViewBox: "1.89943 0 20.20114 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273007173029 -0.91841359431 -0.0927145714614 0 1.2841353388",
+    monoInkScale: 1,
     logoViewBox: "0 0 556.68171 120",
     ratio: 1.8,
     alignment: "center",
@@ -6985,6 +9538,9 @@ export const integrationGeometry = {
   cathayPacific: {
     ...cathayPacific,
     markViewBox: "2.13943 0 19.72114 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298960066969 -1.00572078973 -0.1015283012 0 1.4062091579",
+    monoInkScale: 1,
     logoViewBox: "0 0 430 60",
     ratio: 1.8,
     alignment: "center",
@@ -6992,6 +9548,9 @@ export const integrationGeometry = {
   alaskaAirlines: {
     ...alaskaAirlines,
     markViewBox: "0 0 162 48.7",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2711585497 -0.912194707174 -0.0920867699356 0 1.27544002681",
+    monoInkScale: 1,
     logoViewBox: "0 18.13943 64 27.72114",
     ratio: 1.8,
     alignment: "center",
@@ -6999,6 +9558,9 @@ export const integrationGeometry = {
   eurowings: {
     ...eurowings,
     markViewBox: "0 4.93371 24 14.13257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270026209173 -0.908385441208 -0.0917022215537 0 1.27011387193",
+    monoInkScale: 1,
     logoViewBox: "0 23.84461 64 16.31078",
     ratio: 1.8,
     alignment: "center",
@@ -7006,6 +9568,9 @@ export const integrationGeometry = {
   aegean: {
     ...aegean,
     markViewBox: "3.99086 0 16.00457 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.24728755931 -0.831891168477 -0.0839800648267 0 1.16315879261",
+    monoInkScale: 1,
     logoViewBox: "0 25.54514 64 12.90971",
     ratio: 1.8,
     alignment: "center",
@@ -7013,6 +9578,9 @@ export const integrationGeometry = {
   finnair: {
     ...finnair,
     markViewBox: "0 6.81943 24 10.36114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22021601992 -0.740820778208 -0.0747864376211 0 1.03582323575",
+    monoInkScale: 1,
     logoViewBox: "0.03657 28.51657 63.92688 6.96686",
     ratio: 1.8,
     alignment: "center",
@@ -7020,6 +9588,9 @@ export const integrationGeometry = {
   swiss: {
     ...swiss,
     markViewBox: "0 3.02743 24 17.94513",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270169388477 -0.908867105545 -0.0917508459457 0 1.27078733997",
+    monoInkScale: 1,
     logoViewBox: "0 24.53033 64 14.93934",
     ratio: 1.8,
     alignment: "center",
@@ -7027,6 +9598,9 @@ export const integrationGeometry = {
   hasbro: {
     ...hasbro,
     markViewBox: "0 0 288.91828 315.99999",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.361464821638 -1.21599078286 -0.122755221647 0 1.70021082614",
+    monoInkScale: 1,
     logoViewBox: "0 0 288.91828 315.99999",
     ratio: 1.8,
     alignment: "center",
@@ -7034,6 +9608,9 @@ export const integrationGeometry = {
   warnerBrosEntertainment: {
     ...warnerBrosEntertainment,
     markViewBox: "-252.435 -223.924 784.20287 1000",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.226514946402 -0.762010769832 -0.0769255838673 0 1.0654513001",
+    monoInkScale: 1,
     logoViewBox: "-252.435 -223.924 784.20287 1000",
     ratio: 1.8,
     alignment: "center",
@@ -7041,6 +9618,9 @@ export const integrationGeometry = {
   dreamworks: {
     ...dreamworks,
     markViewBox: "0 0 66.14584 38.90785",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.255426030435 -0.859269505959 -0.0867439294326 0 1.20143946583",
+    monoInkScale: 1,
     logoViewBox: "0 0 66.14584 38.90785",
     ratio: 1.8,
     alignment: "center",
@@ -7048,6 +9628,9 @@ export const integrationGeometry = {
   marvelStudios: {
     ...marvelStudios,
     markViewBox: "0 0 299.99999 67.21632",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 299.99999 67.21632",
     ratio: 1.8,
     alignment: "center",
@@ -7055,6 +9638,9 @@ export const integrationGeometry = {
   ralphLauren: {
     ...ralphLauren,
     markViewBox: "0 0 684 1568",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.255610531646 -0.859890179837 -0.0868065869466 0 1.20230729843",
+    monoInkScale: 1,
     logoViewBox: "0 0 316.3451446552675 100",
     ratio: 1.8,
     alignment: "center",
@@ -7062,6 +9648,9 @@ export const integrationGeometry = {
   pagani: {
     ...pagani,
     markViewBox: "13.45829 128.57024 486.18057 255.86862",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "13.45829 128.57024 486.18057 255.86862",
     ratio: 1.8,
     alignment: "center",
@@ -7069,6 +9658,9 @@ export const integrationGeometry = {
   lexus: {
     ...lexus,
     markViewBox: "49.53452 104.75736 412.93097 302.48526",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "17.1243 17.13022 568.11359 97.44428",
     ratio: 1.8,
     alignment: "center",
@@ -7076,6 +9668,9 @@ export const integrationGeometry = {
   subway: {
     ...subway,
     markViewBox: "0 0 240 47.9",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.354392630401 -1.19219947913 -0.120353470908 0 1.66694558044",
+    monoInkScale: 1,
     logoViewBox: "0 0 240 47.9",
     ratio: 1.8,
     alignment: "center",
@@ -7083,6 +9678,9 @@ export const integrationGeometry = {
   lego: {
     ...lego,
     markViewBox: "0 0 180 180",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.263239418565 -0.885554243451 -0.0893973942633 0 1.23819105628",
+    monoInkScale: 1,
     logoViewBox: "0 0 180 180",
     ratio: 1.8,
     alignment: "center",
@@ -7090,6 +9688,9 @@ export const integrationGeometry = {
   costco: {
     ...costco,
     markViewBox: "217.19258 298.62621 187.16756 55.42349",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.292089610138 -0.982608133445 -0.0991950604513 0 1.37389280403",
+    monoInkScale: 1,
     logoViewBox: "217.19258 298.62621 187.16756 55.42349",
     ratio: 1.8,
     alignment: "center",
@@ -7097,6 +9698,9 @@ export const integrationGeometry = {
   homeDepot: {
     ...homeDepot,
     markViewBox: "0.29311 0.61886 226.70689 226.76229",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.41348176464 -1.39097910664 -0.140420429948 0 1.94488130122",
+    monoInkScale: 1,
     logoViewBox: "0.29311 0.61886 226.70689 226.76229",
     ratio: 1.8,
     alignment: "center",
@@ -7104,6 +9708,9 @@ export const integrationGeometry = {
   servicenow: {
     ...servicenow,
     markViewBox: "11.96816 14.07678 40.0637 35.84642",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.732109482191 -2.46286313106 -0.248627961496 0 3.44360057474",
+    monoInkScale: 1,
     logoViewBox: "0 0 130.3 19.25",
     ratio: 1.8,
     alignment: "center",
@@ -7111,6 +9718,9 @@ export const integrationGeometry = {
   lowes: {
     ...lowes,
     markViewBox: "0.95048 0.89983 89.33905 41.17035",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.281781722469 -0.947931739933 -0.0956944513747 0 1.32540791378",
+    monoInkScale: 1,
     logoViewBox: "0.95048 0.89983 89.33905 41.17035",
     ratio: 1.8,
     alignment: "center",
@@ -7118,6 +9728,9 @@ export const integrationGeometry = {
   citi: {
     ...citi,
     markViewBox: "0 0 55.968 32.13603",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327252247358 -1.1008974944 -0.11113646406 0 1.53928620582",
+    monoInkScale: 1,
     logoViewBox: "0 0 55.968 32.13603",
     ratio: 1.8,
     alignment: "center",
@@ -7125,6 +9738,9 @@ export const integrationGeometry = {
   santander: {
     ...santander,
     markViewBox: "3.65714 3.37143 392.11429 79.54286",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.272655124687 -0.917229281168 -0.0925950141224 0 1.28247941998",
+    monoInkScale: 1,
     logoViewBox: "3.65714 3.37143 392.11429 79.54286",
     ratio: 1.8,
     alignment: "center",
@@ -7132,6 +9748,9 @@ export const integrationGeometry = {
   evri: {
     ...evri,
     markViewBox: "0 0 75.35943 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.253820439351 -0.853868194842 -0.0861986628462 0 1.19388729704",
+    monoInkScale: 1,
     logoViewBox: "0 0 75.35943 32",
     ratio: 1.8,
     alignment: "center",
@@ -7139,6 +9758,9 @@ export const integrationGeometry = {
   bollinger: {
     ...bollinger,
     markViewBox: "0 0 170 32",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 170 32",
     ratio: 1.8,
     alignment: "center",
@@ -7146,6 +9768,9 @@ export const integrationGeometry = {
   ruinart: {
     ...ruinart,
     markViewBox: "19.712 0 154.476 196",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.250567338846 -0.842924556644 -0.0850938940012 0 1.17858578949",
+    monoInkScale: 1,
     logoViewBox: "0 0.84706 152 119.15294",
     ratio: 1.8,
     alignment: "center",
@@ -7153,6 +9778,9 @@ export const integrationGeometry = {
   dyson: {
     ...dyson,
     markViewBox: "87.52623 67.91518 393.94755 149.45142",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
     logoViewBox: "87.52623 67.91518 393.94755 149.45142",
     ratio: 1.8,
     alignment: "center",
@@ -7160,6 +9788,9 @@ export const integrationGeometry = {
   frankfurterAllgemeineZeitung: {
     ...frankfurterAllgemeineZeitung,
     markViewBox: "10.46688 4.96171 20.0587 30.063",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.225504893364 -0.758612886802 -0.0765825649149 0 1.06070034508",
+    monoInkScale: 1,
     logoViewBox: "16.95725 16.93892 851.91221 153.20876",
     ratio: 1.8,
     alignment: "center",
@@ -7167,6 +9798,9 @@ export const integrationGeometry = {
   supreme: {
     ...supreme,
     markViewBox: "0 0 575.84 198.67",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802",
+    monoInkScale: 1,
     logoViewBox: "0 0 575.84 198.67",
     ratio: 1.8,
     alignment: "center",
@@ -7174,6 +9808,9 @@ export const integrationGeometry = {
   lime: {
     ...lime,
     markViewBox: "10.5 11 518 518",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.559238215488 -1.88131313131 -0.18992003367 0 2.63047138047",
+    monoInkScale: 1,
     logoViewBox: "10.15 10.15739 1429.7 519.68522",
     ratio: 1.8,
     alignment: "center",
@@ -7181,6 +9818,9 @@ export const integrationGeometry = {
   freenow: {
     ...freenow,
     markViewBox: "0 0 141.00438 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.317590406617 -1.06839444409 -0.107855255681 0 1.49384010638",
+    monoInkScale: 1,
     logoViewBox: "0 0 141.00438 20",
     ratio: 1.8,
     alignment: "center",
@@ -7188,6 +9828,9 @@ export const integrationGeometry = {
   theWallStreetJournal: {
     ...theWallStreetJournal,
     markViewBox: "0 0 797.24377 67.55625",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239204196983 -0.804698220518 -0.0812349154382 0 1.12513733294",
+    monoInkScale: 1,
     logoViewBox: "0 0 797.24377 67.55625",
     ratio: 1.8,
     alignment: "center",
@@ -7195,6 +9838,9 @@ export const integrationGeometry = {
   theTimes: {
     ...theTimes,
     markViewBox: "2.14743 0 3753.70514 447.85714",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.213437007874 -0.718015748031 -0.0724842519685 0 1.00393700787",
+    monoInkScale: 1,
     logoViewBox: "2.14743 0 3753.70514 447.85714",
     ratio: 1.8,
     alignment: "center",
@@ -7202,6 +9848,9 @@ export const integrationGeometry = {
   theInformation: {
     ...theInformation,
     markViewBox: "0.0 9.35 364.91658 529.33571",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1.4246,
     logoViewBox: "0 0 5917 550",
     ratio: 1.8,
     alignment: "center",
@@ -7209,6 +9858,9 @@ export const integrationGeometry = {
   opentable: {
     ...opentable,
     markViewBox: "0.11536 0.11532 11.9357 9.22896",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.236315718812 -0.794981195174 -0.0802539741214 0 1.11155088811",
+    monoInkScale: 1.3935,
     logoViewBox: "0.08287 0.08283 41.26959 10.92701",
     ratio: 1.8,
     alignment: "center",
@@ -7216,6 +9868,9 @@ export const integrationGeometry = {
   resy: {
     ...resy,
     markViewBox: "0 0 45.29412 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.367610561862 -1.23666544611 -0.124842345091 0 1.72911835307",
+    monoInkScale: 1,
     logoViewBox: "0 0 45.29412 20",
     ratio: 1.8,
     alignment: "center",
@@ -7223,6 +9878,9 @@ export const integrationGeometry = {
   michelinGuide: {
     ...michelinGuide,
     markViewBox: "0 0 18.04231 19.77166",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.268340804156 -0.902715630915 -0.0911298497652 0 1.26218628484",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -7230,6 +9888,9 @@ export const integrationGeometry = {
   waitrose: {
     ...waitrose,
     markViewBox: "0 0 579 130.6694",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.381345559726 -1.28287085755 -0.129506817555 0 1.79372323484",
+    monoInkScale: 1,
     logoViewBox: "0 0 579 130.6694",
     ratio: 1.8,
     alignment: "center",
@@ -7237,6 +9898,9 @@ export const integrationGeometry = {
   traderJoes: {
     ...traderJoes,
     markViewBox: "10.14659 9.01744 379.97872 41.96513",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.281311489701 -0.946349846821 -0.0955347580264 0 1.32319609455",
+    monoInkScale: 1,
     logoViewBox: "10.14659 9.01744 379.97872 41.96513",
     ratio: 1.8,
     alignment: "center",
@@ -7244,6 +9908,9 @@ export const integrationGeometry = {
   oxfordUniversityPress: {
     ...oxfordUniversityPress,
     markViewBox: "0.0 0.25514 42.3577 42.48971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.237112401066 -0.797661285243 -0.0805245313123 0 1.11529821762",
+    monoInkScale: 1,
     logoViewBox: "0 0.10456 183 42.79088",
     ratio: 1.8,
     alignment: "center",
@@ -7251,6 +9918,9 @@ export const integrationGeometry = {
   ee: {
     ...ee,
     markViewBox: "0 0 200 351.34235",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.438225788981 -1.47421958739 -0.148823621658 0 2.06126899803",
+    monoInkScale: 1,
     logoViewBox: "0 0 200 351.34235",
     ratio: 1.8,
     alignment: "center",
@@ -7258,6 +9928,9 @@ export const integrationGeometry = {
   hims: {
     ...hims,
     markViewBox: "0 0 163.3 56",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 163.3 56",
     ratio: 1.8,
     alignment: "center",
@@ -7265,6 +9938,9 @@ export const integrationGeometry = {
   oralB: {
     ...oralB,
     markViewBox: "0 0 1599 558",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.245824702814 -0.826970025647 -0.0834832716047 0 1.15627800007",
+    monoInkScale: 1,
     logoViewBox: "0 0 1599 558",
     ratio: 1.8,
     alignment: "center",
@@ -7272,6 +9948,9 @@ export const integrationGeometry = {
   virginActive: {
     ...virginActive,
     markViewBox: "0 0 315.00001 149.99999",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26961259694 -0.906994023197 -0.091561756816 0 1.26816837695",
+    monoInkScale: 1,
     logoViewBox: "0 0 315.00001 149.99999",
     ratio: 1.8,
     alignment: "center",
@@ -7279,6 +9958,9 @@ export const integrationGeometry = {
   sas: {
     ...sas,
     markViewBox: "0 0 114 40",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.226027260189 -0.760370162217 -0.0767599632439 0 1.06315738565",
+    monoInkScale: 1,
     logoViewBox: "0 0 114 40",
     ratio: 1.8,
     alignment: "center",
@@ -7286,6 +9968,9 @@ export const integrationGeometry = {
   mbna: {
     ...mbna,
     markViewBox: "17.46658 18.01844 765.63827 236.11264",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327901474114 -1.10308153474 -0.111356944643 0 1.5423399535",
+    monoInkScale: 1,
     logoViewBox: "17.46658 18.01844 765.63827 236.11264",
     ratio: 1.8,
     alignment: "center",
@@ -7293,6 +9978,9 @@ export const integrationGeometry = {
   sonder: {
     ...sonder,
     markViewBox: "0.0 0.0 189.1665 157.0",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.281194468333 -0.945956179452 -0.0954950169973 0 1.32264566478",
+    monoInkScale: 1,
     logoViewBox: "0 0 635 157",
     ratio: 1.8,
     alignment: "center",
@@ -7300,6 +9988,9 @@ export const integrationGeometry = {
   residentAdvisor: {
     ...residentAdvisor,
     markViewBox: "0 0 1655 791.05433",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -7307,6 +9998,9 @@ export const integrationGeometry = {
   taittinger: {
     ...taittinger,
     markViewBox: "2.00457 0 3503.99086 372",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.638334699183 -2.14739876226 -0.216781586458 0 3.0025150479",
+    monoInkScale: 1,
     logoViewBox: "2.00457 0 3503.99086 372",
     ratio: 1.8,
     alignment: "center",
@@ -7314,6 +10008,9 @@ export const integrationGeometry = {
   yubikey: {
     ...yubikey,
     markViewBox: "1.47545 1.04114 29.04911 29.98628",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.590787236825 -1.98744605728 -0.200634235648 0 2.77886752975",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -7321,6 +10018,9 @@ export const integrationGeometry = {
   billecartSalmon: {
     ...billecartSalmon,
     markViewBox: "73.45061 0.0 56.60203 95.3262",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.232601743151 -0.782487143469 -0.0789926898189 0 1.09408157644",
+    monoInkScale: 1,
     logoViewBox: "0 0 200.92 176.53",
     ratio: 1.8,
     alignment: "center",
@@ -7328,6 +10028,9 @@ export const integrationGeometry = {
   kingSCollegeLondon: {
     ...kingSCollegeLondon,
     markViewBox: "0 0 477.19 363.38",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.301111066677 -1.01295689035 -0.102258791223 0 1.41632674825",
+    monoInkScale: 1,
     logoViewBox: "0 0 477.19 363.38",
     ratio: 1.8,
     alignment: "center",
@@ -7335,6 +10038,9 @@ export const integrationGeometry = {
   imperialCollegeLondon: {
     ...imperialCollegeLondon,
     markViewBox: "0 0 310 310",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.225700356787 -0.759270438262 -0.0766489452496 0 1.0616197403",
+    monoInkScale: 1,
     logoViewBox: "0 0 727 80",
     ratio: 1.8,
     alignment: "center",
@@ -7342,6 +10048,9 @@ export const integrationGeometry = {
   londonSchoolOfEconomics: {
     ...londonSchoolOfEconomics,
     markViewBox: "0 0 260 260",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.282190942281 -0.94930838156 -0.0958334244248 0 1.32733274827",
+    monoInkScale: 1,
     logoViewBox: "0 0 234 80",
     ratio: 1.8,
     alignment: "center",
@@ -7349,6 +10058,9 @@ export const integrationGeometry = {
   veuveClicquot: {
     ...veuveClicquot,
     markViewBox: "0 0 246 40",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 246 40",
     ratio: 1.8,
     alignment: "center",
@@ -7356,6 +10068,9 @@ export const integrationGeometry = {
   absolut: {
     ...absolut,
     markViewBox: "0 0 767.992 367.74",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 767.992 367.74",
     ratio: 1.8,
     alignment: "center",
@@ -7363,6 +10078,9 @@ export const integrationGeometry = {
   dmDrogerieMarkt: {
     ...dmDrogerieMarkt,
     markViewBox: "0.98214 0.98254 24.20572 16.02491",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.277597422547 -0.933855487328 -0.0942734426525 0 1.30572635253",
+    monoInkScale: 1,
     logoViewBox: "0.98214 0.98254 24.20572 16.02491",
     ratio: 1.8,
     alignment: "center",
@@ -7370,6 +10088,9 @@ export const integrationGeometry = {
   currys: {
     ...currys,
     markViewBox: "0 0 100 100",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252924496348 -0.85085418527 -0.0858943962199 0 1.18967307784",
+    monoInkScale: 1,
     logoViewBox: "0 0 100 100",
     ratio: 1.8,
     alignment: "center",
@@ -7377,6 +10098,9 @@ export const integrationGeometry = {
   parcelforce: {
     ...parcelforce,
     markViewBox: "0 0 141.57812 51.45",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.314587559711 -1.058292675 -0.106835474182 0 1.47971570889",
+    monoInkScale: 1,
     logoViewBox: "0 0 141.57812 51.45",
     ratio: 1.8,
     alignment: "center",
@@ -7384,6 +10108,9 @@ export const integrationGeometry = {
   baeSystems: {
     ...baeSystems,
     markViewBox: "0 0 709 110",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.275046574208 -0.925274270337 -0.0934071620782 0 1.29372800662",
+    monoInkScale: 1,
     logoViewBox: "0 0 709 110",
     ratio: 1.8,
     alignment: "center",
@@ -7391,6 +10118,9 @@ export const integrationGeometry = {
   anduril: {
     ...anduril,
     markViewBox: "72.45 72.5 222.93134 207.96",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "72.45 72.5 1135.65 207.96",
     ratio: 1.8,
     alignment: "center",
@@ -7398,6 +10128,9 @@ export const integrationGeometry = {
   paramountPictures: {
     ...paramountPictures,
     markViewBox: "0 0 533.07 426.54",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.222692054593 -0.74915031724 -0.0756273111084 0 1.04746968294",
+    monoInkScale: 1,
     logoViewBox: "0 0 533.07 426.54",
     ratio: 1.8,
     alignment: "center",
@@ -7405,6 +10138,9 @@ export const integrationGeometry = {
   waltDisneyStudios: {
     ...waltDisneyStudios,
     markViewBox: "0 0 188.92 30.66",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.220309806475 -0.741136282176 -0.0748182879937 0 1.03626437664",
+    monoInkScale: 1,
     logoViewBox: "0 0 188.92 30.66",
     ratio: 1.8,
     alignment: "center",
@@ -7412,6 +10148,9 @@ export const integrationGeometry = {
   columbiaPictures: {
     ...columbiaPictures,
     markViewBox: "0 0 1000.0004 268.83007",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000.0004 268.83007",
     ratio: 1.8,
     alignment: "center",
@@ -7419,6 +10158,9 @@ export const integrationGeometry = {
   pixar: {
     ...pixar,
     markViewBox: "0.85757 1.80793 664.332 106.19207",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0.85757 1.80793 664.332 106.19207",
     ratio: 1.8,
     alignment: "center",
@@ -7426,6 +10168,9 @@ export const integrationGeometry = {
   universityCollegeLondon: {
     ...universityCollegeLondon,
     markViewBox: "0 0 1394 391",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.247706748984 -0.833301349358 -0.0841224236908 0 1.16513052203",
+    monoInkScale: 1,
     logoViewBox: "0 0 1394 391",
     ratio: 1.8,
     alignment: "center",
@@ -7433,6 +10178,9 @@ export const integrationGeometry = {
   loewe: {
     ...loewe,
     markViewBox: "0 0 644.53186 146.11407",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 644.53186 146.11407",
     ratio: 1.8,
     alignment: "center",
@@ -7440,6 +10188,9 @@ export const integrationGeometry = {
   idealo: {
     ...idealo,
     markViewBox: "0 0 1000 465.2",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.262488706493 -0.883028800017 -0.0891424487713 0 1.23465995528",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 465.2",
     ratio: 1.8,
     alignment: "center",
@@ -7447,6 +10198,9 @@ export const integrationGeometry = {
   starWars: {
     ...starWars,
     markViewBox: "19.58021 19.58621 472.83956 204.83257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "19.58021 19.58621 472.83956 204.83257",
     ratio: 1.8,
     alignment: "center",
@@ -7454,6 +10208,9 @@ export const integrationGeometry = {
   foundationTvSeries: {
     ...foundationTvSeries,
     markViewBox: "0 0 2558.53714 245",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 2558.53714 245",
     ratio: 1.8,
     alignment: "center",
@@ -7461,6 +10218,9 @@ export const integrationGeometry = {
   theFrenchLaundry: {
     ...theFrenchLaundry,
     markViewBox: "206 724.1 612 102.2",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264454948561 -0.889643364114 -0.0898101941961 0 1.24390850687",
+    monoInkScale: 1,
     logoViewBox: "206 724.1 612 102.2",
     ratio: 1.8,
     alignment: "center",
@@ -7468,6 +10228,9 @@ export const integrationGeometry = {
   louisVuitton: {
     ...louisVuitton,
     markViewBox: "17.74943 24.954 1648.29829 1608.35135",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 298.9834662189155 100",
     ratio: 1.8,
     alignment: "center",
@@ -7475,6 +10238,9 @@ export const integrationGeometry = {
   chanel: {
     ...chanel,
     markViewBox: "7 -1 190 141",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.231040669602 -0.777235592187 -0.078462541605 0 1.08673880339",
+    monoInkScale: 1,
     logoViewBox: "-56 -1 306 196",
     ratio: 1.8,
     alignment: "center",
@@ -7482,6 +10248,9 @@ export const integrationGeometry = {
   balenciaga: {
     ...balenciaga,
     markViewBox: "0 0 128 15",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 128 15",
     ratio: 1.8,
     alignment: "center",
@@ -7489,6 +10258,9 @@ export const integrationGeometry = {
   gucci: {
     ...gucci,
     markViewBox: "0 0 936.15 150",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
     logoViewBox: "0 0 936.15 150",
     ratio: 1.8,
     alignment: "center",
@@ -7496,6 +10268,9 @@ export const integrationGeometry = {
   yvesSaintLaurent: {
     ...yvesSaintLaurent,
     markViewBox: "0 0 183.81 18",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 183.81 18",
     ratio: 1.8,
     alignment: "center",
@@ -7503,6 +10278,9 @@ export const integrationGeometry = {
   texasInstruments: {
     ...texasInstruments,
     markViewBox: "60.43 60.91 147.0456 142.77003",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1.1234,
     logoViewBox: "60.43 60.91 678.78 159.24",
     ratio: 1.8,
     alignment: "center",
@@ -7510,6 +10288,9 @@ export const integrationGeometry = {
   harryPotter: {
     ...harryPotter,
     markViewBox: "0 0 1000 362.30709",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 362.30709",
     ratio: 1.8,
     alignment: "center",
@@ -7517,6 +10298,9 @@ export const integrationGeometry = {
   allianz: {
     ...allianz,
     markViewBox: "303.8176 0.0 95.9424 99.15",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.262723273348 -0.883817897923 -0.0892221088228 0 1.23576328009",
+    monoInkScale: 1,
     logoViewBox: "0 0 399.76 99.15",
     ratio: 1.8,
     alignment: "center",
@@ -7524,6 +10308,9 @@ export const integrationGeometry = {
   blackstone: {
     ...blackstone,
     markViewBox: "24.92857 95.92923 445.85714 71.87554",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "24.92857 95.92923 445.85714 71.87554",
     ratio: 1.8,
     alignment: "center",
@@ -7531,6 +10318,9 @@ export const integrationGeometry = {
   corona: {
     ...corona,
     markViewBox: "9.24888 8.92557 343.96529 208.89763",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302243199486 -1.01676545754 -0.102643269064 0 1.42165192609",
+    monoInkScale: 1,
     logoViewBox: "9.24888 8.92557 343.96529 208.89763",
     ratio: 1.8,
     alignment: "center",
@@ -7538,6 +10328,9 @@ export const integrationGeometry = {
   sephora: {
     ...sephora,
     markViewBox: "0 435.2 1000 129.6",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 435.2 1000 129.6",
     ratio: 1.8,
     alignment: "center",
@@ -7545,6 +10338,9 @@ export const integrationGeometry = {
   cambridgeUniversityPress: {
     ...cambridgeUniversityPress,
     markViewBox: "321.56055 50.97671 34.76368 40.31709",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "321.414 50.83691 199.02771 40.6047",
     ratio: 1.8,
     alignment: "center",
@@ -7552,6 +10348,9 @@ export const integrationGeometry = {
   johnLewis: {
     ...johnLewis,
     markViewBox: "0 0 111 70",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 111 70",
     ratio: 1.8,
     alignment: "center",
@@ -7559,6 +10358,9 @@ export const integrationGeometry = {
   thales: {
     ...thales,
     markViewBox: "0 0 484 57.4",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266104545173 -0.895192712644 -0.0903704052753 0 1.25166766309",
+    monoInkScale: 1,
     logoViewBox: "0 0 484 57.4",
     ratio: 1.8,
     alignment: "center",
@@ -7566,6 +10368,9 @@ export const integrationGeometry = {
   lionsgate: {
     ...lionsgate,
     markViewBox: "0 0 299.82857 38.02377",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 299.82857 38.02377",
     ratio: 1.8,
     alignment: "center",
@@ -7573,6 +10378,9 @@ export const integrationGeometry = {
   brand20thCenturyFoxLegacy: {
     ...brand20thCenturyFoxLegacy,
     markViewBox: "0 0 1000 821.16103",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 821.16103",
     ratio: 1.8,
     alignment: "center",
@@ -7580,6 +10388,9 @@ export const integrationGeometry = {
   hermes: {
     ...hermes,
     markViewBox: "38 -0.175 106 37",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.448585556692 -1.50907050868 -0.15234184945 0 2.10999791483",
+    monoInkScale: 1,
     logoViewBox: "-0.18943 -0.175 187.35543 108.75837",
     ratio: 1.8,
     alignment: "center",
@@ -7587,6 +10398,9 @@ export const integrationGeometry = {
   maxMara: {
     ...maxMara,
     markViewBox: "0.70846 0.60836 175.87212 32.49642",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0.70846 0.60836 175.87212 32.49642",
     ratio: 1.8,
     alignment: "center",
@@ -7594,6 +10408,9 @@ export const integrationGeometry = {
   prada: {
     ...prada,
     markViewBox: "0 0 2279.41 353.7",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 2279.41 353.7",
     ratio: 1.8,
     alignment: "center",
@@ -7601,6 +10418,9 @@ export const integrationGeometry = {
   valentino: {
     ...valentino,
     markViewBox: "6334.87336 0.0 7044.35674 3957.99155",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 19629.975 9662",
     ratio: 1.8,
     alignment: "center",
@@ -7608,6 +10428,9 @@ export const integrationGeometry = {
   versace: {
     ...versace,
     markViewBox: "0 0 283.48001 62.78",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 283.48001 62.78",
     ratio: 1.8,
     alignment: "center",
@@ -7615,6 +10438,9 @@ export const integrationGeometry = {
   kleenex: {
     ...kleenex,
     markViewBox: "0 0 251.354 89.793",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.259745797631 -0.873801479142 -0.088210943504 0 1.22175822028",
+    monoInkScale: 1,
     logoViewBox: "0 0 251.354 89.793",
     ratio: 1.8,
     alignment: "center",
@@ -7622,6 +10448,9 @@ export const integrationGeometry = {
   marlboro: {
     ...marlboro,
     markViewBox: "0 0 1131.5 637.00382",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 1131.5 637.00382",
     ratio: 1.8,
     alignment: "center",
@@ -7629,6 +10458,9 @@ export const integrationGeometry = {
   nomura: {
     ...nomura,
     markViewBox: "0.12178 0.10096 29.15137 5.09829",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280242377374 -0.942753284563 -0.0951716822503 0 1.31816734419",
+    monoInkScale: 1,
     logoViewBox: "0.12178 0.10096 29.15137 5.09829",
     ratio: 1.8,
     alignment: "center",
@@ -7636,6 +10468,9 @@ export const integrationGeometry = {
   exxonmobil: {
     ...exxonmobil,
     markViewBox: "0 0 250 47.16",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297784618224 -1.00176650496 -0.101129113056 0 1.40068023624",
+    monoInkScale: 1,
     logoViewBox: "0 0 250 47.16",
     ratio: 1.8,
     alignment: "center",
@@ -7643,6 +10478,9 @@ export const integrationGeometry = {
   budweiser: {
     ...budweiser,
     markViewBox: "0 0 1000 317.72864",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.262630617712 -0.883506198437 -0.0891906425156 0 1.23532745866",
+    monoInkScale: 1,
     logoViewBox: "0 0 1000 317.72864",
     ratio: 1.8,
     alignment: "center",
@@ -7650,6 +10488,9 @@ export const integrationGeometry = {
   tiffanyCo: {
     ...tiffanyCo,
     markViewBox: "0 0 634 70",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 634 70",
     ratio: 1.8,
     alignment: "center",
@@ -7657,6 +10498,9 @@ export const integrationGeometry = {
   monopoly: {
     ...monopoly,
     markViewBox: "0.608 1.21529 222.944 45.53671",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.234251852825 -0.78803821797 -0.0795530751362 0 1.10184314593",
+    monoInkScale: 1,
     logoViewBox: "0.608 1.21529 222.944 45.53671",
     ratio: 1.8,
     alignment: "center",
@@ -7664,6 +10508,9 @@ export const integrationGeometry = {
   zegna: {
     ...zegna,
     markViewBox: "11.21534 12.03725 922.54003 217.39274",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "11.21534 12.03725 922.54003 517.60175",
     ratio: 1.8,
     alignment: "center",
@@ -7671,6 +10518,9 @@ export const integrationGeometry = {
   flink: {
     ...flink,
     markViewBox: "83.16 65.12115 913.68 229.75769",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.275186188357 -0.925743941264 -0.0934545757261 0 1.29438470535",
+    monoInkScale: 1,
     logoViewBox: "83.16 65.12115 913.68 229.75769",
     ratio: 1.8,
     alignment: "center",
@@ -7678,6 +10528,9 @@ export const integrationGeometry = {
   helsing: {
     ...helsing,
     markViewBox: "437.65683 437.66753 1664.68633 2227.50623",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "436.34055 438.46745 1667.3189 2955.0651",
     ratio: 1.8,
     alignment: "center",
@@ -7685,6 +10538,9 @@ export const integrationGeometry = {
   gameOfThrones: {
     ...gameOfThrones,
     markViewBox: "0 0 4291 530",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "0 0 4291 530",
     ratio: 1.8,
     alignment: "center",
@@ -7692,6 +10548,9 @@ export const integrationGeometry = {
   trafigura: {
     ...trafigura,
     markViewBox: "5.59543 0 1618.47771 454.06667",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.229144212115 -0.770855787885 -0.0778184953654 0 1.07781849537",
+    monoInkScale: 1,
     logoViewBox: "5.59543 0 1618.47771 454.06667",
     ratio: 1.8,
     alignment: "center",
@@ -7699,6 +10558,9 @@ export const integrationGeometry = {
   theLordOfTheRings: {
     ...theLordOfTheRings,
     markViewBox: "136.14464 85.07386 1324.28216 284.56475",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.532757726083 -1.792231071 -0.18092712993 0 2.50591592701",
+    monoInkScale: 1,
     logoViewBox: "136.14464 85.07386 1324.28216 284.56475",
     ratio: 1.8,
     alignment: "center",
@@ -7706,6 +10568,9 @@ export const integrationGeometry = {
   vaseline: {
     ...vaseline,
     markViewBox: "0 0 600 407",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235243731303 -0.791374960621 -0.0798899219195 0 1.10650861384",
+    monoInkScale: 1,
     logoViewBox: "0 0 600 407",
     ratio: 1.8,
     alignment: "center",
@@ -7713,6 +10578,9 @@ export const integrationGeometry = {
   moutai: {
     ...moutai,
     markViewBox: "0.0 0.0 165.24 163.0",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.3145,
     logoViewBox: "0 0 1000 163",
     ratio: 1.8,
     alignment: "center",
@@ -7720,6 +10588,9 @@ export const integrationGeometry = {
   monsterEnergy: {
     ...monsterEnergy,
     markViewBox: "0.0 0.0 183.0 272.0",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 600 272",
     ratio: 1.8,
     alignment: "center",
@@ -7727,6 +10598,9 @@ export const integrationGeometry = {
   danone: {
     ...danone,
     markViewBox: "0 0 600 465",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.527,
     logoViewBox: "0 0 600 670",
     ratio: 1.8,
     alignment: "center",
@@ -7734,6 +10608,9 @@ export const integrationGeometry = {
   cartier: {
     ...cartier,
     markViewBox: "-3.16482 -3.16627 2585.56255 723.69069",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "-3.16482 -3.16627 2585.56255 723.69069",
     ratio: 1.8,
     alignment: "center",
@@ -7741,6 +10618,9 @@ export const integrationGeometry = {
   colgate: {
     ...colgate,
     markViewBox: "2.83343 4.64369 206.38814 42.57723",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "2.83343 4.64369 206.38814 42.57723",
     ratio: 1.8,
     alignment: "center",
@@ -7748,6 +10628,9 @@ export const integrationGeometry = {
   unitedhealthcare: {
     ...unitedhealthcare,
     markViewBox: "0.0 0.0 28.98397 50.19",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273421069355 -0.919805968026 -0.0928551326783 0 1.28608217006",
+    monoInkScale: 1,
     logoViewBox: "0 0 159.9462 50.19",
     ratio: 1.8,
     alignment: "center",
@@ -7755,6 +10638,9 @@ export const integrationGeometry = {
   royalBankOfCanada: {
     ...royalBankOfCanada,
     markViewBox: "0 0 39.5 52",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.307657122881 -1.03497824217 -0.104481863932 0 1.44711722898",
+    monoInkScale: 1,
     logoViewBox: "0 0 39.5 52",
     ratio: 1.8,
     alignment: "center",
@@ -7762,6 +10648,9 @@ export const integrationGeometry = {
   xfinity: {
     ...xfinity,
     markViewBox: "0 0 379.77 119.91",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.307042036548 -1.0329090524 -0.104272977605 0 1.44422406655",
+    monoInkScale: 1,
     logoViewBox: "0 0 379.77 119.91",
     ratio: 1.8,
     alignment: "center",
@@ -7769,6 +10658,9 @@ export const integrationGeometry = {
   commerzbank: {
     ...commerzbank,
     markViewBox: "498.51488 17.64365 86.19716 74.66152",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.427688307344 -1.43877082508 -0.145245041346 0 2.01170417377",
+    monoInkScale: 1,
     logoViewBox: "17.41004 17.06415 567.21137 75.82052",
     ratio: 1.8,
     alignment: "center",
@@ -7776,6 +10668,9 @@ export const integrationGeometry = {
   deutscheBank: {
     ...deutscheBank,
     markViewBox: "-0.02 -0.02 24.03997 24.03997",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240193420101 -0.808026030369 -0.0815708604483 0 1.12979031092",
+    monoInkScale: 1,
     logoViewBox: "1.24973 1.54939 248.22976 49.19209",
     ratio: 1.8,
     alignment: "center",
@@ -7783,6 +10678,9 @@ export const integrationGeometry = {
   activision: {
     ...activision,
     markViewBox: "-0.00599 8.89796 24.01195 6.20408",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "-0.00599 8.89796 24.01195 6.20408",
     ratio: 1.8,
     alignment: "center",
@@ -7790,6 +10688,9 @@ export const integrationGeometry = {
   assassinsCreed: {
     ...assassinsCreed,
     markViewBox: "90.36364 1.77686 115.44539 138.79166",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.257369103175 -0.865806126954 -0.0874038064403 0 1.21057903657",
+    monoInkScale: 1,
     logoViewBox: "1.48095 1.65481 293.55605 139.03577",
     ratio: 1.8,
     alignment: "center",
@@ -7797,6 +10698,9 @@ export const integrationGeometry = {
   callOfDuty: {
     ...callOfDuty,
     markViewBox: "-0.03462 -0.11696 137.66674 24.23394",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.03462 -0.11696 137.66674 24.23394",
     ratio: 1.8,
     alignment: "center",
@@ -7804,6 +10708,9 @@ export const integrationGeometry = {
   cnn: {
     ...cnn,
     markViewBox: "-0.83351 -0.82787 1001.66703 466.27894",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.256169269327 -0.861769809138 -0.0869963369963 0 1.20493541546",
+    monoInkScale: 1,
     logoViewBox: "-0.83351 -0.82787 1001.66703 466.27894",
     ratio: 1.8,
     alignment: "center",
@@ -7811,6 +10718,9 @@ export const integrationGeometry = {
   foxNews: {
     ...foxNews,
     markViewBox: "-1.02855 -1.02855 1237.0571 1237.0571",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.25560715717 -0.859878827884 -0.0868054409581 0 1.20229142601",
+    monoInkScale: 1,
     logoViewBox: "-1.02855 -1.02855 1237.0571 1237.0571",
     ratio: 1.8,
     alignment: "center",
@@ -7818,6 +10728,9 @@ export const integrationGeometry = {
   abcNews: {
     ...abcNews,
     markViewBox: "-2.60693 -5.48425 4935.23869 4939.18847",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-11.79357 -11.93645 14195.97716 4952.09288",
     ratio: 1.8,
     alignment: "center",
@@ -7825,6 +10738,9 @@ export const integrationGeometry = {
   pbs: {
     ...pbs,
     markViewBox: "-0.01332 -0.01333 16.01732 16.02666",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.281306234784 -0.946332168943 -0.0955329734307 0 1.32317137716",
+    monoInkScale: 1,
     logoViewBox: "-0.11247 -0.11214 134.75228 56.22428",
     ratio: 1.8,
     alignment: "center",
@@ -7832,6 +10748,9 @@ export const integrationGeometry = {
   skyNews: {
     ...skyNews,
     markViewBox: "-0.8319 -0.85275 1001.3638 237.92549",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.238823788546 -0.803418502203 -0.0811057268722 0 1.12334801762",
+    monoInkScale: 1,
     logoViewBox: "-0.8319 -0.85275 1001.3638 237.92549",
     ratio: 1.8,
     alignment: "center",
@@ -7839,6 +10758,9 @@ export const integrationGeometry = {
   harpercollins: {
     ...harpercollins,
     markViewBox: "1.35311 1.17373 7.94717 9.20455",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.322326137235 -1.08432574483 -0.109463532965 0 1.51611541503",
+    monoInkScale: 1,
     logoViewBox: "1.27555 1.07007 117.63594 12.1289",
     ratio: 1.8,
     alignment: "center",
@@ -7846,6 +10768,9 @@ export const integrationGeometry = {
   taschen: {
     ...taschen,
     markViewBox: "0.55009 -0.48933 599.5999 108.97883",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0.55009 -0.48933 599.5999 108.97883",
     ratio: 1.8,
     alignment: "center",
@@ -7853,6 +10778,9 @@ export const integrationGeometry = {
   grindr: {
     ...grindr,
     markViewBox: "-0.6994 -0.70503 738.10966 781.41007",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.987734621818 -3.32280245308 -0.335439509385 0 4.64597658428",
+    monoInkScale: 1,
     logoViewBox: "-1.07814 -3.22571 3636.41881 786.45142",
     ratio: 1.8,
     alignment: "center",
@@ -7860,6 +10788,9 @@ export const integrationGeometry = {
   tinder: {
     ...tinder,
     markViewBox: "-0.4176 -0.4169 377.8352 500.83368",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.275044620616 -0.925267698327 -0.0934064986287 0 1.29371881757",
+    monoInkScale: 1,
     logoViewBox: "0 0 417.3351083018172 100",
     ratio: 1.8,
     alignment: "center",
@@ -7867,6 +10798,9 @@ export const integrationGeometry = {
   bumble: {
     ...bumble,
     markViewBox: "88.65635 111.6802 421.87717 374.63961",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243107623318 -0.817829596413 -0.0825605381166 0 1.14349775785",
+    monoInkScale: 1,
     logoViewBox: "0 0 421.22020761738503 100",
     ratio: 1.8,
     alignment: "center",
@@ -7874,6 +10808,9 @@ export const integrationGeometry = {
   hinge: {
     ...hinge,
     markViewBox: "-0.27673 -0.26593 332.55346 126.53184",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.27673 -0.26593 332.55346 126.53184",
     ratio: 1.8,
     alignment: "center",
@@ -7881,6 +10818,9 @@ export const integrationGeometry = {
   googleGemini: {
     ...googleGemini,
     markViewBox: "-0.36283 -0.21318 256.57602 256.42639",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.360141258438 -1.21153823159 -0.12230573311 0 1.69398522313",
+    monoInkScale: 1.0581,
     logoViewBox: "-0.23967 -0.25279 288.47932 65.3371",
     ratio: 1.8,
     alignment: "center",
@@ -7888,6 +10828,9 @@ export const integrationGeometry = {
   bytedance: {
     ...bytedance,
     markViewBox: "-2.36065 -1.84879 2856.27769 2492.00802",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.323232841167 -1.08737595486 -0.109771454056 0 1.52038025008",
+    monoInkScale: 1,
     logoViewBox: "-4.04033 -12.67788 16227.12167 2823.51087",
     ratio: 1.8,
     alignment: "center",
@@ -7895,6 +10838,9 @@ export const integrationGeometry = {
   paramountPlus: {
     ...paramountPlus,
     markViewBox: "-0.02 2.41565 24.03997 19.16872",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.328426294459 -1.10484706396 -0.111535176199 0 1.54480853461",
+    monoInkScale: 1,
     logoViewBox: "-162.43251 -101.38735 1001.66703 623.9007",
     ratio: 1.8,
     alignment: "center",
@@ -7902,6 +10848,9 @@ export const integrationGeometry = {
   alltrails: {
     ...alltrails,
     markViewBox: "-0.02 2.69574 24.03997 18.60855",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244048798055 -0.820995768434 -0.0828801656613 0 1.14792473215",
+    monoInkScale: 1,
     logoViewBox: "0.85105 -0.214 260.14497 48.42801",
     ratio: 1.8,
     alignment: "center",
@@ -7909,6 +10858,9 @@ export const integrationGeometry = {
   eventbrite: {
     ...eventbrite,
     markViewBox: "-1.03932 -1.01098 1002.07865 1215.92195",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.57296 -1.80889 2301.14591 404.41778",
     ratio: 1.8,
     alignment: "center",
@@ -7916,6 +10868,9 @@ export const integrationGeometry = {
   westernUnion: {
     ...westernUnion,
     markViewBox: "-0.00598 5.17381 24.02598 13.65237",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -1.26879923609 -4.26832179518 -0.43089042731 0 5.96801145858",
+    monoInkScale: 1,
     logoViewBox: "19.03566 16.8948 221.9287 25.2104",
     ratio: 1.8,
     alignment: "center",
@@ -7923,6 +10878,9 @@ export const integrationGeometry = {
   blinkist: {
     ...blinkist,
     markViewBox: "-0.01204 -0.02527 27.02998 26.04217",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251777812455 -0.846996667298 -0.0855049767603 0 1.18427945651",
+    monoInkScale: 1,
     logoViewBox: "-0.11061 -0.11208 132.92121 26.2015",
     ratio: 1.8,
     alignment: "center",
@@ -7930,6 +10888,9 @@ export const integrationGeometry = {
   fastly: {
     ...fastly,
     markViewBox: "1.40842 -0.02 21.18315 24.03997",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.320919907654 -1.07959509856 -0.10898597052 0 1.50950097674",
+    monoInkScale: 1,
     logoViewBox: "-1.74389 -0.80815 1557.61277 603.45818",
     ratio: 1.8,
     alignment: "center",
@@ -7937,6 +10898,9 @@ export const integrationGeometry = {
   googleCloudPlatform: {
     ...googleCloudPlatform,
     markViewBox: "-0.21338 -0.21621 256.42677 206.28313",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.353163968194 -1.18806618087 -0.119936211212 0 1.66116636027",
+    monoInkScale: 1,
     logoViewBox: "0 0 410.4016447842246 100",
     ratio: 1.8,
     alignment: "center",
@@ -7944,6 +10908,9 @@ export const integrationGeometry = {
   nivea: {
     ...nivea,
     markViewBox: "-0.41642 -0.41642 500.83283 500.83283",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261030969531 -0.878124879627 -0.0886473941682 0 1.22780324333",
+    monoInkScale: 1,
     logoViewBox: "-0.41642 -0.41642 500.83283 500.83283",
     ratio: 1.8,
     alignment: "center",
@@ -7951,6 +10918,9 @@ export const integrationGeometry = {
   tomFord: {
     ...tomFord,
     markViewBox: "-0.5001 -0.50636 600.84999 90.41249",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.5001 -0.50636 600.84999 90.41249",
     ratio: 1.8,
     alignment: "center",
@@ -7958,6 +10928,9 @@ export const integrationGeometry = {
   diptyque: {
     ...diptyque,
     markViewBox: "-0.11421 -0.11419 130.22849 137.22838",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0.70919 -0.08818 103.76614 31.74822",
     ratio: 1.8,
     alignment: "center",
@@ -7965,6 +10938,9 @@ export const integrationGeometry = {
   malinGoetz: {
     ...malinGoetz,
     markViewBox: "-0.3283 -0.35336 385.25668 37.6684",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.232881514071 -0.783428310742 -0.0790877013921 0 1.09539752621",
+    monoInkScale: 1,
     logoViewBox: "-0.3283 -0.35336 385.25668 37.6684",
     ratio: 1.8,
     alignment: "center",
@@ -7972,6 +10948,9 @@ export const integrationGeometry = {
   theOrdinary: {
     ...theOrdinary,
     markViewBox: "26.95666 27.92771 79.08933 71.39795",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0 0 341.7200304067477 100",
     ratio: 1.8,
     alignment: "center",
@@ -7979,6 +10958,9 @@ export const integrationGeometry = {
   kiehls: {
     ...kiehls,
     markViewBox: "-0.4957 -0.50042 596.39194 300.50084",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
     logoViewBox: "-0.4957 -0.50042 596.39194 300.50084",
     ratio: 1.8,
     alignment: "center",
@@ -7986,6 +10968,9 @@ export const integrationGeometry = {
   theStandard: {
     ...theStandard,
     markViewBox: "-0.0473 -0.16345 190.4946 48.32688",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.306686654975 -1.03171352605 -0.104152288284 0 1.44255246931",
+    monoInkScale: 1,
     logoViewBox: "-0.0473 -0.16345 190.4946 48.32688",
     ratio: 1.8,
     alignment: "center",
@@ -7993,6 +10978,9 @@ export const integrationGeometry = {
   rosewood: {
     ...rosewood,
     markViewBox: "-0.04572 -0.13584 184.09142 18.27168",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "-0.04572 -0.13584 184.09142 18.27168",
     ratio: 1.8,
     alignment: "center",
@@ -8000,6 +10988,9 @@ export const integrationGeometry = {
   roseBikes: {
     ...roseBikes,
     markViewBox: "-0.01334 -0.01331 16.02667 16.02666",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.05485 -0.05691 96.47131 33.62421",
     ratio: 1.8,
     alignment: "center",
@@ -8007,6 +10998,9 @@ export const integrationGeometry = {
   hermanMiller: {
     ...hermanMiller,
     markViewBox: "12.36461 12.07653 235.42234 235.70945",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.3064370259 -1.03087375787 -0.104067513029 0 1.4413782968",
+    monoInkScale: 1,
     logoViewBox: "0.29836 0.18608 198.40293 39.62785",
     ratio: 1.8,
     alignment: "center",
@@ -8014,6 +11008,9 @@ export const integrationGeometry = {
   sweetgreen: {
     ...sweetgreen,
     markViewBox: "-0.0404 -0.13829 162.08066 23.7966",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.271215795983 -0.912387287332 -0.0921062110533 0 1.27570929437",
+    monoInkScale: 1,
     logoViewBox: "-0.0404 -0.13829 162.08066 23.7966",
     ratio: 1.8,
     alignment: "center",
@@ -8021,6 +11018,9 @@ export const integrationGeometry = {
   zettaVenturePartners: {
     ...zettaVenturePartners,
     markViewBox: "-0.07989 -0.08307 96.15977 29.16614",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.07989 -0.08307 96.15977 29.16614",
     ratio: 1.8,
     alignment: "center",
@@ -8028,6 +11028,9 @@ export const integrationGeometry = {
   wholeFoodsMarket: {
     ...wholeFoodsMarket,
     markViewBox: "-4.66695 -4.66695 151.61212 151.61212",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.317855191289 -1.06928519666 -0.107945177851 0 1.4950855658",
+    monoInkScale: 1,
     logoViewBox: "-4.66695 -4.66695 151.61212 151.61212",
     ratio: 1.8,
     alignment: "center",
@@ -8035,6 +11038,9 @@ export const integrationGeometry = {
   londonUnderground: {
     ...londonUnderground,
     markViewBox: "-0.09687 -0.09668 116.5638 94.74617",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.281678651592 -0.94758500291 -0.0956594480007 0 1.3249231025",
+    monoInkScale: 1,
     logoViewBox: "-0.09687 -0.09668 116.5638 94.74617",
     ratio: 1.8,
     alignment: "center",
@@ -8042,6 +11048,9 @@ export const integrationGeometry = {
   transportForLondon: {
     ...transportForLondon,
     markViewBox: "-0.51205 -0.50892 616.34608 501.01784",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.232881514071 -0.783428310742 -0.0790877013921 0 1.09539752621",
+    monoInkScale: 1,
     logoViewBox: "-0.17571 -0.18017 176.09944 46.61035",
     ratio: 1.8,
     alignment: "center",
@@ -8049,6 +11058,9 @@ export const integrationGeometry = {
   bundeswehr: {
     ...bundeswehr,
     markViewBox: "42.28094 -0.01431 86.4381 86.37926",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273878554389 -0.921344976948 -0.093010496834 0 1.28823402817",
+    monoInkScale: 1,
     logoViewBox: "0.15667 -0.14288 170.68645 125.28577",
     ratio: 1.8,
     alignment: "center",
@@ -8056,6 +11068,9 @@ export const integrationGeometry = {
   ukMinistryOfDefence: {
     ...ukMinistryOfDefence,
     markViewBox: "23.49832 0.16164 51.54704 76.58782",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.22395 -0.22573 269.44815 193.29423",
     ratio: 1.8,
     alignment: "center",
@@ -8063,6 +11078,9 @@ export const integrationGeometry = {
   nescafe: {
     ...nescafe,
     markViewBox: "-0.80785 3.41576 809.61571 229.86966",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.230693617021 -0.776068085106 -0.0783446808511 0 1.08510638298",
+    monoInkScale: 1,
     logoViewBox: "-0.80785 3.41576 809.61571 229.86966",
     ratio: 1.8,
     alignment: "center",
@@ -8070,6 +11088,9 @@ export const integrationGeometry = {
   superman: {
     ...superman,
     markViewBox: "-0.14649 -0.14504 176.04097 136.09724",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802",
+    monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -8077,6 +11098,9 @@ export const integrationGeometry = {
   spiderMan: {
     ...spiderMan,
     markViewBox: "80.11985 28.55763 640.78665 41.01807",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "80.11985 28.55763 640.78665 41.01807",
     ratio: 1.8,
     alignment: "center",
@@ -8084,6 +11108,9 @@ export const integrationGeometry = {
   avengers: {
     ...avengers,
     markViewBox: "-0.18459 -0.18553 191.1332 223.14006",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-1.34992 -1.38068 1624.15135 578.76136",
     ratio: 1.8,
     alignment: "center",
@@ -8091,6 +11118,9 @@ export const integrationGeometry = {
   ironMan: {
     ...ironMan,
     markViewBox: "373.41551 135.74822 221.01938 52.06315",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "373.41551 135.74822 221.01938 52.06315",
     ratio: 1.8,
     alignment: "center",
@@ -8098,6 +11128,9 @@ export const integrationGeometry = {
   dove: {
     ...dove,
     markViewBox: "62.1913 114.60119 96.76971 46.46635",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.530465073044 -1.78451843952 -0.180148533743 0 2.4951320463",
+    monoInkScale: 1,
     logoViewBox: "-0.19048 -0.19508 229.08117 161.28999",
     ratio: 1.8,
     alignment: "center",
@@ -8105,6 +11138,9 @@ export const integrationGeometry = {
   aquafresh: {
     ...aquafresh,
     markViewBox: "-0.66619 3.61654 664.6585 196.76693",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.236880119338 -0.79687987465 -0.080445647301 0 1.11420564129",
+    monoInkScale: 1,
     logoViewBox: "-0.66619 3.61654 664.6585 196.76693",
     ratio: 1.8,
     alignment: "center",
@@ -8112,6 +11148,9 @@ export const integrationGeometry = {
   adobeCreativeCloud: {
     ...adobeCreativeCloud,
     markViewBox: "-0.03417 -0.03371 41.06835 40.04348",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.274119513742 -0.922155579624 -0.0930923278088 0 1.28936742117",
+    monoInkScale: 1.02,
     logoViewBox: null,
     ratio: 1.8,
     alignment: "center",
@@ -8119,6 +11158,9 @@ export const integrationGeometry = {
   msnbcLegacy: {
     ...msnbcLegacy,
     markViewBox: "-0.09639 -0.10832 168.28704 97.76163",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.293874988887 -0.98861426177 -0.0998013838084 0 1.38229063447",
+    monoInkScale: 1,
     logoViewBox: "-0.5832 -0.52748 701.27032 101.05496",
     ratio: 1.8,
     alignment: "center",
@@ -8126,6 +11168,9 @@ export const integrationGeometry = {
   vitra: {
     ...vitra,
     markViewBox: "-0.32842 -0.32212 394.54477 129.21224",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.32842 -0.32212 394.54477 129.21224",
     ratio: 1.8,
     alignment: "center",
@@ -8133,6 +11178,9 @@ export const integrationGeometry = {
   ageOfEmpires: {
     ...ageOfEmpires,
     markViewBox: "-0.29183 -1.72273 1178.27025 145.4493",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.213615805986 -0.718617236317 -0.0725449726819 0 1.00477801498",
+    monoInkScale: 1,
     logoViewBox: "-0.29183 -1.72273 1178.27025 145.4493",
     ratio: 1.8,
     alignment: "center",
@@ -8140,6 +11188,9 @@ export const integrationGeometry = {
   simcity: {
     ...simcity,
     markViewBox: "23.825 13.99918 5673.6855 1112.00164",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "23.825 13.99918 5673.6855 1112.00164",
     ratio: 1.8,
     alignment: "center",
@@ -8147,6 +11198,9 @@ export const integrationGeometry = {
   usm: {
     ...usm,
     markViewBox: "2.73067 4.224 506.83733 506.24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
     logoViewBox: "0.73517 0.74028 400.23142 197.51944",
     ratio: 1.8,
     alignment: "center",
@@ -8154,6 +11208,9 @@ export const integrationGeometry = {
   rootVentures: {
     ...rootVentures,
     markViewBox: "9.84926 16.85147 230.30148 215.41059",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "246.39113 262.49451 707.21774 75.01097",
     ratio: 1.8,
     alignment: "center",
@@ -8161,6 +11218,9 @@ export const integrationGeometry = {
   oneOnly: {
     ...oneOnly,
     markViewBox: "-0.04123 -0.04177 45.08247 37.99728",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-0.25509 -0.82534 1024.51017 264.64976",
     ratio: 1.8,
     alignment: "center",
@@ -8168,6 +11228,9 @@ export const integrationGeometry = {
   msNow: {
     ...msNow,
     markViewBox: "-0.40995 392.47809 410.82027 301.26164",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
     logoViewBox: "-1.76064 384.45805 1923.52128 310.91917",
     ratio: 1.8,
     alignment: "center",

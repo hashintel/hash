@@ -203,6 +203,46 @@ describe("IntegrationIcon", () => {
     expect(document.querySelector("feColorMatrix")).not.toBeNull();
   });
 
+  it("keeps mono contrast and edge coverage consistent with exported SVGs", () => {
+    for (const name of [
+      "americanExpress",
+      "amazonQ",
+      "steam",
+      "hash",
+      "appleNotes",
+    ] as const) {
+      const icon = integrationIconCatalog.find((entry) => entry.name === name)!;
+      const component = new DOMParser().parseFromString(
+        renderToStaticMarkup(
+          <IntegrationIcon name={name} variant="mark-mono" color="#3676CB" />,
+        ),
+        "text/html",
+      );
+      const asset = new DOMParser().parseFromString(
+        readFileSync(
+          resolve(
+            dirname(fileURLToPath(import.meta.url)),
+            `../assets/integrations/${icon.slug}/mark-mono.svg`,
+          ),
+          "utf8",
+        ),
+        "image/svg+xml",
+      );
+      expect(
+        component.querySelector("feColorMatrix")?.getAttribute("values"),
+      ).toBe(asset.querySelector("feColorMatrix")?.getAttribute("values"));
+      expect(component.querySelector("feFuncA")?.getAttribute("slope")).toBe(
+        asset.querySelector("feFuncA")?.getAttribute("slope"),
+      );
+      expect(
+        component.querySelector('feComposite[in2="SourceAlpha"]'),
+      ).not.toBeNull();
+      expect(
+        component.querySelector('feComposite[in2="coverage"]'),
+      ).not.toBeNull();
+    }
+  });
+
   it("clips app artwork to translucent rounded tiles and keeps SAP left aligned", () => {
     for (const variant of ["app-light", "app-dark"] as const) {
       const content = renderToStaticMarkup(

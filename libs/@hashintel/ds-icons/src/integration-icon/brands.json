@@ -174,7 +174,8 @@
     "logoNotes": "Vector artwork archive",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.2319
   },
   {
     "name": "postgres",
@@ -547,7 +548,7 @@
     "slug": "apple-notes",
     "label": "Apple Notes",
     "integrationNames": ["Apple Notes"],
-    "ratio": 1.0,
+    "ratio": 1,
     "alignment": "center",
     "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/apple-notes-dark-icon.tsx",
     "markLightColors": {
@@ -564,7 +565,8 @@
     "logoNotes": "No authentic full-logo lock-up was verified. Only mark and app-tile variants are provided.",
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.474
   },
   {
     "name": "appleHealth",
@@ -620,7 +622,8 @@
     },
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0538
   },
   {
     "name": "microsoftWord",
@@ -643,7 +646,8 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.016
   },
   {
     "name": "microsoftOutlook",
@@ -666,7 +670,8 @@
     },
     "categories": ["Communication", "Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0898
   },
   {
     "name": "microsoftExcel",
@@ -689,7 +694,8 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0806
   },
   {
     "name": "microsoftPowerPoint",
@@ -712,7 +718,8 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.016
   },
   {
     "name": "microsoftOneNote",
@@ -781,7 +788,8 @@
     },
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0324
   },
   {
     "name": "microsoftTeamsLegacy",
@@ -804,7 +812,8 @@
     },
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.3282
   },
   {
     "name": "messenger",
@@ -1048,7 +1057,8 @@
     "logoNotes": "Blue gradient mark and outlined wordmark from the live hash.ai navigation logo, retrieved 2026-11-05. Preserves the original gradient, path opacity, wordmark geometry, and lock-up spacing. App tiles place the mark flush against the bottom-right edge at 60% of the tile height; logo lettering is dark in light mode and white in dark mode.",
     "categories": ["Databases & analytics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": "2026-11-06"
+    "lastCheckedManually": "2026-11-06",
+    "monoInkScale": 1.0945
   },
   {
     "name": "openai",
@@ -1214,7 +1224,8 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.012
   },
   {
     "name": "okta",
@@ -1426,7 +1437,8 @@
     },
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.02
   },
   {
     "name": "googleSheets",
@@ -1600,7 +1612,8 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.3637
   },
   {
     "name": "luma",
@@ -2574,7 +2587,8 @@
     },
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.004
   },
   {
     "name": "revolut",
@@ -3066,7 +3080,8 @@
     "logoDarkColors": {},
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.012
   },
   {
     "name": "petronas",
@@ -3228,7 +3243,8 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["Transport & logistics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.1435
   },
   {
     "name": "nationalRail",
@@ -3476,7 +3492,8 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["Technology & electronics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.076
   },
   {
     "name": "ubs",
@@ -4440,7 +4457,8 @@
     "logoDarkColors": {},
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0538
   },
   {
     "name": "xAi",
@@ -5713,7 +5731,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Developer tools"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.02
   },
   {
     "name": "audible",
@@ -6296,7 +6315,8 @@
     "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/jcb.svg",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.004
   },
   {
     "name": "mastercard",
@@ -6643,7 +6663,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.004
   },
   {
     "name": "connectdevelop",
@@ -6923,7 +6944,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Languages & frameworks"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.1136
   },
   {
     "name": "dashcube",
@@ -7433,7 +7455,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.25
   },
   {
     "name": "edgeLegacy",
@@ -7770,7 +7793,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.1539
   },
   {
     "name": "firstdraft",
@@ -7861,7 +7885,8 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Languages & frameworks"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.1435
   },
   {
     "name": "fly",
@@ -10189,7 +10214,8 @@
     "logoNotes": "Native outlined lock-up from the linked vector collection.",
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.3564
   },
   {
     "name": "octopusDeploy",
@@ -10797,7 +10823,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Languages & frameworks"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.004
   },
   {
     "name": "qq",
@@ -11246,7 +11273,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0852
   },
   {
     "name": "salesforce",
@@ -12361,7 +12389,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Languages & frameworks"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0625
   },
   {
     "name": "symfony",
@@ -12716,7 +12745,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Operating systems"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.2086
   },
   {
     "name": "uikit",
@@ -14371,7 +14401,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0625
   },
   {
     "name": "godaddy",
@@ -14770,7 +14801,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Technology & electronics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.008
   },
   {
     "name": "verizon",
@@ -15507,7 +15539,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Security & privacy"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.1487
   },
   {
     "name": "protonMail",
@@ -15529,7 +15562,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Communication", "Security & privacy"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0324
   },
   {
     "name": "protonDrive",
@@ -16882,7 +16916,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0494
   },
   {
     "name": "deloitte",
@@ -16966,7 +17001,8 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0451
   },
   {
     "name": "dell",
@@ -18213,7 +18249,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["News & publishing"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.4246
   },
   {
     "name": "opentable",
@@ -18236,7 +18273,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.3935
   },
   {
     "name": "resy",
@@ -19183,7 +19221,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Technology & electronics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.1234
   },
   {
     "name": "harryPotter",
@@ -20171,7 +20210,8 @@
     "logoNotes": "Vector paths traced from the sourced color artwork; no embedded bitmap.",
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.3145
   },
   {
     "name": "monsterEnergy",
@@ -21277,7 +21317,8 @@
     "logoNotes": "Vector paths traced from the sourced color artwork; no embedded bitmap.",
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.527
   },
   {
     "name": "cartier",
@@ -21755,7 +21796,8 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.0581
   },
   {
     "name": "bytedance",
@@ -22502,7 +22544,8 @@
     "logoNotes": "Official Creative Cloud vector app icon from Adobe. No separate verified outlined wordmark is included.",
     "categories": ["Design & creative"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "monoInkScale": 1.02
   },
   {
     "name": "msnbcLegacy",

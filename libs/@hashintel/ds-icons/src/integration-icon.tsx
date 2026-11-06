@@ -26,6 +26,8 @@ type Artwork = {
   logoLight?: ComponentType<{ id: string }>;
   logoDark?: ComponentType<{ id: string }>;
   markViewBox: string;
+  monoAlphaMatrix: string;
+  monoInkScale: number;
   appViewBox?: string;
   logoViewBox: string | null;
   ratio: number;
@@ -105,11 +107,15 @@ export const IntegrationIcon = ({
             <feColorMatrix
               in="SourceGraphic"
               type="matrix"
-              values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -.13819 -.46488 -.04693 1 0"
+              values={artwork.monoAlphaMatrix}
               result="tones"
             />
+            <feComposite in="tones" in2="SourceAlpha" operator="in" />
+            <feComponentTransfer result="coverage">
+              <feFuncA type="linear" slope={artwork.monoInkScale} />
+            </feComponentTransfer>
             <feFlood floodColor="currentColor" />
-            <feComposite in2="tones" operator="in" />
+            <feComposite in2="coverage" operator="in" />
           </filter>
         </defs>
       ) : null}
@@ -129,6 +135,7 @@ export const IntegrationIcon = ({
           <Geometry id={`${id}-logo`} />
         ) : (
           <svg
+            color={mono ? "black" : undefined}
             x={app && artwork.alignment === "start" ? 0 : (64 - markSize) / 2}
             y={(64 - markSize) / 2}
             width={markSize}

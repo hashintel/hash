@@ -70,5 +70,32 @@ class SvgParsingTests(unittest.TestCase):
                     generator.app_tile(False)
 
 
+class MonoContrastTests(unittest.TestCase):
+    def alpha(self, artwork, rgb):
+        matrix = generator.mono_alpha_matrix(generator.ET.fromstring(artwork, forbid_dtd=True))
+        row = [float(value) for value in matrix.split()][15:]
+        return sum(channel * coefficient for channel, coefficient in zip((*rgb, 1, 1), row))
+
+    def test_colored_mark_reaches_full_ink_and_white_is_transparent(self):
+        artwork = '<svg fill="#006FCF"><defs><clipPath id="clip"><path fill="black"/></clipPath></defs><path/><path fill="white"/></svg>'
+        self.assertAlmostEqual(self.alpha(artwork, (0, 111 / 255, 207 / 255)), 1)
+        self.assertAlmostEqual(self.alpha(artwork, (1, 1, 1)), 0)
+
+    def test_referenced_gradient_keeps_intermediate_tones(self):
+        artwork = '<svg><defs><linearGradient id="base"><stop stop-color="#5921b8"/><stop offset="1" stop-color="#2fabff"/></linearGradient><linearGradient id="gradient" href="#base"/><filter id="shadow"><path fill="black"/></filter></defs><path fill="url(#gradient)"/><path fill="white"/></svg>'
+        self.assertAlmostEqual(self.alpha(artwork, (89 / 255, 33 / 255, 184 / 255)), 1)
+        self.assertGreater(self.alpha(artwork, (47 / 255, 171 / 255, 1)), 0)
+        self.assertLess(self.alpha(artwork, (47 / 255, 171 / 255, 1)), 1)
+        self.assertAlmostEqual(self.alpha(artwork, (1, 1, 1)), 0)
+
+    def test_white_only_artwork_keeps_its_silhouette(self):
+        self.assertEqual(self.alpha('<svg fill="white"><path/></svg>', (1, 1, 1)), 1)
+
+    def test_referenced_symbols_contribute_their_visible_colors(self):
+        artwork = '<svg fill="white"><use href="#mark"/><symbol id="mark"><path fill="#006FCF"/><path/></symbol></svg>'
+        self.assertAlmostEqual(self.alpha(artwork, (0, 111 / 255, 207 / 255)), 1)
+        self.assertAlmostEqual(self.alpha(artwork, (1, 1, 1)), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

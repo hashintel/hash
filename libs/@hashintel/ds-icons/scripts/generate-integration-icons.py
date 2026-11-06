@@ -173,8 +173,77 @@ def jsx(element):
     return f'<{name} {" ".join(attrs)}>{children}</{name}>' if children else f'<{name} {" ".join(attrs)} />'
 
 
-def mono_defs(filter_id):
-    return f'<defs><filter id="{filter_id}" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -.13819 -.46488 -.04693 1 0" result="tones"/><feFlood flood-color="currentColor"/><feComposite in2="tones" operator="in"/></filter></defs>'
+def mono_alpha_matrix(artwork):
+    definitions = {element.get("id"): element for element in artwork.iter() if element.get("id")}
+    luminances = []
+
+    def paint(value, color, visited):
+        if value == "currentColor":
+            value = color
+        reference = re.fullmatch(r'url\([\"\']?#([^\"\')]+)[\"\']?\)', value)
+        if reference:
+            identifier = reference[1]
+            if identifier in visited or identifier not in definitions:
+                return
+            definition = definitions[identifier]
+            visited = visited | {identifier}
+            if tag_name(definition) in ("linearGradient", "radialGradient"):
+                stops = [element for element in definition if tag_name(element) == "stop"]
+                if not stops:
+                    href = definition.get("href", definition.get("{http://www.w3.org/1999/xlink}href", ""))
+                    if href.startswith("#"):
+                        paint(f"url({href})", color, visited)
+                for stop in stops:
+                    if float(stop.get("stop-opacity", "1")) > 0:
+                        paint(stop.get("stop-color", "black"), color, visited)
+            elif tag_name(definition) == "pattern":
+                for child in definition:
+                    visit(child, {"fill": "black", "stroke": "none", "color": color}, visited)
+            return
+        value = {"gray": "#808080", "red": "#ff0000"}.get(value.lower(), value)
+        rgb = color_rgb(value)
+        if rgb is None and value.startswith(("rgb(", "rgba(")):
+            channels = re.findall(r'[\d.]+%?', value)
+            if len(channels) >= 3:
+                if len(channels) == 4 and float(channels[3].rstrip("%")) == 0:
+                    return
+                rgb = [float(channel.rstrip("%")) / (100 if channel.endswith("%") else 255) for channel in channels[:3]]
+        if rgb is not None:
+            luminances.append(sum(channel * weight for channel, weight in zip(rgb, (.2126, .7152, .0722))))
+
+    def visit(element, inherited, visited, referenced=False):
+        name = tag_name(element)
+        if name in ("defs", "mask", "clipPath", "filter", "linearGradient", "radialGradient", "pattern") or (name == "symbol" and not referenced):
+            return
+        if element.get("display") == "none" or element.get("visibility") == "hidden" or float(element.get("opacity", "1")) == 0:
+            return
+        properties = inherited | {key: element.get(key) for key in ("fill", "stroke", "color", "fill-opacity", "stroke-opacity") if element.get(key) not in (None, "inherit")}
+        if name == "use":
+            href = element.get("href", element.get("{http://www.w3.org/1999/xlink}href", ""))
+            if href.startswith("#") and href[1:] in definitions and href[1:] not in visited:
+                visit(definitions[href[1:]], properties, visited | {href[1:]}, referenced=True)
+        elif name in ("path", "rect", "circle", "ellipse", "polygon", "polyline", "line", "text"):
+            for attribute in ("fill", "stroke"):
+                if attribute == "fill" and name == "line":
+                    continue
+                if float(properties.get(attribute + "-opacity", "1")) > 0:
+                    paint(properties[attribute], properties["color"], visited)
+        for child in element:
+            visit(child, properties, visited)
+
+    visit(artwork, {"fill": "black", "stroke": "none", "color": "black"}, set())
+    minimum = min(luminances, default=1)
+    # White-only artwork needs its silhouette; mixed artwork uses white as a cutout.
+    if minimum >= 1 - 1e-6:
+        alpha = "0 0 0 0 1"
+    else:
+        coefficients = [-weight / (1 - minimum) for weight in (.2126, .7152, .0722)]
+        alpha = " ".join(f"{value:.12g}" for value in (*coefficients, 0, -sum(coefficients)))
+    return "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 " + alpha
+
+
+def mono_defs(filter_id, matrix, ink_scale=1):
+    return f'<defs><filter id="{filter_id}" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="{matrix}" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="{ink_scale}"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs>'
 
 
 def app_tile(dark):
@@ -196,6 +265,9 @@ def variant_svg(brand, variant):
     app = variant.startswith("app")
     mono = variant == "mark-mono"
     artwork = themed_artwork(brand, kind, dark, mono=mono)
+    matrix = mono_alpha_matrix(artwork) if mono else None
+    if mono:
+        artwork.set("color", "black")
     viewbox = [float(value) for value in artwork.get("viewBox").replace(",", " ").split()]
     if kind == "logo":
         outer_viewbox = f"0 0 {viewbox[2]} {viewbox[3]}"
@@ -218,7 +290,7 @@ def variant_svg(brand, variant):
     if app:
         body = f'<defs><clipPath id="{prefix}-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#{prefix}-tile)">{body}</g>'
     if mono:
-        body = mono_defs(prefix + "-mono") + f'<g filter="url(#{prefix}-mono)">{body}</g>'
+        body = mono_defs(prefix + "-mono", matrix, brand.get("monoInkScale", 1)) + f'<g filter="url(#{prefix}-mono)">{body}</g>'
     color = f' color="{("#CBD5E1" if dark else "#374151")}"' if app else ""
     attribution = tostring(Comment(brand["artworkAttribution"]), encoding="unicode") if brand.get("artworkAttribution") else ""
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none"{color}>{attribution}{background}{body}</svg>\n'
@@ -263,7 +335,8 @@ def generate(catalog_only=False):
         mark_viewbox = themed_artwork(brand, "mark", False).get("viewBox")
         logo_viewbox = themed_artwork(brand, "logo", False).get("viewBox") if "logo-light" in available else None
         app_viewbox = f', appViewBox: {json.dumps(brand["appViewBox"])}' if brand.get("appViewBox") else ""
-        registry.append(f'  {brand["name"]}: {{ ...{brand["name"]}, markViewBox: {json.dumps(mark_viewbox)}, logoViewBox: {json.dumps(logo_viewbox)}, ratio: {brand["ratio"]}, alignment: "{brand["alignment"]}"{app_viewbox} }}')
+        matrix = mono_alpha_matrix(themed_artwork(brand, "mark", False, mono=True))
+        registry.append(f'  {brand["name"]}: {{ ...{brand["name"]}, markViewBox: {json.dumps(mark_viewbox)}, monoAlphaMatrix: {json.dumps(matrix)}, monoInkScale: {brand.get("monoInkScale", 1)}, logoViewBox: {json.dumps(logo_viewbox)}, ratio: {brand["ratio"]}, alignment: "{brand["alignment"]}"{app_viewbox} }}')
         for variant in available:
             files[root / "assets/integrations" / brand["slug"] / f"{variant}.svg"] = variant_svg(brand, variant)
     files[source / "geometry.ts"] = "\n".join(imports) + "\n\nexport const integrationGeometry = {\n" + ",\n".join(registry) + "\n} as const;\n"

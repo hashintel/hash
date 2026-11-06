@@ -211,7 +211,7 @@ The same exports are available from the package root for applications using lega
 
 App tiles share a translucent tinted surface, soft sheen, and reflective corner rim in both modes. Their SVG backgrounds remain partially transparent, including when exported as standalone assets.
 
-Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
+Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark normalizes the darkest painted tone to full ink and white to transparent, with intermediate tones retaining their detail in the caller's hue. White-only marks retain their silhouette. Source alpha masks the result to preserve transparent surroundings and smooth edges; masks, clips, and filter definitions do not set the contrast range.
 
 661 non-legacy brands have all seven variants. Brands without a verified full logo expose only the five mark and tile variants. Check each catalogue entry’s `variants` before showing a logo selector; requesting an unavailable full logo throws an error. The Font Awesome comparison groups alternate, square, circle, and card glyphs under distinct identities. Its coverage map and exclusions are recorded in `src/integration-icon/fontawesome-coverage.json`.
 
@@ -244,6 +244,8 @@ Where a source provides only a wordmark, the full logo pairs it with the sourced
 Each catalogue entry records `lastCheckedAutomated` and `lastCheckedManually` as ISO dates (`YYYY-MM-DD`) or `null` when no check is recorded. Update these dates only after the corresponding check; generation preserves them without advancing them. The generic fallback is not a brand and has no check dates.
 
 The shared app-tile backgrounds live in `src/integration-icon/app-tile/`. The generator uses these SVGs for both the React tile components and standalone app variants.
+
+Mono contrast follows visible paint colors, including inherited fills and referenced gradients or symbols. `monoInkScale` compensates for artwork whose darkest paint is clipped or partially transparent: measure the rendered mono mark at 512 pixels and scale its peak alpha to 255. Recheck this value when replacing the source artwork. It affects only the mono variant, after source alpha has been applied, and never changes the brand-color or app/logo assets.
 
 Edit the reviewed SVGs in `src/integration-icon/artwork` and the source, alias, sizing, and palette metadata in `src/integration-icon/brands.json`. Then run `yarn generate:integrations` and the package checks. The generator uses `uv` to install its pinned `defusedxml` dependency and rejects SVG document types and entity definitions. The generator writes both React geometry and standalone variants from those sources and removes obsolete SVG variants. `logoLayout` controls the wordmark height and gap when composing a lock-up; an optional `logo-mark.svg` supplies a mark without embedded lettering.
 
