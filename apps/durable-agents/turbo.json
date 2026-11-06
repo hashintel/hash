@@ -21,6 +21,10 @@
     "proof:browser-call": {
       "dependsOn": ["^build"],
       "cache": false
+    },
+    "probe:async-browser-call": {
+      "dependsOn": ["^build"],
+      "cache": false
     }
   }
 }
