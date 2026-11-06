@@ -1,0 +1,170 @@
+[
+  {
+    "id": "literals",
+    "title": "Integer literals",
+    "anchor": "functional-programming",
+    "note": "Draft maps bigint to Integer, but JavaScript number to Number. Rust i64 is bounded. Python int and JavaScript bigint have different numeric models. These examples all represent 2.",
+    "codes": {
+      "rust": "let value = 2_i64;",
+      "python": "value = 2",
+      "typescript": "const value = 2n;",
+      "draft": "return $.literal(2n);",
+      "functional": "2",
+      "reference": "2"
+    }
+  },
+  {
+    "id": "bindings",
+    "title": "Name a value",
+    "anchor": "naming-a-value-with-let",
+    "note": "HashQL let binds within its body. Draft supplies that body from the rest of the callback. Python names can be rebound, and JavaScript const does not make an object's contents immutable. HashQL values are immutable.",
+    "codes": {
+      "rust": "let foo = 2_i64;\nlet value = foo;",
+      "python": "foo = 2\nvalue = foo",
+      "typescript": "const foo = 2n;\nconst value = foo;",
+      "draft": "const foo = $.let(\"foo\", 2n);\nreturn foo;",
+      "functional": "(let foo 2\n  foo)",
+      "reference": "let foo = 2 in\nfoo"
+    }
+  },
+  {
+    "id": "booleans",
+    "title": "Compare values",
+    "anchor": "strong-typing",
+    "note": "HashQL conditions require Boolean, not a truthy value. These primitive comparisons produce true in every column. Equality for richer values differs between the host languages. These examples compare integers only.",
+    "codes": {
+      "rust": "let foo = 2_i64;\nlet value = foo == 2;",
+      "python": "foo = 2\nvalue = foo == 2",
+      "typescript": "const foo = 2n;\nconst value = foo === 2n;",
+      "draft": "const foo = $.let(\"foo\", 2n);\nreturn $.eq(foo, 2n);",
+      "functional": "(let foo 2\n  (eq foo 2))",
+      "reference": "let foo = 2 in\nfoo == 2"
+    }
+  },
+  {
+    "id": "conditionals",
+    "title": "Choose a value",
+    "anchor": "choosing-a-value-with-if",
+    "note": "All examples choose 2. Draft runs both branch callbacks during construction. HashQL evaluates only the selected branch. A Draft callback is not a HashQL closure. Without else, HashQL if returns Option instead.",
+    "codes": {
+      "rust": "let foo = 2_i64;\nlet value = if foo == 2 { foo } else { 0 };",
+      "python": "foo = 2\nvalue = foo if foo == 2 else 0",
+      "typescript": "const foo = 2n;\nconst value = foo === 2n ? foo : 0n;",
+      "draft": "const foo = $.let(\"foo\", 2n);\nreturn $.if($.eq(foo, 2n), {\n  then: () => foo,\n  else: () => 0n,\n});",
+      "functional": "(let foo 2\n  (if (eq foo 2) foo 0))",
+      "reference": "let foo = 2 in\nif foo == 2 then foo else 0"
+    }
+  },
+  {
+    "id": "structs",
+    "title": "Build a struct and read a field",
+    "anchor": "reading-a-field-with-access",
+    "note": "The result is 2. HashQL structs are structural and immutable. Rust uses a named struct, Python uses a dictionary, and TypeScript uses an object. HashQL rejects missing fields at compile time. Python dictionary lookup can raise KeyError. Current Draft let requires an expression handle for this struct, not a plain object.",
+    "codes": {
+      "rust": "struct Person { value: i64, label: &'static str }\nlet person = Person { value: 2, label: \"two\" };\nlet value = person.value;",
+      "python": "person = {\"value\": 2, \"label\": \"two\"}\nvalue = person[\"value\"]",
+      "typescript": "const person = { value: 2n, label: \"two\" };\nconst value = person.value;",
+      "draft": "const person = $.let(\n  \"person\",\n  Program.Structural.struct({ value: 2n, label: \"two\" }),\n);\nreturn person.value;",
+      "functional": "(let person {value: 2, label: \"two\"}\n  (access person value))",
+      "reference": "let person = (value: 2, label: \"two\") in\nperson.value"
+    }
+  },
+  {
+    "id": "tuples",
+    "title": "Read a fixed tuple position",
+    "anchor": "reading-a-field-with-access",
+    "note": "The result is 2. HashQL access uses a fixed zero-based position checked at compile time. Draft [0] constructs that access, not list indexing. Python checks bounds at runtime. TypeScript's tuple annotation does not freeze its array. The illustrative functional cell borrows the reference notation's tuple-literal spelling.",
+    "codes": {
+      "rust": "let foo = (2_i64, \"two\");\nlet value = foo.0;",
+      "python": "foo = (2, \"two\")\nvalue = foo[0]",
+      "typescript": "const foo: readonly [bigint, string] = [2n, \"two\"];\nconst value = foo[0];",
+      "draft": "const foo = $.let(\n  \"foo\", Program.Structural.tuple([2n, \"two\"]),\n);\nreturn foo[0];",
+      "functional": "(let foo (2, \"two\")\n  (access foo 0))",
+      "reference": "let foo = (2, \"two\") in\nfoo.0"
+    }
+  },
+  {
+    "id": "lists",
+    "title": "Look up a list element",
+    "anchor": "looking-up-an-element-with-index",
+    "note": "At position 0, Rust returns Some(2), Python returns 2, and TypeScript returns 2n. HashQL index is specified to return Some(2), or None() when missing. The current SDK $index instead describes Integer | Null. That descriptor mismatch is unresolved: serialization below does not prove runtime null behavior. Rust get is checked. Python [] raises IndexError out of range (and accepts negative positions). JavaScript [] returns undefined when missing.",
+    "codes": {
+      "rust": "let foo = vec![2_i64, 3];\nlet position = 0_usize;\nlet value = foo.get(position).copied();",
+      "python": "foo = [2, 3]\nposition = 0\nvalue = foo[position]",
+      "typescript": "const foo = [2n, 3n];\nconst position = 0;\nconst value = foo[position];",
+      "draft": "const foo = $.let(\n  \"foo\", Program.Structural.list(BigInt, [2n, 3n]),\n);\nconst position = $.let(\"position\", 0n);\nreturn foo.$index(position);",
+      "functional": "(let foo [2, 3]\n  (let position 0\n    (index foo position)))",
+      "reference": "let foo = [2, 3] in\nlet position = 0 in\nfoo[position]"
+    }
+  },
+  {
+    "id": "functions",
+    "title": "Capture a binding in a function",
+    "anchor": "defining-a-function-with-fn",
+    "note": "The call returns true. General HashQL closure construction is not supported by Draft yet (BE-1015), so its cell is unavailable. A Draft.program or if callback is not a HashQL closure. Python closures capture a binding that could later be rebound. This example never rebinds foo.",
+    "codes": {
+      "rust": "let foo = 2_i64;\nlet matches_foo = |value: i64| value == foo;\nlet value = matches_foo(2);",
+      "python": "foo = 2\ndef matches_foo(value: int) -> bool:\n    return value == foo\nvalue = matches_foo(2)",
+      "typescript": "const foo = 2n;\nconst matchesFoo = (value: bigint): boolean => value === foo;\nconst value = matchesFoo(2n);",
+      "draft": null,
+      "functional": "(let foo 2\n  (let matches_foo\n    (fn [] {value: Integer} Boolean\n      (eq value foo))\n    (matches_foo 2)))",
+      "reference": "let foo = 2,\n    matches_foo = (value: Integer): Boolean -> value == foo\nin\nmatches_foo(2)"
+    }
+  },
+  {
+    "id": "imports",
+    "title": "Import under another name",
+    "anchor": "bringing-names-into-scope-with-use",
+    "note": "Each call returns true. Rust uses the cmp fixture in the common setup. Python uses operator.eq. TypeScript uses Node's isDeepStrictEqual. They are host imports with different general equality semantics. Draft import instead adds a scoped HashQL use declaration. It does not load a host module.",
+    "codes": {
+      "rust": "use cmp::eq as same;\nlet foo = 2_i64;\nlet value = same(foo, 2);",
+      "python": "from operator import eq as same\nfoo = 2\nvalue = same(foo, 2)",
+      "typescript": "import { isDeepStrictEqual as same } from \"node:util\";\nconst foo = 2n;\nconst value = same(foo, 2n);",
+      "draft": "const { same } = $.import($.modules().cmp, { eq: \"same\" });\nconst foo = $.let(\"foo\", 2n);\nreturn same(foo, 2n);",
+      "functional": "(use ::core::cmp {eq: same}\n  (let foo 2\n    (same foo 2)))",
+      "reference": "use(::core::cmp, {eq: same},\n  let foo = 2 in\n  same(foo, 2))"
+    }
+  },
+  {
+    "id": "assertions",
+    "title": "State a compatible type",
+    "anchor": "stating-a-type-with-as",
+    "note": "Draft has no builder for HashQL as. Typed let is not that operation. HashQL verifies that the inferred type is a subtype of the asserted type, leaving the value unchanged. The host examples use checked annotations, not unchecked TypeScript assertions. Rust has no corresponding Integer <: Number relationship and uses a floating-point literal instead. Python annotations are not runtime checks.",
+    "codes": {
+      "rust": "let foo: f64 = 2.0;\nlet value = foo;",
+      "python": "foo: float = 2\nvalue = foo",
+      "typescript": "const foo: number = 2;\nconst value = foo;",
+      "draft": null,
+      "functional": "(let foo (as 2 Number)\n  foo)",
+      "reference": "let foo = 2 as Number in\nfoo"
+    }
+  },
+  {
+    "id": "aliases",
+    "title": "Give a type another name",
+    "anchor": "naming-a-type-with-type",
+    "note": "Count is an alias, not a distinct type or a non-negative constraint. Python uses the TypeAlias spelling supported before Python 3.12 too. Draft's third let argument annotates the binding. The functional/reference cells use as to constrain its initializer instead. These are analogous programs, not claims of identical emitted syntax. The HashQL compiler checks annotations. Draft construction does not validate the annotation against its initializer.",
+    "codes": {
+      "rust": "type Count = i64;\nlet foo: Count = 2;\nlet value = foo;",
+      "python": "from typing import TypeAlias\nCount: TypeAlias = int\nfoo: Count = 2\nvalue = foo",
+      "typescript": "type Count = bigint;\nconst foo: Count = 2n;\nconst value = foo;",
+      "draft": "const Count = $.type(\"Count\", BigInt);\nconst foo = $.let(\"foo\", 2n, Count);\nreturn foo;",
+      "functional": "(type Count Integer\n  (let foo (as 2 Count)\n    foo))",
+      "reference": "type Count = Integer in\nlet foo = 2 as Count in\nfoo"
+    }
+  },
+  {
+    "id": "newtypes",
+    "title": "Introduce a distinct type",
+    "anchor": "making-a-distinct-type-with-newtype",
+    "note": "HashQL newtype and the Rust tuple struct create distinct types. Python NewType distinguishes types for static checkers but returns the original int at runtime: it is not a wrapper. The TypeScript class is a runtime wrapper. Its private payload makes its instance type distinct from an otherwise identical class. None of these declarations adds a range check.",
+    "codes": {
+      "rust": "#[derive(Debug, PartialEq)]\nstruct Count(i64);\nlet foo = Count(2);\nlet value = foo;",
+      "python": "from typing import NewType\nCount = NewType(\"Count\", int)\nfoo = Count(2)\nvalue = foo",
+      "typescript": "class Count {\n  constructor(private readonly payload: bigint) {}\n  unwrap() { return this.payload; }\n}\nconst foo = new Count(2n);\nconst value = foo;",
+      "draft": "const Count = $.newtype(\"Count\", BigInt);\nconst foo = $.let(\"foo\", Count(2n));\nreturn foo;",
+      "functional": "(newtype Count Integer\n  (let foo (Count 2)\n    foo))",
+      "reference": "newtype Count = Integer in\nlet foo = Count(2) in\nfoo"
+    }
+  }
+]
