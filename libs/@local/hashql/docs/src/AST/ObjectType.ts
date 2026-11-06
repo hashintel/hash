@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -9,6 +9,8 @@ import type { Chunk, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/ObjectType";
+
+const fields = ["node", "members"] as const;
 
 export class ObjectType implements Traits.Traits {
   readonly [TypeId] = TypeId;
@@ -26,7 +28,7 @@ export class ObjectType implements Traits.Traits {
   }
 
   constructor({ node, members }: ObjectType.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.members = members;
     Object.freeze(this);
   }
@@ -35,20 +37,14 @@ export class ObjectType implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.members)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isObjectType(other) &&
-      this.node === other.node &&
-      Equal.equals(this.members, other.members)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -62,7 +58,7 @@ export class ObjectType implements Traits.Traits {
 }
 
 export declare namespace ObjectType {
-  type Fields = Pick<ObjectType, "node" | "members">;
+  type Fields = Pick<ObjectType, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<ObjectType>;

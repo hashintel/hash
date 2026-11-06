@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -9,6 +9,8 @@ import type { Inspectable, Option } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/ConstantDeclaration";
+
+const fields = ["node", "type", "documentation"] as const;
 
 /** A non-callable variable keeps its source declaration, including any literal initializer. */
 export class ConstantDeclaration implements Traits.Traits {
@@ -28,29 +30,21 @@ export class ConstantDeclaration implements Traits.Traits {
   }
 
   constructor({ node, type, documentation }: ConstantDeclaration.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.type = type;
     this.documentation = documentation;
     Object.freeze(this);
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.type)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isConstantDeclaration(other) &&
-      this.node === other.node &&
-      Equal.equals(this.type, other.type) &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -65,7 +59,7 @@ export class ConstantDeclaration implements Traits.Traits {
 }
 
 export declare namespace ConstantDeclaration {
-  type Fields = Pick<ConstantDeclaration, "node" | "type" | "documentation">;
+  type Fields = Pick<ConstantDeclaration, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<ConstantDeclaration>;

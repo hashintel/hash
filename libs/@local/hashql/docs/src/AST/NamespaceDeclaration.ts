@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -10,6 +10,8 @@ import type { Chunk, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/NamespaceDeclaration";
+
+const fields = ["node", "items", "exports", "documentation"] as const;
 
 /** A file or namespace keeps its declarations apart from the names it exports. */
 export class NamespaceDeclaration implements Traits.Traits {
@@ -35,7 +37,7 @@ export class NamespaceDeclaration implements Traits.Traits {
     exports,
     documentation,
   }: NamespaceDeclaration.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.items = items;
     this.exports = exports;
     this.documentation = documentation;
@@ -43,24 +45,14 @@ export class NamespaceDeclaration implements Traits.Traits {
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.items)),
-      Hash.combine(Hash.hash(this.exports)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isNamespaceDeclaration(other) &&
-      this.node === other.node &&
-      Equal.equals(this.items, other.items) &&
-      Equal.equals(this.exports, other.exports) &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -76,10 +68,7 @@ export class NamespaceDeclaration implements Traits.Traits {
 }
 
 export declare namespace NamespaceDeclaration {
-  type Fields = Pick<
-    NamespaceDeclaration,
-    "node" | "items" | "exports" | "documentation"
-  >;
+  type Fields = Pick<NamespaceDeclaration, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<NamespaceDeclaration>;

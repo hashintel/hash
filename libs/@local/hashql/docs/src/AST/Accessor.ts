@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Traits from "../internal/ast/traits.js";
 
@@ -8,6 +8,8 @@ import type * as Setter from "./Setter.js";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Accessor";
+
+const fields = ["get", "set", "name", "static"] as const;
 
 /** A property's getter and setter retain their individual signatures and comments. */
 export class Accessor implements Traits.Traits {
@@ -40,24 +42,14 @@ export class Accessor implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.hash(this.get)),
-      Hash.combine(Hash.hash(this.set)),
-      Hash.combine(Hash.string(this.name)),
-      Hash.combine(Hash.hash(this.static)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isAccessor(other) &&
-      Equal.equals(this.get, other.get) &&
-      Equal.equals(this.set, other.set) &&
-      this.name === other.name &&
-      this.static === other.static
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -73,7 +65,7 @@ export class Accessor implements Traits.Traits {
 }
 
 export declare namespace Accessor {
-  type Fields = Pick<Accessor, "get" | "set" | "name" | "static">;
+  type Fields = Pick<Accessor, (typeof fields)[number]>;
   type Part = Getter.Getter | Setter.Setter;
 }
 

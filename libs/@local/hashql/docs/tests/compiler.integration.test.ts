@@ -1,4 +1,4 @@
-import { Array, Equal, Hash, Option, pipe } from "effect";
+import { Array, Effect, Equal, Hash, Option, pipe } from "effect";
 import {
   SyntaxKind,
   isClassDeclaration,
@@ -123,20 +123,22 @@ describe("compiler", () => {
         namespace: Option.none(),
         bases: [],
       });
-      const firstId = ast.intern(first);
-      const secondId = ast.intern(second);
+      const firstId = Effect.runSync(ast.intern(first));
+      const secondId = Effect.runSync(ast.intern(second));
       expect(Hash.hash(first)).toBe(Hash.hash(second));
       expect(firstId).not.toBe(secondId);
       expect(ast.get(firstId)).toBe(first);
       expect(ast.get(secondId)).toBe(second);
       expect(
-        ast.intern(
-          new CollidingDeclaration({
-            symbol: exported("Box"),
-            leaf: Option.none(),
-            namespace: Option.none(),
-            bases: [],
-          }),
+        Effect.runSync(
+          ast.intern(
+            new CollidingDeclaration({
+              symbol: exported("Box"),
+              leaf: Option.none(),
+              namespace: Option.none(),
+              bases: [],
+            }),
+          ),
         ),
       ).toBe(firstId);
     });

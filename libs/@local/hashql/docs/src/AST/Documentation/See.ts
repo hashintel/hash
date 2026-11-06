@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -7,6 +7,8 @@ import type { DocBlock, DocSection } from "@microsoft/tsdoc";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/See";
+
+const fields = ["node"] as const;
 
 /** One `@see` block, which points the reader at related material. A comment may hold several. */
 export class See implements Traits.Base {
@@ -24,7 +26,7 @@ export class See implements Traits.Base {
   }
 
   constructor({ node }: See.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     Object.freeze(this);
   }
 
@@ -33,13 +35,14 @@ export class See implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    return pipe(this._tag, Hash.string, Hash.combine(Hash.random(this.node)));
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isSee(other) && this.node === other.node
+      isSee(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -49,7 +52,7 @@ export class See implements Traits.Base {
 }
 
 export declare namespace See {
-  type Fields = Pick<See, "node">;
+  type Fields = Pick<See, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

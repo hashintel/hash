@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, Schema, pipe } from "effect";
+import { Array, Equal, Hash, Predicate, Schema } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -7,6 +7,8 @@ import type { DocBlock } from "@microsoft/tsdoc";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/Stability";
+
+const fields = ["node", "level"] as const;
 
 /** The release stability labels accepted by `@stability`. */
 export const Level = Schema.Literals([
@@ -35,26 +37,20 @@ export class Stability implements Traits.Base {
   }
 
   constructor({ node, level }: Stability.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.level = level;
     Object.freeze(this);
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.level)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isStability(other) &&
-      this.node === other.node &&
-      this.level === other.level
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -68,7 +64,7 @@ export class Stability implements Traits.Base {
 }
 
 export declare namespace Stability {
-  type Fields = Pick<Stability, "node" | "level">;
+  type Fields = Pick<Stability, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

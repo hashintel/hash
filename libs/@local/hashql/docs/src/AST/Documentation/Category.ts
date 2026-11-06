@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -7,6 +7,8 @@ import type { DocBlock } from "@microsoft/tsdoc";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/Category";
+
+const fields = ["node", "name"] as const;
 
 /** The `@category` block, which names the group a module's index lists the declaration under. */
 export class Category implements Traits.Base {
@@ -26,24 +28,20 @@ export class Category implements Traits.Base {
   }
 
   constructor({ node, name }: Category.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.name = name;
     Object.freeze(this);
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.name)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isCategory(other) && this.node === other.node && this.name === other.name
+      isCategory(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -57,7 +55,7 @@ export class Category implements Traits.Base {
 }
 
 export declare namespace Category {
-  type Fields = Pick<Category, "node" | "name">;
+  type Fields = Pick<Category, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

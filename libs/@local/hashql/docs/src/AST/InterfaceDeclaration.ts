@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -11,6 +11,14 @@ import type { Chunk, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/InterfaceDeclaration";
+
+const fields = [
+  "node",
+  "typeParameters",
+  "extends",
+  "members",
+  "documentation",
+] as const;
 
 export class InterfaceDeclaration implements Traits.Traits {
   readonly [TypeId] = TypeId;
@@ -37,7 +45,7 @@ export class InterfaceDeclaration implements Traits.Traits {
     members,
     documentation,
   }: InterfaceDeclaration.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.typeParameters = typeParameters;
     this.extends = bases;
     this.members = members;
@@ -46,26 +54,14 @@ export class InterfaceDeclaration implements Traits.Traits {
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.typeParameters)),
-      Hash.combine(Hash.hash(this.extends)),
-      Hash.combine(Hash.hash(this.members)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isInterfaceDeclaration(other) &&
-      this.node === other.node &&
-      Equal.equals(this.typeParameters, other.typeParameters) &&
-      Equal.equals(this.extends, other.extends) &&
-      Equal.equals(this.members, other.members) &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -82,10 +78,7 @@ export class InterfaceDeclaration implements Traits.Traits {
 }
 
 export declare namespace InterfaceDeclaration {
-  type Fields = Pick<
-    InterfaceDeclaration,
-    "node" | "typeParameters" | "extends" | "members" | "documentation"
-  >;
+  type Fields = Pick<InterfaceDeclaration, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<InterfaceDeclaration>;

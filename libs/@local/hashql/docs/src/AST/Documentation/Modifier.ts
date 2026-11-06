@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -7,6 +7,8 @@ import type { DocBlockTag } from "@microsoft/tsdoc";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/Modifier";
+
+const fields = ["node"] as const;
 
 /** A modifier tag, such as `@internal`, which marks a declaration without carrying content. */
 export class Modifier implements Traits.Base {
@@ -24,7 +26,7 @@ export class Modifier implements Traits.Base {
   }
 
   constructor({ node }: Modifier.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     Object.freeze(this);
   }
 
@@ -34,13 +36,14 @@ export class Modifier implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    return pipe(this._tag, Hash.string, Hash.combine(Hash.random(this.node)));
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isModifier(other) && this.node === other.node
+      isModifier(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -54,7 +57,7 @@ export class Modifier implements Traits.Base {
 }
 
 export declare namespace Modifier {
-  type Fields = Pick<Modifier, "node">;
+  type Fields = Pick<Modifier, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

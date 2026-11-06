@@ -1,5 +1,5 @@
 // oxlint-disable import/max-dependencies -- The root node owns a field for every kind of block a comment can hold.
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Source from "../../internal/ast/source.js";
@@ -43,10 +43,32 @@ export * as TypeParameter from "./TypeParameter.js";
 
 const TypeId = "~hashql-docs/AST/Documentation";
 
+const fields = [
+  "node",
+  "source",
+  "remarks",
+  "parameters",
+  "typeParameters",
+  "returns",
+  "throws",
+  "see",
+  "examples",
+  "since",
+  "category",
+  "stability",
+  "deprecated",
+  "inheritDoc",
+  "internal",
+  "trait",
+  "module",
+  "modifiers",
+  "customBlocks",
+] as const;
+
 /**
  * One parsed comment, before name resolution or rendering.
  *
- * The compiler's comment is its identity, so source nodes that share a comment share one interned node. Every block keeps the TSDoc node it came from, so its prose tree, including code spans and unresolved links, and its source positions stay available. Private remarks stay only in `source`, so a public-content traversal can omit them without discarding the parsed comment.
+ * Its compiler and TSDoc objects compare by identity, so two nodes are equal only when they come from one parse of one comment. Every block keeps the TSDoc node it came from, so its prose tree, including code spans and unresolved links, and its source positions stay available. Private remarks stay only in `source`, so a public-content traversal can omit them without discarding the parsed comment.
  */
 export class Documentation implements Traits.Base {
   readonly [TypeId] = TypeId;
@@ -107,8 +129,8 @@ export class Documentation implements Traits.Base {
     modifiers,
     customBlocks,
   }: Documentation.Fields) {
-    this.node = node;
-    this.source = source;
+    this.node = Equal.byReferenceUnsafe(node);
+    this.source = Equal.byReferenceUnsafe(source);
     this.remarks = remarks;
     this.parameters = parameters;
     this.typeParameters = typeParameters;
@@ -135,33 +157,14 @@ export class Documentation implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    // The comment determines every parsed field, so its identity alone is a hash consistent with equality.
-    return pipe(this._tag, Hash.string, Hash.combine(Hash.random(this.node)));
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isDocumentation(other) &&
-      this.node === other.node &&
-      this.source === other.source &&
-      Equal.equals(this.remarks, other.remarks) &&
-      Equal.equals(this.parameters, other.parameters) &&
-      Equal.equals(this.typeParameters, other.typeParameters) &&
-      Equal.equals(this.returns, other.returns) &&
-      Equal.equals(this.throws, other.throws) &&
-      Equal.equals(this.see, other.see) &&
-      Equal.equals(this.examples, other.examples) &&
-      Equal.equals(this.since, other.since) &&
-      Equal.equals(this.category, other.category) &&
-      Equal.equals(this.stability, other.stability) &&
-      Equal.equals(this.deprecated, other.deprecated) &&
-      Equal.equals(this.inheritDoc, other.inheritDoc) &&
-      Equal.equals(this.internal, other.internal) &&
-      Equal.equals(this.trait, other.trait) &&
-      Equal.equals(this.module, other.module) &&
-      Equal.equals(this.modifiers, other.modifiers) &&
-      Equal.equals(this.customBlocks, other.customBlocks)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -192,28 +195,7 @@ export class Documentation implements Traits.Base {
 }
 
 export declare namespace Documentation {
-  type Fields = Pick<
-    Documentation,
-    | "node"
-    | "source"
-    | "remarks"
-    | "parameters"
-    | "typeParameters"
-    | "returns"
-    | "throws"
-    | "see"
-    | "examples"
-    | "since"
-    | "category"
-    | "stability"
-    | "deprecated"
-    | "inheritDoc"
-    | "internal"
-    | "trait"
-    | "module"
-    | "modifiers"
-    | "customBlocks"
-  >;
+  type Fields = Pick<Documentation, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<Documentation>;
