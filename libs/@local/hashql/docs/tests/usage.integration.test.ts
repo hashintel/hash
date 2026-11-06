@@ -1,5 +1,5 @@
-import { Array, HashMap, Option, pipe } from "effect";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "@effect/vitest";
+import { Array, Effect, HashMap, Option } from "effect";
 
 import * as Usage from "../src/Usage.js";
 import * as Reference from "./fixtures/reference.js";
@@ -41,19 +41,17 @@ const labelsOf = ({
     ),
   );
 
-const collect = async (source: string): Promise<Collected> => {
-  const reference = await Reference.success({
+const collect = Effect.fnUntraced(function* (
+  source: string,
+): Effect.fn.Return<Collected, Reference.Failure> {
+  const reference = yield* Reference.success({
     source,
     files: { "hidden.d.ts": "export interface Hidden {}" },
   });
   const index = Usage.collect(reference.document.catalogue);
   const labels = labelsOf(reference);
-  const label = (target: AST.Reference.Reference.Target): string =>
-    pipe(
-      Option.liftPredicate(target, (value) => value._tag === "Local"),
-      Option.flatMap(({ node }) => HashMap.get(labels, node)),
-      Option.getOrThrow,
-    );
+  const label = (target: AST.Node.Interned): string =>
+    HashMap.get(labels, target).pipe(Option.getOrThrow);
 
   return {
     index,
@@ -66,30 +64,35 @@ const collect = async (source: string): Promise<Collected> => {
       };
     },
   };
-};
+});
 
 describe("usage", () => {
-  test("roles_and_aliases", async () => {
-    expect.hasAssertions();
-    const { users } = await collect(`
+  it.effect(
+    "roles_and_aliases",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users } = yield* collect(`
       export interface A {} export interface B {} export interface C {} export interface D extends A {} export interface E {}
       export declare function run<T extends A = D>(value: B): C;
       export declare function run(value: B): C;
       export { run as alias };
       export declare const call: (value: A) => B;
     `);
-    expect(Array.map(["A", "B", "C", "D", "E"], users)).toStrictEqual([
-      { accepted: ["run", "call"], returned: [] },
-      { accepted: ["run"], returned: ["call"] },
-      { accepted: [], returned: ["run"] },
-      { accepted: ["run"], returned: [] },
-      { accepted: [], returned: [] },
-    ]);
-  });
+      expect(Array.map(["A", "B", "C", "D", "E"], users)).toStrictEqual([
+        { accepted: ["run", "call"], returned: [] },
+        { accepted: ["run"], returned: ["call"] },
+        { accepted: [], returned: ["run"] },
+        { accepted: ["run"], returned: [] },
+        { accepted: [], returned: [] },
+      ]);
+    }),
+  );
 
-  test("members_and_shadowing", async () => {
-    expect.hasAssertions();
-    const { users } = await collect(`
+  it.effect(
+    "members_and_shadowing",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users } = yield* collect(`
       export interface A {}
       export declare class Container {
         static use(value: A): A;
@@ -97,36 +100,43 @@ describe("usage", () => {
         other(value: A): A;
       }
     `);
-    expect(users("A")).toStrictEqual({
-      accepted: ["static use", "other"],
-      returned: ["static use", "other"],
-    });
-  });
+      expect(users("A")).toStrictEqual({
+        accepted: ["static use", "other"],
+        returned: ["static use", "other"],
+      });
+    }),
+  );
 
-  test("private_and_self", async () => {
-    expect.hasAssertions();
-    const { users, index } = await collect(`
+  it.effect(
+    "private_and_self",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users, index } = yield* collect(`
       import type { Hidden } from "./hidden.js";
       export declare function run(value: Hidden): typeof run;
       export interface Public {}
     `);
-    expect(users("run")).toStrictEqual({ accepted: [], returned: [] });
-    expect([
-      HashMap.size(index.acceptedBy),
-      HashMap.size(index.returnedBy),
-    ]).toStrictEqual([0, 0]);
-  });
+      expect(users("run")).toStrictEqual({ accepted: [], returned: [] });
+      expect([
+        HashMap.size(index.acceptedBy),
+        HashMap.size(index.returnedBy),
+      ]).toStrictEqual([0, 0]);
+    }),
+  );
 
-  test("type_only_members", async () => {
-    expect.hasAssertions();
-    const { users } = await collect(`
+  it.effect(
+    "type_only_members",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users } = yield* collect(`
       export interface A {}
       declare class Container { static hidden(value: A): A; kept(value: A): A; }
       export type { Container };
     `);
-    expect(users("A")).toStrictEqual({
-      accepted: ["kept"],
-      returned: ["kept"],
-    });
-  });
+      expect(users("A")).toStrictEqual({
+        accepted: ["kept"],
+        returned: ["kept"],
+      });
+    }),
+  );
 });

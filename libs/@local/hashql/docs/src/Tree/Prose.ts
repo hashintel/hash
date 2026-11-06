@@ -1,7 +1,6 @@
 import { Array, Function, Option, String, pipe } from "effect";
 
-import * as AST from "../AST/index.js";
-
+import type * as AST from "../AST/index.js";
 import type * as Trait from "../Trait.js";
 import type * as Node from "./Node.js";
 import type {
@@ -35,13 +34,13 @@ export interface InlineCode extends Node.Node<
   readonly value: string;
 }
 
-/** A `{@link}` and what it names: the reference its name resolved to, or the address it writes. The output turns a reference into a destination. */
+/** A `{@link}` and what it names: the node of the AST its name resolved to, or the address it writes. The output turns a node into a destination. */
 export interface Link extends Node.Parent<
   "link",
   DocLinkTag,
   Text | InlineCode
 > {
-  readonly destination: AST.Reference.Reference | URL;
+  readonly destination: AST.Target.Interned | URL;
 }
 
 export type Phrasing = Text | InlineCode | Link;
@@ -64,7 +63,7 @@ type Reading =
   | { readonly type: "text" | "inlineCode"; readonly value: string }
   | {
       readonly type: "link";
-      readonly destination: AST.Reference.Reference.Target | URL;
+      readonly destination: AST.Target.Interned | URL;
       readonly label: readonly Reading[];
     };
 
@@ -76,8 +75,7 @@ const readingOf = (nodes: readonly Phrasing[]): readonly Reading[] => {
       const { destination } = node;
       output.push({
         type: "link",
-        destination:
-          destination instanceof URL ? destination : destination.target,
+        destination,
         label: readingOf(node.children),
       });
     } else if (node.type === "text" && previous?.type === "text") {
@@ -94,8 +92,8 @@ const readingOf = (nodes: readonly Phrasing[]): readonly Reading[] => {
 };
 
 const sameDestination = (
-  self: AST.Reference.Reference.Target | URL,
-  that: AST.Reference.Reference.Target | URL,
+  self: AST.Target.Interned | URL,
+  that: AST.Target.Interned | URL,
 ): boolean => {
   if (self instanceof URL || that instanceof URL) {
     return (
@@ -103,7 +101,7 @@ const sameDestination = (
     );
   }
 
-  return AST.Reference.sameTarget(self, that);
+  return self === that;
 };
 
 const readingEquivalence: Equivalence.Equivalence<Reading> = (self, that) => {

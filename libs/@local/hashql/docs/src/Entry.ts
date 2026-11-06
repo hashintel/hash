@@ -11,6 +11,7 @@ import {
 
 import * as Content from "./Content.js";
 import * as Parts from "./internal/parts.js";
+import * as References from "./internal/references.js";
 import * as Syntax from "./internal/signature-syntax.js";
 import * as Overloads from "./Overloads.js";
 import * as Tree from "./Tree/index.js";
@@ -26,11 +27,17 @@ interface Group extends Tree.Callable.Callable {
   readonly deprecated: boolean;
 }
 
-/** What distilling an export reads: the AST, and how the comments' prose resolves. */
-export interface Context {
-  readonly ast: AST.Store["Service"];
+/** What distilling an export reads: what numbering its overloads reads, with each example's program besides. */
+export interface Context extends Overloads.Context {
   readonly content: Content.Context;
 }
+
+/** The context the AST holds, built once for every export of the reference. */
+export const contextOf = (ast: AST.Store["Service"]): Context => ({
+  ast,
+  names: References.namesOf(ast),
+  content: Content.contextOf(ast),
+});
 
 export type Failure = Content.Failure;
 
@@ -185,10 +192,7 @@ const groupOf = (
   },
 ): Result.Result<Group, Failure> =>
   Result.gen(function* () {
-    const overloads = yield* Overloads.collect(parts, {
-      ast: context.ast,
-      prose: context.content,
-    });
+    const overloads = yield* Overloads.collect(parts, context);
     const total = overloads.entries.length;
     const signatures: Tree.Declaration.Signature[] = [];
     const documented: (readonly [

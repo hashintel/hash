@@ -1,6 +1,5 @@
 import { Array, HashMap, Match, Option, Order, Result, pipe } from "effect";
 
-import * as Content from "./Content.js";
 import * as Entry from "./Entry.js";
 import * as Import from "./Import.js";
 import * as Related from "./internal/related.js";
@@ -12,10 +11,7 @@ import type * as AST from "./AST/index.js";
 import type * as Catalogue from "./Catalogue.js";
 
 type Row = Tree.Row.Row;
-type Local = Extract<
-  AST.Reference.Reference.Target,
-  { readonly _tag: "Local" }
->;
+type Local = AST.Interned.Interned<AST.Target.Local>;
 
 /** The reference's pages as documentation trees, before any output. The output reads the placement and the entries to decide where each page and each anchor goes. */
 export interface Document {
@@ -56,18 +52,12 @@ const traitRow = (trait: Relations.Described): Row => ({
 const labelOf = ({ label }: Row): string => label.join(".");
 
 const rowsOf = (
-  targets: readonly AST.Reference.Reference.Target[],
+  targets: readonly Local[],
   composition: Composition,
 ): readonly Row[] =>
   pipe(
     targets,
-    Array.flatMap((target) => {
-      if (target._tag !== "Local") {
-        return [];
-      }
-
-      return Option.toArray(Related.row(composition)(target));
-    }),
+    Array.flatMap((target) => Option.toArray(Related.row(composition)(target))),
     Array.sortWith(labelOf, Order.String),
   );
 
@@ -290,10 +280,7 @@ const overviewPage = (composition: Composition): Tree.Page.Overview => ({
         depth: 0,
         summary: Related.summary(Entry.summary(entry)),
         deprecated: entry.deprecated,
-        origin: {
-          _tag: "Reference",
-          target: { _tag: "Local", node: page.entry.id } satisfies Local,
-        },
+        origin: { _tag: "Reference", target: page.entry.id },
       };
     }),
   ),
@@ -315,7 +302,7 @@ export const collect = (
     const placement = Placement.collect(catalogue);
     const distilled = yield* pipe(
       catalogue.entries,
-      Array.map(Entry.from({ ast, content: Content.contextOf(ast) })),
+      Array.map(Entry.from(Entry.contextOf(ast))),
       Result.all,
     );
     const entries = HashMap.fromIterable(

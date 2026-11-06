@@ -5,15 +5,15 @@ import type * as Node from "./Node.js";
 import type * as Prose from "./Prose.js";
 import type { Array, Option } from "effect";
 
-/** What a row links to: the declaration or member a reference names, or a trait's explanation on the traits page. */
+/** What a row links to: a declaration or a member of the package, or a trait's explanation on the traits page. */
 export type Target =
   | {
       readonly _tag: "Reference";
-      readonly target: AST.Reference.Reference.Target;
+      readonly target: AST.Interned.Interned<AST.Target.Local>;
     }
   | {
       readonly _tag: "Trait";
-      readonly trait: AST.Reference.Reference.Target;
+      readonly trait: AST.Target.Interned;
     };
 
 /** The kind of entry a row names, which the output shows beside it. */
