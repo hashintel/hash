@@ -741,6 +741,7 @@ import * as namecheap from "./geometry/namecheap";
 import * as nanoleaf from "./geometry/nanoleaf";
 import * as napster from "./geometry/napster";
 import * as nasa from "./geometry/nasa";
+import * as nasaWorm from "./geometry/nasa-worm";
 import * as nasdaq from "./geometry/nasdaq";
 import * as nationalExpress from "./geometry/national-express";
 import * as nationalGrid from "./geometry/national-grid";
@@ -8421,6 +8422,16 @@ export const integrationGeometry = {
     monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.8,
+    alignment: "center",
+  },
+  nasaWorm: {
+    ...nasaWorm,
+    markViewBox: "0 0 508.204 141.732",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.325465207587 -1.0948857783 -0.110529576612 0 1.5308805625",
+    monoInkScale: 1,
+    logoViewBox: "0 0 508.204 141.732",
+    ratio: 1.3,
     alignment: "center",
   },
   phaidon: {

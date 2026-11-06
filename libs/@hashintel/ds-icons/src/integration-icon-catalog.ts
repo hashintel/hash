@@ -15144,6 +15144,32 @@ export const integrationIconCatalog = [
     lastCheckedManually: null,
   },
   {
+    name: "nasaWorm",
+    slug: "nasa-worm",
+    label: "NASA (worm)",
+    integrationNames: ["NASA Worm", "NASA (worm)"],
+    source:
+      "https://upload.wikimedia.org/wikipedia/commons/a/a3/NASA_Worm_logo.svg",
+    categories: ["Government & nonprofits"],
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "logo-light",
+      "logo-dark",
+    ],
+    logoSource:
+      "https://upload.wikimedia.org/wikipedia/commons/a/a3/NASA_Worm_logo.svg",
+    logoNotes:
+      "NASA worm logotype, digitized from the Danne & Blackburn graphics standards artwork. The complete wordmark supplies both marks and full logos. Retains NASA red in both themes. A current secondary identity, alongside the NASA insignia, following its revival in 2020.",
+    logoRaster: false,
+    lastCheckedAutomated: "2026-11-06",
+    lastCheckedManually: null,
+  },
+  {
     name: "phaidon",
     slug: "phaidon",
     label: "Phaidon",

@@ -86,9 +86,9 @@ describe("IntegrationIcon", () => {
   );
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(1315);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(1317);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      1227,
+      1228,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -105,6 +105,8 @@ describe("IntegrationIcon", () => {
     ).toEqual([]);
     expect(integrationIconNameByIntegration["Amazon"]).toBe("amazon");
     expect(integrationIconNameByIntegration["AWS"]).toBe("aws");
+    expect(integrationIconNameByIntegration["NASA"]).toBe("nasa");
+    expect(integrationIconNameByIntegration["NASA Worm"]).toBe("nasaWorm");
     expect(integrationIconNameByIntegration["Amazon S3"]).toBe("amazonS3");
     expect(integrationIconNameByIntegration["OpenAI"]).toBe("openai");
     expect(integrationIconNameByIntegration["OpenAI ChatGPT"]).toBe("chatgpt");

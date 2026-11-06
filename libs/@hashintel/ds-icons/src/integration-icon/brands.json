@@ -14678,6 +14678,27 @@
     "lastCheckedManually": null
   },
   {
+    "name": "nasaWorm",
+    "slug": "nasa-worm",
+    "label": "NASA (worm)",
+    "integrationNames": ["NASA Worm", "NASA (worm)"],
+    "ratio": 1.3,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a3/NASA_Worm_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a3/NASA_Worm_logo.svg",
+    "logoNotes": "NASA worm logotype, digitized from the Danne & Blackburn graphics standards artwork. The complete wordmark supplies both marks and full logos. Retains NASA red in both themes. A current secondary identity, alongside the NASA insignia, following its revival in 2020.",
+    "brandWebsite": "https://www.nasa.gov/",
+    "brandGuidelines": "https://www.nasa.gov/nasa-brand-center/",
+    "identityReference": "https://www.nasa.gov/image-article/nasas-worm-logo/",
+    "artworkAttribution": "NASA worm logotype, designed by Danne & Blackburn. NASA identity-use terms apply.",
+    "categories": ["Government & nonprofits"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
     "name": "phaidon",
     "slug": "phaidon",
     "label": "Phaidon",

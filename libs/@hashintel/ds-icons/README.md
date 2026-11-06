@@ -177,7 +177,7 @@ hover feedback as the rest of the set; continuous effects remain opt-in.
 
 ## Integrations
 
-`IntegrationIcon` provides a separate **Integrations** category with 1,227 current brand identities, 31 legacy identities, and a generic fallback. It covers HASH's integration listings and additional company and product brands. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, artwork sources, and curated `categories`. The top-level `category` remains `Integrations`; `categories` groups brands by sector or purpose, with multiple categories where relevant. `integrationIconCategories` lists the available categories, and `IntegrationIconCategory` is their TypeScript union. The generic fallback has no brand categories. These icons use SVG and need no Panda configuration.
+`IntegrationIcon` provides a separate **Integrations** category with 1,228 current brand identities, 31 legacy identities, and a generic fallback. It covers HASH's integration listings and additional company and product brands. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, artwork sources, and curated `categories`. The top-level `category` remains `Integrations`; `categories` groups brands by sector or purpose, with multiple categories where relevant. `integrationIconCategories` lists the available categories, and `IntegrationIconCategory` is their TypeScript union. The generic fallback has no brand categories. These icons use SVG and need no Panda configuration.
 
 ```tsx
 import {
@@ -213,11 +213,11 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark normalizes the darkest painted tone to full ink and white to transparent, with intermediate tones retaining their detail in the caller's hue. White-only marks retain their silhouette. Source alpha masks the result to preserve transparent surroundings and smooth edges; masks, clips, and filter definitions do not set the contrast range.
 
-894 non-legacy brands have all seven variants. Brands without a verified full logo expose only the five mark and tile variants. Check each catalogue entry’s `variants` before showing a logo selector; requesting an unavailable full logo throws an error. The Font Awesome comparison groups alternate, square, circle, and card glyphs under distinct identities. Its coverage map and exclusions are recorded in `src/integration-icon/fontawesome-coverage.json`.
+895 non-legacy brands have all seven variants. Brands without a verified full logo expose only the five mark and tile variants. Check each catalogue entry’s `variants` before showing a logo selector; requesting an unavailable full logo throws an error. The Font Awesome comparison groups alternate, square, circle, and card glyphs under distinct identities. Its coverage map and exclusions are recorded in `src/integration-icon/fontawesome-coverage.json`.
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with outlined Segoe UI Semibold lettering, matching the other Microsoft product logos. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
-The package includes 8,093 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
+The package includes 8,100 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 
 `microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
@@ -238,6 +238,8 @@ The package includes 8,093 standalone SVGs. They are exported as `@hashintel/ds-
 `kinaxis` provides the corporate wordmark. `kinaxisMaestro` provides the Maestro emblem and the full “Maestro by Kinaxis” lock-up. The “Kinaxis Maestro” integration alias resolves to `kinaxisMaestro`. Both entries use vector artwork without embedded raster images.
 
 Where a source provides only a wordmark, the full logo pairs it with the sourced brand mark. These composed lock-ups are identified in `logoNotes`; brands whose mark is already their wordmark keep that artwork.
+
+`nasaWorm` adds the NASA worm logotype alongside the existing `nasa` insignia. Both are current entries shown by default. The worm uses NASA red for light/dark color variants, and its complete wordmark also supplies the full-logo variants. The generic “NASA” alias continues to resolve to the insignia.
 
 ### Geographic market metadata
 

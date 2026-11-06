@@ -22509,4 +22509,22 @@ export const integrationIconGeographicMarkets: {
     referenceUrls: ["https://www.itv.com/"],
     relatedBrand: "itv",
   },
+  nasaWorm: {
+    scope: "country",
+    basis: "institution",
+    primaryCountries: ["US"],
+    countries: ["US"],
+    regions: [],
+    countryCoverage: "partial",
+    localities: [],
+    assessment: "provisional",
+    assessedOn: "2026-11-06",
+    verifiedOn: null,
+    temporalContext: "current",
+    notes:
+      "Current secondary identity for NASA, sharing the agency’s US institutional remit; international collaboration and global awareness are separate from that remit.",
+    sources: [],
+    referenceUrls: ["https://www.nasa.gov/"],
+    relatedBrand: "nasa",
+  },
 };
