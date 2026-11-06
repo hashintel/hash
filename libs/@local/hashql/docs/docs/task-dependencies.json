@@ -1,8 +1,11 @@
 {
   "package": "@local/hashql-docs",
-  "dependencies": [],
+  "dependencies": [
+    "@local/oxlint",
+    "@local/tsconfig"
+  ],
   "tasks": {
-    "build": {
+    "build:reference": {
       "dependsOn": [
         "railroad-plugin#build:wasm"
       ],
@@ -10,7 +13,18 @@
         "railroad-plugin"
       ]
     },
+    "codegen": {
+      "dependsOn": []
+    },
     "dev": {
+      "dependsOn": [],
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "PORT"
+      ]
+    },
+    "dev:reference": {
       "dependsOn": [
         "railroad-plugin#build:wasm"
       ],
@@ -18,6 +32,18 @@
       "persistent": true,
       "affectedBy": [
         "railroad-plugin"
+      ]
+    },
+    "lint:oxlint": {
+      "dependsOn": [
+        "@local/oxlint#build",
+        "codegen"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@local/oxlint#build",
+        "codegen"
       ]
     }
   }
