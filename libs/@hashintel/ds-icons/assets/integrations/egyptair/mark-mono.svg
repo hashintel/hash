@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><defs><filter id="egyptair-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.245188093771 -0.824828432104 -0.0832670760597 0 1.15328360194" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#egyptair-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.528 0 22.92686 24" fill="#00265d" color="black" x="0.0" y="0.0" width="64" height="64"><path fill-rule="evenodd" d="M16.3402 5.294C16.9902 6.064 17.9402 6.34 18.5462 5.896 18.9262 5.616 19.0662 5.109 18.9842 4.556 19.3442 4.61 19.6952 4.719 20.1142 4.887 20.3202 4.957 20.5672 4.092 20.2462 4.062 16.8002 3.566 14.8862 6.348 14.9332 6.303 15.4652 5.903 15.9052 5.563 16.3402 5.294M18.3062 5.612C17.8512 5.982 17.0922 5.752 16.5582 5.162 17.2782 4.717 17.8882 4.507 18.5442 4.515 18.6782 4.939 18.5622 5.408 18.3062 5.612M1.1362 6.84A13.5 13.5 0 0 1 4.1062 1.668C10.0432-0.838 17.7002-0.82 23.4402 3.8 19.8402 1.964 9.1922 0.011 1.1342 6.84M0.7902 13.207A13.3 13.3 0 0 1 0.6832 8.934C4.8862 4.66 11.1752 1.85 17.7772 3.23 14.1642 3.24 5.5012 5.714 0.7912 13.206M3.0392 18.466A13.3 13.3 0 0 1 1.3502 15.261C3.8502 9.968 8.6722 5.357 15.1502 4.353 11.9262 5.569 5.2052 10.515 3.0382 18.466M7.1182 22.236A13.4 13.4 0 0 1 4.4152 20.116C5.2782 14.519 8.6962 8.67 14.1652 5.633A3.3 3.3 0 0 0 13.6102 7.656C10.4232 10.887 7.2572 15.906 7.1172 22.236M12.1742 24A14 14 0 0 1 9.0672 23.203C9.1032 18.137 10.7452 12.123 13.7272 8.435 13.8922 9.081 14.2072 9.745 14.7142 10.409 17.0742 7.633 19.7962 5.669 23.1772 4.801 18.5672 6.551 11.3942 12.133 12.1742 24" /></svg></g></svg>

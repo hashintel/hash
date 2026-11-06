@@ -20,10 +20,20 @@ import * as adobeCreativeCloud from "./geometry/adobe-creative-cloud";
 import * as adp from "./geometry/adp";
 import * as adversal from "./geometry/adversal";
 import * as aegean from "./geometry/aegean";
+import * as aerLingus from "./geometry/aer-lingus";
+import * as aerolineasArgentinas from "./geometry/aerolineas-argentinas";
+import * as aeromexico from "./geometry/aeromexico";
 import * as affiliatetheme from "./geometry/affiliatetheme";
 import * as ageOfEmpires from "./geometry/age-of-empires";
+import * as airArabia from "./geometry/air-arabia";
 import * as airCanada from "./geometry/air-canada";
+import * as airChina from "./geometry/air-china";
+import * as airEuropa from "./geometry/air-europa";
 import * as airFrance from "./geometry/air-france";
+import * as airIndia from "./geometry/air-india";
+import * as airNewZealand from "./geometry/air-new-zealand";
+import * as airasia from "./geometry/airasia";
+import * as airbaltic from "./geometry/airbaltic";
 import * as airbnb from "./geometry/airbnb";
 import * as airbus from "./geometry/airbus";
 import * as airOps from "./geometry/airops";
@@ -33,6 +43,7 @@ import * as aldiNord from "./geometry/aldi-nord";
 import * as aldiSud from "./geometry/aldi-sud";
 import * as algolia from "./geometry/algolia";
 import * as alipay from "./geometry/alipay";
+import * as allNipponAirways from "./geometry/all-nippon-airways";
 import * as allianz from "./geometry/allianz";
 import * as alltrails from "./geometry/alltrails";
 import * as alphabet from "./geometry/alphabet";
@@ -75,6 +86,7 @@ import * as aria from "./geometry/aria";
 import * as artstation from "./geometry/artstation";
 import * as asana from "./geometry/asana";
 import * as asda from "./geometry/asda";
+import * as asianaAirlines from "./geometry/asiana-airlines";
 import * as assassinsCreed from "./geometry/assassins-creed";
 import * as astellas from "./geometry/astellas";
 import * as astonMartin from "./geometry/aston-martin";
@@ -86,15 +98,18 @@ import * as atlassian from "./geometry/atlassian";
 import * as attio from "./geometry/attio";
 import * as audi from "./geometry/audi";
 import * as audible from "./geometry/audible";
+import * as austrianAirlines from "./geometry/austrian-airlines";
 import * as authy from "./geometry/authy";
 import * as autoprefixer from "./geometry/autoprefixer";
 import * as avengers from "./geometry/avengers";
+import * as avianca from "./geometry/avianca";
 import * as avianex from "./geometry/avianex";
 import * as aws from "./geometry/aws";
 import * as awsAmplify from "./geometry/aws-amplify";
 import * as awsLambda from "./geometry/aws-lambda";
 import * as amazonRedshift from "./geometry/aws-redshift";
 import * as axa from "./geometry/axa";
+import * as azul from "./geometry/azul";
 import * as azure from "./geometry/azure";
 import * as baeSystems from "./geometry/bae-systems";
 import * as bain from "./geometry/bain";
@@ -140,6 +155,7 @@ import * as box from "./geometry/box";
 import * as brave from "./geometry/brave";
 import * as brex from "./geometry/brex";
 import * as britishAirways from "./geometry/british-airways";
+import * as brusselsAirlines from "./geometry/brussels-airlines";
 import * as budweiser from "./geometry/budweiser";
 import * as buffer from "./geometry/buffer";
 import * as buildAwesome from "./geometry/build-awesome";
@@ -158,6 +174,7 @@ import * as cartier from "./geometry/cartier";
 import * as cashApp from "./geometry/cash-app";
 import * as caterpillar from "./geometry/caterpillar";
 import * as cathayPacific from "./geometry/cathay-pacific";
+import * as cebuPacific from "./geometry/cebu-pacific";
 import * as celonis from "./geometry/celonis";
 import * as centercode from "./geometry/centercode";
 import * as centos from "./geometry/centos";
@@ -165,6 +182,9 @@ import * as chanel from "./geometry/chanel";
 import * as charlesSchwab from "./geometry/charles-schwab";
 import * as chase from "./geometry/chase";
 import * as chatgpt from "./geometry/chatgpt";
+import * as chinaAirlines from "./geometry/china-airlines";
+import * as chinaEasternAirlines from "./geometry/china-eastern-airlines";
+import * as chinaSouthernAirlines from "./geometry/china-southern-airlines";
 import * as chrome from "./geometry/chrome";
 import * as chromecast from "./geometry/chromecast";
 import * as cisco from "./geometry/cisco";
@@ -191,10 +211,12 @@ import * as columbiaPictures from "./geometry/columbia-pictures";
 import * as commerzbank from "./geometry/commerzbank";
 import * as commonwealthBank from "./geometry/commonwealth-bank";
 import * as composio from "./geometry/composio";
+import * as condor from "./geometry/condor";
 import * as confluence from "./geometry/confluence";
 import * as connectdevelop from "./geometry/connectdevelop";
 import * as contao from "./geometry/contao";
 import * as continental from "./geometry/continental";
+import * as copaAirlines from "./geometry/copa-airlines";
 import * as corona from "./geometry/corona";
 import * as costco from "./geometry/costco";
 import * as cottonBureau from "./geometry/cotton-bureau";
@@ -274,19 +296,24 @@ import * as edeka from "./geometry/edeka";
 import * as edge from "./geometry/edge";
 import * as edgeLegacy from "./geometry/edge-legacy";
 import * as ee from "./geometry/ee";
+import * as egyptair from "./geometry/egyptair";
 import * as elementor from "./geometry/elementor";
 import * as elevenLabs from "./geometry/elevenlabs";
 import * as eleventy from "./geometry/eleventy";
 import * as eliLilly from "./geometry/eli-lilly";
 import * as elloLegacy from "./geometry/ello-legacy";
 import * as ember from "./geometry/ember";
+import * as emirates from "./geometry/emirates";
 import * as encord from "./geometry/encord";
 import * as envira from "./geometry/envira";
 import * as epicGames from "./geometry/epic-games";
 import * as erlang from "./geometry/erlang";
 import * as ethereum from "./geometry/ethereum";
+import * as ethiopianAirlines from "./geometry/ethiopian-airlines";
+import * as etihadAirways from "./geometry/etihad-airways";
 import * as etsy from "./geometry/etsy";
 import * as eurowings from "./geometry/eurowings";
+import * as evaAir from "./geometry/eva-air";
 import * as eventbrite from "./geometry/eventbrite";
 import * as evernote from "./geometry/evernote";
 import * as evri from "./geometry/evri";
@@ -303,6 +330,7 @@ import * as fediverse from "./geometry/fediverse";
 import * as fedora from "./geometry/fedora";
 import * as ferrari from "./geometry/ferrari";
 import * as figma from "./geometry/figma";
+import * as fijiAirways from "./geometry/fiji-airways";
 import * as finnair from "./geometry/finnair";
 import * as firefox from "./geometry/firefox";
 import * as fireworksAi from "./geometry/fireworks-ai";
@@ -312,6 +340,8 @@ import * as flink from "./geometry/flink";
 import * as flipboard from "./geometry/flipboard";
 import * as flutter from "./geometry/flutter";
 import * as fly from "./geometry/fly";
+import * as flydubai from "./geometry/flydubai";
+import * as flynas from "./geometry/flynas";
 import * as fontAwesome from "./geometry/font-awesome";
 import * as fonticons from "./geometry/fonticons";
 import * as forgejo from "./geometry/forgejo";
@@ -329,7 +359,9 @@ import * as freeCodeCamp from "./geometry/free-code-camp";
 import * as freeagent from "./geometry/freeagent";
 import * as freebsd from "./geometry/freebsd";
 import * as freenow from "./geometry/freenow";
+import * as frontierAirlines from "./geometry/frontier-airlines";
 import * as gameOfThrones from "./geometry/game-of-thrones";
+import * as garudaIndonesia from "./geometry/garuda-indonesia";
 import * as geminiExchange from "./geometry/gemini-exchange";
 import * as generalCatalyst from "./geometry/general-catalyst";
 import * as generalElectric from "./geometry/general-electric";
@@ -348,6 +380,7 @@ import * as glide from "./geometry/glide";
 import * as globaleaks from "./geometry/globaleaks";
 import * as godaddy from "./geometry/godaddy";
 import * as gofore from "./geometry/gofore";
+import * as gol from "./geometry/gol";
 import * as golang from "./geometry/golang";
 import * as goldmanSachs from "./geometry/goldman-sachs";
 import * as goodreads from "./geometry/goodreads";
@@ -383,6 +416,7 @@ import * as gulp from "./geometry/gulp";
 import * as hM from "./geometry/h-m";
 import * as hackerNews from "./geometry/hacker-news";
 import * as hackerrank from "./geometry/hackerrank";
+import * as hainanAirlines from "./geometry/hainan-airlines";
 import * as harpercollins from "./geometry/harpercollins";
 import * as harrods from "./geometry/harrods";
 import * as harryPotter from "./geometry/harry-potter";
@@ -390,6 +424,7 @@ import * as harvey from "./geometry/harvey";
 import * as hasbro from "./geometry/hasbro";
 import * as hash from "./geometry/hash";
 import * as hashnode from "./geometry/hashnode";
+import * as hawaiianAirlines from "./geometry/hawaiian-airlines";
 import * as hbo from "./geometry/hbo";
 import * as helium from "./geometry/helium";
 import * as helsing from "./geometry/helsing";
@@ -417,12 +452,15 @@ import * as hubSpot from "./geometry/hubspot";
 import * as huggingFace from "./geometry/hugging-face";
 import * as hugoBoss from "./geometry/hugo-boss";
 import * as hunter from "./geometry/hunter";
+import * as iberia from "./geometry/iberia";
 import * as ibm from "./geometry/ibm";
+import * as icelandair from "./geometry/icelandair";
 import * as ideal from "./geometry/ideal";
 import * as idealo from "./geometry/idealo";
 import * as imdb from "./geometry/imdb";
 import * as imperialCollegeLondon from "./geometry/imperial-college-london";
 import * as indexVentures from "./geometry/index-ventures";
+import * as indigo from "./geometry/indigo";
 import * as ineos from "./geometry/ineos";
 import * as insightPartners from "./geometry/insight-partners";
 import * as instagram from "./geometry/instagram";
@@ -435,14 +473,18 @@ import * as intuit from "./geometry/intuit";
 import * as invisionLegacy from "./geometry/invision-legacy";
 import * as ioxhost from "./geometry/ioxhost";
 import * as ironMan from "./geometry/iron-man";
+import * as itaAirways from "./geometry/ita-airways";
 import * as itchIo from "./geometry/itch-io";
 import * as itunes from "./geometry/itunes";
 import * as jPMorgan from "./geometry/j-p-morgan";
 import * as jaguar from "./geometry/jaguar";
+import * as japanAirlines from "./geometry/japan-airlines";
 import * as java from "./geometry/java";
 import * as jcb from "./geometry/jcb";
 import * as jenkins from "./geometry/jenkins";
+import * as jet2com from "./geometry/jet2com";
 import * as jetblue from "./geometry/jetblue";
+import * as jetstar from "./geometry/jetstar";
 import * as jira from "./geometry/jira";
 import * as joget from "./geometry/joget";
 import * as johnDeere from "./geometry/john-deere";
@@ -457,6 +499,7 @@ import * as kaDeWe from "./geometry/kadewe";
 import * as kaggle from "./geometry/kaggle";
 import * as kakaoTalk from "./geometry/kakao-talk";
 import * as kaufland from "./geometry/kaufland";
+import * as kenyaAirways from "./geometry/kenya-airways";
 import * as keybase from "./geometry/keybase";
 import * as keycdn from "./geometry/keycdn";
 import * as kfc from "./geometry/kfc";
@@ -473,13 +516,16 @@ import * as kleenex from "./geometry/kleenex";
 import * as klm from "./geometry/klm";
 import * as koFi from "./geometry/ko-fi";
 import * as koenigsegg from "./geometry/koenigsegg";
+import * as koreanAir from "./geometry/korean-air";
 import * as korvue from "./geometry/korvue";
 import * as kubernetes from "./geometry/kubernetes";
+import * as kuwaitAirways from "./geometry/kuwait-airways";
 import * as lamborghini from "./geometry/lamborghini";
 import * as landRover from "./geometry/land-rover";
 import * as laravel from "./geometry/laravel";
 import * as lastfm from "./geometry/lastfm";
 import * as lastpass from "./geometry/lastpass";
+import * as latamAirlines from "./geometry/latam-airlines";
 import * as leanpub from "./geometry/leanpub";
 import * as leetcode from "./geometry/leetcode";
 import * as lego from "./geometry/lego";
@@ -499,11 +545,13 @@ import * as linkedIn from "./geometry/linkedin";
 import * as linktree from "./geometry/linktree";
 import * as linode from "./geometry/linode";
 import * as linux from "./geometry/linux";
+import * as lionAir from "./geometry/lion-air";
 import * as lionsgate from "./geometry/lionsgate";
 import * as loewe from "./geometry/loewe";
 import * as londonSchoolOfEconomics from "./geometry/london-school-of-economics";
 import * as londonUnderground from "./geometry/london-underground";
 import * as loreal from "./geometry/loreal";
+import * as lotPolishAirlines from "./geometry/lot-polish-airlines";
 import * as louisVuitton from "./geometry/louis-vuitton";
 import * as lowes from "./geometry/lowes";
 import * as lufthansa from "./geometry/lufthansa";
@@ -512,6 +560,7 @@ import * as lyft from "./geometry/lyft";
 import * as mMs from "./geometry/m-ms";
 import * as magento from "./geometry/magento";
 import * as mailchimp from "./geometry/mailchimp";
+import * as malaysiaAirlines from "./geometry/malaysia-airlines";
 import * as malinGoetz from "./geometry/malin-goetz";
 import * as markdown from "./geometry/markdown";
 import * as marksSpencer from "./geometry/marks-spencer";
@@ -607,6 +656,7 @@ import * as nivea from "./geometry/nivea";
 import * as nodeJs from "./geometry/node-js";
 import * as noma from "./geometry/noma";
 import * as nomura from "./geometry/nomura";
+import * as norwegianAirShuttle from "./geometry/norwegian-air-shuttle";
 import * as notion from "./geometry/notion";
 import * as novartis from "./geometry/novartis";
 import * as novoNordisk from "./geometry/novo-nordisk";
@@ -621,6 +671,7 @@ import * as odnoklassniki from "./geometry/odnoklassniki";
 import * as odysee from "./geometry/odysee";
 import * as ogilvy from "./geometry/ogilvy";
 import * as okta from "./geometry/okta";
+import * as omanAir from "./geometry/oman-air";
 import * as omp from "./geometry/omp";
 import * as oneOnly from "./geometry/one-only";
 import * as openSourceInitiative from "./geometry/open-source-initiative";
@@ -655,6 +706,7 @@ import * as pasX from "./geometry/pas-x";
 import * as patreon from "./geometry/patreon";
 import * as paypal from "./geometry/paypal";
 import * as pbs from "./geometry/pbs";
+import * as pegasusAirlines from "./geometry/pegasus-airlines";
 import * as pencil from "./geometry/pencil";
 import * as penguinBooks from "./geometry/penguin-books";
 import * as pepsi from "./geometry/pepsi";
@@ -667,6 +719,7 @@ import * as peugeot from "./geometry/peugeot";
 import * as pfizer from "./geometry/pfizer";
 import * as phabricatorLegacy from "./geometry/phabricator-legacy";
 import * as phaidon from "./geometry/phaidon";
+import * as philippineAirlines from "./geometry/philippine-airlines";
 import * as philips from "./geometry/philips";
 import * as philipsHue from "./geometry/philips-hue";
 import * as phoenixFramework from "./geometry/phoenix-framework";
@@ -694,6 +747,7 @@ import * as protonVpn from "./geometry/proton-vpn";
 import * as puma from "./geometry/puma";
 import * as pushed from "./geometry/pushed";
 import * as python from "./geometry/python";
+import * as qantas from "./geometry/qantas";
 import * as qatarAirways from "./geometry/qatar-airways";
 import * as qinetiq from "./geometry/qinetiq";
 import * as qonto from "./geometry/qonto";
@@ -738,6 +792,7 @@ import * as rootVentures from "./geometry/root-ventures";
 import * as roseBikes from "./geometry/rose-bikes";
 import * as rosewood from "./geometry/rosewood";
 import * as rossmann from "./geometry/rossmann";
+import * as royalAirMaroc from "./geometry/royal-air-maroc";
 import * as royalBankOfCanada from "./geometry/royal-bank-of-canada";
 import * as royalMail from "./geometry/royal-mail";
 import * as rudderstack from "./geometry/rudderstack";
@@ -753,9 +808,11 @@ import * as sap from "./geometry/sap";
 import * as sas from "./geometry/sas";
 import * as sass from "./geometry/sass";
 import * as saturn from "./geometry/saturn";
+import * as saudia from "./geometry/saudia";
 import * as scaleAi from "./geometry/scale-ai";
 import * as scaleway from "./geometry/scaleway";
 import * as schlix from "./geometry/schlix";
+import * as scoot from "./geometry/scoot";
 import * as screenpal from "./geometry/screenpal";
 import * as scribd from "./geometry/scribd";
 import * as searchengin from "./geometry/searchengin";
@@ -782,6 +839,7 @@ import * as signify from "./geometry/signify";
 import * as siliconValleyBank from "./geometry/silicon-valley-bank";
 import * as simcity from "./geometry/simcity";
 import * as simplybuilt from "./geometry/simplybuilt";
+import * as singaporeAirlines from "./geometry/singapore-airlines";
 import * as sistrix from "./geometry/sistrix";
 import * as sitrox from "./geometry/sitrox";
 import * as sketch from "./geometry/sketch";
@@ -801,6 +859,7 @@ import * as sony from "./geometry/sony";
 import * as sonyPictures from "./geometry/sony-pictures";
 import * as soundcloud from "./geometry/soundcloud";
 import * as sourcetree from "./geometry/sourcetree";
+import * as southwestAirlines from "./geometry/southwest-airlines";
 import * as spaceAwesome from "./geometry/space-awesome";
 import * as speakap from "./geometry/speakap";
 import * as speakerDeck from "./geometry/speaker-deck";
@@ -844,6 +903,7 @@ import * as tailscale from "./geometry/tailscale";
 import * as tailwindCss from "./geometry/tailwind-css";
 import * as taittinger from "./geometry/taittinger";
 import * as takeTwoInteractive from "./geometry/take-two-interactive";
+import * as tapAirPortugal from "./geometry/tap-air-portugal";
 import * as taschen from "./geometry/taschen";
 import * as taskrabbit from "./geometry/taskrabbit";
 import * as teamspeak from "./geometry/teamspeak";
@@ -855,6 +915,7 @@ import * as tesco from "./geometry/tesco";
 import * as tesla from "./geometry/tesla";
 import * as tex from "./geometry/tex";
 import * as texasInstruments from "./geometry/texas-instruments";
+import * as thaiAirways from "./geometry/thai-airways";
 import * as thales from "./geometry/thales";
 import * as theFrenchLaundry from "./geometry/the-french-laundry";
 import * as theGuardian from "./geometry/the-guardian";
@@ -887,11 +948,13 @@ import * as torBrowser from "./geometry/tor-browser";
 import * as toyota from "./geometry/toyota";
 import * as traderJoes from "./geometry/trader-joes";
 import * as trafigura from "./geometry/trafigura";
+import * as transavia from "./geometry/transavia";
 import * as transportForLondon from "./geometry/transport-for-london";
 import * as trello from "./geometry/trello";
 import * as trunk from "./geometry/trunk";
 import * as tumblr from "./geometry/tumblr";
 import * as turbopuffer from "./geometry/turbopuffer";
+import * as turkishAirlines from "./geometry/turkish-airlines";
 import * as twitch from "./geometry/twitch";
 import * as twitterLegacy from "./geometry/twitter-legacy";
 import * as typeform from "./geometry/typeform";
@@ -938,21 +1001,27 @@ import * as veuveClicquot from "./geometry/veuve-clicquot";
 import * as viacoin from "./geometry/viacoin";
 import * as viadeo from "./geometry/viadeo";
 import * as viber from "./geometry/viber";
+import * as vietjetAir from "./geometry/vietjet-air";
+import * as vietnamAirlines from "./geometry/vietnam-airlines";
 import * as vim from "./geometry/vim";
 import * as vimeo from "./geometry/vimeo";
 import * as vineLegacy from "./geometry/vine-legacy";
 import * as virgin from "./geometry/virgin";
 import * as virginActive from "./geometry/virgin-active";
 import * as virginAtlantic from "./geometry/virgin-atlantic";
+import * as virginAustralia from "./geometry/virgin-australia";
 import * as visa from "./geometry/visa";
 import * as visualStudio from "./geometry/visual-studio";
 import * as vitra from "./geometry/vitra";
+import * as viva from "./geometry/viva";
 import * as vk from "./geometry/vk";
 import * as vmware from "./geometry/vmware";
 import * as vnv from "./geometry/vnv";
+import * as volaris from "./geometry/volaris";
 import * as volkswagen from "./geometry/volkswagen";
 import * as vsco from "./geometry/vsco";
 import * as vuejs from "./geometry/vuejs";
+import * as vueling from "./geometry/vueling";
 import * as w3c from "./geometry/w3c";
 import * as waitrose from "./geometry/waitrose";
 import * as walmart from "./geometry/walmart";
@@ -968,6 +1037,7 @@ import * as weebly from "./geometry/weebly";
 import * as weibo from "./geometry/weibo";
 import * as wellsFargo from "./geometry/wells-fargo";
 import * as westernUnion from "./geometry/western-union";
+import * as westjet from "./geometry/westjet";
 import * as wetransfer from "./geometry/wetransfer";
 import * as whalesync from "./geometry/whalesync";
 import * as whatsApp from "./geometry/whatsapp";
@@ -992,6 +1062,7 @@ import * as xAi from "./geometry/xai";
 import * as xbox from "./geometry/xbox";
 import * as xero from "./geometry/xero";
 import * as xfinity from "./geometry/xfinity";
+import * as xiamenair from "./geometry/xiamenair";
 import * as xing from "./geometry/xing";
 import * as xmpp from "./geometry/xmpp";
 import * as xrp from "./geometry/xrp";
@@ -11232,6 +11303,716 @@ export const integrationGeometry = {
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
     logoViewBox: "-1.76064 384.45805 1923.52128 310.91917",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  emirates: {
+    ...emirates,
+    markViewBox: "2.328 0 19.36114 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.286798174243 -0.964807404602 -0.0973980629366 0 1.34900364178",
+    monoInkScale: 1,
+    logoViewBox: "0 9.85602 64 44.28797",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  etihadAirways: {
+    ...etihadAirways,
+    markViewBox: "0 16.31086 64 31.424",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.47541084238 -1.59931248575 -0.161451847695 0 2.23617517582",
+    monoInkScale: 1,
+    logoViewBox: "0 16.31086 64 31.424",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  turkishAirlines: {
+    ...turkishAirlines,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.25758995431 -0.866549084302 -0.0874788085663 0 1.21161784718",
+    monoInkScale: 1,
+    logoViewBox: "0 26.91657 64 10.16686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  singaporeAirlines: {
+    ...singaporeAirlines,
+    markViewBox: "3.32229 0 17.35543 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.628016245734 -2.11268682478 -0.213277389191 0 2.95398045971",
+    monoInkScale: 1,
+    logoViewBox: "0 20.19657 64 23.60686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  qantas: {
+    ...qantas,
+    markViewBox: "0 25.66476 17.78929 12.67048",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.262498111629 -0.883060439497 -0.0891456428015 0 1.23470419393",
+    monoInkScale: 1,
+    logoViewBox: "0 25.62748 64 12.74504",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airNewZealand: {
+    ...airNewZealand,
+    markViewBox: "0.92229 0 22.15543 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 26.50514 64 10.98971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  allNipponAirways: {
+    ...allNipponAirways,
+    markViewBox: "0 23.76229 64 16.47543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.232919734999 -0.783556888389 -0.0791006814061 0 1.09557730479",
+    monoInkScale: 1,
+    logoViewBox: "0 23.76229 64 16.47543",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  japanAirlines: {
+    ...japanAirlines,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264434309685 -0.889573933615 -0.0898031851328 0 1.24381142843",
+    monoInkScale: 1,
+    logoViewBox: "0 15.03086 64 33.9017",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  koreanAir: {
+    ...koreanAir,
+    markViewBox: "0.61029 0 22.77942 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235582710116 -0.792515307031 -0.0800050407825 0 1.10810305793",
+    monoInkScale: 1,
+    logoViewBox: "0 27.05371 64 9.89257",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airChina: {
+    ...airChina,
+    markViewBox: "1.07657 0 21.84686 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802",
+    monoInkScale: 1,
+    logoViewBox: "0 21.97943 64 20.04114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  chinaEasternAirlines: {
+    ...chinaEasternAirlines,
+    markViewBox: "0 2.36229 24 19.27543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.247234781149 -0.83171361937 -0.0839621411053 0 1.16291054162",
+    monoInkScale: 1,
+    logoViewBox: "0 25.04229 64 13.91543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  chinaSouthernAirlines: {
+    ...chinaSouthernAirlines,
+    markViewBox: "0 3.408 24 17.184",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298020999395 -1.00256170634 -0.101209389258 0 1.40179209499",
+    monoInkScale: 1,
+    logoViewBox: "0 24.85943 64 14.28114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hainanAirlines: {
+    ...hainanAirlines,
+    markViewBox: "0 1.17601 24 21.66171",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264708812006 -0.890497376984 -0.089896407464 0 1.24510259645",
+    monoInkScale: 1,
+    logoViewBox: "0 24.08229 64 15.83543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  xiamenair: {
+    ...xiamenair,
+    markViewBox: "0 7.74514 24 8.50971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.388642043279 -1.30741669498 -0.131984739063 0 1.82804347733",
+    monoInkScale: 1,
+    logoViewBox: "0.08229 29.70514 63.83543 4.58971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  evaAir: {
+    ...evaAir,
+    markViewBox: "0 3.23657 24 17.52686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.402851983682 -1.35521984351 -0.136810504336 0 1.89488233152",
+    monoInkScale: 1,
+    logoViewBox: "0 25.408 64 13.184",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  chinaAirlines: {
+    ...chinaAirlines,
+    markViewBox: "0 27.14514 12.53486 9.70971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280083984381 -0.942220440401 -0.095117891215 0 1.317422316",
+    monoInkScale: 1,
+    logoViewBox: "0 27.14514 64 9.70971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  asianaAirlines: {
+    ...asianaAirlines,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.264802164019 -0.890811419126 -0.0899281102641 0 1.24554169341",
+    monoInkScale: 1,
+    logoViewBox: "0 25.91086 64 12.17829",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  indigo: {
+    ...indigo,
+    markViewBox: "0.01371 0 23.97257 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240942383247 -0.810545590301 -0.0818252119962 0 1.13331318554",
+    monoInkScale: 1,
+    logoViewBox: "0 25.408 64 13.184",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airIndia: {
+    ...airIndia,
+    markViewBox: "0.42514 0 23.15314 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.417846556059 -1.40566254418 -0.141902734466 0 1.96541183471",
+    monoInkScale: 1.008,
+    logoViewBox: "0 24.53943 64 14.92114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airasia: {
+    ...airasia,
+    markViewBox: "0 18.09371 64 27.81257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
+    logoViewBox: "0 18.09371 64 27.81257",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  thaiAirways: {
+    ...thaiAirways,
+    markViewBox: "0 0.73371 24 22.53257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.228946801637 -0.77019168641 -0.0777514538014 0 1.07688994185",
+    monoInkScale: 1,
+    logoViewBox: "0 22.48229 64 19.03543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  malaysiaAirlines: {
+    ...malaysiaAirlines,
+    markViewBox: "0 2.96229 24 18.07543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.287040527604 -0.965622696814 -0.0974803673238 0 1.35014359174",
+    monoInkScale: 1,
+    logoViewBox: "0 24.03657 64 15.92686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  garudaIndonesia: {
+    ...garudaIndonesia,
+    markViewBox: "0 6.35657 24 11.28686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244636436493 -0.822972621729 -0.0830797305493 0 1.15068878877",
+    monoInkScale: 1,
+    logoViewBox: "0 26.048 64 11.904",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  vietnamAirlines: {
+    ...vietnamAirlines,
+    markViewBox: "0 4.74514 24 14.50971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.569378161287 -1.91542455763 -0.193363608866 0 2.67816632778",
+    monoInkScale: 1,
+    logoViewBox: "0 28.01371 64 7.97257",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  vietjetAir: {
+    ...vietjetAir,
+    markViewBox: "0 26.368 64 11.264",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.299937592532 -1.00900924826 -0.101860273663 0 1.41080711445",
+    monoInkScale: 1,
+    logoViewBox: "0 26.368 64 11.264",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  philippineAirlines: {
+    ...philippineAirlines,
+    markViewBox: "0 5.088 24 13.84114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239989269474 -0.8073392546 -0.0815015298967 0 1.12883005397",
+    monoInkScale: 1,
+    logoViewBox: "0 26.77943 64 10.44114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  cebuPacific: {
+    ...cebuPacific,
+    markViewBox: "0 4.35086 24 15.28457",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.389666677688 -1.31086363068 -0.13233270992 0 1.83286301829",
+    monoInkScale: 1,
+    logoViewBox: "0 24.90514 64 14.18971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  lionAir: {
+    ...lionAir,
+    markViewBox: "1.41943 0 21.16114 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270014912007 -0.908347436818 -0.0916983849808 0 1.27006073381",
+    monoInkScale: 1,
+    logoViewBox: "0 23.53371 64 16.93257",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  scoot: {
+    ...scoot,
+    markViewBox: "0 3.69371 64 56.61257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 3.69371 64 56.61257",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  southwestAirlines: {
+    ...southwestAirlines,
+    markViewBox: "0 0.47657 24 23.04686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276897853279 -0.931502091559 -0.0940358655069 0 1.30243581034",
+    monoInkScale: 1,
+    logoViewBox: "0 27.23657 64 9.52686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  frontierAirlines: {
+    ...frontierAirlines,
+    markViewBox: "0 1.968 24 20.064",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.309413385598 -1.04088642229 -0.105078299342 0 1.45537810723",
+    monoInkScale: 1,
+    logoViewBox: "0 27.648 64 8.704",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hawaiianAirlines: {
+    ...hawaiianAirlines,
+    markViewBox: "1.52229 0 20.95543 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276457017673 -0.930019092378 -0.0938861555784 0 1.30036226563",
+    monoInkScale: 1,
+    logoViewBox: "0 4.33371 64 55.33257",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  westjet: {
+    ...westjet,
+    markViewBox: "0 1.608 24 20.784",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265842002183 -0.894309501229 -0.0902812443914 0 1.2504327478",
+    monoInkScale: 1,
+    logoViewBox: "0 25.53605 64 12.96452",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  aeromexico: {
+    ...aeromexico,
+    markViewBox: "0 2.808 24 18.384",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.224671093256 -0.7558079299 -0.0762994023193 0 1.05677842547",
+    monoInkScale: 1,
+    logoViewBox: "0 26.688 64 10.624",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  latamAirlines: {
+    ...latamAirlines,
+    markViewBox: "4.47086 0 15.05829 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22641523618 -0.761675338268 -0.0768917217882 0 1.06498229624",
+    monoInkScale: 1,
+    logoViewBox: "0 22.16229 64 19.67543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  avianca: {
+    ...avianca,
+    markViewBox: "1.26514 0 21.46971 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
+    logoViewBox: "0 24.31086 64 15.37829",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  azul: {
+    ...azul,
+    markViewBox: "0.08229 0 23.83543 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.289387265316 -0.973517272597 -0.0982773309305 0 1.36118186884",
+    monoInkScale: 1,
+    logoViewBox: "0 23.11318 64 17.77364",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  gol: {
+    ...gol,
+    markViewBox: "0 1.848 24 20.304",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.44200737372 -1.48694108036 -0.150107866334 0 2.07905632041",
+    monoInkScale: 1,
+    logoViewBox: "0 18.91657 64 26.13026",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  copaAirlines: {
+    ...copaAirlines,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261030969531 -0.878124879627 -0.0886473941682 0 1.22780324333",
+    monoInkScale: 1,
+    logoViewBox: "0 26.58749 64 10.82502",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  aerolineasArgentinas: {
+    ...aerolineasArgentinas,
+    markViewBox: "0 8.75657 24 6.48686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.362056253523 -1.21798039755 -0.122956074809 0 1.70299272588",
+    monoInkScale: 1,
+    logoViewBox: "0 27.09943 64 9.80114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  volaris: {
+    ...volaris,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
+    logoViewBox: "0 24.17371 64 15.65257",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  viva: {
+    ...viva,
+    markViewBox: "0.01371 0 23.97257 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.624603955491 -2.10120766212 -0.212118558732 0 2.93793017634",
+    monoInkScale: 1,
+    logoViewBox: "0 19.92229 64 24.15543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  aerLingus: {
+    ...aerLingus,
+    markViewBox: "0 0.35657 24 23.28686",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.491456865511 -1.65329233402 -0.166901155644 0 2.31165035518",
+    monoInkScale: 1,
+    logoViewBox: "0 25.95657 64 12.08686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  iberia: {
+    ...iberia,
+    markViewBox: "0 2.94514 24 18.09599",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.274874764232 -0.924696290588 -0.0933488145699 0 1.29291986939",
+    monoInkScale: 1.004,
+    logoViewBox: "0 24.85943 64 14.24452",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  tapAirPortugal: {
+    ...tapAirPortugal,
+    markViewBox: "0 5.24229 24 13.50171",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.284846141155 -0.958240640424 -0.0967351429511 0 1.33982192453",
+    monoInkScale: 1,
+    logoViewBox: "0 28.10514 64 7.78971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  itaAirways: {
+    ...itaAirways,
+    markViewBox: "0 18.58746 64 26.81597",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.292499668184 -0.983987594945 -0.0993343181698 0 1.3758215813",
+    monoInkScale: 1,
+    logoViewBox: "0 18.58746 64 26.81597",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  austrianAirlines: {
+    ...austrianAirlines,
+    markViewBox: "0 5.83886 24 12.32227",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.289504404004 -0.973911334637 -0.098317111802 0 1.36173285044",
+    monoInkScale: 1,
+    logoViewBox: "0 25.63657 64 12.72686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  brusselsAirlines: {
+    ...brusselsAirlines,
+    markViewBox: "0.08229 0 23.83543 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266783130751 -0.897475517937 -0.0906008562571 0 1.25485950495",
+    monoInkScale: 1,
+    logoViewBox: "0 24.768 64 14.464",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  lotPolishAirlines: {
+    ...lotPolishAirlines,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.255183165339 -0.85845249224 -0.0866614512581 0 1.20029710884",
+    monoInkScale: 1,
+    logoViewBox: "0 21.10174 64 21.79651",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  icelandair: {
+    ...icelandair,
+    markViewBox: "0 1.76229 24 20.47543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22021601992 -0.740820778208 -0.0747864376211 0 1.03582323575",
+    monoInkScale: 1,
+    logoViewBox: "0 25.68229 64 12.63543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  norwegianAirShuttle: {
+    ...norwegianAirShuttle,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302082868988 -1.01622609548 -0.102588820042 0 1.42089778451",
+    monoInkScale: 1,
+    logoViewBox: "0 26.96229 64 10.07543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airbaltic: {
+    ...airbaltic,
+    markViewBox: "0 24.62176 64 14.75648",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.248584052617 -0.836252654901 -0.0844203602962 0 1.16925706782",
+    monoInkScale: 1,
+    logoViewBox: "0 24.62176 64 14.75648",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  jet2com: {
+    ...jet2com,
+    markViewBox: "1.488 0 21.024 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.301111066677 -1.01295689035 -0.102258791223 0 1.41632674825",
+    monoInkScale: 1,
+    logoViewBox: "0 26.55086 64 10.89829",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  pegasusAirlines: {
+    ...pegasusAirlines,
+    markViewBox: "0 2.19086 24 19.61829",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.312188677985 -1.05022268342 -0.106020802213 0 1.46843216362",
+    monoInkScale: 1,
+    logoViewBox: "0 26.64229 64 10.71543",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  vueling: {
+    ...vueling,
+    markViewBox: "0 21.568 64 20.864",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.30827432793 -1.03705455943 -0.104691469786 0 1.45002035715",
+    monoInkScale: 1,
+    logoViewBox: "0 21.568 64 20.864",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  condor: {
+    ...condor,
+    markViewBox: "0.03086 0 23.93829 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 26.45943 64 11.08114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airEuropa: {
+    ...airEuropa,
+    markViewBox: "0 3.27086 24 17.45829",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.339713656222 -1.14281847098 -0.11536841947 0 1.59790054667",
+    monoInkScale: 1,
+    logoViewBox: "0 25.53605 64 12.92789",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  transavia: {
+    ...transavia,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.575817634913 -1.93708735884 -0.19555048561 0 2.70845547936",
+    monoInkScale: 1,
+    logoViewBox: "0 26.18514 64 11.62971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  saudia: {
+    ...saudia,
+    markViewBox: "0 3.20229 24 17.59543",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.311914940135 -1.04930181178 -0.1059278395 0 1.46714459141",
+    monoInkScale: 1,
+    logoViewBox: "6.66514 0 50.66971 64",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  egyptair: {
+    ...egyptair,
+    markViewBox: "0.528 0 22.92686 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.245188093771 -0.824828432104 -0.0832670760597 0 1.15328360194",
+    monoInkScale: 1,
+    logoViewBox: "0 27.23657 64 9.52686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  ethiopianAirlines: {
+    ...ethiopianAirlines,
+    markViewBox: "0 2.22514 24 19.54971",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280833803868 -0.94474288112 -0.0953725335806 0 1.32094921857",
+    monoInkScale: 1,
+    logoViewBox: "0 18.59657 64 26.80686",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  kenyaAirways: {
+    ...kenyaAirways,
+    markViewBox: "0 1.14172 24 21.71656",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802",
+    monoInkScale: 1,
+    logoViewBox: "0 25.94749 64 12.10504",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  royalAirMaroc: {
+    ...royalAirMaroc,
+    markViewBox: "0 5.51657 24 12.984",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265105170658 -0.891830752845 -0.0900310128012 0 1.2469669363",
+    monoInkScale: 1,
+    logoViewBox: "0 10.18514 64 43.63884",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  omanAir: {
+    ...omanAir,
+    markViewBox: "0 1.52229 24 20.95885",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.528785567421 -1.77886847516 -0.179578165418 0 2.487232208",
+    monoInkScale: 1,
+    logoViewBox: "0 23.94514 64 16.10971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  kuwaitAirways: {
+    ...kuwaitAirways,
+    markViewBox: "0 7.248 24 9.504",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.253486947617 -0.852746307319 -0.0860854074223 0 1.19231866236",
+    monoInkScale: 1,
+    logoViewBox: "0 19.41943 64 25.16114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  flydubai: {
+    ...flydubai,
+    markViewBox: "0 25.408 64 13.184",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.314005212858 -1.05633362294 -0.106637706342 0 1.47697654214",
+    monoInkScale: 1,
+    logoViewBox: "0 25.408 64 13.184",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  flynas: {
+    ...flynas,
+    markViewBox: "5.82514 0 12.34971 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.485344673232 -1.6327305282 -0.164825425246 0 2.28290062668",
+    monoInkScale: 1,
+    logoViewBox: "0 18.13943 64 27.72114",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airArabia: {
+    ...airArabia,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276464348731 -0.930043754526 -0.0938886452416 0 1.3003967485",
+    monoInkScale: 1,
+    logoViewBox: "0 26.82514 64 10.34971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  fijiAirways: {
+    ...fijiAirways,
+    markViewBox: "0.08229 0 23.83543 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.274344514324 -0.922912495977 -0.0931687391073 0 1.29042574941",
+    monoInkScale: 1,
+    logoViewBox: "0 26.73371 64 10.53257",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  virginAustralia: {
+    ...virginAustralia,
+    markViewBox: "0 2.928 24 18.144",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.296640125019 -0.997916356601 -0.100740437565 0 1.39529691918",
+    monoInkScale: 1,
+    logoViewBox: "0 22.34514 64 19.30971",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  jetstar: {
+    ...jetstar,
+    markViewBox: "0 1.128 24 21.744",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.38278339655 -1.28770783261 -0.129995113974 0 1.80048634313",
+    monoInkScale: 1,
+    logoViewBox: "0 23.168 64 17.664",
     ratio: 1.8,
     alignment: "center",
   },

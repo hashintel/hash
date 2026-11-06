@@ -23888,5 +23888,1959 @@
     "categories": ["News & publishing"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
+  },
+  {
+    "name": "emirates",
+    "slug": "emirates",
+    "label": "Emirates",
+    "integrationNames": ["Emirates"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/emirates/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d71921": "#E8363E"
+    },
+    "logoDarkColors": {
+      "#d71921": "#E8363E"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/emirates/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.emirates.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "etihadAirways",
+    "slug": "etihad-airways",
+    "label": "Etihad Airways",
+    "integrationNames": ["Etihad Airways"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/etihad-airways/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#bd8b13": "#bd8b13"
+    },
+    "logoDarkColors": {
+      "#bd8b13": "#bd8b13"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/etihad-airways/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.etihad.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "turkishAirlines",
+    "slug": "turkish-airlines",
+    "label": "Turkish Airlines",
+    "integrationNames": ["Turkish Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/turkish-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ffffff": "#ffffff",
+      "#c90019": "#F7001F",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ffffff": "#ffffff",
+      "#c90019": "#F7001F",
+      "#000000": "#F5F7FA",
+      "#1a171b": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/turkish-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.turkishairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "singaporeAirlines",
+    "slug": "singapore-airlines",
+    "label": "Singapore Airlines",
+    "integrationNames": ["Singapore Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/singapore-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f99f1c": "#f99f1c"
+    },
+    "logoDarkColors": {
+      "#f99f1c": "#f99f1c",
+      "#232f67": "#6577CB",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/singapore-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.singaporeair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "qantas",
+    "slug": "qantas",
+    "label": "Qantas",
+    "integrationNames": ["Qantas"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/qantas/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ffffff": "#ffffff",
+      "#e40000": "#F80000",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#323232": "#F5F7FA",
+      "#ffffff": "#ffffff",
+      "#e40000": "#F80000",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/qantas/logo.svg",
+    "logoNotes": "Kangaroo tail emblem isolated from the outlined full logo. Brand-color artwork preserves the red tail and white kangaroo.",
+    "brandWebsite": "https://www.qantas.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "airNewZealand",
+    "slug": "air-new-zealand",
+    "label": "Air New Zealand",
+    "integrationNames": ["Air New Zealand"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-new-zealand/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-new-zealand/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.airnewzealand.co.nz",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "allNipponAirways",
+    "slug": "all-nippon-airways",
+    "label": "ANA",
+    "integrationNames": ["ANA", "All Nippon Airways"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/all-nippon-airways/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00aff0": "#00aff0",
+      "#000000": "#F5F7FA",
+      "#00146e": "#4F6FFF"
+    },
+    "logoDarkColors": {
+      "#00aff0": "#00aff0",
+      "#000000": "#F5F7FA",
+      "#00146e": "#4F6FFF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/all-nippon-airways/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.ana.co.jp",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "japanAirlines",
+    "slug": "japan-airlines",
+    "label": "Japan Airlines",
+    "integrationNames": ["Japan Airlines", "JAL"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/japan-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e50012": "#F90014"
+    },
+    "logoDarkColors": {
+      "#e50012": "#F90014",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/japan-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.jal.co.jp",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "koreanAir",
+    "slug": "korean-air",
+    "label": "Korean Air",
+    "integrationNames": ["Korean Air"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/korean-air/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#051766": "#5271F7"
+    },
+    "logoDarkColors": {
+      "#051766": "#5271F7"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/korean-air/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.koreanair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "brandReference": "https://www.koreanair.com/contents/whatsnew/newci"
+  },
+  {
+    "name": "airChina",
+    "slug": "air-china",
+    "label": "Air China",
+    "integrationNames": ["Air China"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-china/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ed1c24": "#EE282F"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#e60012": "#F80013"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-china/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.airchina.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "chinaEasternAirlines",
+    "slug": "china-eastern-airlines",
+    "label": "China Eastern Airlines",
+    "integrationNames": ["China Eastern Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/china-eastern-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#df0011": "#F90013",
+      "#1b1d80": "#6D70E0",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#df0011": "#F90013",
+      "#1b1d80": "#6D70E0",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/china-eastern-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.ceair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "chinaSouthernAirlines",
+    "slug": "china-southern-airlines",
+    "label": "China Southern Airlines",
+    "integrationNames": ["China Southern Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/china-southern-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ffffff": "#ffffff",
+      "#ed1b2f": "#EE273A",
+      "#000000": "#F5F7FA",
+      "#0093d0": "#0093d0"
+    },
+    "logoDarkColors": {
+      "#0093d0": "#0093d0",
+      "#ed1b2f": "#EE273A",
+      "#ffffff": "#ffffff",
+      "#000000": "#F5F7FA",
+      "#002052": "#1C75FF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/china-southern-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.csair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "hainanAirlines",
+    "slug": "hainan-airlines",
+    "label": "Hainan Airlines",
+    "integrationNames": ["Hainan Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/hainan-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e60012": "#F80013"
+    },
+    "logoDarkColors": {
+      "#e60012": "#F80013"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/hainan-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.hainanairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "xiamenair",
+    "slug": "xiamenair",
+    "label": "XiamenAir",
+    "integrationNames": ["XiamenAir"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/xiamenair/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#008cd5": "#008cd5"
+    },
+    "logoDarkColors": {
+      "#008cd5": "#008cd5",
+      "#000000": "#F5F7FA",
+      "#004384": "#0079EF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/xiamenair/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.xiamenair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "evaAir",
+    "slug": "eva-air",
+    "label": "EVA Air",
+    "integrationNames": ["EVA Air"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/eva-air/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#409e54": "#409e54",
+      "#d06537": "#d06537",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ffffff": "#ffffff",
+      "#00a64f": "#00a64f",
+      "#000000": "#F5F7FA",
+      "#f0451c": "#f0451c"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/eva-air/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.evaair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "chinaAirlines",
+    "slug": "china-airlines",
+    "label": "China Airlines",
+    "integrationNames": ["China Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/china-airlines/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d98793": "#d98793",
+      "#e09ca7": "#e09ca7",
+      "#d7808d": "#d7808d",
+      "#efcbd1": "#efcbd1",
+      "#d57886": "#d57886",
+      "#cc5d6c": "#cc5d6c",
+      "#ffffff": "#ffffff",
+      "#db8d98": "#db8d98",
+      "#cb5c6b": "#cb5c6b",
+      "#d77e8b": "#d77e8b",
+      "#ca5767": "#ca5767",
+      "#cd606f": "#cd606f",
+      "#f4dbe0": "#f4dbe0",
+      "#d06978": "#d06978",
+      "#cb5b6b": "#cb5b6b",
+      "#eec8cf": "#eec8cf",
+      "#d16c7b": "#d16c7b",
+      "#f2d4da": "#f2d4da",
+      "#e1a0aa": "#e1a0aa",
+      "#faf0f2": "#faf0f2",
+      "#d06877": "#d06877",
+      "#000000": "#F5F7FA",
+      "#ca5766": "#ca5766",
+      "#cf6675": "#cf6675",
+      "#a12132": "#D9475A",
+      "#e5abb4": "#e5abb4",
+      "#edc3ca": "#edc3ca"
+    },
+    "logoDarkColors": {
+      "#d98793": "#d98793",
+      "#e09ca7": "#e09ca7",
+      "#d7808d": "#d7808d",
+      "#efcbd1": "#efcbd1",
+      "#d57886": "#d57886",
+      "#cc5d6c": "#cc5d6c",
+      "#ffffff": "#ffffff",
+      "#db8d98": "#db8d98",
+      "#cb5c6b": "#cb5c6b",
+      "#d77e8b": "#d77e8b",
+      "#ca5767": "#ca5767",
+      "#cd606f": "#cd606f",
+      "#f4dbe0": "#f4dbe0",
+      "#d06978": "#d06978",
+      "#cb5b6b": "#cb5b6b",
+      "#eec8cf": "#eec8cf",
+      "#d16c7b": "#d16c7b",
+      "#f2d4da": "#f2d4da",
+      "#e1a0aa": "#e1a0aa",
+      "#faf0f2": "#faf0f2",
+      "#d06877": "#d06877",
+      "#000000": "#F5F7FA",
+      "#ca5766": "#ca5766",
+      "#1d294c": "#F5F7FA",
+      "#cf6675": "#cf6675",
+      "#a12132": "#D9475A",
+      "#e5abb4": "#e5abb4",
+      "#edc3ca": "#edc3ca"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/china-airlines/logo.svg",
+    "logoNotes": "Plum-blossom emblem isolated from the complete outlined lock-up, preserving its original gradient fills.",
+    "brandWebsite": "https://www.china-airlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "asianaAirlines",
+    "slug": "asiana-airlines",
+    "label": "Asiana Airlines",
+    "integrationNames": ["Asiana Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/asiana-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e60013": "#F80014"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#4a4f54": "#F5F7FA",
+      "#e60013": "#F80014"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/asiana-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://flyasiana.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "indigo",
+    "slug": "indigo",
+    "label": "IndiGo",
+    "integrationNames": ["IndiGo"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/indigo/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#001b94": "#4F6FFF"
+    },
+    "logoDarkColors": {
+      "#001b94": "#4F6FFF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/indigo/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.goindigo.in",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "airIndia",
+    "slug": "air-india",
+    "label": "Air India",
+    "integrationNames": ["Air India"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-india/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#bf9a66": "#bf9a66",
+      "#ecc890": "#ecc890",
+      "#fed9a0": "#fed9a0",
+      "#9e7947": "#9e7947"
+    },
+    "logoDarkColors": {
+      "#ecc890": "#ecc890",
+      "#9e7947": "#9e7947",
+      "#bf9a66": "#bf9a66",
+      "#da0e29": "#F11E3A",
+      "#000000": "#F5F7FA",
+      "#fed9a0": "#fed9a0"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-india/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.airindia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "brandReference": "https://www.airindia.com/in/en/newsroom/press-release/air-india-starts-rollout-of-new-global-brand-identity.html",
+    "monoInkScale": 1.008
+  },
+  {
+    "name": "airasia",
+    "slug": "airasia",
+    "label": "AirAsia",
+    "integrationNames": ["AirAsia"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/airasia/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ff0000": "#ff0000"
+    },
+    "logoDarkColors": {
+      "#ff0000": "#ff0000"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/airasia/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.airasia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "thaiAirways",
+    "slug": "thai-airways",
+    "label": "Thai Airways",
+    "integrationNames": ["Thai Airways"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/thai-airways/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#cc0099": "#E800AE",
+      "#ffcc00": "#ffcc00",
+      "#000000": "#F5F7FA",
+      "#330066": "#A44AFF"
+    },
+    "logoDarkColors": {
+      "#b6007d": "#E900A0",
+      "#f5c300": "#f5c300",
+      "#000000": "#F5F7FA",
+      "#370e62": "#9E57E7"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/thai-airways/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.thaiairways.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "malaysiaAirlines",
+    "slug": "malaysia-airlines",
+    "label": "Malaysia Airlines",
+    "integrationNames": ["Malaysia Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/malaysia-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#174887": "#307BDC"
+    },
+    "logoDarkColors": {
+      "#174887": "#307BDC"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/malaysia-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.malaysiaairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "garudaIndonesia",
+    "slug": "garuda-indonesia",
+    "label": "Garuda Indonesia",
+    "integrationNames": ["Garuda Indonesia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/garuda-indonesia/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#002560": "#1E75FF",
+      "#000000": "#F5F7FA",
+      "#008b99": "#008b99"
+    },
+    "logoDarkColors": {
+      "#002560": "#1E75FF",
+      "#4c4847": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#008b99": "#008b99"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/garuda-indonesia/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.garuda-indonesia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "vietnamAirlines",
+    "slug": "vietnam-airlines",
+    "label": "Vietnam Airlines",
+    "integrationNames": ["Vietnam Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/vietnam-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d99e09": "#d99e09"
+    },
+    "logoDarkColors": {
+      "#005e80": "#0085B6",
+      "#000000": "#F5F7FA",
+      "#d99e09": "#d99e09"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/vietnam-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.vietnamairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "vietjetAir",
+    "slug": "vietjet-air",
+    "label": "VietJet Air",
+    "integrationNames": ["VietJet Air"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/vietjet-air/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e12127": "#E43A3F"
+    },
+    "logoDarkColors": {
+      "#e12127": "#E43A3F"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/vietjet-air/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.vietjetair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "philippineAirlines",
+    "slug": "philippine-airlines",
+    "label": "Philippine Airlines",
+    "integrationNames": ["Philippine Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/philippine-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#001f60": "#3073FF",
+      "#ee2a29": "#ee2a29",
+      "#000000": "#F5F7FA",
+      "#ffcc05": "#ffcc05"
+    },
+    "logoDarkColors": {
+      "#ee2a29": "#ee2a29",
+      "#1e2d5f": "#5E78CC",
+      "#ffcc05": "#ffcc05",
+      "#000000": "#F5F7FA",
+      "#001f60": "#3073FF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/philippine-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.philippineairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "cebuPacific",
+    "slug": "cebu-pacific",
+    "label": "Cebu Pacific",
+    "integrationNames": ["Cebu Pacific"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/cebu-pacific/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#06a7e0": "#06a7e0",
+      "#039482": "#039482",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#06a7e0": "#06a7e0",
+      "#039482": "#039482",
+      "#2574bb": "#287FCC",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/cebu-pacific/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.cebupacificair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "lionAir",
+    "slug": "lion-air",
+    "label": "Lion Air",
+    "integrationNames": ["Lion Air"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/lion-air/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#fb0102": "#fb0102"
+    },
+    "logoDarkColors": {
+      "#fb0102": "#fb0102"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/lion-air/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.lionair.co.id",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "scoot",
+    "slug": "scoot",
+    "label": "Scoot",
+    "integrationNames": ["Scoot"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/scoot/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ffe900": "#ffe900",
+      "#000000": "#000000"
+    },
+    "logoDarkColors": {
+      "#ffe900": "#ffe900",
+      "#000000": "#000000"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/scoot/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.flyscoot.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "southwestAirlines",
+    "slug": "southwest-airlines",
+    "label": "Southwest Airlines",
+    "integrationNames": ["Southwest Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/southwest-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#cccccc": "#cccccc",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#cccccc": "#cccccc",
+      "#304cb2": "#5E77D3",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/southwest-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.southwest.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "frontierAirlines",
+    "slug": "frontier-airlines",
+    "label": "Frontier Airlines",
+    "integrationNames": ["Frontier Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/frontier-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#026845": "#038E5E"
+    },
+    "logoDarkColors": {
+      "#026845": "#038E5E"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/frontier-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.flyfrontier.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "hawaiianAirlines",
+    "slug": "hawaiian-airlines",
+    "label": "Hawaiian Airlines",
+    "integrationNames": ["Hawaiian Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/hawaiian-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#413691": "#7B70CA",
+      "#d2068a": "#EB079A",
+      "#ef3138": "#ef3138",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#413691": "#7B70CA",
+      "#d2068a": "#EB079A",
+      "#ef3138": "#ef3138",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/hawaiian-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.hawaiianairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "westjet",
+    "slug": "westjet",
+    "label": "WestJet",
+    "integrationNames": ["WestJet"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/westjet/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#003c71": "#007CE9",
+      "#ffffff": "#ffffff",
+      "#00aaa6": "#00aaa6",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#003c71": "#007CE9",
+      "#ffffff": "#ffffff",
+      "#00aaa6": "#00aaa6",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/westjet/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.westjet.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "aeromexico",
+    "slug": "aeromexico",
+    "label": "Aeroméxico",
+    "integrationNames": ["Aeroméxico", "Aeromexico"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/aeromexico/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#020c41": "#556FFA"
+    },
+    "logoDarkColors": {
+      "#020c41": "#556FFA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/aeromexico/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.aeromexico.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "latamAirlines",
+    "slug": "latam-airlines",
+    "label": "LATAM Airlines",
+    "integrationNames": ["LATAM Airlines", "LATAM"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/latam-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1b0088": "#7F5FFF",
+      "#000000": "#F5F7FA",
+      "#ed1650": "#EE2259"
+    },
+    "logoDarkColors": {
+      "#1b0088": "#7F5FFF",
+      "#000000": "#F5F7FA",
+      "#ed1650": "#EE2259"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/latam-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.latamairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "avianca",
+    "slug": "avianca",
+    "label": "Avianca",
+    "integrationNames": ["Avianca"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/avianca/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ff0000": "#ff0000"
+    },
+    "logoDarkColors": {
+      "#ff0000": "#ff0000"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/avianca/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.avianca.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "brandReference": "https://www.avianca.com/en/about-us/corporate-news/2023/october-18"
+  },
+  {
+    "name": "azul",
+    "slug": "azul",
+    "label": "Azul",
+    "integrationNames": ["Azul", "Azul Brazilian Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/azul/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#a5bfdf": "#a5bfdf",
+      "#6a95cd": "#6a95cd",
+      "#92c143": "#92c143",
+      "#e94e29": "#e94e29",
+      "#fad803": "#fad803",
+      "#b9cf37": "#b9cf37",
+      "#6ca9db": "#6ca9db",
+      "#604596": "#886EBC",
+      "#0bb8e7": "#0bb8e7",
+      "#199aa6": "#199aa6",
+      "#de5097": "#de5097",
+      "#f6a022": "#f6a022",
+      "#73c8dd": "#73c8dd",
+      "#e7b720": "#e7b720",
+      "#5061aa": "#6A79B9",
+      "#41ad4c": "#41ad4c",
+      "#8b328a": "#BF4DBE",
+      "#ae2258": "#DA407B",
+      "#d5262a": "#DE4447",
+      "#000000": "#F5F7FA",
+      "#79c199": "#79c199",
+      "#3fb7af": "#3fb7af",
+      "#5d80c0": "#5d80c0",
+      "#33bacf": "#33bacf",
+      "#169bd6": "#169bd6",
+      "#e5df1f": "#e5df1f",
+      "#306fb6": "#3A7ECB"
+    },
+    "logoDarkColors": {
+      "#e5df22": "#e5df22",
+      "#a5bfdf": "#a5bfdf",
+      "#6ba8db": "#6ba8db",
+      "#6a95cd": "#6a95cd",
+      "#34bbd0": "#34bbd0",
+      "#7ac19a": "#7ac19a",
+      "#16b9e7": "#16b9e7",
+      "#5162aa": "#6978B8",
+      "#f9d805": "#f9d805",
+      "#42ad4b": "#42ad4b",
+      "#b9cf36": "#b9cf36",
+      "#3370b6": "#3D7EC9",
+      "#af2458": "#D8427A",
+      "#e75027": "#e75027",
+      "#3fb6af": "#3fb6af",
+      "#d5292a": "#DB4647",
+      "#f6a124": "#f6a124",
+      "#1f9aa7": "#1f9aa7",
+      "#000000": "#F5F7FA",
+      "#74c7dc": "#74c7dc",
+      "#92c144": "#92c144",
+      "#df5297": "#df5297",
+      "#5d81c1": "#5d81c1",
+      "#e6b722": "#e6b722",
+      "#041e42": "#2078F2",
+      "#8c338a": "#BE4DBC",
+      "#199bd6": "#199bd6",
+      "#604696": "#886FBC"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/azul/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.voeazul.com.br",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "gol",
+    "slug": "gol",
+    "label": "GOL",
+    "integrationNames": ["GOL", "GOL Linhas Aéreas"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/gol/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ee7203": "#ee7203",
+      "#c1bfbc": "#c1bfbc",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ff7020": "#ff7020",
+      "#000000": "#F5F7FA",
+      "#37322d": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/gol/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.voegol.com.br",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "copaAirlines",
+    "slug": "copa-airlines",
+    "label": "Copa Airlines",
+    "integrationNames": ["Copa Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/copa-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0032a0": "#3272FF"
+    },
+    "logoDarkColors": {
+      "#0032a0": "#3272FF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/copa-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.copaair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "aerolineasArgentinas",
+    "slug": "aerolineas-argentinas",
+    "label": "Aerolíneas Argentinas",
+    "integrationNames": ["Aerolíneas Argentinas", "Aerolineas Argentinas"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/aerolineas-argentinas/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0080be": "#0083C3"
+    },
+    "logoDarkColors": {
+      "#0080be": "#0083C3"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/aerolineas-argentinas/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.aerolineas.com.ar",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "volaris",
+    "slug": "volaris",
+    "label": "Volaris",
+    "integrationNames": ["Volaris"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/volaris/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#91268f": "#CC3BC9",
+      "#6cadde": "#6cadde",
+      "#eeefef": "#eeefef",
+      "#231f20": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#dae7a2": "#dae7a2",
+      "#8dc63f": "#8dc63f",
+      "#b5d5f0": "#b5d5f0",
+      "#d6a6cc": "#d6a6cc"
+    },
+    "logoDarkColors": {
+      "#91268f": "#CC3BC9",
+      "#6cadde": "#6cadde",
+      "#eeefef": "#eeefef",
+      "#231f20": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#dae7a2": "#dae7a2",
+      "#8dc63f": "#8dc63f",
+      "#b5d5f0": "#b5d5f0",
+      "#d6a6cc": "#d6a6cc"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/volaris/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.volaris.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "viva",
+    "slug": "viva",
+    "label": "Viva Aerobus",
+    "integrationNames": ["Viva Aerobus", "Viva", "VivaAerobus"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/viva/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#73c900": "#73c900"
+    },
+    "logoDarkColors": {
+      "#73c900": "#73c900",
+      "#000000": "#F5F7FA",
+      "#00ae44": "#00ae44"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/viva/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.vivaaerobus.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "aerLingus",
+    "slug": "aer-lingus",
+    "label": "Aer Lingus",
+    "integrationNames": ["Aer Lingus"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/aer-lingus/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#3cb14a": "#3cb14a",
+      "#82c341": "#82c341",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#3cb14a": "#3cb14a",
+      "#006472": "#00889B",
+      "#82c341": "#82c341",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/aer-lingus/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.aerlingus.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "iberia",
+    "slug": "iberia",
+    "label": "Iberia",
+    "integrationNames": ["Iberia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/iberia/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#A61C22": "#DF4148",
+      "#DC1C2E": "#E53647",
+      "#FACD08": "#FACD08",
+      "#ED7417": "#ED7417"
+    },
+    "logoDarkColors": {
+      "#A61C22": "#DF4148",
+      "#DC1C2E": "#E53647",
+      "#ED7417": "#ED7417",
+      "#DA1C2D": "#E53747",
+      "#FACD08": "#FACD08"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/iberia/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.iberia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "monoInkScale": 1.004
+  },
+  {
+    "name": "tapAirPortugal",
+    "slug": "tap-air-portugal",
+    "label": "TAP Air Portugal",
+    "integrationNames": ["TAP Air Portugal", "TAP Portugal"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/tap-air-portugal/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#b82025": "#DE4449",
+      "#000000": "#F5F7FA",
+      "#72bf44": "#72bf44",
+      "#bfd730": "#bfd730",
+      "#ed1c24": "#EE282F"
+    },
+    "logoDarkColors": {
+      "#1d1d1b": "#F5F7FA",
+      "#b82025": "#DE4449",
+      "#000000": "#F5F7FA",
+      "#72bf44": "#72bf44",
+      "#bfd730": "#bfd730",
+      "#ed1c24": "#EE282F"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/tap-air-portugal/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.tapairportugal.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "itaAirways",
+    "slug": "ita-airways",
+    "label": "ITA Airways",
+    "integrationNames": ["ITA Airways"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/ita-airways/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c2251b": "#E33D33",
+      "#006e44": "#008F58",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#c2251b": "#E33D33",
+      "#006e44": "#008F58",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/ita-airways/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.ita-airways.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "austrianAirlines",
+    "slug": "austrian-airlines",
+    "label": "Austrian Airlines",
+    "integrationNames": ["Austrian Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/austrian-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d81e05": "#F32206"
+    },
+    "logoDarkColors": {
+      "#ededee": "#ededee",
+      "#98999a": "#98999a",
+      "#dadadb": "#dadadb",
+      "#fbfbfb": "#fbfbfb",
+      "#ececec": "#ececec",
+      "#ffffff": "#ffffff",
+      "#eeeeef": "#eeeeef",
+      "#e5e6e7": "#e5e6e7",
+      "#f0f1f1": "#f0f1f1",
+      "#dfe0e1": "#dfe0e1",
+      "#d9dadb": "#d9dadb",
+      "#fbfbfc": "#fbfbfc",
+      "#e1e2e2": "#e1e2e2",
+      "#f2f2f2": "#f2f2f2",
+      "#87888a": "#87888a",
+      "#e9eaea": "#e9eaea",
+      "#e1e1e2": "#e1e1e2",
+      "#fefefe": "#fefefe",
+      "#e4e5e6": "#e4e5e6",
+      "#f4f4f5": "#f4f4f5",
+      "#fdfdfd": "#fdfdfd",
+      "#dadbdc": "#dadbdc",
+      "#eff0f0": "#eff0f0",
+      "#c6c7c8": "#c6c7c8",
+      "#eeefef": "#eeefef",
+      "#dddedf": "#dddedf",
+      "#f5f5f6": "#f5f5f6",
+      "#f9f9f9": "#f9f9f9",
+      "#000000": "#F5F7FA",
+      "#e8e8e9": "#e8e8e9",
+      "#c9cacc": "#c9cacc",
+      "#f3f3f3": "#f3f3f3",
+      "#fcfcfc": "#fcfcfc",
+      "#f6f7f7": "#f6f7f7",
+      "#eaebeb": "#eaebeb",
+      "#e2e2e3": "#e2e2e3",
+      "#bdbdbe": "#bdbdbe",
+      "#e7e7e8": "#e7e7e8",
+      "#f8f8f8": "#f8f8f8",
+      "#dedfe0": "#dedfe0",
+      "#e3e4e4": "#e3e4e4",
+      "#d81e05": "#F32206",
+      "#fafafa": "#fafafa",
+      "#dcdddd": "#dcdddd"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/austrian-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.austrian.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "brusselsAirlines",
+    "slug": "brussels-airlines",
+    "label": "Brussels Airlines",
+    "integrationNames": ["Brussels Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/brussels-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e5002b": "#F7002E"
+    },
+    "logoDarkColors": {
+      "#e5002b": "#F7002E",
+      "#000000": "#F5F7FA",
+      "#051446": "#4B72F2"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/brussels-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.brusselsairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "brandReference": "https://press.brusselsairlines.com/brussels-airlines-confirms-its-position-in-the-market-with-a-new-brand-identity"
+  },
+  {
+    "name": "lotPolishAirlines",
+    "slug": "lot-polish-airlines",
+    "label": "LOT Polish Airlines",
+    "integrationNames": ["LOT Polish Airlines", "LOT"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/lot-polish-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#252668": "#7172CC"
+    },
+    "logoDarkColors": {
+      "#252668": "#7172CC"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/lot-polish-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.lot.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "icelandair",
+    "slug": "icelandair",
+    "label": "Icelandair",
+    "integrationNames": ["Icelandair"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/icelandair/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0c0243": "#7A63FA"
+    },
+    "logoDarkColors": {
+      "#0c0243": "#7A63FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/icelandair/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.icelandair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "norwegianAirShuttle",
+    "slug": "norwegian-air-shuttle",
+    "label": "Norwegian",
+    "integrationNames": ["Norwegian", "Norwegian Air Shuttle"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/norwegian-air-shuttle/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e5212d": "#E73640",
+      "#ffffff": "#ffffff",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#e6222e": "#E8343F"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/norwegian-air-shuttle/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.norwegian.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "airbaltic",
+    "slug": "airbaltic",
+    "label": "airBaltic",
+    "integrationNames": ["airBaltic", "Air Baltic"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/airbaltic/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#152649": "#527BCD"
+    },
+    "logoDarkColors": {
+      "#152649": "#527BCD"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/airbaltic/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.airbaltic.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "jet2com",
+    "slug": "jet2com",
+    "label": "Jet2",
+    "integrationNames": ["Jet2", "Jet2.com"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/jet2com/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e2231a": "#E7372E"
+    },
+    "logoDarkColors": {
+      "#e2231a": "#E7372E"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/jet2com/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.jet2.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "pegasusAirlines",
+    "slug": "pegasus-airlines",
+    "label": "Pegasus Airlines",
+    "integrationNames": ["Pegasus Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/pegasus-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#dc2c2b": "#E04241"
+    },
+    "logoDarkColors": {
+      "#e31f26": "#E6383E"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/pegasus-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.flypgs.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "vueling",
+    "slug": "vueling",
+    "label": "Vueling",
+    "integrationNames": ["Vueling"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/vueling/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#504f4e": "#F5F7FA",
+      "#ffcc00": "#ffcc00",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#504f4e": "#F5F7FA",
+      "#ffcc00": "#ffcc00",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/vueling/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.vueling.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "condor",
+    "slug": "condor",
+    "label": "Condor",
+    "integrationNames": ["Condor"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/condor/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/condor/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.condor.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "airEuropa",
+    "slug": "air-europa",
+    "label": "Air Europa",
+    "integrationNames": ["Air Europa"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-europa/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#006fde": "#0079F2"
+    },
+    "logoDarkColors": {
+      "#006fde": "#0079F2"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-europa/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.aireuropa.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "transavia",
+    "slug": "transavia",
+    "label": "Transavia",
+    "integrationNames": ["Transavia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/transavia/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00d66c": "#00d66c"
+    },
+    "logoDarkColors": {
+      "#00d66c": "#00d66c"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/transavia/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.transavia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "saudia",
+    "slug": "saudia",
+    "label": "Saudia",
+    "integrationNames": ["Saudia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/saudia/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0a6937": "#0E8E4B"
+    },
+    "logoDarkColors": {
+      "#006631": "#008F45"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/saudia/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.saudia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "brandReference": "https://www.spa.gov.sa/en/9975527c77o"
+  },
+  {
+    "name": "egyptair",
+    "slug": "egyptair",
+    "label": "Egyptair",
+    "integrationNames": ["Egyptair"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/egyptair/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00265d": "#1675FF"
+    },
+    "logoDarkColors": {
+      "#00265d": "#1675FF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/egyptair/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.egyptair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "ethiopianAirlines",
+    "slug": "ethiopian-airlines",
+    "label": "Ethiopian Airlines",
+    "integrationNames": ["Ethiopian Airlines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/ethiopian-airlines/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ffbe0b": "#ffbe0b",
+      "#557c39": "#5D883F",
+      "#000000": "#F5F7FA",
+      "#b71d20": "#E14043"
+    },
+    "logoDarkColors": {
+      "#ffbe0b": "#ffbe0b",
+      "#557c39": "#5D883F",
+      "#000000": "#F5F7FA",
+      "#b71d20": "#E14043"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/ethiopian-airlines/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.ethiopianairlines.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "kenyaAirways",
+    "slug": "kenya-airways",
+    "label": "Kenya Airways",
+    "integrationNames": ["Kenya Airways"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/kenya-airways/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ed1c24": "#EE282F"
+    },
+    "logoDarkColors": {
+      "#ed1c24": "#EE282F"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/kenya-airways/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.kenya-airways.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "royalAirMaroc",
+    "slug": "royal-air-maroc",
+    "label": "Royal Air Maroc",
+    "integrationNames": ["Royal Air Maroc"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/royal-air-maroc/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c20831": "#F50B3E"
+    },
+    "logoDarkColors": {
+      "#c20831": "#F50B3E"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/royal-air-maroc/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.royalairmaroc.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "omanAir",
+    "slug": "oman-air",
+    "label": "Oman Air",
+    "integrationNames": ["Oman Air"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/oman-air/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#b39759": "#b39759",
+      "#000000": "#F5F7FA",
+      "#a6a8ab": "#a6a8ab"
+    },
+    "logoDarkColors": {
+      "#b39759": "#b39759",
+      "#000000": "#F5F7FA",
+      "#a6a8ab": "#a6a8ab"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/oman-air/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.omanair.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "kuwaitAirways",
+    "slug": "kuwait-airways",
+    "label": "Kuwait Airways",
+    "integrationNames": ["Kuwait Airways"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/kuwait-airways/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1c285b": "#6277CF"
+    },
+    "logoDarkColors": {
+      "#1c285b": "#6277CF"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/kuwait-airways/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.kuwaitairways.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "flydubai",
+    "slug": "flydubai",
+    "label": "flydubai",
+    "integrationNames": ["flydubai"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/flydubai/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#006496": "#0083C4",
+      "#ff8200": "#ff8200",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#006496": "#0083C4",
+      "#ff8200": "#ff8200",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/flydubai/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments. The airline’s wordmark is its compact identity; mark variants retain that artwork.",
+    "brandWebsite": "https://www.flydubai.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "flynas",
+    "slug": "flynas",
+    "label": "flynas",
+    "integrationNames": ["flynas"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/flynas/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00b7ac": "#00b7ac"
+    },
+    "logoDarkColors": {
+      "#00b7ac": "#00b7ac"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/flynas/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.flynas.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "airArabia",
+    "slug": "air-arabia",
+    "label": "Air Arabia",
+    "integrationNames": ["Air Arabia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-arabia/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ff0041": "#ff0041"
+    },
+    "logoDarkColors": {
+      "#ed1b48": "#EE2450"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/air-arabia/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.airarabia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "fijiAirways",
+    "slug": "fiji-airways",
+    "label": "Fiji Airways",
+    "integrationNames": ["Fiji Airways"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/fiji-airways/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#473729": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2c1e16": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/fiji-airways/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.fijiairways.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "virginAustralia",
+    "slug": "virgin-australia",
+    "label": "Virgin Australia",
+    "integrationNames": ["Virgin Australia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/virgin-australia/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e31e23": "#E6373B"
+    },
+    "logoDarkColors": {
+      "#e10a0a": "#F51515",
+      "#414042": "#F5F7FA",
+      "#ffffff": "#ffffff",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/virgin-australia/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.virginaustralia.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "jetstar",
+    "slug": "jetstar",
+    "label": "Jetstar",
+    "integrationNames": ["Jetstar"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/jetstar/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ff5111": "#ff5111"
+    },
+    "logoDarkColors": {
+      "#ff5111": "#ff5111",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/soaring-symbols/soaring-symbols/blob/71a9a006995cc2889040bf104682ead2023da79e/assets/jetstar/logo.svg",
+    "logoNotes": "Outlined airline mark and full logo, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.jetstar.com",
+    "artworkAttribution": "Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.\n\nMIT License\n\nCopyright (c) 2024 Anh Thang\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+    "categories": ["Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
   }
 ]

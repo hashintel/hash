@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="qantas-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="qantas-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="qantas-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#qantas-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#qantas-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#qantas-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="qantas-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#qantas-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 25.66476 17.78929 12.67048" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#F80000" d="M0 25.682h2.173c1.957 0 3.835.822 5.218 2.206l10.385 10.43H4.816L.882 27.994l-.72-1.887z" /><path fill="#ffffff" d="m.882 27.994-.72-1.887.022.057-.022-.057c.397 1.03.892 1.64 1.477 2.056 1.52 1.08 3.646.852 6.242 3.23l.041.037c.155.142.295.197.408.196a.3.3 0 0 0 .152-.04.277.277 0 0 0 .097-.382c-.146-.237-.128-.369-.121-.396.717.197 1.368.55 1.916 1.018l-.046.093c-.084.169-.4.263-.797.346-.371.078-.813.148-1.201.26-.527.152-.952.386-.964.832a.72.72 0 0 0 .45.685l.524.211a12.9 12.9 0 0 1 4.519 3.072.065.065 0 0 1-.002.092.07.07 0 0 1-.045.017.06.06 0 0 1-.04-.014l-.002-.001-.008-.007.008.007q-.375-.3-.764-.568a12.8 12.8 0 0 0-4.842-2.029 13 13 0 0 0-.445-.078.345.345 0 0 1-.29-.303c-.19-1.762-1.105-2.756-2.171-3.563-1.213-.918-2.621-1.594-3.376-2.884" /></svg></g></svg>

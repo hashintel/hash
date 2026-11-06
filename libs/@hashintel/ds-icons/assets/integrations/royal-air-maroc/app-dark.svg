@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="royal-air-maroc-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="royal-air-maroc-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="royal-air-maroc-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#royal-air-maroc-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#royal-air-maroc-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#royal-air-maroc-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="royal-air-maroc-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#royal-air-maroc-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5.51657 24 12.984" fill="#F50B3E" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M13.787 8.765a.258.258 0 0 0-.233-.172c-.2 0-.36.169-.449.468.126.027.249.06.37.097.093-.302.219-.38.312-.393zM12 6.906zm.55.167c0 .29.232.604.606.604s.59-.225.59-.473c0-.132-.11-.235-.22-.235a.221.221 0 0 0-.22.22c0 .05.017.09.042.127-.223.017-.396-.043-.509-.217a.225.225 0 0 0 .207-.22c0-.121-.1-.22-.223-.22-.139 0-.275.12-.275.414m.456.851v.063c0 .105.173.228.383.228.587 0 .774-.598 1.288-.598.36 0 .65.28.65.731 0 .397-.232.751-.661.913-.12.044-.186.156-.202.347h.025c.738 0 1.272-.567 1.272-1.26 0-.692-.478-1.166-1.084-1.166-.71 0-.824.743-1.56.743h-.11v-.001zm-1.278.342c.12.138.19.245.267.416a.031.031 0 0 0 .006.01 1.505 1.505 0 0 1 .272-.425A1.592 1.592 0 0 0 12 7.838a1.57 1.57 0 0 0-.272.427zm2.645.818c-.033-.092-.112-.171-.21-.171-.2 0-.305.19-.36.36.115.045.228.092.338.142.065-.219.142-.299.232-.33zm8.192 5.531h-.6c-.404.385-.733.458-1.61.458h-1.946c-.22.201-.432.331-.697.411v.023h2.643c1.212 0 1.568-.165 2.21-.893m-.926 1.057h-.599c-.404.385-.734.458-1.61.458h-1.946c-.22.2-.432.331-.697.41v.024h2.643c1.212 0 1.568-.166 2.21-.893M11.57 6.849l.429-.311.429.312-.164-.504.429-.312h-.53L12 5.529l-.164.505h-.53l.429.313-.164.505V6.85zm11.48 6.541c-.49.53-.78.622-1.77.622h-1.944c-.22.2-.433.331-.698.411v.023h2.644c1.335 0 1.63-.2 2.418-1.134l.3-.358h-7.769c.043.141.08.287.11.434h6.71v.002zm-11.312-.435-.14.435h3.069l-1.095.797.141.434 1.919-1.395a3.777 3.777 0 0 1-1.12 3.854l.145.447a4.213 4.213 0 0 0 1.347-4.572h-4.266zm8.975 3.77h-.6c-.404.386-.733.458-1.608.458h-3.183a4.52 4.52 0 0 1-.44.435h3.623c1.212 0 1.567-.167 2.21-.894M10.447 8.591a.258.258 0 0 0-.233.172c.095.014.22.09.313.392a4.83 4.83 0 0 1 .37-.097c-.09-.298-.25-.468-.45-.468m.786.404c.13-.02.263-.034.398-.043-.08-.385-.3-.651-.516-.651-.113 0-.197.078-.244.18.126.022.276.177.362.512m-1.135 8.527-.38.277a4.176 4.176 0 0 0 2.28.675c.924 0 1.778-.3 2.473-.808h.001l-1.317-4.06h-.457l.949 2.924-1.096-.796-.37.268 1.916 1.394a3.74 3.74 0 0 1-2.1.643c-.669.001-1.326-.177-1.903-.517m-.237-8.11c.11-.052.224-.1.339-.144-.057-.168-.163-.359-.362-.359-.1 0-.176.08-.21.172.092.032.169.112.231.332m4.492.847V9.81c-.644-.37-1.504-.643-2.353-.643-.848 0-1.708.273-2.352.643v.447a4.61 4.61 0 0 1 2.353-.654c.828.003 1.64.229 2.352.654zm-2.353-.22L10.678 14.1l.369.269.948-2.925.419 1.29h.456l-.73-2.257a3.778 3.778 0 0 1 3.313 2.257h.469a4.216 4.216 0 0 0-3.925-2.695m.886-1.74c-.216 0-.435.264-.516.651.135.01.266.023.398.043.086-.336.236-.491.362-.513-.045-.103-.129-.18-.244-.18m-6.598 7.203v-.023a1.73 1.73 0 0 1-.697-.411H3.642c-.876 0-1.206-.074-1.61-.458h-.6c.642.728.998.894 2.21.894h2.643zm.925 1.058v-.023a1.76 1.76 0 0 1-.697-.412H4.567c-.876 0-1.206-.073-1.61-.457h-.6c.642.727.998.894 2.21.894H7.21zm1.465.623H5.493c-.877 0-1.205-.074-1.61-.457h-.598c.641.727.997.893 2.21.893h3.621a4.528 4.528 0 0 1-.44-.434m2.167-9.51a.605.605 0 0 0 .607-.604c0-.29-.135-.414-.274-.414-.122 0-.221.1-.222.221.002.116.091.21.206.22-.113.173-.285.233-.508.216a.22.22 0 0 0-.178-.347c-.11 0-.219.103-.219.235 0 .249.231.473.59.473m-8.127 6.773H5.36v-.024a1.748 1.748 0 0 1-.698-.41H2.718c-.99 0-1.281-.093-1.772-.622h6.712c.029-.147.066-.292.11-.435H0l.3.358c.788.934 1.082 1.134 2.417 1.134m6.795-4.842h.024c-.018-.19-.082-.302-.202-.346-.43-.162-.66-.516-.66-.912 0-.452.288-.732.649-.732.513 0 .7.598 1.288.598.211 0 .383-.124.383-.229v-.062h-.11c-.738 0-.851-.743-1.561-.743-.605 0-1.083.48-1.083 1.167 0 .686.535 1.259 1.27 1.259m2.302 5.592-2.484-1.807h1.353l.141-.434h-2.37a3.788 3.788 0 0 1 3.167-2.461l.146-.447a4.22 4.22 0 0 0-3.773 2.908l3.45 2.51.369-.27h.001zm-2.29 2.47v.003l3.45-2.512-.141-.434-2.484 1.807.418-1.29-.37-.268-.73 2.254a3.779 3.779 0 0 1-1.358-3.774l-.38-.276a4.216 4.216 0 0 0 1.595 4.49z" /></svg></g></svg>

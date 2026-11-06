@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iberia-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="iberia-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="iberia-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#iberia-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#iberia-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#iberia-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="iberia-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#iberia-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 2.94514 24 18.09599" fill="currentColor" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><linearGradient x1="75.453" y1="9.36" x2="103.641" y2="37.653" id="iberia-app-dark-a" gradientTransform="matrix(.7767 0 0 -.44675 -57.879 26.46)" gradientUnits="userSpaceOnUse"><stop stop-color="#DF4148" offset="0%" /><stop stop-color="#E53647" offset="50%" /><stop stop-color="#E53647" offset="100%" /></linearGradient><linearGradient x1="87.158" y1=".691" x2="106.265" y2="19.51" id="iberia-app-dark-b" gradientTransform="matrix(.76935 0 0 -.45101 -57.879 11.563)" gradientUnits="userSpaceOnUse"><stop stop-color="#ED7417" offset="0%" /><stop stop-color="#FACD08" offset="85%" /><stop stop-color="#FACD08" offset="100%" /></linearGradient></defs><path d="M4.24 16.741 0 21.021c14.719 0 18.189-3.46 20.213-8.17l1.7-4.434c-4.958.143-12.441 3.066-17.673 8.324" fill="url(#iberia-app-dark-a)" fill-rule="evenodd" stroke="none" stroke-width=".589057" /><path d="m14.127 6.73-4.771 4.833c4.53-3.254 9.047-5.217 13.547-5.723L24 2.978c-6.662 0-7.57 1.457-9.873 3.752" fill="url(#iberia-app-dark-b)" fill-rule="evenodd" stroke="none" stroke-width=".589057" /></svg></g></svg>

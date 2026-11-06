@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="all-nippon-airways-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="all-nippon-airways-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="all-nippon-airways-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#all-nippon-airways-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#all-nippon-airways-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#all-nippon-airways-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="all-nippon-airways-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#all-nippon-airways-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 23.76229 64 16.47543" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill="#4F6FFF" d="m51.908 40.116 9.416-16.3H50.84l-9.42 16.3Z" /><path fill="#4F6FFF" d="M18.238 29.228a.29.29 0 0 1 .267-.268c.134 0 .267.068.267.2l3.006 10.89h4.875l2.54-14.093h-2.141L25.118 36.91a.286.286 0 0 1-.267.268c-.134 0-.267-.067-.267-.2l-3.005-11.024h-4.877l-2.471 14.162h2.137ZM9.82 35.307l-.4-6.347a.34.34 0 0 0-.267-.334c-.135-.07-.333.067-.402.202L2.405 40.121H0l8.016-14.167h4.744l.935 14.162H10.22l-.133-1.535a.6.6 0 0 0-.602-.602H4.212l1.205-2.138h4.005c.198.067.466-.2.398-.534m26.725.068-.537-6.281a.306.306 0 0 0-.334-.266.35.35 0 0 0-.268.134l-5.74 11.222H27.19l7.349-14.23h4.675l1.273 14.161h-3.542l-.134-1.535a.6.6 0 0 0-.602-.602h-4.945l1.07-2.138h3.674a.446.446 0 0 0 .537-.465" /><path fill="#00aff0" d="m61.328 23.816-9.42 16.3h2.605L64 23.816Z" /></svg></g></svg>
