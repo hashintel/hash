@@ -24,7 +24,9 @@ import { BreadCrumbs, Button, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { type HistoryValue, RunSwitcher } from "./history-view";
+import { cameFrom, navigate, parseRoute } from "./router";
 import { bannerAction, factsOf, outcomeOf, statusText } from "./run-history";
+import { RunIdText, runLabel } from "./run-id";
 
 export type RunBarVariant = 1 | 2 | 3 | 4 | 5;
 export type EditorBarVariant = 1 | 2 | 3;
@@ -33,6 +35,33 @@ export type EditorBarVariant = 1 | 2 | 3;
 export const runBarVariant = (query: URLSearchParams): RunBarVariant => {
   const take = Number(query.get("topbar"));
   return take === 2 || take === 3 || take === 4 || take === 5 ? take : 1;
+};
+
+/**
+ * `?runback=` (6 Nov sync, B9): where the run's way back goes. URL only, never remembered.
+ * - editor: "← Monthly supplier review" goes to the editor. The default.
+ * - prev: back to where the run was opened from, named for it: "← Logs", "← All runs", "← Monthly supplier review".
+ * - crumb: "Monthly supplier review › Logs › Run 17", each part a link and the run the picker.
+ * - split: prev's back, plus "Open in editor" with the run's actions.
+ */
+export type RunBackTake = "editor" | "prev" | "crumb" | "split";
+
+export const runBackTake = (query: URLSearchParams): RunBackTake => {
+  const take = query.get("runback");
+  return take === "prev" || take === "crumb" || take === "split"
+    ? take
+    : "editor";
+};
+
+/** Where the run was opened from; a run opened by link goes back to Logs. */
+const backTarget = (flowName: string) => {
+  const from = cameFrom();
+  const page = from ? parseRoute(from, "").page : null;
+  return page === "editor"
+    ? { page, label: flowName }
+    : page === "runs"
+      ? { page, label: "All runs" }
+      : { page: "history" as const, label: "Logs" };
 };
 
 export const editorBarVariant = (query: URLSearchParams): EditorBarVariant => {
@@ -54,6 +83,8 @@ const rightStyle = css({
   justifyContent: "flex-end",
   gap: "2",
   flex: "1",
+  // A crowded bar squeezes the way back on the left, never an action onto two lines.
+  "& button": { whiteSpace: "nowrap" },
 });
 
 const centreStyle = css({
@@ -63,6 +94,13 @@ const centreStyle = css({
   top: "[50%]",
   left: "[50%]",
   transform: "[translate(-50%, -50%)]",
+});
+
+/** The centre with the For each switcher beside the run switcher: too wide to float, so it takes its place in the row. */
+const centreInRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
 });
 
 const flowLinkStyle = css({
@@ -171,12 +209,17 @@ const RunMoreMenu = () => (
 
 export const RunTopBar = ({
   variant,
+  back = "editor",
+  forEachSwitch,
   history,
   flowName,
   onEditor,
   onSimulate,
 }: {
   variant: RunBarVariant;
+  back?: RunBackTake;
+  /** `?foreachswitch=top`: the For each item switcher, beside the run switcher. */
+  forEachSwitch?: React.ReactNode;
   history: HistoryValue;
   flowName: string;
   onEditor: () => void;
@@ -327,7 +370,7 @@ export const RunTopBar = ({
                     tooltip={run.when}
                     data-run-picker
                   >
-                    {`Run ${run.id}`}
+                    {runLabel(run)}
                   </Button>
                 }
               />
@@ -369,7 +412,9 @@ export const RunTopBar = ({
             >
               Logs
             </Button>
-            <span className={runTitleStyle}>Run {run.id}</span>
+            <span className={runTitleStyle}>
+              <RunIdText run={run} prefix />
+            </span>
             <span className={runMetaStyle}>
               {statusText(run, now)} · {run.when}
             </span>
@@ -402,30 +447,107 @@ export const RunTopBar = ({
           )}
         </>
       );
-    default:
+    default: {
+      if (back === "crumb") {
+        return (
+          <>
+            <div className={sideStyle} data-topbar="1" data-runback="crumb">
+              <BreadCrumbs size="sm" aria-label="Run">
+                <BreadCrumbs.Item
+                  onClick={onEditor}
+                  maxWidth="320px"
+                  noCollapse
+                >
+                  {flowName}
+                </BreadCrumbs.Item>
+                <BreadCrumbs.Item onClick={() => history.open(null)} noCollapse>
+                  Logs
+                </BreadCrumbs.Item>
+                <RunSwitcher history={history} />
+              </BreadCrumbs>
+              {forEachSwitch}
+            </div>
+            {right()}
+          </>
+        );
+      }
+      const target = back === "editor" ? null : backTarget(flowName);
+      const goBack = () => {
+        if (target?.page === "history") {
+          history.open(null);
+        } else if (target?.page === "runs") {
+          navigate("/runs");
+        } else {
+          onEditor();
+        }
+      };
       return (
         <>
-          <div className={sideStyle} data-topbar={variant === 5 ? "5" : "1"}>
-            {toEditorLink}
-            <span aria-hidden className={dotStyle}>
-              ·
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              tone="neutral"
-              className={flowLinkStyle}
-              onClick={() => history.open(null)}
-            >
-              All runs
-            </Button>
+          <div
+            className={
+              forEachSwitch
+                ? `${sideStyle} ${css({ overflow: "hidden" })}`
+                : sideStyle
+            }
+            data-topbar={variant === 5 ? "5" : "1"}
+            data-runback={back}
+          >
+            {target ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                tone="neutral"
+                iconName="arrowLeft"
+                className={flowLinkStyle}
+                tooltip={`Back to ${target.label}`}
+                onClick={goBack}
+                data-run-back
+              >
+                {target.label}
+              </Button>
+            ) : (
+              toEditorLink
+            )}
+            {/* All runs is Logs: once the way back goes there, the link would repeat it. */}
+            {target?.page === "history" ? null : (
+              <>
+                <span aria-hidden className={dotStyle}>
+                  ·
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="neutral"
+                  className={flowLinkStyle}
+                  onClick={() => history.open(null)}
+                >
+                  All runs
+                </Button>
+              </>
+            )}
           </div>
-          <div className={centreStyle}>
-            <RunSwitcher history={history} withTime />
+          {/* With the For each switcher the run's time moves to the picker's tooltip, so the actions keep one line. */}
+          <div className={forEachSwitch ? centreInRowStyle : centreStyle}>
+            <RunSwitcher history={history} withTime={!forEachSwitch} />
+            {forEachSwitch}
           </div>
-          {right()}
+          {right(
+            back === "split" ? (
+              <Button
+                size="sm"
+                variant="subtle"
+                tone="neutral"
+                className={quietStyle}
+                onClick={onEditor}
+                data-run-open-editor
+              >
+                Open in editor
+              </Button>
+            ) : undefined,
+          )}
         </>
       );
+    }
   }
 };
 

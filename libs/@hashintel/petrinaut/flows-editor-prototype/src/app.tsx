@@ -17,6 +17,11 @@ import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
 import { flowTriggersOf } from "./flow-triggers";
 import {
+  ForEachInstanceScope,
+  forEachSwitchTake,
+  ForEachTopSwitch,
+} from "./foreach-switch";
+import {
   HistoryContext,
   RunStepPanel,
   useHistory,
@@ -34,6 +39,7 @@ import {
   editorBarVariant,
   HistoryButton,
   RunTopBar,
+  runBackTake,
   runBarVariant,
 } from "./run-top-bar";
 import { validateDocument } from "./shapes";
@@ -449,6 +455,13 @@ export const Editor = ({
                 {openRun && history ? (
                   <RunTopBar
                     variant={runBarVariant(location.query)}
+                    back={runBackTake(location.query)}
+                    forEachSwitch={
+                      forEachSwitchTake(location.query) !== null &&
+                      forEachSwitchTake(location.query) !== "box" ? (
+                        <ForEachTopSwitch />
+                      ) : undefined
+                    }
                     history={history}
                     flowName={document.name}
                     onEditor={toEditor}
@@ -724,13 +737,15 @@ export const Editor = ({
                         }}
                       />
                     ) : null}
-                    <FlowCanvas
-                      flowId={flowId}
-                      mode={mode}
-                      onInit={(fitView, zoom) => {
-                        canvasControls.current = { fitView, zoom };
-                      }}
-                    />
+                    <ForEachInstanceScope>
+                      <FlowCanvas
+                        flowId={flowId}
+                        mode={mode}
+                        onInit={(fitView, zoom) => {
+                          canvasControls.current = { fitView, zoom };
+                        }}
+                      />
+                    </ForEachInstanceScope>
                     <FlowToolbar
                       mode={mode}
                       onMode={setMode}

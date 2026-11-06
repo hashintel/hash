@@ -98,15 +98,60 @@ const redirectHistoryPath = () => {
 redirectHistoryPath();
 globalThis.addEventListener("popstate", redirectHistoryPath);
 
+/** Demo takes a page change keeps, so a take stays on while you click through. URL only, never remembered. */
+const carriedTakes = [
+  "runback",
+  "rundropdown",
+  "foreachswitch",
+  "highlightlook",
+  "runid",
+];
+
+const withCarriedTakes = (path: string) => {
+  const current = new URLSearchParams(globalThis.location.search);
+  const carried = carriedTakes.filter((key) => current.has(key));
+  if (carried.length === 0) {
+    return path;
+  }
+  const url = new URL(path, globalThis.location.origin);
+  for (const key of carried) {
+    if (!url.searchParams.has(key)) {
+      url.searchParams.set(key, current.get(key) ?? "");
+    }
+  }
+  return `${url.pathname}${url.search}`;
+};
+
+/** The page a history entry was opened from, kept in its `history.state` (so Back, Forward and reload keep it). */
+export const cameFrom = (): string | null => {
+  const state: unknown = globalThis.history.state;
+  return state &&
+    typeof state === "object" &&
+    "from" in state &&
+    typeof state.from === "string"
+    ? state.from
+    : null;
+};
+
 export const navigate = (path: string, options: { replace?: boolean } = {}) => {
   const current = `${globalThis.location.pathname}${globalThis.location.search}`;
-  if (path === current) {
+  const next = withCarriedTakes(path);
+  if (next === current) {
     return;
   }
+  // A replaced entry, or a move between runs, keeps where the first page was opened from.
+  const fromPath =
+    options.replace ||
+    (parseRoute(globalThis.location.pathname, "").page === "run" &&
+      parseRoute(new URL(next, globalThis.location.origin).pathname, "")
+        .page === "run")
+      ? cameFrom()
+      : globalThis.location.pathname;
+  const state = { from: fromPath };
   if (options.replace) {
-    globalThis.history.replaceState(null, "", path);
+    globalThis.history.replaceState(state, "", next);
   } else {
-    globalThis.history.pushState(null, "", path);
+    globalThis.history.pushState(state, "", next);
   }
   globalThis.dispatchEvent(new Event(changeEvent));
 };
