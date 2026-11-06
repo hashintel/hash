@@ -9,9 +9,10 @@
 import { Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { sidebarItems, slugOf } from "../pages";
+import { hrefOf, sidebarItems, slugOf } from "../pages";
 import { Header } from "./header";
 import { BarsIcon, CloseIcon } from "./icons";
+import { MapPanel } from "./map-panel";
 import { Sidebar } from "./sidebar";
 import { installSidebarChrome } from "./sidebar-chrome";
 
@@ -87,11 +88,13 @@ const MobileMenuToggle = ({
 );
 
 export const Shell = () => {
+  const router = useRouter();
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
   const current = slugOf(pathname);
   const [menuExpanded, setMenuExpanded] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
   if (pathname !== previousPath) {
     setPreviousPath(pathname);
@@ -103,6 +106,16 @@ export const Shell = () => {
     document.body.toggleAttribute("data-mobile-menu-expanded", menuExpanded);
     return () => document.body.removeAttribute("data-mobile-menu-expanded");
   }, [menuExpanded]);
+  useEffect(() => {
+    document.body.toggleAttribute("data-map-open", mapOpen);
+    return () => document.body.removeAttribute("data-map-open");
+  }, [mapOpen]);
+  const closeMap = (): void => setMapOpen(false);
+  // The map stays open: the page changes below it, and the map is how
+  // the reader moves to the next one.
+  const openPage = (slug: string): void => {
+    void router.navigate({ href: hrefOf(slug) });
+  };
 
   return (
     <>
@@ -111,7 +124,7 @@ export const Shell = () => {
       </a>
       <div className="page sl-flex">
         <header className="header">
-          <Header />
+          <Header mapOpen={mapOpen} onToggleMap={() => setMapOpen(!mapOpen)} />
         </header>
         <nav className="sidebar print:hidden" aria-label="Main">
           <MobileMenuToggle
@@ -131,6 +144,12 @@ export const Shell = () => {
         <div className="main-frame" inert={menuExpanded}>
           <Outlet />
         </div>
+        <MapPanel
+          open={mapOpen}
+          currentSlug={current}
+          onOpen={openPage}
+          onClose={closeMap}
+        />
       </div>
     </>
   );

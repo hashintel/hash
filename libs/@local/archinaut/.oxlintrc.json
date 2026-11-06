@@ -57,6 +57,13 @@
       },
       "plugins": ["import", "react", "jsx-a11y", "unicorn", "typescript"],
       "rules": {
+        "no-param-reassign": [
+          "error",
+          {
+            "props": true,
+            "ignorePropertyModificationsFor": ["canvas"]
+          }
+        ],
         "no-use-before-define": [
           "error",
           {
