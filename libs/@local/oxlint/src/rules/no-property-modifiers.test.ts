@@ -30,10 +30,16 @@ tester.run("no-property-modifiers", noPropertyModifiers, {
         "class A { #foo = 1; bar = () => this.#foo; baz = this.#foo + 1; m() { return () => this?.#foo; } }",
     },
     {
-      code: "class A { private static foo = 1; static { this.foo; } static m() { return A.foo + this.foo; } }",
+      code: "class A { private static foo = 1; static bar = this.foo; static { this.foo; } static m() { return A.foo; } }",
       errors: [privateError],
       output:
-        "class A { static #foo = 1; static { this.#foo; } static m() { return A.#foo + this.#foo; } }",
+        "class A { static #foo = 1; static bar = this.#foo; static { this.#foo; } static m() { return A.#foo; } }",
+    },
+    {
+      code: "class A { #bar = 1; private foo = 2; m(items: number[], i: number) { return #bar in this && this.foo + items[i]; } }",
+      errors: [privateError],
+      output:
+        "class A { #bar = 1; #foo = 2; m(items: number[], i: number) { return #bar in this && this.#foo + items[i]; } }",
     },
     {
       code: "class A { private accessor foo = 1; m() { return this.foo; } }",
@@ -69,6 +75,28 @@ tester.run("no-property-modifiers", noPropertyModifiers, {
     },
     {
       code: "class A { private foo = 1; m() { return this['foo']; } }",
+      errors: [privateError],
+      output: null,
+    },
+    // A static method runs on whatever class its caller names, and a subclass does not inherit a static private name.
+    {
+      code: "class A { private static foo = 1; static read() { return this.foo; } } class B extends A {}",
+      errors: [privateError],
+      output: null,
+    },
+    // A key only evaluation can tell may name the field.
+    {
+      code: "class A { private foo = 1; m() { const key = 'foo'; return this[key]; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; m(other: A) { return other[`foo`]; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; has(key: string) { return key in this; } }",
       errors: [privateError],
       output: null,
     },
