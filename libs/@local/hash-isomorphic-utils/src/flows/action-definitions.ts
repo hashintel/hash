@@ -1,4 +1,5 @@
 import { checkAggregationInput } from "./aggregation.js";
+import { checkQueryInput } from "./entity-query.js";
 import {
   checkCreateEntityStep,
   checkUpdateEntityStep,
@@ -1075,9 +1076,10 @@ const aiFlowActionDefinitionsAsConst = {
       {
         oneOfPayloadKinds: ["EntityQuery"],
         name: "query",
-        description: `The graph's filter, sorting paths, limit, temporal axes and whether to include drafts. By default, entities are sorted by last edited first, as they were when the step started, without drafts. The limit is a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}. Without one, the step fails if more entities than that match.`,
+        description: `The graph's filter, sorting paths, limit, temporal axes and whether to include drafts. By default, entities are sorted by last edited first, as they were when the step started, without drafts. The limit is a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}. Without one, the step fails if more entities than that match. Without a query, every entity in the web matches.`,
         required: true,
         array: false,
+        default: { kind: "EntityQuery", value: { filter: { all: [] } } },
       },
     ],
     outputs: [
@@ -1089,6 +1091,7 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
+    check: checkQueryInput,
   },
   createEntity: {
     actionDefinitionId: "createEntity",

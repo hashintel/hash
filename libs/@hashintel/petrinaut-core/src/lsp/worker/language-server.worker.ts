@@ -15,6 +15,7 @@
 import ts from "@typescript/typescript6";
 import {
   type CompletionItem,
+  CompletionItemTag,
   type CompletionList,
   type Hover,
   MarkupKind,
@@ -182,6 +183,7 @@ function sessionDocumentDiagnostics(
   const allDiags = [
     ...server.getSyntacticDiagnostics(filePath),
     ...server.getSemanticDiagnostics(filePath),
+    ...server.getDeprecationDiagnostics(filePath),
   ];
   // HIR lints assume type-valid input, so they only run once TypeScript is
   // clean; stacking both would be noise.
@@ -834,6 +836,9 @@ workerRuntime.onMessage((data) => {
             kind: toCompletionItemKind(entry.kind),
             sortText: entry.sortText,
             insertText: entry.insertText,
+            tags: entry.kindModifiers?.split(",").includes("deprecated")
+              ? [CompletionItemTag.Deprecated]
+              : undefined,
           }),
         );
 
@@ -879,6 +884,12 @@ workerRuntime.onMessage((data) => {
                 value: [
                   `\`\`\`typescript\n${ts.displayPartsToString(info.displayParts)}\n\`\`\``,
                   ts.displayPartsToString(info.documentation),
+                  ...(info.tags ?? [])
+                    .filter((tag) => tag.name === "deprecated")
+                    .map(
+                      (tag) =>
+                        `**Deprecated:** ${ts.displayPartsToString(tag.text)}`,
+                    ),
                 ]
                   .filter(Boolean)
                   .join("\n\n"),

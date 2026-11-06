@@ -16,10 +16,11 @@ hash-crypto              = { workspace = true, public = true }
 hash-temporal-client     = { workspace = true, public = true }
 
 # Public third-party dependencies
-bon            = { workspace = true, public = true }
-futures-sink   = { workspace = true, public = true }
-tokio          = { workspace = true, public = true, features = ["macros", "rt"] }
-tokio-postgres = { workspace = true, public = true }
+bon                   = { workspace = true, public = true }
+futures-sink          = { workspace = true, public = true }
+tokio                 = { workspace = true, public = true, features = ["macros", "rt"] }
+tokio-postgres        = { workspace = true, public = true }
+tokio-postgres-rustls = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true, features = ["std", "serde", "unstable"] }
@@ -43,6 +44,7 @@ postgres-types   = { workspace = true, features = ["array-impls", "derive", "wit
 rayon            = { workspace = true }
 refinery         = { workspace = true, features = ["tokio-postgres"] }
 regex            = { workspace = true }
+rustls           = { workspace = true }
 semver           = { workspace = true, features = ["serde"] }
 serde            = { workspace = true, features = ["derive"] }
 serde_json       = { workspace = true }

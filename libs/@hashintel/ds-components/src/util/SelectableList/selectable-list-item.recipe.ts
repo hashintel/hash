@@ -11,10 +11,13 @@ export const styles = sva({
     "indicator",
     "tick",
     "checkbox",
+    "radio",
     "spinner",
     "icon",
     "suffix",
     "arrow",
+    "collapseHit",
+    "collapseChevron",
   ],
   base: {
     item: {
@@ -77,6 +80,52 @@ export const styles = sva({
     arrow: {
       alignSelf: "center",
     },
+    // The expand/collapse toggle's hit area: an invisible button wrapping the
+    // row's leading columns (indent, chevron, selection indicator). The hit box spans from
+    // the row's edge to where the label starts, over the row's full height.
+    collapseHit: {
+      display: "inline-flex",
+      alignItems: "flex-start",
+      gap: "[inherit]",
+      border: "0",
+      background: "[transparent]",
+      cursor: "pointer",
+      font: "[inherit]",
+      alignSelf: "stretch",
+      marginTop: "[calc(-1 * var(--selectable-list-item-padding-y))]",
+      marginBottom: "[calc(-1 * var(--selectable-list-item-padding-y))]",
+      marginLeft: "[calc(-1 * var(--selectable-list-item-padding-x))]",
+      paddingTop: "[var(--selectable-list-item-padding-y)]",
+      paddingBottom: "[var(--selectable-list-item-padding-y)]",
+      paddingLeft: "[var(--selectable-list-item-padding-x)]",
+    },
+    collapseChevron: {
+      position: "relative",
+      color: "neutral.s110",
+      borderRadius: "sm",
+      transition:
+        "[transform 0.15s ease, background-color 0.1s ease, box-shadow 0.1s ease]",
+      "[data-collapsible-toggle]:hover &": {
+        background: "neutral.a30",
+        boxShadow: "[0 0 0 2px {colors.neutral.a30}]",
+        color: "neutral.s120",
+      },
+      "[data-collapsible-toggle]:active &": {
+        background: "neutral.a40",
+        boxShadow: "[0 0 0 2px {colors.neutral.a40}]",
+      },
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: "[-2px]",
+        right: "[-2px]",
+        borderRadius: "full",
+        backgroundColor: "fg.heading",
+        boxShadow: "[0 0 0 1.5px {colors.white}]",
+        opacity: "[0]",
+        transition: "[opacity 0.1s ease]",
+      },
+    },
     tick: {},
     checkbox: {
       borderWidth: "1px",
@@ -85,6 +134,22 @@ export const styles = sva({
       borderRadius: "sm",
       backgroundColor: "white",
       color: "fg.onSolid",
+    },
+    radio: {
+      borderWidth: "1px",
+      borderStyle: "solid",
+      borderColor: "bd.solid",
+      borderRadius: "full",
+      backgroundColor: "white",
+      color: "white",
+      transition: "[background-color 0.07s ease, border-color 0.07s ease]",
+      "&::after": {
+        content: '""',
+        borderRadius: "full",
+        backgroundColor: "[currentColor]",
+        opacity: "[0]",
+        transition: "[opacity 0.07s ease]",
+      },
     },
   },
   variants: {
@@ -111,6 +176,9 @@ export const styles = sva({
           gap: "1",
           borderRadius: "sm",
         },
+        collapseHit: { paddingRight: "1", marginRight: "-1" },
+        collapseChevron: { "&::before": { width: "[4px]", height: "[4px]" } },
+        radio: { "&::after": { width: "[4px]", height: "[4px]" } },
         description: { fontSize: "[9px]", marginTop: "[-3px]" },
         indicator: {
           width: "[10px]",
@@ -126,6 +194,9 @@ export const styles = sva({
           gap: "1.5",
           borderRadius: "md",
         },
+        collapseHit: { paddingRight: "1.5", marginRight: "-1.5" },
+        collapseChevron: { "&::before": { width: "[5px]", height: "[5px]" } },
+        radio: { "&::after": { width: "[5px]", height: "[5px]" } },
         description: { textStyle: "xxs", marginTop: "-0.5" },
         indicator: {
           width: "[12px]",
@@ -141,6 +212,9 @@ export const styles = sva({
           gap: "1.5",
           borderRadius: "md",
         },
+        collapseHit: { paddingRight: "1.5", marginRight: "-1.5" },
+        collapseChevron: { "&::before": { width: "[5px]", height: "[5px]" } },
+        radio: { "&::after": { width: "[6px]", height: "[6px]" } },
         description: { textStyle: "xs", marginTop: "[-2px]" },
         indicator: {
           width: "[14px]",
@@ -156,6 +230,9 @@ export const styles = sva({
           gap: "2",
           borderRadius: "lg",
         },
+        collapseHit: { paddingRight: "2", marginRight: "-2" },
+        collapseChevron: { "&::before": { width: "[6px]", height: "[6px]" } },
+        radio: { "&::after": { width: "[7px]", height: "[7px]" } },
         description: { textStyle: "sm", marginTop: "[-3px]" },
         indicator: {
           width: "[16px]",
@@ -172,6 +249,9 @@ export const styles = sva({
           gap: "2",
           borderRadius: "lg",
         },
+        collapseHit: { paddingRight: "2", marginRight: "-2" },
+        collapseChevron: { "&::before": { width: "[6px]", height: "[6px]" } },
+        radio: { "&::after": { width: "[7px]", height: "[7px]" } },
         description: { textStyle: "sm", marginTop: "-0.5" },
         indicator: {
           width: "[16px]",
@@ -221,6 +301,7 @@ export const styles = sva({
       tick: {},
       checkbox: {},
       highlight: {},
+      radio: {},
     },
     selected: {
       true: {
@@ -229,7 +310,44 @@ export const styles = sva({
           borderColor: "fg.heading",
           color: "white",
         },
+        radio: {
+          backgroundColor: "fg.heading",
+          borderColor: "fg.heading",
+          "&::after": {
+            opacity: "[1]",
+          },
+        },
       },
+      false: {
+        radio: {
+          "[data-part=item][data-highlighted]:not(:has([data-collapsible-toggle]:hover)) &":
+            {
+              backgroundColor: "neutral.s50",
+              borderColor: "neutral.s50",
+              "&::after": {
+                opacity: "[1]",
+              },
+            },
+        },
+      },
+    },
+    expanded: {
+      true: {
+        collapseChevron: {
+          transform: "[rotate(90deg)]",
+        },
+      },
+      false: {},
+    },
+    containsSelection: {
+      true: {
+        collapseChevron: {
+          "&::before": {
+            opacity: "[1]",
+          },
+        },
+      },
+      false: {},
     },
   },
   compoundVariants: [
@@ -354,10 +472,28 @@ export const styles = sva({
     },
     {
       selectedTone: "brand",
+      containsSelection: true,
+      css: {
+        collapseChevron: { "&::before": { backgroundColor: "blue.s90" } },
+      },
+    },
+    {
+      selectedTone: "error",
+      containsSelection: true,
+      css: {
+        collapseChevron: { "&::before": { backgroundColor: "red.s90" } },
+      },
+    },
+    {
+      selectedTone: "brand",
       selected: true,
       css: {
         tick: { color: "blue.s90" },
         checkbox: {
+          backgroundColor: "blue.s90",
+          borderColor: "blue.s90",
+        },
+        radio: {
           backgroundColor: "blue.s90",
           borderColor: "blue.s90",
         },
@@ -372,6 +508,10 @@ export const styles = sva({
           backgroundColor: "red.s90",
           borderColor: "red.s90",
         },
+        radio: {
+          backgroundColor: "red.s90",
+          borderColor: "red.s90",
+        },
       },
     },
   ],
@@ -382,6 +522,8 @@ export const styles = sva({
     selectedTone: "neutral",
     selectedStyle: "highlight",
     selected: false,
+    expanded: false,
+    containsSelection: false,
   },
 });
 

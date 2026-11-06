@@ -208,7 +208,7 @@ export type HirExpressionLowering = {
   newScope(): HirLoweringScope;
   lowerExpr(node: ts.Expression, scope: HirLoweringScope): HirExpr;
   lowerBlockAs<T>(
-    block: ts.Block,
+    block: ts.Block | ts.SourceFile,
     outerScope: HirLoweringScope,
     builder: HirStatementBuilder<T>,
   ): T;
@@ -678,7 +678,7 @@ class Lowering {
   /** Lowers a block in a scope of its own; `builder` decides what its
    * statements build. */
   lowerBlockAs<T>(
-    block: ts.Block,
+    block: ts.Block | ts.SourceFile,
     outerScope: HirLoweringScope,
     builder: HirStatementBuilder<T>,
   ): T {

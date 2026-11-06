@@ -197,6 +197,64 @@ describe("EditorProvider selection gestures", () => {
     );
   });
 
+  it("keeps temporary editor focus independent from kept-open windows and ignores an older editor's blur", () => {
+    act(() => editor.keepPlaceVisualizerOpen("place-a"));
+    act(() => editor.setVisualizerEditorFocus("place-b", true));
+    expect(editor.focusedVisualizerPlaceId).toBe("place-b");
+    expect([...editor.keptOpenVisualizerPlaceIds]).toEqual(["place-a"]);
+    act(() => editor.setVisualizerEditorFocus("place-c", true));
+    act(() => editor.setVisualizerEditorFocus("place-b", false));
+    expect(editor.focusedVisualizerPlaceId).toBe("place-c");
+    act(() => editor.clearHoveredItem());
+    expect(editor.focusedVisualizerPlaceId).toBe("place-c");
+    act(() => editor.setVisualizerEditorFocus("place-c", false));
+    expect(editor.focusedVisualizerPlaceId).toBeNull();
+    expect([...editor.keptOpenVisualizerPlaceIds]).toEqual(["place-a"]);
+  });
+
+  it("keeps a window open idempotently and closes only that place's preview and focus", () => {
+    act(() => editor.keepPlaceVisualizerOpen("place-a"));
+    act(() => editor.keepPlaceVisualizerOpen("place-a"));
+    act(() => editor.keepPlaceVisualizerOpen("place-b"));
+    act(() => editor.openPlaceVisualizer("place-b"));
+    act(() => editor.setVisualizerEditorFocus("place-b", true));
+    act(() => editor.closePlaceVisualizer("place-a"));
+    expect([...editor.keptOpenVisualizerPlaceIds]).toEqual(["place-b"]);
+    expect(editor.openVisualizerPlaceId).toBe("place-b");
+    expect(editor.focusedVisualizerPlaceId).toBe("place-b");
+    act(() => editor.closePlaceVisualizer("place-b"));
+    expect(editor.keptOpenVisualizerPlaceIds.size).toBe(0);
+    expect(editor.openVisualizerPlaceId).toBeNull();
+    expect(editor.focusedVisualizerPlaceId).toBeNull();
+  });
+
+  it("leaves hover preview dismissal to its grace period when crossing another place", () => {
+    act(() => editor.openPlaceVisualizer("place-a"));
+    act(() => editor.setHoveredItem({ type: "place", id: "place-b" }));
+    expect(editor.openVisualizerPlaceId).toBe("place-a");
+  });
+
+  it("keeps the most recently activated visualizer in front after blur and restores the previous order on close", () => {
+    act(() => editor.keepPlaceVisualizerOpen("place-a"));
+    act(() => editor.keepPlaceVisualizerOpen("place-b"));
+    act(() => editor.keepPlaceVisualizerOpen("place-c"));
+    act(() => editor.bringVisualizerToFront("place-a"));
+    expect(editor.visualizerStack).toEqual(["place-b", "place-c", "place-a"]);
+    const stack = editor.visualizerStack;
+    act(() => editor.bringVisualizerToFront("place-a"));
+    expect(editor.visualizerStack).toBe(stack);
+    act(() => editor.setVisualizerEditorFocus("place-b", true));
+    expect(editor.visualizerStack).toEqual(["place-c", "place-a", "place-b"]);
+    act(() => editor.setVisualizerEditorFocus("place-b", false));
+    act(() => editor.openPlaceVisualizer("place-c"));
+    expect(editor.visualizerStack).toEqual(["place-c", "place-a", "place-b"]);
+    act(() => editor.closePlaceVisualizer("place-b"));
+    expect(editor.visualizerStack).toEqual(["place-c", "place-a"]);
+    act(() => editor.setVisualizerEditorFocus("temporary", true));
+    expect(editor.visualizerStack.at(-1)).toBe("temporary");
+    expect(editor.keptOpenVisualizerPlaceIds.has("temporary")).toBe(false);
+  });
+
   it("records Edit view switches without changing the mode or selection", () => {
     act(() => editor.setSelection(selectionOf("place-a")));
     recorded.length = 0;

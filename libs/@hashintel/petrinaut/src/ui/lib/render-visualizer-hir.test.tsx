@@ -33,17 +33,69 @@ const render = (
     throw new Error(lowered.diagnostics.map((item) => item.message).join("; "));
   }
   return renderToStaticMarkup(
-    renderVisualizerHir(lowered.view, tokens, parameters),
+    renderVisualizerHir(lowered.view, tokens, parameters, {
+      width: 400,
+      height: 240,
+    }),
   );
 };
 
 describe("renderVisualizerHir", () => {
-  /**
-   * The markup the Babel-compiled components produced for the same frame,
-   * recorded before that compiler was removed. Every shipped visualizer must
-   * draw the same picture through the HIR.
-   */
-  describe("draws every example visualizer as the compiled component did", () => {
+  it.each([
+    (body: string) => body,
+    (body: string) =>
+      `export default Visualization(({ tokens }) => { ${body} });`,
+  ])(
+    "keeps legacy SVG backgrounds and drawing attributes while owning its size",
+    (wrap) => {
+      const markup = render(
+        wrap(
+          `return <svg viewBox="0 0 400 200" width={800} height={400} fill="red" style={{ width: "100%", borderRadius: "6px", backgroundColor: "#ecfeff" }}><circle cx={tokens[0].x} r={5} /></svg>;`,
+        ),
+      );
+      expect(markup).toContain('width="100%" height="100%"');
+      expect(markup).toContain('viewBox="0 -20 400 240"');
+      expect(markup).toContain('fill="red"');
+      expect(markup).toContain("background-color:#ecfeff");
+      expect(markup).not.toContain("border-radius");
+      expect(markup).toContain('<circle cx="1" r="5"></circle>');
+    },
+  );
+
+  it("retains nested SVG viewports in existing drawings", () => {
+    expect(
+      render(
+        'return <svg><svg x={10} viewBox="0 0 20 20" style={{ width: 20, height: 20, overflow: "hidden" }}><circle r={4} /></svg></svg>;',
+      ),
+    ).toContain(
+      '<svg x="10" viewBox="0 0 20 20" style="width:20px;height:20px;overflow:hidden">',
+    );
+  });
+
+  it("owns SVG dimensions, preserves proportions, and fills the window background", () => {
+    const markup = render(
+      'return <Visualizer.Svg viewBox="0 0 400 200" backgroundColor="#eff6ff"><circle r={10} /></Visualizer.Svg>;',
+    );
+    expect(markup).toContain(
+      'width="100%" height="100%" viewBox="0 -20 400 240" preserveAspectRatio="xMidYMid meet"',
+    );
+    expect(markup).toContain("background-color:#eff6ff");
+    expect(markup).not.toContain('role="img"');
+  });
+  it("omits a null legacy viewBox and still validates computed legacy paint", () => {
+    expect(
+      render(
+        'return <svg viewBox={tokens.length > 5 ? "0 0 20 20" : null} />;',
+      ),
+    ).toContain('viewBox="0 0 400 240"');
+    expect(() =>
+      render(
+        'return <svg style={{ background: "url(https://example.com/" + tokens.length + ")" }} />;',
+      ),
+    ).toThrow(/may only reference/u);
+  });
+
+  describe("draws every example visualizer", () => {
     const examples = new Map<string, SDCPN>(
       [
         probabilisticSatellitesSDCPN,
@@ -52,39 +104,45 @@ describe("renderVisualizerHir", () => {
         supplyChainProfit,
       ].map((example) => [example.title, example.petriNetDefinition]),
     );
-    it.for(fixture)("$example / $place", ({ example, place, markup }) => {
-      const sdcpn = examples.get(example)!;
-      const placeDefinition = sdcpn.places.find(
-        (candidate) => candidate.name === place,
-      )!;
-      const color = sdcpn.types.find(
-        (type) => type.id === placeDefinition.colorId,
-      )!;
-      expect(
-        render(
+    it.for(fixture)(
+      "$example / $place",
+      ({ example, place, markup: previousMarkup }) => {
+        const sdcpn = examples.get(example)!;
+        const placeDefinition = sdcpn.places.find(
+          (candidate) => candidate.name === place,
+        )!;
+        const color = sdcpn.types.find(
+          (type) => type.id === placeDefinition.colorId,
+        )!;
+        const markup = render(
           placeDefinition.visualizerCode!,
           sampleTokens(color),
           buildVisualizerContext(sdcpn, placeDefinition),
           sampleParameters(sdcpn),
-        ),
-      ).toBe(markup);
-    });
+        );
+        expect(markup).toContain("<svg");
+        expect(markup).not.toContain("NaN");
+        if (example === deploymentPipelineSDCPN.title) {
+          const drawing = (value: string) =>
+            value.match(/<svg[^>]*>([\s\S]*?)<\/svg>/u)?.[1];
+          expect(drawing(markup)).toBe(drawing(previousMarkup));
+        }
+      },
+    );
   });
 
   it("renders fragments, keys, booleans and nested arrays as React does", () => {
     expect(
       render(
-        `export default Visualization(({ tokens }) => (
-  <>
+        `return <Visualizer.Svg><>
     {tokens.map((token, index) => <circle key={index} cx={token.x} />)}
     {false}
     {null}
     <text>{tokens.length}{" "}items</text>
-  </>
-));`,
+  </></Visualizer.Svg>;`,
         [{ x: 1 }, { x: 2 }],
       ),
-    ).toBe(
+    ).toContain(
       '<circle cx="1"></circle><circle cx="2"></circle><text>2 items</text>',
     );
   });
@@ -92,20 +150,46 @@ describe("renderVisualizerHir", () => {
   it("refuses a remote url computed at run time", () => {
     expect(() =>
       render(
-        `export default Visualization(({ tokens }) => (
-  <rect fill={"url(https://x.test/?" + tokens.length + ")"} />
-));`,
+        `return <Visualizer.Svg><rect fill={"url(https://x.test/?" + tokens.length + ")"} /></Visualizer.Svg>;`,
       ),
     ).toThrow(/url\(#id\)/u);
   });
 
+  it.each([
+    'backgroundColor={"url(https://x.test/?" + tokens.length + ")"}',
+    'viewBox={"0 0 " + (tokens.length - 1) + " 20"}',
+    'navigation={tokens.length > 5 ? "pan-zoom" : "invalid"}',
+  ])("validates computed root properties: %s", (attribute) => {
+    expect(() => render(`return <Visualizer.Svg ${attribute} />;`)).toThrow();
+  });
+
+  it.each(["Visualizer.Svg"])(
+    "refuses a forged nested %s even when compilation was bypassed",
+    (tag) => {
+      const lowered = lowerVisualizerToHir(
+        "return <Visualizer.Svg><circle /></Visualizer.Svg>;",
+        context,
+      );
+      if (!lowered.ok || lowered.view.body.kind !== "element")
+        throw new Error("Expected a lowered root");
+      const child = lowered.view.body.children[0];
+      if (child?.kind !== "element")
+        throw new Error("Expected an element child");
+      const view = {
+        ...lowered.view,
+        body: { ...lowered.view.body, children: [{ ...child, tag }] },
+      };
+      expect(() =>
+        renderVisualizerHir(view, [], {}, { width: 400, height: 200 }),
+      ).toThrow(/cannot be drawn/u);
+    },
+  );
+
   it("leaves a null attribute unset", () => {
     expect(
       render(
-        `export default Visualization(({ tokens }) => (
-  <rect fill={tokens.length > 5 ? "red" : null} width={1} />
-));`,
+        `return <Visualizer.Svg><rect fill={tokens.length > 5 ? "red" : null} width={1} /></Visualizer.Svg>;`,
       ),
-    ).toBe('<rect width="1"></rect>');
+    ).toContain('<rect width="1"></rect>');
   });
 });

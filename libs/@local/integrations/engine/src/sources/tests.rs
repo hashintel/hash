@@ -23,6 +23,7 @@ use uuid::Uuid;
 
 use super::{
     CaptureLimits, CaptureRun, CaptureStore, SecretStore, SecretValue, SourceError, SourceReader,
+    fingerprint,
 };
 use crate::{Workspace, WorkspaceConfig};
 
@@ -208,20 +209,29 @@ async fn open_workspace(directory: &Path, name: &str) -> Workspace {
 async fn capture_retry_and_restore() {
     let directory = TempDir::new().expect("should create source storage");
     let run = run();
-    let workspace = open_workspace(directory.path(), "run.duckdb").await;
+    let definition = remote_definition();
     let reader = reader(directory.path());
-    let first = reader
-        .capture_sources(&workspace, &sql_definition(), run, &NoSecrets)
+    // An earlier attempt of the run captured the remote source, which is unreachable now.
+    let (name, source) = definition
+        .sources()
+        .iter()
+        .next()
+        .expect("should define a source");
+    let target = reader
+        .store
+        .path(run, name, &fingerprint(source))
+        .expect("should prepare the capture path");
+    let workspace = open_workspace(directory.path(), "run.duckdb").await;
+    workspace
+        .capture("SELECT 7 AS id, 'initial' AS value".into(), target)
         .await
-        .expect("should capture SQL");
-    assert_eq!(first.len(), 1, "should capture one source");
+        .expect("should publish the earlier capture");
     workspace
         .close()
         .await
         .expect("should close the first workspace");
 
     let restored = open_workspace(directory.path(), "restored.duckdb").await;
-    let definition = remote_definition();
     let captures = reader
         .capture_sources(&restored, &definition, run, &NoSecrets)
         .await
@@ -260,8 +270,9 @@ async fn capture_retry_and_restore() {
 #[rstest]
 #[case::different_web(|run: CaptureRun| CaptureRun { web: Uuid::new_v4(), ..run })]
 #[case::different_run(|run: CaptureRun| CaptureRun { id: Uuid::new_v4(), ..run })]
+#[case::changed_definition(|run: CaptureRun| run)]
 #[tokio::test]
-async fn capture_run_isolation(#[case] change_identity: fn(CaptureRun) -> CaptureRun) {
+async fn capture_isolation(#[case] change_identity: fn(CaptureRun) -> CaptureRun) {
     let directory = TempDir::new().expect("should create source storage");
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
     let run = run();
@@ -278,10 +289,10 @@ async fn capture_run_isolation(#[case] change_identity: fn(CaptureRun) -> Captur
             &NoSecrets,
         )
         .await
-        .expect_err("another web or run should not recover this capture");
+        .expect_err("another web, run or definition should not recover this capture");
     assert!(
         matches!(error.current_context(), SourceError::Secret),
-        "a new identity should resolve the live source credentials"
+        "should capture the live source again, resolving its credentials"
     );
     workspace.close().await.expect("should close the workspace");
 }
@@ -291,16 +302,22 @@ async fn failed_recovery_keeps_the_capture_error() {
     let directory = TempDir::new().expect("should create source storage");
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
     let run = run();
+    let definition = postgres_definition();
+    let (name, source) = definition
+        .sources()
+        .iter()
+        .next()
+        .expect("should define a source");
     let resolver = ConflictingSecrets {
         target: directory
             .path()
             .join("captures")
             .join(run.web.to_string())
             .join(run.id.to_string())
-            .join("items.parquet"),
+            .join(format!("{name}.{}.parquet", fingerprint(source))),
     };
     let error = reader(directory.path())
-        .capture_sources(&workspace, &postgres_definition(), run, &resolver)
+        .capture_sources(&workspace, &definition, run, &resolver)
         .await
         .expect_err("should fail both the capture and its recovery");
     assert!(

@@ -14,6 +14,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -24,7 +25,7 @@ import "@xyflow/react/dist/style.css";
 import { RightClickMenu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { AddStepMenu } from "./canvas/add-step-menu";
+import { AddStepMenuAt } from "./canvas/add-step-menu";
 import { CanvasActionsContext } from "./canvas/canvas-actions";
 import { CanvasToolbar } from "./canvas/canvas-toolbar";
 import { ConnectionEdge } from "./canvas/connection-edge";
@@ -56,6 +57,7 @@ import type {
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
+  Ref,
 } from "react";
 
 const nodeTypes = {
@@ -66,7 +68,7 @@ const nodeTypes = {
 
 const edgeTypes = { connection: ConnectionEdge };
 
-const canvas = css({ width: "full", height: "full" });
+const canvas = css({ position: "relative", width: "full", height: "full" });
 
 const getNodeStepId = (node: FlowNode) =>
   node.type === "start" ? null : node.data.step.stepId;
@@ -86,7 +88,13 @@ const cardBeside = (point: XYPosition, side: "left" | "right") => ({
   y: Math.round(point.y - stepCardSize.height / 2),
 });
 
+export type CanvasHandle = {
+  /** Adds a step in the middle of the view, and selects it. */
+  addStepInView: (actionDefinitionId: string) => void;
+};
+
 type CanvasProps = {
+  ref?: Ref<CanvasHandle>;
   editor: FlowEditor;
   selectedStepIds: string[];
   /** Whether the start step is selected, which opens its panel. */
@@ -101,6 +109,7 @@ type CanvasProps = {
 };
 
 const FlowCanvas = ({
+  ref,
   editor,
   selectedStepIds,
   startSelected,
@@ -419,6 +428,8 @@ const FlowCanvas = ({
       }),
     );
   };
+
+  useImperativeHandle(ref, () => ({ addStepInView }));
 
   /* Kept the same while dragging, as every card and line reads it. */
   const canvasActions = useMemo<CanvasActions>(
@@ -763,6 +774,8 @@ const FlowCanvas = ({
     [],
   );
 
+  const emptyFlow = flowDefinition.steps.length === 0;
+
   return (
     <CanvasActionsContext value={canvasActions}>
       <div ref={containerRef} className={canvas}>
@@ -824,23 +837,27 @@ const FlowCanvas = ({
               zoomable
               style={{ marginRight: coveredRight + 15 }}
             />
-            <Panel position="bottom-center">
-              <CanvasToolbar
-                tool={tool}
-                onToolChange={setTool}
-                onAddStep={addStepInView}
-                onOrganize={() => {
-                  void organize();
-                }}
-                canOrganize={flowDefinition.steps.length > 0}
-                fitPadding={fitPadding}
-              />
-            </Panel>
           </ReactFlow>
         </RightClickMenu>
+        {/* Outside the right-click menu, whose Ark context would otherwise make
+            the toolbar's menus its submenus: they open sideways and close as
+            soon as the pointer leaves the trigger. */}
+        <Panel position="bottom-center">
+          <CanvasToolbar
+            tool={tool}
+            onToolChange={setTool}
+            onAddStep={addStepInView}
+            emptyFlow={emptyFlow}
+            onOrganize={() => {
+              void organize();
+            }}
+            fitPadding={fitPadding}
+          />
+        </Panel>
         {addMenu && (
-          <AddStepMenu
+          <AddStepMenuAt
             anchor={addMenu.anchor}
+            emptyFlow={emptyFlow}
             onPick={addMenu.addStep}
             onClose={() => setAddMenu(null)}
           />

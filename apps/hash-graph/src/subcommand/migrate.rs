@@ -5,7 +5,6 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::{migration::StoreMigration as _, pool::StorePool as _};
-use tokio_postgres::NoTls;
 
 use crate::error::GraphError;
 
@@ -24,7 +23,6 @@ pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.pool_config,
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .change_context(GraphError)

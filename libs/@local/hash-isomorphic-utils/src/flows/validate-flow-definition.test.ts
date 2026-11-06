@@ -3,13 +3,14 @@ import { describe, expect, it } from "vitest";
 import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
 import { goalFlow } from "./definitions/goal-flow-definitions.js";
 import { linkEndsMessage, noEntityChangesMessage } from "./entity-steps.js";
+import { maxEntitiesPerStep } from "./limits.js";
 import {
   addStepIdsToDiagnostics,
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
 
-import type { FlowDefinition } from "./types.js";
+import type { EntityQuery, FlowDefinition } from "./types.js";
 
 const baseDefinition = {
   name: "Test",
@@ -1471,6 +1472,57 @@ describe("validateFlowDefinition", () => {
             code: "invalidInput",
             message: "The count must be a whole number, 0 or more.",
             path: ["steps", 0, "inputs", "count"],
+          },
+        ]);
+      },
+    );
+  });
+
+  describe("queries of queryEntities steps", () => {
+    const queryEntitiesDefinition = (query?: EntityQuery) => ({
+      ...baseDefinition,
+      inputs: [],
+      steps: [
+        {
+          kind: "action",
+          stepId: "find",
+          actionDefinitionId: "queryEntities",
+          description: "",
+          inputs: query
+            ? {
+                query: {
+                  kind: "constant",
+                  payload: { kind: "EntityQuery", value: query },
+                },
+              }
+            : {},
+        },
+      ],
+    });
+
+    it("accepts a step without a query, which matches every entity by default", () => {
+      expect(diagnosticsOf(queryEntitiesDefinition())).toEqual([]);
+    });
+
+    it.each([1, maxEntitiesPerStep])("accepts a limit of %s", (limit) => {
+      expect(
+        diagnosticsOf(queryEntitiesDefinition({ filter: { all: [] }, limit })),
+      ).toEqual([]);
+    });
+
+    it.each([0, maxEntitiesPerStep + 1])(
+      "rejects a limit of %s at the limit",
+      (limit) => {
+        expect(
+          validateFlowDefinition(
+            queryEntitiesDefinition({ filter: { all: [] }, limit }),
+          ).diagnostics,
+        ).toEqual([
+          {
+            severity: "error",
+            code: "invalidInput",
+            message: "The limit must be a whole number from 1 to 100,000.",
+            path: ["steps", 0, "inputs", "query", "payload", "value", "limit"],
           },
         ]);
       },

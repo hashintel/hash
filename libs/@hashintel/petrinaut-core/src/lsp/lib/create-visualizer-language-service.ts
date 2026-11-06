@@ -3,8 +3,12 @@ import ts from "@typescript/typescript6";
 // `vite.config.ts`): TypeScript refuses specifiers that start with `@types/`.
 import reactGlobalDts from "react-types/global.d.ts?raw";
 import reactIndexDts from "react-types/index.d.ts?raw";
-import reactJsxRuntimeDts from "react-types/jsx-runtime.d.ts?raw";
 
+import {
+  VIEW_ELEMENT_ATTRIBUTES,
+  VIEW_ELEMENT_TAGS,
+  VIEW_STYLE_PROPERTIES,
+} from "../../view-hir/view-elements";
 import {
   TYPESCRIPT_LIB_NAMES,
   TYPESCRIPT_LIBS,
@@ -30,18 +34,36 @@ const reactIndexWithoutGlobal = reactIndexDts.replace(
   "",
 );
 
-/**
- * `index.d.ts` imports `csstype` for `CSSProperties`. The real package is
- * 895 KB of declarations, parsed on the first visualizer check and shipped
- * inside the inlined worker, and what it buys is CSS property names in
- * `style` objects, which visualizers (SVG drawings) rarely use. This stub
- * keeps `style={{ ... }}` accepting string and number values and drops the
- * property catalogue. Bundle the real package if `style` completion is asked
- * for.
- */
+/** Complete drawing styles; the index signature also accepts legacy layout styles. */
 const CSSTYPE_STUB = [
   `export interface Properties<TLength = string | 0, TTime = string> {`,
+  ...[...VIEW_STYLE_PROPERTIES].map(
+    (property) => `  ${property}?: TLength | TTime;`,
+  ),
   `  [property: string]: TLength | TTime | undefined;`,
+  `}`,
+].join("\n");
+
+const jsxRuntimeTypes = [
+  `import type * as React from "./index";`,
+  `type AllowedAttribute = ${[...VIEW_ELEMENT_ATTRIBUTES, "key", "children"].map((attribute) => JSON.stringify(attribute)).join(" | ")};`,
+  `type DrawingProps<Tag extends keyof React.JSX.IntrinsicElements> = Pick<React.JSX.IntrinsicElements[Tag], Extract<keyof React.JSX.IntrinsicElements[Tag], AllowedAttribute>>;`,
+  `export type VisualizerSvgProps = { backgroundColor?: string; origin?: "top-left" | "center"; navigation?: "none" | "pan-zoom"; viewBox?: string; children?: React.ReactNode };`,
+  `export namespace JSX {`,
+  `  interface ElementChildrenAttribute { children: {}; }`,
+  `  type Element = React.ReactElement;`,
+  `  interface IntrinsicElements {`,
+  ...[...VIEW_ELEMENT_TAGS].map((tag) =>
+    [
+      ...(tag === "svg"
+        ? [
+            "    /** @deprecated Use Visualizer.Svg for a window-sized viewport. Move style.backgroundColor to backgroundColor; remove root style, width and height. */",
+          ]
+        : []),
+      `    ${tag}: DrawingProps<"${tag}">;`,
+    ].join("\n"),
+  ),
+  `  }`,
   `}`,
 ].join("\n");
 
@@ -78,7 +100,7 @@ export const VISUALIZER_LANGUAGE_SERVICE_HOST: LanguageServiceHostConfig = {
     ),
     [`${JSX_PACKAGE_DIRECTORY}/index.d.ts`]: reactIndexWithoutGlobal,
     [`${JSX_PACKAGE_DIRECTORY}/global.d.ts`]: reactGlobalDts,
-    [`${JSX_PACKAGE_DIRECTORY}/jsx-runtime.d.ts`]: reactJsxRuntimeDts,
+    [`${JSX_PACKAGE_DIRECTORY}/jsx-runtime.d.ts`]: jsxRuntimeTypes,
     "/node_modules/csstype/package.json": packageJson("csstype"),
     "/node_modules/csstype/index.d.ts": CSSTYPE_STUB,
   },
@@ -93,6 +115,40 @@ export const VISUALIZER_LANGUAGE_SERVICE_HOST: LanguageServiceHostConfig = {
 export class VisualizerLanguageServer extends VirtualFileLanguageServer {
   constructor() {
     super(VISUALIZER_LANGUAGE_SERVICE_HOST);
+  }
+
+  override getDeprecationDiagnostics(fileName: string): ts.Diagnostic[] {
+    const diagnostics = super.getDeprecationDiagnostics(fileName);
+    const source = this.service.getProgram()?.getSourceFile(fileName);
+    if (!source) return diagnostics;
+    const prefixLength = this.controller.getFile(fileName)?.prefix?.length ?? 0;
+
+    // TypeScript exposes intrinsic JSX @deprecated tags in hovers but omits their diagnostics.
+    const visit = (node: ts.Node): void => {
+      if (
+        (ts.isJsxOpeningElement(node) ||
+          ts.isJsxSelfClosingElement(node) ||
+          ts.isJsxClosingElement(node)) &&
+        node.tagName.getText(source) === "svg"
+      ) {
+        const start = node.tagName.getStart(source) - prefixLength;
+        const info = this.getQuickInfoAtPosition(fileName, start);
+        const deprecated = info?.tags?.find((tag) => tag.name === "deprecated");
+        if (deprecated)
+          diagnostics.push({
+            file: source,
+            start,
+            length: node.tagName.getWidth(source),
+            category: ts.DiagnosticCategory.Suggestion,
+            code: 6385,
+            messageText: "'svg' is deprecated.",
+            reportsDeprecated: true,
+          });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return diagnostics;
   }
 
   /**

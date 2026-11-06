@@ -26,7 +26,6 @@ use hash_graph_postgres_store::store::{
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::sync::oneshot;
-use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
 use super::{
@@ -274,7 +273,6 @@ fn pool() -> Arc<PostgresStorePool> {
             &DatabasePoolConfig {
                 max_connections: nz!(1),
             },
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("should construct an unconnected pool"),

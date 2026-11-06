@@ -10,22 +10,22 @@ use futures::TryStreamExt as _;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use postgres_types::BorrowToSql;
-use tokio_postgres::{Client, GenericClient, NoTls, Row, ToStatement, Transaction};
+use tokio_postgres::{Client, GenericClient, Row, ToStatement, Transaction};
 
 use crate::store::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig},
     error::StoreError,
     postgres::{
         PostgresStore, PostgresStoreSettings,
-        connection::{ConnectionError, ConnectionManager, ManagedConnection, PostgresTls},
+        connection::{ConnectionError, ConnectionManager, ManagedConnection},
     },
 };
 
 /// A connection checked out of a [`PostgresStorePool`], returned to it on drop.
 #[derive(Debug)]
-pub struct PooledConnection<Tls: PostgresTls = NoTls>(Object<ConnectionManager<Tls>>);
+pub struct PooledConnection(Object<ConnectionManager>);
 
-impl<Tls: PostgresTls> Deref for PooledConnection<Tls> {
+impl Deref for PooledConnection {
     type Target = ManagedConnection;
 
     fn deref(&self) -> &Self::Target {
@@ -33,19 +33,19 @@ impl<Tls: PostgresTls> Deref for PooledConnection<Tls> {
     }
 }
 
-impl<Tls: PostgresTls> DerefMut for PooledConnection<Tls> {
+impl DerefMut for PooledConnection {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct PostgresStorePool<Tls: PostgresTls = NoTls> {
-    pool: Pool<ConnectionManager<Tls>>,
+pub struct PostgresStorePool {
+    pool: Pool<ConnectionManager>,
     pub settings: Arc<PostgresStoreSettings>,
 }
 
-impl<Tls: PostgresTls> PostgresStorePool<Tls> {
+impl PostgresStorePool {
     /// Creates a pool of connections to the database `db_info` names.
     ///
     /// No connection is established here: the pool builds one when it is first asked for a
@@ -53,15 +53,19 @@ impl<Tls: PostgresTls> PostgresStorePool<Tls> {
     ///
     /// # Errors
     ///
+    /// - if the root certificate `db_info` names cannot be loaded
     /// - if the pool is configured with a timeout but has no runtime to enforce it
-    #[tracing::instrument(skip(tls))]
+    #[tracing::instrument]
     pub fn new(
         db_info: &DatabaseConnectionInfo,
         pool_config: &DatabasePoolConfig,
-        tls: Tls,
         settings: PostgresStoreSettings,
     ) -> Result<Self, Report<StoreError>> {
         tracing::debug!(url=%db_info, "Creating connection pool to Postgres");
+        let tls = db_info
+            .tls()
+            .change_context(StoreError)
+            .attach_with(|| db_info.clone())?;
 
         Ok(Self {
             // TODO(BE-703): The default timeouts are all unbounded, so a saturated pool waits
@@ -76,9 +80,9 @@ impl<Tls: PostgresTls> PostgresStorePool<Tls> {
     }
 }
 
-impl<Tls: PostgresTls> StorePool for PostgresStorePool<Tls> {
+impl StorePool for PostgresStorePool {
     type Error = ConnectionError;
-    type Store<'pool> = PostgresStore<PooledConnection<Tls>>;
+    type Store<'pool> = PostgresStore<PooledConnection>;
 
     async fn acquire(
         &self,
@@ -212,7 +216,7 @@ pub trait GenericClientIter: GenericClient + Sync {
 
 impl<C> GenericClientIter for C where C: GenericClient + Sync {}
 
-impl<Tls: PostgresTls> AsClient for PooledConnection<Tls> {
+impl AsClient for PooledConnection {
     type Client = Client;
 
     fn as_client(&self) -> &Self::Client {

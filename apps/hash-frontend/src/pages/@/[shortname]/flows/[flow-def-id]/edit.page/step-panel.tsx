@@ -4,12 +4,13 @@ import { Form, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
+import { getNameLabel } from "./shared/name-label";
 import { getStepDisplay, startDisplay } from "./shared/step-display";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { InputField } from "./step-panel/input-field";
 import { getActionDefinition } from "./step-panel/input-sources";
+import { QueryField } from "./step-panel/query-field";
 import { findStep } from "./step-panel/shared/find-step";
-import { getNameLabel } from "./step-panel/shared/value-display";
 import { UsedByField } from "./step-panel/used-by-field";
 import { indexValueUses } from "./step-panel/value-uses";
 
@@ -20,11 +21,16 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   FlowDefinition,
+  InputDefinition,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
 type StepsUsing = ReturnType<typeof indexValueUses>;
+
+const takesEntityQuery = (input: InputDefinition) =>
+  "oneOfPayloadKinds" in input &&
+  input.oneOfPayloadKinds.includes("EntityQuery");
 
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
@@ -207,20 +213,24 @@ const SelectedStepPanel = ({
       {step.kind === "action" && actionDefinition && (
         <PanelSection title="Inputs">
           <Form.Section>
-            {actionDefinition.inputs.map((input) => (
-              <InputField
-                key={input.name}
-                editor={editor}
-                flowDefinition={flowDefinition}
-                stepId={step.stepId}
-                input={input}
-                actionDefinition={actionDefinition}
-                source={step.inputs[input.name]}
-                problems={byInputName.get(input.name) ?? []}
-                readOnly={inner}
-                onSelectStart={onSelectStart}
-              />
-            ))}
+            {actionDefinition.inputs.map((input) => {
+              const Field = takesEntityQuery(input) ? QueryField : InputField;
+
+              return (
+                <Field
+                  key={input.name}
+                  editor={editor}
+                  flowDefinition={flowDefinition}
+                  stepId={step.stepId}
+                  input={input}
+                  actionDefinition={actionDefinition}
+                  source={step.inputs[input.name]}
+                  problems={byInputName.get(input.name) ?? []}
+                  readOnly={inner}
+                  onSelectStart={onSelectStart}
+                />
+              );
+            })}
           </Form.Section>
         </PanelSection>
       )}

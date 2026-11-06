@@ -35,7 +35,7 @@ Once a place has a type, its tokens are accessible in code as structured objects
 
 ## Global parameters
 
-Parameters are named values available in all user-authored code: dynamics, firing rate, kernels, metrics, scenarios, and visualizers. Read them as `parameters.<variable name>` — the `parameters` object is in scope without declaring it (see [Code surfaces and their variables](#code-surfaces-and-their-variables) below; in a visualizer it arrives as part of the component's props). Note that metrics can read these **net parameters** but not scenario parameters.
+Parameters are named values available in all user-authored code: dynamics, firing rate, kernels, metrics, scenarios, and visualizers. Read them as `parameters.<variable name>` — the `parameters` object is in scope without declaring it (see [Code surfaces and their variables](#code-surfaces-and-their-variables) below). Note that metrics can read these **net parameters** but not scenario parameters.
 
 **To create a parameter:**
 
@@ -51,19 +51,40 @@ Override parameter values before running a simulation in the **Simulation Settin
 
 ## Code surfaces and their variables
 
-Kernel, firing rate/predicate, differential equation, metric, and scenario code is a plain function body ending in `return`. The variables each surface needs are in scope without declaring them:
+Kernel, firing rate/predicate, differential equation, visualizer, metric, and scenario code is a plain function body ending in `return`. The variables each surface needs are in scope without declaring them:
 
-| Code surface                                              | Variables in scope                | Must return                                             |
-| --------------------------------------------------------- | --------------------------------- | ------------------------------------------------------- |
-| [Transition kernel](#transition-kernel)                   | `input`, `parameters`             | tokens for each typed output place, keyed by place name |
-| [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`             | `true`/`false` (predicate) or a rate (stochastic)       |
-| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`            | one derivative object per token                         |
-| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`             | a finite number                                         |
-| Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range` | tokens or counts, keyed by place name                   |
+| Code surface                                              | Variables in scope                        | Must return                                             |
+| --------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name |
+| [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)       |
+| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per token                         |
+| [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
+| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                         |
+| Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                   |
 
 `input` is the tokens from the transition's typed input places, keyed by place name; `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.
 
-Kernel, firing rate, and differential equation code written in the older module style — `export default TransitionKernel((input, parameters) => { ... })` and the `Lambda(...)` / `Dynamics(...)` equivalents — still works. The [visualizer](#visualizer) is the exception to all of the above: it stays a module, `export default Visualization(({ tokens, parameters }) => ...)`.
+Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)`, and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
+
+### Migrating older code
+
+Remove the export, wrapper call, and callback declaration, keeping the callback's body. For an expression callback, add `return`:
+
+```ts
+// Before
+export default Lambda(
+  (input, parameters) => input.Queue[0].priority > parameters.threshold,
+);
+
+// After
+return input.Queue[0].priority > parameters.threshold;
+```
+
+If the callback renamed or destructured its arguments, keep equivalent local bindings using the ambient variables before the body. For example, replace a kernel parameter `{ Queue: queue }` with `const { Queue: queue } = input;`.
+
+For visualizers, replace the root `<svg>` and its closing tag with `<Visualizer.Svg>`. Move `style.backgroundColor` to the `backgroundColor` property, retain an explicit `viewBox` when the drawing needs fixed coordinates, and remove root `width`, `height`, `style`, `borderRadius`, and `preserveAspectRatio`. Move inherited paint or text styles such as `fill` and `fontSize` to a child `<g>`. Nested legacy SVG viewports retain their sizing and clipping; do not nest `Visualizer.Svg`.
+
+Use function bodies and `Visualizer.Svg` for new code, including AI-generated code. Preserve the drawing’s behavior when migrating older code.
 
 ## Differential equations (dynamics)
 
@@ -91,45 +112,51 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 
 ## Visualizer
 
-A visualizer renders a custom view of a place's tokens during simulation. It is a function written in JavaScript with JSX that returns SVG elements.
+Visualizers draw a place’s tokens before or during simulation. Enable **Visualizer** in the place’s properties, then open its code editor. Use **Load default template** to start.
 
-**To enable:** select a place, then turn on the **Visualizer** switch in its properties. Click the **Visualizer** header to expand its code editor.
+### Preview and edit
 
-```tsx
-export default Visualization(({ tokens, parameters }) => {
-  return (
-    <svg viewBox="0 0 800 600">
-      {tokens.map(({ x, y }, i) => (
-        <circle key={i} cx={x} cy={y} r={5} fill="red" />
-      ))}
-    </svg>
-  );
-});
+- Hover or focus the place’s eye button for a temporary preview; click to keep it open. Close it with **×** or Escape.
+- Drag the picture to move it; resize from an edge or corner. Hold Alt to resize from the center. Keyboard users can focus the move or resize handle and use arrow keys, with Shift for larger steps.
+- Windows follow their place and keep a constant screen size when the Canvas zooms. Use **Fix position on screen** to stop following, or **Follow place** to resume. Windows stay within the viewport; a small attachment identifies their place.
+- **Edit visualizer code** opens the expanded editor. Editor focus shows a highlighted preview. You can edit during simulation without restarting it; the previous drawing remains visible while code compiles.
+
+### Drawing
+
+Return one `<Visualizer.Svg>` from a JavaScript function body. `tokens`, `parameters`, `width`, and `height` are already in scope; dimensions are the drawable window size in pixels.
+
+```jsx
+return (
+  <Visualizer.Svg backgroundColor="#eff6ff">
+    {tokens.map(({ x, y }, index) => (
+      <circle key={index} cx={x * width} cy={y * height} r={5} fill="red" />
+    ))}
+  </Visualizer.Svg>
+);
 ```
 
-The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in the properties panel. During simulation, it updates live as token state changes.
+This example expects token coordinates between 0 and 1.
 
-The code editor checks a visualizer as you type. `tokens` is typed from the place's type and `parameters` from the net's parameters, so completion and hover show the attributes and values available, and a misspelt SVG attribute, an attribute the type does not have, or a name such as `window` or `fetch` that visualizers cannot use is underlined in the editor and listed in the [Diagnostics](#diagnostics) tab under the place. Visualizer errors never block a simulation: a visualizer with errors draws nothing while the rest of the net runs.
+| Property          | Default      | Purpose                                                                     |
+| ----------------- | ------------ | --------------------------------------------------------------------------- |
+| `backgroundColor` | Transparent  | Fill the whole window.                                                      |
+| `origin`          | `"top-left"` | Use `"center"` to put `(0, 0)` at the center; positive Y points down.       |
+| `viewBox`         | Automatic    | Fit fixed `"x y width height"` bounds proportionally. Use this or `origin`. |
+| `navigation`      | `"none"`     | Use `"pan-zoom"` to navigate inside the drawing.                            |
 
-Visualizer code is JavaScript: the types are inferred, and a type annotation or a cast is an error. Like the other code surfaces, a visualizer is compiled by Petrinaut's own compiler to a restricted subset, so it stays a pure function of its tokens and parameters:
+Without `viewBox`, one drawing unit is one screen pixel. Use `width` and `height` for layouts that adapt to resizing, or `viewBox` for fixed drawings. Petrinaut controls the root SVG’s size and window styling; use drawing attributes and styles on child elements.
 
-- `const` bindings, destructuring, ternaries, `&&` and `||`, arithmetic, comparisons, `Math.*`, template literals and string concatenation.
-- `.map`, `.filter`, `.slice` and `.reduce` over tokens, `.length`, and `.toFixed` for numbers.
-- SVG elements such as `svg`, `g`, `rect`, `circle`, `line`, `path`, `polygon`, `text`, `defs`, `marker` and gradients, with their geometry, paint and text attributes, `key`, and a `style` object of common properties. `div`, `span` and `p` are available for labels.
+With `navigation="pan-zoom"`, activate the hand button to drag the scene and scroll or pinch to zoom. Drag the top strip to move the window instead. Arrow keys pan, +/− zoom, and **Reset view** or 0 restores the initial framing. Escape exits navigation. Before navigation, the drawing fits the window as it resizes. After navigation, the camera stays where you left it through simulation updates, edits, and resizing.
 
-Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
+### Supported code
 
-It is reachable from the canvas too, in two steps. Point at the place and a small round button appears above it; click that and the visualizer opens where the button was, whether or not anything has run. Before a run it draws the initial marking, so a net still being built can be checked by pointing at it.
+Visualizers support the [expression subset](#supported-code-subset), token collection methods (`map`, `filter`, `slice`, `reduce`), template literals, and `toFixed`. Use SVG shapes, groups, text, gradients, and definitions; use `<text>` or `<tspan>` for labels.
 
-Opening it belongs to that hover: move the pointer away and it closes, and pointing at the place again offers the button rather than the visualizer. A **pin** in the visualizer's top-right corner is what makes it stay -- faint until you point at the box, solid once pinned. A pinned box stays up with the pointer somewhere else entirely, which is what makes it possible to watch one place while scrubbing the [timeline](simulation.md#timeline) or editing the initial state. Click the pin again to release it. Pin as many places as you want to watch at once; pins last until the page is reloaded.
+Types are inferred. The [code editor](code-editor.md) reports errors as you type. Imports, hooks, arbitrary function calls, scripts, HTML, event handlers, and external URLs are rejected. Visualizer errors do not stop simulation.
 
-<img width="474" height="385" alt="visauliser-preview" src="https://github.com/user-attachments/assets/303f51f3-0a53-480b-9639-52c4b77aa6e0" />
+Older `Visualization(...)` wrappers and native `<svg>` remain supported with deprecation hints. See [Migrating older code](#migrating-older-code).
 
-Use the menu in the code editor header to **Load default template** for a starting point.
-
-You can also toggle between the code, a preview, and both at once.
-
-**Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example includes a visualizer that renders the planet and orbiting satellites with velocity vectors. The [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) and [Deployment Pipeline](examples.md#deployment-pipeline) examples add visualizers on several places at once.
+See [Satellites](examples.md#probabilistic-satellite-launcher) for a centered scene and [Supply Chain](examples.md#supply-chain-with-disruption) for responsive charts.
 
 ## Transition kernel
 

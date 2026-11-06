@@ -9,6 +9,7 @@ import {
   CompletionItemKind,
   type Diagnostic,
   DiagnosticSeverity,
+  DiagnosticTag,
   Range,
 } from "vscode-languageserver-types";
 
@@ -98,5 +99,6 @@ export function serializeDiagnostic(
     message: ts.flattenDiagnosticMessageText(diag.messageText, "\n"),
     code: diag.code,
     source: diag.source ?? "ts",
+    tags: diag.reportsDeprecated ? [DiagnosticTag.Deprecated] : undefined,
   };
 }

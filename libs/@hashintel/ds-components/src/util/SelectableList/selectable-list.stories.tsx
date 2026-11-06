@@ -8,6 +8,7 @@ import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
 import { SelectableListSearch } from "./selectable-list-search";
 import { SelectableListSelectionSummary } from "./selectable-list-selection-summary";
 import {
+  collapsibleItems,
   defaultSelected,
   demoFooter,
   demoHeader,
@@ -90,6 +91,21 @@ export const Default: Story = {
         selected={defaultSelected}
         header={demoHeader}
         footer={demoFooter}
+      />
+    </StaticMenu>
+  ),
+};
+
+export const Collapsible: Story = {
+  render: (args: SelectableListProps) => (
+    <StaticMenu>
+      {/* "Untitled draft" is selected inside the "Drafts" folder, so Drafts
+          mounts expanded to reveal it; collapse it to see the chevron's
+          contains-selection badge. */}
+      <SelectableList
+        {...args}
+        items={collapsibleItems}
+        selected={["col-draft-1"]}
       />
     </StaticMenu>
   ),

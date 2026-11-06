@@ -1,6 +1,6 @@
 ---
 title: Compiling user code
-description: How authored TypeScript becomes buffer programs or interpreted HIR, and why no surface runs source text as JavaScript.
+description: How authored code becomes buffer programs or interpreted HIR, how visualizer output is restricted, and why no surface runs source text as JavaScript.
 sidebar_order: 10
 ---
 
@@ -46,24 +46,24 @@ HIR checks and emitters.
 
 ## What compiles where
 
-| Surface           | Authored as                                              | Executed in                                        |
-| ----------------- | -------------------------------------------------------- | -------------------------------------------------- |
-| Transition lambda | function body (or legacy module, `Lambda(fn)`)           | Worker, per enablement check                       |
-| Transition kernel | function body (or legacy module, `TransitionKernel(fn)`) | Worker, per firing                                 |
-| Dynamics          | function body (or legacy module, `Dynamics(fn)`)         | Worker, per step per place                         |
-| Metric            | plain function body                                      | Main thread (timeline) and MC worker (experiments) |
-| Scenario          | per-place expressions, or one code-mode body             | HIR interpreter, on the main thread before a run   |
-| Place visualizer  | module, `Visualization(fn)` returning JSX                | Main thread, at render                             |
+| Surface           | Authored as                                                              | Executed in                                        |
+| ----------------- | ------------------------------------------------------------------------ | -------------------------------------------------- |
+| Transition lambda | function body (or legacy module, `Lambda(fn)`)                           | Worker, per enablement check                       |
+| Transition kernel | function body (or legacy module, `TransitionKernel(fn)`)                 | Worker, per firing                                 |
+| Dynamics          | function body (or legacy module, `Dynamics(fn)`)                         | Worker, per step per place                         |
+| Metric            | plain function body                                                      | Main thread (timeline) and MC worker (experiments) |
+| Scenario          | per-place expressions, or one code-mode body                             | HIR interpreter, on the main thread before a run   |
+| Place visualizer  | function body returning `Visualizer.Svg` (or legacy `Visualization(fn)`) | Main thread, at render                             |
 
-Lambda, kernel, and dynamics code is classified per piece of code
+Lambda, kernel, dynamics and visualizer code is classified per piece of code
 (`hir/user-code-form.ts`): any top-level `export` marks the legacy module
 form, anything else is a bare body with the input object and `parameters`
 ambient. The HIR lowering and the LSP's virtual-file wrappers share that one
 detector, so the editor and the compiler never disagree about a given source
 text.
 
-The visualizer is the one inherently React-based surface — it authors JSX — which
-is why it compiles in the UI package rather than in the headless core.
+Visualizers compile in the headless core to view HIR, a tree of SVG elements
+and HIR expressions. The editor interprets that tree and renders it with React.
 
 Metrics must return a finite number; NaN and infinity throw rather than
 propagating into a chart.
@@ -92,11 +92,19 @@ arrays in colour-element order, each coerced with typed defaults for missing
 columns. Extra columns and invalid typed values are reported as compilation
 errors.
 
+## Visualizers interpret a restricted view
+
+Visualizers use the same restricted expression language as other user code,
+with a view tree for JSX. Every return path must produce one `Visualizer.Svg` root with allowlisted SVG children. Native `svg` elements remain accepted as deprecated compatibility syntax. The root owns background, coordinates, and navigation; `width` and `height` are ambient viewport dimensions.
+The compiler checks element, attribute and style allowlists; the renderer
+checks computed values again before they reach the DOM. Remote URLs, HTML
+containers, scripts, imports, hooks and event handlers are not available.
+Authored code is interpreted as HIR, never evaluated as JavaScript.
+
 ## No surface runs source text as JavaScript
 
 Every surface compiles through the HIR, where out-of-subset code is a
-blocking diagnostic rather than a sandbox concern. Place visualizers lower to
-the view HIR (`view-hir/`) and are interpreted. The ad-hoc scenario form's
+blocking diagnostic rather than a sandbox concern. The ad-hoc scenario form's
 constant values (Optimize bounds, exposed Variables' defaults, place totals)
 are evaluated while the form renders, where the TypeScript compiler is
 unavailable: `hir/parse-expression.ts` parses them into HIR with a

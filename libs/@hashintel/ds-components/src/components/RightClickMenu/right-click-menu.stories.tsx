@@ -47,12 +47,12 @@ function withSelectedFlags(entry: ItemOrGroup<Item>): ItemOrGroup<MenuItem> {
     };
   }
   if ("custom" in entry) {
-    return entry;
+    return entry as MenuItem;
   }
   return {
     ...entry,
     selected: defaultSelected.includes(getItemId(entry)),
-  };
+  } as MenuItem;
 }
 
 const DefaultDemo = (args: RightClickMenuProps) => {

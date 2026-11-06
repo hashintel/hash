@@ -27,7 +27,6 @@ use hash_graph_type_fetcher::FetchingPool;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
 use tokio::runtime::Runtime;
-use tokio_postgres::NoTls;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::stages::{
@@ -215,7 +214,6 @@ impl Runner {
         let pool = PostgresStorePool::new(
             &conn_info,
             &DatabasePoolConfig::default(),
-            NoTls,
             PostgresStoreSettings {
                 validate_links: true,
                 skip_embedding_creation: true,
@@ -246,7 +244,6 @@ impl Runner {
             PostgresStorePool::new(
                 &super_conn,
                 &DatabasePoolConfig::default(),
-                NoTls,
                 PostgresStoreSettings::default(),
             )
             .change_context(ScenarioError::Db)?

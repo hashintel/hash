@@ -11,13 +11,13 @@ import {
 } from "../../util/SelectableList/selectable-list";
 import {
   getEventHighlightedId,
-  useLoopSelection,
+  loopSelectionKeyDown,
 } from "../../util/SelectableList/selectable-list-util";
 import { TriggerPressedContext } from "../../util/trigger-pressed-context";
 import { type Position } from "../Tooltip/tooltip";
 import { collectSelectedIds } from "./menu-util";
 
-export type MenuItem = Item & {
+export type MenuItem = Exclude<Item, { collapsible: true }> & {
   /** Whether the item is marked as the current choice. */
   selected?: boolean;
 };
@@ -75,7 +75,6 @@ export const Menu = ({
   ) => void;
 }) => {
   const portalContainerRef = usePortalContainerRef();
-  const handleLoopKeyDown = useLoopSelection(items);
   const selected = useMemo(() => collectSelectedIds(items), [items]);
 
   if (items.length === 0) {
@@ -107,7 +106,7 @@ export const Menu = ({
               <ArkMenu.Positioner
                 className={parkedPopperPositioner}
                 onKeyDownCapture={(event) => {
-                  handleLoopKeyDown(event, menu);
+                  loopSelectionKeyDown(event, menu);
                   onKeyDown?.(event, getEventHighlightedId(event, menu));
                 }}
               >

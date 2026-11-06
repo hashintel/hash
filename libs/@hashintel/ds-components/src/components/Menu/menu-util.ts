@@ -3,14 +3,21 @@ import {
   isGroup,
 } from "../../util/SelectableList/selectable-list-util";
 
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type {
+  Item,
+  ItemOrGroup,
+} from "../../util/SelectableList/selectable-list";
 import type { MenuItem } from "./menu";
+
+// A submenu's `subItems` are plain `Item`s (MenuItem only constrains the
+// top level), so the walk accepts either, reading the optional flag.
+type MaybeSelectedItem = Item & { selected?: boolean };
 
 export const collectSelectedIds = (
   entries: Array<ItemOrGroup<MenuItem>>,
 ): string[] => {
   const result: string[] = [];
-  const visit = (entry: ItemOrGroup<MenuItem>) => {
+  const visit = (entry: ItemOrGroup<MaybeSelectedItem>) => {
     if (isGroup(entry)) {
       for (const child of entry.items) {
         visit(child);
@@ -20,8 +27,9 @@ export const collectSelectedIds = (
     if (entry.selected) {
       result.push(getItemId(entry));
     }
-    if (entry.subItems) {
-      for (const child of entry.subItems) {
+    const nested = entry.subItems;
+    if (nested) {
+      for (const child of nested) {
         visit(child);
       }
     }

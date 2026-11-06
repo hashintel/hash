@@ -36,7 +36,8 @@ const nodes: CanvasNode[] = [
     dynamicsEnabled: false,
     hasColorType: false,
     hasVisualizer: false,
-    visualizerPinned: false,
+    visualizerKeptOpen: false,
+    visualizerActive: false,
     typeColor: undefined,
   },
   {

@@ -15,8 +15,7 @@
  * since attribute values may be computed at run time.
  */
 
-/** SVG drawing, container, text and paint-server elements; a few HTML
- * containers for labels around a picture. */
+/** SVG drawing, container, text and paint-server elements. */
 export const VIEW_ELEMENT_TAGS: ReadonlySet<string> = new Set([
   "svg",
   "g",
@@ -41,9 +40,6 @@ export const VIEW_ELEMENT_TAGS: ReadonlySet<string> = new Set([
   "textPath",
   "title",
   "desc",
-  "div",
-  "span",
-  "p",
 ]);
 
 /**
@@ -145,20 +141,7 @@ export const VIEW_ELEMENT_ATTRIBUTES: ReadonlySet<string> = new Set([
 
 /** CSS properties a `style` record may set, in React's camelCase spelling. */
 export const VIEW_STYLE_PROPERTIES: ReadonlySet<string> = new Set([
-  "width",
-  "height",
-  "maxWidth",
-  "maxHeight",
-  "minWidth",
-  "minHeight",
   "display",
-  "overflow",
-  "margin",
-  "padding",
-  "border",
-  "borderRadius",
-  "borderColor",
-  "borderWidth",
   "background",
   "backgroundColor",
   "color",
@@ -170,12 +153,29 @@ export const VIEW_STYLE_PROPERTIES: ReadonlySet<string> = new Set([
   "fontSize",
   "fontWeight",
   "fontStyle",
-  "textAlign",
-  "lineHeight",
   "letterSpacing",
   "whiteSpace",
   "transform",
   "transformOrigin",
+]);
+
+/** Preserved on children but ignored on the root, whose layout Petrinaut owns. */
+export const VIEW_LEGACY_STYLE_PROPERTIES: ReadonlySet<string> = new Set([
+  "width",
+  "height",
+  "maxWidth",
+  "maxHeight",
+  "minWidth",
+  "minHeight",
+  "overflow",
+  "margin",
+  "padding",
+  "border",
+  "borderRadius",
+  "borderColor",
+  "borderWidth",
+  "textAlign",
+  "lineHeight",
   "transition",
   "cursor",
   "pointerEvents",

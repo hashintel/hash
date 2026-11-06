@@ -1,6 +1,7 @@
-use core::{error::Error as _, pin::Pin, str::FromStr as _, time::Duration};
+use core::{fmt, mem, pin::Pin, str::FromStr as _, time::Duration};
 use std::sync::LazyLock;
 
+use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
 use hash_graph_store::subgraph::temporal_axes::QueryTemporalAxesUnresolved;
@@ -12,8 +13,11 @@ use reqwest::{
     Client, Url,
     header::{AUTHORIZATION, HeaderValue},
 };
-use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned};
-use serde_json::{Map, Value, json};
+use serde::{
+    Deserialize, Deserializer, Serialize,
+    de::{self, IgnoredAny, MapAccess, Unexpected, Visitor},
+};
+use serde_json::{Value, json, value::RawValue};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use type_system::{
     knowledge::{
@@ -24,6 +28,7 @@ use type_system::{
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
+use zeroize::Zeroize as _;
 
 use super::{SecretService, SourceError};
 
@@ -89,6 +94,55 @@ struct VaultResponse<T> {
 #[derive(Deserialize, Serialize)]
 struct VaultSecret<T> {
     data: T,
+}
+
+/// The secret object of a Vault response, borrowed from the response body as its JSON text.
+///
+/// Decoding it into a map would copy every value into a `String` that is not wiped, so only its
+/// shape is checked and the text is copied once, into the returned [`Secret`].
+struct SecretObject<'body> {
+    json: &'body RawValue,
+    empty: bool,
+}
+
+impl<'de: 'body, 'body> Deserialize<'de> for SecretObject<'body> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let json = <&RawValue>::deserialize(deserializer)?;
+        // The inner error names the value it rejected, so it is replaced rather than wrapped.
+        let ObjectShape { empty } = serde_json::from_str(json.get()).map_err(|_error| {
+            de::Error::invalid_type(Unexpected::Other("non-object value"), &"a JSON object")
+        })?;
+        Ok(Self { json, empty })
+    }
+}
+
+/// Whether a JSON object has entries, read without copying any of its values.
+struct ObjectShape {
+    empty: bool,
+}
+
+impl<'de> Deserialize<'de> for ObjectShape {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct ShapeVisitor;
+
+        impl<'de> Visitor<'de> for ShapeVisitor {
+            type Value = ObjectShape;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a JSON object")
+            }
+
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<ObjectShape, A::Error> {
+                let mut empty = true;
+                while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {
+                    empty = false;
+                }
+                Ok(ObjectShape { empty })
+            }
+        }
+
+        deserializer.deserialize_map(ShapeVisitor)
+    }
 }
 
 impl GraphVaultSecretStore {
@@ -181,10 +235,46 @@ fn secret_query(web_id: Uuid, entity_id: Uuid) -> SecretQuery {
     }
 }
 
-async fn secret_response<T: DeserializeOwned>(
+/// The body of a successful Graph or Vault response, zeroed when dropped.
+///
+/// Zeroing is best effort: `hyper` may hand over a buffer that it still shares, which is then
+/// freed without being zeroed. Copies made inside `hyper` and `serde_json` are out of reach as
+/// well.
+struct ResponseBody {
+    bytes: Bytes,
+    service: SecretService,
+}
+
+impl ResponseBody {
+    fn decode<'body, T: Deserialize<'body>>(&'body self) -> Result<T, Report<SourceError>> {
+        let service = self.service;
+        serde_json::from_slice(&self.bytes).map_err(|error| {
+            if error.is_data() {
+                // The error message can echo the rejected value, so only its position is kept.
+                Report::new(SourceError::SecretResponse { service }).attach(format!(
+                    "secret response does not match the expected schema at line {} column {}",
+                    error.line(),
+                    error.column(),
+                ))
+            } else {
+                Report::new(error).change_context(SourceError::SecretResponse { service })
+            }
+        })
+    }
+}
+
+impl Drop for ResponseBody {
+    fn drop(&mut self) {
+        if let Ok(mut bytes) = mem::take(&mut self.bytes).try_into_mut() {
+            bytes.zeroize();
+        }
+    }
+}
+
+async fn secret_response(
     response: reqwest::Response,
     service: SecretService,
-) -> Result<T, Report<SourceError>> {
+) -> Result<ResponseBody, Report<SourceError>> {
     let status = response.status();
     if status != reqwest::StatusCode::OK {
         return Err(Report::new(SourceError::SecretStatus {
@@ -192,21 +282,12 @@ async fn secret_response<T: DeserializeOwned>(
             status: status.as_u16(),
         }));
     }
-    response.json().await.map_err(|error| {
-        if let Some(json_error) = error
-            .source()
-            .and_then(|source| source.downcast_ref::<serde_json::Error>())
-            && json_error.is_data()
-        {
-            Report::new(SourceError::SecretResponse { service }).attach(format!(
-                "secret response does not match the expected schema at line {} column {}",
-                json_error.line(),
-                json_error.column(),
-            ))
-        } else {
-            Report::new(error.without_url()).change_context(SourceError::SecretResponse { service })
-        }
-    })
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(reqwest::Error::without_url)
+        .change_context(SourceError::SecretResponse { service })?;
+    Ok(ResponseBody { bytes, service })
 }
 
 impl SecretStore for GraphVaultSecretStore {
@@ -241,7 +322,9 @@ impl SecretStore for GraphVaultSecretStore {
             .change_context(SourceError::SecretRequest {
                 service: SecretService::Graph,
             })?;
-        let body: SecretQueryResponse = secret_response(response, SecretService::Graph).await?;
+        let body: SecretQueryResponse = secret_response(response, SecretService::Graph)
+            .await?
+            .decode()?;
         let [entity] = body.entities.as_slice() else {
             return Err(Report::new(SourceError::SecretEntityCount {
                 count: body.entities.len(),
@@ -268,16 +351,17 @@ impl SecretStore for GraphVaultSecretStore {
             .change_context(SourceError::SecretRequest {
                 service: SecretService::Vault,
             })?;
-        // TODO(BE-1094): the response body, the decoded map, and the intermediate byte buffer
-        //   below hold plaintext copies that are not wiped; only the returned `Secret` is.
-        let body: VaultResponse<Map<String, Value>> =
-            secret_response(response, SecretService::Vault).await?;
-        let data = body.data.data;
-        if data.is_empty() {
+        let body = secret_response(response, SecretService::Vault).await?;
+        let VaultResponse {
+            data: VaultSecret { data },
+        }: VaultResponse<SecretObject<'_>> = body.decode()?;
+        if data.empty {
             return Err(Report::new(SourceError::SecretValue));
         }
-        let bytes = serde_json::to_vec(&data).change_context(SourceError::SecretValue)?;
-        Ok(Secret::from_vec(bytes))
+        let json = data.json.get().as_bytes();
+        let mut secret = Secret::zeroed_slice(json.len());
+        secret.as_mut().expose_mut().copy_from_slice(json);
+        Ok(secret)
     }
 }
 

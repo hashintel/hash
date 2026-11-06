@@ -68,17 +68,26 @@ export const formatReadOnlyReason = (reason: ReadOnlyReason): string => {
   }
 };
 
-/**
- * The reason that blocks mutation `name` now, or `null` when it may run.
- * Scenario and metric mutations stay available in simulate mode, so only a
- * host-readonly reason blocks them; any reason blocks every other mutation.
- */
+const onlyUpdatesVisualizer = (input: unknown): boolean => {
+  if (!input || typeof input !== "object" || !("update" in input)) return false;
+  const { update } = input;
+  return (
+    update !== null &&
+    typeof update === "object" &&
+    Object.keys(update).length === 1 &&
+    Object.hasOwn(update, "visualizerCode")
+  );
+};
+
+/** Visualizers, scenarios and metrics do not change an active simulation. */
 export const mutationBlockedBy = (
   name: keyof PetrinautMutations,
   reason: ReadOnlyReason | null,
-): ReadOnlyReason | null =>
-  reason !== null &&
-  (reason.kind === "host-readonly" ||
-    !simulateModeAllowedMutationNames.has(name))
-    ? reason
-    : null;
+  input?: unknown,
+): ReadOnlyReason | null => {
+  if (reason === null || reason.kind === "host-readonly") return reason;
+  return simulateModeAllowedMutationNames.has(name) ||
+    (name === "updatePlace" && onlyUpdatesVisualizer(input))
+    ? null
+    : reason;
+};

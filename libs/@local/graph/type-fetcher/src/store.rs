@@ -767,6 +767,7 @@ where
                                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                                 sources: Vec::new(),
                             },
+                            fetched_from_origin: true,
                         }),
                 )
                 .await?;
@@ -856,6 +857,7 @@ where
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                                     sources: Vec::new(),
                                 },
+                                fetched_from_origin: true,
                             },
                         ),
                     )

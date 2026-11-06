@@ -343,6 +343,43 @@ when none do.
   </DemoState>
 </Stage>
 
+### Collapsible options
+
+Give an option `subItems` to nest options beneath it as a collapsible folder —
+reach for folders over groups when the hierarchy is deep or the parents are
+themselves valid choices. The folder row still selects; only its chevron
+toggles expansion.
+
+<Stage>
+  <DemoState data-harness>
+    <Combobox
+      width="sm"
+      placeholder="Search teams…"
+      items={[
+        {
+          value: "engineering",
+          text: "Engineering",
+          subItems: [
+            { value: "frontend", text: "Frontend" },
+            { value: "infrastructure", text: "Infrastructure" },
+          ],
+        },
+        {
+          value: "operations",
+          text: "Operations",
+          subItems: [
+            { value: "finance", text: "Finance" },
+            { value: "people", text: "People" },
+          ],
+        },
+        { value: "leadership", text: "Leadership" },
+      ]}
+      value="frontend"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
 ### Custom rendering
 
 `renderItem` draws each dropdown option (and, with `multiple`, each chip);
@@ -798,11 +835,12 @@ Combobox implements the
 Beyond the standard combobox pattern:
 
 | Key                               | Action                                                                                                                               |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Enter                             | Selects the highlighted option; with nothing highlighted, commits the first matched option (or the input text with `allowNewValue`). |
-| Escape                            | Reverts the draft text; a multiple combobox also restores the selection from when the dropdown opened.                               |
-| Backspace (multiple)              | Removes the last chip if the input is empty.                                                                                         |
-| ArrowLeft / ArrowRight (multiple) | Move between chips.                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Enter                              | Selects the highlighted option; with nothing highlighted, commits the first matched option (or the input text with `allowNewValue`). |
+| Escape                             | Reverts the draft text; a multiple combobox also restores the selection from when the dropdown opened.                               |
+| Backspace (multiple)               | Removes the last chip if the input is empty.                                                                                         |
+| ArrowLeft / ArrowRight (multiple)  | Move between chips.                                                                                                                  |
+| ArrowRight / ArrowLeft (sub-items) | Expands / collapses a highlighted collapsible option.                                                                                |
 
 A multiple combobox never submits the surrounding form on Enter; a single
 combobox, Enter submits the form only if there are no changes on the combobox.

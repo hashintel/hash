@@ -757,7 +757,7 @@ describe("Petrinaut core actions", () => {
       colorId: "type-1",
       dynamicsEnabled: true,
       differentialEquationId: "equation-1",
-      visualizerCode: "export default Visualization(() => null);",
+      visualizerCode: "return <Visualizer.Svg />;",
       x: 0,
       y: 0,
     });

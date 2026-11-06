@@ -15,55 +15,57 @@ graph TD
     4[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
     5[<a href="../hash_graph_atlas/index.html">hash-graph-atlas</a>]
     6[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    7[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    8[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    9[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    10[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    11[hash-graph-validation]
-    class 11 root
-    12[<a href="../harpc_types/index.html">harpc-types</a>]
-    13[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    14[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    15[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
-    16[<a href="../hashql_eval/index.html">hashql-eval</a>]
-    17[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    18[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    19[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    20[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    21[<a href="../error_stack/index.html">error-stack</a>]
-    22[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    23[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    24[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    7[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
+    8[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    9[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    10[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    11[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    12[hash-graph-validation]
+    class 12 root
+    13[<a href="../harpc_types/index.html">harpc-types</a>]
+    14[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    15[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    16[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    17[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    18[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    19[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    20[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    21[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    22[<a href="../error_stack/index.html">error-stack</a>]
+    23[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    24[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    25[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     0 --> 5
-    1 --> 9
-    1 -.-> 24
+    1 --> 10
+    1 -.-> 25
     2 -.-> 3
-    2 --> 13
-    4 --> 16
-    4 --> 19
-    5 --> 7
+    2 --> 14
+    4 --> 17
+    4 --> 20
+    5 --> 8
     6 --> 1
-    7 -.-> 7
-    7 --> 11
-    8 --> 6
-    8 --> 10
-    8 --> 20
-    9 --> 2
-    10 -.-> 24
-    11 -.-> 24
-    13 -.-> 12
-    13 --> 12
-    13 --> 21
-    14 -.-> 15
-    15 --> 16
-    15 --> 19
-    16 --> 7
-    16 --> 18
-    17 -.-> 15
-    18 --> 17
-    19 --> 14
-    20 --> 1
-    22 -.-> 4
-    23 -.-> 7
-    24 --> 8
+    7 --> 8
+    8 -.-> 8
+    8 --> 12
+    9 --> 6
+    9 --> 11
+    9 --> 21
+    10 --> 2
+    11 -.-> 25
+    12 -.-> 25
+    14 -.-> 13
+    14 --> 13
+    14 --> 22
+    15 -.-> 16
+    16 --> 17
+    16 --> 20
+    17 --> 8
+    17 --> 19
+    18 -.-> 16
+    19 --> 18
+    20 --> 15
+    21 --> 1
+    23 -.-> 4
+    24 -.-> 8
+    25 --> 9

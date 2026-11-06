@@ -1,0 +1,555 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { css } from "@hashintel/ds-helpers/css";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { HelpTooltip } from "../HelpTooltip/help-tooltip";
+import { TabItemDoc, Tabs } from "./tabs";
+
+<Meta title="Docs/Tabs" />
+
+export const meta = {
+  title: "Tabs",
+  description: "Switch between related panels of content shown one at a time.",
+  alternativeNames: ["TabBar", "TabNav", "TabPanel"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Tabs/tabs.tsx",
+    stories: "https://tokens.hash.design/?path=/story/components-tabs--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/tabs/",
+    ark: "https://ark-ui.com/docs/components/tabs",
+  },
+  related: ["SegmentedControl", "ButtonGroup", "Select"],
+};
+
+# Tabs
+
+Switch between related panels of content shown one at a time.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <div style={{ width: 360 }} data-harness>
+  <DemoState data-harness>
+      <Tabs value="overview" onChange={noop}>
+        <Tabs.TabList
+          items={[
+            { id: "overview", children: "Overview" },
+            { id: "properties", children: "Properties" },
+            { id: "history", children: "History" },
+          ]}
+        />
+        <Tabs.TabContent
+          items={[
+            { id: "overview", children: "A summary of this entity." },
+            { id: "properties", children: "Every property and its value." },
+            { id: "history", children: "Changes made over time." },
+          ]}
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+  <DemoState data-harness>
+    <Tabs value="schema" onChange={noop} variant="pill">
+      <Tabs.TabList
+        items={[
+          { id: "schema", children: "Schema" },
+          { id: "entities", children: "Entities" },
+          { id: "versions", children: "Versions" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+  <div style={{ width: 360 }} data-harness>
+  <DemoState data-harness>
+      <Tabs value="request" onChange={noop} variant="folder">
+        <Tabs.TabList
+          items={[
+            { id: "request", children: "Request" },
+            { id: "response", children: "Response" },
+          ]}
+        />
+        <Tabs.TabContent
+          items={[
+            { id: "request", children: "The payload sent to the integration." },
+            { id: "response", children: "What the integration returned." },
+          ]}
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Tabs } from "@hashintel/ds-components";
+
+export const EntityPage = () => {
+  const [tab, setTab] = useState<"overview" | "properties" | "history">(
+    "overview",
+  );
+
+  return (
+    <Tabs value={tab} onChange={setTab}>
+      <Tabs.TabList
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties" },
+          { id: "history", children: "History" },
+        ]}
+      />
+      <Tabs.TabContent
+        items={[
+          { id: "overview", children: <EntityOverview /> },
+          { id: "properties", children: <EntityProperties /> },
+          { id: "history", children: <EntityHistory /> },
+        ]}
+      />
+    </Tabs>
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Tabs to split one page region into alternative views the user visits one at a time — an entity's Overview, Properties, and History.",
+    "Use link tabs (items with href, no panels) when each tab is a route and the page itself is the content.",
+    "Use the folder variant when the panel should read as a contained surface the active tab opens into — code or payload viewers, configuration panes.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use tabs for a display toggle that re-renders the same data — a table/graph/grid switch is SegmentedControl.",
+    "Don't use tabs to stage a linear flow users must complete in order — use separate pages or a Dialog sequence.",
+    "Don't hide content users need to compare side by side behind different tabs — lay it out together instead.",
+    "Don't exceed roughly 7 tabs — scrolling keeps them usable, but a Select or sidebar navigation scans better.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<Tabs value={tab} onChange={setTab}>
+  <Tabs.TabList items={tabItems} actions={actionButtons} />
+  <Tabs.TabContent items={panelItems} />
+</Tabs>
+```
+
+`Tabs` holds the selection and wires the parts together. `Tabs.TabList` can
+also be used standalone with its `selected` prop when there are no panels —
+see [Link tabs](#link-tabs).
+
+## Examples
+
+### Basic
+
+Selection is always controlled: pass the selected tab's `id` as `value` and
+update it from `onChange`. Panels pair with tabs by `id`.
+
+Set `variant`, `size`, or `orientation` once on `Tabs` and both children pick
+them up; either child can still override for itself.
+
+<Stage>
+  <div style={{ width: 360 }} data-harness>
+  <DemoState data-harness>
+      <Tabs value="overview" onChange={noop} variant="line" size="md" orientation="horizontal">
+        <Tabs.TabList
+          items={[
+            { id: "overview", children: "Overview" },
+            { id: "properties", children: "Properties" },
+            { id: "history", children: "History" },
+          ]}
+        />
+        <Tabs.TabContent
+          items={[
+            { id: "overview", children: "A summary of this entity." },
+            { id: "properties", children: "Every property and its value." },
+            { id: "history", children: "Changes made over time." },
+          ]}
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+</Stage>
+
+### Variants
+
+`line` underlines the selected tab, `pill` fills it, and `folder` raises it as
+a flap opening into a bordered panel. Prefer `line` for page-level sections,
+`pill` for lightweight switches inside panels, and `folder` where the panel is
+a contained surface.
+
+<Stage>
+  <div style={{ width: 360 }} data-harness>
+  <DemoState data-harness>
+      <Tabs value="overview" onChange={noop} variant="line">
+        <Tabs.TabList
+          items={[
+            { id: "overview", children: "Overview" },
+            { id: "properties", children: "Properties" },
+            { id: "history", children: "History" },
+          ]}
+        />
+        <Tabs.TabContent
+          items={[
+            { id: "overview", children: "A summary of this entity." },
+            { id: "properties", children: "Every property and its value." },
+            { id: "history", children: "Changes made over time." },
+          ]}
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+  <div style={{ width: 360 }} data-harness>
+  <DemoState data-harness>
+      <Tabs value="overview" onChange={noop} variant="pill">
+        <Tabs.TabList
+          items={[
+            { id: "overview", children: "Overview" },
+            { id: "properties", children: "Properties" },
+            { id: "history", children: "History" },
+          ]}
+        />
+        <Tabs.TabContent
+          items={[
+            { id: "overview", children: "A summary of this entity." },
+            { id: "properties", children: "Every property and its value." },
+            { id: "history", children: "Changes made over time." },
+          ]}
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+  <div style={{ width: 360 }} data-harness>
+  <DemoState data-harness>
+      <Tabs value="overview" onChange={noop} variant="folder">
+        <Tabs.TabList
+          items={[
+            { id: "overview", children: "Overview" },
+            { id: "properties", children: "Properties" },
+            { id: "history", children: "History" },
+          ]}
+        />
+        <Tabs.TabContent
+          items={[
+            { id: "overview", children: "A summary of this entity." },
+            { id: "properties", children: "Every property and its value." },
+            { id: "history", children: "Changes made over time." },
+          ]}
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+</Stage>
+
+### Sizes
+
+Four sizes run from `xs` to `lg`. Use `xs`/`sm` in dense chrome such as panel
+headers, and `lg` where the tabs head a whole page.
+
+<Stage>
+  <DemoState data-harness>
+    <Tabs value="overview" onChange={noop} size="xs">
+      <Tabs.TabList
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties" },
+          { id: "history", children: "History" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+  <DemoState data-harness>
+    <Tabs value="overview" onChange={noop} size="sm">
+      <Tabs.TabList
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties" },
+          { id: "history", children: "History" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+  <DemoState data-harness>
+    <Tabs value="overview" onChange={noop} size="md">
+      <Tabs.TabList
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties" },
+          { id: "history", children: "History" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+  <DemoState data-harness>
+    <Tabs value="overview" onChange={noop} size="lg">
+      <Tabs.TabList
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties" },
+          { id: "history", children: "History" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+</Stage>
+
+### Vertical
+
+Set `orientation="vertical"` for a column of tabs — arrow-key navigation
+switches to up/down, the hairline moves beside the tabs, and panels sit
+alongside the list.
+
+<Stage>
+  <div style={{ width: 360 }} data-harness>
+  <DemoState data-harness>
+      <Tabs value="overview" onChange={noop} orientation="vertical">
+        <Tabs.TabList
+          items={[
+            { id: "overview", children: "Overview" },
+            { id: "properties", children: "Properties" },
+            { id: "history", children: "History" },
+          ]}
+        />
+        <Tabs.TabContent
+          items={[
+            { id: "overview", children: "A summary of this entity." },
+            { id: "properties", children: "Every property and its value." },
+            { id: "history", children: "Changes made over time." },
+          ]}
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+</Stage>
+
+### Alignment
+
+`align` distributes tabs along a horizontal list: packed left, centered, or
+stretched across the full width.
+
+<Stage>
+  <DemoState data-harness>
+    <Tabs value="overview" onChange={noop}>
+      <Tabs.TabList
+        align="center"
+        className={css({ width: "[560px]" })}
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties" },
+          { id: "history", children: "History" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+  <DemoState data-harness>
+    <Tabs value="overview" onChange={noop}>
+      <Tabs.TabList
+        align="fullWidth"
+        className={css({ width: "[560px]" })}
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties" },
+          { id: "history", children: "History" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+</Stage>
+
+### Disabled tab
+
+Set `disabled` on an item to remove one view while the rest stay selectable.
+
+<Stage>
+  <DemoState data-harness>
+    <Tabs value="overview" onChange={noop}>
+      <Tabs.TabList
+        items={[
+          { id: "overview", children: "Overview" },
+          { id: "properties", children: "Properties", disabled: true },
+          { id: "history", children: "History" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+</Stage>
+
+### Link tabs
+
+Give items an `href` to render them as links, and use `TabList` standalone
+with `selected` when the page itself is the content — selection then follows
+the route rather than local state.
+
+<Stage>
+  <Tabs.TabList
+    selected="entities"
+    items={[
+      { id: "entities", children: "Entities", href: "#entities" },
+      { id: "types", children: "Types", href: "#types" },
+      { id: "integrations", children: "Integrations", href: "#integrations" },
+    ]}
+  />
+</Stage>
+
+### Actions
+
+`actions` pins extra controls at the trailing edge of the list — outside the
+tablist, aligned to the tabs' baseline, and excluded from scrolling. Size them
+below the tabs so they read as secondary.
+
+<Stage>
+  <div style={{ maxWidth: 440 }} data-harness>
+    <DemoState data-harness>
+      <Tabs value="overview" onChange={noop}>
+        <Tabs.TabList
+          items={[
+            { id: "overview", children: "Overview" },
+            { id: "properties", children: "Properties" },
+            { id: "links", children: "Links" },
+            { id: "history", children: "History" },
+            { id: "permissions", children: "Permissions" },
+            { id: "integrations", children: "Integrations" },
+          ]}
+          actions={
+            <>
+              <Button size="xs" variant="ghost" iconName="plus">
+                New view
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                iconName="ellipsis"
+                tooltip="More"
+              />
+            </>
+          }
+        />
+      </Tabs>
+    </DemoState>
+  </div>
+</Stage>
+
+### Item alignment
+
+When tabs differ in height, per-item `align` positions the shorter ones
+against the taller row.
+
+<Stage>
+  <DemoState data-harness>
+    <Tabs value="requests" onChange={noop}>
+      <Tabs.TabList
+        items={[
+          {
+            id: "requests",
+            children: "Requests",
+            className: css({ minHeight: "[64px]" }),
+          },
+          { id: "errors", children: "Errors", align: "top" },
+          { id: "latency", children: "Latency", align: "center" },
+          { id: "usage", children: "Usage", align: "bottom" },
+        ]}
+      />
+    </Tabs>
+  </DemoState>
+</Stage>
+
+## Behavior
+
+- Every panel renders up front and stays mounted; unselected panels are
+  hidden, so their state survives switching.
+- Overflowing lists scroll on their main axis with a fade effect instead of a scrollbar. `actions` stay pinned.
+
+## Content
+
+- Name each tab for its view with 1–2 word nouns — "Overview", "History",
+  "Permissions" — not actions ("View history").
+- Keep labels similar lengths so the row reads as equal peers; one long label
+  unbalances the strip.
+
+## Accessibility
+
+Tabs implements the
+[WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/). Tab moves into and
+out of the list, arrow keys move between tabs, and selection follows focus.
+
+### What Tabs provides
+
+- Tab/panel roles, ids, and `aria-controls`/`aria-labelledby` wiring automatically come from
+  the item `id`s.
+- Items with `href` render real `a` elements, and keyboard selection follows
+  the link, so link tabs work as plain navigation.
+- `actions` sit outside the tablist: they're reached with Tab, not arrow keys.
+
+### What you must do
+
+- Keep a readable text label inside each tab's `children` — it is the tab's
+  accessible name, even when you add icons or tooltips around it.
+
+## API reference
+
+### Tabs
+
+<PropsTable of={Tabs} />
+
+### Tabs.TabList
+
+Inside a `Tabs` root, `variant`, `size`, and `orientation` fall back to the
+root's values before these defaults.
+
+<PropsTable
+  of={Tabs.TabList}
+  defaults={{
+    variant: '"line"',
+    align: '"left"',
+    size: '"md"',
+    orientation: '"horizontal"',
+  }}
+/>
+
+### TabItem
+
+<PropsTable of={TabItemDoc} />
+
+### Tabs.TabContent
+
+Inside a `Tabs` root, `variant`, `size`, and `orientation` fall back to the
+root's values before these defaults.
+
+<PropsTable
+  of={Tabs.TabContent}
+  defaults={{
+    variant: '"line"',
+    size: '"md"',
+    orientation: '"horizontal"',
+  }}
+/>
