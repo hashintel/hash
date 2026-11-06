@@ -4,8 +4,8 @@ use error_stack::{Report, ResultExt as _};
 use rand::Rng;
 use rand_distr::Distribution;
 use type_system::ontology::json_schema::{
-    ArrayConstraints, ArraySchema, NumberConstraints, NumberSchema, SingleValueConstraints,
-    StringSchema, ValueConstraints,
+    ArraySchema, NumberConstraints, NumberSchema, SingleValueConstraints, StringSchema,
+    ValueConstraints,
 };
 
 use super::{StringConstraintsDistribution, StringConstraintsDistributionConfig};
@@ -39,7 +39,7 @@ impl Distribution<ValueConstraints> for SimpleValueConstraintsDistribution {
                 SingleValueConstraints::String(StringSchema::Constrained(string.sample(rng))),
             )),
             Self::Array => ValueConstraints::Typed(Box::new(SingleValueConstraints::Array(
-                ArraySchema::Constrained(Box::new(ArrayConstraints { items: None })),
+                ArraySchema::Constrained(Box::default()),
             ))),
             Self::Object => ValueConstraints::Typed(Box::new(SingleValueConstraints::Object)),
         }

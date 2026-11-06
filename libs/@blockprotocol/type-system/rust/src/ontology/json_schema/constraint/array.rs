@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use super::{
     BooleanSchema, Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType,
-    NumberSchema, StringSchema,
+    NumberSchema, SingleValueConstraints, StringSchema, ValueConstraints,
 };
 use crate::{
     knowledge::PropertyValue,
@@ -147,6 +147,10 @@ mod wasm {
     }
 }
 
+fn array_value_constraints(schema: ArraySchema) -> ValueConstraints {
+    ValueConstraints::Typed(Box::new(SingleValueConstraints::Array(schema)))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
@@ -169,10 +173,30 @@ impl Constraint for ArraySchema {
                 )
             }
             (Self::Tuple(lhs), Self::Constrained(rhs)) => {
+                if !rhs.allows_length(lhs.prefix_items.len()) {
+                    return Err(Report::new(
+                        ResolveClosedDataTypeError::IncompatibleConstraints(
+                            array_value_constraints(Self::Tuple(lhs)),
+                            array_value_constraints(Self::Constrained(Box::new(
+                                rhs.length_bounds(),
+                            ))),
+                        ),
+                    ));
+                }
                 // Combining tuple and array constraints is not supported, yet
                 (Self::Tuple(lhs), Some(Self::Constrained(rhs)))
             }
             (Self::Constrained(lhs), Self::Tuple(rhs)) => {
+                if !lhs.allows_length(rhs.prefix_items.len()) {
+                    return Err(Report::new(
+                        ResolveClosedDataTypeError::IncompatibleConstraints(
+                            array_value_constraints(Self::Constrained(Box::new(
+                                lhs.length_bounds(),
+                            ))),
+                            array_value_constraints(Self::Tuple(rhs)),
+                        ),
+                    ));
+                }
                 // Combining tuple and array constraints is not supported, yet
                 (Self::Constrained(lhs), Some(Self::Tuple(rhs)))
             }
@@ -230,35 +254,70 @@ impl ConstraintValidator<[PropertyValue]> for ArraySchema {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArrayConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<ArrayItemsSchema>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_items: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<usize>,
+}
+
+impl ArrayConstraints {
+    fn allows_length(&self, length: usize) -> bool {
+        self.min_items.is_none_or(|min_items| length >= min_items)
+            && self.max_items.is_none_or(|max_items| length <= max_items)
+    }
+
+    fn length_bounds(&self) -> Self {
+        Self {
+            min_items: self.min_items,
+            max_items: self.max_items,
+            ..Self::default()
+        }
+    }
 }
 
 impl Constraint for ArrayConstraints {
     fn intersection(
-        self,
+        mut self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
-        match (self.items, other.items) {
-            (Some(lhs), Some(rhs)) => {
-                let (combined, remainder) = lhs.intersection(rhs)?;
+        let mut remainder = None::<Self>;
 
-                Ok((
-                    Self {
-                        items: Some(combined),
-                    },
-                    remainder.map(|remainder| Self {
-                        items: Some(remainder),
-                    }),
-                ))
+        self.min_items = match self.min_items.zip(other.min_items) {
+            Some((lhs, rhs)) => Some(lhs.max(rhs)),
+            None => self.min_items.or(other.min_items),
+        };
+        self.max_items = match self.max_items.zip(other.max_items) {
+            Some((lhs, rhs)) => Some(lhs.min(rhs)),
+            None => self.max_items.or(other.max_items),
+        };
+        self.items = match (self.items, other.items) {
+            (Some(lhs), Some(rhs)) => {
+                let (combined, items_remainder) = lhs.intersection(rhs)?;
+                if let Some(items_remainder) = items_remainder {
+                    remainder.get_or_insert_default().items = Some(items_remainder);
+                }
+                Some(combined)
             }
-            (Some(items), None) | (None, Some(items)) => Ok((Self { items: Some(items) }, None)),
-            (None, None) => Ok((Self { items: None }, None)),
+            (lhs, rhs) => lhs.or(rhs),
+        };
+
+        if let Some((min_items, max_items)) = self.min_items.zip(self.max_items)
+            && min_items > max_items
+        {
+            return Err(Report::new(
+                ResolveClosedDataTypeError::UnsatisfiableConstraint(array_value_constraints(
+                    ArraySchema::Constrained(Box::new(self.length_bounds())),
+                )),
+            ));
         }
+
+        Ok((self, remainder))
     }
 }
 
@@ -266,9 +325,11 @@ impl ConstraintValidator<[PropertyValue]> for ArrayConstraints {
     type Error = [ArrayValidationError];
 
     fn is_valid(&self, value: &[PropertyValue]) -> bool {
-        self.items
-            .as_ref()
-            .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
+        self.allows_length(value.len())
+            && self
+                .items
+                .as_ref()
+                .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
     }
 
     fn validate_value(
@@ -277,6 +338,22 @@ impl ConstraintValidator<[PropertyValue]> for ArrayConstraints {
     ) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
 
+        if let Some(expected) = self.min_items
+            && value.len() < expected
+        {
+            status.capture(ArrayValidationError::MinItems {
+                actual: value.len(),
+                expected,
+            });
+        }
+        if let Some(expected) = self.max_items
+            && value.len() > expected
+        {
+            status.capture(ArrayValidationError::MaxItems {
+                actual: value.len(),
+                expected,
+            });
+        }
         if let Some(items) = &self.items {
             status.attempt(
                 value
@@ -402,7 +479,8 @@ mod tests {
     use crate::ontology::json_schema::{
         NumberValidationError, ValueConstraints,
         constraint::tests::{
-            check_constraints, check_constraints_error, check_schema_intersection, read_schema,
+            check_constraints, check_constraints_error, check_schema_intersection,
+            check_schema_intersection_error, read_schema,
         },
     };
 
@@ -511,6 +589,84 @@ mod tests {
                 expected: 0,
             }],
         );
+    }
+
+    #[test]
+    fn array_length() {
+        let array_schema = read_schema(&json!({
+            "type": "array",
+            "items": {
+                "type": "number",
+            },
+            "minItems": 2,
+            "maxItems": 3,
+        }));
+
+        check_constraints(&array_schema, json!([1, 2]));
+        check_constraints(&array_schema, json!([1, 2, 3]));
+        check_constraints_error(
+            &array_schema,
+            json!([1]),
+            [ArrayValidationError::MinItems {
+                actual: 1,
+                expected: 2,
+            }],
+        );
+        check_constraints_error(
+            &array_schema,
+            json!([1, 2, 3, 4]),
+            [ArrayValidationError::MaxItems {
+                actual: 4,
+                expected: 3,
+            }],
+        );
+        check_constraints_error(
+            &array_schema,
+            json!(["1"]),
+            [
+                ArrayValidationError::MinItems {
+                    actual: 1,
+                    expected: 2,
+                },
+                ArrayValidationError::Items,
+            ],
+        );
+    }
+
+    #[test]
+    fn array_length_without_items() {
+        let array_schema = read_schema(&json!({
+            "type": "array",
+            "minItems": 1,
+        }));
+
+        check_constraints(&array_schema, json!([1, "2", true]));
+        check_constraints_error(
+            &array_schema,
+            json!([]),
+            [ArrayValidationError::MinItems {
+                actual: 0,
+                expected: 1,
+            }],
+        );
+    }
+
+    #[test]
+    fn tuple_length() {
+        from_value::<ValueConstraints>(json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{"type": "number"}],
+            "minItems": 1,
+        }))
+        .expect_err("Deserialized tuple schema with `minItems`");
+        from_value::<ValueConstraints>(json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{"type": "number"}],
+            "maxItems": 1,
+        }))
+        .expect_err("Deserialized tuple schema with `maxItems`");
     }
 
     #[test]
@@ -647,6 +803,145 @@ mod tests {
     }
 
     #[test]
+    fn intersect_length_one() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 5,
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "number",
+                    },
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": {
+                    "type": "number",
+                },
+                "minItems": 2,
+                "maxItems": 5,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_length_both() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 5,
+                }),
+                json!({
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 8,
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 5,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_length_equal() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "minItems": 3,
+                }),
+                json!({
+                    "type": "array",
+                    "maxItems": 3,
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_length_invalid() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 5,
+                }),
+                json!({
+                    "type": "array",
+                    "minItems": 6,
+                    "maxItems": 8,
+                }),
+            ],
+            [ResolveClosedDataTypeError::UnsatisfiableConstraint(
+                from_value(json!({
+                    "type": "array",
+                    "minItems": 6,
+                    "maxItems": 5,
+                }))
+                .expect("should be a valid array schema"),
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_length_non_combinable_items() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "ipv4",
+                    },
+                    "minItems": 1,
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "hostname",
+                    },
+                    "maxItems": 4,
+                }),
+            ],
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "ipv4",
+                    },
+                    "minItems": 1,
+                    "maxItems": 4,
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "hostname",
+                    },
+                }),
+            ],
+        );
+    }
+
+    #[test]
     fn intersect_array_and_tuple() {
         let array = json!({
             "type": "array",
@@ -670,6 +965,70 @@ mod tests {
             [array.clone(), tuple.clone()],
         );
         check_schema_intersection([tuple.clone(), array.clone()], [tuple, array]);
+    }
+
+    #[test]
+    fn intersect_array_and_tuple_length() {
+        let array = json!({
+            "type": "array",
+            "items": {
+                "type": "number",
+            },
+            "minItems": 1,
+            "maxItems": 2,
+        });
+        let tuple = json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{
+                "type": "number",
+            }],
+        });
+        check_schema_intersection(
+            [array.clone(), tuple.clone()],
+            [array.clone(), tuple.clone()],
+        );
+        check_schema_intersection([tuple.clone(), array.clone()], [tuple, array]);
+    }
+
+    #[test]
+    fn intersect_array_and_tuple_length_incompatible() {
+        let array = json!({
+            "type": "array",
+            "items": {
+                "type": "number",
+            },
+            "minItems": 2,
+        });
+        let tuple = json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{
+                "type": "number",
+            }],
+        });
+        let array_bounds = from_value::<ValueConstraints>(json!({
+            "type": "array",
+            "minItems": 2,
+        }))
+        .expect("should be a valid array schema");
+        let tuple_schema =
+            from_value::<ValueConstraints>(tuple.clone()).expect("should be a valid tuple schema");
+
+        check_schema_intersection_error(
+            [array.clone(), tuple.clone()],
+            [ResolveClosedDataTypeError::IncompatibleConstraints(
+                array_bounds.clone(),
+                tuple_schema.clone(),
+            )],
+        );
+        check_schema_intersection_error(
+            [tuple, array],
+            [ResolveClosedDataTypeError::IncompatibleConstraints(
+                tuple_schema,
+                array_bounds,
+            )],
+        );
     }
 
     #[test]
