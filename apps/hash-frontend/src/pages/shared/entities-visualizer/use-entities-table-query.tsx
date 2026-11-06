@@ -31,6 +31,16 @@ import type {
   EntityTypeResolveDefinitions,
 } from "@local/hash-graph-sdk/ontology";
 
+/**
+ * A first page's summary, with the scope it was fetched for. It outlives its
+ * sequence on screen until the next first page arrives, so a reader checks the
+ * scope rather than assuming the current one.
+ */
+export type ScopedEntityTableSummary = {
+  summary: EntityTableSummary;
+  scopeKey: string;
+};
+
 export type EntitiesTableQueryData = {
   /** Whether a further page is available — see {@link loadMore}. */
   canLoadMore: boolean;
@@ -56,7 +66,7 @@ export type EntitiesTableQueryData = {
   /** Reads the sequence again from its first page. */
   restart: () => Promise<unknown>;
   /** The first page's summary: the filtered count plus the scope's type maps. */
-  summary: EntityTableSummary | null;
+  summary: ScopedEntityTableSummary | null;
   tableData: EntitiesTableData | null;
   totalResultCount: number | null;
   /**
@@ -80,7 +90,7 @@ type AccumulatedPages = {
   tableData: EntitiesTableData | null;
   /** What the rows already folded in carry over, so a page costs a page. */
   aggregates: TableDataAggregates | null;
-  summary: EntityTableSummary | null;
+  summary: ScopedEntityTableSummary | null;
   nextCursor: string | null;
   /**
    * The continuation tokens already folded into {@link tableData}, so a
@@ -177,6 +187,8 @@ export const useEntitiesTableQuery = (params: {
    */
   resolvedPinnedEntityTypeIds: VersionedUrl[] | null;
   sort: EntityTableSorting;
+  /** What the request's summary describes, stamped on it as it arrives. */
+  summaryScopeKey: string;
 }): EntitiesTableQueryData => {
   const {
     conversions,
@@ -189,6 +201,7 @@ export const useEntitiesTableQuery = (params: {
     limit,
     resolvedPinnedEntityTypeIds,
     sort,
+    summaryScopeKey,
   } = params;
 
   const awaitingPinnedTypes =
@@ -412,7 +425,11 @@ export const useEntitiesTableQuery = (params: {
           requestKey,
           tableData,
           aggregates,
-          summary: response.summary ?? (continues ? current.summary : null),
+          summary: response.summary
+            ? { summary: response.summary, scopeKey: summaryScopeKey }
+            : continues
+              ? current.summary
+              : null,
           nextCursor: response.cursor ?? null,
           consumedCursors: continues
             ? new Set([...current.consumedCursors, pageCursor])
@@ -441,7 +458,14 @@ export const useEntitiesTableQuery = (params: {
             };
       }
     });
-  }, [data, requestKey, variables, hideColumns, hideArchivedColumn]);
+  }, [
+    data,
+    requestKey,
+    variables,
+    hideColumns,
+    hideArchivedColumn,
+    summaryScopeKey,
+  ]);
 
   // Processing errors are backend/frontend contract breaks that reproduce on
   // every retry — without the report they are invisible in production.
@@ -525,7 +549,7 @@ export const useEntitiesTableQuery = (params: {
       restart,
       summary: pages?.summary ?? null,
       tableData: pages?.tableData ?? null,
-      totalResultCount: pages?.summary?.count ?? null,
+      totalResultCount: pages?.summary?.summary.count ?? null,
       unresolvablePins,
     };
   }, [

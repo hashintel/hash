@@ -5,10 +5,7 @@ import { atLeastOne } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { SortMenu } from "@hashintel/ds-components";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  type EntityTableSummary,
-  getClosedMultiEntityTypeFromMap,
-} from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemPropertyTypes,
@@ -57,6 +54,7 @@ import type {
 } from "./entities-visualizer/entities-table-data";
 import type { EntitiesFilterState } from "./entities-visualizer/shared/filter-state";
 import type { TypeColorOverrides } from "./entities-visualizer/shared/type-colors";
+import type { ScopedEntityTableSummary } from "./entities-visualizer/use-entities-table-query";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type { VisualizerView } from "./visualizer-views";
 import type {
@@ -295,10 +293,8 @@ export const EntitiesVisualizer: FunctionComponent<{
    * needs its resolved pins) derive the filter chips from it without a fetch
    * of its own.
    */
-  const [tableSummary, setTableSummary] = useState<{
-    summary: EntityTableSummary;
-    scopeKey: string;
-  } | null>(null);
+  const [tableSummary, setTableSummary] =
+    useState<ScopedEntityTableSummary | null>(null);
   const [tableSummaryError, setTableSummaryError] = useState<Error>();
 
   /**
@@ -386,6 +382,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     limit: 500,
     resolvedPinnedEntityTypeIds: pinnedEntityTypeIds,
     sort: tableSort,
+    summaryScopeKey,
   });
 
   const entitiesData = useEntitiesVisualizerData({
@@ -404,12 +401,9 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   useEffect(() => {
     if (tableQuery.summary) {
-      setTableSummary({
-        summary: tableQuery.summary,
-        scopeKey: summaryScopeKey,
-      });
+      setTableSummary(tableQuery.summary);
     }
-  }, [tableQuery.summary, summaryScopeKey]);
+  }, [tableQuery.summary]);
 
   useEffect(() => {
     setTableSummaryError(tableQuery.error);
