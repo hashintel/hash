@@ -249,4 +249,19 @@ describe("document", () => {
     expect(deprecated("choose")).toBe(false);
     expect(deprecated("old")).toBe(true);
   });
+
+  test("deprecated_entrypoint", async () => {
+    expect.hasAssertions();
+    const result = await Reference.success({
+      source:
+        "/** Old. @deprecated Use the other one. @module */ export interface Value {}",
+    });
+    const overview = Array.findFirst(
+      result.document.pages,
+      (tree) => tree.type === "overview",
+    ).pipe(Option.getOrThrow);
+    expect(
+      Array.map(overview.entrypoints, ({ deprecated }) => deprecated),
+    ).toStrictEqual([true]);
+  });
 });
