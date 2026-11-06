@@ -27,6 +27,7 @@ import {
   runTriggerId,
   signOffId,
   warningsText,
+  runWhen,
 } from "./run-history";
 import { type LogRow, logRows, secondsText } from "./run-log";
 import { BusinessRunLog, runLogTake } from "./run-log-business";
@@ -630,7 +631,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
               duration,
               // ?triggerfired=2 names the trigger on its own line below.
               triggerFiredTake === 2 ? "" : trigger,
-              run.when.replace(", ", " "),
+              runWhen(run),
             ]
               .filter(Boolean)
               .join(" · ")}

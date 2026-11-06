@@ -13,7 +13,7 @@ import { HashShell } from "./hash-shell";
 import { Home } from "./home";
 import { navigate, routePath, useLocation } from "./router";
 import { runLabel } from "./run-id";
-import { outcomeOf, outcomeState, runProgress } from "./run-history";
+import { outcomeOf, outcomeState, runProgress, runWhen } from "./run-history";
 import { monthlyReviewId } from "./seed-flows";
 import {
   triggerAddStep,
@@ -148,7 +148,7 @@ export const RoutedApp = () => {
                       ? {
                           state: outcomeState[outcomeOf(newest, listedAt)],
                           progress: runProgress(newest, listedAt),
-                          label: `${runLabel(newest)} · ${newest.when.replace(", ", " ")}`,
+                          label: `${runLabel(newest)} · ${runWhen(newest)}`,
                         }
                       : undefined,
                   };

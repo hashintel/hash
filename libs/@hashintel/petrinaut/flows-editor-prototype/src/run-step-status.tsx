@@ -27,6 +27,7 @@ import {
   type StepRun,
   type StepState,
   suppliers,
+  runWhen,
 } from "./run-history";
 
 const strongLineStyle = css({ textStyle: "sm", color: "neutral.fg.heading" });
@@ -51,11 +52,6 @@ const durationText = (total: number) => {
 };
 
 /** "Today, 08:15" → "5 Nov"; "2 Nov, 16:20" → "2 Nov". */
-const runDate = (run: RunRecord) => {
-  const day = run.when.split(",")[0] ?? "";
-  return day === "Today" ? "5 Nov" : day;
-};
-
 /** When the step started and ended, in seconds from the run's start; `to` is empty while it runs. */
 const stepTiming = (
   stepId: string,
@@ -104,7 +100,7 @@ export const StepStatusLines = ({
         ? runClock(run, now)
         : undefined
       : timing.to;
-  const started = `${runDate(run)}, ${clockPlus(run.startClock, timing.from).slice(0, 5)}`;
+  const started = runWhen(run, clockPlus(run.startClock, timing.from));
   const first =
     end === undefined
       ? started

@@ -459,6 +459,17 @@ export const warningsText = (count: number) =>
   `${count} ${count === 1 ? "warning" : "warnings"}`;
 
 /** "Completed · 2 warnings", "Failed", "Running". */
+/**
+ * When a run, or a moment in it, happened, by one rule everywhere: "Today, 08:15", "Yesterday, 08:15",
+ * "5 Nov, 08:15" (a past year adds it: "18 Nov 2025, 09:00"). `clock` ("08:15:02") replaces the run's start time.
+ */
+export const runWhen = (run: Pick<RunRecord, "when">, clock?: string) => {
+  const comma = run.when.lastIndexOf(", ");
+  const day = comma < 0 ? run.when : run.when.slice(0, comma);
+  const time = comma < 0 ? "" : run.when.slice(comma + 2);
+  return `${day}, ${(clock ?? time).slice(0, 5)}`;
+};
+
 export const statusText = (run: RunRecord, now: number) => {
   const warnings = warningsOf(run, now);
   const label = outcomeLabel[outcomeOf(run, now)];

@@ -23,6 +23,7 @@ import {
   pastRuns,
   type RunRecord,
   type StepState,
+  runWhen,
 } from "./run-history";
 import { type RunOutputs, runOutputs } from "./run-outputs";
 
@@ -355,7 +356,7 @@ const Head = ({
           {runLabel(run)}
         </span>
         <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
-          {run.when.replace(", ", " ")}
+          {runWhen(run)}
         </span>
       </div>
       <span className={sentenceStyle}>{sentence}</span>
