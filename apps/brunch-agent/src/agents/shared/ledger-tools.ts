@@ -70,12 +70,16 @@ export const createLedgerCommitTool = (
     },
   });
 
-/** `ledger_compile`: the committed Ledger rendered as the Markdown map. */
+/**
+ * The committed Ledger rendered as the Markdown map: `ledger_compile` for the
+ * Petrinaut agent, `ledger_query` for the HASH agent.
+ */
 export const createLedgerCompileTool = (
   readHistory: () => Promise<LedgerHistory>,
+  name: string = brunchTools.ledgerCompile,
 ) =>
   defineTool({
-    name: brunchTools.ledgerCompile,
+    name,
     description: compileToolDescription,
     input: v.strictObject({}),
     output: v.strictObject({
@@ -96,11 +100,12 @@ export const createLedgerCompileTool = (
     },
   });
 
-/** `ledger_commit` and `ledger_compile` over this agent's Ledger. */
+/** `ledger_commit` and the Ledger map over this agent's Ledger, the map under `queryName`. */
 export const createLedgerTools = (
   readHistory: () => Promise<LedgerHistory>,
   input?: typeof vLedgerAppend,
+  queryName?: string,
 ) => [
   createLedgerCommitTool(readHistory, input),
-  createLedgerCompileTool(readHistory),
+  createLedgerCompileTool(readHistory, queryName),
 ];

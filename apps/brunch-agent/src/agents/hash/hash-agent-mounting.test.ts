@@ -8,10 +8,10 @@ import {
   agentOwnershipHeaders,
   brunchRoutes,
   brunchTools,
+  hashProcessEditorId,
   petrinautContextualUserMessageBody,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { flueConversationId } from "../../shared/conversation/identity.ts";
 import {
@@ -113,6 +113,23 @@ const bound = {
     documentId: "document",
   },
 };
+/** What a mounted input schema offers whatever its library. */
+type StandardSchema = {
+  readonly "~standard": {
+    readonly validate: (
+      value: unknown,
+    ) => { readonly issues?: unknown } | Promise<{ readonly issues?: unknown }>;
+  };
+};
+const place = {
+  id: "queue",
+  name: "Queue",
+  colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
+};
 const systemPrompt = async () =>
   (
     await readFile(new URL("./prompts/system.md", import.meta.url), "utf8")
@@ -136,7 +153,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test("a document binding mounts the guidance, the complete canonical catalogue, the Ledger, the draft and HASH's graph reads", async () => {
+test("a document binding mounts the guidance, the Ledger, HASH's graph reads and Save, and HASH's own Petrinaut tools, with no canonical Petrinaut tool left", async () => {
   mounted.initialData = bound;
   const { HashAgent: renderAgent } = await import("./agent.ts");
   expect(renderAgent({ id: "bound" })).toBe(await systemPrompt());
@@ -147,24 +164,59 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
     "petrinaut",
     "hash-graph",
   ]);
-  expect(mounted.tools).toEqual(
-    expect.arrayContaining([
-      brunchTools.ledgerCommit,
-      brunchTools.ledgerCompile,
-      brunchTools.queryBasis,
-      brunchTools.ping,
-      "readNetOutline",
-      "readNetStructure",
-      brunchTools.draftPetrinautExperiment,
-      brunchTools.queryHashEntities,
-      brunchTools.queryHashEntityTypes,
-      brunchTools.queryHashWebs,
-      brunchTools.saveHashNet,
-      ...Object.keys(petrinautAiTools),
-    ]),
+  // HASH's names throughout; no `ping`, no net readers, no experiment draft,
+  // and no canonical Petrinaut tool: the net is read, changed and run, and the
+  // user guide read, only through HASH's own.
+  expect(mounted.tools.toSorted()).toEqual(
+    [
+      "ledger_commit",
+      "ledger_query",
+      "ledger_query_basis",
+      "hash_query_entities",
+      "hash_query_entity_types",
+      "hash_query_webs",
+      "app_save_net",
+      "petrinaut_read_guide",
+      "petrinaut_get_net",
+      "petrinaut_get_diagnostics",
+      "petrinaut_set_net_title",
+      "petrinaut_layout_auto",
+      "petrinaut_create_experiment",
+      ...[
+        "place",
+        "transition",
+        "arc",
+        "type",
+        "type_element",
+        "equation",
+        "parameter",
+        "scenario",
+        "metric",
+        "subnet",
+        "component",
+      ].flatMap((kind) =>
+        ["create", "update", "remove"].map(
+          (verb) => `petrinaut_${verb}_${kind}`,
+        ),
+      ),
+    ].toSorted(),
+  );
+  // Every HASH Petrinaut tool names the editor it acts on, which the system
+  // prompt gives.
+  const createPlace = mounted.inputs.get("petrinaut_create_place") as
+    | StandardSchema
+    | undefined;
+  const validates = async (value: unknown) =>
+    (await createPlace?.["~standard"].validate(value))?.issues === undefined;
+  expect(await validates(place)).toBe(false);
+  expect(await validates({ ...place, editor_id: hashProcessEditorId })).toBe(
+    true,
+  );
+  expect(await systemPrompt()).toContain(
+    `The net is open in one editor, whose \`editor_id\` is \`"${hashProcessEditorId}"\``,
   );
   // The save names the bound net, the one the editor that sent the turn has open.
-  expect(mounted.descriptions.get(brunchTools.saveHashNet)).toBe(
+  expect(mounted.descriptions.get(brunchTools.appSaveNet)).toBe(
     hashSaveDescription("document"),
   );
   expect(hashSaveDescription("document")).toContain(
@@ -174,13 +226,13 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
   expect(hashSaveDescription("document")).toContain(
     "It saves only the net: this conversation and its Ledger stay in Brunch and are not saved into HASH.",
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toBe(
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntities)).toBe(
     hashEntityReadDescription,
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntityTypes)).toBe(
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntityTypes)).toBe(
     hashEntityTypeReadDescription,
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashWebs)).toBe(
+  expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toBe(
     hashWebReadDescription,
   );
   // Petrinaut, runtime, experiment and query_basis guidance live in the
@@ -189,10 +241,8 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
   expect(mounted.descriptions.get(brunchTools.ledgerCommit)).toBe(
     commitToolDescription,
   );
-  expect(mounted.descriptions.get(brunchTools.ledgerCompile)).toBe(
-    compileToolDescription,
-  );
-  expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
+  expect(mounted.descriptions.get("ledger_query")).toBe(compileToolDescription);
+  expect(mounted.descriptions.get("ledger_query_basis")).toBe(
     queryBasisToolDescription,
   );
 });
@@ -206,13 +256,7 @@ test("a conversation without initial data mounts the guidance and Ledger without
     "petrinaut",
     "hash-graph",
   ]);
-  expect(mounted.tools.sort()).toEqual(
-    [
-      brunchTools.ledgerCommit,
-      brunchTools.ledgerCompile,
-      brunchTools.ping,
-    ].sort(),
-  );
+  expect(mounted.tools.sort()).toEqual(["ledger_commit", "ledger_query"]);
   expect(mounted.instructions).toEqual([]);
 });
 
@@ -229,14 +273,14 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(hashPrompt).toContain(hashGraphParagraph);
   expect(hashPrompt).toContain("Load `hash-graph`");
   expect(mounted.skills).toContain("hash-graph");
-  expect(mounted.descriptions.get(brunchTools.queryHashWebs)).toContain(
-    "Read it first, before query_hash_entities and query_hash_entity_types.",
+  expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toContain(
+    "Read it first, before hash_query_entities and hash_query_entity_types.",
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntityTypes)).toContain(
-    "Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntityTypes)).toContain(
+    "Read it after hash_query_webs and hash_query_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
   );
-  expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toContain(
-    "Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds",
+  expect(mounted.descriptions.get(brunchTools.hashQueryEntities)).toContain(
+    "Read webs with hash_query_webs first, for the web ids to filter by; then read the types of the entities found with hash_query_entity_types, by their entityTypeIds",
   );
 
   mounted.skills.length = 0;
@@ -245,8 +289,8 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(petrinautPrompt).not.toContain(hashGraphParagraph);
   expect(petrinautPrompt).not.toContain("hash-graph");
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
-  expect(mounted.descriptions.has(brunchTools.queryHashWebs)).toBe(false);
-  expect(mounted.descriptions.has(brunchTools.saveHashNet)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.hashQueryWebs)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.appSaveNet)).toBe(false);
 });
 
 /** Every description of the evidenced origin in the parameters Flue sends for the mounted `ledger_commit`. */

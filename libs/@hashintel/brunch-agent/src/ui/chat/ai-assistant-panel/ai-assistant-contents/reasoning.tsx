@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { AssistantMarkdown } from "./shared/assistant-markdown";
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { markdownStyle } from "./shared/markdown-style";
+import { ModelMarkdown } from "./shared/model-markdown";
 import { StreamingEllipsis } from "./shared/streaming-ellipsis";
 
 import type { PetrinautReasoningMetadata } from "../types";
@@ -345,7 +345,7 @@ export const AiAssistantReasoning = ({
           {body ? (
             <div className={markdownStyle}>
               {isBrunch && heading && <strong>{heading}</strong>}
-              <AssistantMarkdown>{body}</AssistantMarkdown>
+              <ModelMarkdown>{body}</ModelMarkdown>
             </div>
           ) : isStreaming ? (
             <div

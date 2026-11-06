@@ -177,8 +177,10 @@ test.each(["Dismiss", "Run"] as const)(
       input: {},
       toolCallId: "read-1",
       handle,
-      // A read edits nothing.
+      // A read edits nothing, renames nothing and runs nothing.
       edit: {} as never,
+      document: {} as never,
+      experiments: {} as never,
       readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,
     });

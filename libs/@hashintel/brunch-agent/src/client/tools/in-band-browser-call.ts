@@ -1,12 +1,13 @@
 import {
   agentOwnershipHeaders,
-  browserExecutedToolInputParsers,
-  browserNetToolNames,
   brunchRoutes,
-  brunchTools,
   canonicalContent,
-  hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
+
+import {
+  browserExecutedTools,
+  browserToolFacts,
+} from "../../petrinaut/browser-executed-tools";
 
 import type { BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
@@ -56,7 +57,7 @@ export const createInBandBrowserCalls = (input: {
     toolName: string;
     input: unknown;
   }) => void;
-  readonly admit?: InBandBrowserCallAdmission;
+  readonly admit: InBandBrowserCallAdmission;
   /** Whether a change issued against `expected` may still run on the bound document. */
   readonly acceptsRevision: (expected: string) => boolean;
   /** Carries the claim, lease, fail and result requests; the global `fetch` when omitted. */
@@ -100,7 +101,7 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputParser = browserExecutedToolInputParsers[call.toolName];
+    const inputParser = browserExecutedTools.get(call.toolName)?.inputParser;
     if (
       !issued ||
       issued.toolName !== call.toolName ||
@@ -198,12 +199,8 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    // The draft runs through its own card; HASH's graph reads and Save run
-    // here as host tools beside the net tools.
-    has: (toolName: string) =>
-      browserNetToolNames.has(toolName) ||
-      hashGraphReadToolNames.has(toolName) ||
-      toolName === brunchTools.saveHashNet,
+    // A tool an interactive card runs, such as the draft, is claimed there.
+    has: (toolName: string) => browserToolFacts(toolName).automatic,
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
@@ -217,7 +214,7 @@ export const createInBandBrowserCalls = (input: {
       let started = false;
       try {
         if (call.signal.aborted) return;
-        const admission = (await input.admit?.(call)) ?? { admitted: true };
+        const admission = await input.admit(call);
         if (!admission.admitted) {
           await issued.submit(admission.output);
           return;

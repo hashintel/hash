@@ -1,10 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import {
-  brunchTools,
-  canonicalContent,
-  hashGraphReadToolNames,
-} from "@hashintel/brunch-agent";
+import { brunchTools, canonicalContent } from "@hashintel/brunch-agent";
 
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
@@ -59,6 +55,7 @@ test("an unknown mutation record is submitted without failing the call", async (
         Parameters<typeof createInBandBrowserCalls>[0]["metadataFor"]
       >,
     prepareInput: () => {},
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
 
@@ -104,6 +101,7 @@ test("the binding matches the issued call whatever its key order", async () => {
     binding: reordered,
     metadataFor: () => undefined,
     prepareInput: () => {},
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
 
@@ -163,6 +161,7 @@ const createCalls = (
     binding,
     metadataFor: () => undefined,
     prepareInput,
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
 
@@ -233,6 +232,46 @@ test("a call stopped during its claim neither executes nor reports", async () =>
   expect(posted).toEqual([]);
 });
 
+test("a call the server issues after a few refused claims is still claimed and run", async () => {
+  let claims = 0;
+  const posted: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url, init) => {
+      if (init?.method === "POST") {
+        posted.push(typeof url === "string" ? url : "");
+        return new Response(null, { status: 200 });
+      }
+      claims += 1;
+      return claims < 3
+        ? new Response(null, { status: 404 })
+        : Response.json({
+            capability: "capability",
+            binding: canonicalContent(binding),
+            toolName: "addPlace",
+            input,
+          });
+    }),
+  );
+  const execute = vi.fn(async () => ({ applied: true }));
+
+  await createCalls().run(
+    {
+      toolCallId: "call",
+      toolName: "addPlace",
+      input,
+      signal: new AbortController().signal,
+    },
+    execute,
+  );
+
+  expect(claims).toBe(3);
+  expect(execute).toHaveBeenCalledOnce();
+  expect(posted).toEqual([
+    "http://brunch.local/agents/petrinaut/instance/browser-calls/call",
+  ]);
+});
+
 test("a change whose expected revision the document has left is reported stale and never prepared", async () => {
   const posted: unknown[] = [];
   vi.stubGlobal(
@@ -263,6 +302,7 @@ test("a change whose expected revision the document has left is reported stale a
     binding,
     metadataFor: () => undefined,
     prepareInput,
+    admit: async () => ({ admitted: true }),
     acceptsRevision: (expected) => {
       accepted.push(expected);
       return false;
@@ -283,7 +323,7 @@ test("a change whose expected revision the document has left is reported stale a
 });
 
 const hashRead = {
-  toolName: brunchTools.queryHashEntities,
+  toolName: brunchTools.hashQueryEntities,
   input: { entityTypes: ["Supplier"], traversalDepth: 1 },
 };
 const stubHashReadFetch = () => {
@@ -308,16 +348,6 @@ const stubHashReadFetch = () => {
   return posted;
 };
 
-test("HASH's graph reads run in band beside the net tools, and the draft still runs through its card", () => {
-  const calls = createCalls();
-  expect(hashGraphReadToolNames.size).toBe(3);
-  for (const name of hashGraphReadToolNames) expect(calls.has(name)).toBe(true);
-  expect(calls.has(brunchTools.saveHashNet)).toBe(true);
-  expect(calls.has("readNetOutline")).toBe(true);
-  expect(calls.has(brunchTools.draftPetrinautExperiment)).toBe(false);
-  expect(calls.has("unmounted_tool")).toBe(false);
-});
-
 test("HASH's entity read is claimed for the input the server issued and settles with the page's result", async () => {
   const posted = stubHashReadFetch();
   const output = { entities: [] };
@@ -338,7 +368,7 @@ test("HASH's entity read is claimed for the input the server issued and settles 
     "http://brunch.local/agents/petrinaut/instance/browser-calls/read",
   ]);
   expect(posted[0]?.body).toMatchObject({
-    toolName: brunchTools.queryHashEntities,
+    toolName: brunchTools.hashQueryEntities,
     canonicalInput: hashRead.input,
     output,
   });

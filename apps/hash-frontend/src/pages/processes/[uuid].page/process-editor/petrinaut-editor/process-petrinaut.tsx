@@ -11,11 +11,12 @@ import {
 import { brunchRoutes } from "@hashintel/brunch-agent";
 import {
   BrunchAssistantContext,
+  type BrunchHostSave,
   type BrunchOpenDocument,
   brunchPlugin,
+  hashPetrinautHostTools,
   type PetrinautAiAssistant,
   type PetrinautAiAutomaticTool,
-  type ReadBrunchDocumentSaveState,
   useBrunchAssistant,
   type VersionLoad,
 } from "@hashintel/brunch-agent/ui";
@@ -27,7 +28,6 @@ import {
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../../shared/auth-info-context";
-import { createHashSaveTool, type SaveNetForAgent } from "./brunch-hash-save";
 import { useBrunchHashGraphReadTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
 
@@ -135,7 +135,7 @@ const BrunchSession = memo(
     openDocument,
     shown,
     hostTools,
-    readSaveState,
+    hostSave,
     versionLoad,
     onChange,
   }: {
@@ -144,11 +144,12 @@ const BrunchSession = memo(
     /** The editor shows Brunch's assistant. */
     shown: boolean;
     /**
-     * Reads of the HASH graph, run here as the signed-in user, and the agent's
-     * save, run through the editor's Save once the user approves it.
+     * Reads of the HASH graph, run here as the signed-in user, and the
+     * agent's Petrinaut tools, run on the editor.
      */
     hostTools: readonly PetrinautAiAutomaticTool[];
-    readSaveState: ReadBrunchDocumentSaveState;
+    /** The editor's Save, which the agent runs once the user approves it. */
+    hostSave: BrunchHostSave;
     /**
      * Brunch tells its agent about a load once, on the next turn, and the
      * Ledger marks reflections on elements the loaded version lacks.
@@ -166,7 +167,7 @@ const BrunchSession = memo(
       interviewBudget: brunchInterviewBudget,
       words: brunchWords,
       hostTools,
-      readSaveState,
+      hostSave,
       ...(versionLoad === undefined ? {} : { versionLoad }),
     });
 
@@ -189,8 +190,7 @@ export const ProcessPetrinaut = ({
   handle,
   savedEntityId,
   readTitle,
-  readSaveState,
-  saveNetForAgent,
+  hostSave,
   versionLoad,
   readonly,
   setTitle,
@@ -201,10 +201,8 @@ export const ProcessPetrinaut = ({
   savedEntityId: EntityId | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
-  /** What the editor's Save would do now, read for the agent's save card. Stable for the handle. */
-  readSaveState: ReadBrunchDocumentSaveState;
-  /** Runs the editor's Save for the agent. Stable for the handle. */
-  saveNetForAgent: SaveNetForAgent;
+  /** The editor's Save, for the agent: what it would do now, and running it. Stable for the handle. */
+  hostSave: BrunchHostSave;
   /** The latest load of another saved version of the open net, while the open net builds on it. */
   versionLoad: VersionLoad | undefined;
   /** The user may not edit or save this net. */
@@ -215,8 +213,8 @@ export const ProcessPetrinaut = ({
   const ownerKey = useBrunchOwnerKey();
   const graphReads = useBrunchHashGraphReadTools();
   const hostTools = useMemo(
-    () => [...graphReads, createHashSaveTool(saveNetForAgent)],
-    [graphReads, saveNetForAgent],
+    () => [...graphReads, ...hashPetrinautHostTools],
+    [graphReads],
   );
   const [brunchAssistant, setBrunchAssistant] =
     useState<PetrinautAiAssistant | null>(null);
@@ -252,7 +250,7 @@ export const ProcessPetrinaut = ({
           openDocument={openDocument}
           shown={brunchShown}
           hostTools={hostTools}
-          readSaveState={readSaveState}
+          hostSave={hostSave}
           versionLoad={versionLoad}
           onChange={setBrunchAssistant}
         />

@@ -249,13 +249,18 @@ export const queryBasis = (input: {
   };
 };
 
-/** `query_basis` over the net's recorded changes and this agent's Ledger. */
+/**
+ * The basis query over the net's recorded changes and this agent's Ledger:
+ * `query_basis` for the Petrinaut agent, `ledger_query_basis` for the HASH
+ * agent.
+ */
 export const createQueryBasisTool = (options: {
   browser: BrowserContext;
   history: () => Promise<FlueConversationSnapshot>;
+  name?: string;
 }) =>
   defineTool({
-    name: brunchTools.queryBasis,
+    name: options.name ?? brunchTools.queryBasis,
     description: queryBasisToolDescription,
     input: vElement,
     output: v.custom<ReturnType<typeof queryBasis>>(() => true),

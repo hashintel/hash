@@ -20,7 +20,7 @@ The net supplies candidate executable inputs, judged from a current read:
 - a saved scenario for the stated regime exists (`definition.scenarios[]`);
 - that scenario has a saved scenario parameter for each lever being varied, of a type that can be swept;
 - a saved metric exists for the objective (`definition.metrics[]`);
-- the net has no reported errors from `getNetCompilationErrors`, which does not check saved scenario or metric code.
+- the net has no reported errors from `petrinaut_get_diagnostics`, which does not check saved scenario or metric code.
 
 **Readiness is the conjunction** of both lists. It is proposal readiness, not proof that saved scenario or metric code compiles. Structure alone never triggers a proposal. The net alone never supplies the objective. If parameters and metrics exist but no `purpose` and `direction` or `optimum` is confirmed, there is nothing to propose.
 
@@ -32,7 +32,7 @@ When a Ledger record is confirmed and its net counterpart is missing, that is or
 
 ## Correspondence table
 
-Each Ledger record maps to one destination in `PetrinautExperimentRequest`, or to `unsupported`. The `petrinaut` skill's experiment reference gives each field's limits.
+Each Ledger record maps to one destination in `PetrinautExperimentRequest`, or to `unsupported`: the restrictions the proposal names as not enforced by the run. The `petrinaut` skill's experiment reference gives each field's limits.
 
 | Ledger record                                                                                        | Request destination                                                                                                              | Fidelity and mandatory disclosure                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -53,25 +53,25 @@ Each Ledger record maps to one destination in `PetrinautExperimentRequest`, or t
 
 ## Mandatory declarations
 
-Every proposal carries, in `declarations`:
+Every proposal states, in the conversation:
 
 - the unit and conversion for each numeric field (`min`, `max`, `dt`, `maxTime`, fixed values);
 - for each metric, whether it is last-frame, accumulated or peak, and whether it is the objective or "reported, not enforced";
 - for each chosen budget number (`runCount`, `steps`, `runsPerStep`, `seed`), that it is agent inference and what it respects;
 - what the result must not claim, in the USER's words.
 
-Every proposal carries, in `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. Set `blocksRun: true` for a hard or load-bearing restriction; omission also blocks Run. Set `blocksRun: false` only when the USER explicitly accepts a reporting-only exploration; do not claim that acceptance is mechanically verified. A reporting metric does not itself authorize running. An empty list means the USER stated no restriction, not that restrictions are enforced.
+Every proposal names, as `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. A hard or load-bearing restriction blocks the run until the USER explicitly accepts a reporting-only exploration; do not claim that acceptance is mechanically verified. A reporting metric does not itself authorize running. No unsupported restriction means the USER stated none, not that restrictions are enforced.
 
-Disclose which choices are inference in `declarations`.
+Say which choices are inference.
 
 ## The proposal and the tool
 
 When ready, do two things in one turn, in this order:
 
 1. Say one short sentence in the USER's vocabulary naming what varies, over what range and unit, under which saved scenario, what is minimized or maximized, and anything load-bearing that is not carried. In typology terms: "I have enough to test the tunable-count decision: vary the count from 3 to 9 units under the named regime and minimize the last-frame delay measure over the eight-unit horizon. The hard stock limit of 200 tokens is not enforced by the run; peak stock is reported beside the result." Replace those typology terms with the USER's vocabulary in the actual proposal.
-2. Call `draft_petrinaut_experiment` once, as the `petrinaut` skill's experiment reference describes.
+2. Ask whether to run it. Call `petrinaut_create_experiment` only once the USER agrees, as the `petrinaut` skill's experiment reference describes; a study larger than its size limit is described for the USER to run in Petrinaut's experiments view instead.
 
-If a load-bearing restriction lands in `unsupported`, state that gap in the sentence before the tool call and explain that Run is blocked. Do not tell the USER to press Run while a blocking restriction remains. If they explicitly accept a reporting-only exploration, redraft without claiming the restriction is enforced.
+If a load-bearing restriction is unsupported, state that gap in the proposal and do not run while it blocks. If the USER explicitly accepts a reporting-only exploration, run it without claiming the restriction is enforced.
 
 ## Once, not repeatedly
 
@@ -85,4 +85,4 @@ Treat an explicit "do not run" stated in the conversation as authoritative until
 - Never propose on a range, unit, threshold, horizon or objective the USER has not stated or confirmed; a stand-in parameter's placeholder value is not a stated range. Construct missing prerequisites first and ask for missing facts.
 - Never encode a hard restriction as an objective penalty.
 - Never claim a restriction is enforced; the request carries none.
-- Never call `draft_petrinaut_experiment` as a way to run, or describe a drafted proposal as saved, running or applied.
+- Never run an experiment the USER has not agreed to in the conversation, or describe a proposal as saved, running or applied before it runs.

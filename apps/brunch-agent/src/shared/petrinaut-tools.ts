@@ -17,6 +17,9 @@ import {
 
 import type { BrowserToolExecutor } from "./conversation/browser-tool-executor.ts";
 
+/** Petrinaut's canonical tools, each executed through the browser-call rendezvous. */
+export { asyncCanonicalPetrinautTools };
+
 type SdcpnToolOptions = {
   readonly executeBrowserTool?: BrowserToolExecutor;
   readonly authorizeDraft?: Parameters<

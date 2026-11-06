@@ -24,6 +24,7 @@ import {
   type BrowserCallFailureDisposition,
   brunchTools,
   canonicalContent,
+  hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -137,7 +138,7 @@ test("a save with no view of the net in context is refused as not started and ne
   steps.push(
     () =>
       fauxAssistantMessage(
-        [fauxToolCall(brunchTools.saveHashNet, saveInput, { id: "s0" })],
+        [fauxToolCall(brunchTools.appSaveNet, saveInput, { id: "s0" })],
         { stopReason: "toolUse" },
       ),
     (context) => {
@@ -152,6 +153,8 @@ test("a save with no view of the net in context is refused as not started and ne
   expect(JSON.stringify(refused?.content)).toContain(
     "Not started: no current view of the net is in your context",
   );
+  // The HASH agent's own read is the one it is told to make.
+  expect(JSON.stringify(refused?.content)).toContain("petrinaut_get_net");
   expect(JSON.stringify(refused?.content)).not.toContain(
     hashSaveUnconfirmedNote,
   );
@@ -175,12 +178,19 @@ const saveAfterRead = async (
   let seenText: string | undefined;
   steps.push(
     () =>
-      fauxAssistantMessage([fauxToolCall("readNetOutline", {}, { id: "n1" })], {
-        stopReason: "toolUse",
-      }),
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            "petrinaut_get_net",
+            { editor_id: hashProcessEditorId, detail: "outline" },
+            { id: "n1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
     () =>
       fauxAssistantMessage(
-        [fauxToolCall(brunchTools.saveHashNet, saveInput, { id: "s1" })],
+        [fauxToolCall(brunchTools.appSaveNet, saveInput, { id: "s1" })],
         { stopReason: "toolUse" },
       ),
     (context) => {
@@ -197,7 +207,7 @@ const saveAfterRead = async (
       toolCallId: "n1",
       capability: read.capability,
       binding: read.binding,
-      toolName: "readNetOutline",
+      toolName: "petrinaut_get_net",
       canonicalInput: read.input,
       output: { title: "Replenishment", definition: {}, extensions: {} },
       metadata: { documentRevision: { before: "r1" } },
@@ -210,7 +220,7 @@ const saveAfterRead = async (
     toolCallId: "s1",
     capability: claim.capability,
     binding: claim.binding,
-    toolName: brunchTools.saveHashNet,
+    toolName: brunchTools.appSaveNet,
     canonicalInput: claim.input,
   };
   if ("output" in settle)
@@ -233,10 +243,17 @@ const saved = {
 };
 
 test("a save is issued as a change against the model's last view, and the model next sees the page's result", async () => {
-  const { claim, seenText } = await saveAfterRead({ output: saved });
+  const { claim, seenText } = await saveAfterRead({
+    output: {
+      status: "saved",
+      decisionTime: "2026-10-24T01:00:00.000Z",
+      title: "Replenishment",
+      stillDirty: true,
+    },
+  });
   const { capability: _capability, ...issued } = claim;
   expect(issued).toEqual({
-    toolName: brunchTools.saveHashNet,
+    toolName: brunchTools.appSaveNet,
     input: saveInput,
     binding: claim.binding,
     expectedRevision: "r1",
@@ -246,7 +263,7 @@ test("a save is issued as a change against the model's last view, and the model 
 
 test("an unconfirmed save tells the model it is not confirmed and not to save again until asked", async () => {
   const { seenText } = await saveAfterRead({
-    output: { saved: false, error: "Failed to fetch" },
+    output: { status: "unconfirmed", error: "Failed to fetch" },
   });
   expect(JSON.parse(seenText ?? "null")).toEqual({
     saved: false,
@@ -254,14 +271,14 @@ test("an unconfirmed save tells the model it is not confirmed and not to save ag
     note: hashSaveUnconfirmedNote,
   });
   expect(hashSaveUnconfirmedNote).toContain(
-    "don't call save_hash_net again until they ask",
+    "don't call app_save_net again until they ask",
   );
 });
 
 test("a save the user declined or the page refused tells the model why", async () => {
   const { seenText } = await saveAfterRead({
     output: {
-      applied: false,
+      status: "not-started",
       reason: "The user declined this save; nothing was saved.",
     },
   });

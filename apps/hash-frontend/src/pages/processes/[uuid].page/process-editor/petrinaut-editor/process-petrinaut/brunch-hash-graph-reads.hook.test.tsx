@@ -74,11 +74,11 @@ test("the page gives Brunch all three HASH reads, and keeps the list while the u
   const { result, signIn } = renderTools(userWith("member", ["acme"]));
   const first = result.current;
   expect(first.map(({ toolName }) => toolName)).toEqual([
-    brunchTools.queryHashEntities,
-    brunchTools.queryHashEntityTypes,
-    brunchTools.queryHashWebs,
+    brunchTools.hashQueryEntities,
+    brunchTools.hashQueryEntityTypes,
+    brunchTools.hashQueryWebs,
   ]);
-  await expect(execute(first, brunchTools.queryHashWebs, {})).resolves.toEqual({
+  await expect(execute(first, brunchTools.hashQueryWebs, {})).resolves.toEqual({
     webs: [
       {
         webId: "member-web",
@@ -97,7 +97,7 @@ test("the page gives Brunch all three HASH reads, and keeps the list while the u
 
   signIn(userWith("member", []));
   expect(result.current).toBe(first);
-  await expect(execute(first, brunchTools.queryHashWebs, {})).resolves.toEqual({
+  await expect(execute(first, brunchTools.hashQueryWebs, {})).resolves.toEqual({
     webs: [
       {
         webId: "member-web",
@@ -121,7 +121,7 @@ test("the type read asks the page's Apollo client for the graph's types now, and
     },
   });
   await expect(
-    execute(result.current, brunchTools.queryHashEntityTypes, {
+    execute(result.current, brunchTools.hashQueryEntityTypes, {
       webIds: ["member-web"],
     }),
   ).resolves.toEqual({ entityTypes: [] });
@@ -136,7 +136,7 @@ test("the type read asks the page's Apollo client for the graph's types now, and
     new Error("Response not successful: Received status code 500"),
   );
   await expect(
-    execute(result.current, brunchTools.queryHashEntityTypes, {}),
+    execute(result.current, brunchTools.hashQueryEntityTypes, {}),
   ).resolves.toEqual({
     error: "Response not successful: Received status code 500",
   });

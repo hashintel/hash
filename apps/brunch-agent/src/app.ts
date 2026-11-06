@@ -12,9 +12,9 @@ import { Hono } from "hono";
 
 import {
   browserExecutedToolNames,
+  browserToolFacts,
   brunchRoutes,
   brunchTools,
-  netReaderToolNames,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
@@ -186,18 +186,24 @@ const mixedToolNames = new Set([
   ...browserExecutedToolNames,
   brunchTools.ping,
   brunchTools.ledgerCommit,
+  // The Ledger map and the basis query under each agent's name.
   brunchTools.ledgerCompile,
+  brunchTools.ledgerQuery,
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
   brunchTools.queryBasis,
+  brunchTools.ledgerQueryBasis,
 ]);
+/** Every read of the net, whichever agent's. */
+const netReadToolNames = [...browserExecutedToolNames].filter(
+  (toolName) => browserToolFacts(toolName).observesNet,
+);
 // Running these beside their dependency would answer from the previous result.
 const dependentToolNames = new Map([
-  [
-    brunchTools.queryBasis,
-    [getLatestNetDefinitionToolName, ...Object.values(netReaderToolNames)],
-  ],
+  [brunchTools.queryBasis, netReadToolNames],
+  [brunchTools.ledgerQueryBasis, netReadToolNames],
   [brunchTools.ledgerCompile, [brunchTools.ledgerCommit]],
+  [brunchTools.ledgerQuery, [brunchTools.ledgerCommit]],
   [brunchTools.draftPetrinautExperiment, [getLatestNetDefinitionToolName]],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {
