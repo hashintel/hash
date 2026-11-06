@@ -83,6 +83,16 @@ export const styles = sva({
     },
   },
   variants: {
+    variant: {
+      partitionedFooter: {},
+      plain: {
+        content: {
+          padding: "0",
+          backgroundColor: "white",
+          border: "[1px solid {colors.neutral.s50}]",
+        },
+      },
+    },
     size: {
       xs: {
         content: {
@@ -123,5 +133,6 @@ export const styles = sva({
   },
   defaultVariants: {
     size: "md",
+    variant: "partitionedFooter",
   },
 });
