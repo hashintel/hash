@@ -47,6 +47,12 @@ pub struct CreateEntityTypeParams {
     pub ownership: OntologyOwnership,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
+    /// Whether the type fetcher retrieved `schema` from the URL it is published at.
+    ///
+    /// For a remote type retrieved this way, the store skips checking that the actor may
+    /// instantiate its ancestors.
+    #[serde(skip)]
+    pub fetched_from_origin: bool,
 }
 
 #[derive(Debug, Deserialize)]
