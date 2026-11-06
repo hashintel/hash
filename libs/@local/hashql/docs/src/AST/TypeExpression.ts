@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -11,6 +11,8 @@ import type { Chunk, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/TypeExpression";
+
+const fields = ["node", "children", "references"] as const;
 
 /** Other type syntax keeps its source spelling and exposes its nested types and bindings for traversal. */
 export class TypeExpression implements Traits.Traits {
@@ -32,7 +34,7 @@ export class TypeExpression implements Traits.Traits {
   }
 
   constructor({ node, children, references }: TypeExpression.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.children = children;
     this.references = references;
     Object.freeze(this);
@@ -42,22 +44,14 @@ export class TypeExpression implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.children)),
-      Hash.combine(Hash.hash(this.references)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isTypeExpression(other) &&
-      this.node === other.node &&
-      Equal.equals(this.children, other.children) &&
-      Equal.equals(this.references, other.references)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -72,7 +66,7 @@ export class TypeExpression implements Traits.Traits {
 }
 
 export declare namespace TypeExpression {
-  type Fields = Pick<TypeExpression, "node" | "children" | "references">;
+  type Fields = Pick<TypeExpression, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<TypeExpression>;

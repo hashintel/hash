@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -9,6 +9,14 @@ import type { Inspectable, Option } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/TypeParameter";
+
+const fields = [
+  "node",
+  "name",
+  "constraint",
+  "default",
+  "documentation",
+] as const;
 
 export class TypeParameter implements Traits.Traits {
   readonly [TypeId] = TypeId;
@@ -35,7 +43,7 @@ export class TypeParameter implements Traits.Traits {
     default: defaultType,
     documentation,
   }: TypeParameter.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.name = name;
     this.constraint = constraint;
     this.default = defaultType;
@@ -44,26 +52,14 @@ export class TypeParameter implements Traits.Traits {
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.name)),
-      Hash.combine(Hash.hash(this.constraint)),
-      Hash.combine(Hash.hash(this.default)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isTypeParameter(other) &&
-      this.node === other.node &&
-      this.name === other.name &&
-      Equal.equals(this.constraint, other.constraint) &&
-      Equal.equals(this.default, other.default) &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -80,10 +76,7 @@ export class TypeParameter implements Traits.Traits {
 }
 
 export declare namespace TypeParameter {
-  type Fields = Pick<
-    TypeParameter,
-    "node" | "name" | "constraint" | "default" | "documentation"
-  >;
+  type Fields = Pick<TypeParameter, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<TypeParameter>;

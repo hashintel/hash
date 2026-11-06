@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -9,6 +9,14 @@ import type { Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/CallSignature";
+
+const fields = [
+  "typeParameters",
+  "parameters",
+  "returns",
+  "node",
+  "documentation",
+] as const;
 
 /** Each call retains the source node that owns its signature and documentation. */
 export class CallSignature implements Traits.Traits, Signature.Signature {
@@ -45,32 +53,20 @@ export class CallSignature implements Traits.Traits, Signature.Signature {
     this.typeParameters = typeParameters;
     this.parameters = parameters;
     this.returns = returns;
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.documentation = documentation;
     Object.freeze(this);
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.hash(this.typeParameters)),
-      Hash.combine(Hash.hash(this.parameters)),
-      Hash.combine(Hash.hash(this.returns)),
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isCallSignature(other) &&
-      Equal.equals(this.typeParameters, other.typeParameters) &&
-      Equal.equals(this.parameters, other.parameters) &&
-      Equal.equals(this.returns, other.returns) &&
-      this.node === other.node &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -87,10 +83,7 @@ export class CallSignature implements Traits.Traits, Signature.Signature {
 }
 
 export declare namespace CallSignature {
-  type Fields = Pick<
-    CallSignature,
-    "typeParameters" | "parameters" | "returns" | "node" | "documentation"
-  >;
+  type Fields = Pick<CallSignature, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<CallSignature>;

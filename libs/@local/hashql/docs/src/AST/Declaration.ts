@@ -1,4 +1,4 @@
-import { Array, Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -12,9 +12,7 @@ import type { Symbol as CompilerSymbol } from "typescript/async";
 
 const TypeId = "~hashql-docs/AST/Declaration";
 
-const sameBases = Array.makeEquivalence<Reference.Reference.Target>(
-  Reference.sameTarget,
-);
+const fields = ["symbol", "leaf", "namespace", "bases"] as const;
 
 /** A name's supported type, value and namespace meanings share the compiler symbol's identity. */
 export class Declaration implements Traits.Traits {
@@ -36,33 +34,24 @@ export class Declaration implements Traits.Traits {
   }
 
   constructor({ symbol, leaf, namespace, bases }: Declaration.Fields) {
-    this.symbol = symbol;
+    this.symbol = Equal.byReferenceUnsafe(symbol);
     this.leaf = leaf;
     this.namespace = namespace;
-    this.bases = Object.freeze(Array.copy(bases));
+    this.bases = Object.freeze(Array.map(bases, Reference.freezeTarget));
     Object.freeze(this);
   }
 
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.symbol)),
-      Hash.combine(Hash.hash(this.leaf)),
-      Hash.combine(Hash.hash(this.namespace)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isDeclaration(other) &&
-      this.symbol === other.symbol &&
-      Equal.equals(this.leaf, other.leaf) &&
-      Equal.equals(this.namespace, other.namespace) &&
-      sameBases(this.bases, other.bases)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -82,7 +71,7 @@ export class Declaration implements Traits.Traits {
 }
 
 export declare namespace Declaration {
-  type Fields = Pick<Declaration, "symbol" | "leaf" | "namespace" | "bases">;
+  type Fields = Pick<Declaration, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<Declaration>;

@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -10,6 +10,8 @@ import type { Chunk, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/TypeAliasDeclaration";
+
+const fields = ["node", "typeParameters", "type", "documentation"] as const;
 
 /** A named type alias retains its authored type rather than expanding it. */
 export class TypeAliasDeclaration implements Traits.Traits {
@@ -35,7 +37,7 @@ export class TypeAliasDeclaration implements Traits.Traits {
     type,
     documentation,
   }: TypeAliasDeclaration.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.typeParameters = typeParameters;
     this.type = type;
     this.documentation = documentation;
@@ -43,24 +45,14 @@ export class TypeAliasDeclaration implements Traits.Traits {
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.typeParameters)),
-      Hash.combine(Hash.hash(this.type)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isTypeAliasDeclaration(other) &&
-      this.node === other.node &&
-      Equal.equals(this.typeParameters, other.typeParameters) &&
-      this.type === other.type &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -76,10 +68,7 @@ export class TypeAliasDeclaration implements Traits.Traits {
 }
 
 export declare namespace TypeAliasDeclaration {
-  type Fields = Pick<
-    TypeAliasDeclaration,
-    "node" | "typeParameters" | "type" | "documentation"
-  >;
+  type Fields = Pick<TypeAliasDeclaration, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<TypeAliasDeclaration>;
