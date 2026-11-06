@@ -49,9 +49,13 @@ let foo = 2 in
 foo
 ```
 
-This HashQL expression evaluates to `2`. The name `foo` is available in the body of the `let`, which in the case of the TypeScript Draft API are any statements that follow the binding, in the reference notation, `in` is used to separate the binding from its body.
+This HashQL expression evaluates to `2`. The name `foo` is available in the body of the `let`. In the Draft API, the rest of the callback constructs that body. In the reference notation, `in` separates the binding from its body.
 
-In the TypeScript Draft API, `program` constructs a HashQL expression; **it does not execute it**. HashQL programs are a single top-level expression, which is the value that the `program` call returns. Every `program` receives the construction context (`$`) to help in the construction of the final HashQL program. HashQL is side-effect free, which means that an expression that is not included in that result, either directly or through a `let` binding, is omitted from the generated program and is therefore not executed on the server. Additionally, the Draft API makes authoring of HashQL expressions easier by mapping common types from TypeScript to their HashQL equivalents: BigInt literals become HashQL integers, numbers become HashQL numbers, booleans become HashQL booleans, and strings become HashQL strings. HashQL bindings are referenced by name, which is why you must supply that name explicitly, otherwise any error returned from thes server will be illegible. We recommend that the name matches the TypeScript variable holding the binding: in the example above, both are named `foo`.
+In the TypeScript Draft API, `program` constructs a HashQL expression; **it does not execute it**. Its callback receives the construction context (`$`) and returns the expression to use as the program's result. Draft wraps any bindings introduced through the context around that expression, producing a single top-level HashQL expression. The `program` call returns a `Result` containing that root expression or a construction failure. An expression that is neither part of the returned expression nor used in a binding is omitted from the generated program.
+
+Additionally, the Draft API makes authoring HashQL expressions easier by mapping common TypeScript values to their HashQL equivalents: BigInt literals become HashQL integers, numbers become HashQL numbers, booleans become HashQL booleans, and strings become HashQL strings.
+
+HashQL bindings are referenced by name, so you must supply that name explicitly. Recognisable names also make server errors easier to relate to your code. We recommend that the name matches the TypeScript variable holding the binding: in the example above, both are named `foo`.
 
 <Accordions>
   <Accordion title="Shadowing a binding" id="shadowing-a-binding">
@@ -61,7 +65,7 @@ A `let` binding is available within its body. If a nested binding uses the same 
   </Accordion>
 </Accordions>
 
-You can think of a binding as similar to `const` in JavaScript, but HashQL's immutability goes further. A JavaScript `const` can hold a list whose contents you can change. In HashQL, the values themselves are immutable. Adding an item to a list produces a new list and leaves the original unchanged. It is therefore a lot closer in spirit to Rust's semantic notion of `const` values.
+You can think of a binding as similar to `const` in JavaScript, but HashQL's immutability goes further. A JavaScript `const` can hold a list whose contents you can change. In HashQL, the values themselves are immutable. Adding an item to a list produces a new list and leaves the original unchanged.
 
 ### Choosing a value with `if`
 
@@ -110,7 +114,7 @@ In JavaScript and Python, `if` is a statement, so it does not need to produce a 
 
 ### Receiving a value with `input`
 
-So far, `foo` has always come from a literal written into the program. In many languages, programs receive values through arguments to a main function, which are then passed down to where they are needed. This works in many cases, but query programs benefit from configuration at call time, which allows us to supply configuration values at call time, and then use them at arbitrary depth without needing to pass them through every intervening function call.
+So far, `foo` has always come from a literal written into the program. In many languages, programs receive values through arguments to a main function, which are then passed down to where they are needed. This works in many cases, but query programs benefit from configuration supplied once at call time and available at arbitrary depth, without passing it through every intervening function call.
 
 HashQL provides `input` for this purpose. It lets an expression request a named value supplied to the program rather than to the enclosing function. You can think of it as a global `const` whose value is supplied for each execution.
 
@@ -179,13 +183,13 @@ matches_foo(2)
 
 <Callout type="warn" title="Constructing closures in Draft">
 
-Draft cannot construct HashQL closures yet. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015). TypeScript callbacks can emulate HashQL closures, but are not equivalent to them, as they are not part of the final output.
+Draft cannot construct HashQL closures yet. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015). TypeScript callbacks can provide reusable query-building logic, but they run while Draft constructs the program. They do not become callable values inside the generated HashQL program.
 
 </Callout>
 
-In our example `fn` produces a closure. A closure is a function which is able to capture bindings from its surrounding scope. Any closure is able to refer to bindings defined outside its body, as long as they have been defined before the closure is being defined. This is safe as the language is immutable, at the point of construction the value of any one binding is frozen in place and cannot be changed.
+In our example, `fn` produces a closure. A closure is a function which can capture bindings defined earlier in its surrounding scope. Here, it captures `foo`, so it can compare `value` with `foo` without receiving `foo` as another argument. Because HashQL values are immutable, `foo` keeps the same value whenever the closure is called.
 
-We then give our closure a name via `let`, note that we're not required to give it a name. `fn` produces a value, just like any other HashQL expression, that can then be immediately invoked. In our example it has the name `matches_foo`, takes a parameter `value` of type `Integer`, and returns a `Boolean`. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
+We then give our closure a name via `let`, but we're not required to do so. `fn` produces a value, just like any other HashQL expression, that can then be immediately invoked. In our example it has the name `matches_foo`, takes a parameter `value` of type `Integer`, and returns a `Boolean`. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
 
 <Callout type="info" title="Note">
 
@@ -209,7 +213,7 @@ The `eq` function we have been using comes from the standard library. Its full p
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
-  const { same } = $.import($.modules().cmp, { eq: "same" });
+  const { same } = $.import($.modules().core.cmp, { eq: "same" });
   const foo = $.let("foo", 2n);
 
   return same(foo, 2n);
@@ -238,7 +242,7 @@ Why have a dedicated import form when we could use `let`? A `*` import brings ev
   </Accordion>
 </Accordions>
 
-Draft spells this operation `$.import`. `$.modules().cmp` selects the comparison module, and `{ eq: "same" }` selects `eq` under its new local name.
+Draft spells this operation `$.import`. `$.modules().core.cmp` selects the comparison module, and `{ eq: "same" }` selects `eq` under its new local name.
 
 <Callout type="warn" title="Important">
 
