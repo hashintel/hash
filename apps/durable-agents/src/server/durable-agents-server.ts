@@ -24,14 +24,33 @@ import { Hono } from "hono";
 import {
   type ConversationRegistryOptions,
   createConversationRegistry,
+  type OpenConversation,
 } from "./durable-agents-server/conversation-registry";
 import { followSubmission } from "./durable-agents-server/submission-stream";
 
 import type { Context } from "@earendil-works/chord";
 
+export type { OpenConversation } from "./durable-agents-server/conversation-registry";
+
+/** Why a chat request is refused before its submission. */
+export type ChatRefusal = {
+  readonly status: 400 | 409;
+  readonly error: string;
+};
+
 export type DurableAgentsServerOptions = ConversationRegistryOptions & {
   /** Tools the browser runs; their calls stream for the client's `onToolCall`. */
   readonly clientToolNames: ReadonlySet<string>;
+  /**
+   * Runs on every `POST /chat` before its submission, with the request's
+   * whole body, so a host can check or record what its client sends beside
+   * the messages (AI SDK's `body` option), such as the browser's document
+   * binding. A refusal answers the request instead of submitting.
+   */
+  readonly admitChat?: (
+    conversation: OpenConversation,
+    body: Readonly<Record<string, unknown>>,
+  ) => Promise<ChatRefusal | undefined>;
   readonly context?: Context;
 };
 
@@ -85,7 +104,10 @@ export const createDurableAgentsServer = (
     if (input === undefined) {
       return ctx.text("The last message must be a user message.", 400);
     }
-    const { root } = await conversations.acquire(body.id);
+    const conversation = await conversations.acquire(body.id);
+    const refusal = await options.admitChat?.(conversation, body);
+    if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
+    const { root } = conversation;
     // A repeated message id finds the submission it made the first time.
     const submission = await root.submit(
       {
