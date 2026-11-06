@@ -15,8 +15,10 @@ hash-integrations-definition = { workspace = true, public = true }
 type-system                  = { workspace = true, public = true }
 
 # Public third-party dependencies
-duckdb = { workspace = true, public = true, features = ["appender-arrow", "bundled", "json"] }
-uuid   = { workspace = true, public = true, features = ["v4", "v5"] }
+duckdb   = { workspace = true, public = true, features = ["appender-arrow", "bundled", "json"] }
+serde    = { workspace = true, public = true, features = ["derive"] }
+tempfile = { workspace = true, public = true }
+uuid     = { workspace = true, public = true, features = ["v4", "v5"] }
 
 # Private workspace dependencies
 hash-graph-store = { workspace = true }
@@ -27,15 +29,16 @@ arrow-array    = { workspace = true }
 backon         = { workspace = true, features = ["std", "tokio-sleep"] }
 bytes          = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
+futures-util   = { workspace = true }
+hex            = { workspace = true, features = ["alloc", "serde"] }
+object_store   = { workspace = true, features = ["aws", "fs"] }
 opentelemetry  = { workspace = true, features = ["metrics"] }
 parquet        = { workspace = true, features = ["arrow", "snap"] }
 reqwest        = { workspace = true }
-serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true, features = ["raw_value"] }
 simple-mermaid = { workspace = true }
-tempfile       = { workspace = true }
 time           = { workspace = true, features = ["parsing"] }
-tokio          = { workspace = true, features = ["net", "rt", "sync", "time"] }
+tokio          = { workspace = true, features = ["fs", "io-util", "net", "rt", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
 zeroize        = { workspace = true }
@@ -51,7 +54,7 @@ rstest                 = { workspace = true }
 serde                  = { workspace = true, features = ["derive"] }
 tempfile               = { workspace = true }
 testcontainers         = { workspace = true }
-testcontainers-modules = { workspace = true, features = ["postgres"] }
+testcontainers-modules = { workspace = true, features = ["minio", "postgres"] }
 tokio                  = { workspace = true, features = ["io-util", "macros", "rt", "test-util", "time"] }
 
 [lints]

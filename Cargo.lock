@@ -7088,11 +7088,14 @@ dependencies = [
  "derive_more",
  "duckdb",
  "error-stack",
+ "futures-util",
  "hash-crypto",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-integrations-definition",
  "hash-middleware",
+ "hex",
+ "object_store",
  "opentelemetry",
  "opentelemetry_sdk",
  "parquet",
@@ -7564,6 +7567,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hex_fmt"

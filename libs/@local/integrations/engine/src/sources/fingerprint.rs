@@ -1,5 +1,3 @@
-use core::fmt::Write as _;
-
 use hash_crypto::digest::Sha256;
 use hash_integrations_definition::{
     Coverage, Pagination, PostgresSource, PrimaryKey, RestAuth, RestSource, SecretReference,
@@ -23,11 +21,7 @@ pub(super) fn fingerprint(source: &Source) -> String {
     let mut encoder = Encoder(Sha256::new());
     encoder.text(ENCODING);
     encoder.source(source);
-    let mut hex = String::with_capacity(64);
-    for byte in encoder.0.finalize().to_bytes() {
-        write!(hex, "{byte:02x}").expect("writing to a `String` should not fail");
-    }
-    hex
+    hex::encode(encoder.0.finalize().to_bytes())
 }
 
 struct Encoder(Sha256);

@@ -8,11 +8,7 @@ mod tests;
 
 use alloc::collections::BTreeMap;
 use core::num::NonZero;
-use std::{
-    fs::{self, File},
-    io,
-    path::{Component, Path, PathBuf},
-};
+use std::path::{Component, Path, PathBuf};
 
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{Definition, SourceKind, SourceName};
@@ -20,7 +16,11 @@ use uuid::Uuid;
 
 use self::fingerprint::fingerprint;
 pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue};
-use crate::{ByteSize, SourceCapture, TableAssertions, Workspace, sql::Identifier};
+use crate::{
+    ArtifactStorage, ByteSize, Format, SourceCapture, TableAssertions, Workspace,
+    sql::Identifier,
+    storage::{ArtifactNamespace, Bound},
+};
 
 /// Identifies the service involved in resolving a User Secret.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
@@ -40,6 +40,8 @@ pub enum SourceError {
     Write,
     #[display("source capture could not be loaded into the workspace")]
     Load,
+    #[display("another attempt of the run already stored a capture of this source")]
+    Conflict,
     #[display("source query failed")]
     Query,
     #[display("User Secret is unavailable or invalid")]
@@ -92,32 +94,30 @@ pub struct CaptureRun {
     pub id: Uuid,
 }
 
-/// Local source files and durable captures, in separate configured directories.
+/// Local source files and durable captures, kept apart.
 #[derive(Debug)]
 pub struct CaptureStore {
     local: PathBuf,
-    captures: PathBuf,
+    captures: ArtifactStorage,
 }
 
 impl CaptureStore {
-    /// Opens a local source root and creates the capture root if needed.
+    /// Opens a local source root and creates the local capture directory if needed.
     ///
     /// # Errors
     ///
     /// Returns [`SourceError::Read`] if the local root cannot be opened,
-    /// [`SourceError::Write`] if the capture root cannot be created, or
-    /// [`SourceError::Configuration`] if either root is not a directory or one contains the
-    /// other.
-    pub fn new(local: &Path, captures: &Path) -> Result<Self, Report<SourceError>> {
+    /// [`SourceError::Write`] if the capture directory cannot be created, or
+    /// [`SourceError::Configuration`] if either is not a directory or one contains the other.
+    pub fn new(local: &Path, captures: ArtifactStorage) -> Result<Self, Report<SourceError>> {
         let local = local.canonicalize().change_context(SourceError::Read)?;
-        fs::create_dir_all(captures).change_context(SourceError::Write)?;
-        let captures = captures.canonicalize().change_context(SourceError::Write)?;
+        let directory = captures.directory().change_context(SourceError::Write)?;
         // A capture inside the local root could be read as a local source by any definition,
         // bypassing the web and run isolation of the capture store.
         if !local.is_dir()
-            || !captures.is_dir()
-            || local.starts_with(&captures)
-            || captures.starts_with(&local)
+            || !directory.is_dir()
+            || local.starts_with(&directory)
+            || directory.starts_with(&local)
         {
             return Err(Report::new(SourceError::Configuration));
         }
@@ -141,59 +141,6 @@ impl CaptureStore {
             return Err(Report::new(SourceError::Read));
         }
         Ok(file)
-    }
-
-    #[expect(
-        clippy::create_dir,
-        reason = "checks each run directory separately to reject symlink aliases and sync its \
-                  parent"
-    )]
-    /// The capture of `source` for `run`, named after the fingerprint of its definition.
-    ///
-    /// A changed definition gets a path of its own, so a retry or restore never reuses a capture
-    /// taken from another version of the source.
-    fn path(
-        &self,
-        run: CaptureRun,
-        source: &SourceName,
-        fingerprint: &str,
-    ) -> Result<PathBuf, Report<SourceError>> {
-        let mut directory = self.captures.clone();
-        for component in [run.web, run.id] {
-            let parent = directory.clone();
-            directory.push(component.to_string());
-            match fs::create_dir(&directory) {
-                Ok(()) => File::open(&parent)
-                    .and_then(|parent| parent.sync_all())
-                    .change_context(SourceError::Write)?,
-                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                    if !fs::symlink_metadata(&directory)
-                        .change_context(SourceError::Read)?
-                        .file_type()
-                        .is_dir()
-                    {
-                        return Err(Report::new(SourceError::Read));
-                    }
-                }
-                Err(error) => return Err(Report::new(error).change_context(SourceError::Write)),
-            }
-        }
-        Ok(directory.join(format!("{source}.{fingerprint}.parquet")))
-    }
-}
-
-#[expect(
-    clippy::filetype_is_file,
-    reason = "captures must be regular files rather than symlinks or special files"
-)]
-fn recovered(path: &Path) -> Result<Option<SourceCapture>, Report<SourceError>> {
-    match path.symlink_metadata() {
-        Ok(metadata) if metadata.file_type().is_file() => SourceCapture::open(path.to_owned())
-            .map(Some)
-            .change_context(SourceError::Read),
-        Ok(_) => Err(Report::new(SourceError::Read)),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(error) => Err(Report::new(error).change_context(SourceError::Read)),
     }
 }
 
@@ -229,24 +176,35 @@ impl SourceReader {
         run: CaptureRun,
         resolver: &impl SecretStore,
     ) -> Result<BTreeMap<SourceName, SourceCapture>, Report<SourceError>> {
+        let namespace = ArtifactNamespace::new(run.web, definition.connector());
         let mut captures = BTreeMap::new();
         for (name, source) in definition.sources() {
             if source.checkpoint().is_some() {
                 continue;
             }
-            let target = self.store.path(run, name, &fingerprint(source))?;
-            if let Some(capture) = recovered(&target)? {
+            let storage = &self.store.captures;
+            let key = namespace.capture(run.id, name, &fingerprint(source));
+            if let Some(artifact) = storage
+                .bound(&key)
+                .await
+                .change_context(SourceError::Read)?
+            {
+                let path = storage
+                    .materialize(&artifact)
+                    .await
+                    .change_context(SourceError::Read)?;
+                let capture = SourceCapture::open(path).change_context(SourceError::Read)?;
                 captures.insert(name.clone(), capture);
                 continue;
             }
-            let result = match &source.kind {
+            let target = storage.staging_file(Format::Parquet);
+            let capture = match &source.kind {
                 SourceKind::Sql { query, .. } => workspace
-                    .capture(query.as_ref().into(), target.clone())
+                    .capture(query.as_ref().into(), target)
                     .await
                     .change_context(SourceError::Query),
                 SourceKind::Local { key, .. } => {
                     let input = self.store.local_file(key)?;
-                    let target = target.clone();
                     tokio::task::spawn_blocking(move || SourceCapture::copy_from(&input, &target))
                         .await
                         .change_context(SourceError::Read)?
@@ -256,7 +214,7 @@ impl SourceReader {
                     let secret = resolver
                         .read(run.web, run.actor, source.credentials)
                         .await?;
-                    postgres::capture(source, &secret, target.clone(), self.limits).await
+                    postgres::capture(source, &secret, target, self.limits).await
                 }
                 SourceKind::Rest {
                     endpoint,
@@ -267,24 +225,27 @@ impl SourceReader {
                     } else {
                         None
                     };
-                    rest::capture(endpoint, primary_key, secret.as_deref(), target.clone()).await
+                    rest::capture(endpoint, primary_key, secret.as_deref(), target).await
                 }
-                SourceKind::Checkpoint { .. } => continue,
-            };
-            let capture = match result {
-                Ok(capture) => capture,
-                Err(error) => match recovered(&target) {
-                    Ok(capture) => capture.ok_or(error)?,
-                    // Keep the capture failure, which explains why the source was contacted,
-                    // alongside the failure to read a capture another attempt published.
-                    Err(recovery) => {
-                        let context = *error.current_context();
-                        let mut failures = error.expand();
-                        failures.push(recovery);
-                        return Err(failures.change_context(context));
-                    }
-                },
-            };
+                SourceKind::Checkpoint { .. } => {
+                    unreachable!("checkpoint sources are skipped before capture")
+                }
+            }?;
+            let artifact = storage
+                .publish(&namespace.artifacts(), capture.path(), Format::Parquet)
+                .await
+                .change_context(SourceError::Write)?;
+            match storage
+                .bind(&key, &artifact)
+                .await
+                .change_context(SourceError::Write)?
+            {
+                Bound::Created => {}
+                // TODO: Another attempt of this run stored its capture first. Whether this
+                //   attempt should continue from that capture or fail is open for discussion with
+                //   the team, so it fails for now.
+                Bound::Exists => return Err(Report::new(SourceError::Conflict)),
+            }
             captures.insert(name.clone(), capture);
         }
         Ok(captures)
