@@ -20,6 +20,7 @@
     "effect": "4.0.3"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.3",
     "@fumadocs/base-ui": "16.17.8",
     "@local/oxlint": "workspace:*",
     "@local/tsconfig": "workspace:*",

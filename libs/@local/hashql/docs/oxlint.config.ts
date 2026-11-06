@@ -19,12 +19,6 @@ const config: OxlintConfig = defineConfig({
       },
     },
     {
-      files: ["src/**/*.test.ts", "tests/**/*.ts"],
-      rules: {
-        "effecttsgo/async-function": "allow", // Vitest owns asynchronous compiler API tests.
-      },
-    },
-    {
       files: ["preview/mdx-types.d.ts"],
       rules: {
         "import/unambiguous": "allow", // An ambient module declaration exists only in a script.
@@ -46,7 +40,7 @@ const config: OxlintConfig = defineConfig({
       },
     },
     {
-      files: ["src/TypeScript/**/*.ts"],
+      files: ["src/TypeScript/**/*.ts", "tests/**/*.ts"],
       rules: {
         "typescript/promise-function-async": "allow", // `effecttsgo/async-function` forbids `async`, and `Effect.tryPromise` catches a synchronous throw from its callback.
       },
