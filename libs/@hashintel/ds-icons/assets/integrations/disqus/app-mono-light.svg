@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="disqus-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="disqus-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="disqus-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#disqus-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#disqus-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#disqus-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="disqus-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.479368234526 -1.61262540608 -0.162795797426 0 2.25478943804" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#disqus-app-mono-light-mono)"><defs><clipPath id="disqus-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#disqus-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 249" preserveAspectRatio="xMidYMid" fill="#2E9FFF" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <g>
+        <path d="M132.668777,248.633094 C102.247137,248.633094 74.4315396,237.516432 52.9256978,219.126791 L0,226.35741 L20.4468489,175.892259 C13.3230504,160.173122 9.3265036,142.722763 9.3265036,124.316547 C9.3265036,55.6625036 64.5488345,0 132.668777,0 C200.783194,0 256,55.6625036 256,124.316547 C256,192.983482 200.785036,248.633094 132.668777,248.633094 L132.668777,248.633094 Z M200.015194,123.961094 L200.015194,123.614849 C200.015194,87.7416978 174.717237,62.1619568 131.097784,62.1619568 L83.9864173,62.1619568 L83.9864173,186.478504 L130.39977,186.478504 C174.358101,186.480345 200.015194,159.832403 200.015194,123.961094 L200.015194,123.961094 L200.015194,123.961094 Z M131.617151,155.935309 L117.837353,155.935309 L117.837353,92.7143597 L131.617151,92.7143597 C151.855885,92.7143597 165.289439,104.252777 165.289439,124.152633 L165.289439,124.498878 C165.289439,144.566331 151.855885,155.935309 131.617151,155.935309 L131.617151,155.935309 Z" fill="#2E9FFF" />
+    </g>
+</svg></g></g></svg>

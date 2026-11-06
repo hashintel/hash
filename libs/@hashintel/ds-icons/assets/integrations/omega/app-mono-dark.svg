@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="omega-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="omega-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="omega-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omega-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omega-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#omega-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="omega-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.25839905359 -0.869270946038 -0.0877535826397 0 1.21542358227" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#omega-app-mono-dark-mono)"><defs><clipPath id="omega-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#omega-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="87.59371 4.6784 71.374 61.00053" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="omega-app-mono-dark-identity-part"><rect x="0" y="0" width="254" height="68" /></clipPath></defs><g clip-path="url(#omega-app-mono-dark-identity-part)"><g id="omega-app-mono-dark-#ffffffff">
+</g>
+<g id="omega-app-mono-dark-#c50124ff">
+<path fill="#c50124" opacity="1.00" d=" M 98.46 14.49 C 111.05 2.48 132.63 1.93 146.13 12.76 C 153.33 18.41 157.26 27.90 156.04 36.99 C 154.93 46.55 148.80 54.95 140.98 60.29 C 144.97 60.45 148.96 60.43 152.96 60.35 C 154.53 58.39 155.44 54.75 158.71 55.50 C 157.01 58.78 155.31 62.07 153.52 65.30 C 145.44 65.16 137.35 65.51 129.28 65.10 C 134.38 60.56 139.56 55.90 142.81 49.78 C 148.65 39.29 148.72 24.83 140.39 15.61 C 132.46 6.41 116.86 5.64 107.99 13.88 C 102.28 18.83 99.42 26.56 99.58 34.02 C 99.60 42.32 103.09 50.38 108.50 56.58 C 111.09 59.71 114.33 62.20 117.16 65.10 C 109.09 65.47 101.02 65.24 92.95 65.23 C 91.28 61.96 89.50 58.74 87.85 55.45 C 91.22 54.59 92.00 58.50 93.72 60.40 C 97.65 60.36 101.58 60.38 105.51 60.38 C 99.25 55.86 93.90 49.65 91.65 42.15 C 88.52 32.63 91.09 21.39 98.46 14.49 Z" />
+<path fill="#c50124" opacity="1.00" d=" M 228.22 76.88 C 236.99 93.63 245.28 110.64 254.00 127.42 L 254.00 127.67 C 251.29 127.67 248.59 127.66 245.89 127.62 C 244.26 124.34 242.59 121.07 241.00 117.78 C 232.55 117.79 224.11 117.80 215.67 117.77 C 213.96 121.04 212.32 124.34 210.68 127.65 C 207.93 127.67 205.18 127.67 202.43 127.67 C 211.16 110.81 219.66 93.83 228.22 76.88 M 219.15 110.68 C 225.23 110.92 231.32 110.76 237.41 110.79 C 234.37 104.82 231.42 98.80 228.24 92.90 C 225.20 98.82 222.28 104.81 219.15 110.68 Z" />
+<path fill="#c50124" opacity="1.00" d=" M 2.92 92.05 C 8.19 81.41 21.72 75.85 32.92 79.93 C 45.06 83.61 52.45 97.41 49.32 109.62 C 46.73 120.88 35.56 129.53 23.94 128.69 C 11.37 128.51 0.54 117.41 0.00 104.96 L 0.00 102.58 C 0.34 98.94 1.16 95.28 2.92 92.05 M 19.32 86.57 C 8.34 89.87 3.74 104.50 10.23 113.76 C 15.45 122.32 28.33 124.29 36.00 117.93 C 43.83 112.04 44.95 99.62 38.78 92.14 C 34.30 86.45 26.13 84.18 19.32 86.57 Z" />
+<path fill="#c50124" opacity="1.00" d=" M 51.59 127.55 C 57.17 111.38 61.51 94.78 67.33 78.70 C 72.06 89.49 76.76 100.30 81.18 111.21 C 85.97 100.25 90.80 89.30 95.24 78.19 C 100.68 94.60 105.67 111.15 110.87 127.64 C 108.38 127.66 105.88 127.67 103.38 127.68 C 100.21 118.03 97.49 108.24 94.23 98.62 C 90.10 108.87 85.66 119.01 81.21 129.12 C 76.97 118.95 72.65 108.80 68.17 98.74 C 65.28 108.39 62.18 117.98 59.28 127.63 C 56.71 127.70 54.15 127.68 51.59 127.55 Z" />
+<path fill="#c50124" opacity="1.00" d=" M 171.91 79.46 C 181.82 76.56 192.76 81.02 198.82 89.15 C 196.85 90.57 194.90 91.99 192.94 93.41 C 188.48 86.69 179.27 83.77 171.79 86.85 C 163.24 89.97 158.45 100.21 161.21 108.83 C 163.22 116.58 171.04 122.27 179.05 121.65 C 186.58 121.57 193.35 116.00 195.50 108.89 C 189.88 108.85 184.27 108.92 178.65 108.84 C 178.65 106.51 178.67 104.17 178.66 101.84 C 186.87 101.85 195.08 101.87 203.30 101.83 C 203.55 109.12 201.02 116.60 195.61 121.63 C 189.26 128.12 179.20 130.35 170.61 127.58 C 160.22 124.34 152.78 113.78 153.27 102.90 C 153.46 92.10 161.42 82.06 171.91 79.46 Z" />
+<path fill="#c50124" opacity="1.00" d=" M 116.88 79.63 C 126.65 79.66 136.41 79.64 146.17 79.64 C 146.14 81.97 146.16 84.31 146.18 86.64 C 138.87 86.71 131.56 86.67 124.25 86.66 C 124.23 91.16 124.22 95.66 124.28 100.16 C 131.36 100.15 138.45 100.12 145.53 100.18 C 145.52 102.52 145.49 104.87 145.49 107.21 C 138.40 107.13 131.32 107.18 124.24 107.17 C 124.22 111.66 124.26 116.15 124.23 120.64 C 131.54 120.63 138.85 120.58 146.16 120.67 C 146.14 122.99 146.16 125.31 146.18 127.64 C 136.42 127.70 126.65 127.71 116.88 127.62 C 116.91 111.63 116.91 95.63 116.88 79.63 Z" />
+</g>
+</g></svg></g></g></svg>

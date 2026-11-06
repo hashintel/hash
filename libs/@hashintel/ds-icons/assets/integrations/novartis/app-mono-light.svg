@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="novartis-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="novartis-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="novartis-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#novartis-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#novartis-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#novartis-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="novartis-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.232673819742 -0.782729613734 -0.079017167382 0 1.09442060086" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#novartis-app-mono-light-mono)"><defs><clipPath id="novartis-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#novartis-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="novartis-app-mono-light-Logo" viewBox="0 0 37.536666 42.378" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+  <path id="novartis-app-mono-light-Brand_x5F_Symbol" d="M15.1163,0h7.2812c0,1.6174.0991.02-3.1205,33.1744h-1.0402C15.0163.0097,15.1163,1.6176,15.1163,0ZM18.6528,42.378C3.0087,42.378-2.1154,32.6611.762,23.8148c1.9964-6.1381,6.3862-11.2106,4.2127-16.6912-.8891-1.9369-1.2417-2.1934-1.8203-2.7558l.6761-1.3c2.425.638,4.7729,2.5572,6.0329,5.6158,2.7201,6.6028-1.0381,10.7578-3.1205,17.2631-2.398,7.4911,1.9355,14.4033,11.9099,14.4033,15.1916,0,16.1089-17.5656,7.2652-21.4098l.2812-1.4983c14.8404,2.3932,17.3536,24.9361-7.5464,24.9361Z" fill="#161616" />
+</svg></g></g></svg>

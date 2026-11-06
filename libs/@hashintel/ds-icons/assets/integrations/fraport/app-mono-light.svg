@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fraport-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="fraport-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fraport-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fraport-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fraport-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#fraport-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="fraport-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.218922481259 -0.736469231403 -0.0743471455639 0 1.02973885823" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#fraport-app-mono-light-mono)"><defs><clipPath id="fraport-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#fraport-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="0 0 96 62" xml:space="preserve" fill="#000066" color="black" width="35.55555555555556" height="35.55555555555556">
+          <path d="M20.4 32.9c3.1-2 5.3-4.1 6.6-6.3 1.2-2 1.4-3.8.6-5.3-1-2.1-3.7-3.5-5.8-4.2-2.1-.8-4-1.1-4.3-1.1-.1 0-.2 0-.3.1 0 .1 0 .2.1.2.2.1 4 2.1 4.9 5.4.4 1.6.2 3.2-.9 4.9C17 33.5.2 40.6.1 40.7c-.1 0-.1.1-.1.2s.2.1.3.1c0 0 5.3-1.2 11.2-3.6 3.4-1.4 6.4-2.9 8.9-4.5z" />
+          <path d="M95.8 17s-5 .5-10.7.4c-5.1-.1-11.7-.7-14.4-3.2-.9-.8-1.4-1.9-1.4-3.1-.2-4.3 4.8-9.9 4.8-9.9s.1-.2 0-.2c-.1-.1-.2 0-.3 0 0 0-2.4 1.6-4.7 3.9C66.9 7 64.3 10.1 64 13c-.1 1.5.4 2.7 1.4 3.8 1.6 1.6 4.1 2.5 7.7 3 1.2.1 2.6.2 4 .2 1.8 0 3.9-.1 6.1-.3 6.3-.7 12-2.1 12.6-2.2 0 0 .2-.1.2-.2 0-.2-.2-.3-.2-.3z" />
+          <path d="M58.1 7C60.5 4 61.7.8 62 .2c0 0 .1-.1 0-.2h-.2c-.1.1-7.6 8.7-17.3 11.5-9.2 2.6-16.7-1.1-17.1-1.3h-.2c-.2.1-.2.2-.2.3.2.5 1.2 3 3.7 4.5 1.6 1 3.4 1.6 5.4 1.9.7.1 1.3.1 2 .1 1.9 0 4-.3 6.2-.9 3.1-.9 5.9-2.2 8.4-4 2.1-1.5 3.9-3.1 5.4-5.1z" />
+          <path d="M93.8 26.5c-.3 0-5.9-.8-12.9-.5-4.2.2-8 .7-11.4 1.6-4.3 1.1-7.8 2.7-10.6 4.8-3 2.2-5 5-6 8.1-.8 2.5-1 5.3-.6 8.3.8 5.1 3.1 9 3.2 9 0 .1.1.2.3.1.1 0 .2-.1.2-.2 0-.2-2.1-15.1 7.6-22.5 4.8-3.7 12.7-5.7 18.5-6.8 6.4-1.2 11.7-1.5 11.8-1.5.1 0 .2-.1.2-.2-.1-.1-.2-.2-.3-.2z" />
+          <path d="M31.3 39.4c-2.6-.6-5.9-.5-9.6.4-3 .7-6.3 2-9.8 3.6-5.9 2.8-10.6 6-10.8 6.1 0 0-.2.1-.1.3.1.1.2.1.3.1.9-.4 17.8-8.4 26.3-6.1 9.4 2.5 8.7 17.9 8.7 18 0 .1 0 .2.2.2.1 0 .2-.1.2-.2 0 0 1.1-2.7 1.8-6.3.6-3.2 1-7.8-.8-11.3-1.2-2.5-3.4-4.1-6.4-4.8z" />
+        </svg></g></g></svg>

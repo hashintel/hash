@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="warpstream-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="warpstream-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="warpstream-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#warpstream-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#warpstream-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#warpstream-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="warpstream-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.30737697947 -1.03403582181 -0.104386725859 0 1.44579952714" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#warpstream-app-mono-dark-mono)"><defs><clipPath id="warpstream-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#warpstream-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60.79086 44.87803" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M3.87624 25.8791L2.58676 27.1685V27.1654L0 29.755V30.2033L2.58676 32.7931V32.793L6.45528 36.6659V23.3003L3.87624 25.8744V25.8791Z" fill="#E52344" /><path d="M12.9234 27.7914L10.3367 25.2133V19.4119L8.96996 20.7724V23.849L7.74219 22.6276V37.9567L10.3367 40.5618V40.5541L11.6262 41.8451L14.213 44.4347V15.5312L12.9312 16.8145L12.9234 27.7914Z" fill="#E52344" /><path d="M20.6707 24.324L18.086 26.9115L18.0881 17.639V11.6481L16.7941 12.9436V16.3435L16.7995 28.1995L15.5 29.5004V44.8274L19.3821 40.941L21.9702 38.3501V7.76172L20.6707 9.06267V24.324Z" fill="#E52344" /><path d="M28.4339 16.5569L25.8458 19.1478V3.88649L24.5464 5.18737L24.5463 20.4378L23.2632 21.7333L23.2578 37.0657L25.8458 34.4748V34.4748L27.1454 33.1739V33.1848L29.728 30.5993L29.728 30.5884L29.728 29.2875V0L28.4285 1.30095L28.4339 16.5569Z" fill="#E52344" /><path d="M36.8306 5.79977L36.1863 5.15476V20.438L33.5982 17.8471L33.5983 2.48729L32.9594 1.84774L32.9594 1.92428L32.3151 1.2793L32.3096 16.5461L31.0156 15.2616V30.5777L33.5982 33.1631L34.8868 34.4531V34.4531L37.4804 37.0495V6.37361L36.8306 5.72317V5.79977Z" fill="#E52344" /><path d="M44.5861 13.5667L43.9418 12.9108V16.3872L43.9363 27.1609V28.1995L42.6423 26.904L41.3537 25.614V10.2542L40.6986 9.59832L40.6985 9.67486L40.0651 9.02979V20.2682V24.313L38.7657 23.0231L38.7656 38.3391L41.3537 40.9301L42.6423 42.22L45.2249 44.8055V28.4509L45.2249 15.1027V14.1297L44.5861 13.4901V13.5667Z" fill="#E52344" /><path d="M52.9787 21.824L51.6969 20.5485V23.9343L49.1101 26.5201V17.9821L47.8207 16.7065V16.7298L47.8284 27.8014L46.5234 29.1059V44.435L49.1101 41.8453L50.3996 40.5544V40.5621L52.9865 37.9647V36.2177L52.9787 21.8935V21.824Z" fill="#E52344" /><path d="M58.1498 26.9567V26.9629L56.8681 25.6905V25.689L54.2812 23.1226V36.666L56.8681 34.084V34.0763L58.1498 32.7931L60.7367 30.2034V29.5309L58.1498 26.9567Z" fill="#E52344" /></svg></g></g></svg>

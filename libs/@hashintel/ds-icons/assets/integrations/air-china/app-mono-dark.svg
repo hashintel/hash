@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="air-china-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="air-china-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="air-china-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#air-china-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#air-china-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#air-china-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="air-china-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#air-china-app-mono-dark-mono)"><defs><clipPath id="air-china-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#air-china-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="1.07657 0 21.84686 24" fill="#ed1c24" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill-rule="evenodd" d="M1.84 8.688a1.114 1.114 0 0 1 1.158.912v7.116a3.617 3.617 0 0 0 3.633 3.642c1.98 0 3.604-1.623 3.633-3.642v-5.13c-.038-3.909 3.127-7.08 7.024-7.116A5.785 5.785 0 0 0 22.904 0c-1.413 1.077-3.213 1.758-5.121 1.74-.379.018-.34.042-.66 0h.08c-5.469 0-9.803 4.374-9.827 9.846v4.8-.081c-.004.039-.004.039 0 .081-.004.489-.43.915-.99.909-.493.006-.922-.423-.91-.909-.009-.042-.009-.045 0-.081V9.684c-.008-.669-.521-1.182-1.154-1.158a.765.765 0 0 1 .744-.663c.138 0 .255.027.33.084.159.036.339.066.495.081 1.035-.018 1.848-.834 1.818-1.821.033-.039.03-.06 0-.081-.387.528-1.044.876-1.818.909-.096-.069-.282-.066-.414-.084a1.61 1.61 0 0 0-1.57 1.572h-2.81v.165h.827zm15.448-.909a3.775 3.775 0 0 0-3.801 3.807v-.081 5.958c-.015 2.937-2.352 5.298-5.286 5.295-2.034 0-3.816-1.182-4.707-2.898a4.44 4.44 0 0 0 3.138 1.242c2.4.021 4.365-1.95 4.377-4.386v-5.13c-.01-3.483 2.808-6.303 6.279-6.288h-.165a6.94 6.94 0 0 0 4.79-1.986c-.194 2.481-2.27 4.449-4.79 4.47zm-.91 5.544a.93.93 0 0 1 .91-.993.917.917 0 0 1 .909.993c.039.078.018.186 0 .249a.46.46 0 0 1-.495.333c-.22.024-.424-.18-.415-.414-.009-.081.003-.138 0-.168v-.081c-.057.219-.096.414-.084.579-.012.951.726 1.692 1.653 1.656.645.036 1.215-.354 1.488-.909.225-.423.363-.93.33-1.491.033-1.761-1.41-3.21-3.219-3.228a3.273 3.273 0 0 0-3.222 3.228v4.386a6.025 6.025 0 0 1-6.03 6.042 5.5 5.5 0 0 1-1.32-.165h-.087c.84.399 1.821.636 2.892.663 3.654-.027 6.645-3.021 6.606-6.702v-4.059z" clip-rule="evenodd" /></svg></g></g></svg>

@@ -270,7 +270,12 @@ describe("IntegrationIcon", () => {
   });
 
   it("clips app artwork to translucent rounded tiles and keeps SAP left aligned", () => {
-    for (const variant of ["app-light", "app-dark"] as const) {
+    for (const variant of [
+      "app-light",
+      "app-dark",
+      "app-mono-light",
+      "app-mono-dark",
+    ] as const) {
       const content = renderToStaticMarkup(
         <IntegrationIcon name="sap" variant={variant} />,
       );
@@ -289,6 +294,52 @@ describe("IntegrationIcon", () => {
       expect(
         document.querySelector("g[clip-path] > svg")?.getAttribute("x"),
       ).toBe("0");
+    }
+  });
+
+  it("recolors mono app artwork without filtering its themed tile or moving edge-aligned marks", () => {
+    for (const name of ["hash", "sap", "berryBrosRudd", "appleHealth"] as const) {
+      for (const theme of ["light", "dark"] as const) {
+        const parse = (
+          variant:
+            | "app-light"
+            | "app-dark"
+            | "app-mono-light"
+            | "app-mono-dark",
+        ) =>
+          new DOMParser().parseFromString(
+            renderToStaticMarkup(
+              <IntegrationIcon name={name} variant={variant} color="#3676CB" />,
+            ),
+            "text/html",
+          );
+        const mono = parse(`app-mono-${theme}`);
+        const color = parse(`app-${theme}`);
+        expect(mono.querySelector("svg")?.getAttribute("color")).toBe(
+          "#3676CB",
+        );
+        const tile = mono.querySelector('rect[fill^="url("]');
+        expect(tile?.closest("g[filter]")).toBeNull();
+        expect(mono.querySelector("g[filter] svg")).not.toBeNull();
+        expect(mono.querySelector("feFlood")?.getAttribute("flood-color")).toBe(
+          "currentColor",
+        );
+        for (const attribute of ["x", "y", "width", "height", "viewBox"]) {
+          expect(
+            mono.querySelector("g[clip-path] > svg")?.getAttribute(attribute),
+          ).toBe(
+            color.querySelector("g[clip-path] > svg")?.getAttribute(attribute),
+          );
+        }
+        const stops = (document: Document) =>
+          [...document.querySelectorAll("linearGradient stop")]
+            .slice(0, 3)
+            .map((stop) => [
+              stop.getAttribute("stop-color"),
+              stop.getAttribute("stop-opacity"),
+            ]);
+        expect(stops(mono)).toEqual(stops(color));
+      }
     }
   });
 

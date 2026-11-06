@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vietnam-airlines-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="vietnam-airlines-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="vietnam-airlines-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vietnam-airlines-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vietnam-airlines-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#vietnam-airlines-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="vietnam-airlines-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.569378161287 -1.91542455763 -0.193363608866 0 2.67816632778" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#vietnam-airlines-app-mono-dark-mono)"><defs><clipPath id="vietnam-airlines-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#vietnam-airlines-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 4.74514 24 14.50971" fill="#d99e09" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M12 17.837c-.208.12-1.706 1.39-4.687 1.39-2.51 0-5.193-1.286-6.034-1.26a1.595 1.595 0 0 0-.72.13c-.352.145-.695-.07-.504-.43a4.82 4.819 0 0 1 2.843-2.339c.775-.234 1.483-.312 1.848.095.808.895 2.266 2.001 3.683 2.146.114.011.63.055.635-.09.005-.09-.17-.148-.348-.16-1.447-.106-4.057-1.655-5.49-4.654-.538-1.126-.965-2.218-1.903-2.693-.207-.1-.214-.484.223-.588.304-.072 2.23-.258 4.433.902 1.01.532 1.153 1.01 1.156 1.426-.009 3.144 1.581 4.392 2.196 4.76.343.205.664.293.697.185.028-.09-.062-.15-.14-.198-1.908-1.158-2.411-2.939-2.426-4.753-.015-1.794.65-3.346 1.121-4.617.07-.18.292-.939.102-1.64-.14-.523-.026-.676.25-.676.302 0 .703.49.84.657.108.126.46.554.99 1.603 1.05 2.078 1.058 4.248 1.058 4.514 0 1.492-.385 1.664-1.01 1.974-.627.31-.925.708-.926 1.17 0 .475.33.97.924 1.143.462.135.754.084.73-.035-.02-.095-.224-.118-.284-.135-.626-.17-1.042-.49-1.042-.973 0-.602.742-1.043 1.785-1.043 1.044 0 1.785.441 1.785 1.043 0 .482-.416.804-1.042.974-.06.016-.263.04-.283.134-.025.12.268.17.73.035.593-.173.924-.667.923-1.143 0-.462-.298-.86-.924-1.17-.627-.31-1.012-.482-1.012-1.973 0-.266.008-2.437 1.058-4.514.531-1.05.883-1.478.99-1.604.137-.168.54-.657.84-.657.277 0 .391.153.25.676-.19.701.033 1.46.102 1.64.47 1.272 1.137 2.824 1.122 4.618-.015 1.814-.52 3.595-2.425 4.752-.08.047-.17.11-.142.198.034.108.354.021.696-.184.616-.369 2.206-1.617 2.197-4.76.004-.418.145-.895 1.157-1.427 2.203-1.159 4.129-.973 4.433-.9.437.102.43.487.223.586-.938.476-1.365 1.568-1.902 2.694-1.435 3-4.045 4.55-5.49 4.653-.18.012-.355.071-.35.16.006.145.52.102.636.09 1.416-.145 2.874-1.25 3.681-2.146.368-.407 1.075-.329 1.85-.095a4.813 4.813 0 0 1 2.842 2.34c.192.36-.15.574-.502.428a1.61 1.61 0 0 0-.72-.13c-.842-.025-3.525 1.261-6.037 1.26-2.98 0-4.477-1.27-4.686-1.389" /></svg></g></g></svg>

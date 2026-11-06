@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="microsoft-onedrive-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="microsoft-onedrive-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="microsoft-onedrive-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#microsoft-onedrive-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#microsoft-onedrive-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#microsoft-onedrive-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="microsoft-onedrive-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267095428145 -0.898526106348 -0.0907069139798 0 1.25632844847" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#microsoft-onedrive-app-mono-light-mono)"><defs><clipPath id="microsoft-onedrive-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#microsoft-onedrive-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="35.98 139.2 648.03 430.85" color="black" x="16.0" y="16.0" width="32.0" height="32.0">
+<defs>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial0" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(130.864814,156.804864,-260.089994,217.063603,48.669602,228.766494)">
+<stop offset="0" stop-color="rgb(28.235294%,58.039216%,99.607843%)" stop-opacity="1" />
+<stop offset="0.695072" stop-color="rgb(3.529412%,20.392157%,70.196078%)" stop-opacity="1" />
+</radialGradient>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial1" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(-575.289668,663.594003,-491.728488,-426.294267,596.956501,-6.380235)">
+<stop offset="0.165327" stop-color="rgb(13.72549%,75.294118%,99.607843%)" stop-opacity="1" />
+<stop offset="0.534" stop-color="rgb(10.980392%,56.862745%,100%)" stop-opacity="1" />
+</radialGradient>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial2" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(-136.753383,-114.806698,262.816935,-313.057562,181.196995,240.395994)">
+<stop offset="0" stop-color="rgb(100%,100%,100%)" stop-opacity="0.4" />
+<stop offset="0.660528" stop-color="rgb(67.843137%,75.294118%,100%)" stop-opacity="0" />
+</radialGradient>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial3" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(-153.638428,-130.000063,197.433014,-233.332948,375.353994,451.43549)">
+<stop offset="0" stop-color="rgb(1.176471%,22.745098%,80%)" stop-opacity="1" />
+<stop offset="1" stop-color="rgb(21.176471%,55.686275%,100%)" stop-opacity="0" />
+</radialGradient>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial4" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(175.585899,405.198026,-437.434522,189.555055,169.378495,125.589294)">
+<stop offset="0.592618" stop-color="rgb(20.392157%,39.215686%,89.019608%)" stop-opacity="0" />
+<stop offset="1" stop-color="rgb(1.176471%,22.745098%,80%)" stop-opacity="0.6" />
+</radialGradient>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial5" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(-459.329491,459.329491,-719.614455,-719.614455,589.876499,39.484649)">
+<stop offset="0" stop-color="rgb(29.411765%,99.215686%,90.980392%)" stop-opacity="0.898039" />
+<stop offset="0.543937" stop-color="rgb(29.411765%,99.215686%,90.980392%)" stop-opacity="0" />
+</radialGradient>
+<linearGradient id="microsoft-onedrive-app-mono-light-linear0" gradientUnits="userSpaceOnUse" x1="29.999701" y1="37.9823" x2="29.999701" y2="18.398199" gradientTransform="matrix(15,0,0,15,0,0)">
+<stop offset="0" stop-color="rgb(0%,52.54902%,100%)" stop-opacity="1" />
+<stop offset="0.49" stop-color="rgb(0%,73.333333%,100%)" stop-opacity="1" />
+</linearGradient>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial6" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(273.622108,108.513684,-205.488428,518.148261,296.488495,307.441492)">
+<stop offset="0" stop-color="rgb(100%,100%,100%)" stop-opacity="0.4" />
+<stop offset="0.785262" stop-color="rgb(100%,100%,100%)" stop-opacity="0" />
+</radialGradient>
+<radialGradient id="microsoft-onedrive-app-mono-light-radial7" gradientUnits="userSpaceOnUse" cx="0" cy="0" fx="0" fy="0" r="1" gradientTransform="matrix(-305.683909,263.459223,-264.352324,-306.720147,674.845505,249.378004)">
+<stop offset="0" stop-color="rgb(29.411765%,99.215686%,90.980392%)" stop-opacity="0.898039" />
+<stop offset="0.584724" stop-color="rgb(29.411765%,99.215686%,90.980392%)" stop-opacity="0" />
+</radialGradient>
+</defs>
+<g id="microsoft-onedrive-app-mono-light-surface1">
+<path d="M 215.078125 205.089844 C 116.011719 205.09375 41.957031 286.1875 36.382812 376.527344 C 39.835938 395.992188 51.175781 434.429688 68.941406 432.457031 C 91.144531 429.988281 147.066406 432.457031 194.765625 346.105469 C 229.609375 283.027344 301.285156 205.085938 215.078125 205.089844 Z M 215.078125 205.089844 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial0)" />
+<path d="M 192.171875 238.8125 C 158.871094 291.535156 114.042969 367.085938 98.914062 390.859375 C 80.929688 419.121094 33.304688 407.113281 37.25 366.609375 C 36.863281 369.894531 36.5625 373.210938 36.355469 376.546875 C 29.84375 481.933594 113.398438 569.453125 217.375 569.453125 C 331.96875 569.453125 605.269531 426.671875 577.609375 283.609375 C 548.457031 199.519531 466.523438 139.203125 373.664062 139.203125 C 280.808594 139.203125 221.296875 192.699219 192.171875 238.8125 Z M 192.171875 238.8125 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial1)" />
+<path d="M 192.171875 238.8125 C 158.871094 291.535156 114.042969 367.085938 98.914062 390.859375 C 80.929688 419.121094 33.304688 407.113281 37.25 366.609375 C 36.863281 369.894531 36.5625 373.210938 36.355469 376.546875 C 29.84375 481.933594 113.398438 569.453125 217.375 569.453125 C 331.96875 569.453125 605.269531 426.671875 577.609375 283.609375 C 548.457031 199.519531 466.523438 139.203125 373.664062 139.203125 C 280.808594 139.203125 221.296875 192.699219 192.171875 238.8125 Z M 192.171875 238.8125 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial2)" />
+<path d="M 192.171875 238.8125 C 158.871094 291.535156 114.042969 367.085938 98.914062 390.859375 C 80.929688 419.121094 33.304688 407.113281 37.25 366.609375 C 36.863281 369.894531 36.5625 373.210938 36.355469 376.546875 C 29.84375 481.933594 113.398438 569.453125 217.375 569.453125 C 331.96875 569.453125 605.269531 426.671875 577.609375 283.609375 C 548.457031 199.519531 466.523438 139.203125 373.664062 139.203125 C 280.808594 139.203125 221.296875 192.699219 192.171875 238.8125 Z M 192.171875 238.8125 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial3)" />
+<path d="M 192.171875 238.8125 C 158.871094 291.535156 114.042969 367.085938 98.914062 390.859375 C 80.929688 419.121094 33.304688 407.113281 37.25 366.609375 C 36.863281 369.894531 36.5625 373.210938 36.355469 376.546875 C 29.84375 481.933594 113.398438 569.453125 217.375 569.453125 C 331.96875 569.453125 605.269531 426.671875 577.609375 283.609375 C 548.457031 199.519531 466.523438 139.203125 373.664062 139.203125 C 280.808594 139.203125 221.296875 192.699219 192.171875 238.8125 Z M 192.171875 238.8125 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial4)" />
+<path d="M 192.171875 238.8125 C 158.871094 291.535156 114.042969 367.085938 98.914062 390.859375 C 80.929688 419.121094 33.304688 407.113281 37.25 366.609375 C 36.863281 369.894531 36.5625 373.210938 36.355469 376.546875 C 29.84375 481.933594 113.398438 569.453125 217.375 569.453125 C 331.96875 569.453125 605.269531 426.671875 577.609375 283.609375 C 548.457031 199.519531 466.523438 139.203125 373.664062 139.203125 C 280.808594 139.203125 221.296875 192.699219 192.171875 238.8125 Z M 192.171875 238.8125 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial5)" />
+<path d="M 215.699219 569.496094 C 215.699219 569.496094 489.320312 570.035156 535.734375 570.035156 C 619.960938 570.035156 684 501.273438 684 421.03125 C 684 340.789062 618.671875 272.445312 535.734375 272.445312 C 452.792969 272.445312 405.027344 334.492188 369.152344 402.226562 C 327.117188 481.59375 273.488281 568.546875 215.699219 569.496094 Z M 215.699219 569.496094 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-linear0)" />
+<path d="M 215.699219 569.496094 C 215.699219 569.496094 489.320312 570.035156 535.734375 570.035156 C 619.960938 570.035156 684 501.273438 684 421.03125 C 684 340.789062 618.671875 272.445312 535.734375 272.445312 C 452.792969 272.445312 405.027344 334.492188 369.152344 402.226562 C 327.117188 481.59375 273.488281 568.546875 215.699219 569.496094 Z M 215.699219 569.496094 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial6)" />
+<path d="M 215.699219 569.496094 C 215.699219 569.496094 489.320312 570.035156 535.734375 570.035156 C 619.960938 570.035156 684 501.273438 684 421.03125 C 684 340.789062 618.671875 272.445312 535.734375 272.445312 C 452.792969 272.445312 405.027344 334.492188 369.152344 402.226562 C 327.117188 481.59375 273.488281 568.546875 215.699219 569.496094 Z M 215.699219 569.496094 " stroke="none" fill-rule="nonzero" fill="url(#microsoft-onedrive-app-mono-light-radial7)" />
+</g>
+</svg></g></g></svg>

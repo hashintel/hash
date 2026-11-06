@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="docusign-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="docusign-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="docusign-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#docusign-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#docusign-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#docusign-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="docusign-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#docusign-app-mono-light-mono)"><defs><clipPath id="docusign-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#docusign-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 32" color="black" x="16.0" y="16.0" width="32.0" height="32.0">
+    <path d="M23.0459 23.0377V31.2153C23.0459 31.6448 22.699 31.9917 22.2694 31.9917H0.776456C0.346927 31.9917 0 31.6448 0 31.2153V9.7388C0 9.30927 0.346927 8.96234 0.776456 8.96234H8.93751V22.2612C8.93751 22.6908 9.28444 23.0377 9.71396 23.0377H23.0459Z" fill="#4C00FF" />
+    <path d="M32 11.5065C32 18.3789 27.9855 23.0212 23.046 23.0377V14.381C23.046 14.1332 22.9468 13.8854 22.7651 13.7202L18.2716 9.22665C18.0899 9.04493 17.8586 8.94581 17.6108 8.94581H8.9541V0.784741C8.9541 0.355212 9.30103 0.00828385 9.73056 0.00828385H21.84C27.5891 -0.00823652 32 4.61747 32 11.5065Z" fill="#FF5252" />
+    <path d="M22.7651 13.7037C22.9468 13.8854 23.046 14.1167 23.046 14.3645V23.0212H9.73056C9.30103 23.0212 8.9541 22.6743 8.9541 22.2447V8.94583H17.6108C17.8586 8.94583 18.1064 9.04495 18.2716 9.22668L22.7651 13.7037Z" fill="black" />
+  </svg></g></g></svg>

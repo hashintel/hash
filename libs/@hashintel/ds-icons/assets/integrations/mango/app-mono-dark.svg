@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mango-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="mango-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mango-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mango-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mango-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mango-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="mango-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#mango-app-mono-dark-mono)"><defs><clipPath id="mango-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mango-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 22" fill="none" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g clip-path="url(#mango-app-mono-dark-clip0_3776_4312)"><path d="M13.3691 10.4222L15.3909 13.6384L19.4616 7.13991V21.5292H22.9618V0.598633H19.3878L13.3691 10.4222Z" fill="#000000" /><path d="M3.54292 0.598633H0V21.5292H3.51188V7.13991L11.4864 19.9191L13.5198 16.6602L3.54292 0.598633Z" fill="#000000" /><path d="M44.0292 15.0423L47.2733 21.5331H51.4953L40.8976 0.598633H37.0908L37.0869 0.606411L42.3916 11.7056H35.3407L37.18 8.08882L35.2592 4.15706L26.3301 21.5331H30.2805L33.6216 15.0462L44.0292 15.0423Z" fill="#000000" /><path d="M74.8849 0.598633H71.373V10.7644L74.8849 14.2995V0.598633Z" fill="#000000" /><path d="M57.9314 0.598633H54.3574V21.5292H57.8732V5.89155L72.2699 21.5292H74.8854V18.9897L57.9314 0.598633Z" fill="#000000" /><path d="M99.4392 6.40772C98.4977 5.47857 97.3804 4.74741 96.1528 4.2572C94.9253 3.767 93.6124 3.52764 92.2913 3.5532C87.6735 3.5532 83.855 6.39216 83.2497 10.0789H79.3691C79.8736 4.35822 85.7177 0.138672 92.3301 0.138672C96.2611 0.138672 99.7924 1.60482 102.171 3.96543L99.4392 6.40772Z" fill="#000000" /><path d="M91.9653 18.6096C88.1119 18.6096 84.829 16.5134 83.6027 13.585H79.6562C80.964 18.6407 86.0941 22.0008 92.1826 22.0008C93.6614 22.0118 95.1366 21.8526 96.5792 21.5264C99.6293 20.7719 102.959 18.7846 102.959 15.6462V10.0811H91.9265V13.5811H99.4392V15.1717C99.4392 16.9296 96.8198 17.9446 95.2172 18.3024C94.2764 18.4992 93.3183 18.6008 92.3572 18.6057L91.9653 18.6096Z" fill="#000000" /><path d="M132.003 11.0836C132.003 4.84179 126.349 0 119.403 0C112.678 0 106.771 4.62011 106.771 10.7492C106.771 16.5282 111.428 21.16 117.66 21.895V18.3949C113.574 17.7182 110.481 14.6576 110.481 10.9747C110.481 6.79795 114.455 3.41064 119.356 3.41064C124.257 3.41064 128.246 6.80183 128.246 10.9786C128.246 14.6343 125.204 17.6754 121.164 18.3677V21.8678C127.16 21.1366 132.03 16.676 132.03 11.0642" fill="#000000" /></g><defs><clipPath id="mango-app-mono-dark-clip0_3776_4312"><rect width="132" height="22" fill="#FFFFFF" /></clipPath></defs></svg></g></g></svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grindr-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="grindr-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="grindr-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#grindr-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#grindr-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#grindr-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="grindr-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.987734621818 -3.32280245308 -0.335439509385 0 4.64597658428" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#grindr-app-mono-light-mono)"><defs><clipPath id="grindr-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#grindr-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="grindr-app-mono-light-Artwork" viewBox="-0.6994 -0.70503 738.10966 781.41007" fill="#FFCC00" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+  <path d="M704.82,24.59v-.06c-7.78-6.7-15.74-13.22-23.88-19.38-5.55-4.29-13.08-6.04-19.96-4.65-26.11,5.13-167.99,25.9-292.63,25.9S101.84,5.63,75.73.44c-6.93-1.33-14.35.36-19.96,4.65-8.14,6.22-16.1,12.68-23.88,19.38C12.36,41.37.84,65.7.3,91.42c-.24,9.96-.3,19.32-.3,28.49,0,19.32.48,40.09,1.39,63.45,6.45,160.7,37.32,318.15,91.83,467.93,1.45,3.92,3.86,7.49,7.06,10.26,74.35,64.84,190,118.45,268.08,118.45s193.8-53.61,268.09-118.45c3.2-2.78,5.61-6.34,7.05-10.26,54.45-149.78,85.38-307.22,91.83-467.93.96-23.3,1.39-44.07,1.39-63.45,0-9.12-.12-18.47-.3-28.43-.54-25.78-12.06-50.11-31.6-66.89h0ZM318.82,481.51c-27.07,74.34-96.01,75.69-159.78,46.54-75.4-34.51-102.09-144.24-1-153.69,67.28-6.28,196.64,8.68,160.78,107.15h0ZM418.75,481.21c-28.81-84.02,51.33-102.6,115.84-107.15,43.36-3.05,105.06-1.77,109.87,54.29,9.09,105.68-184.51,173.04-225.71,52.86h0Z" />
+  </svg></g></g></svg>

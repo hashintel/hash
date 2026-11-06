@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gitter-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="gitter-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="gitter-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gitter-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gitter-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#gitter-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="gitter-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269070381264 -0.905169974976 -0.0913776177198 0 1.26561797396" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#gitter-app-mono-light-mono)"><defs><clipPath id="gitter-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#gitter-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid" fill="#ED1965" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <defs>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="gitter-app-mono-light-linearGradient-1">
+            <stop stop-color="#FB0766" offset="0%" />
+            <stop stop-color="#C50948" offset="100%" />
+        </linearGradient>
+    </defs>
+	<g>
+		<path d="M0,0 L256,0 L256,256 L0,256 L0,0 Z" fill="url(#gitter-app-mono-light-linearGradient-1)" />
+		<path d="M83.914,62.873 L96.439,62.873 L96.439,145.534 L83.914,145.534 L83.914,62.873 Z M160.063,82.912 L172.587,82.912 L172.587,145.534 L160.063,145.534 L160.063,82.912 Z M109.464,82.912 L121.988,82.912 L121.988,193.378 L109.464,193.378 L109.464,82.912 Z M134.513,82.912 L147.038,82.912 L147.038,193.378 L134.513,193.378 L134.513,82.912 Z" fill="#FFFFFF" />
+	</g>
+</svg></g></g></svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="walgreens-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="walgreens-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="walgreens-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#walgreens-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#walgreens-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#walgreens-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="walgreens-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302993890157 -1.01929082898 -0.102898207288 0 1.42518292642" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#walgreens-app-mono-dark-mono)"><defs><clipPath id="walgreens-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#walgreens-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.45595 38 25.0881" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M35.3877 0.50061C33.8077 0.50061 32.2838 1.46361 31.296 2.92119C35.9612 6.01231 30.245 21.4489 21.8136 21.4489C20.8047 21.4489 19.941 21.1516 19.3722 20.5406C23.9367 16.3652 27.2325 10.687 27.2325 7.33673C27.2325 5.62473 26.4109 4.53808 24.4797 4.53808C18.8806 4.53808 12.9772 13.8709 14.0727 20.6024C10.5428 21.8769 8.78958 20.2838 8.78958 17.0833C8.78958 10.3993 15.6644 3.46808 15.2641 1.3899C8.14353 3.62739 2.56782 -1.57044 0 6.88733C3.46199 4.98511 6.65714 8.03342 10.606 5.79831C7.2119 9.77396 3.7897 15.3927 3.83418 20.1458C3.86461 23.256 5.51953 25.5006 9.10324 25.5006C11.1374 25.5006 13.2487 24.7873 15.2805 23.5984C16.1513 24.7041 17.5557 25.5006 19.6999 25.5006C28.4427 25.5006 38 13.0196 38 4.11484C38 1.75132 37.0637 0.510121 35.3877 0.50061V0.50061ZM18.5623 17.6611C18.6395 12.8508 21.9821 7.79327 23.6792 7.79327C24.1825 7.79327 24.2878 8.12378 24.2878 8.47569C24.2878 10.1211 21.8815 14.5224 18.5623 17.6611Z" fill="#E62600" />
+</svg></g></g></svg>

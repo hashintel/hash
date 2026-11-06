@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="staedtler-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="staedtler-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="staedtler-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#staedtler-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#staedtler-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#staedtler-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="staedtler-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276232762521 -0.929264683703 -0.093809997432 0 1.29930744366" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#staedtler-app-mono-light-mono)"><defs><clipPath id="staedtler-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#staedtler-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="72.41474 34.10244 136.51916 155.42083" fill="#00448C" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+                            <defs><clipPath id="staedtler-app-mono-light-brand-symbol-bounds"><rect x="34.182" y="33.9795" width="215.136" height="163.81116" /></clipPath></defs><g clip-path="url(#staedtler-app-mono-light-brand-symbol-bounds)"><path d="M78.4 123.2H115l-6 26h37.6l27 40H119l-12.1-17.9H83.8l-1.8-23h-9.4l5.8-25.1zM91.1 56l18.3 26.1c12.7-10 23.1-16.6 36-16.6 10.7 0 23.1 4.8 29.4 15.5 5.4 9.3 5 23.6.1 32.5-10 18.2-18.9 35.3-19.3 35.3l17.4 25.7c-.2-.1 28.9-43.1 33.7-65 4.4-20 1.5-35.7-8.8-50.6C186 41.6 165.3 35 148.7 34.4c-23.6-.7-48.6 13.7-57.6 21.6m-17.9 60.8s48.9-36.1 61.2-42.6c4.4-2.4 22.1-4.7 32.1 7.8 8.9 11.1 3.3 27.2-.3 33.2-3.6 6-15.7 28-15.7 28h-31.9l6.3-26.3H73.2zM50.6 233.6h-7.5c-1.4 0-2.5-1.1-2.5-2.5s1.2-2.2 2.6-2.2H55v-5.3H42c-4.2 0-7.5 3.4-7.5 7.5s3.2 7.6 7.4 7.6h7.8c1.4 0 2.6 1.2 2.6 2.6 0 1.5-1.2 2.7-2.6 2.7H34.5v5.1h16.2c4.2 0 7.7-3.5 7.7-7.8-.1-4.2-3.6-7.7-7.8-7.7M80.3 223.6H58.4v5.3h7.1v20.2h5.6v-20.2h9.2zM87.6 224.9c-.5.5-1.2 1.4-1.2 1.4l-12.5 22.8h6.3l2.9-5.4h12.6v5.4h5.5v-25.5H91.1c-1.5 0-2.4.3-3.5 1.3m3.9 4.3c.4-.3 1-.6 1.8-.6h2.5v10H86l4.3-8c.1-.4.8-1.2 1.2-1.4M106.5 249.1h19.8v-5h-14v-5.4h12.3v-5h-12.3l-.1-4.9h14.1v-5.2h-19.8zM146.2 223.6h-15.1v25.5h15.3c6.2 0 10.1-4.5 10.1-13-.1-6.5-4-12.5-10.3-12.5m-1.5 20.5h-7.9v-15.4h7.9c3.7 0 5.9 2.7 5.9 7.5.1 5.4-2.1 7.9-5.9 7.9M157.2 228.9h8.3v20.2h5.6v-20.2h8.2v-5.3h-22.1zM187.7 223.6h-5.8v25.5h16.7v-5h-10.9zM244.6 239.5c-.3-.7-.6-1.2-1.2-1.7-.6-.4-1.5-.8-2.5-1 3.5-.3 6.1-2.8 6.1-6.4 0-4-3-6.8-6.8-6.8H226v25.5h5.8v-10.3h3.5c1.1 0 1.9.3 2.6.8.5.4 1 1 1.4 1.9l3.5 7.6h6.3l-4.5-9.6zm-6.2-5.8h-6.6v-5.1h6.6c1.4 0 2.5 1.1 2.5 2.5.1 1.5-1.1 2.6-2.5 2.6M222.3 223.6h-19.9v25.5h19.9v-5h-14.1v-5.4h12.4v-5h-12.4v-4.9h14.1z" />
+                        </g></svg></g></g></svg>

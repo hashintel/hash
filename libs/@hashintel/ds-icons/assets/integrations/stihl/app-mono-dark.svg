@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="stihl-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="stihl-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="stihl-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#stihl-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#stihl-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#stihl-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="stihl-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.476197586907 -1.60195914467 -0.161719029984 0 2.23987576156" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#stihl-app-mono-dark-mono)"><defs><clipPath id="stihl-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#stihl-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="39.50351 49.5713 283.82298 59.59741" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs /><g><g><polygon points="173.82 49.94 118.99 49.94 114.6 64.3 132.98 64.3 119.37 108.8 137.25 108.8 150.85 64.3 169.43 64.3 173.82 49.94" fill="#F37A1F" /><path d="M55.39,59.08,50.63,74.65C48.51,81.58,52.37,86.7,59.2,86.7h22.3a1.44,1.44,0,0,1,1.32,1.91l-1.2,3.92a3,3,0,0,1-2.49,1.91H44.08L39.69,108.8h45.2c5,0,9.24-2.31,11.42-9.44l4.52-14.79c2.14-7-1.84-12-8.07-12H70.35c-1.24,0-1.73-.9-1.39-2l1.2-3.92a2.94,2.94,0,0,1,2.92-2.31h32.24l4.39-14.36H66.92C60.81,49.94,57,53.85,55.39,59.08Z" fill="#F37A1F" /><polygon points="285.08 94.44 298.69 49.94 280.71 49.94 262.72 108.8 318.76 108.8 323.15 94.44 285.08 94.44" fill="#F37A1F" /><polygon points="251.36 49.94 244.45 72.54 223.06 72.54 229.97 49.94 212.79 49.94 194.8 108.8 211.97 108.8 218.85 86.3 240.24 86.3 233.37 108.8 251.01 108.8 269 49.94 251.36 49.94" fill="#F37A1F" /><polygon points="183.12 49.94 165.13 108.8 183.11 108.8 201.1 49.94 183.12 49.94" fill="#F37A1F" /></g></g></svg></g></g></svg>

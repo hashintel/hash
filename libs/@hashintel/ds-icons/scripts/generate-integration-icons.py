@@ -17,7 +17,7 @@ root = Path(__file__).resolve().parent.parent
 source = root / "src/integration-icon"
 register_namespace("", "http://www.w3.org/2000/svg")
 svg_ns = "{http://www.w3.org/2000/svg}"
-variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "logo-light", "logo-dark"]
+variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "app-mono-dark", "app-mono-light", "logo-light", "logo-dark"]
 
 market_country_codes = set("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW XK".split())
 
@@ -337,8 +337,8 @@ def variant_svg(brand, variant):
     kind = "logo" if variant.startswith("logo") else "mark"
     dark = variant.endswith("dark")
     app = variant.startswith("app")
-    mono = variant == "mark-mono"
-    artwork = themed_artwork(brand, kind, dark, mono=mono)
+    mono = "mono" in variant
+    artwork = themed_artwork(brand, kind, dark and not mono, mono=mono)
     matrix = mono_alpha_matrix(artwork) if mono else None
     if mono:
         artwork.set("color", "black")
@@ -365,9 +365,11 @@ def variant_svg(brand, variant):
         body = f'<defs><clipPath id="{prefix}-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#{prefix}-tile)">{body}</g>'
     if mono:
         body = mono_defs(prefix + "-mono", matrix, brand.get("monoInkScale", 1)) + f'<g filter="url(#{prefix}-mono)">{body}</g>'
-    color = f' color="{("#CBD5E1" if dark else "#374151")}"' if app else ""
+    app_color = ("#FFFFFF" if dark else "#000000") if mono else ("#CBD5E1" if dark else "#374151")
+    color = f' color="{app_color}"' if app else ""
     attribution = tostring(Comment(brand["artworkAttribution"]), encoding="unicode") if brand.get("artworkAttribution") else ""
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none"{color}>{attribution}{background}{body}</svg>\n'
+    document = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none"{color}>{attribution}{background}{body}</svg>\n'
+    return re.sub(r"[\t ]+\n", "\n", document)
 
 
 def generate(catalog_only=False):

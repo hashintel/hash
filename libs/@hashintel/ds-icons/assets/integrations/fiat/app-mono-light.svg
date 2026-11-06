@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fiat-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="fiat-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fiat-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fiat-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fiat-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#fiat-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="fiat-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.406512538879 -1.36753418536 -0.138053646788 0 1.91210037102" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#fiat-app-mono-light-mono)"><defs><clipPath id="fiat-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#fiat-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 555.61293 420.69841" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g transform="translate(37.80644,30.34921)"><g fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0"><path d="M374.26549,362.79109c0.01239,9.21909 0.01755,18.40513 0.01549,27.55811h-54.69489c-0.048,-15.91533 -0.08415,-31.90944 -0.10844,-47.98231c-0.04492,-16.04781 -0.12083,-32.1235 -0.29434,-48.1442c-0.34546,-32.01041 -1.07977,-63.89534 -2.75287,-94.73225h-64.3291v190.85876h-52.51985v-420.69841h123.40192c7.47207,14.47264 13.80963,29.50337 18.95559,44.95679c5.32415,15.97062 9.73046,32.23269 13.19735,48.70654c3.58477,16.748 6.43523,34.01736 8.72645,51.58877c2.29121,17.566 4.034,35.53864 5.38025,53.67162c1.34623,18.12369 2.30516,36.56186 3.00228,55.01785c0.69713,18.43739 1.14174,37.1366 1.433,55.69483c0.29124,18.5133 0.43687,37.3225 0.51432,55.76532c0.03872,9.26943 0.063,18.51563 0.07284,27.73858zM312.7047,149.42527c-4.70017,-48.10237 -12.762,-92.62384 -26.72156,-129.01374h-33.8818v129.01374z" fill="#36C6FB" /><path d="M-37.80644,-30.34921h123.44218v50.76074h-64.96737v129.01374h49.801v50.06517h-49.801v190.85876h-58.47481z" fill="#EA587C" /><path d="M107.7981,-30.34921h60.35085v420.69841h-60.35085z" fill="#FCE750" /><path d="M517.80648,-30.34921v50.76074h-46.03036v369.93767h-58.47326v-369.93767h-46.78945v-50.76074z" fill="#A4C30D" /></g></g></svg></g></g></svg>

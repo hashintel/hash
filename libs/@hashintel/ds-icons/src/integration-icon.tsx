@@ -32,7 +32,7 @@ export const IntegrationIcon = ({
   const artwork = integrationGeometry[name];
   const logo = variant.startsWith("logo");
   const dark = variant.endsWith("dark");
-  const mono = variant === "mark-mono";
+  const mono = variant.includes("mono");
   const app = variant.startsWith("app");
   const Tile = dark ? AppTileDark : AppTileLight;
   const Geometry = logo
@@ -70,7 +70,17 @@ export const IntegrationIcon = ({
       viewBox={viewBox}
       fill="none"
       color={
-        color ?? fill ?? (app ? (dark ? "#CBD5E1" : "#374151") : undefined)
+        color ??
+        fill ??
+        (app
+          ? mono
+            ? dark
+              ? "#FFFFFF"
+              : "#000000"
+            : dark
+              ? "#CBD5E1"
+              : "#374151"
+          : undefined)
       }
       role={labelled ? "img" : undefined}
       aria-hidden={labelled ? undefined : true}

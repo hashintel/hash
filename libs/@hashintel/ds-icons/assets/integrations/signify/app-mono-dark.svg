@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="signify-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="signify-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="signify-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#signify-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#signify-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#signify-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="signify-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.613138834727 -2.06263826245 -0.208224947636 0 2.88400204481" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.076"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#signify-app-mono-dark-mono)"><defs><clipPath id="signify-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#signify-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48.762336 48.44" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><linearGradient id="signify-app-mono-dark-Naamloos_verloop_7" x1="-48.59" y1="128.26" x2="186.52" y2="-36.37" gradientUnits="userSpaceOnUse">
+      <stop offset=".5" stop-color="#00e487" />
+      <stop offset="1" stop-color="#1ecbd0" />
+    </linearGradient>
+  </defs><path d="M24.16 15.84C26.87 15.84 28.44 17.18 28.86 19.43C28.91 19.71 29.15 19.91 29.43 19.91H33.51C33.8 19.91 34.03 19.65 33.989999999999995 19.36C33.35999999999999 14.34 29.269999999999996 11.39 24.269999999999996 11.39C19.569999999999997 11.39 15.029999999999996 13.96 15.029999999999996 19.07C15.029999999999996 23.29 18.169999999999995 25.17 21.749999999999996 26.03L25.699999999999996 26.950000000000003C27.709999999999994 27.430000000000003 29.019999999999996 28.290000000000003 29.019999999999996 29.78C29.019999999999996 31.82 26.929999999999996 32.63 24.689999999999998 32.63C21.769999999999996 32.63 20.089999999999996 31.340000000000003 19.669999999999998 28.94C19.619999999999997 28.650000000000002 19.369999999999997 28.44 19.08 28.44H15.029999999999998C14.739999999999998 28.44 14.509999999999998 28.69 14.549999999999997 28.98C15.199999999999998 34.38 19.709999999999997 37.120000000000005 24.509999999999998 37.120000000000005C29.2 37.120000000000005 34.17 34.71000000000001 34.17 29.240000000000006C34.17 25.650000000000006 31.85 23.500000000000007 27.400000000000002 22.460000000000004L23.57 21.570000000000004C22.11 21.240000000000006 20.15 20.560000000000002 20.15 18.690000000000005C20.15 16.890000000000004 21.79 15.840000000000005 24.169999999999998 15.840000000000005L24.16 15.84ZM48.68 24.28C48.68 38.02 38.129999999999995 48.44 24.34 48.44C10.550000000000004 48.44 0.0 38.01 0.0 24.28C0.0 11.45 9.22 1.37 21.88 0.0C22.169999999999998 -0.03 22.419999999999998 0.19 22.419999999999998 0.48V4.15C22.419999999999998 4.44 22.2 4.69 21.909999999999997 4.73C11.97 6.03 4.87 14.14 4.87 24.32C4.87 35.370000000000005 13.23 43.85 24.34 43.85C35.45 43.85 43.81 35.370000000000005 43.81 24.32C43.81 14.14 36.68 6.02 26.770000000000003 4.73C26.480000000000004 4.69 26.26 4.45 26.26 4.15V0.49C26.26 0.2 26.51 -0.020000000000000018 26.8 0.010000000000000009C39.46 1.3800000000000001 48.68 11.45 48.68 24.28Z" fill="url(#signify-app-mono-dark-Naamloos_verloop_7)" />
+    </svg></g></g></svg>

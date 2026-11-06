@@ -197,15 +197,17 @@ import {
 
 The same exports are available from the package root for applications using legacy TypeScript module resolution.
 
-| Variant      | Appearance                                                                                                             |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `mark-mono`  | Backgroundless mark in `currentColor`, `color`, or `fill`. Alpha tones preserve internal detail while keeping one hue. |
-| `mark-light` | Backgroundless brand colors for a light background.                                                                    |
-| `mark-dark`  | Backgroundless brand colors adjusted for a dark background.                                                            |
-| `app-light`  | Brand artwork on a rounded, partly transparent light tile.                                                             |
-| `app-dark`   | Brand artwork on a rounded, partly transparent dark tile.                                                              |
-| `logo-light` | Full wordmark or lock-up in brand colors for a light background.                                                       |
-| `logo-dark`  | Full wordmark or lock-up adjusted for a dark background.                                                               |
+| Variant          | Appearance                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `mark-mono`      | Backgroundless mark in `currentColor`, `color`, or `fill`. Alpha tones preserve internal detail while keeping one hue. |
+| `mark-light`     | Backgroundless brand colors for a light background.                                                                    |
+| `mark-dark`      | Backgroundless brand colors adjusted for a dark background.                                                            |
+| `app-light`      | Brand artwork on a rounded, partly transparent light tile.                                                             |
+| `app-mono-light` | Recolorable mono artwork on a translucent light tile; the background retains its theme colors.                         |
+| `app-mono-dark`  | Recolorable mono artwork on a translucent dark tile; the background retains its theme colors.                          |
+| `app-dark`       | Brand artwork on a rounded, partly transparent dark tile.                                                              |
+| `logo-light`     | Full wordmark or lock-up in brand colors for a light background.                                                       |
+| `logo-dark`      | Full wordmark or lock-up adjusted for a dark background.                                                               |
 
 `size` is the height in pixels. Marks and app tiles are square; full logos use their natural aspect ratio. SVG props such as `width`, `height`, `className`, and `style` remain available. App tiles preserve the catalogue's brand sizing and SAP's left alignment. Every instance gets unique gradient, mask, clip, filter, and title IDs.
 
@@ -213,25 +215,25 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark normalizes the darkest painted tone to full ink and white to transparent, with intermediate tones retaining their detail in the caller's hue. White-only marks retain their silhouette. Source alpha masks the result to preserve transparent surroundings and smooth edges; masks, clips, and filter definitions do not set the contrast range.
 
-1,440 non-legacy brands have all seven variants. Brands without a verified full logo expose only the five mark and tile variants. Check each catalogue entry’s `variants` before showing a logo selector; requesting an unavailable full logo throws an error. The Font Awesome comparison groups alternate, square, circle, and card glyphs under distinct identities. Its coverage map and exclusions are recorded in `src/integration-icon/fontawesome-coverage.json`.
+1,440 non-legacy brands have all nine variants. Brands without a verified full logo expose only the seven mark and tile variants. Check each catalogue entry’s `variants` before showing a logo selector; requesting an unavailable full logo throws an error. The Font Awesome comparison groups alternate, square, circle, and card glyphs under distinct identities. Its coverage map and exclusions are recorded in `src/integration-icon/fontawesome-coverage.json`.
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with outlined Segoe UI Semibold lettering, matching the other Microsoft product logos. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
-The package includes 8,100 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
+The package includes 15,870 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. Mono app variants use black on light tiles and white on dark tiles by default. Pass `color` or `fill` to recolor the artwork without changing the tile. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 
-`microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
+`microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all nine variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
 `microsoftTeams` uses the current rounded Teams mark. `microsoftTeamsLegacy` preserves the previous mark and full-logo compositions; the “Microsoft Teams” integration alias always uses the current artwork.
 
-`hash` uses the blue gradient mark and vector wordmark from hash.ai. Its full logos preserve the site’s lock-up proportions, with dark lettering for light mode and white lettering for dark mode. App tiles align the mark flush to the bottom-right edge at 60% of the tile height, using `appViewBox` to position it independently of the backgroundless marks. All seven variants are available.
+`hash` uses the blue gradient mark and vector wordmark from hash.ai. Its full logos preserve the site’s lock-up proportions, with dark lettering for light mode and white lettering for dark mode. App tiles align the mark flush to the bottom-right edge at 60% of the tile height, using `appViewBox` to position it independently of the backgroundless marks. All nine variants are available.
 
-`amazon` is the corporate brand, separate from `amazonRedshift`. Its marks and tiles use the current orange smile. Full logos preserve the complete wordmark-and-smile arrangement, with Squid Ink lettering for light mode and white lettering for dark mode. All seven variants are native vectors.
+`amazon` is the corporate brand, separate from `amazonRedshift`. Its marks and tiles use the current orange smile. Full logos preserve the complete wordmark-and-smile arrangement, with Squid Ink lettering for light mode and white lettering for dark mode. All nine variants are native vectors.
 
 `apple` is the corporate brand, separate from `appleNotes` and `appleHealth`. Its native SVG symbol is black in light mode and white in dark mode; its mono variant uses the caller's hue. The “Apple” alias resolves only to this corporate entry.
 
 `appleHealth` provides a backgroundless heart vectorized from Apple's current App Store artwork, with its pink-to-red gradient and subtle bevel. Its app variants preserve the original upper-right heart placement and scale on the shared translucent tiles; the “Apple Health” integration alias resolves to this set.
 
-`messenger` uses Meta’s current Facebook Blue mark in all variants, including the full logos. `messengerLegacy` preserves the previous multicolor mark in all seven variants, with black lettering in `logo-light` and white lettering in `logo-dark`. Current Messenger wordmarks stay blue in both modes. Both full-logo compositions optically center the main letter shapes with the speech bubble. The “Messenger” integration alias resolves to the current blue set.
+`messenger` uses Meta’s current Facebook Blue mark in all variants, including the full logos. `messengerLegacy` preserves the previous multicolor mark in all nine variants, with black lettering in `logo-light` and white lettering in `logo-dark`. Current Messenger wordmarks stay blue in both modes. Both full-logo compositions optically center the main letter shapes with the speech bubble. The “Messenger” integration alias resolves to the current blue set.
 
 `granola` uses the current swirl identity. `granolaLegacy` preserves the retired g-and-cursor mark; the “Granola” integration alias always resolves to the current artwork.
 

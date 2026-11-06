@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bodega-aurrera-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="bodega-aurrera-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bodega-aurrera-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bodega-aurrera-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bodega-aurrera-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bodega-aurrera-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="bodega-aurrera-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.309981645711 -1.04279808566 -0.105271283256 0 1.45805101463" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#bodega-aurrera-app-mono-light-mono)"><defs><clipPath id="bodega-aurrera-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bodega-aurrera-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="631.08649 260.18151 60.67428 63.34778" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="bodega-aurrera-app-mono-light-brand-symbol-bounds"><rect x="624.712" y="255.3352" width="76.4066" height="72.2034" /></clipPath></defs><g clip-path="url(#bodega-aurrera-app-mono-light-brand-symbol-bounds)"><path d="m665.87 262.28 17.07 19.04-.55.49-3.47-3.33s-3.37-3.29-7.13.69c-3.76 3.99-34.19 39.79-35.63 41.56s-4.27 2.88-4.5-1.88c-.22-4.76-.49-13.62-.5-16.73-.02-5.35 1.21-7.07 4.61-12.69 2.82-4.66 17-23.32 21.27-26.87 3.98-3.32 6.67-2.73 8.83-.28z" fill="#C2322B" /><path d="m687.77 322.24c-2.2-2.58-25.49-30.07-25.49-30.07l9.57-11.11s3.76-3.99 7.76-.74c4.27 3.46 9.57 11.24 10.97 14.79s1.07 5.15 1.07 6.89-.06 16.73-.1 18.2c-.04 1.48-1.1 5.19-3.78 2.04zm-383.53 19.56v-68.34s16.9 26.16 32.92 39.05 36.67 24.28 60.45 30.29 34.54 5.01 34.54 5.01h271.48v6.51h-315.65s-66.34.87-83.74-12.52z" fill="#F2D327" /></g></svg></g></g></svg>

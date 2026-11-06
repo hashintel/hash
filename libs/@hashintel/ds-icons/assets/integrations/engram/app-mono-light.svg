@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="engram-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="engram-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="engram-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#engram-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#engram-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#engram-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="engram-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#engram-app-mono-light-mono)"><defs><clipPath id="engram-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#engram-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="2.256 1.94743 45.744 44.13943" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#000000" transform="translate(2.3 2)" d="M23.261.14A.41.41 0 0 1 23.877.14c.822.93 3.065 3.709 4.02 7.277 2.61-2.613 5.943-3.896 7.12-4.291a.41.41 0 0 1 .534.309c.246 1.216.8 4.742-.157 8.31 3.567-.959 7.095-.403 8.311-.156a.41.41 0 0 1 .309.533c-.395 1.177-1.679 4.51-4.292 7.12 3.568.955 6.346 3.2 7.276 4.02a.41.41 0 0 1 0 .617c-.93.821-3.708 3.064-7.276 4.018 2.613 2.611 3.897 5.944 4.292 7.12a.41.41 0 0 1-.309.535c-1.216.246-4.745.8-8.312-.158.958 3.568.404 7.096.158 8.312a.41.41 0 0 1-.534.309c-1.512-.507-6.582-2.481-9.108-6.857-1.195-2.07-1.64-4.364-1.743-6.373 3.87-.316 6.8-3.629 6.644-7.508-.157-3.879-3.346-6.944-7.228-6.947-3.883-.004-7.077 3.056-7.24 6.935-.164 3.879 2.762 7.196 6.63 7.519-.104 2.009-.547 4.304-1.742 6.374-2.527 4.376-7.597 6.35-9.108 6.857a.41.41 0 0 1-.534-.309c-.247-1.216-.802-4.745.156-8.312-3.567.957-7.094.404-8.31.158a.41.41 0 0 1-.309-.534c.395-1.177 1.678-4.509 4.291-7.12C3.849 26.944 1.069 24.7.14 23.88a.41.41 0 0 1 0-.616c.93-.822 3.708-3.066 7.276-4.02-2.613-2.611-3.896-5.945-4.29-7.12a.41.41 0 0 1 .307-.534c1.216-.247 4.744-.8 8.312.157-.958-3.568-.404-7.096-.157-8.312a.41.41 0 0 1 .534-.308c1.177.395 4.508 1.678 7.118 4.291.955-3.568 3.2-6.347 4.021-7.276Z" /></svg></g></g></svg>

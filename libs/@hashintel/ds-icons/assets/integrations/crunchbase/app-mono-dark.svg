@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="crunchbase-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="crunchbase-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="crunchbase-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#crunchbase-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#crunchbase-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#crunchbase-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="crunchbase-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.381197009095 -1.28237112373 -0.129456369034 0 1.79302450186" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#crunchbase-app-mono-dark-mono)"><defs><clipPath id="crunchbase-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#crunchbase-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="4.196526 5.356533 15.523474 10.923467" fill="#0288D1" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g fill="#0288D1" /><path d="M7.045 14.465C8.105387090453737 14.948238538484402 9.356743598321488 14.48037894967517 9.84 13.419999999999998L11.5 13.42C11.057165808665323 15.234231415538677 9.328722106624861 16.43160746934228 7.474590782720678 16.208594501423757C5.620459458816495 15.985581533505238 4.225244080833397 14.41249504688567 4.225244080833397 12.545000000000002C4.225244080833397 10.677504953114333 5.620459458816494 9.104418466494764 7.474590782720678 8.881405498576246C9.328722106624861 8.658392530657727 11.057165808665324 9.855768584461325 11.500000000000002 11.670000000000003L9.84 11.67C9.451536280512777 10.81754871962402 8.54753798521006 10.323291708724163 7.620246120631445 10.45635952849594C6.69295425605283 10.589427348267716 5.964427348267717 11.317954256052829 5.831359528495941 12.245246120631442C5.698291708724166 13.17253798521006 6.1925487196240185 14.076536280512775 7.045 14.464999999999998ZM18.39 15.31C18.076122783663315 15.580226784190298 17.717378800444877 15.793442547801256 17.330000000000002 15.94C16.205983005309562 16.376343610529926 14.939511190863186 16.234379218350096 13.940000000000001 15.560000000000002V15.940000000000001H12.430000000000001V5.37H13.930000000000001V9.48C14.465479116490744 9.11798492548209 15.085640555115223 8.900928421963522 15.730000000000002 8.849999999999996L16.0 8.85C17.537848595733326 8.847601724431897 18.914102507787085 9.804260869405525 19.447711001605438 11.246566672780652C19.98131949542379 12.68887247615578 19.559103450313295 14.310909825095747 18.39 15.31ZM18.167 12.544C18.183624978182017 13.306441515426775 17.786375924321604 14.018190148633485 17.128713716309914 14.404291009159616C16.47105150829822 14.790391869685747 15.655948491701782 14.790391869685747 14.99828628369009 14.404291009159616C14.3406240756784 14.018190148633485 13.943375021817985 13.306441515426775 13.96 12.543999999999999C13.984941820796099 11.400138069050158 14.919366174129566 10.485866654554213 16.0635 10.485866654554213C17.20763382587044 10.485866654554213 18.142058179203904 11.400138069050158 18.167 12.543999999999999Z" fill="#0288D1" /></svg></g></g></svg>

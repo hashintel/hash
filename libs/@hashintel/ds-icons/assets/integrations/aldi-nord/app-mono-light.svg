@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aldi-nord-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="aldi-nord-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="aldi-nord-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aldi-nord-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aldi-nord-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#aldi-nord-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="aldi-nord-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241075240128 -0.810992529349 -0.0818703308431 0 1.13393810032" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#aldi-nord-app-mono-light-mono)"><defs><clipPath id="aldi-nord-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#aldi-nord-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 283.50001 297.6" id="aldi-nord-app-mono-light-svg2" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs id="aldi-nord-app-mono-light-defs4" />
+
+
+  <g id="aldi-nord-app-mono-light-layer1" transform="translate(-229.67857,-434.99078)">
+    <g id="aldi-nord-app-mono-light-g3363" transform="translate(229.67857,434.99078)">
+      <path d="M 272.1,286.3 H 11.3 v -275 h 260.8 z" id="aldi-nord-app-mono-light-path39729" fill="#ffffff" />
+      <path id="aldi-nord-app-mono-light-path3337" d="M 283.5,297.6 283.5,0 0,0 l 0,297.6 283.5,0 0,0 z m -11.4,-11.3 -260.8,0 0,-275 260.8,0 0,275 0,0 z" fill="#c80000" />
+      <polygon id="aldi-nord-app-mono-light-polygon3339" points="258,212.6 258,272.1 25.5,272.1 25.5,212.6 25.5,212.6 " fill="#001e78" />
+      <path id="aldi-nord-app-mono-light-path3341" d="m 236.7,265 0,-45.4 -20.4,0 0,45.4 20.4,0 0,0 z m -25,-22.6 c 0,-12.5 -10.1,-22.7 -22.5,-22.7 l -30.1,0 0,45.3 30.1,0 c 12.4,0 22.5,-10.1 22.5,-22.6 l 0,0 z m -18.7,0 c 0,5.4 -4.1,9.9 -9.2,9.9 l -4.4,0 0,-19.7 4.4,0 c 5.1,-0.1 9.2,4.3 9.2,9.8 l 0,0 z m -76.4,22.6 38.5,0 0,-13.1 -17.8,0 0,-32.3 -20.7,0 0,45.4 0,0 z m -23.2,0 20.6,0 -23.2,-45.4 -20.8,0 -23.2,45.4 20.6,0 2.2,-4.8 21.7,0 2.1,4.8 0,0 z m -8.3,-16.7 -9.5,0 4.6,-10.1 4.9,10.1 0,0 z" fill="#ffffff" />
+      <path id="aldi-nord-app-mono-light-path3343" d="m 220.5,206.9 c 3.1,-5.8 4.8,-11.8 4.7,-18.6 -0.1,-7.6 -3.3,-12.5 -7.6,-19 l -63,-94.6 10.2,-15.5 70.1,104.8 c 5.8,8.6 9.1,15.1 9.3,24.7 0.1,5.6 -1.6,12.6 -4.2,18.1 l -19.5,0 0,0.1 z" fill="#00b4dc" />
+      <path id="aldi-nord-app-mono-light-path3345" d="m 242.9,206.9 c 0.5,-1.1 0.8,-1.8 1.2,-2.8 1.5,-4 3.4,-9.5 3.2,-15.3 -0.2,-10.1 -3.7,-16.8 -9.6,-25.5 l -71.2,-106.4 8.2,-12.4 77.5,116.2 c 6.8,10.2 10,16.2 10,25.6 0,10.8 -2.9,15.6 -5.1,20.5 l -14.2,0 0,0.1 z" fill="#001e78" />
+      <path id="aldi-nord-app-mono-light-path3347" d="m 199.4,206.9 c 4.2,-4.4 7.2,-11.5 6.8,-19 -0.3,-6.4 -4.3,-12.7 -8.9,-19.7 l -52.5,-78.7 8,-12.1 61.9,92.9 c 4.3,6.5 7.2,11 7.3,18.1 0.1,6.7 -1.6,12.7 -4.9,18.5 l -17.7,0 0,0 z" fill="#001e78" />
+      <path id="aldi-nord-app-mono-light-path3349" d="M 120.8,25.5 31.3,160.8 c -6.8,10.2 -10,16.2 -10,25.6 0,10.8 2.9,15.6 5.1,20.5 l 14.3,0 c -0.4,-0.8 -0.8,-1.8 -1.2,-2.9 -1.5,-4 -3,-9.5 -2.9,-15.2 0.2,-10.1 3.7,-16.8 9.6,-25.5 l 91.5,-137.8 -16.9,0 0,0 z" fill="#001e78" />
+      <path id="aldi-nord-app-mono-light-path3351" d="M 140.7,25.5 48.6,164.2 c -5.8,8.6 -9.1,15.1 -9.3,24.7 -0.1,5.6 1.6,12.6 4.2,18.1 l 19.5,0 c -3.1,-5.8 -4.8,-11.8 -4.7,-18.6 0.1,-7.6 3.3,-12.5 7.6,-19 l 95.2,-143.9 -20.4,0 0,0 z" fill="#00b4dc" />
+      <path id="aldi-nord-app-mono-light-path3353" d="m 83.2,172.9 111.4,0 -7.6,-11.4 -96.3,0 -4.5,6.7 c -1,1.5 -2.1,3.2 -3,4.7 l 0,0 z" fill="#00b4dc" />
+      <path id="aldi-nord-app-mono-light-path3355" d="M 164.2,25.5 68.4,170.3 c -4.3,6.5 -7.2,11 -7.3,18.1 -0.1,6.7 1.6,12.7 4.9,18.5 l 18.1,0 c -4.2,-4.4 -7.2,-11.5 -6.8,-19 0.1,-1.5 0.4,-3.5 0.8,-5 l 121.9,0 c -0.8,-2.4 -1.6,-4.4 -3.7,-7.2 l -114.8,0 c 1.3,-2.3 3.1,-5.1 4.7,-7.5 l 6.3,-9.4 92.7,0 -5.1,-7.6 -82.5,0 83.1,-125.6 -16.5,0 0,-0.1 z" fill="#001e78" />
+    </g>
+  </g>
+</svg></g></g></svg>

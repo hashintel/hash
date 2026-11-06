@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="domo-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="domo-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="domo-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#domo-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#domo-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#domo-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="domo-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#domo-app-mono-light-mono)"><defs><clipPath id="domo-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#domo-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="11.35483870967742" y="11.35483870967742" viewBox="0 6.73858 800 212.66497" xml:space="preserve" fill="#111111" color="black" width="41.29032258064516" height="41.29032258064516"><path d="M694.548,7.539c-51.052,0-93.628,36.279-103.36,84.462V7.539L485.434,112.989L379.98,7.539v84.462  c-9.732-48.184-52.309-84.462-103.361-84.462c-51.046,0-93.619,36.271-103.356,84.446c-3.773-18.653-12.465-35.523-24.669-49.193  C129.281,21.161,101.188,7.539,69.91,7.539H0v210.905h69.91c31.277,0,59.37-13.622,78.682-35.252  c12.205-13.669,20.897-30.54,24.671-49.194c9.738,48.175,52.31,84.446,103.356,84.446c51.052,0,93.629-36.279,103.361-84.463v84.463  h34.948V92.326l70.506,70.503l70.199-70.503v126.117h35.555V133.98c9.732,48.184,52.309,84.463,103.36,84.463  C752.787,218.443,800,171.23,800,112.991C800,54.751,752.787,7.539,694.548,7.539z M74.49,183.191H34.948v-140.4h39.568  c36.712,2.375,65.76,32.886,65.76,70.199C140.276,150.312,111.215,180.83,74.49,183.191z M276.619,183.356  c-38.862,0-70.366-31.504-70.366-70.366c0-38.862,31.504-70.366,70.366-70.366c38.862,0,70.366,31.504,70.366,70.366  C346.985,151.852,315.481,183.356,276.619,183.356z M694.548,183.356c-38.862,0-70.365-31.504-70.365-70.366  c0-38.862,31.503-70.366,70.365-70.366c38.861,0,70.366,31.504,70.366,70.366C764.914,151.852,733.409,183.356,694.548,183.356z" fill="#111111" /></svg></g></g></svg>

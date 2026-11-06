@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="turkish-airlines-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="turkish-airlines-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="turkish-airlines-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#turkish-airlines-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#turkish-airlines-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#turkish-airlines-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="turkish-airlines-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.25758995431 -0.866549084302 -0.0874788085663 0 1.21161784718" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#turkish-airlines-app-mono-dark-mono)"><defs><clipPath id="turkish-airlines-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#turkish-airlines-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#ffffff" d="M13.255.067C19.29.695 23.998 5.796 24 11.997c0 6.627-5.369 12-11.996 12.003C5.376 24 .002 18.631 0 12.004 0 5.376 5.369.002 11.996 0c.425 0 .844.022 1.259.067zm.618 23.094c6.165-1.035 10.32-6.87 9.286-13.036-.862-5.13-5.044-8.869-9.976-9.385a11.352 11.352 0 0 0-6.481 1.256c5.433 1.844 8.355 4.644 8.558 7.513.1 1.772-.724 3.053-1.807 4.098l7.683-.536c.218-.015.285.238.022.313L2.832 18.639a11.337 11.337 0 0 0 7.98 4.614c.996.104 2.023.077 3.06-.097zm-5.041-10.9C9.837 8.488 8.69 4.528 5.947 2.43 2.212 4.793.057 9.241.837 13.873a11.232 11.232 0 0 0 1.593 4.172c2.922-.814 5.488-2.353 6.402-5.783z" /><path fill="#c90019" d="M23.159 10.125c1.037 6.163-3.12 12.001-9.286 13.036a11.352 11.352 0 0 1-3.06.097 11.342 11.342 0 0 1-7.98-4.615l18.325-5.254c.263-.075.196-.328-.022-.313l-7.683.536c1.083-1.045 1.907-2.326 1.807-4.098-.2-2.87-3.125-5.672-8.558-7.513a11.352 11.352 0 0 1 6.48-1.256c4.933.516 9.115 4.254 9.977 9.385zM.836 13.875a11.232 11.232 0 0 0 1.594 4.173c2.922-.814 5.488-2.353 6.402-5.784C9.837 8.49 8.69 4.53 5.947 2.433 2.212 4.796.057 9.243.837 13.875Z" /></svg></g></g></svg>

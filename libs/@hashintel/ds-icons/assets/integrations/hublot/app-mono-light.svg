@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hublot-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="hublot-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hublot-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hublot-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hublot-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hublot-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="hublot-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.233818224477 -0.786579464469 -0.0794058128281 0 1.09980350177" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#hublot-app-mono-light-mono)"><defs><clipPath id="hublot-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hublot-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="hublot-app-mono-light-Calque_2" viewBox="116.3129 0 82.1722 62.51395" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="hublot-app-mono-light-identity-part"><rect x="0" y="0" width="315.7" height="76" /></clipPath></defs><g clip-path="url(#hublot-app-mono-light-identity-part)"><defs>
+    </defs>
+  <g id="hublot-app-mono-light-Calque_1-2">
+    <polygon points="35.4 89.26 35.4 108.11 9.91 108.11 9.91 89.25 0 89.25 0 139.88 9.91 139.88 9.91 118.46 35.4 118.46 35.4 139.88 45.25 139.88 45.25 89.26 35.4 89.26" fill="#181716" />
+    <path d="m96.42,89.26v26.41c0,7.68-.79,15.82-13.37,15.82s-13.48-7.97-13.48-15.82v-26.41h-9.86v27.04c0,12.07,3.37,24.97,23.34,24.97s23.32-13.08,23.32-24.97v-27.04h-9.95Z" fill="#181716" />
+    <polygon points="178.84 89.26 178.84 139.86 213 139.86 213 129.62 188.75 129.62 188.75 89.26 178.84 89.26" fill="#181716" />
+    <path d="m243.19,131.26c-9.63,0-17.18-7.4-17.18-16.85s7.55-16.85,17.18-16.85,17.18,7.4,17.18,16.85-7.55,16.85-17.18,16.85m0-43.44c-15.21,0-27.13,11.69-27.13,26.6s11.92,26.59,27.13,26.59,27.12-11.68,27.12-26.59-11.92-26.6-27.12-26.6" fill="#181716" />
+    <polygon points="274.35 89.26 274.35 99.56 290.26 99.56 290.26 139.87 300.18 139.87 300.18 99.56 315.7 99.56 315.7 89.26 274.35 89.26" fill="#181716" />
+    <g>
+      <path d="m146.62,130.63h-17.2v-12.71s17.26,0,17.26,0c5.11,0,7.33,1.99,7.33,6.54,0,3.4-1.39,6.18-7.39,6.18m-1.53-32.1c5.52,0,7.22,2,7.22,5.33s-1.48,5.71-7.01,5.71h-15.88s0-11.04,0-11.04h15.68Zm13.11,14.8c3.06-2.39,4.81-5.87,4.81-10.09s-1.7-13.98-17.43-13.98h-26.01v50.61h27.66c11.14,0,17.53-5.62,17.53-15.4,0-4.76-2.27-8.58-6.56-11.14" fill="#181716" />
+      <path d="m198.19,0h-9.78c0,9.75-3.78,15.7-14.1,20.41V0h-9.84v24c-2.42.73-5.06,1.44-7.93,2.15h0c-2.16.52-4.23,1.06-6.24,1.63V0h-9.84v31.08c-15.15,6.03-23.87,15-23.87,30.96h9.78c0-9.75,3.78-15.7,14.09-20.41v20.41h9.84v-24c2.43-.73,5.06-1.44,7.93-2.15h0c2.15-.52,4.23-1.06,6.24-1.63v27.79h9.84v-31.08c15.15-6.03,23.88-14.99,23.88-30.96" fill="#181716" />
+    </g>
+  </g>
+</g></svg></g></g></svg>

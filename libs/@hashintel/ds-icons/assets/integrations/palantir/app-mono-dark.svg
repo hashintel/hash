@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="palantir-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="palantir-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="palantir-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#palantir-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#palantir-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#palantir-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="palantir-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#palantir-app-mono-dark-mono)"><defs><clipPath id="palantir-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#palantir-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="palantir-app-mono-dark-Layer_1" x="14.222222222222221" y="14.222222222222221" viewBox="43.333333 64.666667 212.666667 270" xml:space="preserve" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556">
+<path d="M149.74,65.84c-56.02,0-101.44,45.42-101.44,101.44s45.42,101.44,101.44,101.44c56.02,0,101.44-45.42,101.44-101.44  S205.76,65.84,149.74,65.84z M149.73,237.52c-38.73,0-70.13-31.4-70.13-70.14c0-38.73,31.4-70.13,70.13-70.13  c38.74,0,70.14,31.4,70.14,70.13C219.87,206.12,188.47,237.52,149.73,237.52z" />
+<polygon points="240.41,259.82 149.74,298.98 59.06,259.82 44,288.7 149.74,333.76 255.47,288.7 " />
+</svg></g></g></svg>

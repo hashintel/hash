@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="stackpath-legacy-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="stackpath-legacy-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="stackpath-legacy-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#stackpath-legacy-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#stackpath-legacy-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#stackpath-legacy-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="stackpath-legacy-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#stackpath-legacy-app-mono-dark-mono)"><defs><clipPath id="stackpath-legacy-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#stackpath-legacy-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 30.72 448 450.56" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#111111" d="M244.6 232.4c0 8.5-4.3 20.5-21.3 20.5l-19.6 0 0-41.5 19.6 0c17.1 0 21.3 12.4 21.3 21zM448 32l0 448-448 0 0-448 448 0zM151.3 287.8c0-21.2-12.1-34.5-46.7-44.8-20.6-7.4-26-10.9-26-18.6s7-14.6 20.4-14.6c14.1 0 20.8 8.4 20.8 18.4l30.7 0 .2-.6c.5-19.6-15.1-41.6-51.1-41.6-23.4 0-52.6 10.8-52.6 38.3 0 19.4 9.2 31.3 50.7 44.4 17.3 6.2 21.9 10.4 21.9 19.5 0 15.2-19.1 14.2-19.5 14.2-20.4 0-25.7-9.1-25.7-21.9l-30.8 0-.2 .6c-.7 31.3 28.4 45.2 56.6 45.2 30 0 51.1-13.6 51.1-38.3zm125.4-55.6c0-25.3-18.4-45.5-53.4-45.5l-51.8 0 0 138.2 32.2 0 0-47.4 19.6 0c30.3 0 53.4-16 53.4-45.4zM297.9 325l49.1-138.2-31.1 0-47.9 138.2 29.9 0zM404.5 186.8l-31.1 0-47.9 138.2 29.9 0 49.1-138.2z" /></svg></g></g></svg>

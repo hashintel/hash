@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cloudflare-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="cloudflare-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="cloudflare-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cloudflare-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cloudflare-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#cloudflare-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="cloudflare-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.495176384837 -1.66580503497 -0.168164322602 0 2.32914574241" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#cloudflare-app-mono-dark-mono)"><defs><clipPath id="cloudflare-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#cloudflare-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 30 14" color="black" x="18.991869918699187" y="18.991869918699187" width="26.016260162601625" height="26.016260162601625">
+    <path d="M27.6921 8.34632L23.7476 6.12594L23.0645 5.8335L6.92285 5.94181V14.0002H27.6921V8.34632Z" fill="white" />
+    <path d="M20.6087 13.218C20.798 12.5663 20.7244 11.969 20.4193 11.5237C20.1353 11.1109 19.6619 10.8829 19.0938 10.8503L8.27909 10.7091C8.20545 10.7091 8.14233 10.6765 8.11077 10.6222C8.07921 10.5679 8.06869 10.4919 8.07921 10.4267C8.11077 10.3181 8.21597 10.2312 8.33169 10.2312L19.2411 10.09C20.535 10.0248 21.9342 8.94957 22.4287 7.62451L23.0493 5.9519C23.0809 5.87587 23.0809 5.81071 23.0704 5.73468C22.3655 2.45462 19.5356 0 16.1376 0C13.0132 0 10.3621 2.08534 9.41527 4.9744C8.8051 4.50737 8.01609 4.2467 7.17448 4.33359C5.6701 4.48565 4.47081 5.73468 4.32352 7.27696C4.29196 7.67882 4.31301 8.06982 4.40769 8.42824C1.9565 8.50426 -0.000244141 10.5679 -0.000244141 13.1202C-0.000244141 13.3483 0.0207955 13.5764 0.0418357 13.8045C0.062876 13.9131 0.147037 14 0.252238 14H20.2089C20.3246 14 20.4298 13.9131 20.4614 13.8045L20.6087 13.218Z" fill="#F38020" />
+    <path d="M23.7892 5.8335C23.6899 5.8335 23.5796 5.8335 23.4803 5.84473C23.4031 5.84473 23.3369 5.9009 23.3148 5.97953L22.8736 7.54097C22.675 8.21497 22.7523 8.83281 23.0722 9.29338C23.37 9.72025 23.8664 9.95615 24.4621 9.98985L26.878 10.1359C26.9552 10.1359 27.0214 10.1696 27.0545 10.2257C27.0876 10.2819 27.0986 10.3718 27.0876 10.4279C27.0545 10.5403 26.9441 10.6301 26.8228 10.6301L24.3077 10.7762C22.9398 10.8436 21.4837 11.9557 20.9652 13.3262L20.7777 13.8092C20.7446 13.8991 20.8107 14.0002 20.91 14.0002H29.5475C29.6468 14.0002 29.7461 13.9328 29.7682 13.8317C29.9116 13.2925 29.9998 12.7196 29.9998 12.1242C29.9888 8.66431 27.2089 5.8335 23.7892 5.8335Z" fill="#FAAE40" />
+  </svg></g></g></svg>

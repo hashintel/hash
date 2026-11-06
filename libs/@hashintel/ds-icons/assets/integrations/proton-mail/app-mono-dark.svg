@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="proton-mail-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="proton-mail-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="proton-mail-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#proton-mail-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#proton-mail-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#proton-mail-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="proton-mail-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327270422331 -1.10095863618 -0.11114263637 0 1.53937169488" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.0324"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#proton-mail-app-mono-dark-mono)"><defs><clipPath id="proton-mail-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#proton-mail-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 918 745" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#proton-mail-app-mono-dark-a)"><path fill="url(#proton-mail-app-mono-dark-b)" fill-rule="evenodd" d="M723.149 140.476v604.98h100.286c52.441 0 94.939-43.084 94.939-96.133V21.947c0-18.125-20.827-27.995-34.617-16.417z" clip-rule="evenodd" /><path fill="url(#proton-mail-app-mono-dark-c)" fill-rule="evenodd" d="m583.274 258.151-183.217 163.89c-31.239 27.9-77.864 28.564-109.855 1.613L.227 179.574V22.042c0-18.125 20.826-28.09 34.617-16.512L398.65 311.294a94.056 94.056 0 0 0 121.394 0z" clip-rule="evenodd" /><path fill="url(#proton-mail-app-mono-dark-d)" d="m723.149 140.571-139.875 117.58.094-.001-183.311 163.891c-31.239 27.9-77.864 28.564-109.855 1.613L.227 179.574v469.749c0 53.049 42.497 96.133 94.938 96.133H723.15z" /></g><defs><linearGradient id="proton-mail-app-mono-dark-b" x1="2304.04" x2="2116.29" y1="1228.39" y2="-635.265" gradientUnits="userSpaceOnUse"><stop offset=".271" stop-color="#e3d9ff" /><stop offset="1" stop-color="#7341ff" /></linearGradient><linearGradient id="proton-mail-app-mono-dark-c" x1="542.753" x2="160.929" y1="752.371" y2="-755.454" gradientUnits="userSpaceOnUse"><stop stop-color="#e3d9ff" /><stop offset="1" stop-color="#7341ff" /></linearGradient><radialGradient id="proton-mail-app-mono-dark-d" cx="0" cy="0" r="1" gradientTransform="matrix(1070.72 0 0 1083.11 914.374 91.728)" gradientUnits="userSpaceOnUse"><stop offset=".556" stop-color="#6d4aff" /><stop offset=".994" stop-color="#aa8eff" /></radialGradient><clipPath id="proton-mail-app-mono-dark-a"><path fill="#fff" d="M0 0h918v745H0z" /></clipPath></defs></svg></g></g></svg>

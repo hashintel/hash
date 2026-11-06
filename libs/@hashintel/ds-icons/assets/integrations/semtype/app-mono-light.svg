@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="semtype-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="semtype-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="semtype-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#semtype-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#semtype-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#semtype-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="semtype-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#semtype-app-mono-light-mono)"><defs><clipPath id="semtype-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#semtype-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 255.564626 259.695" preserveAspectRatio="xMidYMid meet" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g transform="translate(-0.051894,260.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none">
+<path d="M1272 2558 c-54 -222 -383 -1670 -380 -1673 3 -4 1596 374 1651 391 16 5 4 21 -65 92 -46 48 -331 345 -632 660 -302 314 -552 572 -556 572 -4 0 -12 -19 -18 -42z m488 -633 c205 -214 412 -429 459 -477 47 -48 82 -90 79 -93 -3 -3 -100 -28 -214 -56 -115 -27 -388 -93 -607 -145 -219 -53 -401 -93 -404 -90 -4 3 56 275 131 603 170 738 154 679 170 662 7 -8 181 -189 386 -404z M720 2118 c-261 -252 -530 -513 -597 -581 l-122 -122 395 -255 c218 -140 402 -256 410 -258 7 -2 16 7 19 20 300 1310 375 1642 373 1648 -2 4 -217 -199 -478 -452z m134 -464 c-64 -280 -119 -517 -123 -527 -6 -15 -42 5 -259 145 -139 90 -252 166 -252 170 0 8 743 728 748 724 1 -2 -50 -232 -114 -512z M17 1316 c10 -16 981 -1133 1040 -1196 l42 -45 -100 255 c-55 140 -119 302 -141 360 -23 58 -48 112 -57 121 -23 25 -792 520 -784 505z M1710 1002 c-448 -107 -816 -196 -817 -197 -6 -4 313 -797 320 -797 7 1 1218 1083 1302 1163 16 16 25 29 20 28 -6 -1 -377 -89 -825 -197z m320 -86 c-66 -64 -763 -686 -769 -686 -7 0 -186 457 -186 474 0 8 932 241 980 245 5 1 -6 -14 -25 -33z" />
+</g>
+</svg></g></g></svg>

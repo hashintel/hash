@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="capgemini-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="capgemini-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="capgemini-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#capgemini-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#capgemini-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#capgemini-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="capgemini-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.301658948943 -1.01480000134 -0.102444854721 0 1.418903805" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#capgemini-app-mono-light-mono)"><defs><clipPath id="capgemini-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#capgemini-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="4.96571 6.21148 30.06857 27.80563" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M34.448 18.5613C33.6403 15.8752 32.0037 13.5209 29.8306 11.525C27.4836 9.38028 24.6952 7.7551 21.7721 6.52878C21.5371 6.43019 21.3007 6.33395 21.0629 6.24014C21.0625 6.23996 21.0621 6.2398 21.0617 6.23962C17.4634 10.5522 5 13.7706 5 22.8084C5 26.3437 7.23442 29.6468 10.5121 30.9729C12.5503 31.6635 14.7456 31.5351 16.7026 30.6438C18.5938 29.7826 20.0336 28.2663 21.1935 26.5755C22.418 24.7907 23.3503 22.8308 24.5138 21.0089C25.5947 19.3162 26.9764 17.6267 29.0266 17.1496C30.8851 16.7171 33.0872 17.2001 34.448 18.5613Z" fill="#0058AB" /><path d="M34.5281 20.3947C33.7022 18.7436 31.9658 18.0347 30.1846 18.1187C28.4646 18.1998 27.2102 19.2946 26.253 20.6405C25.1698 22.1635 24.4092 23.9019 23.5248 25.5418C22.6725 27.1223 21.7554 28.6707 20.5284 29.9939C19.1678 31.4611 17.4578 32.5668 15.5381 33.1477C16.4261 33.7874 17.6568 33.9308 18.7179 33.9717C19.9175 34.0179 21.1303 33.9083 22.3107 33.6968C24.4667 33.3107 26.7944 32.5544 28.3883 30.9806C25.9012 31.0128 23.8956 29.3403 23.7172 26.8189C25.3169 28.7565 27.7376 29.5027 30.1599 28.8132C32.2821 28.2091 33.9871 26.5311 34.6744 24.4408C35.1108 23.1137 35.1538 21.6714 34.5281 20.3947Z" fill="#0058AB" /></svg></g></g></svg>

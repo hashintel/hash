@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kone-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="kone-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="kone-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kone-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kone-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#kone-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="kone-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.308303429764 -1.03715245986 -0.104701352911 0 1.45015724254" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#kone-app-mono-dark-mono)"><defs><clipPath id="kone-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#kone-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1193.36 461.76" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs /><g><g><path d="M0 0h269.36v461.76H0zM307.84 0H577.2v461.76H307.84zM615.67 0h269.36v461.76H615.67zM924.01 0h269.36v461.76H924.01z" fill="#1450F5" /><path d="M48.22 132.07h52.69v86.22l65.23-86.22h62.06l-72.02 93.02 76.96 104.6h-64.49l-67.74-93.63v93.63H48.22V132.07zM662.48 132.07h46.03l80.81 107.35V132.07h48.9v197.62h-43.94l-83.06-115.68v115.68h-48.74V132.07zM442.5 127.72c-56.79 0-102.47 41.93-102.47 103.12s45.68 103.2 102.47 103.2 102.49-42.02 102.49-103.2-45.68-103.12-102.49-103.12zm0 159.68c-28.08 0-49.78-23.01-49.78-56.55s21.69-56.55 49.78-56.55 49.77 23.09 49.77 56.55-21.77 56.55-49.77 56.55zM1133.44 175.62H1036v33.41h81.47l-.02 42.31H1036v33.51h97.44v44.86H983.93V132.05h149.51v43.57z" fill="#FFFFFF" /></g></g></svg></g></g></svg>

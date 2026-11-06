@@ -21,7 +21,7 @@
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hapag-lloyd-app-light-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hapag-lloyd-app-light-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="hapag-lloyd-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hapag-lloyd-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.bohemiancoding.com/sketch/ns" viewBox="0 0 27.42478 19.57551" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
-    
+
     <defs><clipPath id="hapag-lloyd-app-light-brand-symbol-bounds"><rect x="0.0" y="0.0" width="28.563229200000002" height="20.0" /></clipPath></defs><g clip-path="url(#hapag-lloyd-app-light-brand-symbol-bounds)"><defs />
     <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" ns1:type="MSPage">
         <g ns1:type="MSArtboardGroup" transform="translate(-95.000000, -17.000000)">

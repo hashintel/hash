@@ -71,6 +71,22 @@ class SvgParsingTests(unittest.TestCase):
                 with self.assertRaises(DTDForbidden):
                     generator.app_tile(False)
 
+    def test_mono_app_keeps_tile_outside_filter_and_uses_light_mark(self):
+        self.mark.write_text(svg.replace('<path ', '<path fill="#0055AA" '))
+        self.mark.with_name("mark-dark.svg").write_text(svg.replace('<path ', '<path fill="white" '))
+        self.tile.write_text(svg)
+        self.tile.with_name("dark.svg").write_text(svg)
+        brand = {"slug": "example", "ratio": 2, "alignment": "start", "appViewBox": "0 -2 24 28"}
+        for theme in ("light", "dark"):
+            document = generator.ET.fromstring(generator.variant_svg(brand, f"app-mono-{theme}"), forbid_dtd=True)
+            self.assertEqual(document.get("color"), "#FFFFFF" if theme == "dark" else "#000000")
+            self.assertIsNone(document[0].get("filter"))
+            artwork = document.find(f'.//{generator.svg_ns}g[@filter]')
+            mark = artwork.find(f'.//{generator.svg_ns}svg')
+            self.assertEqual(mark.get("x"), "0")
+            self.assertEqual(mark.get("viewBox"), "0 -2 24 28")
+            self.assertEqual(mark.find(f'{generator.svg_ns}path').get("fill"), "#0055AA")
+
 
 class MonoContrastTests(unittest.TestCase):
     def alpha(self, artwork, rgb):

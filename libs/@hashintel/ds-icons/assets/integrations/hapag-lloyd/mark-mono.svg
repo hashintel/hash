@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="hapag-lloyd-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.1087"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#hapag-lloyd-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.bohemiancoding.com/sketch/ns" viewBox="0 0 27.42478 19.57551" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
-    
+
     <defs><clipPath id="hapag-lloyd-mark-mono-brand-symbol-bounds"><rect x="0.0" y="0.0" width="28.563229200000002" height="20.0" /></clipPath></defs><g clip-path="url(#hapag-lloyd-mark-mono-brand-symbol-bounds)"><defs />
     <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" ns1:type="MSPage">
         <g ns1:type="MSArtboardGroup" transform="translate(-95.000000, -17.000000)">

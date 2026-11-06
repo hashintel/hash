@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="oral-b-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="oral-b-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="oral-b-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#oral-b-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#oral-b-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#oral-b-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="oral-b-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.245824702814 -0.826970025647 -0.0834832716047 0 1.15627800007" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#oral-b-app-mono-dark-mono)"><defs><clipPath id="oral-b-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#oral-b-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="oral-b-app-mono-dark-Layer_1" x="14.222222222222221" y="14.222222222222221" viewBox="0 0 1599 558" xml:space="preserve" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556"><defs id="oral-b-app-mono-dark-defs9" />
+<g id="oral-b-app-mono-dark-g9" transform="matrix(10,0,0,10,-199,-720)">
+	<g id="oral-b-app-mono-dark-g1">
+		<path d="m 46.9,127.8 c -7.4,0 -14.2,-2.9 -19.3,-8.2 C 22.7,114.4 19.9,107.4 19.9,99.9 19.9,84.3 31.7,72 46.8,72 h 106.1 c 15.1,0 26.9,12.2 26.9,27.8 0,15.6 -11.8,27.8 -26.9,27.8 z" id="oral-b-app-mono-dark-path1" fill="#FFFFFF" />
+	</g>
+	<linearGradient id="oral-b-app-mono-dark-SVGID_1_" gradientUnits="userSpaceOnUse" x1="21.589701" y1="100" x2="178.41029" y2="100">
+		<stop offset="0" id="oral-b-app-mono-dark-stop1" stop-color="#261B62" />
+		<stop offset="9.958454e-02" id="oral-b-app-mono-dark-stop2" stop-color="#1B3179" />
+		<stop offset="0.2546" id="oral-b-app-mono-dark-stop3" stop-color="#0C4D97" />
+		<stop offset="0.3875" id="oral-b-app-mono-dark-stop4" stop-color="#035FA9" />
+		<stop offset="0.4819" id="oral-b-app-mono-dark-stop5" stop-color="#0065B0" />
+		<stop offset="0.5869" id="oral-b-app-mono-dark-stop6" stop-color="#0360AA" />
+		<stop offset="0.7215" id="oral-b-app-mono-dark-stop7" stop-color="#0B509A" />
+		<stop offset="0.8716" id="oral-b-app-mono-dark-stop8" stop-color="#183780" />
+		<stop offset="1" id="oral-b-app-mono-dark-stop9" stop-color="#261C64" />
+	</linearGradient>
+	<path d="m 91.3,108.6 c 0,2.7 5.9,2.9 7.3,-3.4 -3.5,1.1 -7.3,1.3 -7.3,3.4 m 51.1,-6.2 -1.1,5.2 h 7 c 3.6,0 4,-5.2 0.9,-5.2 z m 1.3,-6.1 h 6.1 c 3.8,0 4.6,-4.6 0.8,-4.6 h -6 z m -99.6,6.9 c 0,3.2 1.7,5.3 5,5.3 6,0 7.7,-8.4 7.8,-11.9 0,-2.8 -1.7,-5.3 -5.1,-5.3 -4.1,0 -7.7,4.3 -7.7,11.9 m 42.7,-10.4 -1,4.5 c 2.8,-4 7,-4.8 11.8,-4.9 6.1,0 12.2,2.4 11,8.1 l -2.6,11.9 c -0.4,1.6 0,2.3 0.3,3.1 h -9.7 v -1.4 c -5.6,4 -14.4,2.2 -14.4,-4.7 0,-5.7 5.7,-7 7,-7.2 6.1,-1.1 10.4,-1 10.8,-2.7 0.5,-2.1 -5.3,-2.3 -5.7,0.8 H 82.1 c -1.8,0 -4.1,0.9 -5.1,5.5 l -2.1,9.8 H 66 l 4.8,-22.5 h 7.7 v 2.3 c 1.2,-1.2 3.6,-4 8.3,-2.6 m 39.9,3.5 h 7.5 l 2.6,-11.9 H 149 c 4,0 13,-0.7 13.1,7.2 0,3.4 -1.3,6 -5,8 1.9,1.5 3.4,2.6 3.4,6.3 0,2.7 -2.2,9.7 -12.4,9.7 h -18 l 2.8,-13.1 h -7.5 z M 115,84.3 h 9.1 l -6.8,31.2 h -9.1 z m -66.3,31.9 c -10.2,0 -14.5,-6.4 -14.6,-13.6 0,-10.3 6.9,-19.2 18.3,-19.1 10,0 14.6,6.2 14.6,13.7 -0.1,7.2 -4.5,19 -18.3,19 0.1,0 0.1,0 0,0 M 21.6,100 c 0,14.5 10.8,26.3 25.3,26.3 H 153 c 14.5,0 25.3,-11.8 25.3,-26.3 0,-14.5 -10.8,-26.3 -25.3,-26.3 H 46.9 C 32.4,73.7 21.6,85.5 21.6,100" id="oral-b-app-mono-dark-path9" fill="url(#oral-b-app-mono-dark-SVGID_1_)" />
+</g>
+</svg></g></g></svg>

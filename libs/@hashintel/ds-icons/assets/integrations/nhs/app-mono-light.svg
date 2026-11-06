@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nhs-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="nhs-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nhs-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nhs-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nhs-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nhs-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="nhs-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.310700432813 -1.04521613146 -0.105515386873 0 1.46143195114" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#nhs-app-mono-light-mono)"><defs><clipPath id="nhs-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nhs-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 91.62714 310 126.74571" preserveAspectRatio="xMidYMid meet" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<rect x="0" y="91.62714" width="310" height="126.74571" fill="#ffffff" /><g transform="translate(0.000000,310.000000) scale(0.100000,-0.100000)" fill="#005EB8" stroke="none">
+<path d="M0 1550 l0 -630 1550 0 1550 0 0 630 0 630 -1550 0 -1550 0 0 -630z m2884 505 c43 -7 83 -18 88 -23 5 -5 -3 -47 -22 -104 l-30 -96 -63 20 c-74 24 -232 29 -289 9 -72 -24 -90 -92 -39 -140 15 -14 67 -42 114 -61 183 -73 247 -146 247 -281 0 -88 -28 -164 -81 -219 -103 -106 -323 -153 -549 -116 -128 21 -173 35 -166 52 3 7 17 52 31 99 15 47 27 85 28 85 1 0 27 -10 57 -22 76 -31 285 -33 343 -4 75 37 87 122 24 170 -18 13 -70 40 -117 58 -174 70 -222 122 -228 244 -9 172 89 287 279 328 83 19 273 19 373 1z m-2226 -67 c11 -35 57 -190 103 -346 45 -155 86 -279 89 -275 4 5 38 160 75 346 l68 337 124 0 c68 0 123 -4 123 -9 0 -10 -199 -948 -206 -974 -5 -16 -20 -17 -172 -15 l-167 3 -104 347 c-58 191 -106 346 -108 344 -2 -1 -32 -149 -68 -327 -36 -178 -67 -334 -70 -346 -5 -22 -9 -23 -131 -23 -115 0 -125 1 -120 18 2 9 51 234 107 500 l103 482 167 0 168 0 19 -62z m952 52 c0 -5 -16 -85 -35 -177 -19 -92 -35 -173 -35 -180 0 -10 37 -13 159 -13 l160 0 12 58 c6 31 24 116 38 187 l27 130 132 3 c73 1 132 -1 132 -5 0 -4 -46 -230 -102 -500 l-102 -493 -134 0 c-134 0 -134 0 -129 23 3 12 22 101 42 197 19 96 38 183 41 193 5 16 -7 17 -158 17 l-164 0 -44 -215 -44 -215 -134 0 c-134 0 -134 0 -129 23 3 12 49 231 102 487 53 256 98 471 100 478 5 15 265 18 265 2z" />
+</g>
+</svg></g></g></svg>

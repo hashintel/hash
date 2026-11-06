@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mulberry-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="mulberry-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mulberry-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mulberry-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mulberry-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mulberry-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="mulberry-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#mulberry-app-mono-dark-mono)"><defs><clipPath id="mulberry-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mulberry-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212.48 212.5" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<defs />
+<path d="M106.25 206.22a100 100 0 1 1 100-100 100.09 100.09 0 0 1-100 100m0-206.23a106.25 106.25 0 1 0 106.24 106.26A106.37 106.37 0 0 0 106.25 0" fill="#000000" /><path d="M122.03 177.3c-7.82-10.71-12.77-32.45-13.53-52.44h-4.53c-.76 20-5.71 41.71-13.54 52.44h31.62M168.42 98.56c12.69 6.27 20.48-6 20.48-6-12.71-6.28-20.48 6-20.48 6M136.57 99.71c-14.32-3.43-17.89 11-17.89 11 14.3 3.47 17.89-11 17.89-11M101.23 95.59c-4.37 14.92 10.74 19.35 10.74 19.35 4.36-15-10.76-19.35-10.76-19.35M113.54 91.6c12.72-8.73 3.92-21.61 3.92-21.61-12.73 8.74-3.92 21.61-3.92 21.61M94.43 88.51c13.36-7.14 6.19-20.65 6.19-20.65-13.38 7.13-6.19 20.65-6.19 20.65M92.86 63.6c6.45-15.1-8.71-21.62-8.71-21.62-6.51 15 8.71 21.62 8.71 21.62M126.83 92.86c14.44 2.87 17.36-11.69 17.36-11.69-14.42-2.89-17.36 11.69-17.36 11.69M134.03 117.39c12.68 6.82 21-5.33 21-5.33-12.79-6.82-21 5.33-21 5.33M118.79 118.99c-3.13 14.9 11.7 19.78 11.7 19.78 3.15-14.93-11.7-19.78-11.7-19.78M154.04 124.6c7.2 13.68 21.86 7.84 21.86 7.84-7.19-13.66-21.86-7.84-21.86-7.84M159.97 113.9c12.63 8.84 23-3 23-3-12.59-8.87-23 3-23 3M163.67 91.3c-14.92-3.14-19.7 11.68-19.7 11.68 14.92 3.15 19.7-11.68 19.7-11.68M158.81 50.8c-14.2 5.06-9.16 19.4-9.16 19.4 14.25-5 9.16-19.4 9.16-19.4M131.92 34.81c-15 6.63-8.44 21.81-8.44 21.81 15.05-6.62 8.44-21.81 8.44-21.81M129.97 75.23c15.08-4.12 11-19.4 11-19.4-15.18 4-11 19.4-11 19.4M150.86 81.81c14.12 7.66 23.43-5.87 23.43-5.87-14.06-7.67-23.43 5.87-23.43 5.87M78.28 104.73s3.43 15.55 18.8 12.24c0 0-3.41-15.5-18.8-12.24M90.75 95.62s-3.81-14.69-19.18-11.8c0 0 3.78 14.67 19.18 11.8M78.53 142.65s16.13-2.17 15.45-17.41c0 0-16.14 2.11-15.45 17.41M31.97 132.3s15.51 2.93 20-11.86c0 0-15.52-2.92-20 11.86M51.63 109.59s13.68 6 20.93-6.68c0 0-13.68-6-20.93 6.68M45.39 108.73s-11.81-10.51-23.23-.16c0 0 11.78 10.47 23.23.16M60.67 134.24s15.3-2.7 14.3-17.94c0 0-15.35 2.73-14.3 17.93M110.82 66.3s10-13.79-3.63-23.85c0 0-10 13.82 3.63 23.85M83.22 75.56s-1.09-15.88-16.77-14.69c0 0 1.19 15.77 16.77 14.69M48.97 95.59s-4.85-12.54-19.37-7.1c0 0 5.79 12.6 19.37 7.1M65.51 94.4s1.64-16.38-14-19.68c0 0-1.67 16.35 14 19.68M141.22 125.57c-1.87 2.8-2.27 7.42-.71 12.09s4.66 8.13 7.84 9.25c1.88-2.81 2.26-7.43.7-12.09s-4.64-8.13-7.82-9.24" fill="#000000" /></svg></g></g></svg>

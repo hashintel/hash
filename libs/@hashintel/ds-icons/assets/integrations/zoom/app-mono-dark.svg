@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zoom-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="zoom-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="zoom-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zoom-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zoom-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#zoom-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="zoom-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.331701735816 -1.11586585821 -0.112647532107 0 1.56021512613" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#zoom-app-mono-dark-mono)"><defs><clipPath id="zoom-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#zoom-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 20" color="black" x="14.97872340425532" y="14.97872340425532" width="34.04255319148936" height="34.04255319148936">
+    <path d="M21.6667 16.6112C21.6667 18.1759 20.3982 19.4446 18.8334 19.4446H6.55558C3.42596 19.4446 0.888916 16.9075 0.888916 13.7779V3.389C0.888916 1.8243 2.15744 0.555664 3.72225 0.555664H16C19.1297 0.555664 21.6667 3.09271 21.6667 6.22233V16.6112ZM28.8445 2.25549L24.6889 5.37216C23.9754 5.90726 23.5555 6.74704 23.5556 7.63888L23.5557 12.3611C23.5557 13.2529 23.9756 14.0926 24.689 14.6277L28.8445 17.7444C29.7784 18.4448 31.1111 17.7785 31.1111 16.611V3.38885C31.1111 2.22146 29.7784 1.55506 28.8445 2.25549Z" fill="#295BF6" />
+  </svg></g></g></svg>
