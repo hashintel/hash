@@ -7,12 +7,12 @@ import { MDXProvider } from "@mdx-js/react";
 import { useEffect } from "react";
 
 import "./styles/print.css";
+import { StepContext } from "../steps/context";
 import { SlideContent } from "./deck/slide-content";
 import { SlideHead } from "./deck/slide-head";
 import { useDeckTheme } from "./deck/use-deck-theme";
 import { slideMdxComponents } from "./mdx-components";
 import { noteFor, type LoadedSlide } from "./slide-module";
-import { SlideStepContext } from "./step-context";
 
 import type { DeckSummary } from "./decks";
 
@@ -50,9 +50,9 @@ export const DeckPrint = ({
         {slides.map((slide) => (
           <section className="deck-print__page" key={slide.id}>
             <div className="deck deck-print__stage">
-              <SlideStepContext
+              <StepContext
                 value={{
-                  slideId: slide.id,
+                  scope: slide.id,
                   step: (slide.declaredSteps ?? 1) - 1,
                   mode: "final",
                   registerSteps: ignore,
@@ -61,7 +61,7 @@ export const DeckPrint = ({
               >
                 <SlideHead logo={deck.logo} label={slide.label} />
                 <SlideContent slide={slide} />
-              </SlideStepContext>
+              </StepContext>
             </div>
             <p className="deck-print__notes">{notesOf(slide)}</p>
           </section>

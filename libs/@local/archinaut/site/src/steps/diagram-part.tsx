@@ -1,25 +1,27 @@
 /**
- * A stepped part of a drawing on a slide: what a d2 shape or connection, or
- * an element of a deck's own SVG, compiles to when its classes name steps.
+ * A stepped part of a drawing: what a d2 shape or connection, or an element
+ * of an SVG of one's own, compiles to when its classes name steps, on a
+ * slide or on a docs page.
  *
  * States hold from their step on: the part shows from `at` and hides from
  * `until`, and from `draw` it shows, drawing its lines from start to end,
  * arrowhead last, on that step. The drawing runs on that step alone, so a
- * flow on a later step that ends never replays it. Events happen on their step alone: on a step in `flow`
- * dashes run along its lines, on a step in `focus` the rest of the drawing
- * fades, and on a step in `tokens` a token travels `path` from start to
- * end, after waiting for the legs before it, and goes on arrival when the
- * next leg carries it on. The motion lives in the deck's CSS, which drops it in print and for
- * reduced motion.
+ * flow on a later step that ends never replays it. Events happen on their
+ * step alone: on a step in `flow` dashes run along its lines, on a step in
+ * `focus` the rest of the drawing fades, and on a step in `tokens` a token
+ * travels `path` from start to end, after waiting for the legs before it,
+ * and goes on arrival when the next leg carries it on. The motion lives in
+ * `steps.css`, which drops it in print and for reduced motion.
  */
 
-import { useStep } from "./stepper";
+import { useStep } from "./hooks";
+import "./steps.css";
 
 import type { CSSProperties, ReactNode } from "react";
 
 const lines = "path, line, polyline, polygon, rect, circle, ellipse";
 
-/** How long one token takes to travel one line, as the deck's CSS animates it. */
+/** How long one token takes to travel one line, as `steps.css` animates it. */
 const tokenLeg = 900;
 
 /** Each line's length, for the CSS that draws it. */

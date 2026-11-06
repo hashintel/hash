@@ -1,8 +1,4 @@
-import {
-  SlideFrame,
-  useCompleteStep,
-  useSlideStepper,
-} from "@archinaut/slides";
+import { SlideFrame, useCompleteStep, useSteps } from "@archinaut/slides";
 
 export const title = "A step can wait for an animation";
 export const notes = {
@@ -17,7 +13,7 @@ export const notes = {
 const states = ["idle", "running", "done"] as const;
 
 const Wait = () => {
-  const { step } = useSlideStepper(states.length);
+  const { step } = useSteps(states.length);
   const complete = useCompleteStep();
   const state = states[step] ?? "done";
   return (

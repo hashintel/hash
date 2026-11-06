@@ -53,7 +53,7 @@ const revealsIn = (root: Root): string[] => {
   return found;
 };
 
-const plugin = rehypeFormulas({ docsDirectory: "/site/content/docs/" });
+const plugin = rehypeFormulas();
 const slide = { path: "/decks/tour/2-rule.mdx" } as never;
 
 describe("rehypeFormulas", () => {
@@ -107,18 +107,10 @@ describe("rehypeFormulas", () => {
     ]);
   });
 
-  it("does not define \\step, \\swap or \\morph on a docs page", () => {
+  it("steps a formula on a docs page as on a slide", () => {
     const docsPage = { path: "/site/content/docs/a.mdx" } as never;
-    expect(() =>
-      plugin(inlineMath(String.raw`a \step{1}{b}`), docsPage),
-    ).toThrow(
-      /a\.mdx:7: KaTeX parse error: Undefined control sequence: \\step/u,
-    );
-    expect(() =>
-      plugin(inlineMath(String.raw`\swap{1}{a}{b}`), docsPage),
-    ).toThrow(/Undefined control sequence: \\swap/u);
-    expect(() =>
-      plugin(inlineMath(String.raw`\morph{a}{b}`), docsPage),
-    ).toThrow(/Undefined control sequence: \\morph/u);
+    const root = inlineMath(String.raw`a \step{1}{+ b}`);
+    plugin(root, docsPage);
+    expect(revealsIn(root)).toEqual(["RevealInline at=1"]);
   });
 });

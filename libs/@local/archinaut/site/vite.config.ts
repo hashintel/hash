@@ -24,6 +24,7 @@ import { resolveDiffCompareContext } from "./src/diff-context.ts";
 import { deckExportPlugin } from "./src/plugins/deck-export/index.ts";
 import { deckAliases } from "./src/plugins/deck-specifier.ts";
 import { decksPlugin } from "./src/plugins/decks.ts";
+import { remarkDocSteps } from "./src/plugins/doc-steps.mjs";
 import { rehypeFormulas } from "./src/plugins/formulas.mjs";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
 import { remarkLayerCards } from "./src/plugins/layer-cards.mjs";
@@ -95,6 +96,13 @@ export default defineConfig(async () => ({
               diagramsDirectory: contentPath("diagrams"),
             },
           ],
+          [
+            remarkDocSteps,
+            {
+              docsDirectory: contentPath("docs/"),
+              diagramsDirectory: contentPath("diagrams"),
+            },
+          ],
           // After the step count, which reads the d2 source this replaces.
           [
             remarkSlideDiagrams,
@@ -111,14 +119,11 @@ export default defineConfig(async () => ({
           rehypeSlug,
           [
             rehypeInlineDiagrams,
-            {
-              diagramsDirectory: contentPath("diagrams"),
-              docsDirectory: contentPath("docs/"),
-            },
+            { diagramsDirectory: contentPath("diagrams") },
           ],
           // Formulas render here, so a page ships no math runtime; one
           // KaTeX cannot parse stops the build instead of shipping in red.
-          [rehypeFormulas, { docsDirectory: contentPath("docs/") }],
+          rehypeFormulas,
           [
             rehypeShiki,
             {
