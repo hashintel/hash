@@ -130,11 +130,66 @@ export const isGroup = (
   entry: ItemOrGroup<Item>,
 ): entry is Extract<ItemOrGroup<Item>, { items: Item[] }> => "items" in entry;
 
+/**
+ * Whether any item nested under a collapsible item — at any depth, through
+ * groups and nested collapsibles — is enabled. The collapse toggle follows
+ * its subtree, not the row's own `disabled`: a disabled row's chevron stays
+ * usable while something enabled hides beneath it, and the chevron disables
+ * itself when nothing does.
+ */
+export const hasEnabledDescendant = (item: CollapsibleItem): boolean => {
+  const visitEntry = (entry: ItemOrGroup<Item>): boolean => {
+    if (isGroup(entry)) {
+      return entry.items.some(visitEntry);
+    }
+    if (isCustomItem(entry)) {
+      return true;
+    }
+    if (!entry.disabled) {
+      return true;
+    }
+    // A disabled folder's children stay reachable through its own chevron;
+    // a disabled submenu row's don't — its submenu never opens.
+    return isCollapsibleItem(entry) && entry.subItems.some(visitEntry);
+  };
+  return item.subItems.some(visitEntry);
+};
+
+/** Collects the collapsible item ids whose toggle is usable — see `hasEnabledDescendant`. */
+const collectToggleableCollapsibleIds = (
+  items: Array<ItemOrGroup<Item>>,
+): ReadonlySet<string> => {
+  const result = new Set<string>();
+  const visitEntry = (entry: ItemOrGroup<Item>) => {
+    if (isGroup(entry)) {
+      for (const item of entry.items) {
+        visitEntry(item);
+      }
+      return;
+    }
+    if (isCollapsibleItem(entry)) {
+      if (hasEnabledDescendant(entry)) {
+        result.add(getItemId(entry));
+      }
+      for (const child of entry.subItems) {
+        visitEntry(child);
+      }
+    }
+  };
+  for (const entry of items) {
+    visitEntry(entry);
+  }
+  return result;
+};
+
 /** Expansion state of a list's `collapsible` items. */
 export type CollapsibleExpansion = {
   /** The ids of the collapsible items whose subItems are currently revealed. */
   expandedIds: ReadonlySet<string>;
-  /** Flips the given collapsible item between expanded and collapsed. */
+  /**
+   * Flips the given collapsible item between expanded and collapsed. Ignored
+   * for an item with no enabled descendant — its chevron renders disabled.
+   */
   onToggle: (id: string) => void;
   /**
    * Marks the given collapsible items expanded — dropdowns reveal the
@@ -294,15 +349,22 @@ export const useCollapsibleExpansion = (
     }
     return result;
   }, [defaults, toggled]);
+  const toggleableIds = useMemo(
+    () => collectToggleableCollapsibleIds(items),
+    [items],
+  );
   const onToggle = useCallback(
     (id: string) => {
+      if (!toggleableIds.has(id)) {
+        return;
+      }
       setToggled((previous) => {
         const next = new Map(previous);
         next.set(id, !(previous.get(id) ?? defaults.get(id) ?? false));
         return next;
       });
     },
-    [defaults],
+    [defaults, toggleableIds],
   );
   const expand = useCallback(
     (ids: ReadonlySet<string>) => {
@@ -365,7 +427,10 @@ export const useCollapsibleToggleKeyDown = (
   items: Array<ItemOrGroup<Item>>,
   expansion: CollapsibleExpansion,
 ) => {
-  const collapsibleIds = useMemo(() => collectCollapsibleIds(items), [items]);
+  const toggleableIds = useMemo(
+    () => collectToggleableCollapsibleIds(items),
+    [items],
+  );
 
   return (event: React.KeyboardEvent, menu: UseMenuContext) => {
     if (
@@ -391,7 +456,7 @@ export const useCollapsibleToggleKeyDown = (
       return;
     }
     const highlighted = menu.highlightedValue;
-    if (highlighted === null || !collapsibleIds.has(highlighted)) {
+    if (highlighted === null || !toggleableIds.has(highlighted)) {
       return;
     }
     const isExpanded = expansion.expandedIds.has(highlighted);

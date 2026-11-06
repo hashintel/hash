@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effect";
 import { Icon } from "../Icon/icon";
 import { Menu } from "../Menu/menu";
@@ -96,11 +97,13 @@ export const VisibleItem = ({
   isCurrent,
   size,
   classes,
+  autoFocus,
 }: {
   item: BreadcrumbItem;
   isCurrent: boolean;
   size: FormInputSize;
   classes: Classes;
+  autoFocus?: boolean | "never";
 }) => {
   const labelRef = useRef<HTMLSpanElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -132,6 +135,7 @@ export const VisibleItem = ({
     "data-testid": item.testId,
     "aria-current": isCurrent ? ("page" as const) : undefined,
     "aria-label": item["aria-label"],
+    ...resolveAutoFocusProps(autoFocus),
   };
 
   const content = (

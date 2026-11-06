@@ -30,6 +30,8 @@ interface DataTypeHeaderProps {
   isReadOnly: boolean;
   latestVersion?: OntologyTypeVersion | null;
   onEdit?: () => void;
+  /** The edit button's label — "View" when the editor opens read-only */
+  editButtonLabel?: string;
 }
 
 export const DataTypeHeader = ({
@@ -39,6 +41,7 @@ export const DataTypeHeader = ({
   isReadOnly,
   latestVersion,
   onEdit,
+  editButtonLabel = "Edit",
 }: DataTypeHeaderProps) => {
   const router = useRouter();
 
@@ -165,7 +168,10 @@ export const DataTypeHeader = ({
           <Stack direction="row" spacing={1.5}>
             {onEdit ? (
               <Button onClick={onEdit} variant="secondary" size="small">
-                Edit <PenRegularIcon sx={{ fontSize: 14, ml: 1.5 }} />
+                {editButtonLabel}
+                {editButtonLabel === "Edit" ? (
+                  <PenRegularIcon sx={{ fontSize: 14, ml: 1.5 }} />
+                ) : null}
               </Button>
             ) : null}
             <Button

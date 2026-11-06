@@ -64,6 +64,7 @@ export const ItemBody = ({
   expanded = false,
   containsSelection = false,
   onToggleExpansion,
+  collapseDisabled = false,
   reserveChevron = false,
 }: {
   item: Item;
@@ -76,6 +77,8 @@ export const ItemBody = ({
   containsSelection?: boolean;
   /** Toggles a collapsible item between expanded and collapsed */
   onToggleExpansion?: () => void;
+  /** Whether the collapse toggle is disabled — no enabled item anywhere beneath the row */
+  collapseDisabled?: boolean;
   /** Whether the row keeps an empty chevron column, aligning it with the list's collapsible rows */
   reserveChevron?: boolean;
 }) => {
@@ -115,6 +118,7 @@ export const ItemBody = ({
           <button
             type="button"
             tabIndex={-1}
+            disabled={collapseDisabled}
             aria-label={
               expanded
                 ? "Collapse"

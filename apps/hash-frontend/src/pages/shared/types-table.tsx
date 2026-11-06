@@ -36,7 +36,7 @@ import {
   useActors,
 } from "../../shared/use-actors";
 import { createRenderChipCell } from "./chip-cell";
-import { DataTypeEditorDrawer } from "./data-type-editor-drawer";
+import { DataTypeEditorDrawerById } from "./data-type-editor-drawer-by-id";
 import { useDataTypesContext } from "./data-types-context";
 import { DsComponentsScope } from "./ds-components-scope";
 import {
@@ -430,12 +430,13 @@ export const TypesTable: FunctionComponent<{
 
   const theme = useTheme();
 
-  const [dataTypeBeingEdited, setDataTypeBeingEdited] =
-    useState<DataTypeWithMetadata | null>(null);
+  const [dataTypeIdBeingEdited, setDataTypeIdBeingEdited] =
+    useState<VersionedUrl | null>(null);
 
   /**
-   * Data types the user can edit open the editor drawer; everything else
-   * (external webs, entity types) opens the read-only slide.
+   * Data types in the user's webs open the editor drawer, which resolves the
+   * user's per-type permissions and stays read-only unless they allow editing;
+   * everything else (external webs, entity types) opens the read-only slide.
    */
   const openType = useCallback(
     (rowKind: TypesTableRow["kind"], typeId: VersionedUrl) => {
@@ -447,7 +448,7 @@ export const TypesTable: FunctionComponent<{
             : null;
 
         if (dataType && internalWebs.some(({ webId }) => webId === typeWebId)) {
-          setDataTypeBeingEdited(dataType);
+          setDataTypeIdBeingEdited(typeId);
           return;
         }
       }
@@ -845,12 +846,10 @@ export const TypesTable: FunctionComponent<{
           />
         </Box>
       )}
-      {dataTypeBeingEdited && (
-        <DataTypeEditorDrawer
-          mode="edit"
-          dataType={dataTypeBeingEdited}
-          onClose={() => setDataTypeBeingEdited(null)}
-          onUpdated={() => setDataTypeBeingEdited(null)}
+      {dataTypeIdBeingEdited && (
+        <DataTypeEditorDrawerById
+          dataTypeId={dataTypeIdBeingEdited}
+          onClose={() => setDataTypeIdBeingEdited(null)}
         />
       )}
     </Box>
