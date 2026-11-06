@@ -1,9 +1,9 @@
-import { Effect, HashMap, MutableHashMap, Option } from "effect";
+import { Array, Effect, HashMap, MutableHashMap, Option } from "effect";
 
 import type * as AST from "../../AST/index.js";
 import type * as QuickInfo from "../../QuickInfo.js";
 import type { DocLinkTag } from "@microsoft/tsdoc";
-import type { Array, Data } from "effect";
+import type { Data } from "effect";
 import type { Node, SourceFile } from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
@@ -28,6 +28,16 @@ type ReserveSymbolFn = <T extends AST.Target.Target, E, R>(
   symbols: Array.NonEmptyReadonlyArray<CompilerSymbol>,
   build: Build<T, E, R>,
 ) => Effect.Effect<AST.Interned.Interned<T>, E, R>;
+
+/** A node to reserve with its siblings, with the symbols that name it and the build that makes it. A node no symbol names has no symbols. */
+export interface Entry<T extends AST.Target.Target, E, R> {
+  readonly symbols: readonly CompilerSymbol[];
+  readonly build: Build<T, E, R>;
+}
+
+type ReserveSymbolsFn = <T extends AST.Target.Target, E, R>(
+  entries: readonly Entry<T, E, R>[],
+) => Effect.Effect<readonly AST.Interned.Interned<T>[], E, R>;
 
 /** What a name the AST's own nodes do not hold resolves to: a `{@link}` in a comment, or an identifier in an example's code. */
 export interface Name {
@@ -82,6 +92,16 @@ export interface Store {
   readonly reserve: ReserveFn;
   /** Reserves the identity `symbols` name and builds its node, unless the first of them already names one, finished or not. The symbols are the node's identity, so it never merges with an equal node. Each name a destructured parameter binds names its node. */
   readonly reserveSymbol: ReserveSymbolFn;
+  /**
+   * Reserves each entry like `reserveSymbol` and builds the entries in order once every one is reserved, so a node can refer to a sibling declared after it, as `A` refers to `B` in `<A extends B, B>`.
+   *
+   * An entry no symbol names cannot be referred to, so it reserves nothing ahead and interns like `reserve` when its turn comes.
+   */
+  readonly reserveSymbols: ReserveSymbolsFn;
+  /** Whether the node at `id` is reserved and its build has not finished. */
+  readonly isPending: <T extends AST.Node.Node>(
+    id: AST.Interned.Interned<T>,
+  ) => boolean;
 
   readonly entrypoint: (name: string, id: AST.Declaration.Interned) => void;
 
@@ -208,55 +228,149 @@ interface Symbols {
   readonly bySymbol: MutableHashMap.MutableHashMap<number, number>;
 }
 
+/** What reserving an entry found. A symbol may already name an identity, or the entry opens one for its build. A node no symbol names gets its identity once `reserve` interns its build. */
+type Reservation<T extends AST.Target.Target, E, R> =
+  | { readonly _tag: "Named"; readonly id: AST.Interned.Interned<T> }
+  | {
+      readonly _tag: "Opened";
+      readonly opened: Opened<T>;
+      readonly entry: Entry<T, E, R>;
+    }
+  | { readonly _tag: "Anonymous"; readonly entry: Entry<T, E, R> };
+
+/** Reserves an entry and builds it in its turn. When a build fails, it gives up the identities left unbuilt. */
+interface Reserver {
+  readonly reserve: <T extends AST.Target.Target, E, R>(
+    entry: Entry<T, E, R>,
+  ) => Reservation<T, E, R>;
+  readonly build: <T extends AST.Target.Target, E, R>(
+    reservation: Reservation<T, E, R>,
+  ) => Effect.Effect<AST.Interned.Interned<T>, E, R>;
+  readonly release: <T extends AST.Target.Target, E, R>(
+    reservations: readonly Reservation<T, E, R>[],
+  ) => void;
+}
+
+const reserverImpl = ({
+  slots,
+  open,
+  reserve,
+  lookup,
+  symbols,
+}: {
+  readonly slots: readonly Slot[];
+  readonly open: OpenFn;
+  readonly reserve: ReserveFn;
+  readonly lookup: MutableHashMap.MutableHashMap<AST.Node.Node, number>;
+  readonly symbols: Symbols;
+}): Reserver => ({
+  reserve: <T extends AST.Target.Target, E, R>(
+    entry: Entry<T, E, R>,
+  ): Reservation<T, E, R> => {
+    const first = Array.head(entry.symbols);
+
+    if (Option.isNone(first)) {
+      return { _tag: "Anonymous", entry };
+    }
+
+    const existing = MutableHashMap.get(symbols.bySymbol, first.value.id);
+
+    if (Option.isSome(existing)) {
+      // SAFETY: the first build for these symbols built its node as a T, and a symbol names one node.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- A symbol's identity keeps the type of its first build.
+      return { _tag: "Named", id: existing.value as AST.Interned.Interned<T> };
+    }
+
+    const opened = open<T>();
+    for (const symbol of entry.symbols) {
+      MutableHashMap.set(symbols.bySymbol, symbol.id, opened.id);
+    }
+    symbols.byId.set(opened.id, first.value);
+
+    return { _tag: "Opened", opened, entry };
+  },
+  build: <T extends AST.Target.Target, E, R>(
+    reservation: Reservation<T, E, R>,
+  ): Effect.Effect<AST.Interned.Interned<T>, E, R> => {
+    switch (reservation._tag) {
+      case "Named": {
+        return Effect.succeed(reservation.id);
+      }
+      case "Anonymous": {
+        return reserve(reservation.entry.build);
+      }
+      case "Opened": {
+        const { opened, entry } = reservation;
+
+        return Effect.map(entry.build(opened.id), (node) => {
+          opened.complete(node);
+
+          // Interning an equal node finds this identity, unless an equal node already had one.
+          if (!MutableHashMap.has(lookup, node)) {
+            MutableHashMap.set(lookup, node, opened.id);
+          }
+
+          return opened.id;
+        });
+      }
+    }
+  },
+  release: (reservations) => {
+    for (const reservation of reservations) {
+      if (
+        reservation._tag === "Opened" &&
+        slots[reservation.opened.id]?._tag === "Pending"
+      ) {
+        for (const symbol of reservation.entry.symbols) {
+          MutableHashMap.remove(symbols.bySymbol, symbol.id);
+        }
+
+        symbols.byId.delete(reservation.opened.id);
+        reservation.opened.abandon();
+      }
+    }
+  },
+});
+
 const reserveSymbolImpl =
-  (
-    open: OpenFn,
-    lookup: MutableHashMap.MutableHashMap<AST.Node.Node, number>,
-    symbols: Symbols,
-  ): ReserveSymbolFn =>
+  (reserver: Reserver): ReserveSymbolFn =>
   <T extends AST.Target.Target, E, R>(
     named: Array.NonEmptyReadonlyArray<CompilerSymbol>,
     build: Build<T, E, R>,
   ): Effect.Effect<AST.Interned.Interned<T>, E, R> =>
     Effect.suspend(() => {
-      const [first] = named;
-      const existing = MutableHashMap.get(symbols.bySymbol, first.id);
+      const reservation = reserver.reserve({ symbols: named, build });
 
-      if (Option.isSome(existing)) {
-        // SAFETY: the first build for these symbols built its node as a T, and a symbol names one node.
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- A symbol's identity keeps the type of its first build.
-        return Effect.succeed(existing.value as AST.Interned.Interned<T>);
-      }
-
-      const { id, complete, abandon } = open<T>();
-      for (const symbol of named) {
-        MutableHashMap.set(symbols.bySymbol, symbol.id, id);
-      }
-      symbols.byId.set(id, first);
-
-      return build(id).pipe(
+      return reserver.build(reservation).pipe(
         Effect.onError(() =>
           Effect.sync(() => {
-            for (const symbol of named) {
-              MutableHashMap.remove(symbols.bySymbol, symbol.id);
-            }
-
-            symbols.byId.delete(id);
-            abandon();
+            reserver.release([reservation]);
           }),
         ),
-        Effect.map((node) => {
-          complete(node);
-
-          // Interning an equal node finds this identity, unless an equal node already had one.
-          if (!MutableHashMap.has(lookup, node)) {
-            MutableHashMap.set(lookup, node, id);
-          }
-
-          return id;
-        }),
       );
     });
+
+const reserveSymbolsImpl =
+  (reserver: Reserver): ReserveSymbolsFn =>
+  <T extends AST.Target.Target, E, R>(
+    entries: readonly Entry<T, E, R>[],
+  ): Effect.Effect<readonly AST.Interned.Interned<T>[], E, R> =>
+    Effect.suspend(() => {
+      const reservations = Array.map(entries, reserver.reserve);
+
+      return Effect.forEach(reservations, reserver.build).pipe(
+        Effect.onError(() =>
+          Effect.sync(() => {
+            reserver.release(reservations);
+          }),
+        ),
+      );
+    });
+
+const isPendingImpl =
+  (slots: readonly Slot[]) =>
+  <T extends AST.Node.Node>(id: AST.Interned.Interned<T>): boolean =>
+    slots[id]?._tag === "Pending";
 
 const internImpl =
   (reserve: ReserveFn) =>
@@ -327,7 +441,8 @@ export const make = (): Store => {
   const narrow = narrowImpl(get);
   const open = openImpl(slots, pending);
   const reserve = reserveImpl(open, lookup);
-  const reserveSymbol = reserveSymbolImpl(open, lookup, symbols);
+  const reserver = reserverImpl({ slots, open, reserve, lookup, symbols });
+  const reserveSymbol = reserveSymbolImpl(reserver);
   const intern = internImpl(reserve);
   const idOf = idOfImpl(symbols);
 
@@ -345,6 +460,8 @@ export const make = (): Store => {
     intern,
     reserve,
     reserveSymbol,
+    reserveSymbols: reserveSymbolsImpl(reserver),
+    isPending: isPendingImpl(slots),
     entrypoint: (name, id) => {
       entrypoints = HashMap.set(entrypoints, name, id);
     },
