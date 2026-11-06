@@ -931,6 +931,22 @@ export class PostgresStorage implements Storage {
     return this.closing;
   }
 
+  /**
+   * Whether this storage still owns its schema: one read of the owner token, without a lock. A host checks it before
+   * serving from a Harness's memory, which a later opener's commits never reach. A read-only storage never owns.
+   */
+  async isOwner(): Promise<boolean> {
+    const ownerToken = this.ownerToken;
+    if (ownerToken === undefined) return false;
+    return this.admit(async () => {
+      const metadata = await get<{ owner_token: string | null }>(
+        this.pool,
+        `SELECT owner_token FROM ${this.tables.durableMetadata} WHERE singleton = 1`,
+      );
+      return metadata?.owner_token === ownerToken;
+    });
+  }
+
   /** Run one operation; `close()` waits for admitted operations so none reaches an ended pool. */
   private async admit<T>(operation: () => Promise<T>): Promise<T> {
     this.assertOpen();
