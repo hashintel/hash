@@ -1,13 +1,20 @@
+# /// script
+# requires-python = ">=3.9"
+# dependencies = ["defusedxml==0.7.1"]
+# ///
 """Generate React geometry and standalone SVG variants from reviewed brand artwork."""
 import argparse
 import json
 import re
-import xml.etree.ElementTree as ET
 from pathlib import Path
+# defusedxml provides the parsers; these imports only build and serialize elements.
+from xml.etree.ElementTree import Element, SubElement, register_namespace, tostring  # nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
+
+from defusedxml import ElementTree as ET
 
 root = Path(__file__).resolve().parent.parent
 source = root / "src/integration-icon"
-ET.register_namespace("", "http://www.w3.org/2000/svg")
+register_namespace("", "http://www.w3.org/2000/svg")
 svg_ns = "{http://www.w3.org/2000/svg}"
 variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "logo-light", "logo-dark"]
 
@@ -33,7 +40,7 @@ def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
     if for_logo and path.with_name("logo-mark.svg").exists():
         path = path.with_name("logo-mark.svg")
     override = path.with_name(f"{path.stem}-{'dark' if dark else 'light'}.svg")
-    document = ET.fromstring((override if override.exists() else path).read_text())
+    document = ET.fromstring((override if override.exists() else path).read_text(), forbid_dtd=True)
     document.attrib.pop("width", None)
     document.attrib.pop("height", None)
     if "viewBox" not in document.attrib:
@@ -89,11 +96,11 @@ def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
     if dark and kind == "logo" and document.get("fill") is None:
         document.set("fill", "#F5F7FA")
     if dark and kind == "logo" and brand.get("logoRaster") and not brand.get("logoRasterDarkOriginal") and not override.exists():
-        definitions = ET.Element(svg_ns + "defs")
-        contrast_filter = ET.SubElement(definitions, svg_ns + "filter", {"id": "logo-contrast", "color-interpolation-filters": "sRGB"})
-        transfer = ET.SubElement(contrast_filter, svg_ns + "feComponentTransfer")
+        definitions = Element(svg_ns + "defs")
+        contrast_filter = SubElement(definitions, svg_ns + "filter", {"id": "logo-contrast", "color-interpolation-filters": "sRGB"})
+        transfer = SubElement(contrast_filter, svg_ns + "feComponentTransfer")
         for channel in ("R", "G", "B"):
-            ET.SubElement(transfer, svg_ns + "feFunc" + channel, {"type": "linear", "slope": ".5", "intercept": ".5"})
+            SubElement(transfer, svg_ns + "feFunc" + channel, {"type": "linear", "slope": ".5", "intercept": ".5"})
         for element in document.iter():
             if tag_name(element) == "image":
                 element.set("filter", "url(#logo-contrast)")
@@ -104,7 +111,7 @@ def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
 
 
 def compose_logo(mark, wordmark, layout):
-    document = ET.Element(svg_ns + "svg", {"fill": "none"})
+    document = Element(svg_ns + "svg", {"fill": "none"})
     x = 0
     for name, artwork, height in (("mark", mark, 100), ("wordmark", wordmark, layout["wordmarkHeight"] * 100)):
         viewbox = [float(value) for value in artwork.get("viewBox").replace(",", " ").split()]
@@ -171,7 +178,7 @@ def mono_defs(filter_id):
 
 
 def app_tile(dark):
-    tile = ET.parse(source / "app-tile" / ("dark.svg" if dark else "light.svg")).getroot()
+    tile = ET.parse(source / "app-tile" / ("dark.svg" if dark else "light.svg"), forbid_dtd=True).getroot()
     tile.tag = svg_ns + "g"
     tile.attrib.clear()
     return tile
@@ -206,8 +213,8 @@ def variant_svg(brand, variant):
         artwork.set("width", str(size))
         artwork.set("height", str(size))
     prefix = f'{brand["slug"]}-{variant}'
-    body = prefix_svg(ET.tostring(artwork, encoding="unicode"), prefix)
-    background = prefix_svg(ET.tostring(app_tile(dark), encoding="unicode"), prefix + "-background") if app else ""
+    body = prefix_svg(tostring(artwork, encoding="unicode"), prefix)
+    background = prefix_svg(tostring(app_tile(dark), encoding="unicode"), prefix + "-background") if app else ""
     if app:
         body = f'<defs><clipPath id="{prefix}-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#{prefix}-tile)">{body}</g>'
     if mono:

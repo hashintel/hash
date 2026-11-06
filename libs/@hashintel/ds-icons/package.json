@@ -49,12 +49,12 @@
     "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "dev:lib": "vite build --watch",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
-    "generate:integrations": "python3 scripts/generate-integration-icons.py && oxfmt --write src/integration-icon-catalog.ts src/integration-icon/geometry.ts \"src/integration-icon/geometry/*.tsx\"",
+    "generate:integrations": "uv run --python python3 --script scripts/generate-integration-icons.py && oxfmt --write src/integration-icon-catalog.ts src/integration-icon/geometry.ts \"src/integration-icon/geometry/*.tsx\"",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
     "preview:integrations": "node scripts/preview-integrations.ts",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run && uv run --python python3 --script scripts/test-generate-integration-icons.py"
   },
   "dependencies": {
     "@hashintel/ds-helpers": "workspace:^"
