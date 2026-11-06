@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="comfyui-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="comfyui-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="comfyui-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#comfyui-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#comfyui-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#comfyui-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="comfyui-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#comfyui-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="115.98365 124.77829 67.48976 73.29129" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M169.423 179.732C169.55 179.302 169.618 178.848 169.618 178.372C169.618 175.733 167.506 173.594 164.899 173.594H143.749C142.612 173.606 141.682 172.676 141.682 171.525C141.682 171.316 141.716 171.118 141.762 170.932L147.457 150.845C147.698 149.962 148.502 149.311 149.444 149.311L170.675 149.287C175.153 149.287 178.931 146.23 180.067 142.057L183.259 130.863C183.363 130.467 183.42 130.037 183.42 129.607C183.42 126.98 181.319 124.853 178.724 124.853H153.038C148.583 124.853 144.816 127.887 143.657 132.013L141.498 139.651C141.245 140.522 140.453 141.162 139.512 141.162H133.345C128.925 141.162 125.193 144.138 123.999 148.218L116.237 175.663C116.122 176.07 116.064 176.512 116.064 176.953C116.064 179.592 118.177 181.731 120.784 181.731H126.846C127.983 181.731 128.913 182.661 128.913 183.823C128.913 184.021 128.89 184.219 128.833 184.405L126.686 191.972C126.582 192.379 126.513 192.797 126.513 193.228C126.513 195.855 128.615 197.982 131.21 197.982L156.907 197.959C161.374 197.959 165.14 194.913 166.289 190.763L169.412 179.743L169.423 179.732Z" fill="#F5F7FA" /></svg></g></svg>

@@ -1,0 +1,33 @@
+/* Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed. */
+export const markLight = ({ id }: { id: string }) => (
+  <g fill="none">
+    <g clipPath={`url(#${id}-clip0_11_2540)`}>
+      <rect width="48" height="48" rx="24" fill="#000000" />
+      <path
+        d="M12 38V-1H19.166V15.2401H19.1149C21.2648 10.5977 24.541 9.03339 28.0181 9.03339C33.2399 9.03339 38 12.5654 38 20.2364V38H30.8374V23.365C30.8374 19.6308 29.865 15.7953 25.4624 15.7953C22.084 15.7953 19.166 18.1169 19.166 23.4663V38H12Z"
+        fill="#FFFFFF"
+      />
+    </g>
+    <defs>
+      <clipPath id={`${id}-clip0_11_2540`}>
+        <rect width="48" height="48" rx="24" fill="#FFFFFF" />
+      </clipPath>
+    </defs>
+  </g>
+);
+export const markDark = ({ id }: { id: string }) => (
+  <g fill="none">
+    <g clipPath={`url(#${id}-clip0_11_2540)`}>
+      <rect width="48" height="48" rx="24" fill="#F5F7FA" />
+      <path
+        d="M12 38V-1H19.166V15.2401H19.1149C21.2648 10.5977 24.541 9.03339 28.0181 9.03339C33.2399 9.03339 38 12.5654 38 20.2364V38H30.8374V23.365C30.8374 19.6308 29.865 15.7953 25.4624 15.7953C22.084 15.7953 19.166 18.1169 19.166 23.4663V38H12Z"
+        fill="#FFFFFF"
+      />
+    </g>
+    <defs>
+      <clipPath id={`${id}-clip0_11_2540`}>
+        <rect width="48" height="48" rx="24" fill="#FFFFFF" />
+      </clipPath>
+    </defs>
+  </g>
+);

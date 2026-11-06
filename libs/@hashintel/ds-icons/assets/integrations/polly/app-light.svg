@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="polly-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="polly-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="polly-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#polly-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#polly-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#polly-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="polly-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#polly-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="49.53569 49.7422 353.64952 362.61559" xml:space="preserve" fill="#111111" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="polly-app-light-brand-symbol-bounds"><rect x="49.31542" y="48.69625" width="385.47907649999996" height="364.7075" /></clipPath></defs><g clip-path="url(#polly-app-light-brand-symbol-bounds)"><g><path d="M160.2,119.9L50.9,309.3c-1.8,3.1-0.7,7,2.5,8.7c63,32.5,141.1,10,176.9-52.1L342.9,71   C278.9,34.1,197.2,56,160.2,119.9z" fill="#0071CC" /><g><rect x="177.7" y="67.3" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -12.9171 157.4507)" width="11.8" height="54.1" fill="#0071CC" /></g><g><g><circle cx="157" cy="67.7" r="17.7" fill="#0071CC" /></g></g><path d="M142.3,186.8v218.9c0,3.6,3,6.4,6.5,6.3C219.7,408.5,276,350,276,278.3V53.1   C202.2,53.1,142.3,112.9,142.3,186.8z" fill="#018FF6" /><path d="M183.6,186.8c0,51.1,41.4,92.5,92.5,92.5V94.3C225,94.3,183.6,135.7,183.6,186.8z" fill="#FFFFFF" /><path d="M358.6,210.8L276,186.8v92.5c39.7,0,73.5-25,86.6-60.1C364,215.7,362.1,211.9,358.6,210.8z" fill="#FF9A07" /><path d="M402.5,143.1c-18.1-52.4-67.9-90-126.4-90v133.7l122.2-35.6C401.7,150.1,403.6,146.5,402.5,143.1z" fill="#FF9A07" /><g><g><circle cx="237.8" cy="148.5" r="14.7" fill="#07133D" /></g></g></g><g><path d="M487.5,120.2h97.7c49.3,0,81.4,26.3,81.4,71.8c0,45.5-32,71.4-81.4,71.4h-63.1v81h-34.6V120.2z M584.2,232.7   c32.4,0,47.7-15.7,47.7-40.7c0-25.3-15.4-41-47.7-41h-62.1v81.7H584.2z" fill="#07133D" /><path d="M669.8,265c0-54.8,41.6-83.9,85.2-83.9c43.2,0,84.9,29.2,84.9,83.9S798.2,349,755,349   C711.4,349,669.8,319.8,669.8,265z M806.2,265c0-32.7-23.7-53.5-51.3-53.5c-27.9,0-51.6,20.8-51.6,53.5s23.7,53.5,51.6,53.5   C782.5,318.5,806.2,297.7,806.2,265z" fill="#07133D" /><path d="M866.5,120.2h33.3v224.2h-33.3V120.2z" fill="#07133D" /><path d="M936,120.2h33.3v224.2H936V120.2z" fill="#07133D" /><path d="M1005.5,408.6l5.1-30.4c4.2,1.9,8.3,3.2,13.5,3.2c9,0,14.7-4.5,18.9-15.7l8-20.2l-65.4-159.9h37.5l45.2,113.7   l44.2-113.7h37.5l-77.5,190.9c-10.3,25.3-25,35.6-47.1,35.6C1018,412.1,1010.9,410.8,1005.5,408.6z" fill="#07133D" /></g></g></svg></g></svg>

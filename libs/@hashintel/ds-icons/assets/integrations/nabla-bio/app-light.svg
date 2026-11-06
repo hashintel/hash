@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nabla-bio-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="nabla-bio-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nabla-bio-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nabla-bio-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nabla-bio-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nabla-bio-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nabla-bio-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nabla-bio-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="108.6611 128.66115 281.40499 241.60627" preserveAspectRatio="xMidYMid meet" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,500.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none"><path d="M1090 3702 c0 -14 959 -2324 974 -2347 35 -53 54 -55 465 -55 446 0 440 -1 485 92 14 29 219 521 456 1093 414 997 432 1042 428 1093 -3 37 -11 60 -29 78 -51 56 -16 54 -984 54 -492 0 -895 -4 -895 -8 0 -5 20 -56 44 -113 l43 -104 758 -3 757 -2 -6 -23 c-3 -12 -183 -449 -399 -972 l-394 -950 -120 -3 -120 -3 -111 268 c-61 147 -264 637 -451 1088 l-340 820 -281 3 c-154 1 -280 -1 -280 -6z" /></g></svg></g></svg>

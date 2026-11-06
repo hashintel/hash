@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="wiz-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="wiz-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="wiz-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#wiz-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#wiz-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#wiz-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="wiz-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#wiz-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 434.82 194.12" fill="#175CFF" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M434.2,29.66c.18.04.33.14.45.28s.17.32.17.5h0c0,.18-.06.36-.17.5s-.27.24-.45.28c-6.56,1.51-16.5,4.45-20.56,8.5s-6.98,13.99-8.49,20.56c-.04.18-.14.33-.28.44-.14.11-.32.17-.5.17h0c-.18,0-.36-.06-.5-.17-.14-.11-.24-.27-.28-.44-1.51-6.56-4.45-16.5-8.5-20.56-4.05-4.06-13.99-6.98-20.56-8.49-.18-.04-.33-.14-.45-.28-.11-.14-.17-.32-.17-.5h0c0-.18.06-.35.17-.5.11-.14.27-.24.44-.28,6.56-1.51,16.5-4.45,20.56-8.49,4.06-4.05,6.98-13.99,8.5-20.56.04-.18.14-.33.28-.45.14-.11.31-.17.49-.17h0c.18,0,.36.06.5.17.14.11.24.27.28.45,1.51,6.56,4.45,16.5,8.5,20.56s13.99,6.98,20.56,8.49h.01Z" fill="#175CFF" /><path d="M321,159.11h53.51c.73,0,1.32.59,1.32,1.32v32.13c0,.73-.59,1.32-1.32,1.32h-114.63c-1,0-1.64-.94-1.17-1.82l53.76-102.35,1.08-2.34c.4-.88-.24-1.88-1.2-1.88h-53.2c-.73,0-1.32-.59-1.32-1.32l-.12-32.66c0-.73.59-1.29,1.32-1.29h116.34c1,0,1.64,1.08,1.16,1.96l-55.31,102.56-1.36,2.37c-.51.88.13,1.98,1.15,1.98v.02Z" fill="#175CFF" /><path d="M192.31,52.06l-58.47,141.02c-.42,1.02-1.81,1.14-2.4.19l-33-55.58c-.53-.84-1.75-.84-2.27,0l-34.38,55.81c-.58.92-1.96.8-2.38-.2L.11,52.05c-.38-.89.28-1.88,1.25-1.88h36.09c.51,0,1,.31,1.22.79l27.99,58.46c.49,1.02,1.92,1.03,2.44.03l26.4-58.49c.5-1,1.95-.99,2.44.03l25.61,58.33c.51,1.02,1.98.99,2.45-.05l25.36-58.24c.22-.5.7-.83,1.25-.83h38.46c.98,0,1.63.99,1.26,1.88l-.02-.02Z" fill="#175CFF" /><rect x="204.22" y="50.44" width="38.12" height="143.38" rx="1.32" ry="1.32" fill="#175CFF" /></svg></g></svg>

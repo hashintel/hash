@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="moonbounce-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="moonbounce-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="moonbounce-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#moonbounce-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#moonbounce-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#moonbounce-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="moonbounce-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#moonbounce-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 97 91" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M 10.92 91 C 16.2 91 19.5 85.443 21.974 72.458 C 22.637 68.881 23.237 65.249 23.899 61.673 C 26.374 48.357 27.199 44.4 28.573 40.161 C 29.948 44.4 30.773 48.357 33.248 61.673 C 33.91 65.249 34.511 68.881 35.173 72.458 C 37.647 85.443 40.947 91 46.227 91 C 51.508 91 55.026 85.386 57.063 72.458 C 58.051 66.187 58.932 57.879 59.925 47.807 C 61.962 26.901 63.112 18.093 64.986 9.347 C 66.855 18.093 68.011 26.901 70.048 47.807 C 71.036 57.879 71.917 66.187 72.91 72.458 C 74.947 85.386 78.465 91 83.746 91 C 90.126 91 94.251 81.372 97 60.079 L 88.751 60.079 C 87.433 69.875 85.783 76.971 83.746 81.647 C 81.384 74.495 79.953 65.418 78.191 46.381 C 76.816 31.359 75.935 23.825 74.672 16.23 C 72.803 4.895 69.885 0 64.992 0 C 60.099 0 57.181 4.895 55.312 16.23 C 54.05 23.825 53.169 31.359 51.794 46.381 C 50.032 65.418 48.607 74.495 46.239 81.647 C 44.808 78.346 44.095 75.321 41.402 60.242 C 39.695 50.67 38.983 46.651 37.664 41.918 C 35.627 34.654 32.496 30.803 28.59 30.803 C 24.685 30.803 21.548 34.654 19.517 41.918 C 18.198 46.651 17.48 50.665 15.779 60.242 C 13.086 75.315 12.368 78.346 10.942 81.647 C 9.898 79.722 9.017 76.752 8.249 72.514 L 0 72.514 C 2.418 85.386 5.993 91 10.942 91 Z" fill="#111111" /></svg></g></svg>

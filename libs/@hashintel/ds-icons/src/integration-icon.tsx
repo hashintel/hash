@@ -7,7 +7,7 @@ import type {
   IntegrationIconName,
   IntegrationIconVariant,
 } from "./integration-icon-catalog";
-import type { ComponentType, SVGProps } from "react";
+import type { SVGProps } from "react";
 
 export type IntegrationIconProps = Omit<
   SVGProps<SVGSVGElement>,
@@ -17,21 +17,6 @@ export type IntegrationIconProps = Omit<
   variant?: IntegrationIconVariant;
   size?: number;
   title?: string;
-};
-
-type Artwork = {
-  markLight: ComponentType<{ id: string }>;
-  markDark: ComponentType<{ id: string }>;
-  markMono?: ComponentType<{ id: string }>;
-  logoLight?: ComponentType<{ id: string }>;
-  logoDark?: ComponentType<{ id: string }>;
-  markViewBox: string;
-  monoAlphaMatrix: string;
-  monoInkScale: number;
-  appViewBox?: string;
-  logoViewBox: string | null;
-  ratio: number;
-  alignment: string;
 };
 
 export const IntegrationIcon = ({
@@ -44,7 +29,7 @@ export const IntegrationIcon = ({
   ...props
 }: IntegrationIconProps) => {
   const id = useId();
-  const artwork: Artwork = integrationGeometry[name];
+  const artwork = integrationGeometry[name];
   const logo = variant.startsWith("logo");
   const dark = variant.endsWith("dark");
   const mono = variant === "mark-mono";
