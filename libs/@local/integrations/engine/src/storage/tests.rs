@@ -1,8 +1,7 @@
 use alloc::sync::Arc;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use duckdb::Connection;
-use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
 use hash_integrations_definition::SourceName;
 use tempfile::TempDir;
@@ -15,7 +14,7 @@ use testcontainers_modules::minio::MinIO;
 use uuid::Uuid;
 
 use super::{CaptureStorage, S3Bucket};
-use crate::{CaptureRun, SourceCapture, SourceError, sql::literal};
+use crate::{CaptureRun, SourceCapture, sql::literal};
 
 /// Starts MinIO with an empty `captures` bucket and returns it with its API port.
 pub(crate) async fn minio() -> (ContainerAsync<MinIO>, u16) {
@@ -75,73 +74,62 @@ fn items() -> SourceName {
     "items".parse().expect("should be a source name")
 }
 
-/// A writer that publishes `rows` rows.
-fn write(rows: u64) -> impl AsyncFnOnce(PathBuf) -> Result<SourceCapture, Report<SourceError>> {
-    async move |target: PathBuf| {
-        let partial = SourceCapture::stage(&target).change_context(SourceError::Write)?;
-        let path = partial.path().to_str().expect("the path should be UTF-8");
-        Connection::open_in_memory()
-            .and_then(|connection| {
-                connection.execute_batch(&format!(
-                    "COPY (SELECT range AS id FROM range({rows})) TO {} (FORMAT PARQUET)",
-                    literal(path)
-                ))
-            })
-            .change_context(SourceError::Write)?;
-        SourceCapture::publish(partial, &target, rows).change_context(SourceError::Write)
+/// Publishes a capture of `rows` rows for `run` and stores it.
+async fn store(storage: &CaptureStorage, run: CaptureRun, rows: u64) {
+    let target = storage
+        .target(run, &items())
+        .expect("should return the capture target");
+    let partial = SourceCapture::stage(&target).expect("should stage the capture");
+    let path = partial.path().to_str().expect("the path should be UTF-8");
+    Connection::open_in_memory()
+        .and_then(|connection| {
+            connection.execute_batch(&format!(
+                "COPY (SELECT range AS id FROM range({rows})) TO {} (FORMAT PARQUET)",
+                literal(path)
+            ))
+        })
+        .expect("should write the capture");
+    let capture =
+        SourceCapture::publish(partial, &target, rows).expect("should publish the capture");
+    storage
+        .store(run, &items(), &capture)
+        .await
+        .expect("should store the capture");
+}
+
+async fn rows(storage: &CaptureStorage, run: CaptureRun) -> Option<u64> {
+    storage
+        .load(run, &items())
+        .await
+        .expect("should load from the storage")
+        .map(|capture| capture.rows())
+}
+
+fn other(run: CaptureRun) -> CaptureRun {
+    CaptureRun {
+        id: Uuid::new_v4(),
+        ..run
     }
 }
 
-/// A writer for a source that cannot be reached.
-fn unreachable_source() -> impl AsyncFnOnce(PathBuf) -> Result<SourceCapture, Report<SourceError>> {
-    async |_target: PathBuf| Err(Report::new(SourceError::Query))
-}
-
 #[tokio::test]
-async fn local_reuses_a_stored_capture() {
+async fn local_loads_a_stored_capture() {
     let directory = TempDir::new().expect("should create a directory");
     let root = directory.path().join("captures");
     let run = run();
-    CaptureStorage::Local(root.clone())
-        .capture(run, &items(), write(3))
-        .await
-        .expect("should store the capture");
+    store(&CaptureStorage::Local(root.clone()), run, 3).await;
 
     let restore = CaptureStorage::Local(root);
-    let capture = restore
-        .capture(run, &items(), unreachable_source())
-        .await
-        .expect("should reuse the stored capture");
-    assert_eq!(capture.rows(), 3);
-
-    let error = restore
-        .capture(
-            CaptureRun {
-                id: Uuid::new_v4(),
-                ..run
-            },
-            &items(),
-            unreachable_source(),
-        )
-        .await
-        .expect_err("another run should not reuse the capture");
-    assert!(matches!(error.current_context(), SourceError::Query));
-}
-
-#[tokio::test]
-async fn local_uses_a_capture_published_while_writing_fails() {
-    let directory = TempDir::new().expect("should create a directory");
-    // Stands in for another attempt that publishes the capture while this one fails.
-    let publish_then_fail = async |target: PathBuf| {
-        write(4)(target).await?;
-        Err(Report::new(SourceError::Query))
-    };
-
-    let capture = CaptureStorage::Local(directory.path().to_owned())
-        .capture(run(), &items(), publish_then_fail)
-        .await
-        .expect("should use the published capture");
-    assert_eq!(capture.rows(), 4);
+    assert_eq!(
+        rows(&restore, run).await,
+        Some(3),
+        "should load the stored capture"
+    );
+    assert_eq!(
+        rows(&restore, other(run)).await,
+        None,
+        "another run should have no capture"
+    );
 }
 
 #[tokio::test]
@@ -149,30 +137,19 @@ async fn s3_restores_into_new_staging() {
     let directory = TempDir::new().expect("should create a directory");
     let (_minio, port) = minio().await;
     let run = run();
-    s3_storage(port, directory.path())
-        .capture(run, &items(), write(3))
-        .await
-        .expect("should store the capture");
+    store(&s3_storage(port, directory.path()), run, 3).await;
 
     let restore = s3_storage(port, directory.path());
-    let capture = restore
-        .capture(run, &items(), unreachable_source())
-        .await
-        .expect("should download the stored capture");
-    assert_eq!(capture.rows(), 3);
-
-    let error = restore
-        .capture(
-            CaptureRun {
-                id: Uuid::new_v4(),
-                ..run
-            },
-            &items(),
-            unreachable_source(),
-        )
-        .await
-        .expect_err("another run should not reuse the capture");
-    assert!(matches!(error.current_context(), SourceError::Query));
+    assert_eq!(
+        rows(&restore, run).await,
+        Some(3),
+        "should download the stored capture"
+    );
+    assert_eq!(
+        rows(&restore, other(run)).await,
+        None,
+        "another run should have no capture"
+    );
 }
 
 #[tokio::test]
@@ -187,9 +164,8 @@ async fn s3_errors_are_not_missing_captures() {
         }),
     };
 
-    let error = storage
-        .capture(run(), &items(), write(1))
+    let _report = storage
+        .load(run(), &items())
         .await
-        .expect_err("should not capture when the bucket cannot be read");
-    assert!(matches!(error.current_context(), SourceError::Read));
+        .expect_err("should fail when the bucket cannot be read");
 }

@@ -14,7 +14,7 @@ use hash_integrations_definition::SourceName;
 use tempfile::TempDir;
 
 pub use self::s3::S3Bucket;
-use crate::{CaptureError, CaptureRun, SourceCapture, SourceError};
+use crate::{CaptureError, CaptureRun, SourceCapture};
 
 /// Keeps source captures so that retries and restores of a run reuse them.
 #[derive(Debug)]
@@ -46,35 +46,46 @@ impl CaptureStorage {
         }
     }
 
-    /// Returns the capture an earlier attempt of `run` stored for `source`, or stores the one
-    /// `write` publishes at the path it is given.
-    /// TODO: Not sure how I feel about this tbh
-    /// Benefit: we can move the entire storage flow into the storage module, which is nice
-    /// Downside: the storage crate essentially decides if we re-capture a source, based on data that is already available
-    /// Need to discuss
-    pub(crate) async fn capture(
+    /// Returns the capture an earlier attempt of `run` stored for `source`, if there is one.
+    pub(crate) async fn load(
         &self,
         run: CaptureRun,
         source: &SourceName,
-        write: impl AsyncFnOnce(PathBuf) -> Result<SourceCapture, Report<SourceError>>,
-    ) -> Result<SourceCapture, Report<SourceError>> {
-        let target = local::target(self.root(), run, source).change_context(SourceError::Write)?;
+    ) -> Result<Option<SourceCapture>, Report<CaptureError>> {
+        let target = self.target(run, source)?;
         match self {
-            Self::Local(_) => local::capture(&target, write).await,
+            Self::Local(_) => local::load(&target),
             Self::S3 { bucket, .. } => {
-                if let Some(capture) = Arc::clone(bucket)
-                    .download(run, source.clone(), target.clone())
+                Arc::clone(bucket)
+                    .download(run, source.clone(), target)
                     .await
-                    .change_context(SourceError::Read)?
-                {
-                    return Ok(capture);
-                }
-                let capture = local::capture(&target, write).await?;
+            }
+        }
+    }
+
+    /// Returns the local path a new capture of `source` is published to.
+    pub(crate) fn target(
+        &self,
+        run: CaptureRun,
+        source: &SourceName,
+    ) -> Result<PathBuf, Report<CaptureError>> {
+        local::target(self.root(), run, source)
+    }
+
+    /// Stores a capture published at [`Self::target`] so later attempts of `run` can load it.
+    pub(crate) async fn store(
+        &self,
+        run: CaptureRun,
+        source: &SourceName,
+        capture: &SourceCapture,
+    ) -> Result<(), Report<CaptureError>> {
+        match self {
+            // The capture is already published in the storage directory.
+            Self::Local(_) => Ok(()),
+            Self::S3 { bucket, .. } => {
                 Arc::clone(bucket)
                     .upload(run, source.clone(), capture.clone())
                     .await
-                    .change_context(SourceError::Write)?;
-                Ok(capture)
             }
         }
     }

@@ -7,32 +7,7 @@ use std::{
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::SourceName;
 
-use crate::{CaptureError, CaptureRun, SourceCapture, SourceError};
-
-/// Reuses the capture published at `target`, or has `write` publish one there.
-pub(super) async fn capture(
-    target: &Path,
-    write: impl AsyncFnOnce(PathBuf) -> Result<SourceCapture, Report<SourceError>>,
-) -> Result<SourceCapture, Report<SourceError>> {
-    if let Some(capture) = recovered(target).change_context(SourceError::Read)? {
-        return Ok(capture);
-    }
-    let error = match write(target.to_owned()).await {
-        Ok(capture) => return Ok(capture),
-        Err(error) => error,
-    };
-    match recovered(target).change_context(SourceError::Read) {
-        Ok(capture) => capture.ok_or(error),
-        // Keep the capture failure, which explains why the source was contacted, alongside the
-        // failure to read a capture another attempt published.
-        Err(recovery) => {
-            let context = *error.current_context();
-            let mut failures = error.expand();
-            failures.push(recovery);
-            Err(failures.change_context(context))
-        }
-    }
-}
+use crate::{CaptureError, CaptureRun, SourceCapture};
 
 /// The local file the capture of `source` is published to.
 #[expect(
@@ -73,7 +48,7 @@ pub(super) fn target(
     clippy::filetype_is_file,
     reason = "captures must be regular files rather than symlinks or special files"
 )]
-fn recovered(path: &Path) -> Result<Option<SourceCapture>, Report<CaptureError>> {
+pub(super) fn load(path: &Path) -> Result<Option<SourceCapture>, Report<CaptureError>> {
     match path.symlink_metadata() {
         Ok(metadata) if metadata.file_type().is_file() => {
             SourceCapture::open(path.to_owned()).map(Some)

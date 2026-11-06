@@ -175,45 +175,55 @@ impl SourceReader {
             if source.checkpoint().is_some() {
                 continue;
             }
-            let capture = self
-                .store
-                .captures
-                .capture(run, name, async |target: PathBuf| match &source.kind {
-                    SourceKind::Sql { query, .. } => workspace
-                        .capture(query.as_ref().into(), target)
-                        .await
-                        .change_context(SourceError::Query),
-                    SourceKind::Local { key, .. } => {
-                        let input = self.store.local_file(key)?;
-                        tokio::task::spawn_blocking(move || {
-                            SourceCapture::copy_from(&input, &target)
-                        })
+            let storage = &self.store.captures;
+            if let Some(capture) = storage
+                .load(run, name)
+                .await
+                .change_context(SourceError::Read)?
+            {
+                captures.insert(name.clone(), capture);
+                continue;
+            }
+            let target = storage
+                .target(run, name)
+                .change_context(SourceError::Write)?;
+            let capture = match &source.kind {
+                SourceKind::Sql { query, .. } => workspace
+                    .capture(query.as_ref().into(), target)
+                    .await
+                    .change_context(SourceError::Query),
+                SourceKind::Local { key, .. } => {
+                    let input = self.store.local_file(key)?;
+                    tokio::task::spawn_blocking(move || SourceCapture::copy_from(&input, &target))
                         .await
                         .change_context(SourceError::Read)?
                         .change_context(SourceError::Write)
-                    }
-                    SourceKind::Postgres { source, .. } => {
-                        let secret = resolver
-                            .read(run.web, run.actor, source.credentials)
-                            .await?;
-                        postgres::capture(source, &secret, target, self.limits).await
-                    }
-                    SourceKind::Rest {
-                        endpoint,
-                        primary_key,
-                    } => {
-                        let secret = if let Some(auth) = &endpoint.auth {
-                            Some(resolver.read(run.web, run.actor, auth.reference()).await?)
-                        } else {
-                            None
-                        };
-                        rest::capture(endpoint, primary_key, secret.as_deref(), target).await
-                    }
-                    SourceKind::Checkpoint { .. } => {
-                        unreachable!("checkpoint sources are skipped before capture")
-                    }
-                })
-                .await?;
+                }
+                SourceKind::Postgres { source, .. } => {
+                    let secret = resolver
+                        .read(run.web, run.actor, source.credentials)
+                        .await?;
+                    postgres::capture(source, &secret, target, self.limits).await
+                }
+                SourceKind::Rest {
+                    endpoint,
+                    primary_key,
+                } => {
+                    let secret = if let Some(auth) = &endpoint.auth {
+                        Some(resolver.read(run.web, run.actor, auth.reference()).await?)
+                    } else {
+                        None
+                    };
+                    rest::capture(endpoint, primary_key, secret.as_deref(), target).await
+                }
+                SourceKind::Checkpoint { .. } => {
+                    unreachable!("checkpoint sources are skipped before capture")
+                }
+            }?;
+            storage
+                .store(run, name, &capture)
+                .await
+                .change_context(SourceError::Write)?;
             captures.insert(name.clone(), capture);
         }
         Ok(captures)
