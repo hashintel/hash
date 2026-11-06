@@ -106,6 +106,24 @@ Space.value; overloaded("value"); single("value");`);
     );
   });
 
+  test("type_parameters", async () => {
+    expect.hasAssertions();
+    const names =
+      await inspect(`type Make<T extends string = "a"> = (value: T) => T;
+interface Box<T extends string = "a"> { value: T }
+class Counter<T extends number> { run(value: T): T { return value; } }
+let make: Make;
+let box: Box;
+let counter: Counter<1>;`);
+    expect(names).toStrictEqual(
+      expect.arrayContaining([
+        ["Make", 'type Make<T extends string = "a"> = (value: T) => T'],
+        ["Box", 'interface Box<T extends string = "a">'],
+        ["Counter", "class Counter<T extends number>"],
+      ]),
+    );
+  });
+
   test("unsupported_and_unknown", async () => {
     expect.hasAssertions();
     const names = await inspect(`enum Colour { Red }
