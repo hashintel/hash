@@ -22,7 +22,7 @@ use super::{
     fingerprint,
 };
 use crate::{
-    ArtifactStorage, Workspace, WorkspaceConfig,
+    ParquetStorage, Workspace, WorkspaceConfig,
     storage::tests::{minio, s3_storage},
 };
 
@@ -150,12 +150,12 @@ fn run() -> CaptureRun {
 fn reader(directory: &Path) -> SourceReader {
     reader_with(
         directory,
-        ArtifactStorage::local(directory.join("captures"))
+        ParquetStorage::local(directory.join("captures"))
             .expect("should create local capture storage"),
     )
 }
 
-fn reader_with(directory: &Path, captures: ArtifactStorage) -> SourceReader {
+fn reader_with(directory: &Path, captures: ParquetStorage) -> SourceReader {
     let local = directory.join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
     SourceReader::new(
@@ -181,7 +181,7 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
     // the capture.
     let captures = || match &minio {
         Some((_, port)) => s3_storage(*port, directory.path()),
-        None => ArtifactStorage::local(directory.path().join("captures"))
+        None => ParquetStorage::local(directory.path().join("captures"))
             .expect("should create local capture storage"),
     };
     let run = run();
@@ -273,7 +273,7 @@ fn overlapping_roots(#[case] captures: &str) {
     fs::create_dir_all(&local).expect("should create the local source root");
     let error = CaptureStore::new(
         &local,
-        ArtifactStorage::local(local.join(captures)).expect("should create local capture storage"),
+        ParquetStorage::local(local.join(captures)).expect("should create local capture storage"),
     )
     .expect_err("should keep captures outside the local source root");
     assert!(
@@ -291,7 +291,7 @@ fn local_root_invalid_key(#[case] key: &str) {
     let captures = TempDir::new().expect("should create the capture directory");
     let store = CaptureStore::new(
         directory.path(),
-        ArtifactStorage::local(captures.path().to_owned())
+        ParquetStorage::local(captures.path().to_owned())
             .expect("should create local capture storage"),
     )
     .expect("should open storage");
@@ -313,7 +313,7 @@ fn local_root_symlink() {
     let captures = TempDir::new().expect("should create the capture directory");
     let store = CaptureStore::new(
         directory.path(),
-        ArtifactStorage::local(captures.path().to_owned())
+        ParquetStorage::local(captures.path().to_owned())
             .expect("should create local capture storage"),
     )
     .expect("should open storage");

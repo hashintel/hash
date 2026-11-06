@@ -17,9 +17,9 @@ use uuid::Uuid;
 use self::fingerprint::fingerprint;
 pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue};
 use crate::{
-    ArtifactStorage, ByteSize, SourceCapture, TableAssertions, Workspace,
+    ByteSize, ParquetStorage, SourceCapture, TableAssertions, Workspace,
     sql::Identifier,
-    storage::{Stored, layout},
+    storage::{ArtifactNamespace, Stored},
 };
 
 /// Identifies the service involved in resolving a User Secret.
@@ -98,7 +98,7 @@ pub struct CaptureRun {
 #[derive(Debug)]
 pub struct CaptureStore {
     local: PathBuf,
-    captures: ArtifactStorage,
+    captures: ParquetStorage,
 }
 
 impl CaptureStore {
@@ -109,7 +109,7 @@ impl CaptureStore {
     /// Returns [`SourceError::Read`] if the local root cannot be opened,
     /// [`SourceError::Write`] if the capture directory cannot be created, or
     /// [`SourceError::Configuration`] if either is not a directory or one contains the other.
-    pub fn new(local: &Path, captures: ArtifactStorage) -> Result<Self, Report<SourceError>> {
+    pub fn new(local: &Path, captures: ParquetStorage) -> Result<Self, Report<SourceError>> {
         let local = local.canonicalize().change_context(SourceError::Read)?;
         let directory = captures.directory().change_context(SourceError::Write)?;
         // A capture inside the local root could be read as a local source by any definition,
@@ -182,7 +182,7 @@ impl SourceReader {
                 continue;
             }
             let storage = &self.store.captures;
-            let key = layout::capture(run, name);
+            let key = ArtifactNamespace::new(run.web).capture(run.id, name);
             if let Some(capture) = storage.load(&key).await.change_context(SourceError::Read)? {
                 captures.insert(name.clone(), capture);
                 continue;

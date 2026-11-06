@@ -2,53 +2,98 @@ mod local;
 mod s3;
 
 use alloc::sync::Arc;
-use std::{fs, path::PathBuf};
+use core::fmt::Write as _;
+use std::{
+    fs::{self, File},
+    io::{self, Read as _},
+    path::{Path, PathBuf},
+};
 
 use error_stack::{Report, ResultExt as _};
-use tempfile::TempDir;
-use tokio::sync::Mutex;
+use futures_util::StreamExt as _;
+use hash_crypto::digest::{Sha256, Sha256Digest};
+use object_store::{ObjectStore, WriteMultipart, path::Path as Location};
+use tempfile::{NamedTempFile, TempDir};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
-pub use self::s3::S3Bucket;
-use super::ArtifactKey;
-use crate::SourceCapture;
+use super::{ArtifactError, ArtifactKey, S3Bucket};
 
-/// Reports why an artifact could not be read or stored.
-#[derive(Debug, Clone, Copy, derive_more::Display, derive_more::Error)]
-pub enum ArtifactError {
-    #[display("the artifact could not be read")]
-    Read,
-    #[display("the artifact could not be written")]
-    Write,
-}
+/// How many bytes are read, hashed and uploaded at a time.
+pub(in crate::storage) const CHUNK_SIZE: usize = 8 * 1024 * 1024;
+/// How many parts of one artifact are uploaded at the same time.
+const UPLOAD_CONCURRENCY: usize = 4;
 
-/// The outcome of storing an artifact.
+// Origin: the media type of `BlobRefV1` and the key extension of `ArtifactStore::publish` in
+// labs `pocs/integrations_rs/src/blob.rs`.
+/// The format of an artifact, which gives its file extension.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Stored {
-    /// The artifact was stored.
-    Created,
-    /// An artifact was already stored at the key and was kept.
-    Exists,
+pub enum Format {
+    Parquet,
+    DuckDb,
+    Json,
+    Binary,
 }
 
-/// Stores Parquet artifacts: files written once and never replaced.
+impl Format {
+    const fn extension(self) -> &'static str {
+        match self {
+            Self::Parquet => "parquet",
+            Self::DuckDb => "duckdb",
+            Self::Json => "json",
+            Self::Binary => "bin",
+        }
+    }
+}
+
+// Origin: `BlobRefV1` in labs `pocs/integrations_rs/src/blob.rs`, without the media type, ETag and
+// provider version.
+/// Identifies a stored artifact by its content.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactRef {
+    key: ArtifactKey,
+    sha256: Sha256Digest,
+    size: u64,
+    format: Format,
+}
+
+impl ArtifactRef {
+    /// Where the artifact is stored, relative to the storage root.
+    #[must_use]
+    pub const fn key(&self) -> &ArtifactKey {
+        &self.key
+    }
+
+    /// The SHA-256 digest of the artifact's bytes.
+    #[must_use]
+    pub const fn sha256(&self) -> Sha256Digest {
+        self.sha256
+    }
+
+    /// The size of the artifact in bytes.
+    #[must_use]
+    pub const fn size(&self) -> u64 {
+        self.size
+    }
+
+    #[must_use]
+    pub const fn format(&self) -> Format {
+        self.format
+    }
+
+    fn location(&self) -> Location {
+        Location::from(&*self.key.0)
+    }
+}
+
+/// Stores artifacts: files written once and addressed by their content.
 ///
-/// New artifacts are published in a staging directory and then stored. Dropping the storage
-/// deletes the staging directory, so staged and downloaded artifacts can be read only while the
-/// storage exists.
+/// An artifact's key is derived from its SHA-256 digest, so two writers of one key write the
+/// same bytes, and storing needs no conditional write. Dropping the storage deletes the staging
+/// directory, so materialized artifacts can be read only while the storage exists.
 #[derive(Debug)]
 pub struct ArtifactStorage {
+    store: Arc<dyn ObjectStore>,
     staging: TempDir,
-    backend: Backend,
-}
-
-#[derive(Debug)]
-enum Backend {
-    Local(PathBuf),
-    S3 {
-        bucket: Arc<S3Bucket>,
-        /// Makes checking for an artifact and uploading one a single step within this process.
-        stores: Mutex<()>,
-    },
 }
 
 impl ArtifactStorage {
@@ -57,85 +102,204 @@ impl ArtifactStorage {
     /// # Errors
     ///
     /// Returns [`ArtifactError::Write`] if `root` or its staging directory cannot be created.
-    pub fn local(root: PathBuf) -> Result<Self, Report<ArtifactError>> {
-        fs::create_dir_all(&root).change_context(ArtifactError::Write)?;
-        // Staging inside the root keeps it on the same file system, so storing is a hard link.
-        let staging = tempfile::Builder::new()
-            .prefix(".staging")
-            .tempdir_in(&root)
-            .change_context(ArtifactError::Write)?;
+    pub fn local(root: &Path) -> Result<Self, Report<ArtifactError>> {
+        let (store, staging) = local::open(root)?;
         Ok(Self {
+            store: Arc::new(store),
             staging,
-            backend: Backend::Local(root),
         })
     }
 
-    /// Keeps artifacts in `bucket`, staged in `staging` on their way in and out.
+    /// Keeps artifacts in `bucket`, materialized into `staging`.
     ///
-    /// Storing checks for an existing artifact and then uploads, which is a single step only
-    /// within this process. Across processes it relies on one writer per key, which one run per
-    /// integration provides.
-    #[must_use]
-    pub fn s3(bucket: S3Bucket, staging: TempDir) -> Self {
-        Self {
+    /// # Errors
+    ///
+    /// Returns [`ArtifactError::Read`] if the bucket's URI or credentials are invalid.
+    pub fn s3(bucket: &S3Bucket, staging: TempDir) -> Result<Self, Report<ArtifactError>> {
+        Ok(Self {
+            store: s3::open(bucket)?,
             staging,
-            backend: Backend::S3 {
-                bucket: Arc::new(bucket),
-                stores: Mutex::new(()),
-            },
-        }
+        })
     }
 
-    /// Returns the canonical path of the local directory artifacts are kept or staged in.
-    pub(crate) fn directory(&self) -> Result<PathBuf, Report<ArtifactError>> {
-        match &self.backend {
-            Backend::Local(root) => root.as_path(),
-            Backend::S3 { .. } => self.staging.path(),
-        }
-        .canonicalize()
-        .change_context(ArtifactError::Read)
-    }
-
-    /// Returns the path a new artifact for `key` is published to before it is stored.
-    pub(crate) fn staging(&self, key: &ArtifactKey) -> Result<PathBuf, Report<ArtifactError>> {
-        local::path(self.staging.path(), key)
-    }
-
-    /// Returns the artifact stored at `key` as a local file, if there is one.
-    pub(crate) async fn load(
+    // Origin: `ArtifactStore::publish` in labs `pocs/integrations_rs/src/blob.rs`, without its
+    // write-through cache and read-back verification.
+    /// Stores the file at `path` under `prefix` and returns its reference.
+    ///
+    /// If the artifact is already stored, nothing is uploaded.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ArtifactError::Read`] if the file or the store cannot be read,
+    /// [`ArtifactError::Write`] if the upload fails, or [`ArtifactError::Mismatch`] if the file
+    /// changed while it was uploaded or a different object is stored under its key.
+    pub async fn publish(
         &self,
-        key: &ArtifactKey,
-    ) -> Result<Option<SourceCapture>, Report<ArtifactError>> {
-        match &self.backend {
-            Backend::Local(root) => local::load(root, key),
-            Backend::S3 { bucket, .. } => {
-                let (key, target) = (key.clone(), self.staging(key)?);
-                Arc::clone(bucket)
-                    .blocking(ArtifactError::Read, move |bucket| {
-                        bucket.download(&key, &target)
-                    })
+        prefix: &ArtifactKey,
+        path: &Path,
+        format: Format,
+    ) -> Result<ArtifactRef, Report<ArtifactError>> {
+        let file = path.to_owned();
+        let (sha256, size) = tokio::task::spawn_blocking(move || digest(&file))
+            .await
+            .change_context(ArtifactError::Read)??;
+        let artifact = ArtifactRef {
+            key: key(prefix, sha256, format),
+            sha256,
+            size,
+            format,
+        };
+        match self.store.head(&artifact.location()).await {
+            Ok(stored) if stored.size == size => return Ok(artifact),
+            Ok(_) => return Err(Report::new(ArtifactError::Mismatch)),
+            Err(object_store::Error::NotFound { .. }) => {}
+            Err(error) => return Err(Report::new(error).change_context(ArtifactError::Read)),
+        }
+        self.upload(path, &artifact).await?;
+        Ok(artifact)
+    }
+
+    // Origin: `ArtifactStore::materialize_guarded` in labs `pocs/integrations_rs/src/blob.rs`,
+    // without its shared cache, eviction locks and disk limits.
+    /// Downloads the artifact to a local file, checks it against its reference, and returns the
+    /// file's path.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ArtifactError::Read`] if the artifact cannot be downloaded,
+    /// [`ArtifactError::Write`] if the local file cannot be written, or
+    /// [`ArtifactError::Mismatch`] if the downloaded bytes do not match the reference.
+    pub async fn materialize(
+        &self,
+        artifact: &ArtifactRef,
+    ) -> Result<PathBuf, Report<ArtifactError>> {
+        let target = self.staging.path().join(&*artifact.key.0);
+        // Only verified downloads are kept, so a file at the target is the artifact.
+        if target.is_file() {
+            return Ok(target);
+        }
+        let directory = target
+            .parent()
+            .ok_or_else(|| Report::new(ArtifactError::Write))?;
+        fs::create_dir_all(directory).change_context(ArtifactError::Write)?;
+        let partial = NamedTempFile::new_in(directory).change_context(ArtifactError::Write)?;
+        let mut file =
+            tokio::fs::File::from_std(partial.reopen().change_context(ArtifactError::Write)?);
+        let mut stream = self
+            .store
+            .get(&artifact.location())
+            .await
+            .change_context(ArtifactError::Read)?
+            .into_stream();
+        let mut hash = Sha256::new();
+        let mut size = 0_u64;
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.change_context(ArtifactError::Read)?;
+            hash.update(&chunk);
+            size += chunk.len() as u64;
+            file.write_all(&chunk)
+                .await
+                .change_context(ArtifactError::Write)?;
+        }
+        file.sync_all().await.change_context(ArtifactError::Write)?;
+        if size != artifact.size || hash.finalize() != artifact.sha256 {
+            return Err(Report::new(ArtifactError::Mismatch));
+        }
+        match partial.persist_noclobber(&target) {
+            Ok(_) => Ok(target),
+            // Another materialization of the same artifact finished first.
+            Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => Ok(target),
+            Err(error) => Err(Report::new(error.error).change_context(ArtifactError::Write)),
+        }
+    }
+
+    // Origin: the multipart upload with a streaming digest in `ArtifactStore::publish` in
+    // labs `pocs/integrations_rs/src/blob.rs`.
+    /// Uploads the file at `path` as `artifact`, checking that its bytes did not change.
+    async fn upload(
+        &self,
+        path: &Path,
+        artifact: &ArtifactRef,
+    ) -> Result<(), Report<ArtifactError>> {
+        let upload = self
+            .store
+            .put_multipart(&artifact.location())
+            .await
+            .change_context(ArtifactError::Write)?;
+        let mut upload = WriteMultipart::new_with_chunk_size(upload, CHUNK_SIZE);
+        let mut file = tokio::fs::File::open(path)
+            .await
+            .change_context(ArtifactError::Read)?;
+        let mut buffer = vec![0; CHUNK_SIZE];
+        let mut hash = Sha256::new();
+        let mut size = 0_u64;
+        let copied: Result<(), Report<ArtifactError>> = async {
+            loop {
+                let read = file
+                    .read(&mut buffer)
                     .await
+                    .change_context(ArtifactError::Read)?;
+                let Some(chunk) = buffer.get(..read).filter(|chunk| !chunk.is_empty()) else {
+                    return Ok(());
+                };
+                hash.update(chunk);
+                size += read as u64;
+                upload
+                    .wait_for_capacity(UPLOAD_CONCURRENCY)
+                    .await
+                    .change_context(ArtifactError::Write)?;
+                upload.write(chunk);
             }
         }
-    }
-
-    /// Stores `artifact` at `key` unless an artifact is already stored there.
-    pub(crate) async fn store(
-        &self,
-        key: &ArtifactKey,
-        artifact: &SourceCapture,
-    ) -> Result<Stored, Report<ArtifactError>> {
-        match &self.backend {
-            Backend::Local(root) => local::store(root, key, artifact),
-            Backend::S3 { bucket, stores } => {
-                let _store = stores.lock().await;
-                let (key, artifact) = (key.clone(), artifact.clone());
-                Arc::clone(bucket)
-                    .blocking(ArtifactError::Write, move |bucket| {
-                        bucket.store(&key, &artifact)
-                    })
-                    .await
-            }
+        .await;
+        // The upload becomes visible only when it finishes, so an aborted upload stores nothing.
+        if let Err(error) = copied {
+            let _aborted = upload.abort().await;
+            return Err(error);
         }
+        if size != artifact.size || hash.finalize() != artifact.sha256 {
+            let _aborted = upload.abort().await;
+            return Err(Report::new(ArtifactError::Mismatch));
+        }
+        upload.finish().await.change_context(ArtifactError::Write)?;
+        Ok(())
     }
+}
+
+// Origin: `hash_and_sync` in labs `pocs/integrations_rs/src/blob.rs`.
+/// Returns the SHA-256 digest and size of the file at `path`.
+fn digest(path: &Path) -> Result<(Sha256Digest, u64), Report<ArtifactError>> {
+    let mut file = File::open(path).change_context(ArtifactError::Read)?;
+    let mut buffer = vec![0; CHUNK_SIZE];
+    let mut hash = Sha256::new();
+    let mut size = 0_u64;
+    loop {
+        let read = file.read(&mut buffer).change_context(ArtifactError::Read)?;
+        let Some(chunk) = buffer.get(..read).filter(|chunk| !chunk.is_empty()) else {
+            return Ok((hash.finalize(), size));
+        };
+        hash.update(chunk);
+        size += read as u64;
+    }
+}
+
+// Origin: the content-addressed key `{prefix}/sha256/{xx}/{sha256}{ext}` built by
+// `ArtifactStore::publish` in labs `pocs/integrations_rs/src/blob.rs`.
+/// The content-addressed key of an artifact under `prefix`.
+fn key(prefix: &ArtifactKey, sha256: Sha256Digest, format: Format) -> ArtifactKey {
+    let bytes = sha256.to_bytes();
+    let hex = bytes
+        .iter()
+        .fold(String::with_capacity(64), |mut hex, byte| {
+            let _infallible = write!(hex, "{byte:02x}");
+            hex
+        });
+    ArtifactKey(
+        format!(
+            "{prefix}/sha256/{:02x}/{hex}.{}",
+            bytes[0],
+            format.extension()
+        )
+        .into(),
+    )
 }

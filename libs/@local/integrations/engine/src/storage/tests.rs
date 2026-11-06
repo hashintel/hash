@@ -1,7 +1,7 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
 use duckdb::Connection;
-use hash_crypto::Secret;
+use hash_crypto::{Secret, digest::Sha256Digest};
 use hash_integrations_definition::SourceName;
 use rstest::rstest;
 use tempfile::TempDir;
@@ -13,7 +13,10 @@ use testcontainers::{
 use testcontainers_modules::minio::MinIO;
 use uuid::Uuid;
 
-use super::{ArtifactKey, ArtifactStorage, S3Bucket, Stored, layout};
+use super::{
+    ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactStorage, Format, ParquetStorage,
+    S3Bucket, Stored, artifact::CHUNK_SIZE,
+};
 use crate::{CaptureRun, SourceCapture, sql::literal};
 
 /// Starts MinIO with an empty `captures` bucket and returns it with its API port.
@@ -55,20 +58,17 @@ fn bucket(port: u16) -> S3Bucket {
 }
 
 /// S3 storage that stages in a new temporary directory under `parent`.
-pub(crate) fn s3_storage(port: u16, parent: &Path) -> ArtifactStorage {
-    ArtifactStorage::s3(
+pub(crate) fn s3_storage(port: u16, parent: &Path) -> ParquetStorage {
+    ParquetStorage::s3(
         bucket(port),
         TempDir::new_in(parent).expect("should create the staging directory"),
     )
 }
 
 /// Local storage under `directory`, or S3 storage staging there if MinIO runs on `port`.
-fn storage(port: Option<u16>, directory: &Path) -> ArtifactStorage {
+fn storage(port: Option<u16>, directory: &Path) -> ParquetStorage {
     port.map_or_else(
-        || {
-            ArtifactStorage::local(directory.join("artifacts"))
-                .expect("should create local storage")
-        },
+        || ParquetStorage::local(directory.join("artifacts")).expect("should create local storage"),
         |port| s3_storage(port, directory),
     )
 }
@@ -85,8 +85,13 @@ fn items() -> SourceName {
     "items".parse().expect("should be a source name")
 }
 
+/// The key of the `items` capture in `run`.
+fn capture(run: CaptureRun) -> ArtifactKey {
+    ArtifactNamespace::new(run.web).capture(run.id, &items())
+}
+
 /// Publishes an artifact of `rows` rows for `key` and stores it.
-async fn store(storage: &ArtifactStorage, key: &ArtifactKey, rows: u64) -> Stored {
+async fn store(storage: &ParquetStorage, key: &ArtifactKey, rows: u64) -> Stored {
     let target = storage
         .staging(key)
         .expect("should return the staging path");
@@ -108,7 +113,7 @@ async fn store(storage: &ArtifactStorage, key: &ArtifactKey, rows: u64) -> Store
         .expect("should store the artifact")
 }
 
-async fn rows(storage: &ArtifactStorage, key: &ArtifactKey) -> Option<u64> {
+async fn rows(storage: &ParquetStorage, key: &ArtifactKey) -> Option<u64> {
     storage
         .load(key)
         .await
@@ -125,7 +130,7 @@ async fn restores_in_new_staging(#[case] s3: bool) {
     let minio = if s3 { Some(minio().await) } else { None };
     let port = minio.as_ref().map(|(_, port)| *port);
     let run = run();
-    let key = layout::capture(run, &items());
+    let key = capture(run);
     store(&storage(port, directory.path()), &key, 3).await;
 
     let restore = storage(port, directory.path());
@@ -134,13 +139,7 @@ async fn restores_in_new_staging(#[case] s3: bool) {
         Some(3),
         "should load the stored artifact"
     );
-    let other = layout::capture(
-        CaptureRun {
-            id: Uuid::new_v4(),
-            ..run
-        },
-        &items(),
-    );
+    let other = ArtifactNamespace::new(run.web).capture(Uuid::new_v4(), &items());
     assert_eq!(
         rows(&restore, &other).await,
         None,
@@ -156,7 +155,7 @@ async fn keeps_the_first_stored_artifact(#[case] s3: bool) {
     let directory = TempDir::new().expect("should create a directory");
     let minio = if s3 { Some(minio().await) } else { None };
     let port = minio.as_ref().map(|(_, port)| *port);
-    let key = layout::capture(run(), &items());
+    let key = capture(run());
     assert_eq!(
         store(&storage(port, directory.path()), &key, 3).await,
         Stored::Created,
@@ -180,7 +179,7 @@ async fn keeps_the_first_stored_artifact(#[case] s3: bool) {
 async fn s3_errors_are_not_missing_artifacts() {
     let directory = TempDir::new().expect("should create a directory");
     let (_minio, port) = minio().await;
-    let storage = ArtifactStorage::s3(
+    let storage = ParquetStorage::s3(
         S3Bucket {
             secret: Secret::from_vec(b"wrong".to_vec()),
             ..bucket(port)
@@ -189,7 +188,122 @@ async fn s3_errors_are_not_missing_artifacts() {
     );
 
     let _report = storage
-        .load(&layout::capture(run(), &items()))
+        .load(&capture(run()))
         .await
         .expect_err("should fail when the bucket cannot be read");
+}
+
+/// Local artifact storage under `directory`, or S3 storage staging there if MinIO runs on `port`.
+fn artifact_storage(port: Option<u16>, directory: &Path) -> ArtifactStorage {
+    port.map_or_else(
+        || {
+            ArtifactStorage::local(&directory.join("artifacts"))
+                .expect("should create local storage")
+        },
+        |port| {
+            ArtifactStorage::s3(
+                &bucket(port),
+                TempDir::new_in(directory).expect("should create the staging directory"),
+            )
+            .expect("should create S3 storage")
+        },
+    )
+}
+
+/// Writes `bytes` to a new file under `directory` and returns its path.
+fn file(directory: &Path, bytes: &[u8]) -> std::path::PathBuf {
+    let path = directory.join(format!("{}.bin", Uuid::new_v4()));
+    fs::write(&path, bytes).expect("should write the file");
+    path
+}
+
+#[rstest]
+#[case::local(false)]
+#[case::s3(true)]
+#[tokio::test]
+async fn artifacts_round_trip_through_new_staging(#[case] s3: bool) {
+    let directory = TempDir::new().expect("should create a directory");
+    let minio = if s3 { Some(minio().await) } else { None };
+    let port = minio.as_ref().map(|(_, port)| *port);
+    // Larger than two upload parts, so the upload has several parts and a shorter last one.
+    let bytes: Vec<u8> = (0..=u8::MAX).cycle().take(2 * CHUNK_SIZE + 3).collect();
+
+    let artifact = artifact_storage(port, directory.path())
+        .publish(
+            &ArtifactNamespace::new(Uuid::new_v4()).artifacts("test"),
+            &file(directory.path(), &bytes),
+            Format::Binary,
+        )
+        .await
+        .expect("should publish the artifact");
+    assert_eq!(
+        artifact.size(),
+        bytes.len() as u64,
+        "should record the size"
+    );
+    assert_eq!(
+        artifact.sha256(),
+        Sha256Digest::of(&bytes),
+        "should record the digest"
+    );
+
+    let restore = artifact_storage(port, directory.path());
+    let path = restore
+        .materialize(&artifact)
+        .await
+        .expect("should materialize the artifact");
+    assert!(
+        fs::read(path).expect("should read the artifact") == bytes,
+        "should materialize the published bytes"
+    );
+}
+
+#[rstest]
+#[case::local(false)]
+#[case::s3(true)]
+#[tokio::test]
+async fn publishing_the_same_bytes_returns_the_same_reference(#[case] s3: bool) {
+    let directory = TempDir::new().expect("should create a directory");
+    let minio = if s3 { Some(minio().await) } else { None };
+    let port = minio.as_ref().map(|(_, port)| *port);
+    let prefix = ArtifactNamespace::new(Uuid::new_v4()).artifacts("test");
+    let publish = async |storage: ArtifactStorage| {
+        storage
+            .publish(&prefix, &file(directory.path(), b"{}"), Format::Json)
+            .await
+            .expect("should publish the artifact")
+    };
+
+    assert_eq!(
+        publish(artifact_storage(port, directory.path())).await,
+        publish(artifact_storage(port, directory.path())).await,
+        "the same bytes should be stored once under one key"
+    );
+}
+
+#[tokio::test]
+async fn materialize_rejects_a_changed_artifact() {
+    let directory = TempDir::new().expect("should create a directory");
+    let root = directory.path().join("artifacts");
+    let artifact = ArtifactStorage::local(&root)
+        .expect("should create local storage")
+        .publish(
+            &ArtifactNamespace::new(Uuid::new_v4()).artifacts("test"),
+            &file(directory.path(), b"original"),
+            Format::Binary,
+        )
+        .await
+        .expect("should publish the artifact");
+    fs::write(root.join(artifact.key().to_string()), b"replaced")
+        .expect("should replace the stored bytes");
+
+    let error = ArtifactStorage::local(&root)
+        .expect("should create local storage")
+        .materialize(&artifact)
+        .await
+        .expect_err("should reject bytes that do not match the reference");
+    assert!(
+        matches!(error.current_context(), ArtifactError::Mismatch),
+        "should report the mismatch"
+    );
 }
