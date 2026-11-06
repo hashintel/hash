@@ -487,4 +487,16 @@ So how do we construct a new `Count` value? Well! `type` and `let` bind names in
 
 ## Queries without side effects
 
-So how does a side-effect free query work with mutations? Can that even be supported? Yes! The key to this is the transaction time. Importantly what we say is never that side-effects are impossible, we simply say that side-effects are _never able to be observed in the transaction time that we have already committed._ Every query gets a transaction time set, and mutations set a transaction time that is later. We can never set the transaction time into the future for a query, only to now. That means that any mutation that we do, even in our own code, would never be visible, because time would have naturally advanced. That's only possible because backdated changes have a later transaction time than the current one, only their decision time changes.
+So how does a side-effect-free query work with mutations? Can that even be supported? Yes! The key is transaction time. Side-effect freedom doesn't mean that mutations are impossible. It means that a mutation cannot change what a query observes through the temporal slice it already selected.
+
+HASH distinguishes two time axes. **Transaction time** records when the store recorded a change. **Decision time** records when that change takes effect in the world the graph describes. What's important is that the decision time must always be older or the same as the transaction time, which means that a correction entered today can have a decision time of yesterday, but its transaction time is still today.
+
+Every program gets a transaction-time cutoff fixed at its start. A query can select now or an earlier date, but never one in the future. This date is then propagated to any query, if a query is variable over the transaction time, then the upper bound is set to the cutoff. What's important is that the cutoff does not change during execution, and because time advances monotonically (as we know it), any modification that occurs, even in the same program, cannot be observed in the same query. Time has moved on, but we haven't.
+
+This is only possible if there is a time that cannot be chosen by the user, as in the transaction time, and works even if another time axis, like a valid time is added. Because any change cannot travel back in time and have a transaction time that isn't now. That is the only assumption we work on. An update can return a new graph value without changing what the earlier graph value denotes.
+
+<Callout type="warn" title="Implementation status">
+
+Runtime enforcement of this cutoff is pending in [BE-1121](https://linear.app/hash/issue/BE-1121). Graph write operations are planned separately in [BE-550](https://linear.app/hash/issue/BE-550).
+
+</Callout>
