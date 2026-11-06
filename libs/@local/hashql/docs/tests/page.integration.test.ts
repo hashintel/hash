@@ -213,7 +213,7 @@ describe("page", () => {
 
   test("hast_deprecation", () => {
     expect.hasAssertions();
-    expect(deprecatedRows("pkg/index.html")).toStrictEqual([["old"]]);
+    expect(deprecatedRows("pkg/index.html")).toStrictEqual(['["old"]']);
   });
 
   test("print_failure", async () => {
@@ -308,7 +308,8 @@ describe("page", () => {
       names = await Reference.success({
         source: `declare const value: number;
 declare const tick: number;
-export { value as 'a"<&>', tick as "a\`b" };
+declare const spaced: number;
+export { value as 'a"<&>', tick as "a\`b", spaced as "odd name" };
 export interface Box { 'b"<&>': string }
 /**
  * Run.
@@ -338,6 +339,28 @@ export declare function run(input: \`x\${string}\`): void;`,
         markdown.includes("[``a`b``](#a%60b)"),
         /`` input: `x\$\{string\}` ``/u.test(markdown),
       ]).toStrictEqual([true, true]);
+    });
+
+    test("spaced_names", () => {
+      expect.hasAssertions();
+      // A host's hast-to-jsx joins an array property with spaces, so the page writes a list of names as JSON.
+      expect(
+        pipe(
+          Page.toHast(page()),
+          Result.getOrThrow,
+          elementsOf,
+          Array.filter(({ properties }) =>
+            String(properties["names"]).includes("odd"),
+          ),
+          Array.map(({ tagName, properties }) => [
+            tagName,
+            properties["names"],
+          ]),
+        ),
+      ).toStrictEqual([
+        ["api-row", '["odd name"]'],
+        ["api-export", '["odd name"]'],
+      ]);
     });
 
     test("prose_fence", () => {

@@ -214,7 +214,7 @@ export interface Components {
   readonly Code: ComponentType<CodeProps>;
 }
 
-/** The props an element arrives with: hast-to-jsx joins an array property with spaces. */
+/** The props an element arrives with: hast-to-jsx joins an array property with spaces, and a list of names arrives as JSON. */
 type Wire<Props> = {
   readonly [Key in keyof Props]: Props[Key] extends
     | readonly (string | number)[]
