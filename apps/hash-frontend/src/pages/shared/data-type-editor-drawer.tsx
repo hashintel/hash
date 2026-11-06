@@ -1,5 +1,5 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { Box, Portal, Stack, Typography } from "@mui/material";
+import { Box, Portal, Stack } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useContext, useMemo, useState } from "react";
 
@@ -8,6 +8,7 @@ import {
   makeOntologyTypeVersion,
 } from "@blockprotocol/type-system";
 import {
+  Banner,
   BreadCrumbs,
   Button,
   Drawer,
@@ -17,6 +18,7 @@ import {
 } from "@hashintel/ds-components";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
+import { useUserOrOrgShortnameByWebId } from "../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import {
   createDataTypeMutation,
   queryDataTypesQuery,
@@ -24,6 +26,7 @@ import {
 } from "../../graphql/queries/ontology/data-type.queries";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { AllowedTypesField } from "./data-type-editor-drawer/allowed-types-field";
+import { EditableHeader } from "./data-type-editor-drawer/editable-header";
 import {
   arraySchemaFromListConfig,
   listConfigFromArraySchema,
@@ -142,6 +145,12 @@ const DataTypeEditorDrawerInner = ({
 
   const { authenticatedUser } = useAuthenticatedUser();
   const { activeWorkspaceWebId } = useContext(WorkspaceContext);
+  const { shortname: editedWebShortname } = useUserOrOrgShortnameByWebId({
+    webId:
+      editedDataType && "webId" in editedDataType.metadata
+        ? editedDataType.metadata.webId
+        : null,
+  });
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
   const { refetch: refetchAllDataTypes } = useDataTypesContext();
 
@@ -603,14 +612,14 @@ const DataTypeEditorDrawerInner = ({
     <Drawer
       size="lg"
       position="right"
+      variant="plain"
       swapKey="data-type-editor"
       shouldCloseOn="closeButton"
       onClose={onClose}
       aria-label={editedDataType ? "Edit data type" : "Create data type"}
     >
       <Drawer.Header>
-        {/* The ds crumb styles carry the layer-polyfill's specificity boost, so darkening them takes !important.
-            The fixed height matches the close button, centring the trail against it. */}
+        {/* The fixed height matches the close button, centring the trail against it */}
         <Box
           sx={{
             display: "flex",
@@ -620,10 +629,16 @@ const DataTypeEditorDrawerInner = ({
             // its visual centre 2px above the header's content row
             marginTop: "-2px",
             "& nav": { display: "flex", alignItems: "center", height: "100%" },
-            "& li": { color: "var(--colors-neutral-s115) !important" },
+            // One step lighter than the ds crumb weight (450); !important beats
+            // the layer-polyfill's specificity boost on the recipe rule
+            "& li": { fontWeight: "400 !important" },
           }}
         >
-          <BreadCrumbs size="md" aria-label="Data type location">
+          <BreadCrumbs
+            size="md"
+            autoFocus="never"
+            aria-label="Data type location"
+          >
             <BreadCrumbs.Item
               noCollapse
               onClick={() => navigateToCrumb("/types")}
@@ -641,53 +656,81 @@ const DataTypeEditorDrawerInner = ({
             </BreadCrumbs.Item>
           </BreadCrumbs>
         </Box>
+        {editedDataType ? (
+          <EditableHeader
+            webShortname={editedWebShortname}
+            dataTypeUrl={editedDataType.schema.$id}
+            title={title}
+            description={description}
+            onTitleChange={(next) => {
+              setTitle(next);
+              setErrors((prev) => ({ ...prev, title: undefined }));
+            }}
+            onDescriptionChange={(next) => {
+              setDescription(next);
+              setErrors((prev) => ({ ...prev, description: undefined }));
+            }}
+            titleError={errors.title}
+            descriptionError={errors.description}
+          />
+        ) : null}
       </Drawer.Header>
-      <Drawer.Body>
+      <Drawer.Body className="data-type-editor-body">
         <Stack spacing={2.5}>
-          <Box sx={sectionCardSx}>
-            <Stack spacing={2} sx={{ padding: "16px 18px 18px" }}>
-              <Form.Field
-                label="Name"
-                required
-                errors={errors.title ? [errors.title] : undefined}
-              >
-                <TextInput
-                  value={title}
-                  onChange={setTitle}
-                  placeholder="e.g. Length"
-                  // "search" in the name keeps Bitwarden's inline menu off this
-                  // field — it disregards autocomplete="off"/data-bwignore but
-                  // never offers autofill on fields it classifies as search
-                  name="data-type-name-search"
+          {editedDataType ? null : (
+            <Box sx={sectionCardSx}>
+              <Stack spacing={2} sx={{ padding: "16px 18px 18px" }}>
+                <Form.Field
+                  label="Name"
                   required
-                  invalid={!!errors.title}
-                  autoFocus={!editedDataType}
-                  width="fullWidth"
-                />
-              </Form.Field>
+                  errors={errors.title ? [errors.title] : undefined}
+                >
+                  <TextInput
+                    value={title}
+                    onChange={setTitle}
+                    placeholder="e.g. Length"
+                    // "search" in the name keeps Bitwarden's inline menu off
+                    // this field — it disregards autocomplete="off" and
+                    // data-bwignore, but never offers autofill on fields it
+                    // classifies as search
+                    name="data-type-name-search"
+                    required
+                    invalid={!!errors.title}
+                    autoFocus
+                    width="fullWidth"
+                  />
+                </Form.Field>
 
-              <Form.Field
-                label="Description"
-                required
-                errors={errors.description ? [errors.description] : undefined}
-              >
-                <TextArea
-                  value={description}
-                  onChange={setDescription}
-                  placeholder="Describe this data type in one or two sentences"
+                <Form.Field
+                  label="Description"
                   required
-                  invalid={!!errors.description}
-                  rows={2}
-                />
-              </Form.Field>
-            </Stack>
-          </Box>
+                  errors={errors.description ? [errors.description] : undefined}
+                >
+                  <TextArea
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="Describe this data type in one or two sentences"
+                    required
+                    invalid={!!errors.description}
+                    rows={2}
+                  />
+                </Form.Field>
+              </Stack>
+            </Box>
+          )}
 
           <Box sx={sectionCardSx}>
             <Box sx={{ padding: "16px 18px 18px" }}>
               <Form.Field
                 label="Type"
                 as="legend"
+                description={
+                  allowedTypes.length === 0
+                    ? "Select one type to extend it, or add several to allow values of any of them."
+                    : allowedTypes.length === 1
+                      ? "This type extends the type below."
+                      : "Values of this type can be any of the types below."
+                }
                 errors={errors.allowedTypes ? [errors.allowedTypes] : undefined}
               >
                 <AllowedTypesField
@@ -704,11 +747,9 @@ const DataTypeEditorDrawerInner = ({
           </Box>
 
           {errors.submit ? (
-            <Typography
-              sx={{ fontSize: 14, color: ({ palette }) => palette.red[70] }}
-            >
-              {errors.submit}
-            </Typography>
+            <Banner tone="error">
+              <Banner.Description as="div">{errors.submit}</Banner.Description>
+            </Banner>
           ) : null}
         </Stack>
       </Drawer.Body>
@@ -754,6 +795,20 @@ export const DataTypeEditorDrawer = ({
         sx={{
           position: "relative",
           zIndex: ({ zIndex }) => zIndex.modal + 1,
+          // The slot recipes carry the layer-polyfill's specificity boost,
+          // hence the !important overrides. The footer takes no className
+          // when given `actions`, so it is addressed as the body's sibling.
+          "& .data-type-editor-body": {
+            backgroundColor: "#fbfbfb !important",
+          },
+          "& .data-type-editor-body + div": {
+            backgroundColor: "#fbfbfb !important",
+            borderTop: "none !important",
+          },
+          // The header — the element directly preceding the body
+          "& div:has(+ .data-type-editor-body)": {
+            borderBottomColor: "var(--colors-neutral-s40) !important",
+          },
         }}
       >
         {dataTypes && latestDataTypes ? (
@@ -782,11 +837,12 @@ export const DataTypeEditorDrawer = ({
           <Drawer
             size="lg"
             position="right"
+            variant="plain"
             swapKey="data-type-editor"
             onClose={onClose}
             loading
           >
-            <Drawer.Body>{null}</Drawer.Body>
+            <Drawer.Body className="data-type-editor-body">{null}</Drawer.Body>
           </Drawer>
         )}
       </DsComponentsScope>

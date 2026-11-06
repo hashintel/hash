@@ -1,7 +1,9 @@
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 
 import {
   Button,
+  Form,
+  NumberInput,
   SegmentedControl,
   Select,
   TextInput,
@@ -35,21 +37,35 @@ const FlexibleItemsEditor = ({
   config: ListConfig;
   onChange: (config: ListConfig) => void;
 }) => (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-    <Typography
-      component="span"
-      sx={{ flexShrink: 0, fontSize: 14, fontWeight: 500 }}
-    >
-      Item type
-    </Typography>
-    <Select<ListItemType>
-      items={elementTypeItems}
-      value={config.itemType}
-      onChange={(itemType) => onChange({ ...config, itemType })}
-      size="sm"
-      width="xs"
-    />
-  </Box>
+  <Form.Row align="center">
+    <Form.Field label="Item type" layout="inline" size="sm">
+      <Select<ListItemType>
+        items={elementTypeItems}
+        value={config.itemType}
+        onChange={(itemType) => onChange({ ...config, itemType })}
+        size="sm"
+        width="xs"
+      />
+    </Form.Field>
+    <Form.Field label="Minimum items" layout="inline" size="sm">
+      <NumberInput
+        value={config.minItems}
+        onChange={(minItems) => onChange({ ...config, minItems })}
+        placeholder="No minimum"
+        size="sm"
+        width="xs"
+      />
+    </Form.Field>
+    <Form.Field label="Maximum items" layout="inline" size="sm">
+      <NumberInput
+        value={config.maxItems}
+        onChange={(maxItems) => onChange({ ...config, maxItems })}
+        placeholder="No maximum"
+        size="sm"
+        width="xs"
+      />
+    </Form.Field>
+  </Form.Row>
 );
 
 const FixedElementsEditor = ({

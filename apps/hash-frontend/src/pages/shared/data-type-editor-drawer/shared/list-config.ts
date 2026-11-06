@@ -36,6 +36,9 @@ export type ListConfig = {
   shape: "flexible" | "fixed";
   /** Flexible shape: the single item schema the type system supports, or null for any value */
   itemType: ListItemType | null;
+  /** Flexible shape: length bounds, each null when unconstrained */
+  minItems: number | null;
+  maxItems: number | null;
   /** Fixed shape: one entry per element, with labels shown before/after the value */
   elements: ListElement[];
 };
@@ -49,6 +52,8 @@ export const defaultListElement = (): ListElement => ({
 export const defaultListConfig = (): ListConfig => ({
   shape: "flexible",
   itemType: null,
+  minItems: null,
+  maxItems: null,
   elements: [defaultListElement()],
 });
 
@@ -92,6 +97,8 @@ export const arraySchemaFromListConfig = (
   return {
     type: "array",
     ...(config.itemType ? { items: itemSchemaForType(config.itemType) } : {}),
+    ...(config.minItems !== null ? { minItems: config.minItems } : {}),
+    ...(config.maxItems !== null ? { maxItems: config.maxItems } : {}),
   };
 };
 
@@ -106,6 +113,8 @@ export const listConfigFromArraySchema = (schema: ArraySchema): ListConfig => {
     return {
       shape: "fixed",
       itemType: null,
+      minItems: null,
+      maxItems: null,
       elements: elements.length > 0 ? elements : [defaultListElement()],
     };
   }
@@ -113,6 +122,8 @@ export const listConfigFromArraySchema = (schema: ArraySchema): ListConfig => {
   return {
     shape: "flexible",
     itemType: schema.items?.type ?? null,
+    minItems: schema.minItems ?? null,
+    maxItems: schema.maxItems ?? null,
     elements: [defaultListElement()],
   };
 };

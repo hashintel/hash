@@ -162,7 +162,25 @@ const DataTypePicker = ({
         );
       }}
       placeholder={`Search ${tree.selectableCount.toLocaleString()} data types…`}
-      prefix={{ iconName: "search", variant: "subtle" }}
+      prefix={{
+        content: (
+          // 18px sits between the ds icon size tokens (sm 16px, md 24px); the
+          // override needs !important to beat the layer-polyfill's boost
+          <Box
+            sx={{
+              display: "inline-flex",
+              "& svg": {
+                width: "18px !important",
+                height: "18px !important",
+                minWidth: "18px !important",
+              },
+            }}
+          >
+            <Icon name="search" size="sm" />
+          </Box>
+        ),
+        variant: "subtle",
+      }}
       noMatchMessage={(input) => `No data types match “${input}”.`}
       autoFocus={autoFocus}
       inputRef={inputRef}
