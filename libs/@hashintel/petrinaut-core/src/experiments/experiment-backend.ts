@@ -3,6 +3,10 @@
  *
  * @layerRoot core.experiments
  * @role Chooses a compute backend for an experiment, and asks whether it can run a net
+ * @tags experiments
+ * @interface iface:experiment-backend ExperimentBackend via call
+ * @summary The contract every experiment engine satisfies; the selection
+ * picks CPU workers or the GPU backend per net.
  *
  * Small. Both paths already produce a `MonteCarloExperiment` that
  * `ExperimentsProvider` consumes without branching. This adds only what was

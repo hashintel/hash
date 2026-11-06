@@ -1,6 +1,7 @@
 ---
 layer: core.simulation.worker
 role: Computes simulation frames off the main thread under host backpressure
+tags: [simulation, workers]
 ---
 
 # Simulation Worker

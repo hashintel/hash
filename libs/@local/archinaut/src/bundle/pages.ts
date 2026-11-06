@@ -15,6 +15,7 @@
  * rendered claim to the source of truth.
  */
 
+import { buildInterfacePage } from "./pages/interface-page";
 import { buildLayerPage } from "./pages/layer-page";
 import { buildOverviewPage } from "./pages/overview-page";
 import {
@@ -24,7 +25,7 @@ import {
 
 import type { ArchitectureModel } from "../model";
 
-export { assetPathFrom, layerSlug } from "./shared/page-paths";
+export { assetPathFrom, interfaceSlug, layerSlug } from "./shared/page-paths";
 export {
   GENERATED_ORDER_BASE,
   frontmatter,
@@ -50,6 +51,17 @@ export const buildPages = (
   const layersById = new Map(model.layers.map((layer) => [layer.id, layer]));
 
   const pages = [buildOverviewPage(model, options.overviewDiagram)];
+
+  model.interfaces.forEach((node, index) => {
+    pages.push(
+      buildInterfacePage(
+        node,
+        model,
+        options.sourceUrlPrefix,
+        GENERATED_ORDER_BASE + model.layers.length + index + 1,
+      ),
+    );
+  });
 
   model.layers.forEach((layer, index) => {
     pages.push(

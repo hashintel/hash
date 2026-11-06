@@ -10,6 +10,10 @@ import { posix } from "node:path";
 export const layerSlug = (id: string): string =>
   `architecture/${id.replace(/\./gu, "/")}`;
 
+/** The slug an interface's generated page occupies: `iface:doc-handle` → `architecture/interfaces/doc-handle`. */
+export const interfaceSlug = (id: string): string =>
+  `architecture/interfaces/${id.replace(/^iface:/u, "")}`;
+
 /**
  * Relative link from one bundle page to another, so the bundle works when
  * mounted at any base path. Resolved against the slug: page links are

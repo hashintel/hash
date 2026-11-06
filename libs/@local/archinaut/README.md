@@ -15,8 +15,9 @@ Every command reads `archinaut.config.ts` from the working directory, or the
 file `--config` names.
 
 A config file default-exports `defineConfig({...})`: the packages to cover,
-the layer-crossing rules, where content, output and cache live, and the
-site's title, URL, logo and favicon. `apps/petrinaut-docs` is the first
+the layer-crossing rules, the tag vocabulary, the external parties that take
+part in interfaces, where content, output and cache live, and the site's
+title, URL, logo and favicon. `apps/petrinaut-docs` is the first
 instance.
 
 ## The pipeline
@@ -25,8 +26,10 @@ Four stages over plain data, in `src/pipeline.ts`:
 
 1. `scan` walks the packages and reads the annotations: `@layerRoot` and
    `@role` declare a layer on a folder (README frontmatter `layer`/`role`
-   does the same), every descendant file inherits it; `@talksTo` declares
-   an edge no import carries.
+   does the same), every descendant file inherits it; `@tags` and
+   `@audience` say what a layer is about and who reads it; `@talksTo` declares
+   an edge no import carries; `@interface` marks the file that defines an
+   interface, with `@summary` beside it; `@participates` declares a role in one.
 2. `facts` collects, for every covered file, the symbols it defines and the
    symbols it references, each named by its defining file. This is all the
    model reads from the code, so a provider is anything that produces that
@@ -35,9 +38,13 @@ Four stages over plain data, in `src/pipeline.ts`:
    language, keyed by the content of the covered files, so an edit undone
    finds its entry again.
 3. `model` turns symbol references into file dependencies, aggregates them to
-   layer edges, and adds the declared edges.
+   layer edges, adds the declared edges, and derives each interface's
+   participants: every layer referencing a symbol the defining file exports
+   is a consumer, and a declared role the code confirms is marked `type-ref`.
 4. `check` fails the build on an undeclared ancestor, a violated rule, a rule
-   that cannot fire, or a file no layer resolves to.
+   that cannot fire, a file no layer resolves to, or a participation in an
+   interface nothing declares; an unknown tag or an interface with no
+   participants is a warning.
 
 An edge lands on the layer that defines the symbol, so the model is finer than
 one that stops at barrels: `react → core.handle`, not `react → core`.
@@ -103,15 +110,15 @@ leaves unresolved; the union is the edge set.
 
 Written to `outputDirectory`, framework-neutral, and consumed by the site:
 
-| File                     | What it is                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------- |
-| `architecture.json`      | The model, version 3: packages, layers, edges, rules                          |
-| `search.json`            | Every page cut into sections, each reduced to plain text, for a host's search |
-| `architecture.md`        | The whole architecture as one file, the cheapest read for an agent            |
-| `manifest.json`          | The page tree, and on a diff build each page's status                         |
-| `pages/**.mdx`           | Generated layer pages, plus the authored pages merged in                      |
-| `components/*.tsx`       | The React cards generated pages import, and authored diagram components       |
-| `diagrams/**.d2`, `.svg` | Diagram sources, and their renderings when `d2` is installed                  |
+| File                     | What it is                                                                        |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `architecture.json`      | The model, version 3: packages, layers, edges, interfaces, externals, tags, rules |
+| `search.json`            | Every page cut into sections, each reduced to plain text, for a host's search     |
+| `architecture.md`        | The whole architecture as one file, the cheapest read for an agent                |
+| `manifest.json`          | The page tree, and on a diff build each page's status                             |
+| `pages/**.mdx`           | Generated layer and interface pages, plus the authored pages merged in            |
+| `components/*.tsx`       | The React cards generated pages import, and authored diagram components           |
+| `diagrams/**.d2`, `.svg` | Diagram sources, and their renderings when `d2` is installed                      |
 
 Only files whose content changed are written, so a watcher downstream sees one
 event per real change. Every diagram is checked against the rendering cache
