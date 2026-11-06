@@ -77,7 +77,7 @@ impl ClassifierArgs {
             serde_json::to_vec_pretty(&report).expect("the report bundle serializes to JSON");
         std::fs::write(&self.output, bundle)
             .change_context(ReportError::Write)
-            .attach_with(|| format!("report bundle: {}", self.output))?;
+            .attach_with(|| self.output.clone())?;
 
         Ok(ClassifierVerdict {
             verified: report.verified(),

@@ -94,7 +94,7 @@ impl QualityArgs {
             .change_context(ReportError::Serialize)?;
         std::fs::write(&self.output, report)
             .change_context(ReportError::Write)
-            .attach_with(|| format!("report bundle: {}", self.output))?;
+            .attach_with(|| self.output.clone())?;
 
         Ok(QualityVerdict {
             assessment,

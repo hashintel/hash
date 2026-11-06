@@ -233,7 +233,7 @@ impl DumpCommand {
         let reading = read::<_, ExternalEmbeddingError>(&dataset, &self.args.output, &options)
             .await
             .change_context(DumpError::Dump)
-            .attach_with(|| format!("dump directory: {}", self.args.output))?;
+            .attach_with(|| self.args.output.clone())?;
         // The reading borrows nothing from the dataset. The snapshot transaction ends here rather
         // than spanning the provider round-trips below.
         drop(dataset);
@@ -247,7 +247,7 @@ impl DumpCommand {
         )
         .await
         .change_context(DumpError::Dump)
-        .attach_with(|| format!("dump directory: {}", self.args.output))?;
+        .attach_with(|| self.args.output.clone())?;
 
         Ok(DumpVerdict {
             directory: self.args.output,
