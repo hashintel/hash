@@ -5,8 +5,9 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
+  hashGraphReadToolNames,
   petrinautContextualUserMessageBody,
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -107,6 +108,9 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       ...Object.keys(petrinautAiTools),
     ]),
   );
+  // HASH's graph reads belong to the HASH agent alone.
+  for (const name of hashGraphReadToolNames)
+    expect(mounted.tools).not.toContain(name);
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
   expect(mounted.instructions).toEqual([]);
@@ -136,8 +140,8 @@ test("a conversation without initial data mounts the guidance and Ledger without
 });
 
 test("the agent admits a document binding or no initial data", () => {
-  expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
-  expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
+  expect(v.parse(vSdcpnInitialData, bound)).toEqual(bound);
+  expect(v.parse(vSdcpnInitialData, undefined)).toBeUndefined();
 });
 
 test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {

@@ -33,6 +33,8 @@ const observed = vi.hoisted(() => ({
   /** Failures to report from inside the editor and from Brunch's hook. */
   petrinautFailure: null as null | { error: Error; source: string },
   brunchFailure: null as null | { error: Error; source: string },
+  /** The HASH host tools the page gives Brunch. */
+  hashHostTools: [{ toolName: "query_hash_entities" }],
 }));
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
@@ -116,6 +118,10 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
     },
   };
 });
+
+vi.mock("./petrinaut-editor/process-petrinaut/brunch-hash-graph-reads", () => ({
+  useBrunchHashHostTools: () => observed.hashHostTools,
+}));
 
 vi.mock("./petrinaut-editor/process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: { id: "top-bar" },
@@ -245,10 +251,11 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
   expect(lastEditorHandle()).toBe(firstHandle);
   expect(lastBrunchInput()).toMatchObject({
     ownerKey: "hash:alice-account",
-    chatEndpoint: "http://localhost:5001/api/brunch/agents/petrinaut",
+    chatEndpoint: "http://localhost:5001/api/brunch/agents/hash",
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },
   });
+  expect(lastBrunchInput()?.hostTools).toBe(observed.hashHostTools);
   expect(identityRequests).toEqual([
     {
       url: "http://localhost:5001/api/brunch/identity",

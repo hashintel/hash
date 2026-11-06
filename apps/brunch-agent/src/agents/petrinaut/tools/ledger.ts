@@ -4,7 +4,7 @@ import * as v from "valibot";
 import {
   brunchTools,
   foldCommits,
-  ledgerAppendOutputSchema,
+  vLedgerAppendOutput,
   type LedgerHistory,
   prepareAppend,
   projectLedger,
@@ -36,15 +36,19 @@ const repliesWith = (history: LedgerHistory, toolCallId: string) =>
     ?.parts.some((part) => v.is(vTextPart, part) && part.text.trim() !== "") ??
   false;
 
-/** The durable `ledger_commit` over this agent's Ledger. */
+/**
+ * The durable `ledger_commit` over this agent's Ledger. An agent may describe
+ * its entries with its own `vLedgerAppendWith` schema.
+ */
 export const createLedgerCommitTool = (
   readHistory: () => Promise<LedgerHistory>,
+  input: typeof vLedgerAppend = vLedgerAppend,
 ) =>
   defineTool({
     name: brunchTools.ledgerCommit,
     description: commitToolDescription,
-    input: vLedgerAppend,
-    output: ledgerAppendOutputSchema,
+    input,
+    output: vLedgerAppendOutput,
     durable: true,
     async run({ data, toolCallId, signal }) {
       const history = await readHistory();
@@ -95,7 +99,8 @@ export const createLedgerCompileTool = (
 /** `ledger_commit` and `ledger_compile` over this agent's Ledger. */
 export const createLedgerTools = (
   readHistory: () => Promise<LedgerHistory>,
+  input?: typeof vLedgerAppend,
 ) => [
-  createLedgerCommitTool(readHistory),
+  createLedgerCommitTool(readHistory, input),
   createLedgerCompileTool(readHistory),
 ];

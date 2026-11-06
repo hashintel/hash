@@ -424,6 +424,12 @@ vi.mock("@apollo/client", async (importOriginal) => {
     return { data, loading: key !== null && data === undefined, refetch };
   };
 
+  /** The client Brunch's graph reads use; these tests make no reads. */
+  const apolloClient = {
+    query: () => Promise.reject(new Error("Unexpected graph read")),
+  };
+  const useApolloClient = () => apolloClient;
+
   const write = async (
     kind: "create" | "update",
     entityId: EntityId,
@@ -511,7 +517,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
     return [() => Promise.reject(new Error(`Unexpected mutation ${name}`))];
   };
 
-  return { ...original, useQuery, useMutation };
+  return { ...original, useQuery, useMutation, useApolloClient };
 });
 
 const webId = "00000000-0000-4000-8000-000000000001";
@@ -687,6 +693,11 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
     documentId: netAId,
     editor: { handle: first },
   });
+  expect(observed.brunch?.hostTools?.map(({ toolName }) => toolName)).toEqual([
+    "query_hash_entities",
+    "query_hash_entity_types",
+    "query_hash_webs",
+  ]);
 
   // The route rerendering with the same URL is not a load.
   await navigate(`/processes/${uuidA}`);

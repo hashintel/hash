@@ -3,7 +3,7 @@ import { defineTool } from "@flue/runtime";
 import {
   CANONICAL_PETRINAUT_TOOL_NAMES,
   netReaderDescriptions,
-  netReaderInputSchema,
+  vNetReaderInput,
   type NetReaderLevel,
   netReaderToolNames,
   type BrowserToolEnvelope,
@@ -40,7 +40,7 @@ export const netReaderTools = (execute: BrowserToolExecutor) =>
     defineTool({
       name: netReaderToolNames[level],
       description: netReaderDescriptions[level],
-      input: netReaderInputSchema,
+      input: vNetReaderInput,
       async run({ data, toolCallId, signal }) {
         const result = await execute({
           toolName: netReaderToolNames[level],
