@@ -274,7 +274,7 @@ const transformConstraint = (
       };
     }
 
-    if ("items" in constraint || !constraint.items) {
+    if (!("items" in constraint) || !constraint.items) {
       throw new Error("Expected items to be defined");
     }
 
