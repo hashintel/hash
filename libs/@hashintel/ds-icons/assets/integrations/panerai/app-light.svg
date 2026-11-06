@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="panerai-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="panerai-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="panerai-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#panerai-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#panerai-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#panerai-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="panerai-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#panerai-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-600 681.31795 2303.68286 254.3641" id="panerai-app-light-svg4" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="panerai-app-light-defs8" />
+  <path d="m -597.66021,684.4 h 158.2 c 31.3,0 56.5,6.2 75.6,18.7 19.2,12.4 28.7,29.9 28.7,52.4 0,19.4 -8.5,36.2 -25.6,50.6 -17.1,14.3 -43.3,21.5 -78.8,21.5 h -110.4 v 104.8 h -47.6 v -248 z m 185.8,34.1 c -10.5,-3.5 -25,-5.2 -43.3,-5.2 h -94.8 v 85.9 h 94.8 c 21.4,0 38.7,-3.2 52.1,-9.6 13.3,-6.4 20,-17.7 20,-33.9 -0.1,-18.3 -9.7,-30.7 -28.8,-37.2 z m 246.9,-34.1 h 53.8 l 127.60001,248 h -52.2 l -35.7,-74.3 h -139.00001 l -38.1,74.3 h -48.8 z m 78.20001,146.4 -53.40001,-109.6 -56.7,109.6 z M 103.93977,684.4 h 56.3 l 177.6,200.9 V 684.4 h 45.2 v 248 h -53.4 l -180.3,-200.7 v 200.7 h -45.5 v -248 z m 402.7,0 h 256.4 v 30.4 h -209.9 v 75.3 h 194.1 v 28.7 h -194.1 v 84.1 h 213.5 v 29.5 h -260 z m 372.3,0 h 162.80003 c 26.8,0 48.9,2.8 66.3,8.3 33,10.6 49.6,30.1 49.6,58.6 0,14.9 -4.4,27 -13,36.5 -8.7,9.5 -20.9,17 -36.5,22.8 13.7,3.9 24.1,9.1 31,15.5 6.9,6.4 10.8,16.8 11.6,31.2 l 1.7,33.3 c 0.5,9.5 1.6,16.5 3.4,21.1 2.9,7.9 8,12.9 15.3,15.2 v 5.6 h -58.4 c -1.6,-2.1 -2.9,-4.9 -3.8,-8.3 -1,-3.4 -1.8,-9.9 -2.4,-19.6 l -2.9,-41.4 c -1.1,-16.2 -9.7,-27.1 -25.6,-32.6 -9.1,-3 -23.4,-4.6 -42.8,-4.6 H 926.83977 v 106.3 h -47.6 V 684.4 Z M 1036.6398,798 c 22.3,0 40,-3.1 53,-9.5 13,-6.3 19.5,-17.7 19.5,-34.1 0,-17.7 -9.1,-29.7 -27.3,-36.1 -9.7,-3.4 -22.7,-5.1 -39,-5.1 H 926.53977 V 798 Z m 336.9,-113.6 h 53.9 l 127.6,248 h -52.2 l -35.7,-74.3 h -139.1 l -38.1,74.3 h -48.8 z m 78.3,146.4 -53.4,-109.6 -56.7,109.6 z m 201.4,-146.4 h 48.1 v 248 h -48.1 z" id="panerai-app-light-path2" />
+</svg></g></svg>

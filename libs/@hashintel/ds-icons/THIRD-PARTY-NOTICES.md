@@ -1099,3 +1099,7 @@ Additional collection licenses are included in `licenses/theSVG-MIT.txt`, `licen
 ## Additional airline brands
 
 This expansion adds 71 airline identities, each with seven mark, app-tile, and full-logo variants. Artwork is adapted from Soaring Symbols, copyright (c) 2024 Anh Thang, under the MIT license in `licenses/Soaring-Symbols-MIT.txt`. Source files and the pinned collection revision are recorded for each brand in `src/integration-icon/brands.json`. Bounds, dark-theme palettes, mono contrast, and app-tile composition are adaptations. The Qantas tail and China Airlines blossom are isolated from their complete vector lock-ups. All new SVG exports retain the collection copyright and license text. No trademark rights are granted.
+
+## Additional luxury brands
+
+This expansion adds 62 fashion, watch, jewellery, and luxury-goods identities, each with seven mark, app-tile, and full-logo variants. Per-brand source URLs and adaptation notes remain in `src/integration-icon/brands.json`. Source artwork comes from the brands’ public websites, Wikimedia-hosted vector reproductions, and Worldvectorlogo. White backgrounds are removed, emblems are isolated where available, and theme palettes and app tiles are adapted. McQueen’s current wordmark and Breitling’s B emblem are vectorized from official raster artwork; no substitute typefaces or embedded bitmaps are used. Kering’s press-library artwork is provided for editorial use only. No trademark rights are granted, and owners’ brand-use terms continue to apply.

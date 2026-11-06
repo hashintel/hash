@@ -25842,5 +25842,1526 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
+  },
+  {
+    "name": "burberry",
+    "slug": "burberry",
+    "label": "Burberry",
+    "integrationNames": ["Burberry"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.burberry.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.burberry.com/",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.burberry.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "fendi",
+    "slug": "fendi",
+    "label": "Fendi",
+    "integrationNames": ["Fendi"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Fendi_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Fendi_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.fendi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "bottegaVeneta",
+    "slug": "bottega-veneta",
+    "label": "Bottega Veneta",
+    "integrationNames": ["Bottega Veneta"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1f/Logo_of_Bottega_Veneta.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#2d2a08": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#2d2a08": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1f/Logo_of_Bottega_Veneta.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.bottegaveneta.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "celine",
+    "slug": "celine",
+    "label": "Celine",
+    "integrationNames": ["Celine"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/81/Celine_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/81/Celine_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.celine.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "givenchy",
+    "slug": "givenchy",
+    "label": "Givenchy",
+    "integrationNames": ["Givenchy"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/df/Givenchy_-_wordmark_%28France%2C_2003%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/df/Givenchy_-_wordmark_%28France%2C_2003%29.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.givenchy.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "mcqueen",
+    "slug": "mcqueen",
+    "label": "McQueen",
+    "integrationNames": ["McQueen", "Alexander McQueen"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://assets-keringcom.keringapps.com/Black_logo_Mc_Queen_logotheque_555x227_4532a5831f.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://assets-keringcom.keringapps.com/Black_logo_Mc_Queen_logotheque_555x227_4532a5831f.png",
+    "logoNotes": "Current McQueen wordmark vectorized from Kering’s official press-library PNG. No substitute typeface. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.alexandermcqueen.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "brioni",
+    "slug": "brioni",
+    "label": "Brioni",
+    "integrationNames": ["Brioni"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/47/Brioni_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/47/Brioni_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.brioni.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "loroPiana",
+    "slug": "loro-piana",
+    "label": "Loro Piana",
+    "integrationNames": ["Loro Piana"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/8d/Loro_Piana_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#9D5248": "#B4665C"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#9D5248": "#B4665C"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/8/8d/Loro_Piana_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.loropiana.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "brunelloCucinelli",
+    "slug": "brunello-cucinelli",
+    "label": "Brunello Cucinelli",
+    "integrationNames": ["Brunello Cucinelli"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.brunellocucinelli.com/on/demandware.static/Sites-bc-corp-new-Site/-/default/dw064dcce7/images/logo-black.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#262626": "#F5F7FA",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#262626": "#F5F7FA",
+      "#ffffff": "#ffffff"
+    },
+    "logoSource": "https://www.brunellocucinelli.com/on/demandware.static/Sites-bc-corp-new-Site/-/default/dw064dcce7/images/logo-black.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.brunellocucinelli.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "moncler",
+    "slug": "moncler",
+    "label": "Moncler",
+    "integrationNames": ["Moncler"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.worldvectorlogo.com/logos/moncler-1.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.worldvectorlogo.com/logos/moncler-1.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.moncler.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "berluti",
+    "slug": "berluti",
+    "label": "Berluti",
+    "integrationNames": ["Berluti"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/40/Berluti_logo_%282018%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/40/Berluti_logo_%282018%29.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.berluti.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "ferragamo",
+    "slug": "ferragamo",
+    "label": "Ferragamo",
+    "integrationNames": ["Ferragamo"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/78/Fergamo_-_logo_%28Italy%2C_2022%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/78/Fergamo_-_logo_%28Italy%2C_2022%29.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.ferragamo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "tods",
+    "slug": "tods",
+    "label": "Tod’s",
+    "integrationNames": ["Tod’s", "Tod's"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Tods.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Tods.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.tods.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "rimowa",
+    "slug": "rimowa",
+    "label": "Rimowa",
+    "integrationNames": ["Rimowa"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/35/RIMOWA_Monogram.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/6e/RIMOWA_Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.rimowa.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoLayout": {
+      "wordmarkHeight": 0.4,
+      "gap": 0.25
+    }
+  },
+  {
+    "name": "montblanc",
+    "slug": "montblanc",
+    "label": "Montblanc",
+    "integrationNames": ["Montblanc"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/2/2c/Montblanc_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/2/2c/Montblanc_Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.montblanc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "goyard",
+    "slug": "goyard",
+    "label": "Goyard",
+    "integrationNames": ["Goyard"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/69/Logo_Goyard.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/69/Logo_Goyard.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.goyard.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "delvaux",
+    "slug": "delvaux",
+    "label": "Delvaux",
+    "integrationNames": ["Delvaux"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.delvaux.com/en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1D1D1B": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#1D1D1B": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoSource": "https://www.delvaux.com/en",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.delvaux.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "chloe",
+    "slug": "chloe",
+    "label": "Chloé",
+    "integrationNames": ["Chloé", "Chloe"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.chloe.com/on/demandware.static/Sites-ChloeUS-Site/-/default/dw652ebce9/images/brand-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.chloe.com/on/demandware.static/Sites-ChloeUS-Site/-/default/dw652ebce9/images/brand-logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.chloe.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "alaia",
+    "slug": "alaia",
+    "label": "Alaïa",
+    "integrationNames": ["Alaïa", "Alaia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.maison-alaia.com/on/demandware.static/Sites-AlaiaEUROPE-Site/-/default/dwe8233a72/images/brand-logo-small-black.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.maison-alaia.com/on/demandware.static/Sites-AlaiaEUROPE-Site/-/default/dwc4964ca4/images/brand-logo-black.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.maison-alaia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "miuMiu",
+    "slug": "miu-miu",
+    "label": "Miu Miu",
+    "integrationNames": ["Miu Miu"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.miumiu.com/content/dam/miumiunux/MiuMiuNUXlogo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.miumiu.com/content/dam/miumiunux/MiuMiuNUXlogo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.miumiu.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "kenzo",
+    "slug": "kenzo",
+    "label": "Kenzo",
+    "integrationNames": ["Kenzo"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.kenzo.com/de-de/home",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#040305": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#040305": "#F5F7FA"
+    },
+    "logoSource": "https://www.kenzo.com/de-de/home",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.kenzo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "marcJacobs",
+    "slug": "marc-jacobs",
+    "label": "Marc Jacobs",
+    "integrationNames": ["Marc Jacobs"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.marcjacobs.com/us-en/home",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1A1910": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.marcjacobs.com/us-en/home",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.marcjacobs.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoLayout": {
+      "wordmarkHeight": 0.4,
+      "gap": 0.25
+    }
+  },
+  {
+    "name": "mulberry",
+    "slug": "mulberry",
+    "label": "Mulberry",
+    "integrationNames": ["Mulberry"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.mulberry.com/de-en/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1d1d1b": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.mulberry.com/de-en/",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.mulberry.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoLayout": {
+      "wordmarkHeight": 0.4,
+      "gap": 0.25
+    }
+  },
+  {
+    "name": "christianLouboutin",
+    "slug": "christian-louboutin",
+    "label": "Christian Louboutin",
+    "integrationNames": ["Christian Louboutin"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://cdn.worldvectorlogo.com/logos/christian-louboutin.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.worldvectorlogo.com/logos/christian-louboutin.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.christianlouboutin.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "jimmyChoo",
+    "slug": "jimmy-choo",
+    "label": "Jimmy Choo",
+    "integrationNames": ["Jimmy Choo"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/38/Jimmy_Choo_wordmark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/38/Jimmy_Choo_wordmark.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.jimmychoo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "manoloBlahnik",
+    "slug": "manolo-blahnik",
+    "label": "Manolo Blahnik",
+    "integrationNames": ["Manolo Blahnik"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.manoloblahnik.com/static/version1793704357/frontend/ManoloBlahnik/ManoloBlahnik_Hyva/en_GB/images/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#242424": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#242424": "#F5F7FA"
+    },
+    "logoSource": "https://www.manoloblahnik.com/static/version1793704357/frontend/ManoloBlahnik/ManoloBlahnik_Hyva/en_GB/images/logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.manoloblahnik.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "maisonMargiela",
+    "slug": "maison-margiela",
+    "label": "Maison Margiela",
+    "integrationNames": ["Maison Margiela"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/31/Maison_Margiela_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/31/Maison_Margiela_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.maisonmargiela.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "jilSander",
+    "slug": "jil-sander",
+    "label": "Jil Sander",
+    "integrationNames": ["Jil Sander"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/68/Jil_Sander_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/68/Jil_Sander_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.jilsander.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "rolex",
+    "slug": "rolex",
+    "label": "Rolex",
+    "integrationNames": ["Rolex"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.worldvectorlogo.com/logos/rolex.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#006039": "#008E54",
+      "#A37E2C": "#A37E2C"
+    },
+    "logoDarkColors": {
+      "#006039": "#008E54",
+      "#A37E2C": "#A37E2C"
+    },
+    "logoSource": "https://cdn.worldvectorlogo.com/logos/rolex.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.rolex.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "monoInkScale": 1.4326
+  },
+  {
+    "name": "patekPhilippe",
+    "slug": "patek-philippe",
+    "label": "Patek Philippe",
+    "integrationNames": ["Patek Philippe"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.patek.com/en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#C6BA82": "#C6BA82",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#C6BA82": "#C6BA82",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.patek.com/en",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.patek.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "monoInkScale": 3.5916
+  },
+  {
+    "name": "audemarsPiguet",
+    "slug": "audemars-piguet",
+    "label": "Audemars Piguet",
+    "integrationNames": ["Audemars Piguet"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Logo_Audemars_Piguet.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Logo_Audemars_Piguet.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.audemarspiguet.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "vacheronConstantin",
+    "slug": "vacheron-constantin",
+    "label": "Vacheron Constantin",
+    "integrationNames": ["Vacheron Constantin"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/f/fe/Vacheron_Constantin_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#b89457": "#b89457",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#b89457": "#b89457",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/f/fe/Vacheron_Constantin_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.vacheron-constantin.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "omega",
+    "slug": "omega",
+    "label": "Omega",
+    "integrationNames": ["Omega"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Omega_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c50124": "#F8012D",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#c50124": "#F8012D",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Omega_Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.omegawatches.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "breitling",
+    "slug": "breitling",
+    "label": "Breitling",
+    "integrationNames": ["Breitling"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.breitling.com/favicon/android-chrome-512x512.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#ffc72d": "#ffc72d"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoSource": "https://cdn.worldvectorlogo.com/logos/breitling-2.svg",
+    "logoNotes": "Current B emblem vectorized from the official site’s 512-pixel brand asset. The full logo combines it with outlined Breitling lettering and the 1884 founding date.",
+    "brandWebsite": "https://www.breitling.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoLayout": {
+      "wordmarkHeight": 0.55,
+      "gap": 0.25
+    }
+  },
+  {
+    "name": "iwcSchaffhausen",
+    "slug": "iwc-schaffhausen",
+    "label": "IWC Schaffhausen",
+    "integrationNames": ["IWC Schaffhausen", "IWC"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fa/International_Watch_Company_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#191817": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#191817": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/fa/International_Watch_Company_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.iwc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "panerai",
+    "slug": "panerai",
+    "label": "Panerai",
+    "integrationNames": ["Panerai"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Panerai_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Panerai_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.panerai.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "hublot",
+    "slug": "hublot",
+    "label": "Hublot",
+    "integrationNames": ["Hublot"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/79/Hublot-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#181716": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#181716": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/79/Hublot-logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.hublot.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "longines",
+    "slug": "longines",
+    "label": "Longines",
+    "integrationNames": ["Longines"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/b/b4/LonginesLogo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1A324D": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1A324D": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/b/b4/LonginesLogo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.longines.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "richardMille",
+    "slug": "richard-mille",
+    "label": "Richard Mille",
+    "integrationNames": ["Richard Mille"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.richardmille.com/_nuxt/img/logo.41ca974.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.richardmille.com/_nuxt/img/logo.41ca974.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.richardmille.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "tagHeuer",
+    "slug": "tag-heuer",
+    "label": "TAG Heuer",
+    "integrationNames": ["TAG Heuer", "Tag Heuer"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/de/TAG_Heuer_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/de/TAG_Heuer_Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.tagheuer.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "tudor",
+    "slug": "tudor",
+    "label": "Tudor",
+    "integrationNames": ["Tudor"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/1/1e/Tudor_Watches_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF0000": "#FF0000",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FF0000": "#FF0000",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/1/1e/Tudor_Watches_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.tudorwatch.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "breguet",
+    "slug": "breguet",
+    "label": "Breguet",
+    "integrationNames": ["Breguet"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b9/BREGUET_LOGO_1775_2026.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b9/BREGUET_LOGO_1775_2026.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.breguet.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "blancpain",
+    "slug": "blancpain",
+    "label": "Blancpain",
+    "integrationNames": ["Blancpain"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Blancpain_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Blancpain_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.blancpain.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "jaegerLecoultre",
+    "slug": "jaeger-lecoultre",
+    "label": "Jaeger-LeCoultre",
+    "integrationNames": ["Jaeger-LeCoultre", "Jaeger LeCoultre"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.jaeger-lecoultre.com/us-en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.jaeger-lecoultre.com/us-en",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.jaeger-lecoultre.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "aLangeSohne",
+    "slug": "a-lange-sohne",
+    "label": "A. Lange & Söhne",
+    "integrationNames": [
+      "A. Lange & Söhne",
+      "A. Lange & Sohne",
+      "A Lange & Sohne"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Alange_soehne_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Alange_soehne_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.alange-soehne.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "zenith",
+    "slug": "zenith",
+    "label": "Zenith",
+    "integrationNames": ["Zenith"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Zenith_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Zenith_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.zenith-watches.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "grandSeiko",
+    "slug": "grand-seiko",
+    "label": "Grand Seiko",
+    "integrationNames": ["Grand Seiko"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/21/Grand_Seiko_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#15243E": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#15243E": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/21/Grand_Seiko_Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.grand-seiko.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "bvlgari",
+    "slug": "bvlgari",
+    "label": "Bvlgari",
+    "integrationNames": ["Bvlgari", "Bulgari"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/32/Bulgari_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/32/Bulgari_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.bulgari.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "vanCleefArpels",
+    "slug": "van-cleef-arpels",
+    "label": "Van Cleef & Arpels",
+    "integrationNames": ["Van Cleef & Arpels"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/06/Van_Cleef_Arpels_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#191919": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#191919": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/06/Van_Cleef_Arpels_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.vancleefarpels.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "boucheron",
+    "slug": "boucheron",
+    "label": "Boucheron",
+    "integrationNames": ["Boucheron"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/06/Logo_of_Boucheron.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/06/Logo_of_Boucheron.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.boucheron.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "chopard",
+    "slug": "chopard",
+    "label": "Chopard",
+    "integrationNames": ["Chopard"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/37/Logo_Chopard.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#161413": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#161413": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/37/Logo_Chopard.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.chopard.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "piaget",
+    "slug": "piaget",
+    "label": "Piaget",
+    "integrationNames": ["Piaget"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.piaget.com/gb-en#setCurrentScope=GB",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.piaget.com/gb-en#setCurrentScope=GB",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.piaget.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "chaumet",
+    "slug": "chaumet",
+    "label": "Chaumet",
+    "integrationNames": ["Chaumet"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.chaumet.com/fr-fr",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ffffff": "#ffffff",
+      "#0C1B54": "#5573E7"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/f/f4/Chaumet_Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.chaumet.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "graff",
+    "slug": "graff",
+    "label": "Graff",
+    "integrationNames": ["Graff"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/80/Graff_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#444444": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#444444": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/8/80/Graff_Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.graff.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "harryWinston",
+    "slug": "harry-winston",
+    "label": "Harry Winston",
+    "integrationNames": ["Harry Winston"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Harry_Winston_Diamond_Corporation_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Harry_Winston_Diamond_Corporation_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.harrywinston.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "buccellati",
+    "slug": "buccellati",
+    "label": "Buccellati",
+    "integrationNames": ["Buccellati"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.buccellati.com/static/version1793700520/frontend/Jakala/Buccellati/de_DE/images/logo-since-1919.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.buccellati.com/static/version1793700520/frontend/Jakala/Buccellati/de_DE/images/logo-since-1919.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.buccellati.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "pomellato",
+    "slug": "pomellato",
+    "label": "Pomellato",
+    "integrationNames": ["Pomellato"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.pomellato.com/assets/POMELLATO-LOGO-MILANO-1967-BLACK.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1d1d1b": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1d1d1b": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.pomellato.com/assets/POMELLATO-LOGO-MILANO-1967-BLACK.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.pomellato.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "baccarat",
+    "slug": "baccarat",
+    "label": "Baccarat",
+    "integrationNames": ["Baccarat"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.baccarat.com/on/demandware.static/-/Sites-EUROPE-Library/default/dw3c0cc6ed/images/Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#C10A25": "#F31536"
+    },
+    "logoDarkColors": {
+      "#C10A25": "#F31536"
+    },
+    "logoSource": "https://www.baccarat.com/on/demandware.static/-/Sites-EUROPE-Library/default/dw3c0cc6ed/images/Logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.baccarat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "lalique",
+    "slug": "lalique",
+    "label": "Lalique",
+    "integrationNames": ["Lalique"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/2/24/Lalique_company_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/2/24/Lalique_company_logo.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lalique.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "christofle",
+    "slug": "christofle",
+    "label": "Christofle",
+    "integrationNames": ["Christofle"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.worldvectorlogo.com/logos/christofle.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#6b3020": "#C65C40",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#6b3020": "#C65C40",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoSource": "https://cdn.worldvectorlogo.com/logos/christofle.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.christofle.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "balmain",
+    "slug": "balmain",
+    "label": "Balmain",
+    "integrationNames": ["Balmain"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://balmain.com/fr-fr",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://balmain.com/fr-fr",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.balmain.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "bangOlufsen",
+    "slug": "bang-olufsen",
+    "label": "Bang & Olufsen",
+    "integrationNames": ["Bang & Olufsen", "Bang and Olufsen", "B&O"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.bang-olufsen.com/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://images.ctfassets.net/8cd2csgvqd3m/5KPtvnQ0EniDy6b2JYJqFm/aa487bb292309085837312372d4939e2/primary-logo-black.svg",
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.bang-olufsen.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoLayout": {
+      "wordmarkHeight": 0.4,
+      "gap": 0.25
+    }
   }
 ]
