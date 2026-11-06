@@ -90,31 +90,36 @@ export const PdfPreview = ({
 
   const { findSearchHits, createHitRanges } = usePdfSearch(documentProxy);
 
-  const selectSearchHit = (searchHit: SearchHit | null) => {
+  // TODO(FE-1978): remove this useCallback once React Compiler compiles this component.
+  const selectSearchHit = useCallback((searchHit: SearchHit | null) => {
     setSelectedSearchHit(searchHit);
 
     if (searchHit) {
       setSelectedPageNumber(searchHit.pageNumber);
     }
-  };
+  }, []);
 
-  const search = (text: string, ignoreCase: boolean) => {
-    if (!text) {
-      setSearchHits({ hitsByPageNumber: {}, total: 0 });
-      selectSearchHit(null);
-      return;
-    }
+  // TODO(FE-1978): remove this useCallback once React Compiler compiles this component.
+  const search = useCallback(
+    (text: string, ignoreCase: boolean) => {
+      if (!text) {
+        setSearchHits({ hitsByPageNumber: {}, total: 0 });
+        selectSearchHit(null);
+        return;
+      }
 
-    const hits = findSearchHits(text, ignoreCase);
-    setSearchHits(hits);
+      const hits = findSearchHits(text, ignoreCase);
+      setSearchHits(hits);
 
-    const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
-    const firstHit = firstPageWithHit
-      ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
-      : null;
+      const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
+      const firstHit = firstPageWithHit
+        ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
+        : null;
 
-    selectSearchHit(firstHit ?? null);
-  };
+      selectSearchHit(firstHit ?? null);
+    },
+    [findSearchHits, selectSearchHit],
+  );
 
   const allSearchHits = Object.values(searchHits.hitsByPageNumber).flat();
 
