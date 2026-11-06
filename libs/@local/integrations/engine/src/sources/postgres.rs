@@ -1,14 +1,18 @@
-use core::pin::Pin;
-use std::path::{Path, PathBuf};
+use core::{pin::Pin, str::FromStr as _};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use duckdb::{Config, Connection};
 use error_stack::Report;
 use hash_crypto::Secret;
 use hash_integrations_definition::PostgresSource;
+use reqwest::dns::{Name, Resolve};
 use serde::Deserialize;
-use url::Url;
+use url::{Host, Url};
 
-use super::{CaptureLimits, SourceError};
+use super::{CaptureLimits, SourceError, http};
 use crate::{ByteSize, SourceCapture, sql::Identifier};
 
 #[derive(Debug, Deserialize)]
@@ -27,6 +31,17 @@ pub(super) async fn capture(
     target: PathBuf,
     limits: CaptureLimits,
 ) -> Result<SourceCapture, Report<SourceError>> {
+    capture_with_resolver(source, secret, target, limits, &http::PublicResolver).await
+}
+
+/// Captures `source` after pinning each of its hosts to an address `resolver` returns.
+async fn capture_with_resolver(
+    source: &PostgresSource,
+    secret: &Secret<[u8]>,
+    target: PathBuf,
+    limits: CaptureLimits,
+    resolver: &impl Resolve,
+) -> Result<SourceCapture, Report<SourceError>> {
     let credentials: Credentials = serde_json::from_slice(secret.expose())
         .map_err(|_error| Report::new(SourceError::Secret))?;
     if credentials.username.expose().trim().is_empty()
@@ -36,10 +51,60 @@ pub(super) async fn capture(
     {
         return Err(Report::new(SourceError::Secret));
     }
+    let addresses = pinned_addresses(source, resolver).await?;
     let source = source.clone();
-    tokio::task::spawn_blocking(move || capture_blocking(&source, &credentials, &target, limits))
-        .await
-        .map_err(|_error| Report::new(SourceError::Postgres))?
+    tokio::task::spawn_blocking(move || {
+        capture_blocking(&source, &credentials, &addresses, &target, limits)
+    })
+    .await
+    .map_err(|_error| Report::new(SourceError::Postgres))?
+}
+
+/// Resolves every host the connection names and returns the `hostaddr` libpq should connect to.
+///
+/// libpq resolves hosts itself, so a hostname could otherwise reach a loopback or private address
+/// of the machine running the capture. Hosts go through `resolver`, which enforces the destination
+/// policy as it does for REST requests; the first address is pinned for each host, which keeps its
+/// name for TLS verification but fixes where libpq connects.
+async fn pinned_addresses(
+    source: &PostgresSource,
+    resolver: &impl Resolve,
+) -> Result<String, Report<SourceError>> {
+    // A `host` parameter replaces the URI authority, and may list several hosts.
+    let hosts: Vec<String> = match source
+        .connection
+        .query_pairs()
+        .filter(|(name, _)| name == "host")
+        .last()
+    {
+        Some((_, value)) => value.split(',').map(str::to_owned).collect(),
+        None => match source.connection.host() {
+            Some(Host::Domain(domain)) => vec![domain.to_owned()],
+            Some(Host::Ipv4(address)) => vec![address.to_string()],
+            Some(Host::Ipv6(address)) => vec![address.to_string()],
+            None => return Err(Report::new(SourceError::Configuration)),
+        },
+    };
+    let mut pinned = Vec::with_capacity(hosts.len());
+    for host in hosts {
+        let name =
+            Name::from_str(&host).map_err(|_error| Report::new(SourceError::Configuration))?;
+        let mut addresses = resolver.resolve(name).await.map_err(|error| {
+            if error
+                .downcast_ref::<io::Error>()
+                .is_some_and(|error| error.kind() == io::ErrorKind::PermissionDenied)
+            {
+                Report::new(SourceError::Destination)
+            } else {
+                Report::new(SourceError::Postgres)
+            }
+        })?;
+        let first = addresses
+            .next()
+            .ok_or_else(|| Report::new(SourceError::Postgres))?;
+        pinned.push(first.ip().to_string());
+    }
+    Ok(pinned.join(","))
 }
 
 fn literal(value: &str) -> String {
@@ -73,6 +138,7 @@ fn connection_uri(source: &PostgresSource, credentials: &Credentials) -> Url {
 fn capture_blocking(
     source: &PostgresSource,
     credentials: &Credentials,
+    addresses: &str,
     target: &Path,
     limits: CaptureLimits,
 ) -> Result<SourceCapture, Report<SourceError>> {
@@ -109,6 +175,8 @@ fn capture_blocking(
                 ",
         )
         .map_err(|_error| Report::new(SourceError::Postgres))?;
+    let mut uri = connection_uri(source, credentials);
+    uri.query_pairs_mut().append_pair("hostaddr", addresses);
     connection
         .execute_batch(&format!(
             "
@@ -117,7 +185,7 @@ fn capture_blocking(
                     READ_ONLY
                 )
                 ",
-            literal(connection_uri(source, credentials).as_str())
+            literal(uri.as_str())
         ))
         .map_err(|_error| Report::new(SourceError::Postgres))?;
     let path = partial
@@ -161,8 +229,8 @@ mod tests {
     use testcontainers_modules::postgres::Postgres;
     use uuid::Uuid;
 
-    use super::{Credentials, capture, connection_uri};
-    use crate::{CaptureLimits, Workspace, WorkspaceConfig};
+    use super::{Credentials, capture_with_resolver, connection_uri};
+    use crate::{CaptureLimits, Workspace, WorkspaceConfig, sources::tests::AnyResolver};
 
     fn source() -> PostgresSource {
         serde_json::from_value(json!({
@@ -299,11 +367,13 @@ mod tests {
             serde_json::to_vec(&json!({"username": "postgres", "password": "postgres"}))
                 .expect("should serialize fixture credentials"),
         );
-        let capture = capture(
+        // The fixture listens on a local address, which production captures refuse.
+        let capture = capture_with_resolver(
             &source,
             &secret,
             directory.path().join("source.parquet"),
             CaptureLimits::default(),
+            &AnyResolver,
         )
         .await
         .expect("should capture the PostgreSQL fixture");
@@ -351,8 +421,54 @@ mod credential_tests {
     use tempfile::TempDir;
     use uuid::Uuid;
 
-    use super::capture;
-    use crate::{CaptureLimits, SourceError};
+    use super::{capture, pinned_addresses};
+    use crate::{
+        CaptureLimits, SourceError,
+        sources::{http, tests::AnyResolver},
+    };
+
+    fn source_at(connection: &str) -> hash_integrations_definition::PostgresSource {
+        serde_json::from_value(json!({
+            "connection": connection,
+            "schema": "public",
+            "table": "items",
+            "credentials": {
+                "secretEntityUuid": Uuid::new_v4(),
+            },
+        }))
+        .expect("should describe a source")
+    }
+
+    #[rstest]
+    #[case::loopback("postgresql://127.0.0.1/db")]
+    #[case::ipv6_loopback("postgresql://[::1]/db")]
+    #[case::private("postgresql:///db?host=10.0.0.1")]
+    #[case::localhost("postgresql://localhost/db")]
+    #[case::listed("postgresql:///db?host=8.8.8.8%2C127.0.0.1")]
+    #[tokio::test]
+    async fn pinning_rejects_local_destinations(#[case] connection: &str) {
+        let error = pinned_addresses(&source_at(connection), &http::PublicResolver)
+            .await
+            .expect_err("should refuse a destination on the capture's own network");
+        assert!(
+            matches!(error.current_context(), SourceError::Destination),
+            "should report the refused destination"
+        );
+    }
+
+    #[tokio::test]
+    async fn pinning_follows_the_host_list() {
+        let addresses = pinned_addresses(
+            &source_at("postgresql://ignored.invalid/db?host=192.0.2.1%2C%3A%3A1"),
+            &AnyResolver,
+        )
+        .await
+        .expect("should pin every listed host");
+        assert_eq!(
+            addresses, "192.0.2.1,::1",
+            "should pin each host of the `host` parameter in order"
+        );
+    }
 
     #[rstest]
     #[case::invalid_password_type(json!({

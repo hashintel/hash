@@ -105,6 +105,19 @@ export const claimModelStreamIdleRetry = (
   return true;
 };
 
+/** What admission knows when an idle timeout cancels a provider invocation. */
+export type ModelStreamIdleTimeout = {
+  readonly provider: string;
+  readonly model: string;
+  readonly phase: ModelStreamIdlePhase;
+  readonly idleMs: number;
+  readonly lastEventType: AssistantMessageEvent["type"] | undefined;
+  /** Whether the provider invocation stopped within the cancellation timeout. */
+  readonly acknowledged: boolean;
+  /** Whether this timeout claimed the single idle retry. */
+  readonly retryClaimed: boolean;
+};
+
 type StreamIdleRecovery = {
   /** Only these independent calls may share a browser/server proposal. */
   readonly mixedToolNames?: ReadonlySet<string>;
@@ -115,7 +128,11 @@ type StreamIdleRecovery = {
   readonly firstEventTimeoutMs: number;
   readonly idleTimeoutMs: number;
   readonly reasoningStartTimeoutMs: number;
+  /** Called once per idle timeout; it must not throw. */
+  readonly onIdleTimeout?: (timeout: ModelStreamIdleTimeout) => void;
 };
+
+type ModelIdentity = { readonly provider: string; readonly id: string };
 
 type BufferedEvent = {
   [Kind in AssistantMessageEvent["type"]]: Omit<
@@ -129,15 +146,18 @@ type BufferedEvent = {
 class AdmittedStream extends AssistantMessageEventStream {
   readonly #admitted;
   readonly #parentSignal;
+  readonly #model;
 
   constructor(
     start: (signal: AbortSignal) => AssistantMessageEventStream,
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
     idleRecovery: StreamIdleRecovery | undefined,
+    model: ModelIdentity,
   ) {
     super();
     this.#parentSignal = parentSignal;
+    this.#model = model;
     this.#admitted = this.#collect(
       start,
       parentSignal,
@@ -240,15 +260,26 @@ class AdmittedStream extends AssistantMessageEventStream {
             }),
           ]);
           if (cancellationTimer !== undefined) clearTimeout(cancellationTimer);
-          if (!acknowledged) {
-            throw new ModelStreamCancellationUnacknowledgedError();
-          }
           const toolCallCompleted = events.some(
             (event) => event.type === "toolcall_end",
           );
+          const retryClaimed =
+            acknowledged && !toolCallCompleted && idleRecovery.claimRetry();
+          idleRecovery.onIdleTimeout?.({
+            provider: this.#model.provider,
+            model: this.#model.id,
+            phase,
+            idleMs: idleTimeoutMs,
+            lastEventType,
+            acknowledged,
+            retryClaimed,
+          });
+          if (!acknowledged) {
+            throw new ModelStreamCancellationUnacknowledgedError();
+          }
           throw new ModelStreamIdleError(
             idleTimeoutMs,
-            !toolCallCompleted && idleRecovery.claimRetry(),
+            retryClaimed,
             phase,
             lastEventType,
           );
@@ -426,6 +457,7 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
+          model,
         )
       : provider.stream(model, context, options);
   },
@@ -437,6 +469,7 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
+          model,
         )
       : provider.streamSimple(model, context, options);
   },

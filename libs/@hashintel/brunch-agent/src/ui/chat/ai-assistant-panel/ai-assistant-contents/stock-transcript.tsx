@@ -173,9 +173,14 @@ StockMessage.displayName = "StockMessage";
 export const StockTranscript = ({
   messages,
   stopped,
+  noReply,
   busy,
   ...messageProps
-}: TranscriptProps & { busy: boolean }) => (
+}: TranscriptProps & {
+  busy: boolean;
+  /** The turn ended because a tool follow-up came back with nothing. */
+  noReply: boolean;
+}) => (
   <>
     {messages.map((message, index) => (
       <StockMessage
@@ -190,6 +195,11 @@ export const StockTranscript = ({
     ))}
     {stopped && !messages.at(-1)?.metadata?.stopped && (
       <div className={stoppedNoteStyle}>Response stopped</div>
+    )}
+    {noReply && (
+      <div className={stoppedNoteStyle} role="status">
+        No reply received
+      </div>
     )}
   </>
 );

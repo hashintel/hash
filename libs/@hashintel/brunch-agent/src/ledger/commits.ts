@@ -114,6 +114,25 @@ const turnOpening = (
   };
 };
 
+/** The message that opened the latest turn; absent while no turn has opened. */
+export const latestLedgerTurnId = (
+  history: LedgerHistory,
+): string | undefined =>
+  history.messages.findLast((message) => turnOpening(message) !== undefined)
+    ?.id;
+
+/** The history before its latest turn opened; absent while no turn has opened. */
+export const historyBeforeLatestTurn = (
+  history: LedgerHistory,
+): LedgerHistory | undefined => {
+  const opened = history.messages.findLastIndex(
+    (message) => turnOpening(message) !== undefined,
+  );
+  return opened === -1
+    ? undefined
+    : { messages: history.messages.slice(0, opened) };
+};
+
 type LedgerEvent =
   | ({ readonly kind: "comments" } & TurnOpening)
   | ({ readonly kind: "call" } & LedgerCall);

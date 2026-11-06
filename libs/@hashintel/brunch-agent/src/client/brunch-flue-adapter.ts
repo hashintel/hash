@@ -30,6 +30,7 @@ export type BrunchFlueAdapter = FlueAiSdkAdapter<PetrinautAiMessage>;
 const petrinautMessageMetadataSchema = z.object({
   source: z.literal("voice").optional(),
   stopped: z.literal(true).optional(),
+  failed: z.literal(true).optional(),
   voiceToolCallIds: z.array(z.string()).optional(),
   toolCallId: z.string().optional(),
 } satisfies Record<
