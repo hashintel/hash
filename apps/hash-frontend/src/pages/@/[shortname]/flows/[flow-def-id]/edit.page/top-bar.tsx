@@ -1,15 +1,10 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import {
-  Button,
-  Chip,
-  Dialog,
-  EllipsisMenu,
-  TextInput,
-} from "@hashintel/ds-components";
+import { Button, Chip, Dialog, EllipsisMenu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
+import { RenameInput } from "./shared/rename-input";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
 
@@ -32,7 +27,6 @@ const titleGroup = css({
   gap: "2",
   minWidth: "0",
 });
-const flowName = css({ fontWeight: "medium", minWidth: "0" });
 const dialogText = css({ textStyle: "sm" });
 
 const SaveStatus = ({
@@ -68,65 +62,6 @@ const SaveStatus = ({
         </Chip>
       );
   }
-};
-
-/**
- * The flow's name, editable when clicked. Escape, or leaving it blank or unchanged, keeps the name the flow has, which
- * a reload after a conflict may have changed meanwhile.
- */
-const FlowName = ({
-  name,
-  onRename,
-}: {
-  name: string;
-  onRename: (name: string) => void;
-}) => {
-  const [editing, setEditing] = useState<{
-    from: string;
-    typed: string;
-  } | null>(null);
-  const cancelledRef = useRef(false);
-
-  return (
-    <TextInput
-      variant="subtle"
-      size="sm"
-      width="fitContent"
-      showEditIcon
-      aria-label="Flow name"
-      placeholder="Untitled flow"
-      className={flowName}
-      value={editing?.typed ?? name}
-      onFocus={() => setEditing({ from: name, typed: name })}
-      onChange={(typed) =>
-        setEditing((current) => current && { ...current, typed })
-      }
-      onKeyDown={(event) => {
-        if (
-          (event.key !== "Enter" && event.key !== "Escape") ||
-          event.nativeEvent.isComposing
-        ) {
-          return;
-        }
-
-        cancelledRef.current = event.key === "Escape";
-
-        if (event.currentTarget instanceof HTMLElement) {
-          event.currentTarget.blur();
-        }
-      }}
-      onBlur={() => {
-        const renamed = editing?.typed.trim();
-
-        if (!cancelledRef.current && renamed && renamed !== editing?.from) {
-          onRename(renamed);
-        }
-
-        cancelledRef.current = false;
-        setEditing(null);
-      }}
-    />
-  );
 };
 
 const ArchiveFlowDialog = ({
@@ -280,7 +215,12 @@ export const TopBar = ({
             void leave();
           }}
         />
-        <FlowName name={name} onRename={onRename} />
+        <RenameInput
+          value={name}
+          placeholder="Untitled flow"
+          ariaLabel="Flow name"
+          onRename={onRename}
+        />
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
