@@ -22,7 +22,7 @@ use super::{
     fingerprint,
 };
 use crate::{
-    ParquetStorage, Workspace, WorkspaceConfig,
+    ArtifactNamespace, ParquetStorage, Workspace, WorkspaceConfig,
     storage::tests::{minio, s3_storage},
 };
 
@@ -185,18 +185,39 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
             .expect("should create local capture storage"),
     };
     let run = run();
+    let definition = remote_definition();
+    // An earlier attempt of the run captured the remote source, which is unreachable now.
+    let (name, source) = definition
+        .sources()
+        .iter()
+        .next()
+        .expect("should define a source");
+    let key = ArtifactNamespace::new(run.web, definition.connector()).capture(
+        run.id,
+        name,
+        &fingerprint(source),
+    );
+    let earlier = captures();
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
-    let first = reader_with(directory.path(), captures())
-        .capture_sources(&workspace, &sql_definition(), run, &NoSecrets)
+    let capture = workspace
+        .capture(
+            "SELECT 7 AS id, 'initial' AS value".into(),
+            earlier
+                .staging(&key)
+                .expect("should prepare the staging path"),
+        )
         .await
         .expect("should publish the earlier capture");
+    earlier
+        .store(&key, &capture)
+        .await
+        .expect("should store the earlier capture");
     workspace
         .close()
         .await
         .expect("should close the first workspace");
 
     let restored = open_workspace(directory.path(), "restored.duckdb").await;
-    let definition = remote_definition();
     let reader = reader_with(directory.path(), captures());
     let captures = reader
         .capture_sources(&restored, &definition, run, &NoSecrets)
@@ -231,6 +252,45 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
         .close()
         .await
         .expect("should close the restored workspace");
+}
+
+#[tokio::test]
+async fn concurrent_attempt_conflicts_with_the_stored_capture() {
+    let directory = TempDir::new().expect("should create source storage");
+    let run = run();
+    let (first_workspace, second_workspace) = (
+        open_workspace(directory.path(), "first.duckdb").await,
+        open_workspace(directory.path(), "second.duckdb").await,
+    );
+    let (first_reader, second_reader) = (reader(directory.path()), reader(directory.path()));
+    let definition = sql_definition();
+
+    // Each attempt yields while its workspace captures the source, so both find no stored capture
+    // before either stores its own.
+    let (first, second) = tokio::join!(
+        first_reader.capture_sources(&first_workspace, &definition, run, &NoSecrets),
+        second_reader.capture_sources(&second_workspace, &definition, run, &NoSecrets),
+    );
+    let conflicts = [&first, &second]
+        .into_iter()
+        .filter(|result| {
+            result
+                .as_ref()
+                .is_err_and(|error| matches!(error.current_context(), SourceError::Conflict))
+        })
+        .count();
+    assert!(
+        first.is_ok() != second.is_ok() && conflicts == 1,
+        "one attempt should store its capture and the other should fail with a conflict"
+    );
+    first_workspace
+        .close()
+        .await
+        .expect("should close the workspace");
+    second_workspace
+        .close()
+        .await
+        .expect("should close the workspace");
 }
 
 #[rstest]

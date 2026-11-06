@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use duckdb::Connection;
 use hash_crypto::{Secret, digest::Sha256Digest};
-use hash_integrations_definition::SourceName;
+use hash_integrations_definition::{ConnectorId, SourceName};
 use rstest::rstest;
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -82,13 +82,24 @@ fn run() -> CaptureRun {
     }
 }
 
+/// Stands in for the fingerprint of a source definition.
+const FINGERPRINT: &str = "fingerprint";
+
+fn connector() -> ConnectorId {
+    "aviation".parse().expect("should be a connector ID")
+}
+
+fn namespace(web: Uuid) -> ArtifactNamespace {
+    ArtifactNamespace::new(web, &connector())
+}
+
 fn items() -> SourceName {
     "items".parse().expect("should be a source name")
 }
 
 /// The key of the `items` capture in `run`.
 fn capture(run: CaptureRun) -> ArtifactKey {
-    ArtifactNamespace::new(run.web).capture(run.id, &items())
+    namespace(run.web).capture(run.id, &items(), FINGERPRINT)
 }
 
 /// Publishes an artifact of `rows` rows for `key` and stores it.
@@ -140,7 +151,7 @@ async fn restores_in_new_staging(#[case] s3: bool) {
         Some(3),
         "should load the stored artifact"
     );
-    let other = ArtifactNamespace::new(run.web).capture(Uuid::new_v4(), &items());
+    let other = namespace(run.web).capture(Uuid::new_v4(), &items(), FINGERPRINT);
     assert_eq!(
         rows(&restore, &other).await,
         None,
@@ -231,7 +242,7 @@ async fn artifacts_round_trip_through_new_staging(#[case] s3: bool) {
 
     let artifact = artifact_storage(port, directory.path())
         .publish(
-            &ArtifactNamespace::new(Uuid::new_v4()).artifacts("test"),
+            &namespace(Uuid::new_v4()).artifacts(),
             &file(directory.path(), &bytes),
             Format::Binary,
         )
@@ -267,7 +278,7 @@ async fn publishing_the_same_bytes_returns_the_same_reference(#[case] s3: bool) 
     let directory = TempDir::new().expect("should create a directory");
     let minio = if s3 { Some(minio().await) } else { None };
     let port = minio.as_ref().map(|(_, port)| *port);
-    let prefix = ArtifactNamespace::new(Uuid::new_v4()).artifacts("test");
+    let prefix = namespace(Uuid::new_v4()).artifacts();
     let publish = async |storage: ArtifactStorage| {
         storage
             .publish(&prefix, &file(directory.path(), b"{}"), Format::Json)
@@ -289,7 +300,7 @@ async fn materialize_rejects_a_changed_artifact() {
     let artifact = ArtifactStorage::local(&root)
         .expect("should create local storage")
         .publish(
-            &ArtifactNamespace::new(Uuid::new_v4()).artifacts("test"),
+            &namespace(Uuid::new_v4()).artifacts(),
             &file(directory.path(), b"original"),
             Format::Binary,
         )
@@ -313,7 +324,7 @@ async fn published(directory: &Path) -> ArtifactRef {
     ArtifactStorage::local(&directory.join("artifacts"))
         .expect("should create local storage")
         .publish(
-            &ArtifactNamespace::new(Uuid::new_v4()).artifacts("test"),
+            &namespace(Uuid::new_v4()).artifacts(),
             &file(directory, b"{}"),
             Format::Json,
         )
@@ -389,5 +400,74 @@ async fn materialize_rejects_unaddressed_references(#[case] tamper: fn(&mut Valu
     assert!(
         matches!(error.current_context(), ArtifactError::Mismatch),
         "should report the mismatch"
+    );
+}
+
+#[test]
+fn namespace_keys_are_stable() {
+    let web = Uuid::from_u128(1);
+    let namespace = ArtifactNamespace::new(web, &connector());
+    let root = "tenants/00000000-0000-0000-0000-000000000001/integrations/\
+                a290c6f051d0a83cd0663dd31819fb8d9b8fac2705e6e0618c3b0c11142d7477";
+
+    assert_eq!(
+        namespace
+            .capture(Uuid::from_u128(2), &items(), FINGERPRINT)
+            .to_string(),
+        format!("{root}/captures/00000000-0000-0000-0000-000000000002/items.fingerprint.parquet"),
+        "the capture key is a storage format"
+    );
+    assert_eq!(
+        namespace.artifacts().to_string(),
+        format!("{root}/artifacts"),
+        "the artifact prefix is a storage format"
+    );
+    assert_ne!(
+        ArtifactNamespace::new(web, &"linear".parse().expect("should be a connector ID")),
+        namespace,
+        "each connector of a web should have its own root"
+    );
+}
+
+#[tokio::test]
+async fn s3_errors_are_not_missing_or_mismatching_artifacts() {
+    let directory = TempDir::new().expect("should create a directory");
+    let (_minio, port) = minio().await;
+    let artifact = artifact_storage(Some(port), directory.path())
+        .publish(
+            &namespace(Uuid::new_v4()).artifacts(),
+            &file(directory.path(), b"{}"),
+            Format::Json,
+        )
+        .await
+        .expect("should publish the artifact");
+    let storage = ArtifactStorage::s3(
+        &S3Bucket {
+            secret: Secret::from_vec(b"wrong".to_vec()),
+            ..bucket(port)
+        },
+        TempDir::new_in(directory.path()).expect("should create the staging directory"),
+    )
+    .expect("should create S3 storage");
+
+    let error = storage
+        .publish(
+            &namespace(Uuid::new_v4()).artifacts(),
+            &file(directory.path(), b"[]"),
+            Format::Json,
+        )
+        .await
+        .expect_err("should fail when the bucket cannot be reached");
+    assert!(
+        matches!(error.current_context(), ArtifactError::Read),
+        "a failed existence check should be a read error, not a missing artifact"
+    );
+    let error = storage
+        .materialize(&artifact)
+        .await
+        .expect_err("should fail when the bucket cannot be read");
+    assert!(
+        matches!(error.current_context(), ArtifactError::Read),
+        "a failed download should be a read error, not a mismatch"
     );
 }

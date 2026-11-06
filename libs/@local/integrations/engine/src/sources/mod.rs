@@ -176,13 +176,14 @@ impl SourceReader {
         run: CaptureRun,
         resolver: &impl SecretStore,
     ) -> Result<BTreeMap<SourceName, SourceCapture>, Report<SourceError>> {
+        let namespace = ArtifactNamespace::new(run.web, definition.connector());
         let mut captures = BTreeMap::new();
         for (name, source) in definition.sources() {
             if source.checkpoint().is_some() {
                 continue;
             }
             let storage = &self.store.captures;
-            let key = ArtifactNamespace::new(run.web).capture(run.id, name);
+            let key = namespace.capture(run.id, name, &fingerprint(source));
             if let Some(capture) = storage.load(&key).await.change_context(SourceError::Read)? {
                 captures.insert(name.clone(), capture);
                 continue;

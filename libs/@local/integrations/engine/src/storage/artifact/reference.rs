@@ -1,10 +1,8 @@
-use core::fmt::Write as _;
-
 use hash_crypto::digest::Sha256Digest;
 use object_store::path::Path as Location;
 use serde::{Deserialize, Serialize};
 
-use crate::storage::ArtifactKey;
+use crate::storage::{ArtifactKey, hex};
 
 // Origin: the media type of `BlobRefV1` and the key extension of `ArtifactStore::publish` in
 // labs `pocs/integrations_rs/src/blob.rs`.
@@ -134,15 +132,6 @@ fn address(sha256: &[u8; 32], format: Format) -> String {
         hex(sha256),
         format.extension()
     )
-}
-
-fn hex(bytes: &[u8; 32]) -> String {
-    bytes
-        .iter()
-        .fold(String::with_capacity(64), |mut hex, byte| {
-            let _infallible = write!(hex, "{byte:02x}");
-            hex
-        })
 }
 
 /// Stores a digest as 64 lowercase hexadecimal digits.
