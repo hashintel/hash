@@ -4,6 +4,7 @@ import { useEntityTypesContextRequired } from "../../../../shared/entity-types-c
 import { isTypeArchived } from "../../../../shared/is-archived";
 import { getDependentTypeRows } from "./dependent-types/dependent-type-rows";
 import { DependentTypesSection } from "./dependent-types/dependent-types-section";
+import { getDependentTypes } from "./dependent-types/get-dependent-types";
 import { useDependentTypes } from "./dependent-types/use-dependent-types";
 
 import type {
@@ -28,12 +29,17 @@ export const DependentTypes = ({
 
   const { data, error } = useDependentTypes(hidden ? null : entityTypeBaseUrl);
 
-  const dependentTypeRows = useMemo(
+  const dependentTypes = useMemo(
     () =>
       data && entityTypeBaseUrl
-        ? getDependentTypeRows({ parentBaseUrl: entityTypeBaseUrl, ...data })
+        ? getDependentTypes({ parentBaseUrl: entityTypeBaseUrl, ...data })
         : undefined,
     [data, entityTypeBaseUrl],
+  );
+
+  const dependentTypeRows = useMemo(
+    () => (dependentTypes ? getDependentTypeRows(dependentTypes) : undefined),
+    [dependentTypes],
   );
 
   if (hidden) {
@@ -43,8 +49,8 @@ export const DependentTypes = ({
   return (
     <DependentTypesSection
       entityType={entityType}
-      rows={dependentTypeRows?.rows}
-      incomplete={dependentTypeRows?.incomplete ?? false}
+      rows={dependentTypeRows}
+      incomplete={dependentTypes?.incomplete ?? false}
       error={error}
       isLinkType={(type) =>
         // A type created after the lookup loaded is missing from it. A type

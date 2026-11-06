@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
-
+import {
+  actorBaseUrl,
+  makeVersion,
+  typeBaseUrl,
+} from "./dependent-type-fixtures";
 import { getDependentTypeRows } from "./dependent-type-rows";
+import { getDependentTypes } from "./get-dependent-types";
 
 import type {
   BaseUrl,
@@ -10,50 +14,22 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-const typeBaseUrl = (slug: string) =>
-  `https://example.com/@alice/types/entity-type/${slug}/` as BaseUrl;
-
-const actorBaseUrl = typeBaseUrl("actor");
-
-/** Version `version` of `slug`, whose `allOf` names the given versions of the parent, Actor by default. */
-const makeVersion = (
-  slug: string,
-  title: string,
-  version: number,
-  parentVersions: number[],
-  parentBaseUrl: BaseUrl = actorBaseUrl,
-): EntityTypeWithMetadata =>
-  ({
-    schema: {
-      $schema: ENTITY_TYPE_META_SCHEMA,
-      kind: "entityType",
-      $id: `${typeBaseUrl(slug)}v/${version}` as VersionedUrl,
-      title,
-      description: `A ${title}`,
-      type: "object",
-      properties: {},
-      allOf: parentVersions.map((parentVersion) => ({
-        $ref: `${parentBaseUrl}v/${parentVersion}` as VersionedUrl,
-      })),
-    },
-    metadata: {
-      recordId: { baseUrl: typeBaseUrl(slug), version: `${version}` },
-    },
-  }) as unknown as EntityTypeWithMetadata;
-
 const rowsFor = (
   allVersions: EntityTypeWithMetadata[],
   latestVersions: EntityTypeWithMetadata[],
+  parentBaseUrl: BaseUrl = actorBaseUrl,
 ) =>
-  getDependentTypeRows({
-    parentBaseUrl: actorBaseUrl,
-    allVersions: { entityTypes: allVersions },
-    latestVersions: { entityTypes: latestVersions },
-  });
+  getDependentTypeRows(
+    getDependentTypes({
+      parentBaseUrl,
+      allVersions: { entityTypes: allVersions },
+      latestVersions: { entityTypes: latestVersions },
+    }),
+  );
 
 /** Each row as its title and its ranges, written as `v<first>–v<last> → v<parent>`. */
-const summarize = (result: ReturnType<typeof getDependentTypeRows>) =>
-  result.rows.map((row) => ({
+const summarize = (rows: ReturnType<typeof getDependentTypeRows>) =>
+  rows.map((row) => ({
     title: `${row.entityType.schema.title}${row.former ? " (former)" : ""}`,
     ranges: row.ranges.map(
       ({ firstVersion, lastVersion, parentVersion }) =>
@@ -106,41 +82,6 @@ describe("getDependentTypeRows", () => {
     ]);
   });
 
-  it("marks a type whose latest version no longer extends the parent as former, at its highest version that does", () => {
-    const formerV2 = makeVersion("former", "Former", 2, [1]);
-    const formerV1 = makeVersion("former", "Former", 1, [1]);
-
-    const result = rowsFor([formerV2, formerV1], []);
-
-    expect(summarize(result)).toEqual([
-      { title: "Former (former)", ranges: ["v1–v2 → v1"] },
-    ]);
-    expect(result.rows[0]?.entityType.schema.$id).toBe(formerV2.schema.$id);
-  });
-
-  it("leaves out a type that only the latest-version query returned", () => {
-    const machine = makeVersion("machine", "Machine", 1, [1]);
-
-    expect(summarize(rowsFor([], [machine]))).toEqual([]);
-  });
-
-  it("leaves out the parent itself", () => {
-    const actorV2 = makeVersion("actor", "Actor", 2, [1]);
-    const machine = makeVersion("machine", "Machine", 1, [1]);
-
-    expect(summarize(rowsFor([actorV2, machine], [actorV2, machine]))).toEqual([
-      { title: "Machine", ranges: ["v1–v1 → v1"] },
-    ]);
-  });
-
-  it("counts a version returned twice once", () => {
-    const machine = makeVersion("machine", "Machine", 1, [1]);
-
-    expect(summarize(rowsFor([machine, machine], [machine, machine]))).toEqual([
-      { title: "Machine", ranges: ["v1–v1 → v1"] },
-    ]);
-  });
-
   it("sorts types by title, with numbers in titles in numeric order", () => {
     const form10K = makeVersion("form-10-k", "Form 10-K", 1, [1]);
     const form8K = makeVersion("form-8-k", "Form 8-K", 1, [1]);
@@ -148,9 +89,7 @@ describe("getDependentTypeRows", () => {
     const versions = [form10K, form8K, bank];
 
     expect(
-      rowsFor(versions, versions).rows.map(
-        (row) => row.entityType.schema.title,
-      ),
+      rowsFor(versions, versions).map((row) => row.entityType.schema.title),
     ).toEqual(["Bank", "Form 8-K", "Form 10-K"]);
   });
 
@@ -162,7 +101,7 @@ describe("getDependentTypeRows", () => {
       makeVersion("user", "User", 2, [1]),
     ];
 
-    const [row] = rowsFor(userVersions, [userVersions[0]!]).rows;
+    const [row] = rowsFor(userVersions, [userVersions[0]!]);
 
     expect(row).toMatchObject({
       firstVersion: 2,
@@ -173,42 +112,6 @@ describe("getDependentTypeRows", () => {
       `${typeBaseUrl("user")}v/3`,
       `${typeBaseUrl("user")}v/5`,
       `${typeBaseUrl("user")}v/7`,
-    ]);
-  });
-
-  it("reports the rows as incomplete when either query stopped at its row limit", () => {
-    const machine = makeVersion("machine", "Machine", 1, [1]);
-    const cursor = machine.schema.$id;
-    const rowsWithCursors = (
-      allCursor?: VersionedUrl,
-      latestCursor?: VersionedUrl,
-    ) =>
-      getDependentTypeRows({
-        parentBaseUrl: actorBaseUrl,
-        allVersions: { entityTypes: [machine], cursor: allCursor },
-        latestVersions: { entityTypes: [machine], cursor: latestCursor },
-      });
-
-    expect(rowsWithCursors().incomplete).toBe(false);
-    expect(rowsWithCursors(cursor).incomplete).toBe(true);
-    expect(rowsWithCursors(undefined, cursor).incomplete).toBe(true);
-    expect(summarize(rowsWithCursors(cursor, cursor))).toEqual([
-      { title: "Machine", ranges: ["v1–v1 → v1"] },
-    ]);
-  });
-
-  it("lists no former types when the latest-version query stopped at its row limit, because the types after the cut are missing from it", () => {
-    const machine = makeVersion("machine", "Machine", 1, [1]);
-    const user = makeVersion("user", "User", 1, [1]);
-
-    const result = getDependentTypeRows({
-      parentBaseUrl: actorBaseUrl,
-      allVersions: { entityTypes: [machine, user] },
-      latestVersions: { entityTypes: [machine], cursor: machine.schema.$id },
-    });
-
-    expect(summarize(result)).toEqual([
-      { title: "Machine", ranges: ["v1–v1 → v1"] },
     ]);
   });
 });
@@ -274,11 +177,7 @@ describe("on an example ontology of companies", () => {
     allVersions.find(({ schema }) => schema.$id.endsWith(`/${id}`))!,
   );
 
-  const { rows } = getDependentTypeRows({
-    parentBaseUrl: companyBaseUrl,
-    allVersions: { entityTypes: allVersions },
-    latestVersions: { entityTypes: latestVersions },
-  });
+  const rows = rowsFor(allVersions, latestVersions, companyBaseUrl);
 
   /** A type ID without the common prefix, such as `charity/v/3`. */
   const shortId = (entityTypeId: VersionedUrl) =>
