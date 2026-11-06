@@ -4,8 +4,6 @@ mod namespace;
 #[cfg(test)]
 pub(crate) mod tests;
 
-use core::fmt::Write as _;
-
 pub(crate) use self::artifact::Bound;
 pub use self::{
     artifact::{ArtifactRef, ArtifactRefV1, ArtifactStorage, Format},
@@ -30,13 +28,3 @@ pub enum ArtifactError {
 /// layout.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub struct ArtifactKey(Box<str>);
-
-/// Writes `bytes` as lowercase hexadecimal digits.
-fn hex(bytes: &[u8; 32]) -> String {
-    bytes
-        .iter()
-        .fold(String::with_capacity(64), |mut hex, byte| {
-            let _infallible = write!(hex, "{byte:02x}");
-            hex
-        })
-}

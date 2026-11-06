@@ -2,7 +2,7 @@ use hash_crypto::digest::Sha256Digest;
 use object_store::path::Path as Location;
 use serde::{Deserialize, Serialize};
 
-use crate::storage::{ArtifactKey, hex};
+use crate::storage::ArtifactKey;
 
 // Origin: the media type of `BlobRefV1` and the key extension of `ArtifactStore::publish` in
 // labs `pocs/integrations_rs/src/blob.rs`.
@@ -45,7 +45,7 @@ pub enum ArtifactRef {
 #[serde(deny_unknown_fields)]
 pub struct ArtifactRefV1 {
     key: Box<str>,
-    #[serde(with = "hex_digest")]
+    #[serde(with = "hex::serde")]
     sha256: [u8; 32],
     size: u64,
     format: Format,
@@ -129,42 +129,7 @@ fn address(sha256: &[u8; 32], format: Format) -> String {
     format!(
         "sha256/{:02x}/{}.{}",
         sha256[0],
-        hex(sha256),
+        hex::encode(sha256),
         format.extension()
     )
-}
-
-/// Stores a digest as 64 lowercase hexadecimal digits.
-mod hex_digest {
-    use serde::{Deserialize as _, Deserializer, Serializer, de::Error as _};
-
-    pub(super) fn serialize<S: Serializer>(
-        sha256: &[u8; 32],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&super::hex(sha256))
-    }
-
-    pub(super) fn deserialize<'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<[u8; 32], D::Error> {
-        let hex = String::deserialize(deserializer)?;
-        parse(&hex).ok_or_else(|| D::Error::custom("expected 64 lowercase hexadecimal digits"))
-    }
-
-    fn parse(hex: &str) -> Option<[u8; 32]> {
-        if hex.len() != 64
-            || !hex
-                .bytes()
-                .all(|digit| matches!(digit, b'0'..=b'9' | b'a'..=b'f'))
-        {
-            return None;
-        }
-        let mut bytes = [0; 32];
-        let (pairs, _) = hex.as_bytes().as_chunks::<2>();
-        for (byte, digits) in bytes.iter_mut().zip(pairs) {
-            *byte = u8::from_str_radix(core::str::from_utf8(digits).ok()?, 16).ok()?;
-        }
-        Some(bytes)
-    }
 }

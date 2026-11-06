@@ -2,7 +2,7 @@ use hash_crypto::digest::Sha256Digest;
 use hash_integrations_definition::{ConnectorId, SourceName};
 use uuid::Uuid;
 
-use super::{ArtifactKey, hex};
+use super::ArtifactKey;
 
 // Origin: `BlobNamespace::v1` in labs `pocs/integrations_rs/src/blob.rs`, whose root comes from
 // `Keyspace::integration_root` and the integration path of `routing::route`.
@@ -22,7 +22,7 @@ impl ArtifactNamespace {
     pub fn new(web: Uuid, connector: &ConnectorId) -> Self {
         let integration = Sha256Digest::of(format!("{web}:{connector}").as_bytes()).to_bytes();
         Self {
-            root: format!("tenants/{web}/integrations/{}", hex(&integration)).into(),
+            root: format!("tenants/{web}/integrations/{}", hex::encode(integration)).into(),
         }
     }
 

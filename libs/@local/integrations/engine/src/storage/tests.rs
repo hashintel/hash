@@ -348,10 +348,8 @@ async fn references_round_trip_through_json() {
 #[rstest]
 #[case::unknown_version(|reference: &mut Value| reference["version"] = json!("v2"))]
 #[case::unknown_field(|reference: &mut Value| reference["value"]["eTag"] = json!("etag"))]
-#[case::uppercase_digest(|reference: &mut Value| {
-    let digest = reference["value"]["sha256"].as_str().expect("should be a string").to_uppercase();
-    reference["value"]["sha256"] = json!(digest);
-})]
+#[case::short_digest(|reference: &mut Value| reference["value"]["sha256"] = json!("0".repeat(62)))]
+#[case::non_hex_digest(|reference: &mut Value| reference["value"]["sha256"] = json!("g".repeat(64)))]
 #[tokio::test]
 async fn rejects_malformed_references(#[case] tamper: fn(&mut Value)) {
     let directory = TempDir::new().expect("should create a directory");
