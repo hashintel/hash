@@ -1,5 +1,24 @@
 # @hashintel/petrinaut
 
+## 0.0.24
+
+### Patch Changes
+
+- `PetrinautOptimizationContext` accepts only a connected in-browser optimizer. ([@kube](https://github.com/kube), [#10287](https://github.com/hashintel/hash/pull/10287))
+
+- Lets users choose the AI assistant when several plugins provide one. ([@kube](https://github.com/kube), [#10214](https://github.com/hashintel/hash/pull/10214))
+
+- Removes the `aiAssistant` prop and the built-in AI chat with its `PetrinautAi*` exports: the AI assistant comes from a plugin. ([@kube](https://github.com/kube), [#10267](https://github.com/hashintel/hash/pull/10267))
+
+- Clarify visualizer errors for unsupported CSS functions and external resource references, including values computed during simulation. ([@kube](https://github.com/kube), [#10381](https://github.com/hashintel/hash/pull/10381))
+
+- Move and resize Canvas visualizers, follow places or fix windows on screen, and edit their code during simulation. ([@kube](https://github.com/kube), [#10319](https://github.com/hashintel/hash/pull/10319))
+
+- Add responsive SVG coordinates, full-window backgrounds, and independent scene pan and zoom. ([@kube](https://github.com/kube), [#10364](https://github.com/hashintel/hash/pull/10364))
+- Updated dependencies:
+  - @hashintel/ds-icons@0.1.0
+  - @hashintel/petrinaut-core@0.0.7
+
 ## 0.0.23
 
 ### Patch Changes
