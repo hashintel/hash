@@ -126,4 +126,11 @@ export const createPostgresMigrations = (
       `CREATE INDEX document_revisions_by_kind ON ${tables.documentRevisions} (document_id, kind, seq DESC)`,
     ],
   },
+  {
+    // Not in SQLite, whose storage has one process by construction: the token of the storage that owns the schema.
+    version: 2,
+    statements: [
+      `ALTER TABLE ${tables.durableMetadata} ADD COLUMN owner_token TEXT`,
+    ],
+  },
 ];
