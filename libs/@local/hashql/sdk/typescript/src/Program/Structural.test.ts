@@ -150,6 +150,19 @@ describe("structural_constructor", () => {
     });
   });
 
+  test.each([
+    ["\u00E9", "e\u0301"],
+    ["e\u0301", "\u00E9"],
+  ])("canonical_duplicate_field_%#", (first, second) => {
+    expect.hasAssertions();
+    expect(
+      Structural.type({ [first]: String, [second]: BigInt }),
+    ).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "DuplicateStructField", name: second } },
+    });
+  });
+
   test("marker_key_record", () => {
     expect.hasAssertions();
     const key: TypeExpression.TypeId = "~hashql/TypeExpression";
@@ -315,6 +328,16 @@ describe("structural_values", () => {
     }
   });
 
+  test("annotations", () => {
+    expect.hasAssertions();
+    expect(emit(Structural.struct({ count: 1n }, { count: Number }))).toBe(
+      '{"#struct":{"count":{"#literal":1}},"#type":"(count: ::kernel::type::Number)"}',
+    );
+    expect(emit(Structural.tuple([1n, "x"], [Number, String]))).toBe(
+      '{"#tuple":[{"#literal":1},{"#literal":"x"}],"#type":"(::kernel::type::Number, ::kernel::type::String)"}',
+    );
+  });
+
   test("duplicate_field", () => {
     expect.hasAssertions();
     expect(
@@ -328,6 +351,22 @@ describe("structural_values", () => {
         _tag: "DuplicateStructField",
         name: "`+`",
       }),
+    );
+  });
+
+  test.each([
+    ["\u00E9", "e\u0301"],
+    ["e\u0301", "\u00E9"],
+  ])("canonical_duplicate_field_%#", (first, second) => {
+    expect.hasAssertions();
+    expect(
+      Result.getOrThrow(
+        Result.flip(
+          Expression.toJExpr(Structural.struct({ [first]: 1n, [second]: 2n })),
+        ),
+      ).reason,
+    ).toStrictEqual(
+      ProgramError.Reason.make({ _tag: "DuplicateStructField", name: second }),
     );
   });
 

@@ -1,6 +1,7 @@
 /** Recursive path and type productions. Union has higher precedence than intersection. @internal */
 import { Data, MutableHashSet, Option, Result, pipe } from "effect";
 
+import * as Ident from "../JExpr/Ident.js";
 import { characterClass } from "./character-class.js";
 import { identifier } from "./ident-parser.js";
 import { isStackOverflow } from "./overflow.js";
@@ -15,7 +16,6 @@ import {
 import { ParserError } from "./parser-error.js";
 import * as Parser from "./parser.js";
 
-import type { Ident } from "../JExpr/Ident.js";
 import type { Path, Segment, SegmentArgument } from "../JExpr/Path.js";
 import type { Type } from "../JExpr/Type/schema.js";
 import type { IdentReason } from "./ident-parser.js";
@@ -36,7 +36,7 @@ export const NestingTooDeep: Data.TaggedEnum.Constructor<NestingTooDeep>["Nestin
 /** A struct type names the same field twice. Its offset is the end of the struct, because the parser compares names after it reads every field. */
 export interface DuplicateStructField {
   readonly _tag: "DuplicateStructField";
-  readonly name: Ident;
+  readonly name: Ident.Ident;
 }
 
 export const DuplicateStructField: Data.TaggedEnum.Constructor<DuplicateStructField>["DuplicateStructField"] =
@@ -79,8 +79,11 @@ const infer = pipe(
 /** Syntax constructors that the schema module supplies after initializing its classes. */
 export interface PathConstructors {
   readonly argument: (bound: Type) => SegmentArgument;
-  readonly constraint: (name: Ident, bound: Type) => SegmentArgument;
-  readonly segment: (name: Ident, args: readonly SegmentArgument[]) => Segment;
+  readonly constraint: (name: Ident.Ident, bound: Type) => SegmentArgument;
+  readonly segment: (
+    name: Ident.Ident,
+    args: readonly SegmentArgument[],
+  ) => Segment;
   readonly path: (
     rooted: boolean,
     segments: readonly [Segment, ...Segment[]],
@@ -97,17 +100,18 @@ export interface Grammar {
   ) => Result.Result<Path, ParserError<TypeReason>>;
 }
 
-// The struct schema rejects repeated names, so the parser rejects them before a caller can build a struct the schema refuses. Names compare by value, as the schema's check compares them, so two spellings of one decoded name are a repeat.
+// The struct schema rejects repeated names, so the parser rejects them before a caller can build a struct the schema refuses. Names compare by `Ident.name`, as the schema's check compares them, so two spellings of one name are a repeat.
 const distinctFields = (
-  members: readonly (readonly [Ident, Type])[],
+  members: readonly (readonly [Ident.Ident, Type])[],
 ): Result.Result<Type, DuplicateStructField> => {
-  const seen = MutableHashSet.empty<Ident>();
+  const seen = MutableHashSet.empty<Ident.Name>();
   for (const [name] of members) {
-    if (MutableHashSet.has(seen, name)) {
+    const interned = Ident.name(name);
+    if (MutableHashSet.has(seen, interned)) {
       return Result.fail(DuplicateStructField({ name }));
     }
 
-    MutableHashSet.add(seen, name);
+    MutableHashSet.add(seen, interned);
   }
 
   return Result.succeed({ _tag: "Struct", members });
