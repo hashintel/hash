@@ -22,6 +22,14 @@ describe("isSafeViewValue", () => {
     "linear-gradient(90deg, #fff 0%, rgba(0, 0, 0, 0.5) 100%)",
     "repeating-radial-gradient(circle at 50% 50%, red, blue 10px)",
     "conic-gradient(from 90deg, red, blue)",
+    // basic shapes on SVG's clipPath attribute
+    "circle(50%)",
+    "ellipse(40% 30%)",
+    "inset(10%)",
+    "polygon(0 0, 100% 0, 50% 100%)",
+    'path("M0,0 L10,10 Z")',
+    "rect(0 10px 10px 0)",
+    "xywh(0 0 10px 10px)",
     // transforms, in CSS and in SVG's attribute syntax
     "translate(10px, 20px) rotate(45deg) scale(1.5)",
     "rotate(45 5 5)",
@@ -44,7 +52,6 @@ describe("isSafeViewValue", () => {
     // fragment references to this picture
     "url(#arrow)",
     "url( #arrow )",
-    'url("#arrow")',
     "URL(#arrow)",
     "url(#gradient) red",
     String.raw`u\72l(#arrow)`,
@@ -85,7 +92,8 @@ describe("isSafeViewValue", () => {
     "var(--a, url(https://x.invalid/a))",
     'calc(1px + var(--a, image-set("https://x.invalid/a" 1x)))',
     "attr(id)",
-    // a quoted url must hold a single fragment string
+    // preserve the original unquoted-only fragment syntax
+    'url("#arrow")',
     'url("#arrow" "https://x.invalid/a")',
     // values the tokenizer would have to repair
     'url("https://x.invalid/a',

@@ -233,7 +233,7 @@ class ViewChecker {
       this.expressions.report(
         value.span,
         "hir:unsafe-value",
-        "This value could load a resource from another host. Values may use colour, gradient, math and transform functions, and `url(...)` only to reference an element of this picture, like `url(#marker)`.",
+        "This value contains unsupported CSS or an external resource. Use supported styling functions and unquoted local references such as `url(#marker)`.",
       );
     }
   }

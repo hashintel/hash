@@ -59,7 +59,7 @@ every branch.
 
 ## What a visualizer may draw
 
-`view-elements.ts` holds the allowlists: SVG drawing, container, text and paint-server elements plus a few HTML containers; their geometry, paint and text attributes, `key`, and a `style` object of common properties. Images, links, scripts, embedded content, event handlers and namespaced attributes are refused by the lowering. A value may call only colour, gradient, math, transform, timing and substitution functions, read with a standard CSS tokenizer so escapes and nesting cannot hide one, and `url(...)` only as a fragment reference, `url(#marker)`. The renderer applies the same sets and value rule again before anything reaches the DOM, since attribute values may be computed at run time.
+`view-elements.ts` holds the allowlists: SVG drawing, container, text and paint-server elements plus a few HTML containers; their geometry, paint and text attributes, `key`, and a `style` object of common properties. Images, links, scripts, embedded content, event handlers and namespaced attributes are refused by the lowering. A value may call only colour, gradient, shape, math, transform, timing and substitution functions, read with a standard CSS tokenizer so escapes and nesting cannot hide one, and `url(...)` only as an unquoted fragment reference, `url(#marker)`. The renderer applies the same sets and value rule again before anything reaches the DOM, since attribute values may be computed at run time.
 
 ## Main modules
 
