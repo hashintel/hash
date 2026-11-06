@@ -4,7 +4,6 @@
  * tool definition changes shape. Commits accumulate in the conversation's
  * `LedgerDoc`, which the tool reads and edits.
  */
-import { Type } from "@earendil-works/pi-ai";
 import { defineExtension, defineTool } from "@earendil-works/pi-durable";
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
@@ -19,6 +18,8 @@ import {
 
 import { appendToLedger } from "./ledger-doc/ledger-doc";
 
+import type { Schema } from "@earendil-works/pi-schema";
+
 export { foldLedger, LedgerDoc } from "./ledger-doc/ledger-doc";
 
 /** A Valibot schema as the JSON Schema Flue sends a model (`toolInputToJsonSchema`), typed for Pi. */
@@ -26,7 +27,7 @@ const typedJsonSchema = <T>(schema: v.GenericSchema) => {
   const { $schema: _schema, ...jsonSchema } = toJsonSchema(schema, {
     errorMode: "ignore",
   });
-  return Type.Unsafe<T>(jsonSchema);
+  return jsonSchema as Schema<T>;
 };
 
 /** Copied from `apps/brunch-agent/src/agents/petrinaut/tools/ledger.ts`, which the lib does not export. */

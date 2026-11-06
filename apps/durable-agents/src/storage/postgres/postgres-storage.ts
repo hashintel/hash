@@ -1,5 +1,5 @@
 /**
- * Pi Durable `Storage` over Postgres: a port of 1.4.0's `SqliteStorage` (`dist/storage/sqlite/storage.js`) onto `pg`,
+ * Pi Durable `Storage` over Postgres: a port of 1.5.0's `SqliteStorage` (`dist/storage/sqlite/storage.js`) onto `pg`,
  * one Postgres schema per storage. The tables, ID and sequence bookkeeping, and document rules follow SQLite's; where
  * the two differ the comment says why.
  */
@@ -10,6 +10,7 @@ import {
   type ConversationQuery,
   type ConversationRecord,
   type Cursor,
+  type CommitResult,
   type DocumentAddress,
   type DocumentContent,
   type DocumentCopySource,
@@ -57,6 +58,33 @@ type HeadMarker = NonNullable<
 type RecordType = "conversation" | "entry" | "task" | "submission" | "document";
 
 type Executor = Pick<PoolClient, "query">;
+
+/**
+ * `executor` watched for failed queries: a batch check that fails after one of them failed in the database, an
+ * unknown outcome, rather than refusing its batch by one of Durable's own rules.
+ */
+const watchQueries = (executor: Executor) => {
+  let failed = false;
+  const watched: Executor = {
+    query: (async (...args: Parameters<Executor["query"]>) => {
+      try {
+        return await (
+          executor.query as (...queryArgs: unknown[]) => Promise<unknown>
+        )(...args);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    }) as Executor["query"],
+  };
+  return {
+    executor: watched,
+    reset: () => {
+      failed = false;
+    },
+    failed: () => failed,
+  };
+};
 
 type DocumentAction = {
   create?: DocumentCreate;
@@ -380,14 +408,22 @@ export class PostgresStorage implements Storage {
     private nextId: number,
   ) {}
 
+  /**
+   * Commit `batches` in one transaction, each with its own seq. Each batch is checked before it writes anything, against
+   * the state the earlier ones left; the first one Durable's rules refuse ends the call and the transaction commits the
+   * ones before it. A database failure rejects the call and rolls all of it back. As in SQLite, no savepoints: the
+   * checks run before the writes.
+   */
   async commit(
-    writes: readonly StorageWrite[],
+    batches: readonly (readonly StorageWrite[])[],
+    receive: (index: number, seq: Seq) => void,
     _context: unknown,
-  ): Promise<Seq> {
+  ): Promise<CommitResult> {
     return this.admit(async () => {
-      const documentActions = prepareDocumentActions(writes);
-      const candidateNextId = this.candidateNextId(writes);
-      const seq = await inTransaction(this.pool, "BEGIN", async (client) => {
+      const seqs: Seq[] = [];
+      let refused: { error: unknown } | undefined;
+      let candidateNextId = this.nextId;
+      await inTransaction(this.pool, "BEGIN", async (client) => {
         // The row lock also serializes commits from a second process on the sequence, though nothing else is fenced.
         const metadata = await get<{ next_id: string; next_seq: string }>(
           client,
@@ -396,24 +432,52 @@ export class PostgresStorage implements Storage {
         if (metadata === undefined) {
           throw new Error("Durable Postgres metadata is missing");
         }
-        const committedSeq = seqFromNumber(Number(metadata.next_seq));
-        await this.claimGlobalIds(client, writes);
-        await this.checkDocumentActions(client, documentActions);
-        for (const write of writes) {
-          await this.applyTableWrite(client, write, committedSeq);
+        let next = Number(metadata.next_seq);
+        const watch = watchQueries(client);
+        const checked = watch.executor;
+        for (const writes of batches) {
+          watch.reset();
+          let documentActions: Map<DocumentId, DocumentAction>;
+          let freshIds: [number, RecordType][];
+          try {
+            documentActions = prepareDocumentActions(writes);
+            freshIds = await this.checkGlobalIds(checked, writes);
+            await this.checkDocumentActions(checked, documentActions);
+            await this.resolveCopies(checked, documentActions);
+          } catch (error) {
+            if (watch.failed()) {
+              throw error;
+            }
+            refused = { error };
+            break;
+          }
+          const seq = seqFromNumber(next++);
+          await this.insertRecordIds(client, freshIds);
+          for (const write of writes) {
+            await this.applyTableWrite(client, write, seq);
+          }
+          await this.applyDocumentActions(client, documentActions, seq);
+          seqs.push(seq);
+          candidateNextId = Math.max(
+            candidateNextId,
+            this.candidateNextId(writes),
+          );
         }
-        await this.applyDocumentActions(client, documentActions, committedSeq);
-        await client.query(
-          `UPDATE ${this.tables.durableMetadata} SET next_id = $1, next_seq = $2 WHERE singleton = 1`,
-          [
-            String(Math.max(Number(metadata.next_id), candidateNextId)),
-            committedSeq + 1,
-          ],
-        );
-        return committedSeq;
+        if (seqs.length > 0) {
+          await client.query(
+            `UPDATE ${this.tables.durableMetadata} SET next_id = $1, next_seq = $2 WHERE singleton = 1`,
+            [String(Math.max(Number(metadata.next_id), candidateNextId)), next],
+          );
+        }
       });
       this.nextId = Math.max(this.nextId, candidateNextId);
-      return seq;
+      // `COMMIT` returned: the stored batches are durable.
+      for (const [index, seq] of seqs.entries()) {
+        receive(index, seq);
+      }
+      return refused === undefined
+        ? { stored: seqs.length }
+        : { stored: seqs.length, refused: refused.error };
     });
   }
 
@@ -948,10 +1012,11 @@ export class PostgresStorage implements Storage {
    * Check every written ID against the global namespace, then claim the new ones. SQLite checks and claims one row at a
    * time; here it is one `SELECT` and one `INSERT` per commit, since each statement is a network round trip.
    */
-  private async claimGlobalIds(
+  /** Durable's ID rules for one batch; returns the IDs it claims that no earlier commit stored. */
+  private async checkGlobalIds(
     executor: Executor,
     writes: readonly StorageWrite[],
-  ) {
+  ): Promise<[number, RecordType][]> {
     const claimed = new Map<number, RecordType>();
     const ordered: { id: number; type: RecordType }[] = [];
     for (const write of writes) {
@@ -969,7 +1034,7 @@ export class PostgresStorage implements Storage {
       });
     }
     if (ordered.length === 0) {
-      return;
+      return [];
     }
     const existing = new Map(
       (
@@ -1000,7 +1065,13 @@ export class PostgresStorage implements Storage {
       }
       claimed.set(id, type);
     }
-    const fresh = [...claimed].filter(([id]) => !existing.has(id));
+    return [...claimed].filter(([id]) => !existing.has(id));
+  }
+
+  private async insertRecordIds(
+    executor: Executor,
+    fresh: readonly [number, RecordType][],
+  ) {
     if (fresh.length > 0) {
       await executor.query(
         `INSERT INTO ${this.tables.recordIds} (id, record_type)
@@ -1161,15 +1232,8 @@ export class PostgresStorage implements Storage {
     seq: Seq,
   ) {
     for (const [id, action] of actions) {
-      let content = action.content;
-      if (action.copy !== undefined && action.create !== undefined) {
-        content = await this.copySource(
-          executor,
-          id,
-          action.copy,
-          action.create,
-        );
-      }
+      // Copies are resolved to their content by `resolveCopies()`.
+      const content = action.content;
       let record: DocumentRecord;
       if (action.create !== undefined) {
         record = {
@@ -1238,6 +1302,23 @@ export class PostgresStorage implements Storage {
             [id],
           );
         }
+      }
+    }
+  }
+
+  /** Resolve each copy to a base of its source's state before this batch, which may not change the source. */
+  private async resolveCopies(
+    executor: Executor,
+    actions: ReadonlyMap<DocumentId, DocumentAction>,
+  ) {
+    for (const [id, action] of actions) {
+      if (action.copy !== undefined && action.create !== undefined) {
+        action.content = await this.copySource(
+          executor,
+          id,
+          action.copy,
+          action.create,
+        );
       }
     }
   }
