@@ -228,6 +228,22 @@ export {};`,
     });
   });
 
+  test("unsupported_scheme", async () => {
+    expect.hasAssertions();
+    await expect(
+      Reference.run({
+        source:
+          "/** See {@link file:///guide.html | the guide}. */ export interface Box {}",
+      }),
+    ).resolves.toMatchObject({
+      _tag: "Failure",
+      failure: {
+        _tag: "ProseError",
+        reason: { _tag: "UnsupportedScheme", url: "file:///guide.html" },
+      },
+    });
+  });
+
   test("semantic_equivalence", async () => {
     expect.hasAssertions();
     await expect(
