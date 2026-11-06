@@ -17,12 +17,12 @@ import type { NextPageWithLayout } from "../../shared/layout";
  * (passing `view={null}`) so the editor starts loading on the very first
  * React render. That parallelises the editor-bundle download with `router`
  * resolution + Apollo's `persistedNets` query — the editor is typically
- * ready by the time we have everything we need to send `init`.
+ * ready by the time we have the document to pass to it.
  *
  * `ProcessEditor` itself isn't imported via `next/dynamic` because it
  * already loads the Petrinaut editor through its own client-only dynamic
- * import, leaving only the host and the postMessage bridge in its bundle —
- * so chunk-splitting it just costs an extra round-trip for no payoff.
+ * import, leaving only the host in its bundle — so chunk-splitting it just
+ * costs an extra round-trip for no payoff.
  */
 const ProcessRoutePage: NextPageWithLayout = () => {
   const router = useRouter();

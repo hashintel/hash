@@ -15,9 +15,9 @@ import {
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
-import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { MenuItem } from "../../../../../../../shared/ui/menu-item";
 
-import type { RevisionSummary } from "../shared/messages";
+import type { RevisionSummary } from "../../../petrinaut-editor";
 
 /**
  * Locale is left `undefined` so `Intl.DateTimeFormat` picks up the browser's
