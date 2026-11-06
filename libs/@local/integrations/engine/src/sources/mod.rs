@@ -1,3 +1,4 @@
+mod fingerprint;
 mod http;
 mod postgres;
 mod rest;
@@ -17,6 +18,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{Definition, SourceKind, SourceName};
 use uuid::Uuid;
 
+use self::fingerprint::fingerprint;
 pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue};
 use crate::{ByteSize, SourceCapture, TableAssertions, Workspace, sql::Identifier};
 
@@ -146,7 +148,16 @@ impl CaptureStore {
         reason = "checks each run directory separately to reject symlink aliases and sync its \
                   parent"
     )]
-    fn path(&self, run: CaptureRun, source: &SourceName) -> Result<PathBuf, Report<SourceError>> {
+    /// The capture of `source` for `run`, named after the fingerprint of its definition.
+    ///
+    /// A changed definition gets a path of its own, so a retry or restore never reuses a capture
+    /// taken from another version of the source.
+    fn path(
+        &self,
+        run: CaptureRun,
+        source: &SourceName,
+        fingerprint: &str,
+    ) -> Result<PathBuf, Report<SourceError>> {
         let mut directory = self.captures.clone();
         for component in [run.web, run.id] {
             let parent = directory.clone();
@@ -167,7 +178,7 @@ impl CaptureStore {
                 Err(error) => return Err(Report::new(error).change_context(SourceError::Write)),
             }
         }
-        Ok(directory.join(format!("{source}.parquet")))
+        Ok(directory.join(format!("{source}.{fingerprint}.parquet")))
     }
 }
 
@@ -201,8 +212,10 @@ impl SourceReader {
 
     /// Captures every live source or reuses the capture already bound to this run and source.
     ///
-    /// Checkpoint sources are produced by the pipelines. Retries and restores must keep the run
-    /// ID and capture directory. Existing captures are checked before resolving credentials.
+    /// A capture is reused only while the source's definition is unchanged; a changed source is
+    /// captured again. Checkpoint sources are produced by the pipelines. Retries and restores must
+    /// keep the run ID and capture directory. Existing captures are checked before resolving
+    /// credentials.
     ///
     /// # Errors
     ///
@@ -221,7 +234,7 @@ impl SourceReader {
             if source.checkpoint().is_some() {
                 continue;
             }
-            let target = self.store.path(run, name)?;
+            let target = self.store.path(run, name, &fingerprint(source))?;
             if let Some(capture) = recovered(&target)? {
                 captures.insert(name.clone(), capture);
                 continue;
