@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="google-meet-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="google-meet-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="google-meet-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-meet-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-meet-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#google-meet-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="google-meet-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#google-meet-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="7.68 26.56 176.64 138.88" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="url(#google-meet-app-dark-a)" d="M110.015 108.88c-6.829-4.718-6.921-14.778-.179-19.62L165 49.643c7.94-5.701 19-.038 19 9.737v77.755c0 9.675-10.861 15.359-18.821 9.859z" /><path fill="url(#google-meet-app-dark-b)" d="M8 71c0-24.3 19.7-44 44-44h64c11.046 0 20 8.954 20 20v98c0 11.046-8.954 20-20 20H28c-11.046 0-20-8.954-20-20z" /><mask id="google-meet-app-dark-e" width="129" height="138" x="8" y="27" maskUnits="userSpaceOnUse" mask-type="luminance"><path fill="#fff" d="M8 71c0-24.3 19.7-44 44-44h64c11.046 0 20 8.954 20 20v98c0 11.046-8.954 20-20 20H28c-11.046 0-20-8.954-20-20z" /></mask><g filter="url(#google-meet-app-dark-c)" mask="url(#google-meet-app-dark-e)"><path fill="url(#google-meet-app-dark-f)" d="m73.906 99.198 110-63.198v124z" /></g><circle cx="38" cy="135" r="14" fill="#fff" /><defs><linearGradient id="google-meet-app-dark-a" x1="128.8" x2="227.2" y1="104.44" y2="104.44" gradientUnits="userSpaceOnUse"><stop stop-color="#f6a100" /><stop offset="1" stop-color="#ffbe00" /></linearGradient><linearGradient id="google-meet-app-dark-f" x1="136.22" x2="78.5" y1="91.32" y2="91.19" gradientUnits="userSpaceOnUse"><stop offset=".15" stop-color="#ffb5e8" /><stop offset="1" stop-color="#ffdbf5" stop-opacity="0" /></linearGradient><radialGradient id="google-meet-app-dark-b" cx="0" cy="0" r="1" gradientTransform="matrix(-159.725 0 0 -135.852 160.325 96)" gradientUnits="userSpaceOnUse"><stop offset=".15" stop-color="#ffe921" /><stop offset="1" stop-color="#fec700" /></radialGradient><filter id="google-meet-app-dark-c" width="166" height="180" x="45.91" y="8" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix" /><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" /><feGaussianBlur result="effect1_foregroundBlur_37584_9338" stdDeviation="14" /></filter></defs></svg></g></svg>

@@ -167,7 +167,7 @@ hover feedback as the rest of the set; continuous effects remain opt-in.
 
 ## Integrations
 
-`IntegrationIcon` provides a separate **Integrations** category for HASH's 43 integration listings, plus separate Kinaxis, Apple, and Amazon corporate entries, Apple Health, and seven additional Microsoft apps (50 current brands in total). `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use native SVG and need no Panda configuration.
+`IntegrationIcon` provides a separate **Integrations** category with 119 current brands, four legacy identities, and a generic fallback. It covers HASH's integration listings and additional company and product brands. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use SVG and need no Panda configuration.
 
 ```tsx
 import {
@@ -203,15 +203,17 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-47 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple, Apple Notes, and Apple Health have the five mark and tile variants because no separate full-logo lock-ups were verified. The `genericApp` fallback and the `granolaLegacy` option also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+115 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple, Apple Notes, Apple Health, and X have the five mark and tile variants because no separate full-logo lock-ups were verified. The `genericApp` fallback, `granolaLegacy`, and `twitterLegacy` also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
 
-Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with a vectorized wordmark from an official Microsoft PDF. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
+Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with outlined Segoe UI Semibold lettering, matching the other Microsoft product logos. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
-Standalone SVGs are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
+The package includes 854 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 
 `microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 
 `microsoftTeams` uses the current rounded Teams mark. `microsoftTeamsLegacy` preserves the previous mark and full-logo compositions; the “Microsoft Teams” integration alias always uses the current artwork.
+
+`hash` uses the blue gradient mark and vector wordmark from hash.ai. Its full logos preserve the site’s lock-up proportions, with dark lettering for light mode and white lettering for dark mode. App tiles align the mark flush to the bottom-right edge at 60% of the tile height, using `appViewBox` to position it independently of the backgroundless marks. All seven variants are available.
 
 `amazon` is the corporate brand, separate from `amazonRedshift`. Its marks and tiles use the current orange smile. Full logos preserve the complete wordmark-and-smile arrangement, with Squid Ink lettering for light mode and white lettering for dark mode. All seven variants are native vectors.
 
@@ -234,3 +236,5 @@ The shared app-tile backgrounds live in `src/integration-icon/app-tile/`. The ge
 Edit the reviewed SVGs in `src/integration-icon/artwork` and the source, alias, sizing, and palette metadata in `src/integration-icon/brands.json`. Then run `yarn generate:integrations` and the package checks. The generator writes both React geometry and standalone variants from those sources and removes obsolete SVG variants. `logoLayout` controls the wordmark height and gap when composing a lock-up; an optional `logo-mark.svg` supplies a mark without embedded lettering.
 
 After building the package, run `node scripts/preview-integrations.ts /path/to/integration-icons.html` to create a self-contained review grid. It includes light and dark backgrounds, a transparency toggle, and a mono color toggle.
+
+OpenAI and ChatGPT, Anthropic and Claude, and Amazon, AWS, and Amazon S3 have distinct catalogue entries. `luma` is the events platform. `twitterLegacy` preserves the former blue bird separately from `x`. The new Google Workspace product marks use the current 2026 artwork; their full logos use outlined Google Sans. Amazon S3, EC2, DynamoDB, RDS, CloudFront, Lambda, Amplify, and Amazon Q use outlined Amazon Ember in composed full logos. The AWS products use standalone product identities, including archived dimensional marks for DynamoDB, RDS, and CloudFront, rather than the current architecture tiles. Clay’s raster mark from its official kit has been vectorized, with the kit’s native wordmark preserved. Source metadata records these compositions and conversions.

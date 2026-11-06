@@ -1,36 +1,76 @@
+import * as airtable from "./geometry/airtable";
 import * as amazon from "./geometry/amazon";
+import * as amazonCloudFront from "./geometry/amazon-cloudfront";
+import * as amazonDynamoDb from "./geometry/amazon-dynamodb";
+import * as amazonEc2 from "./geometry/amazon-ec2";
+import * as amazonQ from "./geometry/amazon-q";
+import * as amazonRds from "./geometry/amazon-rds";
+import * as amazonS3 from "./geometry/amazon-s3";
 import * as anaplan from "./geometry/anaplan";
+import * as anthropic from "./geometry/anthropic";
+import * as apollo from "./geometry/apollo";
 import * as apple from "./geometry/apple";
 import * as appleHealth from "./geometry/apple-health";
 import * as appleNotes from "./geometry/apple-notes";
 import * as asana from "./geometry/asana";
+import * as attio from "./geometry/attio";
+import * as aws from "./geometry/aws";
+import * as awsAmplify from "./geometry/aws-amplify";
+import * as awsLambda from "./geometry/aws-lambda";
 import * as amazonRedshift from "./geometry/aws-redshift";
 import * as azure from "./geometry/azure";
 import * as bigQuery from "./geometry/bigquery";
 import * as blueYonder from "./geometry/blue-yonder";
 import * as box from "./geometry/box";
+import * as calCom from "./geometry/cal-com";
+import * as calendly from "./geometry/calendly";
+import * as carta from "./geometry/carta";
 import * as celonis from "./geometry/celonis";
+import * as chatgpt from "./geometry/chatgpt";
+import * as claude from "./geometry/claude";
+import * as clay from "./geometry/clay";
+import * as clickup from "./geometry/clickup";
 import * as cloudflare from "./geometry/cloudflare";
+import * as composio from "./geometry/composio";
 import * as coupa from "./geometry/coupa";
+import * as cursor from "./geometry/cursor";
 import * as databricks from "./geometry/databricks";
+import * as deepseek from "./geometry/deepseek";
 import * as discord from "./geometry/discord";
 import * as docusign from "./geometry/docusign";
+import * as doorDash from "./geometry/doordash";
 import * as dropbox from "./geometry/dropbox";
+import * as evernote from "./geometry/evernote";
+import * as factory from "./geometry/factory";
 import * as figma from "./geometry/figma";
+import * as fireworksAi from "./geometry/fireworks-ai";
 import * as fourkites from "./geometry/fourkites";
 import * as genericApp from "./geometry/generic-app";
 import * as github from "./geometry/github";
 import * as googleCalendar from "./geometry/google-calendar";
+import * as googleDocs from "./geometry/google-docs";
 import * as googleDrive from "./geometry/google-drive";
 import * as gmail from "./geometry/google-mail";
+import * as googleMeet from "./geometry/google-meet";
+import * as googleSheets from "./geometry/google-sheets";
+import * as googleSlides from "./geometry/google-slides";
 import * as granola from "./geometry/granola";
 import * as granolaLegacy from "./geometry/granola-legacy";
+import * as harvey from "./geometry/harvey";
+import * as hash from "./geometry/hash";
+import * as hubSpot from "./geometry/hubspot";
+import * as hunter from "./geometry/hunter";
 import * as instagram from "./geometry/instagram";
+import * as kimi from "./geometry/kimi";
 import * as kinaxis from "./geometry/kinaxis";
 import * as kinaxisMaestro from "./geometry/kinaxis-maestro";
+import * as legora from "./geometry/legora";
 import * as linear from "./geometry/linear";
+import * as luma from "./geometry/luma";
+import * as mailchimp from "./geometry/mailchimp";
 import * as messenger from "./geometry/messenger";
 import * as messengerLegacy from "./geometry/messenger-legacy";
+import * as meta from "./geometry/meta";
 import * as microsoftCopilot from "./geometry/microsoft-copilot";
 import * as microsoftExcel from "./geometry/microsoft-excel";
 import * as microsoftOneDrive from "./geometry/microsoft-onedrive";
@@ -40,17 +80,47 @@ import * as microsoftPowerPoint from "./geometry/microsoft-powerpoint";
 import * as microsoftTeams from "./geometry/microsoft-teams";
 import * as microsoftTeamsLegacy from "./geometry/microsoft-teams-legacy";
 import * as microsoftWord from "./geometry/microsoft-word";
+import * as miniMax from "./geometry/minimax";
+import * as miro from "./geometry/miro";
+import * as mixmax from "./geometry/mixmax";
+import * as modal from "./geometry/modal";
+import * as mongoDb from "./geometry/mongodb";
 import * as notion from "./geometry/notion";
+import * as nvidia from "./geometry/nvidia";
+import * as okta from "./geometry/okta";
 import * as omp from "./geometry/omp";
+import * as openai from "./geometry/openai";
 import * as oracle from "./geometry/oracle";
+import * as pandadoc from "./geometry/pandadoc";
 import * as pasX from "./geometry/pas-x";
 import * as postgres from "./geometry/postgres";
+import * as primeIntellect from "./geometry/prime-intellect";
+import * as qwen from "./geometry/qwen";
+import * as ramp from "./geometry/ramp";
+import * as rudderstack from "./geometry/rudderstack";
 import * as sap from "./geometry/sap";
+import * as secureframe from "./geometry/secureframe";
+import * as segment from "./geometry/segment";
 import * as sentry from "./geometry/sentry";
 import * as slack from "./geometry/slack";
 import * as snowflake from "./geometry/snowflake";
+import * as stripe from "./geometry/stripe";
+import * as taskrabbit from "./geometry/taskrabbit";
+import * as telegram from "./geometry/telegram";
 import * as trello from "./geometry/trello";
+import * as turbopuffer from "./geometry/turbopuffer";
+import * as twitterLegacy from "./geometry/twitter-legacy";
+import * as typeform from "./geometry/typeform";
+import * as uber from "./geometry/uber";
+import * as vanta from "./geometry/vanta";
 import * as veevaVault from "./geometry/veeva-vault";
+import * as vercel from "./geometry/vercel";
+import * as whalesync from "./geometry/whalesync";
+import * as x from "./geometry/x";
+import * as zAi from "./geometry/z-ai";
+import * as zapier from "./geometry/zapier";
+import * as zendesk from "./geometry/zendesk";
+import * as zoho from "./geometry/zoho";
 import * as zoom from "./geometry/zoom";
 
 export const integrationGeometry = {
@@ -291,7 +361,7 @@ export const integrationGeometry = {
   microsoftTeams: {
     ...microsoftTeams,
     markViewBox: "4 4 36 38",
-    logoViewBox: "0 0 683.7612323491655 100",
+    logoViewBox: "0 0 726.6715829881806 100",
     ratio: 2,
     alignment: "center",
   },
@@ -347,7 +417,7 @@ export const integrationGeometry = {
   microsoftTeamsLegacy: {
     ...microsoftTeamsLegacy,
     markViewBox: "0 0 32 30",
-    logoViewBox: "0 0 695.6910569105692 100",
+    logoViewBox: "0 0 738.6014075495841 100",
     ratio: 2,
     alignment: "center",
   },
@@ -426,6 +496,497 @@ export const integrationGeometry = {
     markViewBox: "0 0 34 32",
     logoViewBox: "0 0 512 102",
     ratio: 2,
+    alignment: "center",
+  },
+  hash: {
+    ...hash,
+    markViewBox: "0 0 21.6653 22",
+    logoViewBox: "0 0 120 22",
+    ratio: 1,
+    alignment: "center",
+    appViewBox: "-15.001367 -14.666667 36.666667 36.666667",
+  },
+  openai: {
+    ...openai,
+    markViewBox: "0 0 256 260",
+    logoViewBox: "201.733333 201.777365 956.533333 260.723562",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  chatgpt: {
+    ...chatgpt,
+    markViewBox: "0 0 158.7128 157.296",
+    logoViewBox: "0 0 117.41 28",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  anthropic: {
+    ...anthropic,
+    markViewBox: "0 0 256 176",
+    logoViewBox: "0 0 570 64",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  claude: {
+    ...claude,
+    markViewBox: "0 0 256 257",
+    logoViewBox: "0 0 573 125",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  segment: {
+    ...segment,
+    markViewBox: "0 0 256 265",
+    logoViewBox: "0 0 512 105",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  rudderstack: {
+    ...rudderstack,
+    markViewBox: "0 0 256 258",
+    logoViewBox: "0 0 256 42",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  zapier: {
+    ...zapier,
+    markViewBox: "0 45.2253 39.0441 9.5637",
+    logoViewBox: "0 0 244 66",
+    ratio: 1.6,
+    alignment: "center",
+  },
+  whalesync: {
+    ...whalesync,
+    markViewBox: "0.641667 0.091549 108.716667 51.267606",
+    logoViewBox: "0.271667 0 162.456667 21.45679",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  clickup: {
+    ...clickup,
+    markViewBox: "5.866667 0.64 52.266667 63.146667",
+    logoViewBox: "0 0.64 256 63.36",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  okta: {
+    ...okta,
+    markViewBox: "0 0 256 256",
+    logoViewBox: "0 0 109.21 36",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  cursor: {
+    ...cursor,
+    markViewBox: "0 0 466.73 533.32",
+    logoViewBox: "0 0 2238.7 533.32",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  x: {
+    ...x,
+    markViewBox: "0 0 1200 1227",
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  twitterLegacy: {
+    ...twitterLegacy,
+    markViewBox: "0 0 256 209",
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  calCom: {
+    ...calCom,
+    markViewBox: "64.6855 133.681 248.6385 132.048",
+    logoViewBox: "0 0 100.326667 20.992366",
+    ratio: 1.6,
+    alignment: "center",
+  },
+  composio: {
+    ...composio,
+    markViewBox: "0 0 76.477 88.587",
+    logoViewBox: "0 0 483 93",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  attio: {
+    ...attio,
+    markViewBox: "0 0 36.2 29.45",
+    logoViewBox: "0 0 120 29.5",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  stripe: {
+    ...stripe,
+    markViewBox: "119.24 119.24 273.52 273.52",
+    logoViewBox: "0 0 512 214",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  pandadoc: {
+    ...pandadoc,
+    markViewBox: "11.413333 11.2 41.173333 41.706667",
+    logoViewBox: "0 0 472.54475544500303 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  zoho: {
+    ...zoho,
+    markViewBox: "5.973333 6.83112 1012.053333 436.337761",
+    logoViewBox: "5.973333 6.83112 1012.053333 436.337761",
+    ratio: 1.45,
+    alignment: "center",
+  },
+  googleMeet: {
+    ...googleMeet,
+    markViewBox: "7.68 26.56 176.64 138.88",
+    logoViewBox: "0 0 491.5250396772282 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  googleSheets: {
+    ...googleSheets,
+    markViewBox: "7.68 31.68 176.64 128.64",
+    logoViewBox: "0 0 543.4130178980616 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  googleDocs: {
+    ...googleDocs,
+    markViewBox: "31.68 7.68 128.64 176.64",
+    logoViewBox: "0 0 435.10824463287037 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  googleSlides: {
+    ...googleSlides,
+    markViewBox: "11.52 14.4 168.96 163.2",
+    logoViewBox: "0 0 482.8706980717599 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  telegram: {
+    ...telegram,
+    markViewBox: "0 0 256 256",
+    logoViewBox: "0 0 398.2931034482758 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  zendesk: {
+    ...zendesk,
+    markViewBox: "0 0 256 194.35",
+    logoViewBox: "0 0 512 99",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  apollo: {
+    ...apollo,
+    markViewBox: "0 0 35.7082 36.1989",
+    logoViewBox: "0 0 152 40",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hunter: {
+    ...hunter,
+    markViewBox: "0 4.843333 116.24 107.715733",
+    logoViewBox: "0 0 653.08002 116.24",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  airtable: {
+    ...airtable,
+    markViewBox: "0 0 256 215",
+    logoViewBox: "0 0 459.3240318815681 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  luma: {
+    ...luma,
+    markViewBox: "0.446309 0.893333 132.107383 132.213333",
+    logoViewBox: "0 0 336.37298910042136 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  aws: {
+    ...aws,
+    markViewBox: "0 0 256 153",
+    logoViewBox: "0 0 256 153",
+    ratio: 1.6,
+    alignment: "center",
+  },
+  amazonS3: {
+    ...amazonS3,
+    markViewBox: "97 64 318 384",
+    logoViewBox: "0 0 494.9297413793104 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  mailchimp: {
+    ...mailchimp,
+    markViewBox: "0 0 256 272",
+    logoViewBox: "0 0 432.3967168262654 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  evernote: {
+    ...evernote,
+    markViewBox: "24.64 18.293333 62.72 75.413333",
+    logoViewBox: "0.745833 0.447458 177.359167 43.105085",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  mixmax: {
+    ...mixmax,
+    markViewBox: "0 0 56.364 44.469",
+    logoViewBox: "0 0 231 45",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  turbopuffer: {
+    ...turbopuffer,
+    markViewBox: "0 0 213 131",
+    logoViewBox: "0 0 917 132",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  typeform: {
+    ...typeform,
+    markViewBox: "0 0 33.08 21.72",
+    logoViewBox: "0 0 477.7565712372342 100",
+    ratio: 1.6,
+    alignment: "center",
+  },
+  calendly: {
+    ...calendly,
+    markViewBox: "0 0 32 32",
+    logoViewBox: "0 0 424.0210778667957 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  modal: {
+    ...modal,
+    markViewBox: "0 0 367.36 192",
+    logoViewBox: "0 0 506.29401116663405 100",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  taskrabbit: {
+    ...taskrabbit,
+    markViewBox: "13 52.9 250 170.19",
+    logoViewBox: "100.13 101 760.53 101.04",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  vercel: {
+    ...vercel,
+    markViewBox: "0 0 256 222",
+    logoViewBox: "0 0 512 103",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  miro: {
+    ...miro,
+    markViewBox: "0 0 256 256",
+    logoViewBox: "0 0 876 320",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  clay: {
+    ...clay,
+    markViewBox: "3.783102 6.053333 595.460277 447.946667",
+    logoViewBox: "3.166667 0 196.666667 63",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonEc2: {
+    ...amazonEc2,
+    markViewBox: "5.833333 5.133333 58.8 59.966667",
+    logoViewBox: "0 0 558.3172680773675 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonDynamoDb: {
+    ...amazonDynamoDb,
+    markViewBox: "0 0 256 289",
+    logoViewBox: "0 0 662.0610075243374 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonRds: {
+    ...amazonRds,
+    markViewBox: "0 0 256 289",
+    logoViewBox: "0 0 556.9123493616514 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonCloudFront: {
+    ...amazonCloudFront,
+    markViewBox: "0 0 256 308",
+    logoViewBox: "0 0 770.1301281499957 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  awsLambda: {
+    ...awsLambda,
+    markViewBox: "-0.856926 -0.220321 418.756926 433.540321",
+    logoViewBox: "0 0 560.5596930139059 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  awsAmplify: {
+    ...awsAmplify,
+    markViewBox: "0 1.063333 23.12 18.443333",
+    logoViewBox: "0 0 491.1851407798432 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  amazonQ: {
+    ...amazonQ,
+    markViewBox: "210.227091 64.490833 420.454181 464.334",
+    logoViewBox: "0 0 415.8430483155481 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  primeIntellect: {
+    ...primeIntellect,
+    markViewBox: "0 0 33.06445 20.9212",
+    logoViewBox: "0 0 161.29 20.9212",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  ramp: {
+    ...ramp,
+    markViewBox: "51.654384 0 18.41169 15.733333",
+    logoViewBox: "0 0 70.171667 20",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  fireworksAi: {
+    ...fireworksAi,
+    markViewBox: "0 0.615385 40.2825 18.769231",
+    logoViewBox: "0 0 818.3247288565566 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  uber: {
+    ...uber,
+    markViewBox: "0 0 926.905 321.777",
+    logoViewBox: "0 0 926.905 321.777",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  mongoDb: {
+    ...mongoDb,
+    markViewBox: "0 0 121.22 257.815182",
+    logoViewBox: "0 0 1102 278",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  doorDash: {
+    ...doorDash,
+    markViewBox: "0 0 99.5 56.5",
+    logoViewBox: "0 0 842.3300042140751 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hubSpot: {
+    ...hubSpot,
+    markViewBox: "804.771317 0 338.024883 352.848912",
+    logoViewBox: "0 0 1255.82 355.99",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  harvey: {
+    ...harvey,
+    markViewBox: "0 0 80.099167 80.991736",
+    logoViewBox: "0 0 347 105",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  legora: {
+    ...legora,
+    markViewBox: "51 51 258 258",
+    logoViewBox: "0 0 425.23076923076917 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  vanta: {
+    ...vanta,
+    markViewBox: "122.026667 26.453333 283.306667 485.546667",
+    logoViewBox: "0 0 274.00528663127136 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  secureframe: {
+    ...secureframe,
+    markViewBox: "0 0 53.533679 56",
+    logoViewBox: "0 0 520.7326601488096 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  carta: {
+    ...carta,
+    markViewBox: "0 0 528 264",
+    logoViewBox: "0 0 528 264",
+    ratio: 1.6,
+    alignment: "center",
+  },
+  deepseek: {
+    ...deepseek,
+    markViewBox: "0 0 256 189",
+    logoViewBox: "0.853333 0 511.146667 109",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  kimi: {
+    ...kimi,
+    markViewBox: "73.386667 44.8 143.36 138.24",
+    logoViewBox: "0 0 319.3411306042885 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  nvidia: {
+    ...nvidia,
+    markViewBox: "0 11.406685 31.395 21.253482",
+    logoViewBox: "0 11.406685 108.9075 21.253482",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  miniMax: {
+    ...miniMax,
+    markViewBox: "0 0 256 214",
+    logoViewBox: "0 0 512 123",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  meta: {
+    ...meta,
+    markViewBox: "0 0 256 170.43",
+    logoViewBox: "0 0 512 104",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  zAi: {
+    ...zAi,
+    markViewBox: "41.386667 54.186667 173.226667 147.626667",
+    logoViewBox: "0 0 300.4833353346132 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  qwen: {
+    ...qwen,
+    markViewBox: "0 0 256 253",
+    logoViewBox: "0 0 512 150",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  factory: {
+    ...factory,
+    markViewBox: "0.325243 0 66.024272 64.241667",
+    logoViewBox: "0.211667 0 126.788333 18.681564",
+    ratio: 1.8,
     alignment: "center",
   },
   genericApp: {
