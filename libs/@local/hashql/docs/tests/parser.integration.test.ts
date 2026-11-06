@@ -678,6 +678,27 @@ export declare const choose: {
     );
 
     it.effect(
+      "private_target",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        // Only the link names Hidden, so its declaration parses because the link reaches it.
+        const ast = yield* success({
+          source:
+            'import type { Hidden } from "./hidden.js";\n/** Holds a {@link Hidden}. */ export interface Box {}',
+          files: { "hidden.d.ts": "export interface Hidden {}" },
+        });
+        const name = HashMap.get(linksOf(ast), "Hidden").pipe(
+          Option.flatten,
+          Option.getOrThrow,
+        );
+        expect(ast.getBySymbol(name.target)).toMatchObject({
+          _tag: "Declaration",
+          symbol: { name: "Hidden" },
+        });
+      }),
+    );
+
+    it.effect(
       "member_by_public_name",
       Effect.fnUntraced(function* () {
         expect.hasAssertions();

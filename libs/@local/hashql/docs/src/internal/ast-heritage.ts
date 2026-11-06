@@ -6,12 +6,10 @@ import {
   MutableHashMap,
   Option,
   flow,
-  pipe,
 } from "effect";
 import * as Syntax from "typescript/ast";
 import { SymbolFlags, isIntersectionType } from "typescript/async";
 
-import * as AST from "../AST/index.js";
 import * as TypeScript from "../TypeScript/index.js";
 import * as Source from "./ast/source.js";
 
@@ -32,10 +30,7 @@ export declare namespace Heritage {
      */
     readonly bases: (
       symbol: CompilerSymbol,
-    ) => Effect.Effect<
-      readonly AST.Target.InternedSymbol[],
-      Cause.UnknownError
-    >;
+    ) => Effect.Effect<readonly CompilerSymbol[], Cause.UnknownError>;
   }
 }
 
@@ -55,7 +50,6 @@ const implemented = (
 };
 
 export const layer = Effect.gen(function* () {
-  const ast = yield* AST.Store;
   const checker = yield* TypeScript.Checker.Checker;
   const program = yield* TypeScript.Program.Program;
   const cache = MutableHashMap.empty<number, readonly CompilerSymbol[]>();
@@ -99,18 +93,10 @@ export const layer = Effect.gen(function* () {
       Array.appendAll(extended, interfaces),
       namedOf,
     );
-    const direct = yield* pipe(
+    const direct = Array.dedupeWith(
       Array.flatten(named),
-      Array.dedupeWith((left, right) => left.id === right.id),
-      Effect.forEach(
-        flow(
-          ast.internedSymbol,
-          Effect.fromOption,
-          Effect.mapError(() => new Error("TODO")),
-        ),
-      ),
+      (left, right) => left.id === right.id,
     );
-
     MutableHashMap.set(cache, symbol.id, direct);
 
     return direct;
@@ -122,8 +108,5 @@ export const layer = Effect.gen(function* () {
 /** The interfaces and classes `symbol` extends or implements directly. */
 export const bases = (
   symbol: CompilerSymbol,
-): Effect.Effect<
-  readonly AST.Target.InternedSymbol[],
-  Cause.UnknownError,
-  Heritage
-> => Effect.flatMap(Heritage, (heritage) => heritage.bases(symbol));
+): Effect.Effect<readonly CompilerSymbol[], Cause.UnknownError, Heritage> =>
+  Effect.flatMap(Heritage, (heritage) => heritage.bases(symbol));
