@@ -1,9 +1,9 @@
-use alloc::sync::Arc;
 use std::path::Path;
 
 use duckdb::Connection;
 use hash_crypto::Secret;
 use hash_integrations_definition::SourceName;
+use rstest::rstest;
 use tempfile::TempDir;
 use testcontainers::{
     ContainerAsync, ImageExt as _,
@@ -13,7 +13,7 @@ use testcontainers::{
 use testcontainers_modules::minio::MinIO;
 use uuid::Uuid;
 
-use super::{CaptureStorage, S3Bucket};
+use super::{ArtifactKey, ArtifactStorage, S3Bucket, Stored, layout};
 use crate::{CaptureRun, SourceCapture, sql::literal};
 
 /// Starts MinIO with an empty `captures` bucket and returns it with its API port.
@@ -55,11 +55,22 @@ fn bucket(port: u16) -> S3Bucket {
 }
 
 /// S3 storage that stages in a new temporary directory under `parent`.
-pub(crate) fn s3_storage(port: u16, parent: &Path) -> CaptureStorage {
-    CaptureStorage::S3 {
-        staging: TempDir::new_in(parent).expect("should create the staging directory"),
-        bucket: Arc::new(bucket(port)),
-    }
+pub(crate) fn s3_storage(port: u16, parent: &Path) -> ArtifactStorage {
+    ArtifactStorage::s3(
+        bucket(port),
+        TempDir::new_in(parent).expect("should create the staging directory"),
+    )
+}
+
+/// Local storage under `directory`, or S3 storage staging there if MinIO runs on `port`.
+fn storage(port: Option<u16>, directory: &Path) -> ArtifactStorage {
+    port.map_or_else(
+        || {
+            ArtifactStorage::local(directory.join("artifacts"))
+                .expect("should create local storage")
+        },
+        |port| s3_storage(port, directory),
+    )
 }
 
 fn run() -> CaptureRun {
@@ -74,12 +85,12 @@ fn items() -> SourceName {
     "items".parse().expect("should be a source name")
 }
 
-/// Publishes a capture of `rows` rows for `run` and stores it.
-async fn store(storage: &CaptureStorage, run: CaptureRun, rows: u64) {
+/// Publishes an artifact of `rows` rows for `key` and stores it.
+async fn store(storage: &ArtifactStorage, key: &ArtifactKey, rows: u64) -> Stored {
     let target = storage
-        .target(run, &items())
-        .expect("should return the capture target");
-    let partial = SourceCapture::stage(&target).expect("should stage the capture");
+        .staging(key)
+        .expect("should return the staging path");
+    let partial = SourceCapture::stage(&target).expect("should stage the artifact");
     let path = partial.path().to_str().expect("the path should be UTF-8");
     Connection::open_in_memory()
         .and_then(|connection| {
@@ -88,84 +99,97 @@ async fn store(storage: &CaptureStorage, run: CaptureRun, rows: u64) {
                 literal(path)
             ))
         })
-        .expect("should write the capture");
-    let capture =
-        SourceCapture::publish(partial, &target, rows).expect("should publish the capture");
+        .expect("should write the artifact");
+    let artifact =
+        SourceCapture::publish(partial, &target, rows).expect("should publish the artifact");
     storage
-        .store(run, &items(), &capture)
+        .store(key, &artifact)
         .await
-        .expect("should store the capture");
+        .expect("should store the artifact")
 }
 
-async fn rows(storage: &CaptureStorage, run: CaptureRun) -> Option<u64> {
+async fn rows(storage: &ArtifactStorage, key: &ArtifactKey) -> Option<u64> {
     storage
-        .load(run, &items())
+        .load(key)
         .await
-        .expect("should load from the storage")
-        .map(|capture| capture.rows())
+        .expect("should read from the storage")
+        .map(|artifact| artifact.rows())
 }
 
-fn other(run: CaptureRun) -> CaptureRun {
-    CaptureRun {
-        id: Uuid::new_v4(),
-        ..run
-    }
-}
-
+#[rstest]
+#[case::local(false)]
+#[case::s3(true)]
 #[tokio::test]
-async fn local_loads_a_stored_capture() {
+async fn restores_in_new_staging(#[case] s3: bool) {
     let directory = TempDir::new().expect("should create a directory");
-    let root = directory.path().join("captures");
+    let minio = if s3 { Some(minio().await) } else { None };
+    let port = minio.as_ref().map(|(_, port)| *port);
     let run = run();
-    store(&CaptureStorage::Local(root.clone()), run, 3).await;
+    let key = layout::capture(run, &items());
+    store(&storage(port, directory.path()), &key, 3).await;
 
-    let restore = CaptureStorage::Local(root);
+    let restore = storage(port, directory.path());
     assert_eq!(
-        rows(&restore, run).await,
+        rows(&restore, &key).await,
         Some(3),
-        "should load the stored capture"
+        "should load the stored artifact"
+    );
+    let other = layout::capture(
+        CaptureRun {
+            id: Uuid::new_v4(),
+            ..run
+        },
+        &items(),
     );
     assert_eq!(
-        rows(&restore, other(run)).await,
+        rows(&restore, &other).await,
         None,
-        "another run should have no capture"
+        "another run should have no artifact"
+    );
+}
+
+#[rstest]
+#[case::local(false)]
+#[case::s3(true)]
+#[tokio::test]
+async fn keeps_the_first_stored_artifact(#[case] s3: bool) {
+    let directory = TempDir::new().expect("should create a directory");
+    let minio = if s3 { Some(minio().await) } else { None };
+    let port = minio.as_ref().map(|(_, port)| *port);
+    let key = layout::capture(run(), &items());
+    assert_eq!(
+        store(&storage(port, directory.path()), &key, 3).await,
+        Stored::Created,
+        "the first attempt should store its artifact"
+    );
+
+    let retry = storage(port, directory.path());
+    assert_eq!(
+        store(&retry, &key, 5).await,
+        Stored::Exists,
+        "a later attempt should not replace the artifact"
+    );
+    assert_eq!(
+        rows(&retry, &key).await,
+        Some(3),
+        "the first artifact should remain"
     );
 }
 
 #[tokio::test]
-async fn s3_restores_into_new_staging() {
+async fn s3_errors_are_not_missing_artifacts() {
     let directory = TempDir::new().expect("should create a directory");
     let (_minio, port) = minio().await;
-    let run = run();
-    store(&s3_storage(port, directory.path()), run, 3).await;
-
-    let restore = s3_storage(port, directory.path());
-    assert_eq!(
-        rows(&restore, run).await,
-        Some(3),
-        "should download the stored capture"
-    );
-    assert_eq!(
-        rows(&restore, other(run)).await,
-        None,
-        "another run should have no capture"
-    );
-}
-
-#[tokio::test]
-async fn s3_errors_are_not_missing_captures() {
-    let directory = TempDir::new().expect("should create a directory");
-    let (_minio, port) = minio().await;
-    let storage = CaptureStorage::S3 {
-        staging: TempDir::new_in(directory.path()).expect("should create the staging directory"),
-        bucket: Arc::new(S3Bucket {
+    let storage = ArtifactStorage::s3(
+        S3Bucket {
             secret: Secret::from_vec(b"wrong".to_vec()),
             ..bucket(port)
-        }),
-    };
+        },
+        TempDir::new_in(directory.path()).expect("should create the staging directory"),
+    );
 
     let _report = storage
-        .load(run(), &items())
+        .load(&layout::capture(run(), &items()))
         .await
         .expect_err("should fail when the bucket cannot be read");
 }

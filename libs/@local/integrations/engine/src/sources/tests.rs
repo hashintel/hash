@@ -22,7 +22,7 @@ use super::{
     fingerprint,
 };
 use crate::{
-    CaptureStorage, Workspace, WorkspaceConfig,
+    ArtifactStorage, Workspace, WorkspaceConfig,
     storage::tests::{minio, s3_storage},
 };
 
@@ -148,10 +148,14 @@ fn run() -> CaptureRun {
 }
 
 fn reader(directory: &Path) -> SourceReader {
-    reader_with(directory, CaptureStorage::Local(directory.join("captures")))
+    reader_with(
+        directory,
+        ArtifactStorage::local(directory.join("captures"))
+            .expect("should create local capture storage"),
+    )
 }
 
-fn reader_with(directory: &Path, captures: CaptureStorage) -> SourceReader {
+fn reader_with(directory: &Path, captures: ArtifactStorage) -> SourceReader {
     let local = directory.join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
     SourceReader::new(
@@ -177,7 +181,8 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
     // the capture.
     let captures = || match &minio {
         Some((_, port)) => s3_storage(*port, directory.path()),
-        None => CaptureStorage::Local(directory.path().join("captures")),
+        None => ArtifactStorage::local(directory.path().join("captures"))
+            .expect("should create local capture storage"),
     };
     let run = run();
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
@@ -266,8 +271,11 @@ fn overlapping_roots(#[case] captures: &str) {
     let directory = TempDir::new().expect("should create the directory");
     let local = directory.path().join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
-    let error = CaptureStore::new(&local, CaptureStorage::Local(local.join(captures)))
-        .expect_err("should keep captures outside the local source root");
+    let error = CaptureStore::new(
+        &local,
+        ArtifactStorage::local(local.join(captures)).expect("should create local capture storage"),
+    )
+    .expect_err("should keep captures outside the local source root");
     assert!(
         matches!(error.current_context(), SourceError::Configuration),
         "overlapping roots should be rejected as invalid configuration"
@@ -283,7 +291,8 @@ fn local_root_invalid_key(#[case] key: &str) {
     let captures = TempDir::new().expect("should create the capture directory");
     let store = CaptureStore::new(
         directory.path(),
-        CaptureStorage::Local(captures.path().to_owned()),
+        ArtifactStorage::local(captures.path().to_owned())
+            .expect("should create local capture storage"),
     )
     .expect("should open storage");
     let error = store
@@ -304,7 +313,8 @@ fn local_root_symlink() {
     let captures = TempDir::new().expect("should create the capture directory");
     let store = CaptureStore::new(
         directory.path(),
-        CaptureStorage::Local(captures.path().to_owned()),
+        ArtifactStorage::local(captures.path().to_owned())
+            .expect("should create local capture storage"),
     )
     .expect("should open storage");
     symlink(outside.path(), directory.path().join("escape"))

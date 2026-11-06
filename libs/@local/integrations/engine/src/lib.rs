@@ -40,7 +40,7 @@ pub use self::{
         CaptureLimits, CaptureRun, CaptureStore, GraphVaultConfig, GraphVaultSecretStore,
         SecretStore, SecretValue, SourceError, SourceReader,
     },
-    storage::{CaptureStorage, S3Bucket},
+    storage::{ArtifactError, ArtifactStorage, S3Bucket},
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,

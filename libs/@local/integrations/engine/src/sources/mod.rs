@@ -16,7 +16,11 @@ use uuid::Uuid;
 
 use self::fingerprint::fingerprint;
 pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue};
-use crate::{ByteSize, CaptureStorage, SourceCapture, TableAssertions, Workspace, sql::Identifier};
+use crate::{
+    ArtifactStorage, ByteSize, SourceCapture, TableAssertions, Workspace,
+    sql::Identifier,
+    storage::{Stored, layout},
+};
 
 /// Identifies the service involved in resolving a User Secret.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
@@ -36,6 +40,8 @@ pub enum SourceError {
     Write,
     #[display("source capture could not be loaded into the workspace")]
     Load,
+    #[display("another attempt of the run already stored a capture of this source")]
+    Conflict,
     #[display("source query failed")]
     Query,
     #[display("User Secret is unavailable or invalid")]
@@ -92,7 +98,7 @@ pub struct CaptureRun {
 #[derive(Debug)]
 pub struct CaptureStore {
     local: PathBuf,
-    captures: CaptureStorage,
+    captures: ArtifactStorage,
 }
 
 impl CaptureStore {
@@ -103,7 +109,7 @@ impl CaptureStore {
     /// Returns [`SourceError::Read`] if the local root cannot be opened,
     /// [`SourceError::Write`] if the capture directory cannot be created, or
     /// [`SourceError::Configuration`] if either is not a directory or one contains the other.
-    pub fn new(local: &Path, captures: CaptureStorage) -> Result<Self, Report<SourceError>> {
+    pub fn new(local: &Path, captures: ArtifactStorage) -> Result<Self, Report<SourceError>> {
         let local = local.canonicalize().change_context(SourceError::Read)?;
         let directory = captures.directory().change_context(SourceError::Write)?;
         // A capture inside the local root could be read as a local source by any definition,
@@ -176,17 +182,12 @@ impl SourceReader {
                 continue;
             }
             let storage = &self.store.captures;
-            if let Some(capture) = storage
-                .load(run, name)
-                .await
-                .change_context(SourceError::Read)?
-            {
+            let key = layout::capture(run, name);
+            if let Some(capture) = storage.load(&key).await.change_context(SourceError::Read)? {
                 captures.insert(name.clone(), capture);
                 continue;
             }
-            let target = storage
-                .target(run, name)
-                .change_context(SourceError::Write)?;
+            let target = storage.staging(&key).change_context(SourceError::Write)?;
             let capture = match &source.kind {
                 SourceKind::Sql { query, .. } => workspace
                     .capture(query.as_ref().into(), target)
@@ -220,10 +221,17 @@ impl SourceReader {
                     unreachable!("checkpoint sources are skipped before capture")
                 }
             }?;
-            storage
-                .store(run, name, &capture)
+            match storage
+                .store(&key, &capture)
                 .await
-                .change_context(SourceError::Write)?;
+                .change_context(SourceError::Write)?
+            {
+                Stored::Created => {}
+                // TODO: Another attempt of this run stored its capture first. Whether this
+                //   attempt should continue from that capture or fail is open for discussion with
+                //   the team, so it fails for now.
+                Stored::Exists => return Err(Report::new(SourceError::Conflict)),
+            }
             captures.insert(name.clone(), capture);
         }
         Ok(captures)
