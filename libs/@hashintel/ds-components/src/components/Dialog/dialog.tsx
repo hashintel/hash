@@ -70,7 +70,7 @@ const DialogRoot = ({
 } & React.AriaAttributes) => {
   const portalContainerRef = usePortalContainerRef();
 
-  const classes = useMemo(() => styles({ size }), [size]);
+  const classes = useMemo(() => styles({ size, variant }), [size, variant]);
 
   const renderCloseButton = shouldCloseOn !== "none";
   const closeOnEscape = shouldCloseOn !== "none";

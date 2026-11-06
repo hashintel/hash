@@ -299,7 +299,10 @@ const DrawerRoot = ({
 } & React.AriaAttributes) => {
   const portalContainerRef = usePortalContainerRef();
 
-  const classes = useMemo(() => styles({ size, position }), [size, position]);
+  const classes = useMemo(
+    () => styles({ size, position, variant }),
+    [size, position, variant],
+  );
 
   const [takingOverFromSwapSibling] = useState(
     () => !!swapKey && getTopDrawerSwapKey() === swapKey,
