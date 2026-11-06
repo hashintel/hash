@@ -55,7 +55,7 @@ const open = async (schema: string, models: Models, readOnly: boolean) => {
   const registry = createRegistry();
   registry.install(browserCallExtension);
   return Harness.open(
-    await openPostgresStorage({ pool: poolConfig, schema }),
+    await openPostgresStorage({ pool: poolConfig, schema, readOnly }),
     { models, registry, readOnly },
     context,
   );

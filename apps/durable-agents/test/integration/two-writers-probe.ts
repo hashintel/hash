@@ -1,6 +1,8 @@
 /**
  * Probe: two writable Harnesses on one Postgres schema, the case Pi
- * Durable's "one process owns a storage" contract leaves unguarded.
+ * Durable's "one process owns a storage" contract leaves to the host, and
+ * the ownership fence `PostgresStorage` puts on it: opening the schema takes
+ * ownership, and the previous owner's next commit fails its Session.
  *
  * Harness A takes one input; the model calls the waiting `setNetTitle`, so
  * A's `pi.tool` task is running. Harness B then opens the same schema
@@ -10,8 +12,10 @@
  * Harnesses run in this process on separate pools, so they share nothing
  * but the database.
  *
- * The probe reports what each Harness and the storage end up with; a fresh
- * read-only Harness reads the stored transcript at the end.
+ * A read-only Harness also opens the schema while B owns it, and must not
+ * take ownership. The probe reports what each Harness and the storage end
+ * up with; a fresh read-only Harness reads the stored transcript at the end.
+ * Without the fence, A's next input collided on an entry ID instead.
  *
  * Usage: `turbo run probe:two-writers --filter @apps/durable-agents`, with
  * the compose Postgres up. No model is called; it takes a few seconds.
@@ -30,6 +34,8 @@ import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgr
 import { openPostgresStorage } from "../../src/storage/postgres/postgres-storage";
 import { actAsBrowser } from "../browser-call/proof/browser";
 import { print, until } from "../browser-call/proof/server-process";
+
+const fenced = "is owned by a storage opened later";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -50,7 +56,7 @@ const open = async (
   const registry = createRegistry();
   registry.install(browserCallExtension);
   const harness = await Harness.open(
-    await openPostgresStorage({ pool: poolConfig, schema }),
+    await openPostgresStorage({ pool: poolConfig, schema, readOnly }),
     { models, registry, readOnly },
     context,
   );
@@ -89,6 +95,11 @@ const main = async () => {
   const admin = new Pool({ ...poolConfig, max: 1 });
   const show = (heading: string, value: unknown) =>
     print(`\n${heading}\n${JSON.stringify(value, null, 2)}`);
+  const results: { criterion: string; pass: boolean }[] = [];
+  const check = (criterion: string, pass: boolean) => {
+    results.push({ criterion, pass });
+    print(`${pass ? "PASS" : "FAIL"}  ${criterion}`);
+  };
   try {
     const a = await open(schema, [
       fauxAssistantMessage(
@@ -119,6 +130,7 @@ const main = async () => {
       fauxAssistantMessage("B: second answer."),
     ]);
     b.harness.resume();
+    const viewer = await open(schema, [], true);
     await new Promise((resolve) => setTimeout(resolve, 500));
     show("After B opens and resumes", {
       a: {
@@ -177,18 +189,20 @@ const main = async () => {
       ),
     ]);
     await new Promise((resolve) => setTimeout(resolve, 500));
-    show("After A and B each take one more input", {
+    const after = {
       a: {
         submission: both[0],
         session: await sessionState(a.harness),
         requests: a.state.callCount,
+        firstSubmission: await settleWithin(first.wait(context), 500),
       },
       b: {
         submission: both[1],
         session: await sessionState(b.harness),
         requests: b.state.callCount,
       },
-    });
+    };
+    show("After A and B each take one more input", after);
 
     await Promise.allSettled([
       a.harness.close(context),
@@ -220,11 +234,47 @@ const main = async () => {
       });
     show("Stored transcript, read afterwards", stored);
     show("Stored live tasks, read afterwards", await liveTasks(reader.harness));
-    await reader.harness.close(context);
+    await Promise.allSettled([
+      reader.harness.close(context),
+      viewer.harness.close(context),
+    ]);
+
+    print("");
+    check(
+      "A's next commit after B opened fails A's Session on ownership, not on an ID collision",
+      after.a.session.startsWith("failed") && after.a.session.includes(fenced),
+    );
+    check(
+      "A wrote nothing after B opened: its input was refused, and A never asked its model again",
+      !stored.some((line) => line.includes("A asks again")) &&
+        a.state.callCount === 1,
+    );
+    check(
+      "B, the owner, finished the call and answered its follow-up while a read-only Harness was open",
+      after.b.session === "open" &&
+        JSON.stringify(stored.map((line) => line.split(" ")[1])) ===
+          JSON.stringify([
+            "pi.user",
+            "pi.assistant",
+            "pi.tool-result",
+            "pi.assistant",
+            "pi.user",
+            "pi.assistant",
+          ]) &&
+        stored[3]?.includes("B: renamed the net.") === true &&
+        stored[5]?.includes("B: second answer.") === true,
+    );
   } finally {
     await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
     await admin.end();
   }
+  const failed = results.filter(({ pass }) => !pass).length;
+  print(
+    failed === 0
+      ? `\nAll ${results.length} criteria pass.`
+      : `\n${failed} of ${results.length} criteria fail.`,
+  );
+  process.exitCode = failed === 0 ? 0 : 1;
 };
 
 await main();
