@@ -1,0 +1,402 @@
+---
+title: Writing a HashQL query
+description: Build a release briefing from one query, then combine three questions into one result.
+---
+
+import { Callout } from "@fumadocs/base-ui/components/callout";
+
+Your release review starts in a few minutes. The task list is in HASH, but a list alone won't answer the questions people will ask: what remains unfinished, what is blocked, and which tasks need an owner?
+
+Let's build that briefing. Start with one query, give it a release to work on, then use its results to ask more specific questions. By the end, one HashQL program will describe all three views.
+
+This guide uses the [language introduction](/docs/hashql/intro)'s bindings, inputs and field access. [Using the Draft SDK](/docs/hashql/using-draft) introduces the context, prelude and expression handles used below. Keep the [cheatsheet](/docs/hashql/cheatsheet) nearby if you want to compare the notation with a language you already know.
+
+<Callout title="What you can run">
+  The TypeScript examples construct and serialize a HashQL program with the
+  current Draft API. They do not connect to a database. The sample results below
+  describe a fictional task graph, not a live HASH response. Ownership traversal
+  and summary operations appear at the end as extensions, with their missing
+  pieces identified there.
+</Callout>
+
+## The question and the data
+
+For this exercise, use a graph containing these five task entities. `release`, `status` and `assigned` are application properties. A task is unfinished when its status is not `done`. A task can be both blocked and unassigned.
+
+| Task  | Title                      | Release   | Status  | Assigned |
+| ----- | -------------------------- | --------- | ------- | -------- |
+| T-101 | Finish the migration       | Meridian  | open    | yes      |
+| T-102 | Confirm the rollout window | Meridian  | blocked | no       |
+| T-103 | Update the release notes   | Meridian  | open    | no       |
+| T-104 | Publish the client package | Meridian  | done    | yes      |
+| T-105 | Refresh the demo data      | Northstar | blocked | yes      |
+
+These names are illustrative. In HASH, each property has a base URL, and the `assigned` property here is a Boolean recorded on the task. It is not an ownership relationship. We'll return to that distinction when we ask who can help.
+
+We also need a temporal view. Every graph query starts from a selection of the graph's time axes. The host will supply that selection as `axis`, so the program does not quietly change its question to whatever happens to exist when it runs.
+
+## Set up the example
+
+The examples use the workspace's `@local/hashql` package. Create a TypeScript file in a workspace that can resolve that package and `effect`, and begin with these imports and the temporal type declaration:
+
+```ts title="release-briefing.ts" data-example="setup"
+import { JExpr, Program } from "@local/hashql";
+import type { Type } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Option, Result } from "effect";
+
+const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
+  Option.getOrThrow(
+    JExpr.Type.reference("::graph::temporal::QueryTemporalAxes"),
+  ),
+);
+```
+
+`axes` describes an input's type. It is not a timestamp or a temporal selection itself. A host that executes the query must provide an actual `QueryTemporalAxes` value.
+
+The entity descriptor in today's SDK does not expose application properties. To keep the query readable, put the fixture's property declarations in one helper.
+
+<details>
+<summary>Declare the fixture's task fields</summary>
+
+```ts title="The task fixture's property declarations" data-example="fields"
+const taskFields = (
+  entity: Program.Expression.Expression<
+    Program.Query.Entity,
+    Program.Inputs.Empty
+  >,
+) => {
+  const properties = entity.$projectUnsafe("properties");
+
+  return {
+    release: Program.Expression.assume<Type.PrimitiveString>()(
+      properties.$projectUnsafe(
+        "https://example.com/types/property-type/release/",
+      ),
+    ),
+    status: Program.Expression.assume<Type.PrimitiveString>()(
+      properties.$projectUnsafe(
+        "https://example.com/types/property-type/status/",
+      ),
+    ),
+    assigned: Program.Expression.assume<Type.PrimitiveBoolean>()(
+      properties.$projectUnsafe(
+        "https://example.com/types/property-type/assigned/",
+      ),
+    ),
+  };
+};
+```
+
+</details>
+
+<Callout type="warn" title="A declaration, not a validator">
+  This helper trusts the fixture's schema: every queried entity must have these
+  properties with these types. `assume` changes the SDK descriptor without
+  validating data or emitting a HashQL `as`. Do not copy this declaration over
+  an arbitrary graph. A real application needs a source restricted to its task
+  schema and declarations that match it. [Generated standard-library
+  declarations](https://linear.app/hash/issue/BE-1013/generate-sdk-module-declarations-from-the-hashql-standard-library)
+  are planned, and do not by themselves establish your application schema.
+</Callout>
+
+That setup is deliberately separate from the query. The next examples replace the `briefing` declaration in the same file, while keeping these imports and helpers.
+
+## Start with the tasks
+
+Start by describing the collection of entities:
+
+```ts tab="TypeScript" tab-group="hashql-language" data-example="all-tasks"
+const briefing = Draft.program({ axis: axes }, ($, { axis }) =>
+  $.query.entities(axis).collect(),
+);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(collect
+  (entities (input axis QueryTemporalAxes)))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+head::entities(input(axis, QueryTemporalAxes))
+  |> tail::collect
+```
+
+In our task-only fixture, this selects all five entities. [`entities`](/docs/hashql/reference/hashql/Draft/Context#Queries.entities) starts the graph computation. [`collect`](/docs/hashql/reference/hashql/Draft/Context#Query.collect) describes materializing its vertices as a list. Neither call reads the graph while TypeScript constructs the program.
+
+The short graph-operation names in the functional examples stand for the graph standard library's operations. `eq` and `ne` denote the core comparison functions. The reference examples use `head`, `body` and `tail` to make their roles visible. In the remaining illustrative examples, `task.release`, `task.status` and `task.assigned` abbreviate the property-URL accesses declared above. They are not built-in fields on every HASH entity.
+
+## Ask about one release
+
+The review concerns Meridian, not Northstar. Make the release name an input so the same program can serve the next review too:
+
+```ts tab="TypeScript" tab-group="hashql-language" data-example="release"
+const briefing = Draft.program(
+  { axis: axes, release: String },
+  ($, { axis, release }) =>
+    $.query
+      .entities(axis)
+      .filter("task", (predicate, task) =>
+        predicate.eq(taskFields(task).release, release),
+      )
+      .collect(),
+);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let release (input release String)
+  (collect
+    (filter (entities (input axis QueryTemporalAxes))
+      (fn [] {task: _} Boolean
+        (eq task.release release)))))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let release = input(release, String) in
+head::entities(input(axis, QueryTemporalAxes))
+  |> body::filter(task -> task.release == release)
+  |> tail::collect
+```
+
+With `release` supplied as `"Meridian"`, the selected tasks are T-101 through T-104. T-105 belongs to Northstar and is excluded.
+
+The filter callback receives a context for its predicate and a handle for the current task. TypeScript invokes the callback during construction. HashQL later applies the resulting predicate to graph vertices. Returning `taskFields(task).release === release` would compare JavaScript objects now, which is not the question we want the graph to answer. Use the SDK's comparison operations to construct that question.
+
+## Keep the unfinished work
+
+A completed task shouldn't remain on the review agenda. Add a second predicate:
+
+```ts tab="TypeScript" tab-group="hashql-language" data-example="unfinished"
+const briefing = Draft.program(
+  { axis: axes, release: String },
+  ($, { axis, release }) =>
+    $.query
+      .entities(axis)
+      .filter("task", (predicate, task) =>
+        predicate.eq(taskFields(task).release, release),
+      )
+      .filter("task", (predicate, task) =>
+        predicate.ne(taskFields(task).status, "done"),
+      )
+      .collect(),
+);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let release (input release String)
+  (collect
+    (filter
+      (filter (entities (input axis QueryTemporalAxes))
+        (fn [] {task: _} Boolean
+          (eq task.release release)))
+      (fn [] {task: _} Boolean
+        (ne task.status "done")))))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let release = input(release, String) in
+head::entities(input(axis, QueryTemporalAxes))
+  |> body::filter(task -> task.release == release)
+  |> body::filter(task -> task.status != "done")
+  |> tail::collect
+```
+
+Now T-104 is excluded too. The unfinished list contains T-101, T-102 and T-103. We have changed the selection, not the stored task entities.
+
+These predicates could be combined with `and`. Keeping them separate makes the progression visible: choose the release, then choose the unfinished work within it.
+
+## Turn the list into a briefing
+
+For the briefing, return all three views in a struct. Bind the common selection as a graph expression, then derive and collect the blocked and unassigned selections from it:
+
+```ts tab="TypeScript" tab-group="hashql-language" data-example="briefing"
+const briefing = Draft.program(
+  { axis: axes, release: String },
+  ($, { axis, release }) => {
+    const releaseTasks = $.let(
+      "release_tasks",
+      $.query
+        .entities(axis)
+        .filter("task", (predicate, task) =>
+          predicate.eq(taskFields(task).release, release),
+        ),
+    );
+    const unfinished = $.let(
+      "unfinished",
+      $.query(releaseTasks).filter("task", (predicate, task) =>
+        predicate.ne(taskFields(task).status, "done"),
+      ),
+    );
+
+    return Program.Structural.struct({
+      unfinished: $.query(unfinished).collect(),
+      blocked: $.query(unfinished)
+        .filter("task", (predicate, task) =>
+          predicate.eq(taskFields(task).status, "blocked"),
+        )
+        .collect(),
+      unassigned: $.query(unfinished)
+        .filter("task", (predicate, task) =>
+          predicate.isFalse(taskFields(task).assigned),
+        )
+        .collect(),
+    });
+  },
+);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let release_tasks
+  (filter (entities (input axis QueryTemporalAxes))
+    (fn [] {task: _} Boolean
+      (eq task.release (input release String))))
+  (let unfinished
+    (filter release_tasks
+      (fn [] {task: _} Boolean
+        (ne task.status "done")))
+    {unfinished: (collect unfinished),
+     blocked: (collect
+       (filter unfinished
+         (fn [] {task: _} Boolean
+           (eq task.status "blocked")))),
+     unassigned: (collect
+       (filter unfinished
+         (fn [] {task: _} Boolean
+           (eq task.assigned false))))}))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let release_tasks =
+      head::entities(input(axis, QueryTemporalAxes))
+        |> body::filter(task ->
+          task.release == input(release, String)),
+    unfinished = release_tasks
+      |> body::filter(task -> task.status != "done")
+in
+(
+  unfinished: unfinished |> tail::collect,
+  blocked: unfinished
+    |> body::filter(task -> task.status == "blocked")
+    |> tail::collect,
+  unassigned: unfinished
+    |> body::filter(task -> task.assigned == false)
+    |> tail::collect,
+)
+```
+
+The result contains entities, not just identifiers. Showing only their labels, the fixture gives us this briefing:
+
+```json title="Expected selection for Meridian"
+{
+  "unfinished": ["T-101", "T-102", "T-103"],
+  "blocked": ["T-102"],
+  "unassigned": ["T-102", "T-103"]
+}
+```
+
+T-102 appears in two views because it is both blocked and unassigned. The lists aren't a partition. We haven't requested an ordering either, so the order shown here is for readability, not a query guarantee.
+
+Notice where `collect` moved. We bind the graph expression first, then collect each view after applying its own filters. [`$.query`](/docs/hashql/reference/hashql/Draft/Context#Context.query) adds the query-building methods to the bound expression again. A `let` reference itself is an expression handle, not the original fluent builder.
+
+A binding gives the common computation a name. It does not promise one database scan, caching or an execution plan. Those are compiler and runtime decisions.
+
+## Serialize the program
+
+Append this to any of the TypeScript checkpoints above:
+
+```ts title="Produce J-Expr" data-example="serialize"
+const program = Result.map(briefing, Program.program);
+const serialized = Result.flatMap(program, Program.compile);
+const queryText = Result.getOrThrow(serialized);
+
+console.log(queryText);
+```
+
+[`Program.compile`](/docs/hashql/reference/hashql/Program#compile) is the SDK's serializer. It produces J-Expr JSON text and reports construction failures. Despite its name, this operation is not the server-side HashQL compiler, and it does not execute the query.
+
+For example, the first checkpoint serializes to:
+
+```json
+[
+  "::graph::tail::collect",
+  [
+    "::graph::head::entities",
+    [
+      "::kernel::special_form::input",
+      "axis",
+      "::graph::temporal::QueryTemporalAxes"
+    ]
+  ]
+]
+```
+
+The release name and temporal selection remain inputs. Submitting the text and its inputs is the host integration's responsibility. The SDK shown here provides no transport method. You now have a constructed program to pass to that integration, plus a fixture against which to check its results.
+
+`getOrThrow` keeps this controlled example small. An application building programs from user input should [handle the construction result](/docs/hashql/troubleshooting#handle-a-construction-failure) and report failures to its caller.
+
+## Who should we talk to?
+
+The `assigned` flag answers whether a task has an owner. It cannot tell us who that person is. For that, the graph needs an ownership relationship between a task and a person, and the query needs to follow it.
+
+Our next result might include:
+
+```json title="An ownership-enriched result"
+{
+  "task": "T-102",
+  "title": "Confirm the rollout window",
+  "owners": []
+}
+```
+
+A list accommodates multiple owners and represents an unassigned task as `[]`. Before adding this step, decide whether multiple owners are valid in your schema and whether an invisible person should be distinguishable from no owner.
+
+<Callout title="Extension: relationship traversal">
+  The current Draft query builder supplies filtering and collection, not an
+  ownership traversal builder. [Graph query
+  heads](https://linear.app/hash/issue/BE-529/extend-graph-query-heads) track
+  part of the wider work. Completing this step also needs the relationship
+  schema, traversal semantics and backend support. This extension has no
+  executable Draft checkpoint yet.
+</Callout>
+
+## Is the release getting healthier?
+
+Run the same briefing against the temporal view used for the previous review and the current view. Keep the release input unchanged. This is why `axis` was an input from the start: the comparison should change the graph view, not the program's meaning.
+
+Suppose the previous review selected T-101 and T-102 as blocked, while the current one selects only T-102. The useful question is which task left the blocked set. Counts alone cannot answer that: one task might be resolved while another becomes blocked.
+
+Compare stable entity identities when joining the two results. The T-labels in this guide are display labels, not the identifiers a real integration should use. Comparing these two returned briefings in the host application is a practical first step. Computing the difference inside HashQL requires the relevant collection operations and an execution path that supports them.
+
+## Give me the short version
+
+The detailed lists can support a summary without replacing the evidence a person needs to act:
+
+```json title="Desired summary for the current fixture"
+{
+  "unfinishedCount": 3,
+  "blockedCount": 1,
+  "unassignedCount": 2,
+  "needsAttention": true
+}
+```
+
+For this example, `needsAttention` means that at least one unfinished task is blocked or unassigned. T-102 must not count twice if you later introduce a count of distinct tasks needing attention.
+
+<Callout title="Extension: summary operations">
+  Draft does not currently provide this tutorial with a complete typed
+  collection-counting API. [Generated library
+  declarations](https://linear.app/hash/issue/BE-1013/generate-sdk-module-declarations-from-the-hashql-standard-library)
+  and [aggregate SQL
+  emission](https://linear.app/hash/issue/BE-682/emit-aggregate-sql-for-collection-operations)
+  cover different parts of that work. An aggregate backend alone does not add a
+  Draft method. Until the required operations are available end to end, the host
+  can summarize the returned lists.
+</Callout>
+
+## Where to go next
+
+We started with all tasks and ended with a program containing three related graph computations. The release and temporal view are explicit inputs. Bindings keep the common selection visible, and the final struct says what the caller receives.
+
+Try changing the fixture before changing the program: mark T-102 as assigned, move T-103 to another release, or complete every Meridian task. Predict all three lists, then use those predictions as checks when you connect the query to an execution environment.
+
+For the language behind the examples, return to [the introduction](/docs/hashql/intro). For method signatures, use the [Draft API reference](/docs/hashql/reference/hashql/Draft). For compilation and execution internals, read [the technical explanation](https://hgres.org/hashql).
