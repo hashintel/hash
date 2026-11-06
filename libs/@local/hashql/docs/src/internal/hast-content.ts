@@ -271,6 +271,10 @@ export const blocks =
   (nodes: readonly Tree.Prose.Block[]): Written<ElementContent[]> =>
     Result.all(Array.map(nodes, block(output)));
 
+/** A list of names as an element's property. A host's hast-to-jsx joins an array property with spaces, and a name may contain one, so the property holds the list as JSON. */
+export const names = (value: readonly string[]): string =>
+  JSON.stringify(value);
+
 /** A flag as an element's property, left out when it is false. */
 export const flag = (value: boolean): true | undefined =>
   value ? true : undefined;
@@ -434,7 +438,7 @@ const row =
           href: Option.getOrUndefined(Output.row(output)(value)),
           kind: value.kind,
           depth: value.depth,
-          names: Array.copy(value.label),
+          names: names(value.label),
           summary: summaryOf(value),
           deprecated: flag(value.deprecated),
         },
