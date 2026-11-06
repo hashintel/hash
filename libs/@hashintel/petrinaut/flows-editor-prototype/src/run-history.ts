@@ -194,6 +194,7 @@ const liveFacts = (
   if (seconds < findSeconds) {
     return {
       ...base,
+      failures: [],
       find: "running",
       processed: [0, 0, 0, 0],
       inFlight: false,
@@ -207,6 +208,8 @@ const liveFacts = (
   const loopDone = processed[3] >= run.n;
   return {
     ...base,
+    // Only the items whose fetch has run so far have failed; the rest are still to come.
+    failures: run.failures.filter((failure) => failure.item < processed[1]),
     find: "done",
     processed,
     inFlight: !loopDone,
