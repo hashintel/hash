@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="itochu-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="itochu-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="itochu-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#itochu-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#itochu-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#itochu-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="itochu-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#itochu-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" id="itochu-app-dark-svg2515" viewBox="4.73772 1.90939 190.52455 78.62243" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="itochu-app-dark-defs2517">
+    <clipPath id="itochu-app-dark-clipPath19443">
+      <path d="M 0.09,841.05 L 1213.11,841.05 L 1213.11,0.09 L 0.09,0.09 L 0.09,841.05 z" id="itochu-app-dark-path19445" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath19437">
+      <path d="M -1,842 L 1214,842 L 1214,-2 L -1,-2 L -1,842 z" id="itochu-app-dark-path19439" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath19431">
+      <path d="M 674.87,798.48 L 782.59,798.48 L 782.59,727.61 L 674.87,727.61 L 674.87,798.48 z" id="itochu-app-dark-path19433" />
+    </clipPath>
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="itochu-app-dark-radialGradient19172" gradientUnits="userSpaceOnUse" gradientTransform="matrix(31.8665,0,0,-31.8684,304.8787,78.2195)">
+      <stop id="itochu-app-dark-stop19174" offset="0" stop-color="#FFEC00" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop19176" offset="1" stop-color="#00AB4E" stop-opacity="1" />
+    </radialGradient>
+    <clipPath id="itochu-app-dark-clipPath19164">
+      <path d="M 299.848,102.205 C 303.721,100.69 311.095,96.6 315.563,95.859 C 322.024,94.784 325.957,95.632 330.181,97.618 C 324.357,105.235 315.178,110.15 304.85,110.15 C 296.525,110.15 288.948,106.957 283.272,101.731 C 288.457,103.91 293.858,104.549 299.848,102.205" id="itochu-app-dark-path19166" />
+    </clipPath>
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="itochu-app-dark-radialGradient19148" gradientUnits="userSpaceOnUse" gradientTransform="matrix(31.8819,0,0,-31.8838,304.8494,78.2186)">
+      <stop id="itochu-app-dark-stop19150" offset="0" stop-color="#00B9F2" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop19152" offset="1" stop-color="#6479B8" stop-opacity="1" />
+    </radialGradient>
+    <clipPath id="itochu-app-dark-clipPath19140">
+      <path d="M 330.186,97.61 C 330.951,95.186 331.364,92.607 331.364,89.931 C 331.364,75.851 319.95,64.438 305.871,64.438 C 291.791,64.438 280.377,75.851 280.377,89.931 C 280.377,94.186 281.421,98.197 283.264,101.723 C 276.943,95.9 272.982,87.555 272.982,78.283 C 272.982,60.683 287.25,46.415 304.85,46.415 C 322.45,46.415 336.716,60.683 336.716,78.283 C 336.716,85.55 334.282,92.249 330.186,97.61" id="itochu-app-dark-path19142" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath18328">
+      <path d="M 0,792.06 L 612,792.06 L 612,0.06 L 0,0.06 L 0,792.06 z" id="itochu-app-dark-path18330" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath18322">
+      <path d="M 0,792 L 612,792 L 612,0 L 0,0 L 0,792 z" id="itochu-app-dark-path18324" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath18316">
+      <path d="M 40.63,752.48 L 209.09,752.48 L 209.09,691.71 L 40.63,691.71 L 40.63,752.48 z" id="itochu-app-dark-path18318" />
+    </clipPath>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient18304" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,9.268,53.3805,0,72.4956,720.9708)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop18306" offset="0" stop-color="#F2E4F0" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop18308" offset="1" stop-color="#CA49A4" stop-opacity="1" />
+    </linearGradient>
+    <clipPath id="itochu-app-dark-clipPath18284">
+      <path d="M 0,792.06 L 612,792.06 L 612,0.06 L 0,0.06 L 0,792.06 z" id="itochu-app-dark-path18286" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath18278">
+      <path d="M 0,792 L 612,792 L 612,0 L 0,0 L 0,792 z" id="itochu-app-dark-path18280" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath18272">
+      <path d="M 40.63,752.48 L 209.09,752.48 L 209.09,691.71 L 40.63,691.71 L 40.63,752.48 z" id="itochu-app-dark-path18274" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath9948">
+      <path d="M 28.823,124.04 L 128.633,124.04 L 128.633,141.637 L 28.823,141.637 L 28.823,124.04 z" id="itochu-app-dark-path9950" />
+    </clipPath>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9442" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.2666,-4.3981,0,103.0856,741.2892)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9444" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9446" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9424" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.2547,-13.0409,0,97.0944,741.2772)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9426" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9428" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9406" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-15.1231,-12.6446,0,82.4239,736.8457)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9408" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9410" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9388" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-15.1231,-9.7833,0,69.5159,736.8457)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9390" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9392" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9370" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.2343,-19.2322,0,60.3227,741.257)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9372" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9374" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9352" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.2343,-6.4071,0,176.0597,741.257)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9354" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9356" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9334" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.2343,-14.3486,0,169.0168,741.257)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9336" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9338" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9316" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.8327,-14.8209,0,154.4292,741.5554)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9318" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9320" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9298" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.2343,-20.8362,0,141.2684,741.257)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9300" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9302" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient x1="0" y1="0" x2="1" y2="0" id="itochu-app-dark-linearGradient9280" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,-19.2343,-17.8263,0,123.6772,741.257)" spreadMethod="pad">
+      <stop id="itochu-app-dark-stop9282" offset="0" stop-color="#00C0F3" stop-opacity="1" />
+      <stop id="itochu-app-dark-stop9284" offset="1" stop-color="#2D81C0" stop-opacity="1" />
+    </linearGradient>
+    <clipPath id="itochu-app-dark-clipPath4031">
+      <path d="M 0.03,841.95 L 595.29,841.95 L 595.29,0.03 L 0.03,0.03 L 0.03,841.95 z" id="itochu-app-dark-path4033" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath4023">
+      <path d="M 0,841 L 595.276,841 L 595.276,-0.89 L 0,-0.89 L 0,841 z" id="itochu-app-dark-path4025" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath2877">
+      <path d="M 0.06,793.02 L 615.06,793.02 L 615.06,0.06 L 0.06,0.06 L 0.06,793.02 z" id="itochu-app-dark-path2879" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath2871">
+      <path d="M 0,793 L 615,793 L 615,0 L 0,0 L 0,793 z" id="itochu-app-dark-path2873" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath2865">
+      <path d="M 399.6,438.67 L 566.93,438.67 L 566.93,370.64 L 399.6,370.64 L 399.6,438.67 z" id="itochu-app-dark-path2867" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath119">
+      <path d="M 0,842.04 L 594.96,842.04 L 594.96,0 L 0,0 L 0,842.04 z" id="itochu-app-dark-path121" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath113">
+      <path d="M 0,842 L 595,842 L 595,0 L 0,0 L 0,842 z" id="itochu-app-dark-path115" />
+    </clipPath>
+    <clipPath id="itochu-app-dark-clipPath107">
+      <path d="M 1.4,840.44 L 595.28,840.44 L 595.28,777.84 L 1.4,777.84 L 1.4,840.44 z" id="itochu-app-dark-path109" />
+    </clipPath>
+    <linearGradient x1="305.14465" y1="99.284622" x2="304.11359" y2="95.389488" id="itochu-app-dark-linearGradient19368" ns1:href="#itochu-app-dark-radialGradient19172" gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g transform="translate(-80.88341,158.20365)" id="itochu-app-dark-layer1">
+    <g transform="matrix(1.25,0,0,-1.25,-498.19608,406.80244)" clip-path="url(#itochu-app-dark-clipPath2871)" id="itochu-app-dark-g2869" />
+  </g>
+  <g transform="matrix(1.7368716,0,0,1.7368716,-93.773213,-50.336055)" id="itochu-app-dark-g19896">
+    <path d="M 117.67971,64.12505 C 117.67971,64.12505 117.89221,69.24005 117.84346,69.8113 C 117.79971,70.38505 117.49596,71.08505 116.67471,71.1113 C 115.68096,71.1463 115.30346,70.3113 115.30346,69.8113 C 115.30346,69.3913 115.03846,58.9288 115.08221,55.6263 C 115.08471,55.03255 115.63221,54.66255 116.10221,54.66255 C 116.91846,54.66255 117.20846,55.29755 117.25971,55.77505 C 117.36346,56.79005 117.39596,58.2738 117.43471,59.7563 L 123.94471,59.7563 C 123.72971,57.78755 123.31721,54.9988 122.91471,54.11755 C 121.58721,51.17005 118.19221,51.04255 116.07846,51.04255 C 112.58971,51.04255 110.30721,52.2088 109.18596,55.0563 C 108.92096,55.72755 108.51471,57.8913 108.31096,62.0888 C 108.03471,67.7463 107.37721,71.31255 110.29846,73.6213 C 113.50096,75.6688 119.17346,75.60005 121.94346,74.08255 C 125.75596,71.9788 124.61596,68.2013 124.41096,64.1613 L 117.67971,64.12505" id="itochu-app-dark-path19483" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 68.88096,51.8563 L 56.86846,74.53505 L 65.66721,74.34755 L 75.75971,51.8413 L 68.88096,51.8563" id="itochu-app-dark-path19485" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 95.60471,51.46755 C 91.33221,52.59755 90.83721,56.5363 89.78721,60.51005 C 88.93846,63.75505 87.42596,68.6313 88.12971,70.97005 C 89.19471,74.49505 92.97471,75.1013 95.39721,75.1013 C 104.06096,75.1013 104.79346,70.96005 105.48721,63.1238 C 106.01221,57.24755 106.56471,54.87005 104.76971,52.8263 C 103.48846,51.37005 99.96096,50.3213 95.60471,51.46755 z M 99.63846,56.1663 C 99.50096,57.2888 97.62846,69.0513 97.52971,69.51755 C 97.40971,70.13255 97.13721,71.12505 95.92971,71.0763 C 95.27346,71.04755 94.63346,70.51505 94.76721,69.67255 C 94.88096,68.96505 97.13721,56.73005 97.21471,56.32505 C 97.29846,55.91255 97.36721,54.5538 98.67096,54.6363 C 99.85596,54.7188 99.69596,55.6838 99.63846,56.1663" id="itochu-app-dark-path19487" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 91.06596,51.8463 L 77.04846,51.8463 L 75.27471,55.97755 L 79.35721,55.97755 L 72.35846,74.2163 L 80.41221,74.14505 L 86.09971,55.9988 L 89.97221,55.9988 L 91.06596,51.8463" id="itochu-app-dark-path19489" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 133.87346,51.89505 L 135.76221,59.71005 L 133.19471,59.71005 L 131.46596,51.8738 L 125.65846,51.8738 L 128.90096,73.9838 L 136.22846,74.00755 L 134.14596,64.11755 L 136.83471,64.07005 L 139.27971,74.10005 L 146.77346,74.14505 L 139.72721,51.89505 L 133.87346,51.89505" id="itochu-app-dark-path19491" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 165.37221,66.8288 C 163.25221,62.6538 157.57221,51.8688 157.57221,51.8688 L 151.53846,51.8688 L 159.04346,68.40505 C 159.86846,69.94005 159.27721,70.57005 158.53221,70.6788 C 157.78096,70.78505 156.99846,70.48255 156.60971,69.63005 L 149.01096,51.8688 L 143.01721,51.8688 C 143.01721,51.8688 147.47346,65.1038 149.25721,69.47255 C 150.94721,73.6238 154.05346,75.0313 159.65846,74.8888 C 165.91596,74.7313 167.48846,71.00505 165.37221,66.8288" id="itochu-app-dark-path19493" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 79.93596,42.5538 L 85.19846,30.7888 L 80.02096,30.7613 C 79.79596,31.2763 73.16971,43.6363 71.38471,46.96755 L 71.72096,47.3663 C 74.01971,45.7713 76.78971,44.1413 79.93596,42.5538" id="itochu-app-dark-path19495" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 87.88971,33.88505 L 85.50721,40.1363 C 88.47596,39.07005 89.27096,38.77755 91.61221,38.0963 C 91.61221,38.0963 92.87471,33.87505 92.96596,33.87505 C 93.05471,33.87505 95.84096,33.8788 95.84096,33.8788 L 96.66221,30.8013 L 86.16096,30.7863 L 84.82346,33.86505 L 87.88971,33.88505" id="itochu-app-dark-path19497" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 102.56221,30.19755 C 98.34971,30.19755 96.80721,32.1488 95.77221,36.9763 L 100.87221,36.0163 C 100.87221,36.0163 101.37221,33.6613 101.48971,33.3463 C 101.64471,32.8963 102.12721,32.85255 102.43346,32.85255 C 102.73971,32.85255 103.12846,33.0613 103.12846,33.43755 C 103.12846,33.9313 102.91471,35.70505 102.91471,35.70505 L 107.83971,35.2838 C 108.27971,31.87755 106.73096,30.19755 102.56221,30.19755" id="itochu-app-dark-path19499" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 114.63221,33.5063 C 114.63221,33.3738 114.79471,32.8638 115.39221,32.8638 C 115.99346,32.8638 116.15721,33.1738 116.23596,33.45005 C 116.31596,33.73005 116.39846,35.1338 116.39846,35.1338 L 121.12346,35.48005 C 120.96096,31.5138 119.24221,30.22505 115.32971,30.22505 C 112.99846,30.22505 110.28471,30.8013 109.84971,35.1463 L 114.57846,35.1338 C 114.57846,34.9463 114.63221,33.6413 114.63221,33.5063" id="itochu-app-dark-path19501" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 128.21221,36.53505 L 126.92971,30.83505 L 122.59221,30.83505 L 123.32596,35.7763 C 125.10596,35.94505 125.77096,36.0663 128.21221,36.53505" id="itochu-app-dark-path19503" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 135.51471,38.3313 L 133.16346,30.8238 L 128.74846,30.8238 L 130.28096,36.95005 C 132.06096,37.29505 133.25971,37.63755 135.51471,38.3313" id="itochu-app-dark-path19505" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 144.83221,41.86255 L 140.06471,30.8563 L 135.57596,30.8563 L 138.60971,39.31755 C 141.23096,40.2438 141.77471,40.44755 144.83221,41.86255" id="itochu-app-dark-path19507" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <path d="M 154.72221,47.4463 L 155.03846,47.1063 L 146.47346,30.8638 L 141.95596,30.8638 L 147.59971,43.15255 C 150.33471,44.65755 151.13346,45.15255 154.72221,47.4463" id="itochu-app-dark-path19509" fill="#3B80BE" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+  </g>
+</svg></g></svg>

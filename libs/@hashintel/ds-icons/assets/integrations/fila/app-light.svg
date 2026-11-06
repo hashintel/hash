@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fila-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="fila-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fila-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fila-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fila-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#fila-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="fila-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#fila-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.03146 0.24531 26.62012 29.31452" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <defs><clipPath id="fila-app-light-symbol-crop"><rect x="-0.14529" y="-0.09058" width="27.9900767" height="30.01413" /></clipPath></defs><g clip-path="url(#fila-app-light-symbol-crop)"><g fill="none" fill-rule="evenodd">
+        <path fill="#002D62" d="M33.054 0c-2.305 0-4.174 1.869-4.174 4.173v21.452c0 2.305 1.869 4.173 4.174 4.173 2.305 0 4.173-1.868 4.173-4.173V4.173C37.227 1.87 35.359 0 33.054 0" />
+        <path fill="#E21837" d="M22.37.292H4.172C1.868.292 0 2.161 0 4.466 0 6.77 1.868 8.639 4.173 8.639H22.37c2.305 0 4.174-1.869 4.174-4.173 0-2.305-1.869-4.174-4.174-4.174" />
+        <path fill="#002D62" d="M87.66 16.858L78.864 2.541C77.83.877 76.423.074 74.645.074c-1.832 0-3.39.859-4.357 2.467L60.104 19.416c-.696 1.156-1.498 1.636-2.824 1.636h-7.57c-.644 0-1.067-.474-1.067-1.066V4.033C48.64 1.734 46.777 0 44.478 0c-2.3 0-4.164 1.735-4.164 4.034V23.59c0 2.942 2.906 5.791 5.791 5.791h15.24c2.162 0 3.613-1.578 4.848-3.735l7.924-13.601c.07-.15.2-.342.351-.342.161 0 .261.193.342.332l5.19 8.322c.215.353.256.532.118.846-.123.287-.404.348-.862.348H71.971c-2.163 0-3.916 1.752-3.916 3.915 0 2.162 1.753 3.915 3.916 3.915h11.885c2.886 0 6.144-2.753 6.144-6.348 0-2.279-.439-3.082-2.34-6.175M20.366 10.976H4.173C1.868 10.976 0 12.845 0 15.15v10.183c0 2.305 1.868 4.173 4.173 4.173 2.305 0 4.174-1.868 4.174-4.173v-4.758c0-.691.56-1.252 1.252-1.252h10.767c2.305 0 4.174-1.869 4.174-4.173 0-2.305-1.869-4.174-4.174-4.174" />
+    </g>
+</g></svg></g></svg>

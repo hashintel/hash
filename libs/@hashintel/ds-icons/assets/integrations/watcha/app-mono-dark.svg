@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="watcha-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="watcha-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="watcha-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#watcha-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#watcha-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#watcha-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="watcha-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.284049766999 -0.955561586818 -0.0964646903919 0 1.33607604421" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#watcha-app-mono-dark-mono)"><defs><clipPath id="watcha-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#watcha-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.05645 0.52505 195.88708 57.9499" fill="none" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill-rule="evenodd" clip-rule="evenodd" d="M78.2713 12.9184V20.771H86.0946V56.1956H95.8432V20.771H103.218V12.9184H78.2713ZM153.464 29.6389H146.004V12.9763H136.285V56.2532H146.004V37.4912H153.464V56.2532H163.183V12.9763H153.464V29.6389ZM119.613 12.4527H117.92C109.142 12.4527 105.631 16.9316 105.631 24.203V44.8521C105.631 52.1239 109.142 56.777 118.108 56.777H119.801C128.704 56.777 131.839 51.4252 131.839 45.3763V37.9891H122.309V44.8521C122.309 47.4123 121.431 48.9826 118.923 48.9826C116.477 48.9826 115.663 47.5286 115.663 44.7946V24.1446C115.663 21.4105 116.477 20.015 118.923 20.015C121.493 20.015 122.309 21.5269 122.309 24.1446V29.147H131.839V23.621C131.839 16.4087 128.453 12.4527 119.613 12.4527ZM68.782 41.4224L65.9558 23.3316H64.2841L61.4576 41.4224H68.782ZM72.3262 12.9184L79.9759 56.1956H71.0902L70.009 49.2753H60.2308L59.1493 56.1956H50.2636L57.9136 12.9184H72.3262ZM184.391 41.4224L181.564 23.3316H179.893L177.066 41.4224H184.391ZM187.935 12.9184L195.585 56.1956H186.699L185.618 49.2753H175.84L174.759 56.1956H165.873L173.522 12.9184H187.935Z" fill="#FF0558" /><path fill-rule="evenodd" clip-rule="evenodd" d="M42.2501 0.757812L39.3521 42.2067L38.5733 42.2466L31.6807 12.9224H23.164L18.0078 43.3072L16.9027 43.3639L12.2862 12.9224H0.414062L11.2151 58.2397L23.2891 57.4557L27.2173 29.3268L28.3694 29.2653L33.6295 56.7761L45.1855 56.0206L54.3625 0.757812H42.2501Z" fill="#FF0558" /></svg></g></g></svg>

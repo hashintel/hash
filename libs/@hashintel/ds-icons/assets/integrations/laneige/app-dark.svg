@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="laneige-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="laneige-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="laneige-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#laneige-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#laneige-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#laneige-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="laneige-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#laneige-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="-0.73369 -0.86566 467.07129 74.77052" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><rect id="laneige-app-dark-backgroundrect" width="100%" height="100%" x="0" y="0" fill="none" stroke="none" />
+
+<g><g id="laneige-app-dark-svg_1">
+	<rect x="300.1470004916191" y="1.1640070378780365" fill="#F5F7FA" width="11.354000091552734" height="71.03299713134766" id="laneige-app-dark-svg_2" />
+	<g id="laneige-app-dark-svg_3">
+		<path fill="#F5F7FA" d="M12.227000491619108,60.55699995779992 v-59.1 h-2.621 h-9.606 v70.453 h36.39 c0.5830000000000006,0 4.076,-0.2920000000000003 5.531,-3.204 l3.785,-8.148 H12.227000491619108 z" id="laneige-app-dark-svg_4" />
+	</g>
+	<g id="laneige-app-dark-svg_5">
+		<path fill="#F5F7FA" d="M199.9990004916191,1.4559999577999188 h-11.062 v45.998 l-38.428,-46.58 h-2.038 v71.323 h11.062 V27.947999957799908 l34.645,42.505 l0,0 c0,0 1.1640000000000001,1.7440000000000002 3.783,1.7440000000000002 h1.7480000000000002 v-70.741 H199.9990004916191 z" id="laneige-app-dark-svg_6" />
+	</g>
+	<path fill="#F5F7FA" d="M97.23300049161911,-4.220009963695759e-8 h-1.455 l0,0 h-1.455 l-29.112,72.197 h8.733 c0.5830000000000006,0 3.785,-0.5800000000000006 5.24,-4.074 c2.038,-5.53 6.114,-16.886 15.72,-40.467 l0.5830000000000006,-2.037 c0,0 0,-0.2920000000000003 0.2910000000000003,-0.2920000000000003 l0,0 l0,0 h0.2910000000000003 c0.2920000000000003,0 0.2920000000000003,0.2920000000000003 0.2920000000000003,0.2920000000000003 l0.5810000000000006,2.037 c9.608,23.581 13.683,34.937 15.72,40.467 c1.457,3.494 4.659,4.074 5.24,4.074 h8.735 L97.23300049161911,-4.220009963695759e-8 z" id="laneige-app-dark-svg_7" />
+	<path fill="#F5F7FA" d="M271.6160004916191,64.63099995779993 c-1.1640000000000001,-2.912 -4.367,-2.912 -4.947,-2.912 h-27.658 v-20.669 h30.277 v-10.19 h-30.277 V12.227999957799911 h27.949 c1.455,0 3.492,-0.5830000000000006 4.367,-3.202 v-0.2920000000000003 c0,0 0.2890000000000003,-1.165 1.746,-5.241 l0.5800000000000006,-1.746 H228.2370004916191 v70.45 h46.582 L271.6160004916191,64.63099995779993 z" id="laneige-app-dark-svg_8" />
+	<path fill="#F5F7FA" d="M462.5920004916191,64.63099995779993 c-1.1640000000000001,-2.912 -4.367,-2.912 -4.949,-2.912 H429.9870004916191 v-20.669 h30.277 v-10.19 H429.9870004916191 V12.227999957799911 h27.947 c1.457,0 3.494,-0.5830000000000006 4.369,-3.202 v-0.2920000000000003 c0,0 0.2890000000000003,-1.165 1.7440000000000002,-5.241 l0.5820000000000006,-1.746 h-45.414 v70.45 h46.58 L462.5920004916191,64.63099995779993 z" id="laneige-app-dark-svg_9" />
+	<g id="laneige-app-dark-svg_10">
+		<path fill="#F5F7FA" d="M390.6860004916191,14.26599995779992 c-2.621,-6.114 -6.9879999999999995,-9.607 -11.354,-11.354 c-4.367,-1.747 -8.734,-2.329 -11.064,-2.329 c-2.91,0 -8.152,0.5820000000000006 -13.682,2.911 c-5.24,2.621 -10.771,7.2780000000000005 -13.973,15.43 l0,0 l0,0 l0,0 c-3.205,7.569 -3.205,15.139 -3.205,17.758 l0,0 c0,16.597 6.697,25.329 10.482,28.822 c5.531,4.95 11.936,7.568 20.377,7.568 h1.1640000000000001 c0,0 9.609,0.2940000000000003 17.178,-3.783 c5.822,-3.201 6.404,-5.531 6.404,-7.86 c0,-2.912 0,-26.783 0,-26.783 h-26.199 v6.405 c0,2.3280000000000003 2.326,3.783 3.783,3.783 h11.646 l0,0 c0,3.495 0,10.189 0,13.393 c0,0 -0.8750000000000018,4.075 -13.393,4.367 c-4.949,0 -7.279,-1.165 -9.316,-2.036 c-4.658,-2.331 -7.277,-6.99 -8.734,-11.647 c-1.455,-4.657 -1.746,-9.316 -1.746,-11.936 l0,0 v-0.2920000000000003 c0,-14.556000000000001 4.9510000000000005,-20.377 9.023,-22.997 l0,0 l0,0 c2.332,-1.7480000000000002 5.824,-2.33 9.316,-2.33 c6.986,0 9.607,2.62 11.646,5.24 c0,0 1.1640000000000001,1.7480000000000002 2.035,5.24 h11.355 C391.8500004916191,17.175999957799917 390.6860004916191,14.26599995779992 390.6860004916191,14.26599995779992 z" id="laneige-app-dark-svg_11" />
+	</g>
+</g></g></svg></g></svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lion-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="lion-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lion-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lion-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lion-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lion-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lion-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lion-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.37065 -1.51306 1002.74123 299.49379" id="lion-app-light-svg14" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="lion-app-light-defs4">
+    </defs>
+  <rect width="1000" height="471.69812" id="lion-app-light-rect8" x="658.54034" y="57.55368" fill="none" stroke-width="9.43396187" />
+  <g id="lion-app-light-g27" transform="matrix(1.0682253,0,0,1.0392073,0,-180.19891)">
+    <path id="lion-app-light-path10" d="m 188.67924,390.47582 -12.73585,63.58491 H 0 L 53.396226,177.92865 H 118.58491 L 77.45283,390.47582 Z m 84.90566,63.67924 53.77359,-276.22641 H 260.37735 L 206.88679,454.15506 Z M 936.13207,177.92865 h -66.98113 l -32.83019,169.81132 -74.0566,-169.81132 h -66.69812 l -53.49056,276.22641 h 66.98113 l 31.50943,-159.43396 68.39623,159.43396 h 74.15094 z m -453.77358,-4.5283 A 142.64151,142.64151 0 1 0 625.37735,316.1362 142.64151,142.64151 0 0 0 482.73584,173.40035 Z m 80.18867,142.73585 a 79.90566,79.90566 0 1 1 -79.90566,-79.90566 79.90566,79.90566 0 0 1 79.90566,79.90566 z" fill="#008051" stroke-width="9.43396187" />
+  </g>
+</svg></g></svg>

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shimano-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="shimano-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="shimano-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shimano-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shimano-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#shimano-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="shimano-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251075614918 -0.844634429866 -0.0852665070419 0 1.18097655183" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#shimano-app-mono-light-mono)"><defs><clipPath id="shimano-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#shimano-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.16584 -0.16568 121.32768 30.14037" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <g id="shimano-app-mono-light-logo_100th" transform="translate(-1148.436 -819.346)">
+    <g id="shimano-app-mono-light-グループ_6">
+      <g id="shimano-app-mono-light-グループ_4">
+        <g id="shimano-app-mono-light-グループ_3">
+          <g id="shimano-app-mono-light-グループ_2">
+            <path id="shimano-app-mono-light-パス_1" d="M1265.668,819.363c1.413,0,3.764,1.045,3.764,4.761v6.833c0,4.016-2.925,4.662-3.8,4.662H1257.8c-1.365,0-3.78-.978-3.78-4.711v-6.985c0-2.37,1.347-4.544,3.829-4.56Zm-5.423,2.836a1.825,1.825,0,0,0-1.791,1.758v7a1.8,1.8,0,0,0,1.775,1.826h2.974a1.838,1.838,0,0,0,1.776-1.775v-7.035a1.849,1.849,0,0,0-1.758-1.775Z" fill="#0099DC" />
+            <path id="shimano-app-mono-light-パス_2" d="M1217.243,824.062c-.016-2.764,1.491-4.716,3.836-4.716h8.377c2.246,0,3.7,1.986,3.7,4.616v11.6h-4.424v-3.59h-7.066v3.59h-4.426Zm4.426,4.747h7.05v-4.731a1.832,1.832,0,0,0-1.689-1.9h-3.591a1.861,1.861,0,0,0-1.771,1.785Z" fill="#0099DC" />
+            <path id="shimano-app-mono-light-パス_3" d="M1236.109,835.592h4.445V822.2h4.385a1.886,1.886,0,0,1,1.836,1.794v11.6h4.384V824.109c0-2.211-1.007-4.783-3.852-4.723h-11.2Z" fill="#0099DC" />
+            <path id="shimano-app-mono-light-パス_4" d="M1193.506,819.387v16.205h4.385V822.2h3.85v13.4h4.443V822.2h2.015a1.874,1.874,0,0,1,1.779,1.794v11.6h4.445v-11.6c0-2.332-1.245-4.6-3.794-4.6Z" fill="#0099DC" />
+            <g id="shimano-app-mono-light-グループ_1">
+              <rect id="shimano-app-mono-light-長方形_1" width="4.692" height="16.218" transform="translate(1185.372 819.351)" fill="#0099DC" />
+            </g>
+            <path id="shimano-app-mono-light-パス_5" d="M1166.547,819.386v16.205h4.443V832h6.518v3.589h4.444V819.386h-4.444v9.448h-6.518v-9.448Z" fill="#0099DC" />
+            <path id="shimano-app-mono-light-パス_6" d="M1163.643,819.387H1152.65a4.065,4.065,0,0,0-3.939,2.69,9.021,9.021,0,0,0,.059,4.663,4.03,4.03,0,0,0,3.857,2.392c.77,0,4.973,0,5.742,0,.83,0,1.363.6,1.424,1.735.058,1.076-.356,1.913-1.424,1.913h-9.422v2.811h11.021a3.62,3.62,0,0,0,3.674-2.452,7.857,7.857,0,0,0,0-5.384,3.837,3.837,0,0,0-3.792-2.271h-5.806c-.83,0-1.3-.6-1.3-1.674s.475-1.674,1.3-1.674h9.6Z" fill="#0099DC" />
+          </g>
+        </g>
+      </g>
+      <rect id="shimano-app-mono-light-長方形_2" width="120.996" height="2.712" transform="translate(1148.436 841.019)" fill="#6FBD16" />
+      <rect id="shimano-app-mono-light-長方形_3" width="120.996" height="2.711" transform="translate(1148.436 843.731)" fill="#0099DC" />
+      <rect id="shimano-app-mono-light-長方形_4" width="120.996" height="2.712" transform="translate(1148.436 846.443)" fill="#002891" />
+    </g>
+  </g>
+</svg></g></g></svg>

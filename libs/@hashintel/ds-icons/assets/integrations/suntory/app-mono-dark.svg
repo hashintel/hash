@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="suntory-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="suntory-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="suntory-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#suntory-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#suntory-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#suntory-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="suntory-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.66912612348 -2.25098308331 -0.227238504775 0 3.14734771157" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#suntory-app-mono-dark-mono)"><defs><clipPath id="suntory-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#suntory-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="suntory-app-mono-dark-svg47771" viewBox="0.42515 0.63789 298.8723 43.06931" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+    <defs id="suntory-app-mono-dark-defs47773" />
+    <g transform="translate(-385.78861,-633.28481)" id="suntory-app-mono-dark-layer1">
+        <g transform="matrix(2.0613309,0,0,-2.0613309,487.35682,674.41686)" id="suntory-app-mono-dark-g47705">
+            <path id="suntory-app-mono-dark-path47707" d="m 0,0 -6.015,0 c 0.215,1.936 0.287,5.013 0.287,8.018 l 0,2.653 c 0,2.987 -0.072,6.287 -0.429,8.003 l 3.438,0 c 1.28,0 1.927,-0.429 2.143,-1.28 1.647,1.213 3.433,1.718 5.225,1.718 6.429,0 7.223,-3.867 7.223,-6.725 l 0,-5.231 C 11.872,4.223 12.01,1.581 12.222,0 L 8.65,0 C 7.009,0 6.221,1.001 6.221,2.647 l 0,7.587 c 0,3.002 -0.285,5.293 -4.011,5.293 -0.855,0 -1.715,-0.139 -2.429,-0.433 l 0,-6.725 C -0.219,6.018 -0.219,1.936 0,0 m -17.746,18.674 6.009,0 c -0.208,-1.924 -0.278,-5.016 -0.278,-8.003 l 0,-2.653 c 0,-3.005 0.134,-6.302 0.422,-8.018 l -3.428,0 c -1.288,0 -1.933,0.431 -2.154,1.287 -1.64,-1.213 -3.431,-1.715 -5.215,-1.715 -6.44,0 -7.227,3.864 -7.227,6.73 l 0,5.219 c 0,2.929 -0.146,5.581 -0.354,7.153 l 3.571,0 c 1.642,0 2.426,-1.003 2.426,-2.645 l 0,-7.589 c 0,-3 0.294,-5.288 4.013,-5.288 0.856,0 1.712,0.144 2.435,0.43 l 0,6.724 c 0,2.366 -0.078,6.444 -0.22,8.368 m -17.022,-4.435 c -1.075,1.006 -3.001,1.576 -5.009,1.576 -1.432,0 -3.143,-0.213 -3.143,-1.864 0,-1.216 1.427,-1.78 3.574,-2.572 2.506,-0.936 5.435,-2.144 5.435,-5.647 0,-5.586 -5.937,-6.301 -8.727,-6.301 -1.574,0 -3.278,0.141 -4.569,0.499 -1.287,0.359 -1.581,0.93 -1.581,2.646 l 0,2.07 c 1.437,-0.994 3.721,-1.494 5.579,-1.494 2.287,0 3.432,0.642 3.432,2.071 0,1.36 -1.216,1.859 -4.435,3.076 -2.213,0.861 -4.57,2.007 -4.57,5.23 0,4.716 5.358,5.94 8.582,5.94 1.928,0 3.504,-0.357 4.499,-0.795 0.858,-0.429 0.933,-0.926 0.933,-2.074 l 0,-2.361 z" fill="#5BC2DC" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+        </g>
+        <g transform="matrix(2.0613309,0,0,-2.0613309,566.67786,654.94491)" id="suntory-app-mono-dark-g47709">
+            <path id="suntory-app-mono-dark-path47711" d="m 0,0 c 0,-4.294 1.494,-6.222 4.433,-6.222 2.862,0 4.284,1.928 4.284,6.222 0,4.289 -1.422,6.291 -4.284,6.291 C 1.494,6.291 0,4.289 0,0 m 14.231,0.072 c 0,-6.222 -3.582,-10.088 -10.01,-10.088 -6.443,0 -9.73,3.514 -9.73,9.874 0,6.297 3.505,9.943 9.942,9.943 6.432,0 9.798,-3.432 9.798,-9.729 M -9.301,9.227 c 0.996,0 2.572,0.082 3.367,0.215 C -6.085,8.868 -6.506,7.369 -6.8,6.72 -7.301,5.647 -7.944,5.297 -10.445,5.297 l -2.143,0 0,-6.373 c 0,-2.353 0.064,-6.434 0.286,-8.37 l -6.082,0 c 0.213,1.936 0.286,6.017 0.286,8.37 l 0,6.373 -1.861,0 c -1.647,0 -3.074,-0.222 -3.79,-0.643 l 0,2.498 c 0,1.432 0.283,2.075 2.43,2.075 l 12.018,0 z" fill="#5BC2DC" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+        </g>
+        <g transform="matrix(2.0613309,0,0,-2.0613309,669.28534,663.20239)" id="suntory-app-mono-dark-g47713">
+            <path id="suntory-app-mono-dark-path47715" d="m 0,0 0,-0.428 c 0,-1.43 0.079,-3.797 0.286,-5.012 l -6.082,0 c 0.216,1.215 0.287,3.652 0.287,5.012 l 0,0.428 c 0,0.784 -0.208,1.571 -0.852,2.858 -1.364,2.723 -4.365,7.939 -6.938,10.309 0.999,0.147 2.861,0.211 4.004,0.211 2.359,0 3.078,-0.788 3.647,-1.716 0.497,-0.795 2.501,-4.716 3.146,-6.368 0.786,1.859 2.365,5.15 3.073,6.297 0.575,0.862 1.361,1.787 3.368,1.787 0.927,0 2.432,-0.064 3.582,-0.211 C 5.658,11.518 2.149,5.723 0.724,3.07 0.079,1.785 0,1.148 0,0 m -15.302,-6.514 c -2.296,0 -2.792,0.86 -4.22,2.934 -0.793,1.144 -3.293,5.365 -3.728,6.228 -0.21,0.422 -0.281,0.79 0.148,0.994 1.859,1.087 2.364,2.222 2.364,3.511 0,1.507 -0.648,2.794 -2.793,2.794 -0.646,0 -1.576,-0.072 -2.003,-0.223 l 0,-6.796 c 0,-2.351 0.074,-6.432 0.284,-8.368 l -5.86,0 c 0.214,1.86 0.293,5.012 0.293,8.017 l 0,2.652 c 0,3.003 -0.079,6.289 -0.437,8.009 2.793,0 6.862,0.14 8.653,0.14 3.144,0 7.364,-0.638 7.364,-5.359 0,-1.939 -0.926,-3.509 -2.5,-4.518 -0.286,-0.21 -0.286,-0.357 0,-0.78 2.011,-3.009 4.438,-6.374 6.652,-8.731 -0.787,-0.221 -2.863,-0.504 -4.217,-0.504" fill="#5BC2DC" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+        </g>
+    </g>
+</svg></g></g></svg>

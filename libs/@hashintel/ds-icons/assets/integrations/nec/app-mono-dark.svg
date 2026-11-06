@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nec-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="nec-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nec-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nec-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nec-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nec-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="nec-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241062376607 -0.810949255643 -0.0818659623286 0 1.13387759458" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#nec-app-mono-dark-mono)"><defs><clipPath id="nec-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nec-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="#1414A0" viewBox="0.42798 0.63175 301.14403 80.72951" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M1 3.459h24.144c5.523 0 12.033 5.158 14.936 7.995l42.36 46.967V3.459h14.39v74.987H71.639c-4.488-.151-8.894-1.074-14.029-6.119L15.32 25.274v53.172H1V3.459zm300 75.498c-17.234 2.352-34.67 2.585-52.141 1.116-10.227-.903-20.246-3.007-29.427-7.801-11.592-6.007-15.285-19.509-15.13-31.748.128-11.297 3.488-23.358 13.568-29.927 6.608-4.337 13.665-5.759 21.164-7.119 20.47-3.608 40.98-2.794 60.95-.605V13.57c-23.551-4.577-48.428-3.438-56.881 7.383-5.282 6.732-6.034 13.429-6.034 19.067 0 10.162 3.476 25.578 24.125 28.574 13.471 1.977 26.807.477 39.805-1.891v12.254zM153.518 67.294h45.638v11.204c-22.443.864-44.006 1.24-66.678.298-19.238-.794-22.552-10.468-22.924-19.761V3.457h88.528v10.677H140.81v19.091h52.199v10.421H140.81c0 5.639.186 12.033.24 13.184.306 7.27 3.678 9.945 12.467 10.464" /></svg></g></g></svg>

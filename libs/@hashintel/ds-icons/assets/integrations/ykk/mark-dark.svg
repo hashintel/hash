@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><svg xmlns="http://www.w3.org/2000/svg" id="ykk-mark-dark-svg3822" viewBox="0.70723 0.49197 300.58553 88.05523" fill="#F5F7FA" x="0.0" y="0.0" width="64" height="64">
+  <defs id="ykk-mark-dark-defs3824">
+    <clipPath id="ykk-mark-dark-clipPath3442" clipPathUnits="userSpaceOnUse">
+      <path id="ykk-mark-dark-path3444" d="m 26.9291,670.90399 526.99387,0 0,144.05701 -526.99387,0 0,-144.05701 z" />
+    </clipPath>
+    <clipPath id="ykk-mark-dark-clipPath3450" clipPathUnits="userSpaceOnUse">
+      <path id="ykk-mark-dark-path3452" d="m 0,841.89 595.28,0 L 595.28,0 0,0 0,841.89 Z" />
+    </clipPath>
+  </defs>
+  <g transform="translate(-329.62384,-583.2363)" id="ykk-mark-dark-layer1">
+    <g transform="matrix(0.61635752,0,0,-0.61635752,313.15189,1085.6699)" id="ykk-mark-dark-g3438">
+      <g clip-path="url(#ykk-mark-dark-clipPath3442)" id="ykk-mark-dark-g3440">
+        <g id="ykk-mark-dark-g3446">
+          <g clip-path="url(#ykk-mark-dark-clipPath3450)" id="ykk-mark-dark-g3448">
+            <g transform="translate(534.8721,807.3428)" id="ykk-mark-dark-g3454" />
+            <g transform="translate(539.2617,811.13181)" id="ykk-mark-dark-g3458" />
+            <g transform="translate(201.1445,694.75)" id="ykk-mark-dark-g3462">
+              <path id="ykk-mark-dark-path3464" d="m 0,0 c 0,-7.651 0.848,-18.228 -2.36,-22.422 l 50.147,0 C 44.579,-18.228 45.427,-7.651 45.427,0 l 0,96.371 c 0,7.653 -0.848,18.225 2.36,22.422 l -50.147,0 C 0.848,114.596 0,104.024 0,96.371 L 0,0 Z" fill="#0382C0" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+            </g>
+            <g transform="translate(111.1851,767.87109)" id="ykk-mark-dark-g3466">
+              <path id="ykk-mark-dark-path3468" d="m 0,0 24.365,37.031 c 3.703,5.186 5.956,8.641 14.597,8.641 l 43.876,0 C 77.159,40.981 74.343,37.031 70.393,31.6 l -47.926,-67.397 0,-41.88 c 0,-6.416 -0.258,-14.907 2.006,-17.866 l -48.946,0 c 2.263,2.959 2.007,11.45 2.007,17.866 l 0,41.88 -47.928,67.397 c -3.95,5.431 -6.767,9.381 -12.444,14.072 l 43.875,0 c 8.641,0 10.894,-3.455 14.598,-8.641 L 0,0 Z" fill="#0382C0" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+            </g>
+            <g transform="translate(244.8091,745.89841)" id="ykk-mark-dark-g3470">
+              <path id="ykk-mark-dark-path3472" d="m 0,0 41.959,-60.24 c 5.433,-6.909 10.37,-13.33 22.22,-13.33 l 44.839,0 c -5.967,2.71 -11.245,9.716 -12.393,10.864 L 49.513,1.128 94.926,56.951 c 2.857,2.854 6.563,6.563 10.904,10.694 l -44.112,0 c -11.85,0 -15.724,-6.419 -21.155,-13.331 L -0.344,0 0,0 Z" fill="#0382C0" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+            </g>
+            <g transform="translate(362.3965,694.75)" id="ykk-mark-dark-g3474">
+              <path id="ykk-mark-dark-path3476" d="m 0,0 c 0,-7.651 0.845,-18.228 -2.363,-22.422 l 50.146,0 C 44.575,-18.228 45.425,-7.651 45.425,0 l 0,96.371 c 0,7.653 -0.85,18.225 2.358,22.422 l -50.146,0 C 0.845,114.596 0,104.024 0,96.371 L 0,0 Z" fill="#0382C0" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+            </g>
+            <g transform="translate(406.05859,745.89841)" id="ykk-mark-dark-g3478">
+              <path id="ykk-mark-dark-path3480" d="m 0,0 41.958,-60.24 c 5.435,-6.909 10.371,-13.33 22.222,-13.33 l 44.839,0 c -5.967,2.71 -11.246,9.716 -12.393,10.864 L 49.512,1.128 94.927,56.951 c 2.856,2.854 6.562,6.563 10.903,10.694 l -44.111,0 c -11.851,0 -15.723,-6.419 -21.157,-13.331 L -0.342,0 0,0 Z" fill="#0382C0" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg></svg>

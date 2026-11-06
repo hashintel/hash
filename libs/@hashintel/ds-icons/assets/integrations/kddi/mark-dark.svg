@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" id="kddi-mark-dark-svg50" viewBox="-1.37858 -1.12691 605.54288 252.51192" fill="#F5F7FA" x="0.0" y="0.0" width="64" height="64">
+  <defs id="kddi-mark-dark-defs52">
+    <linearGradient id="kddi-mark-dark-linearGradient971">
+      <stop offset="0" id="kddi-mark-dark-stop973" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop id="kddi-mark-dark-stop975" offset="0.73489934" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset="0.95192295" id="kddi-mark-dark-stop977" stop-color="#FFFFFF" stop-opacity="0.07627118" />
+      <stop offset="1" id="kddi-mark-dark-stop979" stop-color="#FFFFFF" stop-opacity="0.99152541" />
+    </linearGradient>
+    <linearGradient id="kddi-mark-dark-linearGradient963">
+      <stop offset="0" id="kddi-mark-dark-stop965" stop-color="#F5F7FA" stop-opacity="1" />
+      <stop offset="1" id="kddi-mark-dark-stop967" stop-color="#F5F7FA" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="kddi-mark-dark-linearGradient927">
+      <stop id="kddi-mark-dark-stop929" offset="0" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset="0.73489934" id="kddi-mark-dark-stop931" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop id="kddi-mark-dark-stop933" offset="0.91778523" stop-color="#FFFFFF" stop-opacity="0.07627118" />
+      <stop id="kddi-mark-dark-stop935" offset="1" stop-color="#FFFFFF" stop-opacity="0.99152541" />
+    </linearGradient>
+    <linearGradient id="kddi-mark-dark-linearGradient865">
+      <stop offset="0" id="kddi-mark-dark-stop867" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop id="kddi-mark-dark-stop907" offset="0.5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset="0.75" id="kddi-mark-dark-stop909" stop-color="#FFFFFF" stop-opacity="0.07627118" />
+      <stop offset="1" id="kddi-mark-dark-stop869" stop-color="#FFFFFF" stop-opacity="0.99152541" />
+    </linearGradient>
+    <radialGradient ns1:href="#kddi-mark-dark-linearGradient865" id="kddi-mark-dark-radialGradient881" cx="-140.5" cy="123.5" fx="-140.5" fy="123.5" r="229" gradientUnits="userSpaceOnUse" />
+    <radialGradient ns1:href="#kddi-mark-dark-linearGradient927" id="kddi-mark-dark-radialGradient939" gradientUnits="userSpaceOnUse" cx="-135.5" cy="185.5" fx="-135.5" fy="185.5" r="149" />
+    <radialGradient ns1:href="#kddi-mark-dark-linearGradient971" id="kddi-mark-dark-radialGradient969" cx="210.71782" cy="570.42346" fx="210.71782" fy="570.42346" r="782.56012" gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g id="kddi-mark-dark-layer1">
+    <path d="m 130,0 70,0 -75,95 45,95 -70,0 L 60,95 130,0 z" id="kddi-mark-dark-path76" fill="#7976A7" fill-opacity="1" stroke-width="1px" />
+    <path d="m 540,0 -30,190 60,0 30,-190 -60,0 z" id="kddi-mark-dark-path78" fill="#7976A7" fill-opacity="1" stroke-width="1px" />
+    <path d="m 366.99999,0 74.99998,0 c 0,0 48.3231,1.32311 69.99999,23 21.67688,21.67689 27.09645,27.99011 22.99999,72 -4.09646,44.00989 -15.43754,52.68081 -39.99999,72 -24.56245,19.31919 -66.99998,23 -66.99998,23 L 337,190 366.99999,0 l 52.99999,50 -15,90 27,0 c 0,0 15.94963,-4.94964 25.99999,-15 10.05036,-10.05036 14.56627,-12.99304 16,-30 1.43372,-17.00696 -2.51834,-22.98773 -11,-33 -8.06733,-9.52317 -18,-12 -18,-12 l -24.99999,0 -52.99999,0 0,-50 z" id="kddi-mark-dark-path80" fill="#7976A7" fill-opacity="1" stroke-width="1px" />
+    <path id="kddi-mark-dark-path82" d="M 30,0 0,190 60,190 90,0 30,0 z" fill="#7976A7" fill-opacity="1" stroke-width="1px" />
+    <path id="kddi-mark-dark-path84" d="m 189.99999,0 74.99998,0 c 0,0 48.3231,1.32311 69.99999,23 21.67688,21.67689 27.09645,27.99011 22.99999,72 -4.09646,44.00989 -15.43754,52.68081 -39.99999,72 -24.56245,19.31919 -66.99998,23 -66.99998,23 L 160,190 189.99999,0 l 52.99999,50 -15,90 27,0 c 0,0 15.94963,-4.94964 25.99999,-15 10.05036,-10.05036 14.56627,-12.99304 16,-30 1.43372,-17.00696 -2.51834,-22.98773 -11,-33 -8.06733,-9.52317 -18,-12 -18,-12 l -24.99999,0 -52.99999,0 0,-50 z" fill="#7976A7" fill-opacity="1" stroke-width="1px" />
+    <path id="kddi-mark-dark-path961" d="M -228.86516,-76.403281 A 782.06012,782.06012 0 0 1 375.98648,-193.97454 l -165.26866,764.398 z" transform="matrix(0.99672853,0,0,0.99672853,228.06026,266.29839)" fill="url(#kddi-mark-dark-radialGradient969)" fill-opacity="1" stroke="#FFFFFF" stroke-opacity="1" />
+  </g>
+</svg></svg>

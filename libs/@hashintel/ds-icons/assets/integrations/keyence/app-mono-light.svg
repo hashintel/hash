@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="keyence-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="keyence-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="keyence-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#keyence-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#keyence-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#keyence-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="keyence-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#keyence-app-mono-light-mono)"><defs><clipPath id="keyence-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#keyence-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.12449 -0.1373 91.07498 16.27499" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g transform="translate(-243 -247.437)"><path d="M125.056.038l-4.887,7.505,5.054,8.189h3.1L123.36,7.3,128.091.038Z" transform="translate(130.425 247.405)" /><path d="M263.305.038l-3.875,6.493L255.761.038H252.9l5.192,9.129v6.582h2.524V9.311L266.18.038Z" transform="translate(17.788 247.405)" /><path d="M436.953.038V10.484L430.315.038h-2.563V15.749h2.563V5.069l6.855,10.68h2.374V.038Z" transform="translate(-130.597 247.405)" /><path d="M80.491.007,73.03,0A3.035,3.035,0,0,0,70,3.036V16Z" transform="translate(173 247.436)" fill="#E4002B" /><path d="M180.981,13.235c-.756,0-1.168-.439-1.168-1.356V8.587h7.244V6.23h-7.244V3.7c0-.912.411-1.351,1.168-1.351h5.187L187.625.037h-6.877c-2.752,0-3.653,1.734-3.653,4v7.8a3.717,3.717,0,0,0,3.875,3.914h6.683V13.23Z" transform="translate(82.117 247.405)" /><path d="M347.23,13.235c-.739,0-1.156-.439-1.156-1.356V8.587h7.239V6.23h-7.239V3.7c0-.912.417-1.351,1.156-1.351h5.2L353.884.037h-6.877c-2.752,0-3.653,1.734-3.653,4v7.8a3.718,3.718,0,0,0,3.869,3.914h6.694V13.23Z" transform="translate(-58.976 247.405)" /><path d="M604.153,13.235c-.761,0-1.173-.439-1.173-1.356V8.587h7.238V6.23H602.98V3.7c0-.912.411-1.351,1.173-1.351h5.182L610.791.037h-6.877c-2.752,0-3.658,1.734-3.658,4v7.8a3.723,3.723,0,0,0,3.875,3.914h6.683V13.23Z" transform="translate(-276.988 247.405)" /><path d="M526.731,13.235c-.756,0-1.173-.439-1.173-1.356V3.7c0-.912.417-1.351,1.173-1.351h5.143L533.325.037h-6.689c-2.746,0-3.652,1.734-3.652,4v7.8a3.72,3.72,0,0,0,3.875,3.914h6.449V13.23Z" transform="translate(-211.413 247.405)" /></g></svg></g></g></svg>

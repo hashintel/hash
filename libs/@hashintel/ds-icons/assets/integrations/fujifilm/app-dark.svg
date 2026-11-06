@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fujifilm-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="fujifilm-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fujifilm-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fujifilm-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fujifilm-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#fujifilm-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="fujifilm-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#fujifilm-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="fujifilm-app-dark-svg25166" viewBox="-1.41031 -1.66766 1031.75571 174.56833" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="fujifilm-app-dark-defs25168" />
+  <g id="fujifilm-app-dark-g5512" transform="matrix(2.0661355,0,0,2.0661355,0,-4.1323115)">
+    <g transform="matrix(4.3916816,0,0,-4.3916816,379.3486,2.01011)" id="fujifilm-app-dark-g24728" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24730" d="m 0,0 0,-14.77 c 0,-0.96 0.474,-1.453 1.44,-1.502 0.012,-0.001 4.867,-0.001 4.867,-0.001 l 0,-1.657 c 0,-0.185 -0.1,-0.315 -0.306,-0.315 l -7.879,0 c -2.434,0 -2.794,1.34 -2.794,2.557 l 0,14.684 c 0,0.693 0.264,1.021 1.083,1.003 L 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,339.47168,2.01011)" id="fujifilm-app-dark-g24732" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24734" d="m 0,0 0.001,-17.283 c 0,-0.769 -0.326,-0.962 -0.98,-0.962 l -3.697,0 0,17.291 c 0,0.57 0.218,0.953 1.047,0.953 L 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,0,13.05386)" id="fujifilm-app-dark-g24736" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24738" d="m 0,0 c 0,1.391 0.003,2.517 2.288,2.517 l 10.044,0 0,-1.756 c 0,-0.125 -0.059,-0.238 -0.234,-0.238 L 6.079,0.525 C 5.27,0.525 4.863,0.137 4.863,-0.679 l 0,-4.633 7.082,0 10e-4,-1.84 c 0,-0.163 -0.102,-0.249 -0.262,-0.249 l -6.821,0 0,-7.351 C 4.848,-15.461 4.494,-15.743 3.716,-15.729 L 0,-15.729 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,86.0146,2.00221)" id="fujifilm-app-dark-g24740" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24742" d="m 0,0 0,-13.907 c 0,-1.194 0.169,-2.031 1.007,-2.515 1.123,-0.65 3.025,-0.66 4.17,-0.018 0.783,0.437 1.082,1.139 1.082,2.529 l 0,12.984 C 6.259,-0.343 6.482,0 7.298,0 l 3.635,0 10e-4,-13.496 c 0,-3.135 -1.974,-4.421 -3.719,-4.898 -2.322,-0.633 -5.849,-0.643 -8.04,0.015 -2.618,0.788 -3.841,2.338 -3.844,4.882 l -0.002,12.56 C -4.671,-0.331 -4.453,0 -3.756,0 L 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,474.26296,2.01451)" id="fujifilm-app-dark-g24744" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24746" d="M 0,0 C -0.922,0 -1.448,-0.43 -1.656,-1.253 L -4.633,-13.834 -4.714,-13.832 -7.789,0 -11.993,0 c -0.811,0 -1.066,-0.417 -1.066,-1.061 l 0,-17.183 1.776,0 c 0.286,0 0.404,0.142 0.404,0.433 l 0,14.407 0.281,0 3.801,-14.84 2.489,0 c 0.938,0 1.287,0.385 1.518,1.312 l 3.412,13.528 0.276,0 -0.001,-14.84 3.321,0.005 c 0.815,0 1.187,0.313 1.187,1.114 l 0,17.126 L 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,231.57952,45.55406)" id="fujifilm-app-dark-g24748" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24750" d="m 0,0 -4.674,0 0,-8.33 3.696,0 c 0.651,0 0.979,0.191 0.979,0.962 C 0.001,-7.368 0,-3.805 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,230.38322,29.92143)" id="fujifilm-app-dark-g24752">
+      <path id="fujifilm-app-dark-path24754" d="m 0,0 c 0.164,0.133 0.26,0.233 0.272,0.519 l 0,5.835 -3.629,0 c -0.817,0 -1.044,-0.399 -1.044,-0.967 l 0,-8.834 L 0,0" fill="#EE2544" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,160.01264,75.79827)" id="fujifilm-app-dark-g24756" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24758" d="m 0,0 c 2.03,0.287 2.705,1.493 2.705,3.271 l 0,12.54 c 0,0.75 0.406,0.993 0.93,0.993 l 3.744,0 0,-11.857 C 7.379,2.031 6.765,0.558 5.038,-0.685 4.139,-1.33 2.567,-2.066 -0.839,-2.066 c -1.95,0 -2.817,0.11 -2.934,0.137 -0.165,0.038 -0.232,0.139 -0.232,0.282 l 0,1.531 C -3.204,-0.139 -1.37,-0.195 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(4.3916816,0,0,-4.3916816,262.67744,2.00221)" id="fujifilm-app-dark-g24760" fill="#F5F7FA">
+      <path id="fujifilm-app-dark-path24762" d="m 0,0 c -2.283,0 -2.284,-1.126 -2.284,-2.517 l 0,-4.701 c 0,-0.097 -0.042,-0.136 -0.086,-0.179 l -3.197,-2.519 3.283,0 0,-8.329 3.714,0 c 0.778,-0.015 1.132,0.268 1.145,0.976 l 0,7.351 6.821,0 c 0.16,0 0.263,0.087 0.263,0.249 l 0,1.841 -7.084,0 0,4.633 c 0,0.815 0.408,1.204 1.216,1.204 l 6.021,-0.002 c 0.173,0 0.234,0.112 0.234,0.237 L 10.046,0 0,0" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+  </g>
+</svg></g></svg>

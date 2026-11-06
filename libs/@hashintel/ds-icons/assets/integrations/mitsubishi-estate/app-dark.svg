@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mitsubishi-estate-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="mitsubishi-estate-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mitsubishi-estate-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mitsubishi-estate-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mitsubishi-estate-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mitsubishi-estate-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="mitsubishi-estate-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mitsubishi-estate-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.24953 0.2557 8.59124 7.43938" id="mitsubishi-estate-app-dark-svg3805" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="mitsubishi-estate-app-dark-symbol-crop"><rect x="0.15884" y="0.18268" width="10.544905000000002" height="7.66379" /></clipPath></defs><g clip-path="url(#mitsubishi-estate-app-dark-symbol-crop)"><defs id="mitsubishi-estate-app-dark-defs3799">
+    <clipPath id="mitsubishi-estate-app-dark-clipPath3438" clipPathUnits="userSpaceOnUse">
+      <path id="mitsubishi-estate-app-dark-path3436" d="M 0,0 H 605.197 V 841.89 H 0 Z" />
+    </clipPath>
+    <clipPath id="mitsubishi-estate-app-dark-clipPath3422" clipPathUnits="userSpaceOnUse">
+      <path id="mitsubishi-estate-app-dark-path3420" d="M 0,0 H 605.197 V 841.89 H 0 Z" />
+    </clipPath>
+    <clipPath id="mitsubishi-estate-app-dark-clipPath3400" clipPathUnits="userSpaceOnUse">
+      <path id="mitsubishi-estate-app-dark-path3398" d="M 0,0 H 605.197 V 841.89 H 0 Z" />
+    </clipPath>
+    <clipPath id="mitsubishi-estate-app-dark-clipPath3378" clipPathUnits="userSpaceOnUse">
+      <path id="mitsubishi-estate-app-dark-path3376" d="M 0,0 H 605.197 V 841.89 H 0 Z" />
+    </clipPath>
+    <clipPath id="mitsubishi-estate-app-dark-clipPath3356" clipPathUnits="userSpaceOnUse">
+      <path id="mitsubishi-estate-app-dark-path3354" d="M 0,0 H 605.197 V 841.89 H 0 Z" />
+    </clipPath>
+  </defs>
+  <g id="mitsubishi-estate-app-dark-layer1" transform="translate(-30.481083,52.749388)">
+    <g id="mitsubishi-estate-app-dark-g3999" transform="translate(0.2645868,-0.26458254)">
+      <path d="m 31.907011,-47.277806 h 2.85503 l -1.427338,2.472267 -2.85362,-0.0018 z" id="mitsubishi-estate-app-dark-path3340" fill="#EB2E3D" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 34.762129,-47.277806 h 2.856089 l 1.42628,2.472267 H 36.18841 Z" id="mitsubishi-estate-app-dark-path3344" fill="#EB2E3D" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 34.763108,-52.220223 1.428044,2.470503 -1.429102,2.471914 -1.426986,-2.47015 z" id="mitsubishi-estate-app-dark-path3348" fill="#EB2E3D" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 46.603988,-49.017577 v 4.212167 h 0.916869 v -4.911725 h -1.558572 c -0.0074,0.02258 -1.195211,3.746852 -1.195211,3.746852 0,0 -1.187803,-3.724275 -1.194858,-3.746852 h -1.558925 v 4.911725 h 0.916869 v -4.212167 c 0,0 1.366661,4.189942 1.374422,4.212167 h 0.925337 c 0.0074,-0.02222 1.374069,-4.212167 1.374069,-4.212167" id="mitsubishi-estate-app-dark-path3360" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 42.947059,-48.856005 7.06e-4,-7.06e-4 c -0.0014,-0.0039 -0.0025,-0.0078 -0.0025,-0.0078 z" id="mitsubishi-estate-app-dark-path3364" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path id="mitsubishi-estate-app-dark-path3366" d="m 49.574878,-49.717371 h -0.9592 v 4.91172 h 0.9592 z" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 53.945823,-49.717265 h -3.793067 v 0.746478 h 1.417109 v 4.165247 h 0.959202 v -4.165247 h 1.416756 z" id="mitsubishi-estate-app-dark-path3370" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 55.77554,-44.72025 c 0.553156,0 1.839736,-0.143933 1.839736,-1.478492 0,-0.953205 -0.710142,-1.225197 -1.336675,-1.465438 -0.445911,-0.170745 -0.831144,-0.318559 -0.831144,-0.687917 0,-0.518936 0.411339,-0.703792 0.795514,-0.703792 0.331611,0 0.673805,0.07197 0.992363,0.206375 0.0042,-0.03845 0.08502,-0.754591 0.08819,-0.780344 -0.347839,-0.1143 -0.739775,-0.172509 -1.165578,-0.172509 -0.401461,0 -1.71203,0.107245 -1.71203,1.49225 0,0.919692 0.688269,1.190273 1.295047,1.42875 0.468136,0.18415 0.872772,0.3429 0.872772,0.760589 0,0.47625 -0.548922,0.653697 -0.894644,0.653697 -0.360187,0 -0.741892,-0.103363 -1.105606,-0.296333 -0.0046,0.04269 -0.08537,0.829028 -0.08819,0.855839 0.02081,0.0053 0.09525,0.02328 0.09525,0.02328 0.411691,0.102306 0.659694,0.164042 1.154994,0.164042" id="mitsubishi-estate-app-dark-path3382" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 60.514792,-44.72025 c 1.347258,0 2.002719,-0.606425 2.002719,-1.853847 v -3.14325 h -0.959555 v 2.838097 c 0,0.950383 -0.341136,1.412169 -1.043164,1.412169 -0.702381,0 -1.043517,-0.461786 -1.043517,-1.412169 v -2.838097 h -0.959202 v 3.14325 c 0,1.247422 0.654755,1.853847 2.002719,1.853847" id="mitsubishi-estate-app-dark-path3386" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="M 65.041178,-47.719884 H 64.62102 v -1.25095 h 0.398991 c 0.470606,0 0.972961,0.04904 0.972961,0.632883 0,0.410281 -0.320322,0.618067 -0.951794,0.618067 m 1.099961,1.464381 c 0,0.460022 -0.358069,0.703438 -1.036108,0.703438 H 64.62102 v -1.463675 h 0.484011 c 0.4826,0 1.036108,0.08643 1.036108,0.760237 M 65.3742,-49.717312 h -1.71203 v 4.911725 h 1.71203 c 0.519289,0 1.726142,-0.137936 1.726142,-1.414639 0,-0.600427 -0.474133,-1.054452 -1.133122,-1.134886 0.557389,-0.102658 0.984602,-0.516466 0.984602,-1.110544 0,-1.089378 -0.988483,-1.251656 -1.577622,-1.251656" id="mitsubishi-estate-app-dark-path3390" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path id="mitsubishi-estate-app-dark-path3392" d="m 68.864407,-49.717371 h -0.959199 v 4.91172 h 0.959199 z" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 71.126559,-44.72025 c 0.553156,0 1.839736,-0.143933 1.839736,-1.478492 0,-0.953205 -0.710494,-1.225197 -1.337028,-1.465438 -0.445558,-0.170745 -0.830791,-0.318559 -0.830791,-0.687917 0,-0.518936 0.410986,-0.703792 0.795514,-0.703792 0.331611,0 0.673805,0.07197 0.991658,0.206375 0.0046,-0.03845 0.08572,-0.754591 0.08855,-0.780344 -0.347839,-0.1143 -0.739422,-0.172509 -1.164872,-0.172509 -0.401814,0 -1.712736,0.107245 -1.712736,1.49225 0,0.919692 0.687916,1.190273 1.2954,1.42875 0.468136,0.18415 0.872772,0.3429 0.872772,0.760589 0,0.47625 -0.549275,0.653697 -0.894997,0.653697 -0.360186,0 -0.741892,-0.103363 -1.105606,-0.296333 -0.0042,0.04269 -0.08537,0.829028 -0.08819,0.855839 0.02117,0.0053 0.0949,0.02328 0.0949,0.02328 0.412044,0.102306 0.6604,0.164042 1.1557,0.164042" id="mitsubishi-estate-app-dark-path3404" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 77.832909,-44.805487 v -4.911725 h -0.959203 v 1.997428 h -2.016125 v -1.997428 h -0.959202 v 4.911725 h 0.959202 v -2.167467 h 2.016125 v 2.167467 z" id="mitsubishi-estate-app-dark-path3408" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path id="mitsubishi-estate-app-dark-path3410" d="m 79.886959,-49.717371 h -0.95885 v 4.91172 h 0.95885 z" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 85.674868,-46.97298 v -0.746831 h -1.763889 v -1.25095 h 1.926872 v -0.746477 h -2.886075 v 4.911725 h 2.900186 v -0.746478 h -1.940983 v -1.420989 z" id="mitsubishi-estate-app-dark-path3414" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 88.057246,-44.72025 c 0.553156,0 1.839736,-0.143933 1.839736,-1.478492 0,-0.953205 -0.710142,-1.225197 -1.336675,-1.465438 -0.446264,-0.170745 -0.830792,-0.318559 -0.830792,-0.687917 0,-0.518936 0.410987,-0.703792 0.795514,-0.703792 0.331259,0 0.673453,0.07197 0.991659,0.206375 0.0042,-0.03845 0.08537,-0.754591 0.08855,-0.780344 -0.348192,-0.1143 -0.739775,-0.172509 -1.165578,-0.172509 -0.401461,0 -1.71203,0.107245 -1.71203,1.49225 0,0.919692 0.687563,1.190273 1.295047,1.42875 0.468136,0.18415 0.872419,0.3429 0.872419,0.760589 0,0.47625 -0.548922,0.653697 -0.894644,0.653697 -0.360186,0 -0.741539,-0.103363 -1.105253,-0.296333 -0.0046,0.04269 -0.08537,0.829028 -0.08855,0.855839 0.02081,0.0053 0.09454,0.02328 0.09454,0.02328 0.412397,0.102306 0.661106,0.164042 1.156053,0.164042" id="mitsubishi-estate-app-dark-path3426" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 94.104942,-49.717265 h -3.793067 v 0.746478 h 1.417109 v 4.165247 h 0.959202 v -4.165247 h 1.416756 z" id="mitsubishi-estate-app-dark-path3430" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 96.139808,-48.810814 0.746831,2.125133 H 95.3958 Z m 1.011414,2.871964 c 0,0 0.416983,1.112661 0.425097,1.133475 h 1.06292 c -0.01693,-0.0441 -1.92017,-4.891617 -1.928284,-4.912078 h -1.097139 c -0.0081,0.02046 -1.896886,4.868333 -1.914172,4.912078 h 0.992717 c 0.0078,-0.02046 0.4318,-1.133475 0.4318,-1.133475 z" id="mitsubishi-estate-app-dark-path3442" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 102.02707,-49.717265 h -3.792714 v 0.746478 h 1.416756 v 4.165247 h 0.959198 v -4.165247 h 1.41676 z" id="mitsubishi-estate-app-dark-path3446" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 105.4136,-46.97298 v -0.746831 h -1.76459 v -1.25095 h 1.92757 v -0.746477 h -2.88642 v 4.911725 h 2.90018 v -0.746478 h -1.94133 v -1.420989 z" id="mitsubishi-estate-app-dark-path3450" fill="#F5F7FA" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+    </g>
+  </g>
+</g></svg></g></svg>
