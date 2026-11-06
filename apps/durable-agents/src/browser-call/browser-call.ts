@@ -44,7 +44,7 @@ import {
 } from "@hashintel/brunch-agent";
 
 /** Long enough that walking away is not a failure; the doorbell ends an unanswered call then. */
-const callTtlMs = 24 * 60 * 60_000;
+export const callTtlMs = 24 * 60 * 60_000;
 
 /** Brunch's model-facing errors for a call that ends without a result. */
 export const browserCallUnstartedError =
@@ -130,7 +130,7 @@ export type BrowserCallOutcome =
 type BrowserCallState = { phase: "arm" } | { phase: "collect" };
 
 /** The model-facing error for a call that ended without a result, as Brunch words it. */
-const unfinishedError = (record: BrowserCallRecord, cause: string) => {
+export const unfinishedError = (record: BrowserCallRecord, cause: string) => {
   if (!record.claimed) return browserCallUnstartedError;
   return browserToolMutatesDocument(record.toolName)
     ? `Browser call ${cause}; an attempted document effect is unknown.`
@@ -215,8 +215,8 @@ const BrowserCall = defineTask<
 export const browserToolName =
   "setNetTitle" satisfies (typeof CANONICAL_PETRINAUT_TOOL_NAMES)[number];
 
-/** `setNetTitle` as the browser runs it: schema and wording from `@hashintel/petrinaut-core/ai`. */
-export const setNetTitleTool = defineTool({
+/** `setNetTitle`'s model-facing definition: schema and wording from `@hashintel/petrinaut-core/ai`. */
+export const setNetTitleDefinition = {
   name: browserToolName,
   description:
     "Set the human-readable title shown for the current Petrinaut net.",
@@ -228,6 +228,11 @@ export const setNetTitleTool = defineTool({
         "Short human-readable title for the net (sentence case, no quotes, ideally under ~60 characters).",
     }),
   }),
+};
+
+/** `setNetTitle` as the browser runs it, the tool call waiting for the browser's result. */
+export const setNetTitleTool = defineTool({
+  ...setNetTitleDefinition,
   replay: "safe",
   execute: async (args, api, context) => {
     const { conversationId, callId } = api;
@@ -312,6 +317,23 @@ export const claimBrowserCall = (
     };
   }, context);
 
+/** A browser's result for a call it claimed, as Brunch's panel posts it. */
+export type BrowserCallResult = ClientToolResult & {
+  readonly conversationId: ConversationId;
+  readonly capability: string;
+  readonly canonicalInput: JsonObject;
+};
+
+/** Whether `result` carries the capability, tool and input of the claim on `record`. */
+export const carriesClaim = (
+  record: BrowserCallRecord | undefined,
+  result: BrowserCallResult,
+): record is BrowserCallRecord =>
+  record !== undefined &&
+  record.capability === result.capability &&
+  record.toolName === result.toolName &&
+  JSON.stringify(record.input) === JSON.stringify(result.canonicalInput);
+
 /**
  * Commit a claimed call's result and wake its task: Brunch's
  * `settleBrowserCall`. A retry with the same capability after a crash
@@ -319,24 +341,14 @@ export const claimBrowserCall = (
  */
 export const finishBrowserCall = async (
   harness: Harness,
-  result: ClientToolResult & {
-    readonly conversationId: ConversationId;
-    readonly capability: string;
-    readonly canonicalInput: JsonObject;
-  },
+  result: BrowserCallResult,
   context: Context,
 ): Promise<"settled" | "not-issued"> => {
   const doorbell = await harness.commit(async (tx) => {
     const record = (await tx.doc(BrowserCallsDoc, result.conversationId)).calls[
       result.toolCallId
     ];
-    if (
-      record === undefined ||
-      record.capability !== result.capability ||
-      record.toolName !== result.toolName ||
-      JSON.stringify(record.input) !== JSON.stringify(result.canonicalInput)
-    )
-      return undefined;
+    if (!carriesClaim(record, result)) return undefined;
     if (record.status === "claimed") {
       record.status = "finished";
       record.output = (result.output ?? null) as JsonValue;

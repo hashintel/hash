@@ -13,11 +13,9 @@
  * to answer. The driver checks the brief's pass criteria and exits non-zero
  * when one fails.
  */
-import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
@@ -46,20 +44,21 @@ import {
 import { actAsBrowser } from "./proof/browser";
 import { fakeClock } from "./proof/fake-clock";
 import { type PanelView, panelView } from "./proof/panel-view";
+import {
+  print,
+  report,
+  runServer as runScript,
+  until,
+} from "./proof/server-process";
 
 import type { Models } from "@earendil-works/pi-ai/models";
 
 const context = BACKGROUND_CONTEXT;
-const print = (text: string) => process.stdout.write(`${text}\n`);
 const absenceMs = 15 * 60_000;
 const title = "Dryer queue";
 const answer = "Renamed the net to Dryer queue.";
 
 // ─── Server processes ────────────────────────────────────────────────────────
-
-/** One line the driver parses; everything else a server prints is shown as is. */
-const report = (event: string, data: unknown) =>
-  process.stdout.write(`@@${JSON.stringify({ event, data })}\n`);
 
 const open = async (
   file: string,
@@ -86,18 +85,6 @@ const tasks = async (harness: Harness) =>
     until: state.kind === "sleeping" ? state.until : undefined,
     on: state.kind === "waiting" ? state.on : undefined,
   }));
-
-/** Poll `check` every 10 ms for up to 5 s. */
-const until = async (
-  check: () => Promise<boolean>,
-  triesLeft = 500,
-): Promise<void> => {
-  if (await check()) return;
-  if (triesLeft === 0)
-    throw new Error("Timed out waiting for the browser call.");
-  await new Promise((resolve) => setTimeout(resolve, 10));
-  return until(check, triesLeft - 1);
-};
 
 /** The call is issued, its task waits on its doorbell, and the doorbell sleeps. */
 const callIsParked = async (harness: Harness) => {
@@ -250,42 +237,9 @@ const resume = async (
 
 // ─── Driver ─────────────────────────────────────────────────────────────────
 
-type Reports = Record<string, Record<string, unknown>>;
-
-/** Run one server process, echo its output, and collect its reports; `killOn` SIGKILLs it at that report. */
+/** Run this script as one server process; `killOn` SIGKILLs it at that report. */
 const runServer = (label: string, args: string[], killOn?: string) =>
-  new Promise<{ reports: Reports; signal: NodeJS.Signals | null }>(
-    (resolve, reject) => {
-      const child = spawn(
-        process.execPath,
-        [...process.execArgv, fileURLToPath(import.meta.url), ...args],
-        { stdio: ["ignore", "pipe", "inherit"] },
-      );
-      const reports: Reports = {};
-      createInterface({ input: child.stdout }).on("line", (line) => {
-        if (!line.startsWith("@@")) {
-          print(`  [${label}] ${line}`);
-          return;
-        }
-        const { event, data } = JSON.parse(line.slice(2)) as {
-          event: string;
-          data: Record<string, unknown>;
-        };
-        reports[event] = data;
-        print(`  [${label}] reported ${event}`);
-        if (event === killOn) {
-          print(`  [${label}] SIGKILL pid ${child.pid}`);
-          child.kill("SIGKILL");
-        }
-      });
-      child.on("error", reject);
-      child.on("exit", (code, signal) => {
-        if (signal === null && code !== 0)
-          reject(new Error(`${label} exited with ${code}`));
-        else resolve({ reports, signal });
-      });
-    },
-  );
+  runScript(fileURLToPath(import.meta.url), label, args, killOn);
 
 const show = (heading: string, value: unknown) =>
   print(`\n${heading}\n${JSON.stringify(value, null, 2)}`);
