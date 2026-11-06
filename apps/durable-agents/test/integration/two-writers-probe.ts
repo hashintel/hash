@@ -17,8 +17,15 @@
  * up with; a fresh read-only Harness reads the stored transcript at the end.
  * Without the fence, A's next input collided on an entry ID instead.
  *
+ * Then three routing scenarios, each on its own schema, run one three-turn
+ * conversation whose requests go to two instances that reopen on a failed
+ * Session (`two-writers-probe/routing.ts`): affinity, alternating, and a
+ * rolling deploy. Affinity and the rolling deploy have required criteria;
+ * the alternating scenario's numbers are printed as observations.
+ *
  * Usage: `turbo run probe:two-writers --filter @apps/durable-agents`, with
- * the compose Postgres up. No model is called; it takes a few seconds.
+ * the compose Postgres up. No model is called; it takes about half a minute,
+ * most of it the alternating runs waiting out turns they lost.
  */
 import { randomUUID } from "node:crypto";
 
@@ -34,6 +41,7 @@ import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgr
 import { openPostgresStorage } from "../../src/storage/postgres/postgres-storage";
 import { actAsBrowser } from "../browser-call/proof/browser";
 import { print, until } from "../browser-call/proof/server-process";
+import { runRoutingScenarios } from "./two-writers-probe/routing";
 
 const fenced = "is owned by a storage opened later";
 import {
@@ -268,6 +276,7 @@ const main = async () => {
     await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
     await admin.end();
   }
+  await runRoutingScenarios({ check, show });
   const failed = results.filter(({ pass }) => !pass).length;
   print(
     failed === 0
