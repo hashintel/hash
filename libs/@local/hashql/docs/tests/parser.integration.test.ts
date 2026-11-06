@@ -663,6 +663,23 @@ export declare namespace Inner {
       );
     });
 
+    test("unresolved_shared", async () => {
+      expect.hasAssertions();
+      // The private declarator parses the shared comment first.
+      await expect(
+        parse({
+          source:
+            "/** Holds a {@link Missing}. */ declare const hidden: string, shown: string; export { shown };",
+        }),
+      ).resolves.toMatchObject({
+        _tag: "Failure",
+        failure: {
+          _tag: "DocumentationError",
+          reason: { _tag: "UnresolvedLink", destination: "Missing" },
+        },
+      });
+    });
+
     test("selector", async () => {
       expect.hasAssertions();
       await expect(

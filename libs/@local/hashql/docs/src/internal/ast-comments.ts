@@ -42,8 +42,22 @@ const stray = (comment: JSDoc): DocumentationError.DocumentationError =>
 export const layer = Effect.gen(function* () {
   const parser = yield* DocumentationParser.DocumentationParser;
   const references = yield* References.References;
-  // Several source nodes can share one comment, such as the declarators of one variable statement. Parsing it again would intern a second, unequal node.
-  const parsed = new WeakMap<JSDoc, Documentation>();
+  // Several source nodes can share one comment, such as the declarators of one variable statement. Parsing it again would intern a second, unequal node. Each owner still registers the comment's links, because a link resolves in its owner's scope.
+  const parsed = new WeakMap<
+    JSDoc,
+    {
+      readonly documentation: AST.Documentation.Documentation;
+      readonly id: Documentation;
+    }
+  >();
+
+  const register = (
+    documentation: AST.Documentation.Documentation,
+    owner: Node,
+  ): Effect.Effect<void, DocumentationError.DocumentationError> =>
+    Links.register(documentation, owner).pipe(
+      Effect.provideService(References.References, references),
+    );
 
   const intern = (
     comment: JSDoc,
@@ -56,17 +70,16 @@ export const layer = Effect.gen(function* () {
     const existing = parsed.get(comment);
 
     if (existing !== undefined) {
-      return Effect.succeed(existing);
+      return Effect.as(register(existing.documentation, owner), existing.id);
     }
 
     return parser.parse(comment).pipe(
-      Effect.tap((documentation) =>
-        Links.register(documentation, owner).pipe(
-          Effect.provideService(References.References, references),
+      Effect.tap((documentation) => register(documentation, owner)),
+      Effect.flatMap((documentation) =>
+        Effect.tap(AST.intern(documentation), (id) =>
+          Effect.sync(() => parsed.set(comment, { documentation, id })),
         ),
       ),
-      Effect.flatMap(AST.intern),
-      Effect.tap((id) => Effect.sync(() => parsed.set(comment, id))),
     );
   };
 
