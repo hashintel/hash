@@ -56,7 +56,8 @@ const inputArcId = generateArcId({ inputId: placeKey("p1"), outputId: "t1" });
 const outputArcId = generateArcId({ inputId: "t1", outputId: placeKey("p2") });
 
 const input: CanvasSceneInput = {
-  net: { ...sdcpn, componentInstances: [] },
+  net: { ...sdcpn, componentInstances: [], fusions: [] },
+  activeSubnetId: null,
   sdcpn,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
@@ -64,7 +65,11 @@ const input: CanvasSceneInput = {
   isSelected: () => false,
   hoveredId: null,
   focus: resolveCanvasFocus({
-    adjacency: buildNetAdjacency({ ...sdcpn, componentInstances: [] }),
+    adjacency: buildNetAdjacency({
+      ...sdcpn,
+      componentInstances: [],
+      fusions: [],
+    }),
     hoveredId: null,
     selectedIds: new Set(),
   }),
@@ -167,6 +172,71 @@ describe("buildCanvasScene", () => {
       targetId: "p2",
       kind: "standard",
       weight: 1,
+    });
+  });
+
+  it("runs a fusion link between the sides of its ends that face each other", () => {
+    const stage = {
+      id: "stage",
+      name: "Stage",
+      places: [{ ...place("in", 0, 0), isPort: true }],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const instance = (id: string, x: number) => ({
+      id,
+      name: id,
+      subnetId: "stage",
+      parameterValues: {},
+      x,
+      y: 0,
+    });
+    const fusionWith = (instanceId: string) => ({
+      id: `fusion-${instanceId}`,
+      members: [
+        { kind: "place" as const, placeId: "p1" },
+        {
+          kind: "componentPort" as const,
+          componentInstanceId: instanceId,
+          portPlaceId: "in",
+        },
+      ],
+    });
+    const composed: SDCPN = {
+      ...sdcpn,
+      subnets: [stage],
+      componentInstances: [instance("left", -400), instance("right", 900)],
+      fusions: [fusionWith("left"), fusionWith("right")],
+    };
+
+    const { fusions } = buildCanvasScene({
+      ...input,
+      sdcpn: composed,
+      net: {
+        ...composed,
+        componentInstances: composed.componentInstances ?? [],
+        fusions: composed.fusions ?? [],
+      },
+    });
+
+    expect(fusions).toHaveLength(2);
+    expect(
+      fusions.find((link) => link.fusionId === "fusion-left"),
+    ).toMatchObject({
+      sourceId: "left",
+      sourcePortId: "in",
+      targetId: "p1",
+      targetPortId: null,
+    });
+    expect(
+      fusions.find((link) => link.fusionId === "fusion-right"),
+    ).toMatchObject({
+      sourceId: "p1",
+      sourcePortId: null,
+      targetId: "right",
+      targetPortId: "in",
     });
   });
 });

@@ -2,6 +2,10 @@ import { useMemo, useState, useEffect } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import {
+  DEFAULT_TRANSITION_KERNEL_CODE,
+  generateDefaultLambdaCode,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
@@ -618,6 +622,126 @@ export const SubnetsWithColors: Story = {
       capabilities={subnetsWithColorsCapabilities}
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
+    />
+  ),
+};
+
+const place = (
+  id: string,
+  name: string,
+  x: number,
+  y: number,
+  extra: Partial<SDCPN["places"][number]> = {},
+): SDCPN["places"][number] => ({
+  id,
+  name,
+  colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x,
+  y,
+  ...extra,
+});
+
+/** A stage with one input port and one output port, processing one token at a time. */
+const stageSubnet: NonNullable<SDCPN["subnets"]>[number] = {
+  id: "stage",
+  name: "Stage",
+  places: [
+    place("stage_in", "In", 80, 160, { isPort: true }),
+    place("stage_out", "Out", 440, 160, { isPort: true }),
+  ],
+  transitions: [
+    {
+      id: "stage_process",
+      name: "Process",
+      inputArcs: [{ placeId: "stage_in", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "stage_out", weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: generateDefaultLambdaCode("stochastic"),
+      transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
+      x: 260,
+      y: 160,
+    },
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
+const port = (componentInstanceId: string, portPlaceId: string) => ({
+  kind: "componentPort" as const,
+  componentInstanceId,
+  portPlaceId,
+});
+
+/**
+ * Two stages of one component fused through the root's places: Parts feeds
+ * the cutter, the capacity-bounded Buffer sits between the stages, Finished
+ * collects the drill's output.
+ */
+const fusedLineNet: SDCPN = {
+  places: [
+    place("parts", "Parts", 100, 220, { showAsInitialState: true }),
+    place("buffer", "Buffer", 520, 220, { capacity: 5 }),
+    place("finished", "Finished", 940, 220),
+  ],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+  subnets: [stageSubnet],
+  componentInstances: [
+    {
+      id: "cutter",
+      name: "Cutter",
+      subnetId: "stage",
+      parameterValues: {},
+      x: 310,
+      y: 220,
+    },
+    {
+      id: "drill",
+      name: "Drill",
+      subnetId: "stage",
+      parameterValues: {},
+      x: 730,
+      y: 220,
+    },
+  ],
+  fusions: [
+    {
+      id: "fuse_parts",
+      members: [
+        { kind: "place", placeId: "parts" },
+        port("cutter", "stage_in"),
+      ],
+    },
+    {
+      id: "fuse_buffer",
+      members: [
+        { kind: "place", placeId: "buffer" },
+        port("cutter", "stage_out"),
+        port("drill", "stage_in"),
+      ],
+    },
+    {
+      id: "fuse_finished",
+      members: [
+        { kind: "place", placeId: "finished" },
+        port("drill", "stage_out"),
+      ],
+    },
+  ],
+};
+
+export const PlaceFusion: Story = {
+  name: "Place fusion",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={fusedLineNet}
+      initialTitle="Fused line"
     />
   ),
 };

@@ -99,6 +99,7 @@ export const petrinautDocNames = [
   "drawing-a-net",
   "petri-net-extensions",
   "useful-patterns",
+  "composition",
   "simulation",
   "scenarios",
   "ad-hoc-scenarios",
@@ -122,6 +123,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Token types, parameters, differential equations, visualizers, transition kernels, distributions, firing rate vs predicate, inhibitor arcs, diagnostics.",
   "useful-patterns":
     "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
+  composition:
+    "Components (subnets) and instances, marking ports, fusing a place with instance ports by dragging, what fused places must agree on, fusion checks in Diagnostics.",
   simulation:
     "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
   scenarios:
