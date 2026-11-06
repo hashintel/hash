@@ -10,6 +10,7 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "probe:async-browser-call": "tsx test/browser-call/async-probe.ts",
+    "probe:postgres-viewer": "tsx test/integration/viewer-probe.ts",
     "proof:browser-call": "tsx test/browser-call/proof.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run"
