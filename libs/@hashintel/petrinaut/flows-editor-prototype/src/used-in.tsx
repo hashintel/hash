@@ -57,6 +57,18 @@ export const useMinimalUsedIn = (): MinimalUsedIn | null => {
     : null;
 };
 
+/**
+ * 6 Nov sync (D1–D7): structures with no false nesting, URL only (?usedin=s1..s4). No lines, no indent below the
+ * name's own start, and the relation is named in words ("Used in"). s1 caption + flat rows; s2 a Step / Input table;
+ * s3 chips; s4 one sentence with linked names.
+ */
+export type StructureUsedIn = "s1" | "s2" | "s3" | "s4";
+
+export const useStructureUsedIn = (): StructureUsedIn | null => {
+  const value = useLocation().query.get("usedin");
+  return value === "s1" || value === "s2" || value === "s3" || value === "s4" ? value : null;
+};
+
 /** The one "used here" icon: an outbound arrow; ?usedicon=pipe tries the input pipe instead. */
 const useUsedIcon = (): IconName =>
   useLocation().query.get("usedicon") === "pipe" ? "inputPipe" : "arrowUpRight";
@@ -1151,6 +1163,245 @@ const MinimalBlock = ({
   );
 };
 
+/** The structure takes' body: starts at the name's left edge (28 px), never further in. */
+const structStyle = css({
+  paddingLeft: "[28px]",
+  paddingRight: "2",
+  paddingBottom: "1",
+  "& [data-caption]": {
+    display: "block",
+    textStyle: "xs",
+    lineHeight: "[16px]",
+    color: "neutral.fg.subtle",
+    paddingX: "1.5",
+    marginBottom: "[2px]",
+  },
+});
+
+const flatRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  width: "[100%]",
+  minHeight: "[28px]",
+  paddingX: "1.5",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  textAlign: "left",
+  textStyle: "sm",
+  lineHeight: "[20px]",
+  color: "neutral.fg.body",
+  "& [data-input]": { marginLeft: "auto", textStyle: "xs", color: "neutral.fg.subtle", whiteSpace: "nowrap" },
+  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
+});
+
+const tableStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[minmax(0, 1fr) auto]",
+  "& [data-th]": { textStyle: "xs", lineHeight: "[16px]", color: "neutral.fg.subtle", paddingX: "1.5", paddingBottom: "1" },
+  "& [data-tr]": { display: "contents" },
+  "& [data-td]": {
+    display: "flex",
+    alignItems: "center",
+    minHeight: "[28px]",
+    paddingX: "1.5",
+    borderTop: "[1px solid rgba(0, 0, 0, 0.06)]",
+    textStyle: "sm",
+    lineHeight: "[20px]",
+    color: "neutral.fg.body",
+    cursor: "pointer",
+  },
+  "& [data-td][data-input]": { textStyle: "xs", color: "neutral.fg.muted" },
+  "& [data-tr]:hover [data-td]": { backgroundColor: "neutral.bg.surface.hover", color: "neutral.fg.heading" },
+});
+
+const chipsStyle = css({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "1",
+  paddingLeft: "1.5",
+  "& [data-caption]": { display: "inline", paddingX: "[0]", marginBottom: "[0]", marginRight: "1", textStyle: "xs" },
+  "& button": {
+    height: "[24px]",
+    paddingX: "2",
+    border: "none",
+    borderRadius: "md",
+    backgroundColor: "neutral.a10",
+    cursor: "pointer",
+    textStyle: "xs",
+    lineHeight: "[16px]",
+    color: "neutral.fg.body",
+    _hover: { backgroundColor: "neutral.a20", color: "neutral.fg.heading" },
+  },
+});
+
+const sentenceStyle = css({
+  paddingX: "1.5",
+  textStyle: "sm",
+  lineHeight: "[20px]",
+  color: "neutral.fg.muted",
+  "& [data-scope=tooltip]": { lineHeight: "[20px]" },
+  "& button": {
+    lineHeight: "[20px]",
+    padding: "[0]",
+    border: "none",
+    background: "[transparent]",
+    cursor: "pointer",
+    font: "inherit",
+    color: "neutral.fg.body",
+    textDecoration: "underline",
+    textDecorationColor: "[rgba(0, 0, 0, 0.18)]",
+    textUnderlineOffset: "[3px]",
+    _hover: { color: "neutral.fg.heading", textDecorationColor: "[currentColor]" },
+  },
+});
+
+const StructureBlock = ({
+  take,
+  stepId,
+  outputName,
+  label,
+  kind,
+  typeIcon,
+  readOnly,
+  end,
+}: {
+  take: StructureUsedIn;
+  stepId: string;
+  outputName: string;
+  label: string;
+  kind: string | null;
+  typeIcon: IconName;
+  readOnly: boolean;
+  end: React.ReactNode;
+}) => {
+  const { document, setUi } = useEditor();
+  const uses = usesOf(document, stepId, outputName);
+  const [adding, setAdding] = useState(false);
+  const [more, setMore] = useState(false);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const nameOf = (id: string) => {
+    const step = findStep(document, id)?.step;
+    return step ? stepLabel(step) : id;
+  };
+  const select = (id: string) =>
+    setUi((current) => ({ ...current, selectedId: id, openField: null, hoverSourceId: null }));
+  // Hovering a name highlights its card on the canvas (the reference-hover highlight; journeys-rebuild owns its look).
+  const hover = (id: string | null) => setUi((current) => ({ ...current, hoverSourceId: id }));
+  const on = (id: string) => ({
+    onPointerEnter: () => hover(id),
+    onPointerLeave: () => hover(null),
+    onClick: () => select(id),
+  });
+  const inputsOf = (use: Use) => use.inputs.join(", ");
+  const shown = take === "s4" && !more ? uses.slice(0, 2) : uses;
+  const rest = uses.length - shown.length;
+  const body =
+    uses.length === 0 ? null : take === "s1" ? (
+      <div className={structStyle} data-used-names>
+        <span data-caption>Used in</span>
+        {uses.map((use) => (
+          <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
+            {nameOf(use.stepId)}
+            <span data-input>{inputsOf(use)}</span>
+          </button>
+        ))}
+      </div>
+    ) : take === "s2" ? (
+      <div className={structStyle} data-used-names>
+        <div className={tableStyle}>
+          <span data-th>Used in</span>
+          <span data-th>Input</span>
+          {uses.map((use) => (
+            <div key={use.stepId} data-tr {...on(use.stepId)}>
+              <span data-td>{nameOf(use.stepId)}</span>
+              <span data-td data-input>
+                {inputsOf(use)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : take === "s3" ? (
+      <div className={structStyle} data-used-names>
+        <div className={chipsStyle}>
+          <span data-caption>Used in</span>
+          {uses.map((use) => (
+            <Tooltip key={use.stepId} content={inputsOf(use)} position="top">
+              <button type="button" {...on(use.stepId)}>
+                {nameOf(use.stepId)}
+              </button>
+            </Tooltip>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div className={structStyle} data-used-names>
+        <div className={sentenceStyle}>
+          Used in{" "}
+          {shown.map((use, index) => (
+            <Fragment key={use.stepId}>
+              <Tooltip content={inputsOf(use)} position="top">
+                <button type="button" {...on(use.stepId)}>
+                  {nameOf(use.stepId)}
+                </button>
+              </Tooltip>
+              {index < shown.length - 1 ? (index === shown.length - 2 && rest === 0 ? " and " : ", ") : null}
+            </Fragment>
+          ))}
+          {rest > 0 ? (
+            <>
+              {" and "}
+              <button type="button" onClick={() => setMore(true)}>
+                {`${String(rest)} more`}
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    );
+  return (
+    <div className={blockStyle} data-output={`${stepId}.${outputName}`} data-used-take={take}>
+      <div className={headStyle} data-row>
+        <span data-type-icon>
+          <Icon name={typeIcon} size="sm" />
+        </span>
+        <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
+          <span className={headNameStyle}>{label}</span>
+        </Tooltip>
+        {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+        <span className={headEndStyle}>{end}</span>
+      </div>
+      {body}
+      {readOnly ? null : (
+        <div className={hoverAddStyle} data-open={adding || undefined}>
+          <button
+            ref={addRef}
+            type="button"
+            className={addNameStyle}
+            data-output-use={`${stepId}:${outputName}`}
+            onClick={() => setAdding((current) => !current)}
+          >
+            <Icon name="plus" size="sm" />
+            Use in a step
+          </button>
+          {adding ? (
+            <LaterStepsMenu
+              anchor={addRef}
+              stepId={stepId}
+              outputName={outputName}
+              onClose={() => setAdding(false)}
+            />
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const UsedInBlock = ({
   stepId,
   outputName,
@@ -1177,6 +1428,21 @@ export const UsedInBlock = ({
   const select = (id: string) =>
     setUi((current) => ({ ...current, selectedId: id, openField: null }));
   const minimal = useMinimalUsedIn();
+  const structure = useStructureUsedIn();
+  if (structure) {
+    return (
+      <StructureBlock
+        take={structure}
+        stepId={stepId}
+        outputName={outputName}
+        label={label}
+        kind={kind}
+        typeIcon={typeIcon}
+        readOnly={readOnly}
+        end={end}
+      />
+    );
+  }
   if (minimal) {
     return (
       <MinimalBlock
