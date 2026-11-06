@@ -4,6 +4,7 @@ import * as Comments from "./ast-comments.js";
 
 import type * as AST from "../AST/index.js";
 import type * as DocumentationError from "../DocumentationError.js";
+import type * as Names from "./ast-names.js";
 import type { Cause, Chunk, Option } from "effect";
 import type * as Syntax from "typescript/ast";
 
@@ -15,7 +16,7 @@ export type Failure =
   | AST.ParseError.ParseError
   | DocumentationError.DocumentationError;
 
-type Parsed<T> = Effect.Effect<T, Failure, AST.Store>;
+type Parsed<T> = Effect.Effect<T, Failure, AST.Store | Names.Reach>;
 
 /**
  * Parses type syntax and the signatures and members built from it.
@@ -34,9 +35,9 @@ export declare namespace TypeParser {
     readonly typeParameter: (
       node: Syntax.TypeParameterDeclaration,
     ) => Parsed<AST.TypeParameter.Interned>;
-    readonly parameter: (
-      node: Syntax.ParameterDeclaration,
-    ) => Parsed<AST.Parameter.Interned>;
+    readonly typeParameters: (
+      nodes: readonly Syntax.TypeParameterDeclaration[],
+    ) => Parsed<readonly AST.TypeParameter.Interned[]>;
     readonly signature: (
       node: Syntax.SignatureDeclaration,
     ) => Parsed<AST.Signature.Signature>;
@@ -62,26 +63,35 @@ export const optional = (
 ): Effect.Effect<
   Option.Option<AST.TypeNode.Interned>,
   Failure,
-  TypeParser | AST.Store
+  TypeParser | AST.Store | Names.Reach
 > => Effect.flatMap(TypeParser, (parser) => parser.optional(node));
 
 /** A type parameter, parsed once per declaration and bound to its symbol. */
 export const typeParameter = (
   node: Syntax.TypeParameterDeclaration,
-): Effect.Effect<AST.TypeParameter.Interned, Failure, TypeParser | AST.Store> =>
-  Effect.flatMap(TypeParser, (parser) => parser.typeParameter(node));
+): Effect.Effect<
+  AST.TypeParameter.Interned,
+  Failure,
+  TypeParser | AST.Store | Names.Reach
+> => Effect.flatMap(TypeParser, (parser) => parser.typeParameter(node));
 
-/** A parameter, parsed once per declaration and bound to its symbols. */
-export const parameter = (
-  node: Syntax.ParameterDeclaration,
-): Effect.Effect<AST.Parameter.Interned, Failure, TypeParser | AST.Store> =>
-  Effect.flatMap(TypeParser, (parser) => parser.parameter(node));
+/** The type parameters of one list. The parse reserves each before it reads any, so a constraint can name a type parameter declared after it. */
+export const typeParameters = (
+  nodes: readonly Syntax.TypeParameterDeclaration[],
+): Effect.Effect<
+  readonly AST.TypeParameter.Interned[],
+  Failure,
+  TypeParser | AST.Store | Names.Reach
+> => Effect.flatMap(TypeParser, (parser) => parser.typeParameters(nodes));
 
 /** The type parameters, parameters and stated return type of one signature. */
 const signature = (
   node: Syntax.SignatureDeclaration,
-): Effect.Effect<AST.Signature.Signature, Failure, TypeParser | AST.Store> =>
-  Effect.flatMap(TypeParser, (parser) => parser.signature(node));
+): Effect.Effect<
+  AST.Signature.Signature,
+  Failure,
+  TypeParser | AST.Store | Names.Reach
+> => Effect.flatMap(TypeParser, (parser) => parser.signature(node));
 
 /** The fields every signature-shaped node holds: its signature, then the comment of its own declaration. */
 export const signed = <N extends Syntax.SignatureDeclaration>(
@@ -92,7 +102,7 @@ export const signed = <N extends Syntax.SignatureDeclaration>(
     readonly documentation: Option.Option<AST.Documentation.Interned>;
   },
   Failure,
-  TypeParser | Comments.CommentParser | AST.Store
+  TypeParser | Comments.CommentParser | AST.Store | Names.Reach
 > =>
   Effect.all({
     parsed: signature(node),
@@ -111,8 +121,11 @@ export const signed = <N extends Syntax.SignatureDeclaration>(
 /** One call, with the documentation of its own declaration. */
 export const call = (
   node: AST.CallSignature.CallSignature["node"],
-): Effect.Effect<AST.CallSignature.Interned, Failure, TypeParser | AST.Store> =>
-  Effect.flatMap(TypeParser, (parser) => parser.call(node));
+): Effect.Effect<
+  AST.CallSignature.Interned,
+  Failure,
+  TypeParser | AST.Store | Names.Reach
+> => Effect.flatMap(TypeParser, (parser) => parser.call(node));
 
 /** One construct signature, with the documentation of its own declaration. */
 export const construct = (
@@ -120,7 +133,7 @@ export const construct = (
 ): Effect.Effect<
   AST.ConstructSignature.Interned,
   Failure,
-  TypeParser | AST.Store
+  TypeParser | AST.Store | Names.Reach
 > => Effect.flatMap(TypeParser, (parser) => parser.construct(node));
 
 /** The members of an interface or type literal, with same-named declarations grouped into one member. */
@@ -129,7 +142,7 @@ export const typeMembers = (
 ): Effect.Effect<
   Chunk.Chunk<AST.Member.InternedType>,
   Failure,
-  TypeParser | AST.Store
+  TypeParser | AST.Store | Names.Reach
 > => Effect.flatMap(TypeParser, (parser) => parser.typeMembers(nodes));
 
 /** The members of a class, with its constructors grouped into one member. */
@@ -138,11 +151,14 @@ export const classMembers = (
 ): Effect.Effect<
   Chunk.Chunk<AST.Member.InternedClass>,
   Failure,
-  TypeParser | AST.Store
+  TypeParser | AST.Store | Names.Reach
 > => Effect.flatMap(TypeParser, (parser) => parser.classMembers(nodes));
 
 /** The type `node` denotes, parsed once per syntax node. Names stay references, without expanding what they refer to. */
 export const type = (
   node: TypeSource,
-): Effect.Effect<AST.TypeNode.Interned, Failure, TypeParser | AST.Store> =>
-  Effect.flatMap(TypeParser, (parser) => parser.type(node));
+): Effect.Effect<
+  AST.TypeNode.Interned,
+  Failure,
+  TypeParser | AST.Store | Names.Reach
+> => Effect.flatMap(TypeParser, (parser) => parser.type(node));

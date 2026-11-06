@@ -10,6 +10,7 @@ const Reason = Schema.TaggedUnion({
   },
   UnsupportedMerge: { name: Schema.String, kinds: Schema.Array(Schema.String) },
   UnresolvedReference: { file: Schema.String, text: Schema.String },
+  UnreservedReference: { name: Schema.String, owner: Schema.String },
 });
 
 /** Parsing stops for missing or unsupported declaration input. */
@@ -28,6 +29,8 @@ export class ParseError extends Schema.TaggedError<ParseError>()("ParseError", {
         `Unsupported merge for ${name}: ${kinds.join(", ")}`,
       UnresolvedReference: ({ file, text }) =>
         `Unresolved reference ${text} in ${file}`,
+      UnreservedReference: ({ name, owner }) =>
+        `Reference to ${name} before ${owner} reserved its node`,
     });
   }
 }
@@ -59,6 +62,13 @@ export const unsupportedMerge = (fields: {
   readonly kinds: readonly string[];
 }): ParseError =>
   ParseError.make({ reason: { _tag: "UnsupportedMerge", ...fields } });
+
+/** A name refers to a symbol inside a declaration the parse is still building, before that declaration reserved the symbol's node. */
+export const unreservedReference = (fields: {
+  readonly name: string;
+  readonly owner: string;
+}): ParseError =>
+  ParseError.make({ reason: { _tag: "UnreservedReference", ...fields } });
 
 /** A name the AST must resolve has no symbol. */
 export const unresolvedReference = (fields: {

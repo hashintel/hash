@@ -8,12 +8,14 @@ import * as Types from "./ast-type-parser.js";
 import * as Source from "./ast/source.js";
 
 import type { Interned } from "../AST/Interned.js";
+import type * as Names from "./ast-names.js";
 import type { Failure } from "./ast-type-parser.js";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 export type Requirements =
   | AST.Store
   | Types.TypeParser
+  | Names.Reach
   | Comments.CommentParser
   | TypeScript.Checker.Checker;
 
@@ -231,16 +233,16 @@ const groupsOf = (
   return groups;
 };
 
-/** A member named by its symbol, reserved before parsing so references inside it can resolve to it. */
-const groupedMember = ({
+/** A member named by its symbol, or by none for an index signature. */
+const memberEntry = ({
   nodes,
   symbol,
-}: Group): Parsed<Interned<CommonMember>> =>
-  Option.match(symbol, {
-    onNone: () => AST.reserve(() => commonMember(nodes)),
-    onSome: (named) => AST.reserveSymbol([named], () => commonMember(nodes)),
-  });
+}: Group): AST.Entry<CommonMember, Failure, Requirements> => ({
+  symbols: Option.toArray(symbol),
+  build: () => commonMember(nodes),
+});
 
+/** The named members and index signatures of one body. The parse reserves every named member before it reads any, so a member's type can name one declared after it, as `a: typeof C.b` names the static `b` that follows it. */
 const commonMembers = (
   nodes: readonly CommonSource[],
 ): Parsed<readonly Interned<CommonMember>[]> =>
@@ -248,8 +250,9 @@ const commonMembers = (
     Effect.forEach(nodes, (node) =>
       symbolOf(node).pipe(Effect.map((symbol) => ({ node, symbol }))),
     ),
-    Effect.map(groupsOf),
-    Effect.flatMap(Effect.forEach(groupedMember)),
+    Effect.flatMap((keyed) =>
+      AST.reserveSymbols(Array.map(groupsOf(keyed), memberEntry)),
+    ),
   );
 
 const signatureMember = (
