@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -7,6 +7,8 @@ import type { DocParamBlock, DocSection } from "@microsoft/tsdoc";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/Parameter";
+
+const fields = ["node"] as const;
 
 /** One `@param` block, which describes a parameter by the name it is declared with. */
 export class Parameter implements Traits.Base {
@@ -24,7 +26,7 @@ export class Parameter implements Traits.Base {
   }
 
   constructor({ node }: Parameter.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     Object.freeze(this);
   }
 
@@ -37,13 +39,14 @@ export class Parameter implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    return pipe(this._tag, Hash.string, Hash.combine(Hash.random(this.node)));
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isParameter(other) && this.node === other.node
+      isParameter(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -57,7 +60,7 @@ export class Parameter implements Traits.Base {
 }
 
 export declare namespace Parameter {
-  type Fields = Pick<Parameter, "node">;
+  type Fields = Pick<Parameter, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

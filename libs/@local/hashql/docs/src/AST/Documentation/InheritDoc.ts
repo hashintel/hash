@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -10,6 +10,8 @@ import type {
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/InheritDoc";
+
+const fields = ["node"] as const;
 
 /** The `{@inheritDoc}` tag, which asks for another declaration's documentation in place of this comment's. */
 export class InheritDoc implements Traits.Base {
@@ -27,7 +29,7 @@ export class InheritDoc implements Traits.Base {
   }
 
   constructor({ node }: InheritDoc.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     Object.freeze(this);
   }
 
@@ -37,13 +39,14 @@ export class InheritDoc implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    return pipe(this._tag, Hash.string, Hash.combine(Hash.random(this.node)));
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isInheritDoc(other) && this.node === other.node
+      isInheritDoc(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -59,7 +62,7 @@ export class InheritDoc implements Traits.Base {
 }
 
 export declare namespace InheritDoc {
-  type Fields = Pick<InheritDoc, "node">;
+  type Fields = Pick<InheritDoc, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

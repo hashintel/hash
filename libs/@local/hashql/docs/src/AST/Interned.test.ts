@@ -1,4 +1,4 @@
-import { Chunk, Option } from "effect";
+import { Chunk, Effect, Option } from "effect";
 import { SyntaxKind } from "typescript/ast";
 import * as factory from "typescript/ast/factory";
 import { describe, expect, expectTypeOf, test } from "vitest";
@@ -15,7 +15,7 @@ describe("interned", () => {
       children: Chunk.empty(),
       references: Chunk.empty(),
     });
-    const id = ast.intern(node);
+    const id = Effect.runSync(ast.intern(node));
     expectTypeOf(
       ast.get(id),
     ).toEqualTypeOf<Nodes.TypeExpression.TypeExpression>();
@@ -39,7 +39,7 @@ describe("interned", () => {
       members: Chunk.empty(),
       documentation: Option.none(),
     });
-    const id = ast.intern(node);
+    const id = Effect.runSync(ast.intern(node));
     expectTypeOf(id).toExtend<
       Nodes.JointDeclaration.JointDeclaration.Fields["declaration"]
     >();

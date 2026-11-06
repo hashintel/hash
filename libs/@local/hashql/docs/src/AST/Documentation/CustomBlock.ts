@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -7,6 +7,8 @@ import type { DocBlock, DocSection } from "@microsoft/tsdoc";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/CustomBlock";
+
+const fields = ["node"] as const;
 
 /** A block the package's TSDoc configuration defines and that has no dedicated node. */
 export class CustomBlock implements Traits.Base {
@@ -24,7 +26,7 @@ export class CustomBlock implements Traits.Base {
   }
 
   constructor({ node }: CustomBlock.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     Object.freeze(this);
   }
 
@@ -38,13 +40,14 @@ export class CustomBlock implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    return pipe(this._tag, Hash.string, Hash.combine(Hash.random(this.node)));
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isCustomBlock(other) && this.node === other.node
+      isCustomBlock(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -58,7 +61,7 @@ export class CustomBlock implements Traits.Base {
 }
 
 export declare namespace CustomBlock {
-  type Fields = Pick<CustomBlock, "node">;
+  type Fields = Pick<CustomBlock, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

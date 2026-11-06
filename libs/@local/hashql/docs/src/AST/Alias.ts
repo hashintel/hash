@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Traits from "../internal/ast/traits.js";
 
@@ -7,6 +7,8 @@ import type * as $Interned from "./Interned.js";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Alias";
+
+const fields = ["name", "target", "typeOnlyExport"] as const;
 
 /** An exported name refers to a declaration without changing its exposure through other names. */
 export class Alias implements Traits.Traits {
@@ -35,22 +37,14 @@ export class Alias implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.hash(this.name)),
-      Hash.combine(Hash.hash(this.target)),
-      Hash.combine(Hash.hash(this.typeOnlyExport)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isAlias(other) &&
-      this.name === other.name &&
-      this.target === other.target &&
-      this.typeOnlyExport === other.typeOnlyExport
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -65,7 +59,7 @@ export class Alias implements Traits.Traits {
 }
 
 export declare namespace Alias {
-  type Fields = Pick<Alias, "name" | "target" | "typeOnlyExport">;
+  type Fields = Pick<Alias, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<Alias>;

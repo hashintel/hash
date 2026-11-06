@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -9,6 +9,8 @@ import type { Chunk, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/EnumDeclaration";
+
+const fields = ["node", "members", "documentation"] as const;
 
 export class EnumDeclaration implements Traits.Traits {
   readonly [TypeId] = TypeId;
@@ -27,29 +29,21 @@ export class EnumDeclaration implements Traits.Traits {
   }
 
   constructor({ node, members, documentation }: EnumDeclaration.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.members = members;
     this.documentation = documentation;
     Object.freeze(this);
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.members)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isEnumDeclaration(other) &&
-      this.node === other.node &&
-      Equal.equals(this.members, other.members) &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -64,7 +58,7 @@ export class EnumDeclaration implements Traits.Traits {
 }
 
 export declare namespace EnumDeclaration {
-  type Fields = Pick<EnumDeclaration, "node" | "members" | "documentation">;
+  type Fields = Pick<EnumDeclaration, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<EnumDeclaration>;

@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Traits from "../internal/ast/traits.js";
 
@@ -7,6 +7,8 @@ import type * as $Interned from "./Interned.js";
 import type { Chunk, Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/FunctionDeclaration/function";
+
+const fields = ["overloads"] as const;
 
 /** A function's ordered overloads retain their individual signatures and comments. */
 export class FunctionOverloads implements Traits.Traits {
@@ -30,19 +32,14 @@ export class FunctionOverloads implements Traits.Traits {
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.string(this.flavour)),
-      Hash.combine(Hash.hash(this.overloads)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isFunctionOverloads(other) &&
-      Equal.equals(this.overloads, other.overloads)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -56,7 +53,7 @@ export class FunctionOverloads implements Traits.Traits {
 }
 
 export declare namespace FunctionOverloads {
-  type Fields = Pick<FunctionOverloads, "overloads">;
+  type Fields = Pick<FunctionOverloads, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<FunctionOverloads>;

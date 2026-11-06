@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -8,6 +8,8 @@ import type { DocBlock, DocFencedCode } from "@microsoft/tsdoc";
 import type { Inspectable, Option } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/Example";
+
+const fields = ["node", "caption", "fence"] as const;
 
 /** One `@example` block. It keeps its caption as prose and its code exactly as TSDoc parsed it. */
 export class Example implements Traits.Base {
@@ -28,9 +30,9 @@ export class Example implements Traits.Base {
   }
 
   constructor({ node, caption, fence }: Example.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.caption = caption;
-    this.fence = fence;
+    this.fence = Equal.byReferenceUnsafe(fence);
     Object.freeze(this);
   }
 
@@ -45,22 +47,14 @@ export class Example implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.caption)),
-      Hash.combine(Hash.random(this.fence)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isExample(other) &&
-      this.node === other.node &&
-      Equal.equals(this.caption, other.caption) &&
-      this.fence === other.fence
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -76,7 +70,7 @@ export class Example implements Traits.Base {
 }
 
 export declare namespace Example {
-  type Fields = Pick<Example, "node" | "caption" | "fence">;
+  type Fields = Pick<Example, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

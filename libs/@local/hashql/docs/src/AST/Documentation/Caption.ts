@@ -1,4 +1,4 @@
-import { Array, Equal, Equivalence, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -8,7 +8,7 @@ import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/Caption";
 
-const sameNodes = Array.makeEquivalence(Equivalence.strictEqual<DocNode>());
+const fields = ["node", "content"] as const;
 
 /** An example's `<caption>`, whose prose keeps TSDoc's tree, including code spans and unresolved links. */
 export class Caption implements Traits.Base {
@@ -29,26 +29,20 @@ export class Caption implements Traits.Base {
   }
 
   constructor({ node, content }: Caption.Fields) {
-    this.node = node;
-    this.content = content;
+    this.node = Equal.byReferenceUnsafe(node);
+    this.content = Array.map(content, (part) => Equal.byReferenceUnsafe(part));
     Object.freeze(this);
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.array(Array.map(this.content, Hash.random))),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isCaption(other) &&
-      this.node === other.node &&
-      sameNodes(this.content, other.content)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -62,7 +56,7 @@ export class Caption implements Traits.Base {
 }
 
 export declare namespace Caption {
-  type Fields = Pick<Caption, "node" | "content">;
+  type Fields = Pick<Caption, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

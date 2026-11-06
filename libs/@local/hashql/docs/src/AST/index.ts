@@ -60,15 +60,14 @@ export const make = store.make;
 
 export const layer = Layer.sync(Store, make);
 
-/** Reserves an identity in the current graph, so recursive references can precede the node they name. */
-export const reserve = <T extends Node.Node>(): Effect.Effect<
-  store.Reservation<T>,
-  never,
-  Store
-> => Effect.map(Store, (graph) => graph.reserve<T>());
+/** Reserves an identity in the current graph and builds its node with it, so recursive references can precede the node they name. */
+export const reserve = <T extends Node.Node, E, R>(
+  build: store.Build<T, E, R>,
+): Effect.Effect<Interned.Interned<T>, E, R | Store> =>
+  Effect.flatMap(Store, (graph) => graph.reserve(build));
 
 /** Interns `node` in the current graph, returning the identity of an equal node it already holds. */
 export const intern = <T extends Node.Node>(
   node: T,
 ): Effect.Effect<Interned.Interned<T>, never, Store> =>
-  Effect.map(Store, (graph) => graph.intern(node));
+  Effect.flatMap(Store, (graph) => graph.intern(node));
