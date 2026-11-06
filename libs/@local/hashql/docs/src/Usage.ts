@@ -2,34 +2,36 @@ import { Array, Function, HashMap, MutableHashMap, Option, pipe } from "effect";
 
 import * as AST from "./AST/index.js";
 import * as Parts from "./internal/parts.js";
+import * as References from "./internal/references.js";
 import * as Node from "./TypeScript/Node.js";
 
 import type * as Catalogue from "./Catalogue.js";
 
-type Target = AST.Reference.Reference.Target;
+/** A public declaration or member whose calls mention another declaration. */
+type User = AST.Interned.Interned<AST.Target.Local>;
 
 /** Public functions and methods that mention a declaration in each part of their calls. */
 export interface Usage {
-  readonly returnedBy: readonly Target[];
-  readonly acceptedBy: readonly Target[];
+  readonly returnedBy: readonly User[];
+  readonly acceptedBy: readonly User[];
 }
 
 /** A use names the declaration, so exported aliases share the same users. */
 export interface Index {
   readonly returnedBy: HashMap.HashMap<
     Catalogue.DeclarationId,
-    readonly Target[]
+    readonly User[]
   >;
   readonly acceptedBy: HashMap.HashMap<
     Catalogue.DeclarationId,
-    readonly Target[]
+    readonly User[]
   >;
 }
 
 interface Note {
   readonly id: Catalogue.DeclarationId;
   readonly role: keyof Usage;
-  readonly user: Extract<Target, { readonly _tag: "Local" }>;
+  readonly user: User;
 }
 
 /** Each declaration's users in `role`, each once, in the order the notes name them. */
@@ -37,7 +39,7 @@ const usersOf = (
   notes: readonly Note[],
   role: keyof Usage,
 ): Index["returnedBy"] => {
-  const users = MutableHashMap.empty<Catalogue.DeclarationId, Target[]>();
+  const users = MutableHashMap.empty<Catalogue.DeclarationId, User[]>();
 
   for (const { id, role: noted, user } of notes) {
     if (noted === role) {
@@ -45,7 +47,7 @@ const usersOf = (
 
       if (Option.isNone(known)) {
         MutableHashMap.set(users, id, [user]);
-      } else if (!Array.some(known.value, AST.Reference.sameTarget(user))) {
+      } else if (!known.value.includes(user)) {
         known.value.push(user);
       }
     }
@@ -57,6 +59,7 @@ const usersOf = (
 /** Reads the references in every public call's parameters, type parameters and result, including type-parameter constraints and defaults. */
 export const collect = (catalogue: Catalogue.Catalogue): Index => {
   const { ast } = catalogue;
+  const names = References.namesOf(ast);
   const mentioned = (
     nodes: readonly Node.Node[],
   ): readonly Catalogue.DeclarationId[] =>
@@ -64,16 +67,12 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
       nodes,
       Array.flatMap(Node.identifiers),
       Array.flatMap((node) =>
-        ast.referenceAt(node).pipe(
-          Option.flatMap(({ target }) => {
-            if (target._tag !== "Local") {
-              return Option.none();
-            }
-
-            return ast
-              .narrow(target.node, AST.Declaration.isDeclaration)
-              .pipe(Option.filter((id) => HashMap.has(catalogue.byId, id)));
-          }),
+        names(node).pipe(
+          Option.flatMap((target) =>
+            ast
+              .narrow(target, AST.Declaration.isDeclaration)
+              .pipe(Option.filter((id) => HashMap.has(catalogue.byId, id))),
+          ),
           Option.toArray,
         ),
       ),
@@ -84,10 +83,10 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
     const parts = Parts.of(ast, entry);
     const callers = Array.prepend(
       Array.map(Parts.members(parts, { ast, entry }), (member) => ({
-        user: { _tag: "Local", node: member.id } as const,
+        user: member.id,
         parts: member.parts,
       })),
-      { user: { _tag: "Local", node: entry.id } as const, parts },
+      { user: entry.id, parts },
     );
 
     return Array.flatMap(callers, ({ user, parts: own }) =>
@@ -123,7 +122,7 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
               })),
             ),
             // A function merged with the type it returns names its own declaration, which is not a use of it.
-            Array.filter(({ id }) => user.node !== id),
+            Array.filter(({ id }) => user !== id),
           );
         }),
       ),

@@ -7,6 +7,7 @@ import * as Comments from "./ast-comments.js";
 import * as Members from "./ast-members.js";
 import * as Names from "./ast-names.js";
 import * as Types from "./ast-type-parser.js";
+import * as Source from "./ast/source.js";
 
 import type { Failure, TypeSource } from "./ast-type-parser.js";
 import type { Cause, Data } from "effect";
@@ -25,45 +26,13 @@ type Requirements = Members.Requirements | TypeParserState | Types.TypeParser;
 
 type Parsed<A> = Effect.Effect<A, Failure, Requirements>;
 
-/** Converts syntax without expanding the types its names refer to. */
-const referenceName = (
-  node: AST.TypeReference.TypeReference["node"],
-): Syntax.Node => {
-  if (Syntax.isTypeReferenceNode(node)) {
-    return node.typeName;
-  }
-
-  if (Syntax.isTypeQueryNode(node)) {
-    return node.exprName;
-  }
-
-  if (Syntax.isExpressionWithTypeArguments(node)) {
-    return node.expression;
-  }
-
-  return node.qualifier ?? node;
-};
-
-/** The names of a dotted name in source order, `A`, `B` and `C` for `A.B.C`. */
-const segments = (
-  name: Syntax.Node,
-): Array.NonEmptyReadonlyArray<Syntax.Node> => {
-  if (Syntax.isQualifiedName(name)) {
-    return Array.append(segments(name.left), name.right);
-  }
-
-  if (Syntax.isPropertyAccessExpression(name)) {
-    return Array.append(segments(name.expression), name.name);
-  }
-
-  return [name];
-};
-
 /** The names in front of a reference's target in source order, with the module of an import type that reads a name from it first. */
 const qualifiersOf = (
   node: AST.TypeReference.TypeReference["node"],
 ): readonly Syntax.Node[] => {
-  const qualifiers = Array.initNonEmpty(segments(referenceName(node)));
+  const qualifiers = Array.initNonEmpty(
+    Source.segments(Source.referenceName(node)),
+  );
 
   if (
     Syntax.isImportTypeNode(node) &&
@@ -317,7 +286,7 @@ const typeNode = (node: TypeSource): Parsed<AST.TypeNode.TypeNode> => {
         Effect.forEach(Names.required),
         Effect.map(Chunk.fromIterable),
       ),
-      target: Names.required(referenceName(node)),
+      target: Names.required(Source.referenceName(node)),
     }).pipe(
       Effect.map((fields) => AST.TypeReference.make({ node, ...fields })),
     );

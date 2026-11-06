@@ -14,10 +14,7 @@ export interface Explanation extends Node.Node<"explanation", Prose.Explained> {
 }
 
 /** A reusable interface and the exports that implement it, by the declaration the interface is. A private or external interface is a trait too, and only a public one has an export of its own. */
-export interface Trait extends Node.Node<
-  "trait",
-  AST.Reference.Reference.Target
-> {
+export interface Trait extends Node.Node<"trait", AST.Target.Interned> {
   readonly name: string;
   /** The trait's own comment, or the reference's explanation of it. */
   readonly description: Comment.Comment | Explanation;
