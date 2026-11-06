@@ -2,12 +2,14 @@
   "package": "@apps/durable-agents",
   "dependencies": [
     "@hashintel/brunch-agent",
+    "@hashintel/petrinaut-core",
     "@local/tsconfig"
   ],
   "tasks": {
     "fix:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
       ],
       "affectedBy": [
@@ -17,6 +19,7 @@
     "lint:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
       ],
       "env": [
@@ -28,7 +31,8 @@
     },
     "lint:tsc": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "affectedBy": [
         "petrinaut-optimizer-core"
@@ -36,7 +40,8 @@
     },
     "probe:async-browser-call": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "cache": false,
       "affectedBy": [
@@ -45,7 +50,8 @@
     },
     "probe:ownership-unit": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "cache": false,
       "affectedBy": [
@@ -54,7 +60,8 @@
     },
     "probe:postgres-viewer": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "cache": false,
       "affectedBy": [
@@ -63,7 +70,8 @@
     },
     "probe:two-writers": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "cache": false,
       "affectedBy": [
@@ -72,16 +80,33 @@
     },
     "proof:browser-call": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "cache": false,
       "affectedBy": [
         "petrinaut-optimizer-core"
       ]
     },
+    "proof:restart-turn": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "start": {
+      "dependsOn": [],
+      "cache": false,
+      "persistent": true
+    },
     "test:integration": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "env": [
         "TEST_COVERAGE"
@@ -92,7 +117,8 @@
     },
     "test:unit": {
       "dependsOn": [
-        "@hashintel/brunch-agent#build"
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "env": [
         "TEST_COVERAGE"

@@ -444,6 +444,7 @@ __metadata:
     "@earendil-works/pi-durable": "npm:1.5.0"
     "@earendil-works/pi-schema": "npm:1.5.0"
     "@hashintel/brunch-agent": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
