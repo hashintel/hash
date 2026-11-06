@@ -128,6 +128,31 @@ const panelStyle = css({
   zIndex: "[5]",
 });
 
+/**
+ * DS size takes (inbox `value-field-size`, `panel-label-size`), off by default:
+ * - `?fieldsize=28`: value fields at DS sm 28, the size Figma and code share, as the panel's buttons and Add filter are.
+ * - `?labelsize=12|14`: field labels on the DS xs or sm type step instead of 13 px.
+ * The sizes live in `ui.tsx` and `fields.tsx`; the takes override them from the panel root so those files stay as they are.
+ */
+const sizeQuery = new URLSearchParams(globalThis.location.search);
+const fieldSizeTake = sizeQuery.get("fieldsize") === "28" ? "28" : undefined;
+const labelSizeTake = ((value) =>
+  value === "12" || value === "14" ? value : undefined)(
+  sizeQuery.get("labelsize"),
+);
+
+const sizeTakeStyle = css({
+  // Hand-built triggers (`selectTriggerStyle`) and list fields (`listFieldStyle`) at 32 px; the DS Select, lifted to 32
+  // by a padding override, goes back to its own sm padding.
+  "&[data-fieldsize='28'] button.h_\\[32px\\]": { height: "[28px]" },
+  "&[data-fieldsize='28'] .min-h_\\[32px\\]": { minHeight: "[28px]" },
+  "&[data-fieldsize='28'] [class~='--form-padding-y_spacing.0.5']": {
+    "--form-padding-y": "spacing.0.5",
+  },
+  "&[data-labelsize='12'] .fs_\\[13px\\]": { fontSize: "xs" },
+  "&[data-labelsize='14'] .fs_\\[13px\\]": { fontSize: "sm" },
+});
+
 /** The panel's content, inside Petrinaut's thin overlay scrollbar (no native scrollbars). */
 const panelBodyStyle = css({
   display: "flex",
@@ -1922,7 +1947,12 @@ export const PropertiesPanel = () => {
   // A ghost trigger node opens the read-only Triggers panel (J4.3).
   const ghost = ghostKindOf(ui.selectedId);
   return (
-    <aside className={panelStyle} aria-label="Properties">
+    <aside
+      className={cx(panelStyle, sizeTakeStyle)}
+      data-fieldsize={fieldSizeTake}
+      data-labelsize={labelSizeTake}
+      aria-label="Properties"
+    >
       <OverlayScrollArea>
         <div className={panelBodyStyle}>
           {ui.run ? (
