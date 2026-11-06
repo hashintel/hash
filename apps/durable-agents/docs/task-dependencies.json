@@ -37,6 +37,12 @@
       ],
       "cache": false
     },
+    "probe:postgres-viewer": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
     "proof:browser-call": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
