@@ -10,10 +10,12 @@ import type { EntityType } from "@blockprotocol/type-system";
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
 import type { FunctionComponent, ReactNode } from "react";
 
+const emptyUserBlocks: ComponentIdHashBlockMap = {};
+
 export const UserBlocksProvider: FunctionComponent<{
-  value: ComponentIdHashBlockMap;
+  value?: ComponentIdHashBlockMap;
   children?: ReactNode;
-}> = ({ value: initialUserBlocks, children }) => {
+}> = ({ value: initialUserBlocks = emptyUserBlocks, children }) => {
   const [value, setValue] = useCachedDefaultState(
     initialUserBlocks,
     "hash-workspace-user-blocks-v2",

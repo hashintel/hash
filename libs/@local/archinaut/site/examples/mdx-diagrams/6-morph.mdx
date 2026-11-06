@@ -1,0 +1,28 @@
+---
+title: Terms glide to their new place
+align: center
+notes:
+  default: >-
+    \swap{n}{before}{after} replaces one side with the other on step n, and
+    \morph{name}{term} keeps a term's identity across the swap, so it glides
+    from its old place to its new one.
+  byStep:
+    1: Subtract b from both sides.
+    2: Divide by a.
+---
+
+## Terms glide to their new place
+
+Solve for $x$:
+
+$$
+\swap{1}{
+  \morph{a}{a}\,\morph{x}{x} + \morph{b}{b} = \morph{c}{c}
+}{
+  \swap{2}{
+    \morph{a}{a}\,\morph{x}{x} = \morph{c}{c} - \morph{b}{b}
+  }{
+    \morph{x}{x} = \frac{\morph{c}{c} - \morph{b}{b}}{\morph{a}{a}}
+  }
+}
+$$

@@ -10,6 +10,7 @@ use axum::{
     response::IntoResponse as _,
     routing::{get, post},
 };
+use bytes::Bytes;
 use hash_crypto::Secret;
 use hash_graph_store::{
     entity::EntityQueryPath,
@@ -48,8 +49,9 @@ use type_system::{
 use uuid::Uuid;
 
 use super::{
-    EXPIRED_AT, GraphVaultConfig, GraphVaultSecretStore, SecretQueryResponse, SecretStore as _,
-    USER_SECRET_TYPE, VAULT_PATH, VaultResponse, VaultSecret, secret_response, validate_entity,
+    EXPIRED_AT, GraphVaultConfig, GraphVaultSecretStore, ResponseBody, SecretObject,
+    SecretQueryResponse, SecretStore as _, USER_SECRET_TYPE, VAULT_PATH, VaultResponse,
+    VaultSecret, secret_response, validate_entity,
 };
 use crate::sources::{SecretService, SourceError, rest, tests::server};
 
@@ -407,7 +409,7 @@ async fn response_http_status(#[case] service: SecretService, #[case] status: St
         .send()
         .await
         .expect("should receive the response");
-    let error = secret_response::<SecretQueryResponse>(response, service)
+    let error = secret_response(response, service)
         .await
         .err()
         .expect("should reject an unexpected HTTP status");
@@ -455,8 +457,11 @@ async fn response_schema_error(#[case] service: SecretService) {
         .send()
         .await
         .expect("should receive the response");
-    let error = secret_response::<VaultResponse<Map<String, Value>>>(response, service)
+    let body = secret_response(response, service)
         .await
+        .expect("should read the response body");
+    let error = body
+        .decode::<VaultResponse<SecretObject<'_>>>()
         .err()
         .expect("should reject a response with the wrong schema");
     let diagnostic = format!("{error:?}");
@@ -474,6 +479,48 @@ async fn response_schema_error(#[case] service: SecretService) {
     );
 }
 
+#[rstest]
+#[case::object(r#"{ "username": "user", "password": "pa\"ss" }"#, Some(false))]
+#[case::empty("{ }", Some(true))]
+#[case::string(r#""sensitive-secret-value""#, None)]
+#[case::array(r#"["sensitive-secret-value"]"#, None)]
+fn vault_secret_object(#[case] object: &str, #[case] empty: Option<bool>) {
+    let body = ResponseBody {
+        bytes: Bytes::from(format!(r#"{{"data": {{"data": {object}}}}}"#)),
+        service: SecretService::Vault,
+    };
+    match (body.decode::<VaultResponse<SecretObject<'_>>>(), empty) {
+        (Ok(response), Some(empty)) => {
+            assert_eq!(
+                response.data.data.json.get(),
+                object,
+                "should keep the stored object's JSON text unchanged"
+            );
+            assert_eq!(
+                response.data.data.empty, empty,
+                "should report whether the object has entries"
+            );
+        }
+        (Err(error), None) => {
+            assert!(
+                matches!(
+                    error.current_context(),
+                    SourceError::SecretResponse {
+                        service: SecretService::Vault
+                    }
+                ),
+                "should reject a secret that is not an object"
+            );
+            assert!(
+                !format!("{error:?}").contains("sensitive-secret-value"),
+                "should redact the rejected value"
+            );
+        }
+        (Ok(_), None) => panic!("should reject a secret that is not an object"),
+        (Err(error), Some(_)) => panic!("should decode the secret object: {error:?}"),
+    }
+}
+
 #[tokio::test]
 async fn response_incomplete_json() {
     let server = server(Router::new().fallback(|| async { "{" })).await;
@@ -485,13 +532,16 @@ async fn response_incomplete_json() {
         .send()
         .await
         .expect("should receive the response");
-    let error = secret_response::<SecretQueryResponse>(response, SecretService::Graph)
+    let body = secret_response(response, SecretService::Graph)
         .await
+        .expect("should read the response body");
+    let error = body
+        .decode::<SecretQueryResponse>()
         .err()
         .expect("should reject incomplete JSON");
     assert!(
-        error.contains::<reqwest::Error>(),
-        "should retain the underlying response error"
+        error.contains::<serde_json::Error>(),
+        "should retain the underlying parser error"
     );
     assert!(
         matches!(

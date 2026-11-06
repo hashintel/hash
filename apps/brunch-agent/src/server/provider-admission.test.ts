@@ -16,6 +16,7 @@ import {
   modelAdmissionScope,
   modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
+  type ModelStreamIdleTimeout,
 } from "./provider-admission";
 
 const emptyTranscript = normalizeContext({ messages: [] });
@@ -408,6 +409,7 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
     const upstream = createAssistantMessageEventStream();
     let upstreamSignal: AbortSignal | undefined;
     const claimRetry = vi.fn<() => boolean>(() => true);
+    const onIdleTimeout = vi.fn<(timeout: ModelStreamIdleTimeout) => void>();
     const provider = withBufferedToolAdmission(
       {
         ...faux.provider,
@@ -424,6 +426,7 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
         firstEventTimeoutMs: 100,
         idleTimeoutMs: 10,
         reasoningStartTimeoutMs: 15,
+        onIdleTimeout,
       },
     );
     const toolCall = fauxToolCall("browser", {}, { id: "unacknowledged" });
@@ -451,6 +454,19 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
     await expect(reading).rejects.toMatchObject({
       code: "model_stream_cancellation_unacknowledged",
     });
+    expect(onIdleTimeout.mock.calls).toEqual([
+      [
+        {
+          provider: model.provider,
+          model: model.id,
+          phase: "tool_arguments",
+          idleMs: 10,
+          lastEventType: "toolcall_delta",
+          acknowledged: false,
+          retryClaimed: false,
+        },
+      ],
+    ]);
 
     upstream.push({
       contentIndex: 0,

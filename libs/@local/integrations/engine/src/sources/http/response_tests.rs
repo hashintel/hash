@@ -38,7 +38,6 @@ async fn fetch_stops_at_retry_budget() {
         &client,
         &Url::parse(&url).expect("should parse the URL"),
         &HeaderMap::new(),
-        Duration::ZERO,
     )
     .await
     .expect_err("should stop after ten retries");
@@ -70,7 +69,6 @@ async fn fetch_does_not_retry_other_failures(#[case] status: StatusCode) {
         &client,
         &Url::parse(&url).expect("should parse the URL"),
         &HeaderMap::new(),
-        Duration::ZERO,
     )
     .await
     .expect_err("should return the failure without retrying");
@@ -119,7 +117,6 @@ async fn fetch_throttled_response(
         &client,
         &Url::parse(&url).expect("should parse the URL"),
         &HeaderMap::new(),
-        Duration::ZERO,
     )
     .await
     .expect("should retry a throttled response");

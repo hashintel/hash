@@ -5,7 +5,7 @@ use alloc::{
 use core::{pin::Pin, time::Duration};
 use std::{
     fs::File,
-    io::{BufRead as _, BufReader, Seek as _, Write as _},
+    io::{BufRead as _, BufReader, Seek as _, Write},
     path::{Path, PathBuf},
 };
 
@@ -29,13 +29,14 @@ use crate::SourceCapture;
 ///
 /// Reaching it is an error rather than a stop, so an endpoint that keeps issuing new pages cannot
 /// spool without bound or silently drop the rows beyond the ceiling.
-#[cfg(not(test))]
 const PAGE_CEILING: u64 = 10_000;
-#[cfg(test)]
-const PAGE_CEILING: u64 = 3;
 
 /// Distinct fields a source may produce before its responses are rejected.
 const MAX_COLUMNS: usize = 1_024;
+
+/// Spooled JSON buffered before a batch is written, and encoded Parquet buffered before its row
+/// group is flushed, as for SQL captures.
+const BUFFER_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -81,12 +82,35 @@ pub(super) fn headers(
     Ok(headers)
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+pub(super) async fn capture(
+    endpoint: &RestSource,
+    key: &PrimaryKey,
+    secret: Option<&Secret<[u8]>>,
+    target: PathBuf,
+) -> Result<SourceCapture, Report<SourceError>> {
+    let client = http::client()?;
+    capture_with_client(endpoint, key, secret, target, &client).await
+}
+
 async fn capture_with_client(
     endpoint: &RestSource,
     key: &PrimaryKey,
     secret: Option<&Secret<[u8]>>,
     target: PathBuf,
     client: &Client,
+) -> Result<SourceCapture, Report<SourceError>> {
+    capture_pages(endpoint, key, secret, target, client, PAGE_CEILING).await
+}
+
+/// Captures pages until the source ends, failing after `page_ceiling` pages without `maxPages`.
+async fn capture_pages(
+    endpoint: &RestSource,
+    key: &PrimaryKey,
+    secret: Option<&Secret<[u8]>>,
+    target: PathBuf,
+    client: &Client,
+    page_ceiling: u64,
 ) -> Result<SourceCapture, Report<SourceError>> {
     let origin =
         Url::parse(&endpoint.url).map_err(|_error| Report::new(SourceError::Configuration))?;
@@ -101,10 +125,11 @@ async fn capture_with_client(
     let mut page = 0_u64;
     let mut seen = BTreeSet::new();
     let mut previous: Option<Arc<Vec<Value>>> = None;
+    let mut pacing = http::Pacing::new(Duration::from_millis(endpoint.rate_limit_ms));
     loop {
-        if endpoint.max_pages.is_none() && page >= PAGE_CEILING {
+        if endpoint.max_pages.is_none() && page >= page_ceiling {
             return Err(Report::new(SourceError::Pagination).attach(format!(
-                "pagination did not end within {PAGE_CEILING} pages; set `maxPages` to capture \
+                "pagination did not end within {page_ceiling} pages; set `maxPages` to capture \
                  fewer"
             )));
         }
@@ -112,13 +137,8 @@ async fn capture_with_client(
         if !seen.insert(url.clone()) {
             return Err(Report::new(SourceError::Pagination));
         }
-        let body = http::fetch(
-            client,
-            &url,
-            &headers,
-            Duration::from_millis(endpoint.rate_limit_ms),
-        )
-        .await?;
+        pacing.wait().await?;
+        let body = http::fetch(client, &url, &headers).await?;
         let rows = extract(&body, endpoint.results_field.as_deref())
             .and_then(Value::as_array)
             .ok_or_else(|| Report::new(SourceError::Response))?;
@@ -316,6 +336,20 @@ impl Spool {
         .change_context(SourceError::Write)
     }
 
+    fn write_batch<W: Write + Send>(
+        &self,
+        writer: &mut ArrowWriter<W>,
+        rows: &[BTreeMap<String, Option<String>>],
+    ) -> Result<(), Report<SourceError>> {
+        writer
+            .write(&self.batch(rows)?)
+            .change_context(SourceError::Write)?;
+        if writer.in_progress_size() >= BUFFER_BYTES {
+            writer.flush().change_context(SourceError::Write)?;
+        }
+        Ok(())
+    }
+
     fn publish(mut self, target: &Path) -> Result<SourceCapture, Report<SourceError>> {
         let mut partial = SourceCapture::stage(target).change_context(SourceError::Write)?;
         let schema = self.batch(&[])?.schema();
@@ -331,22 +365,21 @@ impl Spool {
             .change_context(SourceError::Write)?;
         let input: File = self.file.reopen().change_context(SourceError::Write)?;
         let mut rows = Vec::with_capacity(1024);
+        let mut buffered = 0_usize;
         for line in BufReader::new(input).lines() {
             let line = line.change_context(SourceError::Write)?;
+            buffered = buffered.saturating_add(line.len());
             rows.push(
                 serde_json::from_str(&line).map_err(|_error| Report::new(SourceError::Write))?,
             );
-            if rows.len() == 1024 {
-                writer
-                    .write(&self.batch(&rows)?)
-                    .change_context(SourceError::Write)?;
+            if rows.len() == 1024 || buffered >= BUFFER_BYTES {
+                self.write_batch(&mut writer, &rows)?;
                 rows.clear();
+                buffered = 0;
             }
         }
         if !rows.is_empty() {
-            writer
-                .write(&self.batch(&rows)?)
-                .change_context(SourceError::Write)?;
+            self.write_batch(&mut writer, &rows)?;
         }
         writer.close().change_context(SourceError::Write)?;
         SourceCapture::publish(partial, target, self.rows).change_context(SourceError::Write)
@@ -367,7 +400,7 @@ mod tests {
     use tempfile::TempDir;
     use uuid::Uuid;
 
-    use super::capture_with_client;
+    use super::{capture_pages, capture_with_client};
     use crate::{
         Workspace, WorkspaceConfig,
         sources::{
@@ -595,7 +628,7 @@ mod tests {
         .expect("should describe the endpoint");
         let directory = TempDir::new().expect("should create output storage");
         let target = directory.path().join("rows.parquet");
-        let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
+        let error = capture_pages(&endpoint, &key(), None, target.clone(), &client, 3)
             .await
             .expect_err("should reject pagination that does not end");
         assert!(
@@ -609,7 +642,8 @@ mod tests {
     async fn pagination_honours_max_pages_beyond_the_ceiling() {
         let server = server(Router::new().route("/", get(endless))).await;
         let (client, url) = public_client(&server);
-        let max_pages = super::PAGE_CEILING + 2;
+        let ceiling = 3;
+        let max_pages = ceiling + 2;
         let endpoint = serde_json::from_value(json!({
             "url": url,
             "resultsField": "results",
@@ -618,12 +652,13 @@ mod tests {
         }))
         .expect("should describe the endpoint");
         let directory = TempDir::new().expect("should create output storage");
-        let capture = capture_with_client(
+        let capture = capture_pages(
             &endpoint,
             &key(),
             None,
             directory.path().join("rows.parquet"),
             &client,
+            ceiling,
         )
         .await
         .expect("should capture up to the configured page limit");
@@ -703,6 +738,34 @@ mod schema_tests {
         assert!(
             matches!(error.current_context(), SourceError::Response),
             "should identify an invalid response schema"
+        );
+    }
+
+    #[test]
+    fn publish_bounds_buffered_rows_by_size() {
+        use parquet::file::reader::{FileReader as _, SerializedFileReader};
+
+        let directory = TempDir::new().expect("should create spool storage");
+        let mut spool = Spool::new(directory.path(), BTreeSet::from(["id".to_owned()]))
+            .expect("should create the spool");
+        // Incompressible values, so the encoded row group grows with the spooled bytes.
+        let value: String = core::iter::repeat_with(|| uuid::Uuid::new_v4().simple().to_string())
+            .take(160 * 1024)
+            .collect();
+        for id in 0..3 {
+            spool
+                .append(&[json!({"id": id, "value": value})])
+                .expect("should spool a large row");
+        }
+        let target = directory.path().join("rows.parquet");
+        spool.publish(&target).expect("should publish the rows");
+        let reader = SerializedFileReader::new(
+            std::fs::File::open(&target).expect("should open the published capture"),
+        )
+        .expect("should read the Parquet metadata");
+        assert!(
+            reader.metadata().num_row_groups() > 1,
+            "should flush row groups by size rather than buffering every large row"
         );
     }
 

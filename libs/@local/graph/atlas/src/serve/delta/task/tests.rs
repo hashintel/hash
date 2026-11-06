@@ -11,7 +11,6 @@ use hash_graph_temporal_versioning::Timestamp;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::sync::oneshot;
-use tokio_postgres::NoTls;
 
 use super::{DeltaTask, DeltaTaskError, DeltaTaskOptions};
 use crate::{
@@ -83,7 +82,6 @@ fn fixture(name: &str, placement: bool) -> Fixture {
             &DatabasePoolConfig {
                 max_connections: nz!(1),
             },
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("should construct an unconnected pool"),

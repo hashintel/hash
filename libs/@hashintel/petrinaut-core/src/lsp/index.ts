@@ -17,7 +17,9 @@ export {
 
 export {
   CompletionItemKind,
+  CompletionItemTag,
   DiagnosticSeverity,
+  DiagnosticTag,
   MarkupKind,
   Position,
   Range,

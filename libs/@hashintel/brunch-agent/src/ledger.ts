@@ -14,12 +14,17 @@ export {
 export {
   foldCommits,
   isRefusedLedgerCommit,
+  latestLedgerTurnId,
   ledgerAppendOutputSchema,
   prepareAppend,
   type FoldedLedger,
   type LedgerHistory,
   type LedgerHistoryMessage,
 } from "./ledger/commits";
+export {
+  latestTurnChanges,
+  type LedgerChange,
+} from "./ledger/latest-turn-changes";
 export { vClaim } from "./ledger/elicitation/claims";
 export {
   entityKindStages,

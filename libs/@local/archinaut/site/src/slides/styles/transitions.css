@@ -1,0 +1,109 @@
+/*
+ * The deck's transitions: a slide change, and a step change on a slide whose
+ * parts morph. Every rule is scoped to a transition the deck started, which
+ * marks the root with its scope and direction, so nothing here touches the
+ * docs pages.
+ */
+
+/* On a slide change only the slide animates; the rest swaps in place. */
+:root[data-transition-scope="slide"]::view-transition-old(root),
+:root[data-transition-scope="slide"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/*
+ * On a morph, what carries no name cross-fades in the browser's own way, so
+ * an operator that changes fades while what stays the same holds still.
+ */
+:root[data-transition-scope="step"]::view-transition-old(root),
+:root[data-transition-scope="step"]::view-transition-new(root) {
+  animation-duration: 0.45s;
+}
+
+/* The progress bar stays put. */
+.deck-progress {
+  view-transition-name: deck-progress;
+}
+
+:root[data-transition-direction]::view-transition-group(deck-progress),
+:root[data-transition-direction]::view-transition-new(deck-progress) {
+  animation: none !important;
+}
+
+:root[data-transition-direction]::view-transition-old(deck-progress) {
+  display: none;
+}
+
+/*
+ * A step change that morphs: the slide holds still and each named part moves
+ * and resizes from its old place to its new one, cross-fading if its content
+ * changed. A part hidden in a reveal carries no name, and on a slide change
+ * the parts travel with their slide. The corner's label, the same on every
+ * step, stays out of it.
+ */
+:root[data-transition-scope="step"] .slide,
+:root[data-transition-scope="step"] .deck-head__label,
+:root[data-transition-scope="slide"] .deck-morph,
+.deck-reveal[data-visible="false"] .deck-morph {
+  view-transition-name: none !important;
+}
+
+::view-transition-group(*.deck-morph),
+::view-transition-old(*.deck-morph),
+::view-transition-new(*.deck-morph) {
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/*
+ * A slide change: cross-fade with a short horizontal slide. The slide's
+ * label in the corner moves with it; the logo, unchanged, holds still.
+ */
+:root[data-transition-direction]::view-transition-old(slide),
+:root[data-transition-direction]::view-transition-old(deck-label) {
+  animation: 0.3s ease-out both deck-slide-out;
+}
+
+:root[data-transition-direction]::view-transition-new(slide),
+:root[data-transition-direction]::view-transition-new(deck-label) {
+  animation: 0.3s ease-out both deck-slide-in;
+}
+
+:root[data-transition-direction="backward"]::view-transition-old(slide),
+:root[data-transition-direction="backward"]::view-transition-old(deck-label) {
+  animation-name: deck-slide-out-reverse;
+}
+
+:root[data-transition-direction="backward"]::view-transition-new(slide),
+:root[data-transition-direction="backward"]::view-transition-new(deck-label) {
+  animation-name: deck-slide-in-reverse;
+}
+
+@keyframes deck-slide-out {
+  to {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+}
+
+@keyframes deck-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+}
+
+@keyframes deck-slide-out-reverse {
+  to {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+}
+
+@keyframes deck-slide-in-reverse {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+}

@@ -252,7 +252,7 @@ mod tests {
     use itertools::Itertools as _;
     use serde_json::json;
 
-    use super::ClosedDataType;
+    use super::{ClosedDataType, ResolveClosedDataTypeError};
     use crate::{
         ontology::{
             data_type::{DataType, DataTypeUuid, schema::DataTypeValidator},
@@ -550,5 +550,131 @@ mod tests {
                 check(&closed, &defs);
             }
         }
+    }
+
+    async fn list_data_types() -> [DataType; 2] {
+        let value = ensure_validation_from_str::<DataType, _>(
+            hash_graph_test_data::data_type::VALUE_V1,
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await
+        .into_inner();
+        let list = ensure_validation_from_str::<DataType, _>(
+            hash_graph_test_data::data_type::LIST_V1,
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await
+        .into_inner();
+
+        [value, list]
+    }
+
+    async fn data_type(schema: serde_json::Value) -> DataType {
+        ensure_validation::<DataType, _>(schema, DataTypeValidator, JsonEqualityCheck::Yes)
+            .await
+            .into_inner()
+    }
+
+    fn resolve_closed(
+        data_type: &DataType,
+        definitions: impl IntoIterator<Item = DataType>,
+    ) -> Result<ClosedDataType, error_stack::Report<ResolveClosedDataTypeError>> {
+        let mut resolver = OntologyTypeResolver::default();
+        for definition in definitions {
+            resolver.add_unresolved_data_type(
+                DataTypeUuid::from_url(&definition.id),
+                Arc::new(definition),
+            );
+        }
+
+        let resolve_data = resolver
+            .resolve_data_type_metadata(DataTypeUuid::from_url(&data_type.id))
+            .expect("data type should resolve");
+        ClosedDataType::from_resolve_data(data_type.clone(), &resolve_data)
+    }
+
+    #[tokio::test]
+    async fn resolve_list_length() {
+        let [value, list] = list_data_types().await;
+        let number_list = data_type(json!({
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://example.com/data-type/number-list/v/1",
+          "title": "Number List",
+          "description": "A list of two to five numbers.",
+          "allOf": [{ "$ref": list.id }],
+          "type": "array",
+          "abstract": false,
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 5,
+        }))
+        .await;
+        let short_number_list = data_type(json!({
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://example.com/data-type/short-number-list/v/1",
+          "title": "Short Number List",
+          "description": "A list of three to eight numbers, limited by its parent.",
+          "allOf": [{ "$ref": number_list.id }],
+          "type": "array",
+          "abstract": false,
+          "minItems": 3,
+          "maxItems": 8,
+        }))
+        .await;
+
+        let closed = resolve_closed(
+            &short_number_list,
+            [value, list, number_list, short_number_list.clone()],
+        )
+        .expect("closed data type should be created");
+
+        assert_eq!(
+            json!(closed.all_of),
+            json!([{
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 5,
+            }]),
+            "the closed schema should keep the larger `minItems` and the smaller `maxItems`"
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_list_length_unsatisfiable() {
+        let [value, list] = list_data_types().await;
+        let empty_list = data_type(json!({
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://example.com/data-type/empty-list/v/1",
+          "title": "Empty List",
+          "description": "A list with at least five and at most two items.",
+          "allOf": [{ "$ref": list.id }],
+          "type": "array",
+          "abstract": false,
+          "minItems": 5,
+          "maxItems": 2,
+        }))
+        .await;
+
+        let error = resolve_closed(&empty_list, [value, list, empty_list.clone()])
+            .expect_err("closed data type should not be created");
+
+        assert_eq!(
+            error.current_context().to_string(),
+            ResolveClosedDataTypeError::UnsatisfiableConstraint(
+                serde_json::from_value(json!({
+                    "type": "array",
+                    "minItems": 5,
+                    "maxItems": 2,
+                }))
+                .expect("should be a valid array schema"),
+            )
+            .to_string(),
+        );
     }
 }

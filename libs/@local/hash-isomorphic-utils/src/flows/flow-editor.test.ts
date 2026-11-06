@@ -118,6 +118,16 @@ describe("createFlowEditor", () => {
     editor.moveStep("first", { x: 10, y: 10 });
     editor.setInputSource("second", "question", null);
     editor.addConnection({ from: added, to: "each" });
+    editor.setStepDescription("second", "Answers again");
+    editor.setName("Answers, renamed");
+    editor.addFlowInput({
+      name: "context",
+      payloadKind: "Text",
+      array: false,
+      required: false,
+    });
+    editor.markFlowOutput("second", "explanation");
+    editor.unmarkFlowOutput("each", "explanations");
     editor.removeStep("first");
     editor.disconnectStep("each");
 
@@ -238,7 +248,7 @@ describe("createFlowEditor", () => {
       expect(editor.getState().problemsByStepId.size).toBe(2);
     });
 
-    it("lists problems outside every step separately, such as a flow output whose step was removed", () => {
+    it("lists problems outside every step separately, such as a flow input no step uses any more", () => {
       const editor = loadFlow();
 
       editor.removeStep("each");
@@ -247,8 +257,24 @@ describe("createFlowEditor", () => {
         editor.getState().flowDefinition.steps.map(({ stepId }) => stepId),
       ).toEqual(["first", "second"]);
       expect(editor.getState().flowProblems).toMatchObject([
-        { code: "unknownStep", path: ["outputs", 0] },
         { code: "unusedFlowInput", path: ["inputs", 1] },
+      ]);
+    });
+
+    it("drops the flow outputs it or a step inside it gives, keeping the others", () => {
+      const editor = createFlowEditor({
+        ...structuredClone(flowDefinition),
+        outputs: [
+          { name: "first", stepId: "first", outputName: "explanation" },
+          { name: "explanations", stepId: "each", outputName: "explanations" },
+          { name: "answer", stepId: "answer", outputName: "explanation" },
+        ],
+      });
+
+      editor.removeStep("each");
+
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        { name: "first", stepId: "first", outputName: "explanation" },
       ]);
     });
   });
@@ -293,6 +319,159 @@ describe("createFlowEditor", () => {
         "unknownStep",
         "missingInput",
       ]);
+    });
+  });
+
+  describe("setting a step's description", () => {
+    it("sets the description of an action step or a for-each step, leaving the steps inside it as they were", () => {
+      const editor = loadFlow();
+
+      editor.setStepDescription("second", "Answer the follow-up");
+      editor.setStepDescription("each", "Answer every question");
+
+      expect(stepOf(editor, "second")).toStrictEqual({
+        ...flowDefinition.steps[1],
+        description: "Answer the follow-up",
+      });
+      expect(stepOf(editor, "each")).toStrictEqual({
+        ...flowDefinition.steps[2],
+        description: "Answer every question",
+      });
+      expect(stepOf(editor, "first")?.description).toBe("");
+    });
+  });
+
+  describe("renaming the flow", () => {
+    it("changes only the flow's name, as an edit", () => {
+      const editor = loadFlow();
+      const listener = vi.fn();
+      editor.subscribe(listener);
+
+      editor.setName("Answer every question");
+
+      expect(editor.getState().flowDefinition).toStrictEqual({
+        ...flowDefinition,
+        name: "Answer every question",
+      });
+      expect(listener).toHaveBeenCalledExactlyOnceWith({ edited: true });
+    });
+
+    it("leaves the state as it was when given the name the flow has", () => {
+      const editor = loadFlow();
+      const loaded = editor.getState();
+      const listener = vi.fn();
+      editor.subscribe(listener);
+
+      editor.setName("Answers");
+
+      expect(editor.getState()).toBe(loaded);
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("adding a flow input", () => {
+    it("adds an input after the others, unused until a step takes its value from it", () => {
+      const editor = loadFlow();
+      const deadline: FlowDefinition["inputs"][number] = {
+        name: "deadline",
+        payloadKind: "Date",
+        array: false,
+        required: true,
+        label: "Deadline",
+      };
+
+      editor.addFlowInput(deadline);
+
+      expect(editor.getState().flowDefinition.inputs).toStrictEqual([
+        ...flowDefinition.inputs,
+        deadline,
+      ]);
+      expect(editor.getState().flowProblems).toMatchObject([
+        { code: "unusedFlowInput", path: ["inputs", 2] },
+      ]);
+
+      editor.setInputSource("second", "context", {
+        kind: "flow-input",
+        inputName: "deadline",
+      });
+
+      expect(editor.getState().flowProblems).toEqual([]);
+    });
+
+    it("lists a name that's already taken as a problem rather than refusing it", () => {
+      const editor = loadFlow();
+
+      editor.addFlowInput({
+        name: "question",
+        payloadKind: "Number",
+        array: false,
+        required: false,
+      });
+
+      expect(editor.getState().flowDefinition.inputs).toHaveLength(3);
+      expect(editor.getState().flowProblems).toMatchObject([
+        { code: "duplicateInputName", path: ["inputs", 2, "name"] },
+      ]);
+    });
+  });
+
+  describe("flow outputs", () => {
+    it("names a flow output after its output, numbering the name while a flow output has it", () => {
+      const editor = loadFlow();
+      const third = editor.addStep("answerQuestion", { after: "second" });
+
+      editor.markFlowOutput("first", "explanation");
+      editor.markFlowOutput("second", "explanation");
+      editor.markFlowOutput(third, "explanation");
+
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        ...flowDefinition.outputs,
+        { name: "explanation", stepId: "first", outputName: "explanation" },
+        { name: "explanation 2", stepId: "second", outputName: "explanation" },
+        { name: "explanation 3", stepId: third, outputName: "explanation" },
+      ]);
+      expect(editor.getState().flowProblems).toEqual([]);
+
+      editor.unmarkFlowOutput("first", "explanation");
+      editor.markFlowOutput("first", "explanation");
+
+      expect(
+        editor.getState().flowDefinition.outputs.map(({ name }) => name),
+      ).toEqual([
+        "explanations",
+        "explanation 2",
+        "explanation 3",
+        "explanation",
+      ]);
+    });
+
+    it("marks an output once, and unmarks only that step's output", () => {
+      const editor = loadFlow();
+      const listener = vi.fn();
+
+      editor.markFlowOutput("first", "explanation");
+      editor.markFlowOutput("second", "explanation");
+      editor.subscribe(listener);
+      editor.markFlowOutput("second", "explanation");
+      editor.unmarkFlowOutput("first", "explanation");
+
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        ...flowDefinition.outputs,
+        { name: "explanation 2", stepId: "second", outputName: "explanation" },
+      ]);
+      expect(listener).toHaveBeenCalledOnce();
+    });
+
+    it("unmarks an output whose step is gone", () => {
+      const editor = createFlowEditor({
+        ...structuredClone(flowDefinition),
+        outputs: [{ name: "gone", stepId: "gone", outputName: "explanation" }],
+      });
+
+      editor.unmarkFlowOutput("gone", "explanation");
+
+      expect(editor.getState().flowDefinition.outputs).toEqual([]);
+      expect(editor.getState().flowProblems).toEqual([]);
     });
   });
 
@@ -360,11 +539,17 @@ describe("createFlowEditor", () => {
       'The flow has no top-level step "answerQuestion"',
     );
     expect(() =>
+      editor.setStepDescription("answer", "Answer one question"),
+    ).toThrow('The flow has no top-level step "answer"');
+    expect(() =>
       editor.addStep("webSearch", { into: { from: "second", to: "first" } }),
     ).toThrow('Step "first" doesn\'t run after step "second"');
     expect(() =>
       editor.setInputSource("each", "over", explanationOf("first")),
     ).toThrow('Step "each" is a for-each step, with no inputs');
+    expect(() => editor.markFlowOutput("answer", "explanation")).toThrow(
+      'The flow has no top-level step "answer"',
+    );
   });
 
   it("tells subscribers about each edit until they unsubscribe", () => {

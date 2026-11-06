@@ -1,30 +1,29 @@
 {
   "package": "@local/archinaut",
   "dependencies": [
+    "@hashintel/ds-icons",
     "@local/tsconfig"
   ],
   "tasks": {
     "fix:eslint": {
       "dependsOn": [
+        "@hashintel/ds-icons#build",
         "@local/eslint#build"
-      ],
-      "affectedBy": [
-        "@local/eslint"
       ]
     },
     "lint:eslint": {
       "dependsOn": [
+        "@hashintel/ds-icons#build",
         "@local/eslint#build"
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
-      ],
-      "affectedBy": [
-        "@local/eslint"
       ]
     },
     "lint:tsc": {
-      "dependsOn": []
+      "dependsOn": [
+        "@hashintel/ds-icons#build"
+      ]
     },
     "test:unit": {
       "dependsOn": [],

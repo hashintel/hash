@@ -56,8 +56,17 @@ export type AiToolOutput =
 
 export type AiToolTarget = PetrinautRevealTarget;
 
+/**
+ * Whether a summary names the requested action ("Remove scenario …") or its
+ * confirmed result ("Removed scenario …"). Only a successful result may
+ * claim the change happened.
+ */
+export type AiToolSummaryWording = "action" | "result";
+
 export type AiToolSummaryContext = {
   definition?: SDCPN;
+  /** Defaults to `"result"`, the wording of an applied mutation's output. */
+  wording?: AiToolSummaryWording;
 };
 
 export const toPetrinautAiToolOutput = (
@@ -208,19 +217,22 @@ const arcEndpointDetail = (
   return `${place} <-> ${transition}`;
 };
 
-const addArcTitle = (input: {
-  arcDirection: "input" | "output";
-  type?: "standard" | "read" | "inhibitor";
-}): string => {
+const addArcTitle = (
+  added: string,
+  input: {
+    arcDirection: "input" | "output";
+    type?: "standard" | "read" | "inhibitor";
+  },
+): string => {
   if (
     input.arcDirection === "input" &&
     input.type !== undefined &&
     input.type !== "standard"
   ) {
-    return `Added ${input.type} input arc`;
+    return `${added} ${input.type} input arc`;
   }
 
-  return `Added ${input.arcDirection} arc`;
+  return `${added} ${input.arcDirection} arc`;
 };
 
 const arcTarget = (input: {
@@ -307,18 +319,24 @@ export const summarizePetrinautAiToolCall = (
   call: AiToolCall,
   context: AiToolSummaryContext = {},
 ): AiToolSummary => {
-  const { definition } = context;
+  const { definition, wording = "result" } = context;
   const { input, toolName } = withConvertedIds(call);
+  const asAction = wording === "action";
+  const added = asAction ? "Add" : "Added";
+  const updated = asAction ? "Update" : "Updated";
+  const moved = asAction ? "Move" : "Moved";
+  const removed = asAction ? "Remove" : "Removed";
+  const deleted = asAction ? "Delete" : "Deleted";
 
   switch (toolName) {
     case "addPlace":
       return {
-        title: `Added place ${input.name}`,
+        title: `${added} place ${input.name}`,
         target: selectionTarget({ type: "place", id: input.id }),
       };
     case "updatePlace":
       return {
-        title: `Updated place ${updatedOrExistingName({
+        title: `${updated} place ${updatedOrExistingName({
           definitionName: entityName(definition, {
             type: "place",
             id: input.placeId,
@@ -337,7 +355,7 @@ export const summarizePetrinautAiToolCall = (
       };
     case "updatePlacePosition":
       return {
-        title: `Moved place ${targetName(definition, {
+        title: `${moved} place ${targetName(definition, {
           type: "place",
           id: input.placeId,
         })}`,
@@ -345,19 +363,19 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removePlace":
       return {
-        title: `Removed place ${targetName(definition, {
+        title: `${removed} place ${targetName(definition, {
           type: "place",
           id: input.placeId,
         })}`,
       };
     case "addTransition":
       return {
-        title: `Added transition ${input.name}`,
+        title: `${added} transition ${input.name}`,
         target: selectionTarget({ type: "transition", id: input.id }),
       };
     case "updateTransition":
       return {
-        title: `Updated transition ${updatedOrExistingName({
+        title: `${updated} transition ${updatedOrExistingName({
           definitionName: entityName(definition, {
             type: "transition",
             id: input.transitionId,
@@ -376,7 +394,7 @@ export const summarizePetrinautAiToolCall = (
       };
     case "updateTransitionPosition":
       return {
-        title: `Moved transition ${targetName(definition, {
+        title: `${moved} transition ${targetName(definition, {
           type: "transition",
           id: input.transitionId,
         })}`,
@@ -384,37 +402,37 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removeTransition":
       return {
-        title: `Removed transition ${targetName(definition, {
+        title: `${removed} transition ${targetName(definition, {
           type: "transition",
           id: input.transitionId,
         })}`,
       };
     case "addArc":
       return {
-        title: addArcTitle(input),
+        title: addArcTitle(added, input),
         detail: arcEndpointDetail(definition, input),
         target: selectionTarget(arcTarget(input)),
       };
     case "removeArc":
       return {
-        title: `Removed ${input.arcDirection} arc`,
+        title: `${removed} ${input.arcDirection} arc`,
         detail: arcEndpointDetail(definition, input),
       };
     case "updateArcWeight":
       return {
-        title: "Updated arc weight",
+        title: `${updated} arc weight`,
         detail: `${arcEndpointDetail(definition, input)}: ${input.weight}`,
         target: selectionTarget(arcTarget(input)),
       };
     case "updateArcType":
       return {
-        title: "Updated input arc type",
+        title: `${updated} input arc type`,
         detail: `${arcEndpointDetail(definition, input)}: ${input.type}`,
         target: selectionTarget(arcTarget({ ...input, arcDirection: "input" })),
       };
     case "updateArcPlace":
       return {
-        title: "Updated arc endpoint",
+        title: `${updated} arc endpoint`,
         detail: `${endpointNameFromUpdateInput(definition, {
           placeId: input.oldPlaceId,
           endpoint: input.oldEndpoint,
@@ -425,12 +443,12 @@ export const summarizePetrinautAiToolCall = (
       };
     case "addType":
       return {
-        title: `Added type ${input.name}`,
+        title: `${added} type ${input.name}`,
         target: selectionTarget({ type: "type", id: input.id }),
       };
     case "updateType":
       return {
-        title: `Updated type ${updatedOrExistingName({
+        title: `${updated} type ${updatedOrExistingName({
           definitionName: entityName(definition, {
             type: "type",
             id: input.typeId,
@@ -449,20 +467,20 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removeType":
       return {
-        title: `Removed type ${targetName(definition, {
+        title: `${removed} type ${targetName(definition, {
           type: "type",
           id: input.typeId,
         })}`,
       };
     case "addTypeElement":
       return {
-        title: `Added type element ${input.element.name}`,
+        title: `${added} type element ${input.element.name}`,
         detail: input.typeId,
         target: selectionTarget({ type: "type", id: input.typeId }),
       };
     case "updateTypeElement":
       return {
-        title: `Updated type element ${updatedOrExistingName({
+        title: `${updated} type element ${updatedOrExistingName({
           definitionName: typeElementName(
             definition,
             input.typeId,
@@ -476,7 +494,7 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removeTypeElement":
       return {
-        title: `Removed type element ${
+        title: `${removed} type element ${
           typeElementName(definition, input.typeId, input.elementId) ??
           input.elementId
         }`,
@@ -485,7 +503,7 @@ export const summarizePetrinautAiToolCall = (
       };
     case "moveTypeElement":
       return {
-        title: `Moved type element ${
+        title: `${moved} type element ${
           typeElementName(definition, input.typeId, input.elementId) ??
           input.elementId
         }`,
@@ -494,12 +512,12 @@ export const summarizePetrinautAiToolCall = (
       };
     case "addDifferentialEquation":
       return {
-        title: `Added equation ${input.name}`,
+        title: `${added} equation ${input.name}`,
         target: selectionTarget({ type: "differentialEquation", id: input.id }),
       };
     case "updateDifferentialEquation":
       return {
-        title: `Updated equation ${updatedOrExistingName({
+        title: `${updated} equation ${updatedOrExistingName({
           definitionName: entityName(definition, {
             type: "differentialEquation",
             id: input.equationId,
@@ -521,19 +539,19 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removeDifferentialEquation":
       return {
-        title: `Removed equation ${targetName(definition, {
+        title: `${removed} equation ${targetName(definition, {
           type: "differentialEquation",
           id: input.equationId,
         })}`,
       };
     case "addParameter":
       return {
-        title: `Added parameter ${input.name}`,
+        title: `${added} parameter ${input.name}`,
         target: selectionTarget({ type: "parameter", id: input.id }),
       };
     case "updateParameter":
       return {
-        title: `Updated parameter ${updatedOrExistingName({
+        title: `${updated} parameter ${updatedOrExistingName({
           definitionName: entityName(definition, {
             type: "parameter",
             id: input.parameterId,
@@ -552,19 +570,19 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removeParameter":
       return {
-        title: `Removed parameter ${targetName(definition, {
+        title: `${removed} parameter ${targetName(definition, {
           type: "parameter",
           id: input.parameterId,
         })}`,
       };
     case "addScenario":
       return {
-        title: `Added scenario ${input.name}`,
+        title: `${added} scenario ${input.name}`,
         target: { kind: "simulateView", mode: "scenarios", itemId: input.id },
       };
     case "updateScenario":
       return {
-        title: `Updated scenario ${updatedOrExistingName({
+        title: `${updated} scenario ${updatedOrExistingName({
           definitionName: scenarioName(definition, input.scenarioId),
           id: input.scenarioId,
           update: input.update,
@@ -581,18 +599,18 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removeScenario":
       return {
-        title: `Removed scenario ${
+        title: `${removed} scenario ${
           scenarioName(definition, input.scenarioId) ?? input.scenarioId
         }`,
       };
     case "addMetric":
       return {
-        title: `Added metric ${input.name}`,
+        title: `${added} metric ${input.name}`,
         target: { kind: "simulateView", mode: "metrics", itemId: input.id },
       };
     case "updateMetric":
       return {
-        title: `Updated metric ${updatedOrExistingName({
+        title: `${updated} metric ${updatedOrExistingName({
           definitionName: metricName(definition, input.metricId),
           id: input.metricId,
           update: input.update,
@@ -609,28 +627,32 @@ export const summarizePetrinautAiToolCall = (
       };
     case "removeMetric":
       return {
-        title: `Removed metric ${
+        title: `${removed} metric ${
           metricName(definition, input.metricId) ?? input.metricId
         }`,
       };
     case "deleteItemsByIds":
       return {
-        title: `Deleted ${input.items.length} item${
+        title: `${deleted} ${input.items.length} item${
           input.items.length === 1 ? "" : "s"
         }`,
         items: input.items.map((item) => itemLabel(definition, item)),
       };
     case "commitNodePositions":
       return {
-        title: `Moved ${input.commits.length} node${
+        title: `${moved} ${input.commits.length} node${
           input.commits.length === 1 ? "" : "s"
         }`,
       };
     case "applyAutoLayout":
       return {
         title: input.askUserFirst
-          ? "Requested auto-layout (awaiting user confirmation)"
-          : "Auto-laid out the net",
+          ? asAction
+            ? "Request auto-layout"
+            : "Requested auto-layout (awaiting user confirmation)"
+          : asAction
+            ? "Auto-lay out the net"
+            : "Auto-laid out the net",
       };
     default:
       return { title: prettifyToolName(toolName) };

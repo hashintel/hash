@@ -39,7 +39,11 @@ import {
 } from "./server/http/cors.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
-import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
+import { createModelCallScope } from "./server/model-call-scope.ts";
+import {
+  chronologyLogMessage,
+  createTurnChronologyObserver,
+} from "./server/observe-turn-chronology.ts";
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
 import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
 import { createStepARequestAccounting } from "./server/provider-accounting.ts";
@@ -94,8 +98,7 @@ const liveToolBroadcasters = new Map(
 for (const { agent } of mountedAgents) {
   const turnChronologyObserver = createTurnChronologyObserver(
     agent.agentName,
-    (chronology) =>
-      logger.info("[brunch] flue.submission chronology", chronology),
+    (chronology) => logger.info(chronologyLogMessage, chronology),
   );
   instrument({
     key: Symbol.for(`brunch.turn-chronology:${agent.agentName}`),
@@ -140,6 +143,15 @@ const modelStreamCancellationTimeoutMs = modelStreamTimeout(
   modelStreamTimeoutEnv.cancellationMs,
   modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
+// The model call a provider stream belongs to, so its timeout line can be
+// joined to the submission's chronology line.
+const modelCallScope = createModelCallScope();
+instrument({
+  key: Symbol.for("brunch.model-call-scope"),
+  observe() {},
+  interceptor: modelCallScope.interceptor,
+  dispose() {},
+});
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
@@ -205,6 +217,11 @@ const registerAdmittedProvider = (provider: Provider) => {
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
         reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,
+        onIdleTimeout: (timeout) =>
+          diagnostics.note("provider.timeout", {
+            ...modelCallScope.current(),
+            ...timeout,
+          }),
       },
     ),
   );

@@ -91,7 +91,7 @@ export const vEntityKind = v.pipe(
     v.pipe(
       v.literal("target"),
       v.description(
-        "Output: a desired value of a metric that would count as success, e.g. 'the waiting-time service standard'. Claims describe the metric and its desired value.",
+        "Output: a desired value of a metric that would count as success, e.g. 'the waiting-time service standard'. Claims describe the metric, its desired value and when it must be reached, with the event a window starts from, e.g. 'within 54 hours of signed pickup'. While the USER has not said when, an open claim says so; a figure for the whole run, such as an average or a total, has no 'when'.",
       ),
     ),
     v.pipe(
@@ -121,13 +121,13 @@ export const vEntityKind = v.pipe(
     v.pipe(
       v.literal("threshold"),
       v.description(
-        "Output: a bound a run's outcome must not cross, e.g. 'the maximum acceptable patient wait'. Claims describe the metric and its bound. A level at which the operation itself acts is a rule.",
+        "Output: a bound a run's outcome must not cross, e.g. 'the maximum acceptable patient wait'. Claims describe the metric, its bound and when it must hold, in the USER's units: throughout the run, within a window of a named event ('below 9.5 MW within 5 minutes of each utility loss'), or until something happens, and whether that must happen. While the USER has not said when, an open claim says so; a bare bound is not 'throughout the run', and a figure for the whole run, such as an average or a total, has no 'when'. A level at which the operation itself acts is a rule.",
       ),
     ),
     v.pipe(
       v.literal("horizon"),
       v.description(
-        "Scope: a simulated time span the model runs over, e.g. 'the staffing horizon', 'the investment horizon'. Claims describe its duration.",
+        "Scope: a simulated time span the model runs over, e.g. 'the staffing horizon', 'the investment horizon'. Claims describe its duration. A restriction the USER says holds \"always\" or \"never\", with no shorter period, holds throughout it.",
       ),
     ),
     v.pipe(

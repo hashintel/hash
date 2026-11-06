@@ -5,7 +5,6 @@
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
-    trait_alias,
 
     // Library Features
     const_array,

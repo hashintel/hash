@@ -17,7 +17,6 @@ use jsonwebtoken::Algorithm;
 use opentelemetry::metrics::Meter;
 use reqwest::{Client, Url};
 use tokio::{net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -436,7 +435,6 @@ pub async fn admin_server(
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.pool_config,
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .change_context(GraphError)

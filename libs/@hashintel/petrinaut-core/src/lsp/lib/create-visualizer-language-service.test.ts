@@ -109,11 +109,9 @@ describe("VisualizerLanguageServer diagnostics", () => {
 
   it("reports host globals as unknown names, positioned in the user's code", () => {
     const code = [
-      `export default Visualization(({ tokens }) => {`,
-      `  const data = fetch("https://example.com");`,
-      `  const width = window.innerWidth;`,
-      `  return <svg>{tokens.length}</svg>;`,
-      `});`,
+      `const data = fetch("https://example.com");`,
+      `const width = window.innerWidth;`,
+      `return <Visualizer.Svg>{tokens.length}</Visualizer.Svg>;`,
     ].join("\n");
     const diagnostics = diagnosticsFor(
       createServer(withVisualizer(code)),
@@ -132,7 +130,7 @@ describe("VisualizerLanguageServer diagnostics", () => {
   it("reports an import from react as an unresolved module", () => {
     const code = [
       `import { useState } from "react";`,
-      `export default Visualization(() => <svg />);`,
+      `export default Visualization(() => <Visualizer.Svg />);`,
     ].join("\n");
     const diagnostics = diagnosticsFor(
       createServer(withVisualizer(code)),
@@ -143,7 +141,7 @@ describe("VisualizerLanguageServer diagnostics", () => {
   });
 
   it("reports React as an unknown name rather than a UMD global", () => {
-    const code = `export default Visualization(() => {\n  const [n] = React.useState(0);\n  return <svg>{n}</svg>;\n});`;
+    const code = `export default Visualization(() => {\n  const [n] = React.useState(0);\n  return <Visualizer.Svg>{n}</Visualizer.Svg>;\n});`;
     const diagnostics = diagnosticsFor(
       createServer(withVisualizer(code)),
       "p1",
@@ -153,7 +151,7 @@ describe("VisualizerLanguageServer diagnostics", () => {
   });
 
   it("reports a misspelt SVG attribute against the element's props", () => {
-    const code = `export default Visualization(() => <svg viewBox="0 0 10 10" strokeWidht={2} />);`;
+    const code = `export default Visualization(() => <Visualizer.Svg viewBox="0 0 10 10" strokeWidht={2} />);`;
     const diagnostics = diagnosticsFor(
       createServer(withVisualizer(code)),
       "p1",
@@ -164,7 +162,7 @@ describe("VisualizerLanguageServer diagnostics", () => {
   });
 
   it("reports an attribute the place's type lacks", () => {
-    const code = `export default Visualization(({ tokens }) => (\n  <svg>{tokens.map((token) => <circle key={String(token.id)} cx={token.x} cy={token.z} />)}</svg>\n));`;
+    const code = `export default Visualization(({ tokens }) => (\n  <Visualizer.Svg>{tokens.map((token) => <circle key={String(token.id)} cx={token.x} cy={token.z} />)}</Visualizer.Svg>\n));`;
     const diagnostics = diagnosticsFor(
       createServer(withVisualizer(code)),
       "p1",
@@ -175,7 +173,7 @@ describe("VisualizerLanguageServer diagnostics", () => {
   });
 
   it("accepts style objects with string and number values", () => {
-    const code = `export default Visualization(() => <svg style={{ width: "100%", opacity: 0.5, borderRadius: "4px" }} />);`;
+    const code = `export default Visualization(() => <Visualizer.Svg><g style={{ opacity: 0.5, fill: "red" }} /></Visualizer.Svg>);`;
     const diagnostics = diagnosticsFor(
       createServer(withVisualizer(code)),
       "p1",
@@ -184,11 +182,39 @@ describe("VisualizerLanguageServer diagnostics", () => {
     expect(describeDiagnostics(diagnostics)).toEqual([]);
   });
 
+  it("keeps diagnostics positioned when switching between bodies and legacy modules", () => {
+    const server = createServer(withVisualizer("return <Visualizer.Svg />;"));
+    for (const code of [
+      "return <Visualizer.Svg><text>export default</text>{tokens[0].missing}</Visualizer.Svg>;",
+      "return <Visualizer.Svg>{tokens[0].missing}</Visualizer.Svg>;",
+      "export default Visualization(({ tokens }) => <Visualizer.Svg>{tokens[0].missing}</Visualizer.Svg>);",
+      "return <Visualizer.Svg>{parameters.missing}</Visualizer.Svg>;",
+    ]) {
+      server.updateDocumentContent(codePath("p1"), code);
+      expect(diagnosticsFor(server, "p1")).toMatchObject([
+        { code: 2339, start: code.indexOf("missing"), length: 7 },
+      ]);
+    }
+  });
+
+  it.each([
+    "<div />",
+    "<Visualizer.Svg width={10} />",
+    '<Visualizer.Svg origin="bottom-left" />',
+    '<Visualizer.Svg navigation="zoom" />',
+    '<Visualizer.Svg onClick="handler" />',
+    '<Visualizer.Svg href="#target" />',
+  ])("rejects unsupported drawing options: %s", (element) => {
+    expect(
+      diagnosticsFor(createServer(withVisualizer(`return ${element};`)), "p1"),
+    ).not.toEqual([]);
+  });
+
   it("checks nothing when the colours extension is off", () => {
     const server = new VisualizerLanguageServer();
     server.syncFiles(
       withVisualizer(
-        `export default Visualization(() => <svg>{fetch("x")}</svg>);`,
+        `export default Visualization(() => <Visualizer.Svg>{fetch("x")}</Visualizer.Svg>);`,
       ),
       {
         colors: false,
@@ -216,17 +242,32 @@ describe("VisualizerLanguageServer completions and hover", () => {
   }
 
   it("completes SVG attributes", () => {
-    const names = completionNames(
-      `export default Visualization(() => <svg viewB${CURSOR} />);`,
-    );
+    const names = completionNames(`return <Visualizer.Svg viewB${CURSOR} />;`);
 
     expect(names).toContain("viewBox");
-    expect(names).toContain("strokeWidth");
+    expect(names).toContain("backgroundColor");
+    expect(names).toContain("origin");
+    expect(names).toContain("navigation");
+    expect(names).not.toContain("width");
+    expect(names).not.toContain("style");
+    expect(names).not.toContain("onClick");
+    expect(names).not.toContain("href");
+    expect(names).not.toContain("ref");
+  });
+
+  it("completes drawing styles without window layout styles", () => {
+    const names = completionNames(
+      `return <Visualizer.Svg><g style={{ ${CURSOR} }} /></Visualizer.Svg>;`,
+    );
+    expect(names).toContain("backgroundColor");
+    expect(names).toContain("fill");
+    expect(names).not.toContain("width");
+    expect(names).not.toContain("borderRadius");
   });
 
   it("completes the net's parameters", () => {
     const names = completionNames(
-      `export default Visualization(({ parameters }) => <svg>{parameters.${CURSOR}}</svg>);`,
+      `return <Visualizer.Svg>{parameters.${CURSOR}}</Visualizer.Svg>;`,
     );
 
     expect(names).toEqual(["planet_radius", "show_labels"]);
@@ -234,7 +275,7 @@ describe("VisualizerLanguageServer completions and hover", () => {
 
   it("completes a token's attributes", () => {
     const names = completionNames(
-      `export default Visualization(({ tokens }) => <svg>{tokens[0].${CURSOR}}</svg>);`,
+      `return <Visualizer.Svg>{tokens[0].${CURSOR}}</Visualizer.Svg>;`,
     );
 
     expect(names).toEqual(["id", "x", "y"]);
@@ -242,7 +283,7 @@ describe("VisualizerLanguageServer completions and hover", () => {
 
   it("shows the token type on hover, with the span in the user's code", () => {
     const { offset, code } = parseCursor(
-      `export default Visualization(({ tok${CURSOR}ens }) => <svg>{tokens.length}</svg>);`,
+      `return <Visualizer.Svg>{tok${CURSOR}ens.length}</Visualizer.Svg>;`,
     );
     const server = createServer(withVisualizer(code));
     const info = server.getQuickInfoAtPosition(codePath("p1"), offset);

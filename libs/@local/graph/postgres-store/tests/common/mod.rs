@@ -8,7 +8,6 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::pool::StorePool;
 use hash_telemetry::logging::env_filter;
-use tokio_postgres::NoTls;
 
 pub(crate) fn init_logging() {
     let _: Result<_, _> = tracing_subscriber::fmt()
@@ -49,7 +48,6 @@ impl DatabaseTestWrapper {
         let pool = PostgresStorePool::new(
             &connection_info(),
             &DatabasePoolConfig::default(),
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("should build the connection pool");

@@ -125,6 +125,55 @@ test("renders accepted commits as a document whose records carry their addresses
   expect(document.querySelector('[data-ledger-address="e1"]')).not.toBeNull();
 });
 
+test("shows a threshold's stated timing beside the timing nobody has given yet", () => {
+  const entries = [
+    [
+      "entity/create",
+      {
+        name: "30 °C inlet limit",
+        kind: "threshold",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "Rack inlet stays at or below 30 °C throughout the incident.",
+        entities: ["$0"],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "When the 30 °C limit must hold: unasked, whether any reading above it counts or only a sustained one.",
+        entities: ["$0"],
+        origin: "inferred",
+        status: "open",
+      },
+    ],
+  ];
+  render(
+    <BrunchLedgerPane
+      messages={[
+        assistant(commit("ledger-1", {}, entries, ["e1", "c1", "c2"])),
+      ]}
+    />,
+  );
+  const sectionUnder = (name: string) =>
+    screen.getByRole("heading", { name }).closest("section")?.textContent ?? "";
+  const thresholds = sectionUnder("Thresholds");
+  expect(thresholds).toContain(
+    "Rack inlet stays at or below 30 °C throughout the incident.",
+  );
+  expect(thresholds).toContain("When the 30 °C limit must hold: unasked");
+  const questions = sectionUnder("Open questions");
+  expect(questions).toContain("When the 30 °C limit must hold: unasked");
+  expect(questions).toContain("Concerns: 30 °C inlet limit.");
+});
+
 test("never shows refused, failed, pending or unbound commits", () => {
   for (const part of [
     commit("refused", {
@@ -546,4 +595,117 @@ test("marks the records of a sent comment until Brunch resolves it", () => {
   expect(
     screen.queryByRole("button", { name: /Comments waiting for Brunch/ }),
   ).toBeNull();
+});
+
+/** Each marked record occurrence, in document order, with how the latest turn changed it. */
+const latestTurnMarks = () =>
+  [
+    ...screen
+      .getByTestId("brunch-ledger-document")
+      .querySelectorAll<HTMLElement>("[data-ledger-change]"),
+  ].map(({ dataset }) => `${dataset.ledgerAddress} ${dataset.ledgerChange}`);
+
+test("marks every occurrence the latest turn added or changed, but not what a replacement superseded", () => {
+  const owed = [
+    "obligation/create",
+    { text: "A run shows a day of supply.", entities: ["e1"] },
+  ];
+  const latestTurn = [
+    ...reflected,
+    assistant(commit("ledger-owed", {}, [owed], ["o1"])),
+    user("user-2", "It holds two days, and a pump fills it."),
+    assistant(
+      commit(
+        "ledger-2",
+        {},
+        [
+          [
+            "entity/create",
+            {
+              name: "Booster pump",
+              kind: "resource",
+              origin: "stated",
+              status: "confirmed",
+            },
+          ],
+          [
+            "claim/create",
+            {
+              text: "The reservoir and its pump hold two days of supply.",
+              entities: ["e1", "$0"],
+              origin: "stated",
+              status: "confirmed",
+              supersedes: ["c1"],
+            },
+          ],
+          [
+            "reflection/create",
+            {
+              text: "A run held two days of supply.",
+              discharges: ["o1"],
+            },
+          ],
+        ],
+        ["e2", "c2", "r2"],
+      ),
+      commit("refused-2", {
+        output: {
+          status: "refused",
+          applied: false,
+          code: "unknown-address",
+          message: "No such record.",
+          revision: 3,
+        },
+      }),
+    ),
+  ];
+  // The replacement shows under both its entities; the met obligation and
+  // the reflection meeting it show under Checks met.
+  const expected = [
+    "c2 updated",
+    "e2 added",
+    "c2 updated",
+    "o1 updated",
+    "r2 added",
+  ];
+  const { unmount } = render(<BrunchLedgerPane messages={latestTurn} />);
+  expect(latestTurnMarks()).toEqual(expected);
+  const document = screen.getByTestId("brunch-ledger-document");
+  // The superseded claim stays as struck-through context, without a mark.
+  const superseded = [
+    ...document.querySelectorAll<HTMLElement>('[data-ledger-address="c1"]'),
+  ];
+  expect(superseded).toHaveLength(2);
+  for (const occurrence of superseded) {
+    expect(occurrence.textContent).toContain(
+      "The reservoir holds a day of supply.",
+    );
+    expect(occurrence.dataset.ledgerChange).toBeUndefined();
+  }
+  unmount();
+
+  // Remounted from the same history, as after a reload or a tab switch.
+  const { unmount: unmountAgain } = render(
+    <BrunchLedgerPane messages={latestTurn} />,
+  );
+  expect(latestTurnMarks()).toEqual(expected);
+  unmountAgain();
+
+  // A dismissed latest turn keeps its records and drops only their marks.
+  const { unmount: unmountDismissed } = render(
+    <BrunchLedgerPane messages={latestTurn} highlightChanges={false} />,
+  );
+  expect(latestTurnMarks()).toEqual([]);
+  expect(screen.getByTestId("brunch-ledger-document").textContent).toContain(
+    "Booster pump",
+  );
+  unmountDismissed();
+
+  // A next turn clears the marks until it changes something.
+  render(
+    <BrunchLedgerPane
+      messages={[...latestTurn, user("user-3", "That is all for now.")]}
+    />,
+  );
+  expect(latestTurnMarks()).toEqual([]);
 });

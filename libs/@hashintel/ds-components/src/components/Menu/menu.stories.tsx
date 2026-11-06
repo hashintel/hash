@@ -41,30 +41,40 @@ function prefixIds(
  * Recursively rewires items so that selecting any leaf (non-`href`,
  * non-`subItems` parent) toggles its id via the provided callback
  * and reflects the current selection state via the `selected` flag.
- * Sets `keepOpenOnSelect` so the demo shows the selection update
- * without the menu closing.
+ * Items close the menu on click as usual, except the "Selected" group's
+ * items (whose toggling the demo shows in place) and any item that sets
+ * `keepOpenOnSelect` itself.
  */
 function withSelection(
   entry: ItemOrGroup<Item>,
   selected: string[],
   toggle: (id: string) => void,
+  keepOpen = false,
 ): ItemOrGroup<MenuItem> {
   if ("items" in entry) {
     return {
       ...entry,
       items: entry.items.map(
-        (item) => withSelection(item, selected, toggle) as MenuItem,
+        (item) =>
+          withSelection(
+            item,
+            selected,
+            toggle,
+            keepOpen || entry.id.endsWith("group-selected"),
+          ) as MenuItem,
       ),
     };
   }
   if ("custom" in entry) {
-    return entry;
+    return entry as MenuItem;
   }
   const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   if (nested) {
     return {
       ...entry,
-      subItems: nested.map((child) => withSelection(child, selected, toggle)),
+      subItems: nested.map((child) =>
+        withSelection(child, selected, toggle, keepOpen),
+      ),
     } as unknown as MenuItem;
   }
   if ("href" in entry && entry.href) {
@@ -73,7 +83,7 @@ function withSelection(
   return {
     ...entry,
     onClick: toggle,
-    keepOpenOnSelect: true,
+    ...(keepOpen ? { keepOpenOnSelect: true } : {}),
     selected: selected.includes(getItemId(entry)),
   } as MenuItem;
 }
@@ -117,10 +127,6 @@ const DefaultDemo = (args: MenuProps) => {
   );
 };
 
-export const Default: Story = {
-  render: (args) => <DefaultDemo {...args} />,
-};
-
 const NestedDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
@@ -139,10 +145,6 @@ const NestedDemo = (args: MenuProps) => {
   );
 };
 
-export const Nested: Story = {
-  render: (args) => <NestedDemo {...args} />,
-};
-
 const PlainButtonTriggerDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
@@ -156,10 +158,6 @@ const PlainButtonTriggerDemo = (args: MenuProps) => {
       items={items}
     />
   );
-};
-
-export const PlainButtonTrigger: Story = {
-  render: (args) => <PlainButtonTriggerDemo {...args} />,
 };
 
 const LongHeaderAndFooterDemo = (args: MenuProps) => {
@@ -192,8 +190,56 @@ const LongHeaderAndFooterDemo = (args: MenuProps) => {
   );
 };
 
-export const LongHeaderAndFooter: Story = {
-  render: (args) => <LongHeaderAndFooterDemo {...args} />,
+const demoLabelStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 500,
+  color: "#666",
+};
+
+const LabeledDemo = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      alignItems: "flex-start",
+    }}
+  >
+    <span style={demoLabelStyle}>{label}</span>
+    {children}
+  </div>
+);
+
+export const Default: Story = {
+  render: (args) => (
+    <div
+      style={{
+        display: "flex",
+        gap: 32,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}
+    >
+      <LabeledDemo label="Default">
+        <DefaultDemo {...args} />
+      </LabeledDemo>
+      <LabeledDemo label="Nested sub-actions">
+        <NestedDemo {...args} />
+      </LabeledDemo>
+      <LabeledDemo label="Plain button trigger">
+        <PlainButtonTriggerDemo {...args} />
+      </LabeledDemo>
+      <LabeledDemo label="Long header and footer">
+        <LongHeaderAndFooterDemo {...args} />
+      </LabeledDemo>
+    </div>
+  ),
 };
 
 const EllipsisMenuDemo = (args: MenuProps) => {

@@ -3,7 +3,9 @@ import { useReactFlow, useViewport } from "@xyflow/react";
 import { Button, ButtonGroup, Icon, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getAddStepMenuItems } from "../shared/step-display";
+import { AddStepMenu } from "./add-step-menu";
+
+import type { FitViewOptions } from "@xyflow/react";
 
 export type CanvasTool = "hand" | "select";
 
@@ -26,14 +28,18 @@ export const CanvasToolbar = ({
   tool,
   onToolChange,
   onAddStep,
+  emptyFlow,
   onOrganize,
-  canOrganize,
+  fitPadding,
 }: {
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
   onAddStep: (actionDefinitionId: string) => void;
+  /** Whether the flow has no steps yet, when the add menu recommends some and there's nothing to organize. */
+  emptyFlow: boolean;
   onOrganize: () => void;
-  canOrganize: boolean;
+  /** Keeps Zoom to fit clear of a panel covering the canvas. */
+  fitPadding: FitViewOptions["padding"];
 }) => {
   const { zoom } = useViewport();
   const { zoomIn, zoomOut, fitView, zoomTo } = useReactFlow();
@@ -87,7 +93,7 @@ export const CanvasToolbar = ({
                   text: "Zoom to fit",
                   icon: "expand",
                   onClick: () => {
-                    void fitView();
+                    void fitView({ padding: fitPadding });
                   },
                 },
                 {
@@ -121,7 +127,7 @@ export const CanvasToolbar = ({
           onClick={() => onToolChange("select")}
         />
         <div className={toolbarDivider} />
-        <Menu
+        <AddStepMenu
           position="top-start"
           trigger={
             <Button
@@ -131,14 +137,15 @@ export const CanvasToolbar = ({
               tooltip="Add action"
             />
           }
-          items={getAddStepMenuItems(onAddStep)}
+          emptyFlow={emptyFlow}
+          onPick={onAddStep}
         />
         <Button
           variant="ghost"
           size="md"
           iconName="list"
           tooltip="Organize"
-          disabled={!canOrganize}
+          disabled={emptyFlow}
           onClick={onOrganize}
         />
       </ButtonGroup>

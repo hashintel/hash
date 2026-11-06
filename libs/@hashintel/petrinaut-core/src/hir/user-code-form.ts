@@ -1,5 +1,5 @@
 /**
- * Source-form detection for dynamics/lambda/kernel user code.
+ * Source-form detection for dynamics/lambda/kernel/visualizer user code.
  *
  * These surfaces accept two source forms:
  *
@@ -55,17 +55,25 @@ function isExportStatement(statement: ts.Statement): boolean {
 }
 
 /**
- * Classifies dynamics/lambda/kernel user code as the module form or the
+ * Classifies user code as the module form or the
  * bare-body form. Tolerant of syntax errors — the parser still produces
  * statements for broken code, and downstream lowering / type checking reports
  * the errors for whichever form was detected.
  */
-export function detectUserCodeForm(code: string): UserCodeForm {
-  const sourceFile = ts.createSourceFile(
-    "detect-form.ts",
-    code,
-    ts.ScriptTarget.ES2020,
-  );
+export function detectUserCodeForm(
+  code: string | ts.SourceFile,
+  scriptKind = ts.ScriptKind.TS,
+): UserCodeForm {
+  const sourceFile =
+    typeof code === "string"
+      ? ts.createSourceFile(
+          "detect-form.ts",
+          code,
+          ts.ScriptTarget.ES2020,
+          false,
+          scriptKind,
+        )
+      : code;
   return sourceFile.statements.some(isExportStatement) ? "module" : "body";
 }
 

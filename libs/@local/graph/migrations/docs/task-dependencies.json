@@ -4,6 +4,7 @@
     "error-stack",
     "hash-crypto",
     "hash-graph-migrations-macros",
+    "hash-graph-postgres-store",
     "hash-telemetry"
   ],
   "tasks": {
@@ -26,6 +27,7 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
+        "darwin-kperf-codegen",
         "error-stack-macros"
       ]
     },
