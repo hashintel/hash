@@ -33,7 +33,7 @@ const isRecord = (
 
 const unsafeValue = (name: string): Error =>
   new Error(
-    `\`${name}\` may only reference an element of this picture with \`url(#id)\`.`,
+    `\`${name}\` contains unsupported CSS or an external resource. Use supported styling functions and unquoted local references such as \`url(#id)\`.`,
   );
 
 const toStyle = (

@@ -154,6 +154,8 @@ Visualizers support the [expression subset](#supported-code-subset), token colle
 
 Types are inferred. The [code editor](code-editor.md) reports errors as you type. Imports, hooks, arbitrary function calls, scripts, HTML, event handlers, and external URLs are rejected. Visualizer errors do not stop simulation.
 
+Attribute and style values support CSS colors, gradients, shapes, math, transforms, and local references such as `url(#marker)`. Image-loading functions, escaped external URLs, and unsupported CSS functions are rejected, including values computed from tokens or parameters. Text children are unaffected.
+
 Older `Visualization(...)` wrappers and native `<svg>` remain supported with deprecation hints. See [Migrating older code](#migrating-older-code).
 
 See [Satellites](examples.md#probabilistic-satellite-launcher) for a centered scene and [Supply Chain](examples.md#supply-chain-with-disruption) for responsive charts.
