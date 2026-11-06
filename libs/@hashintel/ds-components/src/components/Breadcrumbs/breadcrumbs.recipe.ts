@@ -75,6 +75,17 @@ export const styles = sva({
         color: "neutral.s110",
         background: "neutral.a30",
       },
+      // The current page's darker ink, kept through the hover/open states
+      // above (whose selectors would otherwise win and lighten it).
+      "&[aria-current=page]": {
+        color: "neutral.s120",
+        "&:is(a, button):not([aria-disabled=true]):hover": {
+          color: "neutral.s120",
+        },
+        "&[aria-expanded=true]": {
+          color: "neutral.s120",
+        },
+      },
       "&:focus-visible": {
         outlineWidth: "2px",
         outlineStyle: "solid",

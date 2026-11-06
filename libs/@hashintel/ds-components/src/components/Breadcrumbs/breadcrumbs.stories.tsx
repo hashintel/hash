@@ -156,6 +156,16 @@ export const Default: Story = {
         <IconTrail {...args} aria-label="Breadcrumb (icons)" />
       </Example>
 
+      <Example title="Explicit current page (middle crumb)">
+        <BreadCrumbs {...args} aria-label="Breadcrumb (current)">
+          <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#person" current>
+            Person
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#properties">Properties</BreadCrumbs.Item>
+        </BreadCrumbs>
+      </Example>
+
       <Example title="Tooltip with custom items">
         <BreadCrumbs {...args} aria-label="Breadcrumb (tooltips)">
           <BreadCrumbs.Item href="#home" tooltip="Go to the home page">

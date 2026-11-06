@@ -66,14 +66,14 @@ export const styles = sva({
         },
         item: {
           gap: "1.5",
-          paddingY: "2",
+          paddingY: "1",
           paddingLeft: "1.5",
           paddingRight: "2.5",
           borderWidth: "[1px]",
           borderStyle: "solid",
           borderColor: "bd.subtle",
           borderRadius: "xl",
-          backgroundColor: "bgSolid.surface",
+          backgroundColor: "white",
           "&[data-dragging]": {
             boxShadow: "elevation.raise.macro",
           },
