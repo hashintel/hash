@@ -30,7 +30,7 @@ export type DependentType = {
   versionsByParentVersion: Map<number, DependentTypeVersion[]>;
 };
 
-export type DependentTypes = {
+export type DependentTypeIndex = {
   /** Current and former dependent types. */
   byType: Map<BaseUrl, DependentType>;
   /** Whether either query stopped at the Graph's row limit, so types or versions can be missing. */
@@ -49,7 +49,7 @@ export const getDependentTypes = ({
   parentBaseUrl: BaseUrl;
   allVersions: QueryEntityTypesResult;
   latestVersions: QueryEntityTypesResult;
-}): DependentTypes => {
+}): DependentTypeIndex => {
   const latestByBaseUrl = new Map<BaseUrl, EntityTypeWithMetadata>();
 
   for (const entityType of latestVersions.entityTypes) {

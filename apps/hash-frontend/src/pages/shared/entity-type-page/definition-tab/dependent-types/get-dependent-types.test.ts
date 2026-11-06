@@ -4,7 +4,7 @@ import { actorBaseUrl, makeVersion } from "./dependent-type-fixtures";
 import { getDependentTypes } from "./get-dependent-types";
 
 import type {
-  DependentTypes,
+  DependentTypeIndex,
   DependentTypeVersion,
 } from "./get-dependent-types";
 import type {
@@ -29,7 +29,7 @@ const versionNumbers = (versions: DependentTypeVersion[]) =>
     .toSorted((left, right) => left - right);
 
 /** Each type as its title, the version it opens at, and its versions that extend each parent version. */
-const summarizeByType = ({ byType }: DependentTypes) =>
+const summarizeByType = ({ byType }: DependentTypeIndex) =>
   [...byType.values()].map(
     ({ entityType, version, former, versionsByParentVersion }) => ({
       title: `${entityType.schema.title}${former ? " (former)" : ""}`,
