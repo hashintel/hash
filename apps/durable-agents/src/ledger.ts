@@ -11,12 +11,14 @@ import * as v from "valibot";
 import {
   brunchTools,
   type LedgerAppend,
-  type LedgerAppendOutput,
   ledgerAppendOutputSchema,
   vLedgerAppend,
 } from "@hashintel/brunch-agent";
 
-import { appendToLedger } from "./ledger-doc/ledger-doc";
+import {
+  appendToLedger,
+  type LedgerAppendOutput,
+} from "./ledger-doc/ledger-doc";
 
 import type { Schema } from "@earendil-works/pi-schema";
 
