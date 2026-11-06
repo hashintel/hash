@@ -12,7 +12,7 @@ import type { ToolCall } from "@earendil-works/pi-ai";
 
 /**
  * What a panel joining now would render, read only from committed state: the
- * conversation's `viewState()` (transcript, `pi.live`, `pi.inbox`) and the
+ * conversation's watched view (transcript window, `pi.live`, `pi.inbox`) and the
  * browser-call document it claims from. `pi.system` entries mark prompt
  * changes and are left out.
  */
@@ -21,9 +21,9 @@ export const panelView = async (
   conversation: Conversation,
   context: Context,
 ) => {
-  const state = await conversation.viewState(context);
-  const { entries, docs } = state.value;
-  state.dispose();
+  const watch = await conversation.watch(context);
+  const { entries, docs } = watch.value;
+  await watch.stop();
   const live = docs["pi.live"] as LiveState | undefined;
   const inbox = docs["pi.inbox"] as InboxState | undefined;
   const calls =

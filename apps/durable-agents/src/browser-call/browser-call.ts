@@ -25,7 +25,6 @@
 import { randomBytes } from "node:crypto";
 
 import { type Context, copyJson, type JsonValue } from "@earendil-works/chord";
-import { Type } from "@earendil-works/pi-ai";
 import {
   type ConversationId,
   defineDoc,
@@ -36,6 +35,7 @@ import {
   type JsonObject,
   type TaskId,
 } from "@earendil-works/pi-durable";
+import { obj, str } from "@earendil-works/pi-schema";
 
 import {
   browserToolMutatesDocument,
@@ -220,8 +220,8 @@ export const setNetTitleTool = defineTool({
   name: browserToolName,
   description:
     "Set the human-readable title shown for the current Petrinaut net.",
-  parameters: Type.Object({
-    title: Type.String({
+  parameters: obj({
+    title: str({
       minLength: 1,
       maxLength: 120,
       description:

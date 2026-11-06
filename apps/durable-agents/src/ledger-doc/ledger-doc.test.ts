@@ -34,8 +34,6 @@ import {
 import { openHarness } from "../harness";
 import { foldLedger, LedgerDoc } from "../ledger";
 
-import type { Context } from "@earendil-works/chord";
-
 const context = BACKGROUND_CONTEXT;
 
 /** One `ledger_commit` per call, each a different kind of record. */
@@ -138,23 +136,30 @@ const expectAgreement = (
     ledger.commits.map(({ commitId, revision }) => [commitId, revision]),
   );
 
-/** `storage` with each commit's writes logged; the first commit `crashOn` matches throws before reaching storage. */
+/**
+ * `storage` with each commit's writes logged, and in `calls` the index of the storage call that carried it (1.5.0
+ * stores a group of commits per call). A call holding a commit `crashOn` matches, the first time, throws before
+ * reaching storage, so none of its commits is stored.
+ */
 const instrumented = (
   storage: Storage,
   log: (readonly StorageWrite[])[],
   crashOn?: (writes: readonly StorageWrite[]) => boolean,
+  calls: number[] = [],
 ): Storage => {
   let crashed = false;
-  const commit = async (
-    writes: readonly StorageWrite[],
-    commitContext: Context,
-  ) => {
-    if (!crashed && crashOn?.(writes) === true) {
+  let call = 0;
+  const commit: Storage["commit"] = async (batches, receive, commitContext) => {
+    if (!crashed && batches.some((writes) => crashOn?.(writes) === true)) {
       crashed = true;
       throw new Error("Injected crash: this commit never reached storage");
     }
-    log.push(writes);
-    return storage.commit(writes, commitContext);
+    for (const writes of batches) {
+      log.push(writes);
+      calls.push(call);
+    }
+    call++;
+    return storage.commit(batches, receive, commitContext);
   };
   return new Proxy(storage, {
     get: (target, property) => {
@@ -206,6 +211,7 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
 
   test("commits accumulate, rewind, fork and survive reopen", async () => {
     const log: (readonly StorageWrite[])[] = [];
+    const calls: number[] = [];
     const { models, model } = scriptedModel([
       ...commitTurn("call-1"),
       ...commitTurn("call-2"),
@@ -213,7 +219,7 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
       ...commitTurn("call-4"),
     ]);
     const harness = await openHarness(
-      instrumented(await openNodeSqliteStorage(file), log),
+      instrumented(await openNodeSqliteStorage(file), log, undefined, calls),
       { models },
       context,
     );
@@ -311,7 +317,7 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
       `${["call-1", "call-2", "call-3", "call-4"]
         .map(
           (callId, index) =>
-            `${callId}: Ledger edit in commit #${edits[index]}, result entry in commit #${resultCommits[index]}`,
+            `${callId}: Ledger edit in commit #${edits[index]} (storage call ${calls[edits[index]!]}), result entry in commit #${resultCommits[index]} (storage call ${calls[resultCommits[index]!]})`,
         )
         .join("\n")}\n`,
     );
@@ -362,7 +368,7 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
     await expect(runTurn(root, "We have a dryer.")).rejects.toThrow(
       "Session failed after a storage error",
     );
-    expect(await crashing.closed).toMatchObject({ reason: "failed" });
+    expect(await crashing.closed).toMatchObject({ kind: "failed" });
     const ledgerIds = new Set<DocumentId>();
     expect(log.some((writes) => editsLedger(writes, ledgerIds))).toBe(true);
 
