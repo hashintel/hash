@@ -106,6 +106,16 @@ impl fmt::Display for DumpError {
 
 impl Error for DumpError {}
 
+/// The directory a dump writes to, attached to a failed dump's report.
+#[derive(Debug)]
+struct DumpDirectory(Utf8PathBuf);
+
+impl fmt::Display for DumpDirectory {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "dump directory: {}", self.0)
+    }
+}
+
 /// One dump's verdict.
 ///
 /// The command's product, which its host renders rather than printing in place. The rendering
@@ -233,7 +243,7 @@ impl DumpCommand {
         let reading = read::<_, ExternalEmbeddingError>(&dataset, &self.args.output, &options)
             .await
             .change_context(DumpError::Dump)
-            .attach_with(|| self.args.output.clone())?;
+            .attach_with(|| DumpDirectory(self.args.output.clone()))?;
         // The reading borrows nothing from the dataset. The snapshot transaction ends here rather
         // than spanning the provider round-trips below.
         drop(dataset);
@@ -247,7 +257,7 @@ impl DumpCommand {
         )
         .await
         .change_context(DumpError::Dump)
-        .attach_with(|| self.args.output.clone())?;
+        .attach_with(|| DumpDirectory(self.args.output.clone()))?;
 
         Ok(DumpVerdict {
             directory: self.args.output,
