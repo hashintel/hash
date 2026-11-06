@@ -20,6 +20,7 @@ export {
   isSafeViewValue,
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
+  VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
 } from "./view-hir/view-elements";
 export {
@@ -42,3 +43,10 @@ export {
   lowerVisualizerToHir,
   type VisualizerHir,
 } from "./view-hir/visualizer";
+
+export {
+  visualizerSvgTag,
+  visualizerSvgAttributes,
+  parseVisualizerSvgOptions,
+  type VisualizerSvgOptions,
+} from "./view-hir/visualizer-svg";

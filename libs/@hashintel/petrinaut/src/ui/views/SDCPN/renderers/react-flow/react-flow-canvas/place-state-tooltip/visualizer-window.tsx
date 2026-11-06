@@ -64,12 +64,17 @@ const controlsStyle = css({
   alignItems: "center",
   justifyContent: "center",
   color: "neutral.s100",
-  backgroundColor: "[rgba(255, 255, 255, 0.72)]",
-  backdropFilter: "[blur(8px) saturate(140%)]",
-  borderRadius: "[6px]",
+  "& svg": { filter: "[drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35))]" },
+  backgroundColor: "[rgba(255, 255, 255, 0.58)]",
+  backdropFilter: "[blur(10px) saturate(140%)]",
+  borderRadius: "[8px]",
+  padding: "[2px]",
   boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.14)]",
   opacity: "[0]",
   pointerEvents: "none",
+  transition: "[opacity 140ms ease-out]",
+  "[data-animated='false'] &": { transition: "[none]" },
+  "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   "&:has(:focus-visible)": { outline: "[2px solid {colors.blue.s80}]" },
 });
 
@@ -97,11 +102,6 @@ const contentStyle = css({
   minHeight: "[0]",
   overflow: "auto",
   borderRadius: "[inherit]",
-  "& > svg": {
-    width: "[100% !important]",
-    height: "[100% !important]",
-    display: "block",
-  },
 });
 
 const connectorStyle = css({
@@ -141,7 +141,9 @@ export const VisualizerWindow = ({
   onEdit?: () => void;
   onPointerEnter?: PointerEventHandler<HTMLDivElement>;
   onPointerLeave?: PointerEventHandler<HTMLDivElement>;
-  children: ReactNode;
+  children:
+    | ReactNode
+    | ((size: { width: number; height: number }) => ReactNode);
 }) => {
   const node = useInternalNode(nodeId);
   const viewport = useViewport();
@@ -218,14 +220,22 @@ export const VisualizerWindow = ({
         {...getHandleProps("move")}
         onFocusCapture={onActivate}
         onPointerDownCapture={(event) => {
-          if (event.button === 0) onActivate();
+          if (event.button === 0) {
+            onActivate();
+            if (
+              event.target instanceof Element &&
+              event.target.closest("[data-visualizer-content]")
+            )
+              onKeepOpen();
+          }
         }}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
-        onKeyDown={getHandleProps("move").onKeyDown}
-        onKeyDownCapture={(event) => {
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          getHandleProps("move").onKeyDown?.(event);
           if (event.key !== "Escape") return;
           event.preventDefault();
           event.stopPropagation();
@@ -278,7 +288,14 @@ export const VisualizerWindow = ({
             onClick={onClose}
           />
         </div>
-        <div className={contentStyle}>{children}</div>
+        <div className={contentStyle} data-visualizer-content>
+          {typeof children === "function"
+            ? children({
+                width: Math.max(1, layout.size.width - 2),
+                height: Math.max(1, layout.size.height - 2),
+              })
+            : children}
+        </div>
         <FloatingResizeHandles
           label={`${name} visualizer`}
           getHandleProps={(direction) => ({

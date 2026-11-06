@@ -308,9 +308,11 @@ export type {
 // --- LSP ---
 export {
   CompletionItemKind,
+  CompletionItemTag,
   createLanguageClient,
   createWorkerLspTransport,
   DiagnosticSeverity,
+  DiagnosticTag,
   MarkupKind,
   Position,
   Range,
@@ -508,6 +510,7 @@ export {
   isSafeViewValue,
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
+  VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
 } from "./view-hir/view-elements";
 // Type-only: lowering itself stays in ./hir (worker/Node).
@@ -675,3 +678,10 @@ export {
   parseConstraintDocumentUri,
   parseDocumentUri,
 } from "./lsp/lib/document-uris";
+
+export {
+  visualizerSvgTag,
+  visualizerSvgAttributes,
+  parseVisualizerSvgOptions,
+  type VisualizerSvgOptions,
+} from "./view-hir/visualizer-svg";
