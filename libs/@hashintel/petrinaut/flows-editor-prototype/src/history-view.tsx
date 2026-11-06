@@ -13,6 +13,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { runLabel } from "./run-id";
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
 import { flattenSteps, START_ID, stepLabel } from "./document";
@@ -186,13 +187,21 @@ export const useRunKeys = (history: HistoryValue | null, active: boolean) => {
  * Top bar: All runs, then the run switcher after the title
  * ------------------------------------------------------------------------------------------------------------- */
 
+/**
+ * `?rundropdown=dark` (6 Nov sync): the open run has no tick, only the DS selected fill, so the menu shows one mark
+ * per row. URL only, never remembered; unset keeps the tick.
+ */
+const runDropdownDark = () =>
+  new URLSearchParams(globalThis.location.search).get("rundropdown") ===
+  "dark";
+
 const runMenuLabel = (run: RunRecord, now: number) => {
   const outcome = outcomeOf(run, now);
   const timedOut =
     run.kind === "past" && run.facts.signOff === "timedOut"
       ? " · timed out"
       : "";
-  return `Run ${run.id} · ${statusText(run, now)}${outcome === "error" ? timedOut : ""}`;
+  return `${runLabel(run)} · ${statusText(run, now)}${outcome === "error" ? timedOut : ""}`;
 };
 
 const menuRowStyle = css({
@@ -279,7 +288,9 @@ export const RunSwitcher = ({
         ),
         suffix: <span className={menuTimeStyle}>{candidate.when}</span>,
         selected: candidate.id === run.id,
-        selectedStyle: "tick" as const,
+        selectedStyle: runDropdownDark()
+          ? ("highlight" as const)
+          : ("tick" as const),
         onClick: () => history.open(candidate.id),
       })),
   };
@@ -331,7 +342,7 @@ export const RunSwitcher = ({
                 tooltip={withTime ? undefined : run.when}
                 data-run-picker
               >
-                {withTime ? `Run ${run.id} · ${run.when}` : `Run ${run.id}`}
+                {withTime ? `${runLabel(run)} · ${run.when}` : `${runLabel(run)}`}
               </Button>
             )
           }
@@ -385,8 +396,6 @@ const strongLineStyle = css({
   fontWeight: "medium",
   color: "neutral.fg.heading",
 });
-
-const quietLineStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
 
 /** H4's second line, "Action · description": 14 px on the title's 20 px line, muted as in the editor. */
 const headerLineStyle = css({
@@ -449,7 +458,7 @@ const FiredTriggerPanel = ({ run }: { run: RunRecord }) => {
             paddingLeft: "6",
           })}
         >
-          Started Run {run.id}
+          Started {runLabel(run)}
         </span>
       </div>
       <Section title="Trigger">

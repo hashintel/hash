@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { runLabel } from "./run-id";
 import { START_ID } from "./document";
 import { useEditor } from "./editor-context";
 import { glyphSet, RunGlyph } from "./run-glyph";
@@ -503,7 +504,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
               color: "neutral.fg.heading",
             })}
           >
-            Run {run.id}
+            {runLabel(run)}
           </span>
           {action === "Stop" ? (
             <Button

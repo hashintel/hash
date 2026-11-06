@@ -33,6 +33,7 @@ import {
   warningsOf,
   warningsText,
 } from "./run-history";
+import { runId, runLabel } from "./run-id";
 import { RunOutputsCell } from "./run-outputs";
 import {
   RunItemsCell,
@@ -48,6 +49,23 @@ import {
   type RunFilterChip,
   RunsFilterRibbon,
 } from "./runs-filter";
+import {
+  type ColumnKey,
+  columnOrders,
+  compareOn,
+  endedAt,
+  colsTableStyle,
+  IdCell,
+  outputsCellStyle,
+  runColsTake,
+  SortHead,
+  StartedByCell,
+  startedAt,
+  tableIdTake,
+  TimeCell,
+  WebCell,
+  webOf,
+} from "./runs-columns";
 import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
 import { Toast } from "./ui";
@@ -217,6 +235,20 @@ let savedChips: RunFilterChip[] = [];
 
 type SortKey = "started" | "duration" | "status";
 
+/** `?runcols=1` sorts on every column, so its keys join the three the Sort menu always had. */
+type AnySortKey = SortKey | Exclude<ColumnKey, "status">;
+
+const colsTake = runColsTake();
+
+const ordersOf = (key: AnySortKey) =>
+  key === "started" || key === "duration" || key === "status"
+    ? sortOrders[key]
+    : columnOrders[key];
+
+const menuSortKeys: AnySortKey[] = colsTake
+  ? ["started", "completed", "id", "status", "by", "web", "duration"]
+  : ["started", "duration", "status"];
+
 /** Each sort's two orders, first the one it starts in. */
 const sortOrders: Record<SortKey, { label: string; orders: [string, string] }> =
   {
@@ -346,7 +378,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
   const [older, setOlder] = useState(false);
   const [extraRows, setExtraRows] = useState(0);
   const [page, setPage] = useState(0);
-  const [sort, setSort] = useState<{ key: SortKey; flipped: boolean }>({
+  const [sort, setSort] = useState<{ key: AnySortKey; flipped: boolean }>({
     key: "started",
     flipped: false,
   });
@@ -401,19 +433,31 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
       : sort.key === "duration"
         ? durationSeconds(run, now)
         : -statusRank[outcomeOf(run, now)];
+  // In its first order (before the flip): b before a when positive.
+  const compare = (a: RunRecord, b: RunRecord) =>
+    colsTake && sort.key !== "status"
+      ? compareOn(sort.key, a, b, now)
+      : sortValue(b) - sortValue(a);
+  const sortOn = (key: AnySortKey) =>
+    setSort((current) => ({
+      key,
+      flipped: current.key === key ? !current.flipped : false,
+    }));
   const matching = runs
     .filter(
       (run) =>
         (tab === "all" || tabOf[outcomeOf(run, now)] === tab) &&
         (oldLogsFilter ? passesFilters(run) : passesChips(chips, run, now)) &&
-        `Run ${run.id} ${run.when} ${triggerLabel(run).row}`
+        (colsTake
+          ? `${runId(run, tableIdTake())} ${run.when} ${triggerLabel(run).row} ${webOf(run)}`
+          : `Run ${run.id} ${runLabel(run)} ${run.when} ${triggerLabel(run).row}`)
           .toLowerCase()
           .includes(search.trim().toLowerCase()),
     )
     // Newest, longest or failed first; a tie keeps the newest run on top.
     .toSorted(
       (a, b) =>
-        (sortValue(b) - sortValue(a)) * (sort.flipped ? -1 : 1) || b.id - a.id,
+        compare(a, b) * (sort.flipped ? -1 : 1) || b.id - a.id,
     );
   const toggleFilter = (key: string) =>
     setFilters((current) =>
@@ -470,9 +514,9 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
     {
       id: "sort-by",
       label: "Sort by",
-      items: (Object.keys(sortOrders) as SortKey[]).map((key) => ({
+      items: menuSortKeys.map((key) => ({
         id: `sort:${key}`,
-        text: sortOrders[key].label,
+        text: ordersOf(key).label,
         selected: sort.key === key,
         selectedStyle: "tick" as const,
         keepOpenOnSelect: true,
@@ -482,7 +526,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
     {
       id: "order",
       label: "Order",
-      items: sortOrders[sort.key].orders.map((text, index) => ({
+      items: ordersOf(sort.key).orders.map((text, index) => ({
         id: `order:${index}`,
         text,
         selected: sort.flipped === (index === 1),
@@ -621,7 +665,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                   iconName={sort.flipped ? "sortUp" : "sortDown"}
                   className={cx(rowButtonStyle, sorted && rowButtonActiveStyle)}
                 >
-                  {sorted ? sortOrders[sort.key].label : "Sort"}
+                  {sorted ? ordersOf(sort.key).label : "Sort"}
                 </Button>
               }
             />
@@ -716,9 +760,43 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
       >
         <table
           ref={tableRef}
-          className={cx(tableStyle, runsPage !== "none" && stickyHeadStyle)}
+          className={cx(
+            tableStyle,
+            runsPage !== "none" && stickyHeadStyle,
+            colsTake && colsTableStyle,
+          )}
         >
           <thead>
+            {colsTake ? (
+              <tr>
+                {(
+                  [
+                    ["id", "ID"],
+                    ["status", "Status"],
+                    ["started", "Started"],
+                    ["completed", "Ended"],
+                    ["by", "Started by"],
+                    ["web", "Web"],
+                  ] as [AnySortKey, string][]
+                ).map(([key, label]) => (
+                  <SortHead
+                    key={key}
+                    label={label}
+                    active={sort.key === key}
+                    flipped={sort.flipped}
+                    onSort={() => sortOn(key)}
+                  />
+                ))}
+                <th>Outputs</th>
+                <SortHead
+                  label="Duration"
+                  active={sort.key === "duration"}
+                  flipped={sort.flipped}
+                  onSort={() => sortOn("duration")}
+                />
+                <th aria-label="Actions" />
+              </tr>
+            ) : (
             <tr>
               <th>Run</th>
               <th>Status</th>
@@ -730,6 +808,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
               <th>Duration</th>
               <th aria-label="Actions" />
             </tr>
+            )}
           </thead>
           <tbody>
             {shown.map((run) => (
@@ -738,14 +817,18 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                 data-run-row={run.id}
                 onClick={() => history.open(run.id)}
               >
-                <td
-                  className={css({
-                    fontWeight: "medium",
-                    color: "neutral.fg.heading",
-                  })}
-                >
-                  Run {run.id} · {run.when}
-                </td>
+                {colsTake ? (
+                  <IdCell run={run} />
+                ) : (
+                  <td
+                    className={css({
+                      fontWeight: "medium",
+                      color: "neutral.fg.heading",
+                    })}
+                  >
+                    {runLabel(run)} · {run.when}
+                  </td>
+                )}
                 <td>
                   {statusTake ? (
                     <RunStatusTakeCell run={run} now={now} take={statusTake} />
@@ -753,17 +836,30 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                     <StatusCell {...statusCellOf(run, now)} />
                   )}
                 </td>
-                {statusTake === "c" ? (
+                {statusTake === "c" && !colsTake ? (
                   <td>
                     <RunItemsCell run={run} now={now} />
                   </td>
                 ) : null}
-                <td>
-                  {run.trigger.kind === "manual"
-                    ? `Manual · ${run.trigger.by}`
-                    : "Schedule · monthly"}
-                </td>
-                <td>
+                {colsTake ? (
+                  <>
+                    <TimeCell date={startedAt(run, now)} now={now} />
+                    <TimeCell
+                      date={endedAt(run, now)}
+                      now={now}
+                      sameDayAs={startedAt(run, now)}
+                    />
+                    <StartedByCell run={run} />
+                    <WebCell run={run} />
+                  </>
+                ) : (
+                  <td>
+                    {run.trigger.kind === "manual"
+                      ? `Manual · ${run.trigger.by}`
+                      : "Schedule · monthly"}
+                  </td>
+                )}
+                <td className={colsTake ? outputsCellStyle : undefined}>
                   {/* What the run produced; each count opens the outputs viewer (`run-outputs.tsx`). */}
                   <RunOutputsCell run={run} now={now} />
                 </td>
@@ -790,7 +886,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                         variant="ghost"
                         tone="neutral"
                         iconName="ellipsis"
-                        aria-label={`Run ${run.id} actions`}
+                        aria-label={`${runLabel(run, colsTake ? tableIdTake() : undefined)} actions`}
                       />
                     }
                   />
@@ -800,7 +896,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
             {shown.length === 0 && applied > 0 ? (
               <tr data-runs-empty>
                 <td
-                  colSpan={statusTake === "c" ? 7 : 6}
+                  colSpan={colsTake ? 9 : statusTake === "c" ? 7 : 6}
                   className={css({ color: "neutral.fg.muted" })}
                 >
                   No runs match these filters
@@ -1394,7 +1490,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
                           type="button"
                           className={squareStyle}
                           style={{ backgroundColor: chartColour[outcome] }}
-                          aria-label={`Run ${run.id}`}
+                          aria-label={`${runLabel(run)}`}
                           data-run-square={run.id}
                           data-hovered={
                             hover?.key === `run:${run.id}` || undefined
@@ -1408,7 +1504,7 @@ const RunsChart = ({ history }: { history: HistoryValue }) => {
                             }
                             setHover({
                               key: `run:${run.id}`,
-                              text: `Run ${run.id} · ${run.when.replace(", ", " ")} · ${statusText(run, now)}`,
+                              text: `${runLabel(run)} · ${run.when.replace(", ", " ")} · ${statusText(run, now)}`,
                               x: square.left - box.left + square.width / 2,
                               top: square.top - box.top,
                             });
@@ -1509,7 +1605,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
     lastFailure
       ? {
           label: "Last failure",
-          text: `Run ${lastFailure.id} · ${lastFailure.when}`,
+          text: `${runLabel(lastFailure)} · ${lastFailure.when}`,
           // The status marks' s85 red, not the strong text red: one soft red for failure (flows-colours O2).
           color: "var(--flows-failed-mark)",
           onOpen: () => history.open(lastFailure.id),
@@ -1521,7 +1617,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
           onlyWarning
             ? {
                 label: "With warnings",
-                text: `Run ${onlyWarning.id} · ${onlyWarning.when}`,
+                text: `${runLabel(onlyWarning)} · ${onlyWarning.when}`,
                 color: "var(--flows-warnings-text)",
                 onOpen: () => history.open(onlyWarning.id),
               }
@@ -1544,7 +1640,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
           {
             runId: run.id,
             title: `Fetch certificate · ${facts.failures.length} of ${facts.n} failed`,
-            line: `Run ${run.id} · ${run.when} · completed, ${warningsText(facts.failures.length)}`,
+            line: `${runLabel(run)} · ${run.when} · completed, ${warningsText(facts.failures.length)}`,
           },
         ];
       }
@@ -1556,7 +1652,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
               facts.find === "failed"
                 ? "Find entities · timed out"
                 : "Quality sign-off · timed out",
-            line: `Run ${run.id} · ${run.when} · failed`,
+            line: `${runLabel(run)} · ${run.when} · failed`,
           },
         ];
       }

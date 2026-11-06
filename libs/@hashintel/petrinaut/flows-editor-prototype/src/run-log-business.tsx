@@ -15,6 +15,7 @@ import { type ReactNode, useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { runLabel } from "./run-id";
 import { RunGlyph } from "./run-glyph";
 import {
   factsOf,
@@ -169,6 +170,7 @@ const usualRun = () => {
   const completed = pastRuns().filter(
     (past) =>
       past.trigger.kind === "schedule" &&
+      past.kind === "past" &&
       past.outcome === "completed" &&
       past.duration,
   );
@@ -350,7 +352,7 @@ const Head = ({
             color: "neutral.fg.heading",
           })}
         >
-          Run {run.id}
+          {runLabel(run)}
         </span>
         <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
           {run.when.replace(", ", " ")}
