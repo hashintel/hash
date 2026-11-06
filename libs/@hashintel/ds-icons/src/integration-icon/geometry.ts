@@ -9591,8 +9591,9 @@ export const integrationGeometry = {
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
     monoInkScale: 1,
     logoViewBox: "0 0 243 65.51368",
-    ratio: 1.4,
+    ratio: 1,
     alignment: "center",
+    appViewBox: "-337.416667 -267.833333 1874.833333 1874.833333",
   },
   hilton: {
     ...hilton,

@@ -18031,7 +18031,7 @@ export const integrationIconCatalog = [
     ],
     logoSource: "https://www.bbr.com/_ipx/s_243x66/bbr/logo/gold.svg",
     logoNotes:
-      "Marks and app icons use the arched window badge vectorized from the supplied raster, retaining its lettering and grid as paths. Dark marks invert the monochrome palette for contrast. Full logos retain the native outlined website lock-up.",
+      "Marks and app icons use the arched window badge vectorized from the supplied raster, retaining its lettering and grid as paths. App tiles enlarge the badge uniformly to meet the bottom edge while preserving its original top inset. Dark marks invert the monochrome palette for contrast. Full logos retain the native outlined website lock-up.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,

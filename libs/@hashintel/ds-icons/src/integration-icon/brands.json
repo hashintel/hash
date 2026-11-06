@@ -17105,7 +17105,8 @@
     "slug": "berry-bros-rudd",
     "label": "Berry Bros. & Rudd",
     "integrationNames": ["Berry Bros. & Rudd", "Berry Bros"],
-    "ratio": 1.4,
+    "ratio": 1,
+    "appViewBox": "-337.416667 -267.833333 1874.833333 1874.833333",
     "alignment": "center",
     "source": "https://images.squarespace-cdn.com/content/60d1cb13763e9a2b36d15fe0/def9d4c1-a69a-44db-a1b7-8a88013a80d4/berry-bros-%26-rudd-spirits-specialist-whisky-rum-gin-logo.png",
     "markLightColors": {},
@@ -17115,7 +17116,7 @@
     },
     "logoDarkColors": {},
     "logoSource": "https://www.bbr.com/_ipx/s_243x66/bbr/logo/gold.svg",
-    "logoNotes": "Marks and app icons use the arched window badge vectorized from the supplied raster, retaining its lettering and grid as paths. Dark marks invert the monochrome palette for contrast. Full logos retain the native outlined website lock-up.",
+    "logoNotes": "Marks and app icons use the arched window badge vectorized from the supplied raster, retaining its lettering and grid as paths. App tiles enlarge the badge uniformly to meet the bottom edge while preserving its original top inset. Dark marks invert the monochrome palette for contrast. Full logos retain the native outlined website lock-up.",
     "logoLightColors": {
       "white": "#8B733E",
       "#D4BE80": "#8B733E"

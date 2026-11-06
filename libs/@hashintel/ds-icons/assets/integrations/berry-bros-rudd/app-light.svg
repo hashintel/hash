@@ -20,7 +20,7 @@
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#berry-bros-rudd-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#berry-bros-rudd-app-light-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#berry-bros-rudd-app-light-background-reflection)" stroke-width="1.5" />
-</g><defs><clipPath id="berry-bros-rudd-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#berry-bros-rudd-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1607" fill="none" x="9.142857142857142" y="9.142857142857142" width="45.714285714285715" height="45.714285714285715">
+</g><defs><clipPath id="berry-bros-rudd-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#berry-bros-rudd-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-337.416667 -267.833333 1874.833333 1874.833333" fill="none" x="0.0" y="0.0" width="64.0" height="64.0">
 <g transform="translate(0.000000,1607.000000) scale(0.100000,-0.100000)" fill="#231F20" stroke="none">
 <path d="M5590 16059 c-1084 -76 -2121 -441 -3015 -1063 -489 -340 -974 -802 -1336 -1276 -729 -952 -1146 -2059 -1229 -3260 -6 -94 -10 -1964 -10 -5302 l0 -5158 6000 0 6000 0 -3 5247 c-2 4918 -4 5257 -20 5398 -71 605 -181 1071 -374 1575 -491 1284 -1443 2389 -2643 3070 -792 449 -1651 706 -2570 770 -167 11 -631 11 -800 -1z" />
 </g>
