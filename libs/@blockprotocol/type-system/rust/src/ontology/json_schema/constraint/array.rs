@@ -147,6 +147,10 @@ mod wasm {
     }
 }
 
+fn array_value_constraints(schema: ArraySchema) -> ValueConstraints {
+    ValueConstraints::Typed(Box::new(SingleValueConstraints::Array(schema)))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
@@ -169,10 +173,30 @@ impl Constraint for ArraySchema {
                 )
             }
             (Self::Tuple(lhs), Self::Constrained(rhs)) => {
+                if !rhs.allows_length(lhs.prefix_items.len()) {
+                    return Err(Report::new(
+                        ResolveClosedDataTypeError::IncompatibleConstraints(
+                            array_value_constraints(Self::Tuple(lhs)),
+                            array_value_constraints(Self::Constrained(Box::new(
+                                rhs.length_bounds(),
+                            ))),
+                        ),
+                    ));
+                }
                 // Combining tuple and array constraints is not supported, yet
                 (Self::Tuple(lhs), Some(Self::Constrained(rhs)))
             }
             (Self::Constrained(lhs), Self::Tuple(rhs)) => {
+                if !lhs.allows_length(rhs.prefix_items.len()) {
+                    return Err(Report::new(
+                        ResolveClosedDataTypeError::IncompatibleConstraints(
+                            array_value_constraints(Self::Constrained(Box::new(
+                                lhs.length_bounds(),
+                            ))),
+                            array_value_constraints(Self::Tuple(rhs)),
+                        ),
+                    ));
+                }
                 // Combining tuple and array constraints is not supported, yet
                 (Self::Constrained(lhs), Some(Self::Tuple(rhs)))
             }
@@ -242,6 +266,21 @@ pub struct ArrayConstraints {
     pub max_items: Option<usize>,
 }
 
+impl ArrayConstraints {
+    fn allows_length(&self, length: usize) -> bool {
+        self.min_items.is_none_or(|min_items| length >= min_items)
+            && self.max_items.is_none_or(|max_items| length <= max_items)
+    }
+
+    fn length_bounds(&self) -> Self {
+        Self {
+            min_items: self.min_items,
+            max_items: self.max_items,
+            ..Self::default()
+        }
+    }
+}
+
 impl Constraint for ArrayConstraints {
     fn intersection(
         mut self,
@@ -272,14 +311,8 @@ impl Constraint for ArrayConstraints {
             && min_items > max_items
         {
             return Err(Report::new(
-                ResolveClosedDataTypeError::UnsatisfiableConstraint(ValueConstraints::Typed(
-                    Box::new(SingleValueConstraints::Array(ArraySchema::Constrained(
-                        Box::new(Self {
-                            min_items: Some(min_items),
-                            max_items: Some(max_items),
-                            ..Self::default()
-                        }),
-                    ))),
+                ResolveClosedDataTypeError::UnsatisfiableConstraint(array_value_constraints(
+                    ArraySchema::Constrained(Box::new(self.length_bounds())),
                 )),
             ));
         }
@@ -292,20 +325,11 @@ impl ConstraintValidator<[PropertyValue]> for ArrayConstraints {
     type Error = [ArrayValidationError];
 
     fn is_valid(&self, value: &[PropertyValue]) -> bool {
-        if let Some(expected) = self.min_items
-            && value.len() < expected
-        {
-            return false;
-        }
-        if let Some(expected) = self.max_items
-            && value.len() > expected
-        {
-            return false;
-        }
-
-        self.items
-            .as_ref()
-            .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
+        self.allows_length(value.len())
+            && self
+                .items
+                .as_ref()
+                .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
     }
 
     fn validate_value(
@@ -941,6 +965,70 @@ mod tests {
             [array.clone(), tuple.clone()],
         );
         check_schema_intersection([tuple.clone(), array.clone()], [tuple, array]);
+    }
+
+    #[test]
+    fn intersect_array_and_tuple_length() {
+        let array = json!({
+            "type": "array",
+            "items": {
+                "type": "number",
+            },
+            "minItems": 1,
+            "maxItems": 2,
+        });
+        let tuple = json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{
+                "type": "number",
+            }],
+        });
+        check_schema_intersection(
+            [array.clone(), tuple.clone()],
+            [array.clone(), tuple.clone()],
+        );
+        check_schema_intersection([tuple.clone(), array.clone()], [tuple, array]);
+    }
+
+    #[test]
+    fn intersect_array_and_tuple_length_incompatible() {
+        let array = json!({
+            "type": "array",
+            "items": {
+                "type": "number",
+            },
+            "minItems": 2,
+        });
+        let tuple = json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{
+                "type": "number",
+            }],
+        });
+        let array_bounds = from_value::<ValueConstraints>(json!({
+            "type": "array",
+            "minItems": 2,
+        }))
+        .expect("should be a valid array schema");
+        let tuple_schema =
+            from_value::<ValueConstraints>(tuple.clone()).expect("should be a valid tuple schema");
+
+        check_schema_intersection_error(
+            [array.clone(), tuple.clone()],
+            [ResolveClosedDataTypeError::IncompatibleConstraints(
+                array_bounds.clone(),
+                tuple_schema.clone(),
+            )],
+        );
+        check_schema_intersection_error(
+            [tuple, array],
+            [ResolveClosedDataTypeError::IncompatibleConstraints(
+                tuple_schema,
+                array_bounds,
+            )],
+        );
     }
 
     #[test]
