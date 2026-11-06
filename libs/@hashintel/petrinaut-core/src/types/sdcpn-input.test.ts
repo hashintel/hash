@@ -228,6 +228,51 @@ describe("normalizeSDCPN", () => {
     ).toBe(false);
   });
 
+  it("loads a net saved before equations composed with an arity", () => {
+    // Stored JSON reaches the handle typed as the editor's own shape.
+    const stored = {
+      places: [
+        {
+          id: "p1",
+          name: "P1",
+          colorId: "c1",
+          dynamicsEnabled: true,
+          differentialEquationId: "de1",
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      differentialEquations: [
+        {
+          id: "de1",
+          colorId: "c1",
+          name: "Drift",
+          code: "return tokens.map(({ level }) => ({ level: -level }));",
+        },
+      ],
+    } as unknown as SDCPNInput;
+    const result = normalizeSDCPN(stored);
+    expect(result.places[0]).toEqual({
+      id: idOf("p1"),
+      name: "P1",
+      colorId: idOf("c1"),
+      dynamicsEnabled: true,
+      dynamics: [{ differentialEquationId: idOf("de1") }],
+      x: 0,
+      y: 0,
+    });
+    expect(result.differentialEquations).toEqual([
+      {
+        id: idOf("de1"),
+        colorId: idOf("c1"),
+        name: "Drift",
+        arity: 1,
+        code: "const [token] = tokens;\nconst { level } = token;\nreturn { level: -level };",
+      },
+    ]);
+  });
+
   it("is idempotent on an already-complete SDCPN", () => {
     const complete: SDCPN = {
       places: [

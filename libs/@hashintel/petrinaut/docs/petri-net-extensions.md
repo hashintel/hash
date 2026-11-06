@@ -82,6 +82,8 @@ return input.Queue[0].priority > parameters.threshold;
 
 If the callback renamed or destructured its arguments, keep equivalent local bindings using the ambient variables before the body. For example, replace a kernel parameter `{ Queue: queue }` with `const { Queue: queue } = input;`.
 
+Equations written before equations composed are converted when the net loads, whether from a file, from the browser's saved nets, or from HASH. The place's single equation becomes the first entry of its **Dynamics** list, the equation couples one token, and a body that ended in `return tokens.map(...)` over every token becomes `const [token] = tokens;` followed by the callback's own body, comments included. A body the conversion cannot keep exact, because the callback reads the index or the code reads `tokens` elsewhere, is kept as written, and a diagnostic asks for the one-token form.
+
 For visualizers, replace the root `<svg>` and its closing tag with `<Visualizer.Svg>`. Move `style.backgroundColor` to the `backgroundColor` property, retain an explicit `viewBox` when the drawing needs fixed coordinates, and remove root `width`, `height`, `style`, `borderRadius`, and `preserveAspectRatio`. Move inherited paint or text styles such as `fill` and `fontSize` to a child `<g>`. Nested legacy SVG viewports retain their sizing and clipping; do not nest `Visualizer.Svg`.
 
 Use function bodies and `Visualizer.Svg` for new code, including AI-generated code. Preserve the drawing’s behavior when migrating older code.

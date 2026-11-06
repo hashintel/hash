@@ -3,6 +3,7 @@
  * @role Reads and writes the on-disk SDCPN document format, plus export converters
  */
 
+import { migrateLegacyDynamics } from "../migrate-legacy-dynamics";
 import { canonicalizePetrinautIds } from "../petrinaut-id";
 import {
   describeDangerousSdcpnKeys,
@@ -138,54 +139,13 @@ const checkRecordKeys = (sdcpn: SDCPN): ImportResult | null => {
       };
 };
 
-type LegacyDynamicsPlace = {
-  differentialEquationId?: string | null;
-  dynamics?: { differentialEquationId: string }[];
-};
-
-/**
- * A place from a file written before equations composed: its one
- * `differentialEquationId` becomes the first term of `dynamics`, and the
- * key is dropped so the place matches the current shape.
- */
-const migrateLegacyDynamics = <P extends object>(place: P): P => {
-  if (!("differentialEquationId" in place)) {
-    return place;
-  }
-  const { differentialEquationId, ...rest } = place as P & LegacyDynamicsPlace;
-  if (differentialEquationId === undefined || differentialEquationId === null) {
-    return rest as P;
-  }
-  return {
-    ...rest,
-    dynamics: [{ differentialEquationId }, ...(rest.dynamics ?? [])],
-  } as P;
-};
-
-const migrateLegacyDynamicsInNet = <
-  Net extends { places: object[]; subnets?: { places: object[] }[] },
->(
-  net: Net,
-): Net => ({
-  ...net,
-  places: net.places.map(migrateLegacyDynamics),
-  ...(net.subnets === undefined
-    ? {}
-    : {
-        subnets: net.subnets.map((subnet) => ({
-          ...subnet,
-          places: subnet.places.map(migrateLegacyDynamics),
-        })),
-      }),
-});
-
 /** Successful parse of either format: migrate legacy fields, fill visual
  * info, convert entity ids to Petrinaut ids, then apply the record-key
  * boundary check. */
 const toImportResult = (
   parsedData: Parameters<typeof fillMissingVisualInfo>[0],
 ): ImportResult => {
-  const sdcpnData = migrateLegacyDynamicsInNet(parsedData);
+  const sdcpnData = migrateLegacyDynamics(parsedData);
   const sdcpn = canonicalizePetrinautIds(fillMissingVisualInfo(sdcpnData));
   return (
     checkRecordKeys(sdcpn) ?? {

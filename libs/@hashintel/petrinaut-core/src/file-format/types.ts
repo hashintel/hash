@@ -99,8 +99,9 @@ const differentialEquationSchema = z.object({
   colorId: z.string().nullable(),
   /**
    * Files written before equations had an arity hold whole-place
-   * `tokens.map(...)` code; they import as one-token equations, whose code
-   * the diagnostics then ask the author to rewrite.
+   * `tokens.map(...)` code; they import as one-token equations, and the
+   * import rewrites that code to the one-token form where the rewrite is
+   * exact (`migrateLegacyDynamics`).
    */
   arity: currentDifferentialEquationSchema.shape.arity.optional().default(1),
 });
