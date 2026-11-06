@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="versace-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="versace-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="versace-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#versace-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#versace-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#versace-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="versace-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#versace-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 283.48001 62.78" id="versace-app-light-svg12" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs id="versace-app-light-defs4">
+    </defs>
+  <g id="versace-app-light-clear_space" transform="translate(-60.52,-59.36)">
+    <rect width="404.5" height="181.42" id="versace-app-light-rect6" x="0" y="0" fill="none" />
+  </g>
+  <g id="versace-app-light-artwork" transform="translate(-60.52,-59.36)">
+    <path d="M 344,115.21 H 324.37 V 93.46 h 15.44 V 87.73 H 324.37 V 66.21 H 344 V 60.45 H 312.74 V 121 H 344 Z m -34.19,-38 c -0.36,-12.08 -8.85,-17.85 -20.07,-17.85 -18.48,0 -23.61,14.71 -23.61,31.24 0,17.39 5.54,31.42 24,31.42 9.63,0 19.26,-4.77 19.57,-17.75 H 300 c -0.14,6.85 -3.23,14 -9.81,14 -10.58,0 -11.67,-15.48 -11.67,-27.1 v -0.78 c 0,-8.94 0.23,-27.29 10.94,-27.29 7.22,0 9,8.45 9.26,14.13 z M 249.4,60.45 h -9 L 219.8,121 h 5.77 l 6.72,-20 h 17.43 l 5.95,20 h 12.71 z m -15.21,34.87 7,-20.93 h 0.5 L 248,95.32 Z m -13,7.08 c 0,-8.81 -4.54,-14.76 -14.39,-17.39 l -5,-1.32 c -5.81,-1.54 -10.44,-3.86 -10.44,-10.44 0,-5.86 3.72,-8.76 8.22,-8.76 4.5,0 9.62,2.9 12.66,8.62 l 6.36,-6.44 a 22.74,22.74 0 0 0 -16.57,-7.18 c -10.03,0 -19.51,6.81 -19.51,19.51 0,11.26 7.9,15.17 15.62,17.26 l 3.54,1 c 6.72,1.81 9.72,6.31 9.72,10.76 0,6.36 -4.4,9.72 -9.4,9.72 -6.45,0 -11.44,-5.22 -14.21,-10.58 -6.58,6.31 -6.67,6.44 -6.67,6.44 5.08,6.72 13.53,8.54 19.79,8.54 12.94,0 20.25,-8.76 20.25,-19.66 M 168,92.64 a 15.82,15.82 0 0 0 10.81,-15.21 c 0,-8.45 -5.95,-17 -19,-17 H 140 V 121 h 11.63 V 95.32 h 5 L 168.72,121 h 12.8 z m -1,-14.71 c 0,7.62 -2.82,13.12 -10.17,13.12 h -5.13 v -26.2 h 5.13 c 7.35,0 10.17,5.45 10.17,13.08 m -29.7,37.28 H 117.68 V 93.46 h 15.44 V 87.73 H 117.68 V 66.21 H 137.3 V 60.45 H 106.06 V 121 H 137.3 Z M 98.52,60.45 85.86,107.12 h -0.5 L 73.28,60.45 H 60.52 L 77.64,121 H 87 l 17.3,-60.52 z" id="versace-app-light-path9" />
+  </g>
+</svg></g></svg>

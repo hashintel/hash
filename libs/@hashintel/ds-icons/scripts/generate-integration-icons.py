@@ -1,4 +1,5 @@
 """Generate React geometry and standalone SVG variants from reviewed brand artwork."""
+import argparse
 import json
 import re
 import xml.etree.ElementTree as ET
@@ -212,10 +213,11 @@ def variant_svg(brand, variant):
     if mono:
         body = mono_defs(prefix + "-mono") + f'<g filter="url(#{prefix}-mono)">{body}</g>'
     color = f' color="{("#CBD5E1" if dark else "#374151")}"' if app else ""
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none"{color}>{background}{body}</svg>\n'
+    attribution = ET.tostring(ET.Comment(brand["artworkAttribution"]), encoding="unicode") if brand.get("artworkAttribution") else ""
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none"{color}>{attribution}{background}{body}</svg>\n'
 
 
-def generate():
+def generate(catalog_only=False):
     brands = json.loads((source / "brands.json").read_text())
     imports = []
     registry = []
@@ -224,6 +226,14 @@ def generate():
     catalog = []
     for brand in brands:
         available = [variant for variant in variants if not variant.startswith("logo") or (source / "artwork" / brand["slug"] / "logo.svg").exists()]
+        categories = brand.get("categories")
+        if not isinstance(categories, list) or any(not isinstance(category, str) or not category.strip() or category != category.strip() for category in categories):
+            raise ValueError(f'Invalid categories for {brand["name"]}')
+        if len(set(categories)) != len(categories) or (not categories and brand["name"] != "genericApp"):
+            raise ValueError(f'Missing or duplicate categories for {brand["name"]}')
+        catalog.append({key: brand[key] for key in ("name", "slug", "label", "integrationNames", "source", "categories")} | {"category": "Integrations", "variants": available, "logoSource": brand.get("logoSource"), "logoNotes": brand.get("logoNotes"), "logoRaster": brand.get("logoRaster", False)})
+        if catalog_only:
+            continue
         geometries = []
         for kind in ("mark", "logo"):
             if kind == "logo" and "logo-light" not in available:
@@ -241,24 +251,30 @@ def generate():
                 geometries.append(f'export const {name} = ({{ {binding} }}: {{ id: string }}) => ({markup});')
         filename = f'./geometry/{brand["slug"]}'
         imports.append(f'import * as {brand["name"]} from "{filename}";')
-        files[source / "geometry" / f'{brand["slug"]}.tsx'] = "\n".join(geometries) + "\n"
+        attribution = f'/* {brand["artworkAttribution"]} */\n' if brand.get("artworkAttribution") else ""
+        files[source / "geometry" / f'{brand["slug"]}.tsx'] = attribution + "\n".join(geometries) + "\n"
         mark_viewbox = themed_artwork(brand, "mark", False).get("viewBox")
         logo_viewbox = themed_artwork(brand, "logo", False).get("viewBox") if "logo-light" in available else None
         app_viewbox = f', appViewBox: {json.dumps(brand["appViewBox"])}' if brand.get("appViewBox") else ""
         registry.append(f'  {brand["name"]}: {{ ...{brand["name"]}, markViewBox: {json.dumps(mark_viewbox)}, logoViewBox: {json.dumps(logo_viewbox)}, ratio: {brand["ratio"]}, alignment: "{brand["alignment"]}"{app_viewbox} }}')
-        catalog.append({key: brand[key] for key in ("name", "slug", "label", "integrationNames", "source") } | {"category": "Integrations", "variants": available, "logoSource": brand.get("logoSource"), "logoNotes": brand.get("logoNotes"), "logoRaster": brand.get("logoRaster", False)})
         for variant in available:
             files[root / "assets/integrations" / brand["slug"] / f"{variant}.svg"] = variant_svg(brand, variant)
     files[source / "geometry.ts"] = "\n".join(imports) + "\n\nexport const integrationGeometry = {\n" + ",\n".join(registry) + "\n} as const;\n"
     files[root / "src/integration-icon-catalog.ts"] = 'export const integrationIconVariants = ' + json.dumps(variants) + ' as const;\n\nexport type IntegrationIconVariant = (typeof integrationIconVariants)[number];\n\nexport const integrationIconCatalog = ' + json.dumps(catalog, indent=2) + ' as const;\n\nexport type IntegrationIconName = (typeof integrationIconCatalog)[number]["name"];\n\nexport const integrationIconNameByIntegration: Readonly<Record<string, IntegrationIconName | undefined>> = Object.fromEntries(integrationIconCatalog.flatMap((icon) => icon.integrationNames.map((name) => [name, icon.name])));\n'
+    files[root / "src/integration-icon-catalog.ts"] += '\nexport const integrationIconCategories = ' + json.dumps(sorted({category for brand in brands for category in brand["categories"]})) + ' as const;\n\nexport type IntegrationIconCategory = (typeof integrationIconCategories)[number];\n'
+    if catalog_only:
+        files = {root / "src/integration-icon-catalog.ts": files[root / "src/integration-icon-catalog.ts"]}
     for path, contents in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(contents)
-    for path in (root / "assets/integrations").glob("*/*.svg"):
-        if path not in files:
-            path.unlink()
-    print(f'Generated {len(brands)} icons and {sum(len(icon["variants"]) for icon in catalog)} SVG variants.')
+    if not catalog_only:
+        for path in (root / "assets/integrations").glob("*/*.svg"):
+            if path not in files:
+                path.unlink()
+    print(f'Generated catalogue for {len(brands)} icons.' if catalog_only else f'Generated {len(brands)} icons and {sum(len(icon["variants"]) for icon in catalog)} SVG variants.')
 
 
 if __name__ == "__main__":
-    generate()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--catalog-only", action="store_true", help="Update metadata without rewriting SVGs or React geometry")
+    generate(catalog_only=parser.parse_args().catalog_only)

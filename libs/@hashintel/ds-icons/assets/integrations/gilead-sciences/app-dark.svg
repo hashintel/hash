@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gilead-sciences-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="gilead-sciences-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="gilead-sciences-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gilead-sciences-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gilead-sciences-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#gilead-sciences-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="gilead-sciences-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#gilead-sciences-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34.710386 45" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M34.5972 0H34.3124C5.55317 2.6972 1.99386 21.7196 11.3904 27.9657C9.68197 34.9217 11.3904 34.9217 11.3904 34.9217C11.5328 32.7923 11.9599 30.8049 12.5294 28.6755C16.0887 14.9056 25.2006 3.12308 34.3124 0.141958C34.5022 0.236597 34.5972 0.189277 34.5972 0Z" fill="#F35C76" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M32.7457 4.82298V4.53906L32.4609 4.82298C30.3254 9.36564 29.3287 15.8957 27.7626 20.7223C25.6271 26.4006 21.9254 30.3754 16.2305 29.8076V43.7195C16.2305 43.7195 0.996608 37.0475 0.996608 26.2587V6.1006L13.383 4.96494C13.5728 4.96494 13.6678 4.8703 13.6678 4.68102H0V26.1167C0 38.3251 16.2305 44.9971 16.2305 44.9971C16.2305 44.9971 32.7457 38.0412 32.7457 26.2587V4.82298Z" fill="#F35C76" />
+</svg></g></svg>

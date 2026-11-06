@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="elevenlabs-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -.13819 -.46488 -.04693 1 0" result="tones"/><feFlood flood-color="currentColor"/><feComposite in2="tones" operator="in"/></filter></defs><g filter="url(#elevenlabs-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 416" fill="#111111" x="0.0" y="0.0" width="64" height="64">
+    <g />
+    <g>
+        <path d="M170.666667,0 L256,0 L256,415.288889 L170.666667,415.288889 L170.666667,0 Z M0,0 L85.3333333,0 L85.3333333,415.288889 L0,415.288889 L0,0 Z" fill="#000000" />
+    </g>
+</svg></g></svg>

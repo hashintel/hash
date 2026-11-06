@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="trunk-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="trunk-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="trunk-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#trunk-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#trunk-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#trunk-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="trunk-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#trunk-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.088333 52.523451 52.911667" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#trunk-app-light-clip0_6233_23822)"><path d="M26.2239 53V47.2593C37.541 47.2593 46.7481 37.9859 46.7481 26.5873C46.7481 15.1885 37.541 5.9152 26.2239 5.9152C14.9067 5.9152 5.69969 15.1885 5.69969 26.5873H0C0 12.023 11.7643 0.17395 26.2239 0.17395C40.6839 0.17395 52.4483 12.023 52.4483 26.5873C52.4483 41.151 40.684 53 26.2239 53H26.2239Z" fill="black" /><path d="M13.4892 27.003H7.78906C7.78906 16.6046 16.0582 8.14465 26.2218 8.14465V13.9763C19.2011 13.9763 13.4892 19.8199 13.4892 27.003Z" fill="black" /><path d="M36.8611 27.0033H31.1615C31.1615 24.2154 28.9447 21.9475 26.2196 21.9475C23.495 21.9475 21.2783 24.2154 21.2783 27.0033H15.5781C15.5781 21 20.3521 16.1163 26.2196 16.1163C32.0871 16.1163 36.8611 21 36.8611 27.0033Z" fill="black" /></g><defs><clipPath id="trunk-app-light-clip0_6233_23822"><rect width="52.4483" height="52.8261" fill="black" transform="translate(0 0.17395)" /></clipPath></defs></svg></g></svg>

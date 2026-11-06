@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="merck-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="merck-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="merck-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#merck-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#merck-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#merck-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="merck-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#merck-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1511 726" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <g />
+  <g />
+  <g id="merck-app-light-Page-1">
+    <path id="merck-app-light-logo" d="m1510.3 110.3v595.1c0 10.3-7.6 20.3-20.6 20.3h-22.7-46c-58.7 0-107.1-48.3-107.1-107.3v-127.6c0-53.6-46-99.6-99.7-99.6-102 0-173.4 86.9-239.7 145.6-81.7 71.6-142.8 140.6-219.5 140.6-76.4 0-137.7-69-219.4-140.6-66.4-58.7-137.7-145.6-239.8-145.6-53.7 0-99.4 46-99.4 102.3v211.9c0 10.3-7.6 20.3-20.3 20.3h-28.3-40.7c-58.7 0-107.1-48.3-107.1-107.3v-595.1c0-10.3 10-20.3 20.4-22.9h135c48.7 0 94.4 20.3 125.1 50.9 2.6 2.7 168.4 158.6 168.4 158.6 79 79 186.4 122.6 306.1 122.6 114.8 0 219.5-40.9 296.1-112.6l224.5-211.9c5-2.6 10-5 15.3-5h112.1c58.7 0 107.3 48.3 107.3 107.3z" fill="#eb3c96" />
+  </g>
+</svg></g></svg>

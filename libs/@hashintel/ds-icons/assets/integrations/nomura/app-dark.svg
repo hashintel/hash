@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nomura-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="nomura-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nomura-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nomura-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nomura-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nomura-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nomura-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nomura-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.12178 0.10096 29.15137 5.09829" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <g transform="translate(-20.076343,-84.284425)">
+    <g id="nomura-app-dark-g915" transform="translate(-6.7674395,39.208801)">
+      <path d="m 31.501551,47.724214 c 0,-1.675695 1.045932,-2.516298 2.335775,-2.516298 1.288466,0 2.334397,0.840603 2.334397,2.516298 0,1.679828 -1.045931,2.516298 -2.334397,2.516298 -1.289843,0 -2.335775,-0.828201 -2.335775,-2.516298 m 2.335775,1.878266 c 0.635276,0 1.150662,-0.665593 1.150662,-1.878266 0,-1.20165 -0.515386,-1.878266 -1.150662,-1.878266 -0.636653,0 -1.153418,0.676616 -1.153418,1.878266 0,1.205783 0.516765,1.878266 1.153418,1.878266" id="nomura-app-dark-path237" fill="#d71133" />
+      <path d="m 26.976074,45.391195 v 4.66466 h 0.811664 v -3.13366 l 2.502518,3.13366 h 0.682129 v -4.66466 h -0.771702 v 2.571419 l -2.079459,-2.571419 z m 0,0" id="nomura-app-dark-path239" fill="#d71133" />
+      <path d="m 53.08852,45.391195 -1.892046,4.66466 h 0.817177 l 0.520898,-1.282954 h 1.718414 l 0.527789,1.282954 h 1.325672 l -1.911339,-4.66466 z m -0.289387,2.711979 0.591178,-1.462098 0.592557,1.462098 z m 0,0" id="nomura-app-dark-path241" fill="#d71133" />
+      <path d="m 45.476238,48.447684 c -0.02205,0.427192 -0.05512,0.850249 -0.527789,1.008724 -0.21084,0.0689 -0.598069,0.06752 -0.817177,-0.01929 -0.104731,-0.04272 -0.169499,-0.07855 -0.250803,-0.159851 -0.157096,-0.155719 -0.220486,-0.486448 -0.225998,-0.701422 v -3.184646 h -1.21543 v 3.056489 c 0.01102,0.421679 0.07993,0.846115 0.354156,1.186491 0.469911,0.584288 1.333941,0.66697 2.032607,0.580154 0.434081,-0.05374 0.81442,-0.19706 1.120345,-0.516765 0.210839,-0.220486 0.341753,-0.567751 0.37896,-0.866786 0.02343,-0.173632 0.02618,-0.202571 0.02618,-0.383094 v -3.056489 h -0.875054 z m 0,0" id="nomura-app-dark-path243" fill="#d71133" />
+      <path d="m 48.345313,46.048519 c 0.536057,0 1.06798,-0.09095 1.300868,0.465777 0.09095,0.220486 0.09784,0.719336 -0.117133,0.931554 -0.254937,0.252181 -0.6463,0.276986 -0.98392,0.305925 l 1.248503,2.30408 h 1.280198 l -1.132748,-2.054656 c 0.675239,-0.237022 0.992188,-0.618739 0.959115,-1.347721 -0.03583,-0.78686 -0.701422,-1.262283 -1.460721,-1.262283 h -2.30408 v 4.66466 h 1.209918 z m 0,0" id="nomura-app-dark-path245" fill="#d71133" />
+      <path d="m 40.469824,50.055855 -1.801096,-4.66466 h -0.946712 l -1.750108,4.66466 h 0.850249 l 1.176845,-3.152952 1.196137,3.152952 z m 0,0" id="nomura-app-dark-path247" fill="#d71133" />
+      <path d="m 40.527702,45.391195 h -0.990809 l -0.301791,0.797884 0.429948,1.116211 0.155719,-0.402387 1.164442,3.152952 h 1.344965 z m 0,0" id="nomura-app-dark-path249" fill="#d71133" />
+      <path d="m 38.326975,48.428391 -0.604959,1.627464 h 0.77308 l 0.22462,-0.613228 z m 0,0" id="nomura-app-dark-path251" fill="#d71133" />
+    </g>
+  </g>
+</svg></g></svg>

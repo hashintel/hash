@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="featherless-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="featherless-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="featherless-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#featherless-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#featherless-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#featherless-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="featherless-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#featherless-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="279.161538 0 20.838462 48.176667" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M299.094 0.0823407C299.496 -0.150053 299.999 0.140027 299.999 0.604802V8.01886C299.999 8.23458 299.884 8.43444 299.697 8.5423L287.378 15.6546C287.191 15.7624 287.076 15.9616 287.076 16.1771L287.074 23.5921C287.074 24.0569 287.577 24.3469 287.979 24.1146L299.094 17.6986C299.496 17.4664 299.999 17.7573 299.999 18.222V25.6361C299.999 25.8517 299.884 26.0507 299.697 26.1585L287.374 33.2737C287.187 33.3816 287.072 33.5806 287.072 33.7962L287.069 47.4837C287.069 47.9482 286.566 48.2382 286.164 48.0062L285.547 47.6507C285.36 47.5428 285.245 47.343 285.245 47.1273L285.246 43.6546C285.246 43.4389 285.131 43.2391 284.944 43.1312L279.608 40.0511C279.422 39.9432 279.307 39.7434 279.307 39.5277V32.1146C279.307 31.6498 279.809 31.3589 280.212 31.5911L284.343 33.9759C284.745 34.2079 285.248 33.9178 285.248 33.4534L285.25 26.0374C285.25 25.8217 285.134 25.6228 284.947 25.515L279.738 22.5071C279.552 22.3993 279.437 22.2001 279.437 21.9847V14.5706C279.437 14.1058 279.94 13.8148 280.343 14.0472L284.345 16.3587C284.747 16.5911 285.251 16.3001 285.251 15.8353V8.42316C285.251 8.20744 285.366 8.00758 285.553 7.89972L299.094 0.0823407Z" fill="#F5F7FA" />
+</svg></g></svg>

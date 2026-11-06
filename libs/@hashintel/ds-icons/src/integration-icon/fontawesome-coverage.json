@@ -1,0 +1,2252 @@
+{
+  "version": "7.3.1",
+  "commit": "14c65a3747d0f3b751f15831fc719236aea8729d",
+  "source": "https://fontawesome.com/search?ip=brands",
+  "icons": {
+    "42-group": {
+      "slug": "42-group",
+      "status": "new"
+    },
+    "500px": {
+      "slug": "500px",
+      "status": "new"
+    },
+    "a11y-project": {
+      "slug": "a11y-project",
+      "status": "new"
+    },
+    "accessible-icon": {
+      "slug": "accessible-icon",
+      "status": "new"
+    },
+    "accusoft": {
+      "slug": "accusoft",
+      "status": "new"
+    },
+    "adn": {
+      "slug": "app-net-legacy",
+      "status": "new"
+    },
+    "adversal": {
+      "slug": "adversal",
+      "status": "new"
+    },
+    "affiliatetheme": {
+      "slug": "affiliatetheme",
+      "status": "new"
+    },
+    "airbnb": {
+      "slug": "airbnb",
+      "status": "existing"
+    },
+    "algolia": {
+      "slug": "algolia",
+      "status": "new"
+    },
+    "alipay": {
+      "slug": "alipay",
+      "status": "new"
+    },
+    "amazon": {
+      "slug": "amazon",
+      "status": "existing"
+    },
+    "amazon-pay": {
+      "slug": "amazon-pay",
+      "status": "new"
+    },
+    "amilia": {
+      "slug": "amilia",
+      "status": "new"
+    },
+    "android": {
+      "slug": "android",
+      "status": "new"
+    },
+    "angellist": {
+      "slug": "angellist",
+      "status": "existing"
+    },
+    "angrycreative": {
+      "slug": "angrycreative",
+      "status": "new"
+    },
+    "angular": {
+      "slug": "angular",
+      "status": "new"
+    },
+    "app-store": {
+      "slug": "apple-app-store",
+      "status": "new"
+    },
+    "app-store-ios": {
+      "slug": "apple-app-store",
+      "status": "new"
+    },
+    "apper": {
+      "slug": "apper",
+      "status": "new"
+    },
+    "apple": {
+      "slug": "apple",
+      "status": "existing"
+    },
+    "apple-pay": {
+      "slug": "apple-pay",
+      "status": "new"
+    },
+    "arch-linux": {
+      "slug": "arch-linux",
+      "status": "new"
+    },
+    "artstation": {
+      "slug": "artstation",
+      "status": "new"
+    },
+    "asymmetrik": {
+      "slug": "asymmetrik",
+      "status": "new"
+    },
+    "atlassian": {
+      "slug": "atlassian",
+      "status": "new"
+    },
+    "audible": {
+      "slug": "audible",
+      "status": "new"
+    },
+    "autoprefixer": {
+      "slug": "autoprefixer",
+      "status": "new"
+    },
+    "avianex": {
+      "slug": "avianex",
+      "status": "new"
+    },
+    "aviato": {
+      "excluded": "Fictional identity"
+    },
+    "aws": {
+      "slug": "aws",
+      "status": "existing"
+    },
+    "bandcamp": {
+      "slug": "bandcamp",
+      "status": "new"
+    },
+    "battle-net": {
+      "slug": "battle-net",
+      "status": "new"
+    },
+    "behance": {
+      "slug": "behance",
+      "status": "new"
+    },
+    "bilibili": {
+      "slug": "bilibili",
+      "status": "new"
+    },
+    "bimobject": {
+      "slug": "bimobject",
+      "status": "new"
+    },
+    "bitbucket": {
+      "slug": "bitbucket",
+      "status": "new"
+    },
+    "bitcoin": {
+      "slug": "bitcoin",
+      "status": "new"
+    },
+    "bity": {
+      "slug": "bity",
+      "status": "new"
+    },
+    "black-tie": {
+      "slug": "black-tie",
+      "status": "new"
+    },
+    "blackberry": {
+      "slug": "blackberry",
+      "status": "new"
+    },
+    "blogger": {
+      "slug": "blogger",
+      "status": "new"
+    },
+    "blogger-b": {
+      "slug": "blogger",
+      "status": "new"
+    },
+    "bluesky": {
+      "slug": "bluesky",
+      "status": "new"
+    },
+    "bluetooth": {
+      "slug": "bluetooth",
+      "status": "new"
+    },
+    "bluetooth-b": {
+      "slug": "bluetooth",
+      "status": "new"
+    },
+    "board-game-geek": {
+      "slug": "board-game-geek",
+      "status": "new"
+    },
+    "bootstrap": {
+      "slug": "bootstrap",
+      "status": "new"
+    },
+    "bots": {
+      "excluded": "Generic symbol rather than a brand identity"
+    },
+    "brave": {
+      "slug": "brave",
+      "status": "new"
+    },
+    "brave-reverse": {
+      "slug": "brave",
+      "status": "new"
+    },
+    "btc": {
+      "slug": "bitcoin",
+      "status": "new"
+    },
+    "buffer": {
+      "slug": "buffer",
+      "status": "new"
+    },
+    "build-awesome": {
+      "slug": "build-awesome",
+      "status": "new"
+    },
+    "buromobelexperte": {
+      "slug": "buromobelexperte",
+      "status": "new"
+    },
+    "buy-n-large": {
+      "excluded": "Fictional identity"
+    },
+    "buysellads": {
+      "slug": "buysellads",
+      "status": "new"
+    },
+    "canadian-maple-leaf": {
+      "excluded": "Generic symbol rather than a brand identity"
+    },
+    "cash-app": {
+      "slug": "cash-app",
+      "status": "new"
+    },
+    "cc-amazon-pay": {
+      "slug": "amazon-pay",
+      "status": "new"
+    },
+    "cc-amex": {
+      "slug": "american-express",
+      "status": "new"
+    },
+    "cc-apple-pay": {
+      "slug": "apple-pay",
+      "status": "new"
+    },
+    "cc-diners-club": {
+      "slug": "diners-club",
+      "status": "new"
+    },
+    "cc-discover": {
+      "slug": "discover",
+      "status": "new"
+    },
+    "cc-jcb": {
+      "slug": "jcb",
+      "status": "new"
+    },
+    "cc-mastercard": {
+      "slug": "mastercard",
+      "status": "new"
+    },
+    "cc-paypal": {
+      "slug": "paypal",
+      "status": "new"
+    },
+    "cc-stripe": {
+      "slug": "stripe",
+      "status": "existing"
+    },
+    "cc-visa": {
+      "slug": "visa",
+      "status": "new"
+    },
+    "centercode": {
+      "slug": "centercode",
+      "status": "new"
+    },
+    "centos": {
+      "slug": "centos",
+      "status": "new"
+    },
+    "chrome": {
+      "slug": "chrome",
+      "status": "new"
+    },
+    "chromecast": {
+      "slug": "chromecast",
+      "status": "new"
+    },
+    "circle-zulip": {
+      "slug": "zulip",
+      "status": "new"
+    },
+    "claude": {
+      "slug": "claude",
+      "status": "existing"
+    },
+    "cloudflare": {
+      "slug": "cloudflare-brand",
+      "status": "new"
+    },
+    "cloudscale": {
+      "slug": "cloudscale",
+      "status": "new"
+    },
+    "cloudsmith": {
+      "slug": "cloudsmith",
+      "status": "new"
+    },
+    "cloudversify": {
+      "slug": "cloudversify",
+      "status": "new"
+    },
+    "cmplid": {
+      "slug": "cmplid",
+      "status": "new"
+    },
+    "codeberg": {
+      "slug": "codeberg",
+      "status": "new"
+    },
+    "codepen": {
+      "slug": "codepen",
+      "status": "new"
+    },
+    "codiepie": {
+      "slug": "codiepie",
+      "status": "new"
+    },
+    "confluence": {
+      "slug": "confluence",
+      "status": "new"
+    },
+    "connectdevelop": {
+      "slug": "connectdevelop",
+      "status": "new"
+    },
+    "contao": {
+      "slug": "contao",
+      "status": "new"
+    },
+    "copilot": {
+      "slug": "github-copilot",
+      "status": "new"
+    },
+    "cotton-bureau": {
+      "slug": "cotton-bureau",
+      "status": "new"
+    },
+    "cpanel": {
+      "slug": "cpanel",
+      "status": "new"
+    },
+    "creative-commons": {
+      "slug": "creative-commons",
+      "status": "new"
+    },
+    "creative-commons-by": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-nc": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-nc-eu": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-nc-jp": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-nd": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-pd": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-pd-alt": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-remix": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-sa": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-sampling": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-sampling-plus": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-share": {
+      "excluded": "License-condition pictogram"
+    },
+    "creative-commons-zero": {
+      "excluded": "License-condition pictogram"
+    },
+    "critical-role": {
+      "slug": "critical-role",
+      "status": "new"
+    },
+    "css": {
+      "slug": "css",
+      "status": "new"
+    },
+    "css3": {
+      "slug": "css3-legacy",
+      "status": "new"
+    },
+    "css3-alt": {
+      "slug": "css3-legacy",
+      "status": "new"
+    },
+    "cuttlefish": {
+      "slug": "cuttlefish",
+      "status": "new"
+    },
+    "d-and-d": {
+      "slug": "d-and-d",
+      "status": "new"
+    },
+    "d-and-d-beyond": {
+      "slug": "d-and-d-beyond",
+      "status": "new"
+    },
+    "dailymotion": {
+      "slug": "dailymotion",
+      "status": "new"
+    },
+    "dart-lang": {
+      "slug": "dart-lang",
+      "status": "new"
+    },
+    "dashcube": {
+      "slug": "dashcube",
+      "status": "new"
+    },
+    "debian": {
+      "slug": "debian",
+      "status": "new"
+    },
+    "deezer": {
+      "slug": "deezer",
+      "status": "new"
+    },
+    "delicious": {
+      "slug": "delicious-legacy",
+      "status": "new"
+    },
+    "deploydog": {
+      "slug": "deploydog",
+      "status": "new"
+    },
+    "deskpro": {
+      "slug": "deskpro",
+      "status": "new"
+    },
+    "dev": {
+      "slug": "dev",
+      "status": "new"
+    },
+    "deviantart": {
+      "slug": "deviantart",
+      "status": "new"
+    },
+    "devpost": {
+      "slug": "devpost",
+      "status": "new"
+    },
+    "dhl": {
+      "slug": "dhl",
+      "status": "existing"
+    },
+    "diaspora": {
+      "slug": "diaspora",
+      "status": "new"
+    },
+    "digg": {
+      "slug": "digg",
+      "status": "new"
+    },
+    "digital-ocean": {
+      "slug": "digital-ocean",
+      "status": "new"
+    },
+    "discord": {
+      "slug": "discord",
+      "status": "existing"
+    },
+    "discourse": {
+      "slug": "discourse",
+      "status": "new"
+    },
+    "disqus": {
+      "slug": "disqus",
+      "status": "new"
+    },
+    "dochub": {
+      "slug": "dochub",
+      "status": "new"
+    },
+    "docker": {
+      "slug": "docker",
+      "status": "existing"
+    },
+    "dolibarr": {
+      "slug": "dolibarr",
+      "status": "new"
+    },
+    "draft2digital": {
+      "slug": "draft2digital",
+      "status": "new"
+    },
+    "dribbble": {
+      "slug": "dribbble",
+      "status": "new"
+    },
+    "dropbox": {
+      "slug": "dropbox",
+      "status": "existing"
+    },
+    "drupal": {
+      "slug": "drupal",
+      "status": "new"
+    },
+    "duolingo": {
+      "slug": "duolingo",
+      "status": "new"
+    },
+    "dyalog": {
+      "slug": "dyalog",
+      "status": "new"
+    },
+    "earlybirds": {
+      "slug": "earlybirds",
+      "status": "new"
+    },
+    "ebay": {
+      "slug": "ebay",
+      "status": "new"
+    },
+    "edge": {
+      "slug": "edge",
+      "status": "new"
+    },
+    "edge-legacy": {
+      "slug": "edge-legacy",
+      "status": "new"
+    },
+    "elementor": {
+      "slug": "elementor",
+      "status": "new"
+    },
+    "eleventy": {
+      "slug": "eleventy",
+      "status": "new"
+    },
+    "ello": {
+      "slug": "ello-legacy",
+      "status": "new"
+    },
+    "ember": {
+      "slug": "ember",
+      "status": "new"
+    },
+    "empire": {
+      "excluded": "Fictional identity"
+    },
+    "envira": {
+      "slug": "envira",
+      "status": "new"
+    },
+    "erlang": {
+      "slug": "erlang",
+      "status": "new"
+    },
+    "ethereum": {
+      "slug": "ethereum",
+      "status": "new"
+    },
+    "etsy": {
+      "slug": "etsy",
+      "status": "new"
+    },
+    "evernote": {
+      "slug": "evernote",
+      "status": "existing"
+    },
+    "expeditedssl": {
+      "slug": "expeditedssl",
+      "status": "new"
+    },
+    "facebook": {
+      "slug": "facebook",
+      "status": "new"
+    },
+    "facebook-f": {
+      "slug": "facebook",
+      "status": "new"
+    },
+    "facebook-messenger": {
+      "slug": "messenger",
+      "status": "existing"
+    },
+    "fantasy-flight-games": {
+      "slug": "fantasy-flight-games",
+      "status": "new"
+    },
+    "fedex": {
+      "slug": "fedex",
+      "status": "new"
+    },
+    "fediverse": {
+      "slug": "fediverse",
+      "status": "new"
+    },
+    "fedora": {
+      "slug": "fedora",
+      "status": "new"
+    },
+    "figma": {
+      "slug": "figma",
+      "status": "existing"
+    },
+    "files-pinwheel": {
+      "excluded": "Generic symbol rather than a brand identity"
+    },
+    "firefox": {
+      "slug": "firefox",
+      "status": "new"
+    },
+    "firefox-browser": {
+      "slug": "firefox",
+      "status": "new"
+    },
+    "first-order": {
+      "excluded": "Fictional identity"
+    },
+    "first-order-alt": {
+      "excluded": "Fictional identity"
+    },
+    "firstdraft": {
+      "slug": "firstdraft",
+      "status": "new"
+    },
+    "flickr": {
+      "slug": "flickr",
+      "status": "new"
+    },
+    "flipboard": {
+      "slug": "flipboard",
+      "status": "new"
+    },
+    "flutter": {
+      "slug": "flutter",
+      "status": "new"
+    },
+    "fly": {
+      "slug": "fly",
+      "status": "new"
+    },
+    "font-awesome": {
+      "slug": "font-awesome",
+      "status": "new"
+    },
+    "fonticons": {
+      "slug": "fonticons",
+      "status": "new"
+    },
+    "fonticons-fi": {
+      "slug": "fonticons",
+      "status": "new"
+    },
+    "forgejo": {
+      "slug": "forgejo",
+      "status": "new"
+    },
+    "fort-awesome": {
+      "slug": "fort-awesome",
+      "status": "new"
+    },
+    "fort-awesome-alt": {
+      "slug": "fort-awesome",
+      "status": "new"
+    },
+    "forumbee": {
+      "slug": "forumbee",
+      "status": "new"
+    },
+    "foursquare": {
+      "slug": "foursquare",
+      "status": "new"
+    },
+    "free-code-camp": {
+      "slug": "free-code-camp",
+      "status": "new"
+    },
+    "freebsd": {
+      "slug": "freebsd",
+      "status": "new"
+    },
+    "fulcrum": {
+      "excluded": "Fictional identity"
+    },
+    "galactic-republic": {
+      "excluded": "Fictional identity"
+    },
+    "galactic-senate": {
+      "excluded": "Fictional identity"
+    },
+    "get-pocket": {
+      "slug": "get-pocket-legacy",
+      "status": "new"
+    },
+    "gg": {
+      "slug": "gg",
+      "status": "new"
+    },
+    "gg-circle": {
+      "slug": "gg",
+      "status": "new"
+    },
+    "git": {
+      "slug": "git",
+      "status": "new"
+    },
+    "git-alt": {
+      "slug": "git",
+      "status": "new"
+    },
+    "gitee": {
+      "slug": "gitee",
+      "status": "new"
+    },
+    "github": {
+      "slug": "github",
+      "status": "existing"
+    },
+    "github-alt": {
+      "slug": "github",
+      "status": "existing"
+    },
+    "gitkraken": {
+      "slug": "gitkraken",
+      "status": "new"
+    },
+    "gitlab": {
+      "slug": "gitlab",
+      "status": "new"
+    },
+    "gitter": {
+      "slug": "gitter",
+      "status": "new"
+    },
+    "glide": {
+      "slug": "glide",
+      "status": "new"
+    },
+    "glide-g": {
+      "slug": "glide",
+      "status": "new"
+    },
+    "globaleaks": {
+      "slug": "globaleaks",
+      "status": "new"
+    },
+    "gofore": {
+      "slug": "gofore",
+      "status": "new"
+    },
+    "golang": {
+      "slug": "golang",
+      "status": "new"
+    },
+    "goodreads": {
+      "slug": "goodreads",
+      "status": "new"
+    },
+    "goodreads-g": {
+      "slug": "goodreads",
+      "status": "new"
+    },
+    "google": {
+      "slug": "google",
+      "status": "new"
+    },
+    "google-drive": {
+      "slug": "google-drive",
+      "status": "existing"
+    },
+    "google-pay": {
+      "slug": "google-pay",
+      "status": "new"
+    },
+    "google-play": {
+      "slug": "google-play",
+      "status": "new"
+    },
+    "google-plus": {
+      "slug": "google-plus-legacy",
+      "status": "new"
+    },
+    "google-plus-g": {
+      "slug": "google-plus-legacy",
+      "status": "new"
+    },
+    "google-scholar": {
+      "slug": "google-scholar",
+      "status": "new"
+    },
+    "google-wallet": {
+      "slug": "google-wallet",
+      "status": "new"
+    },
+    "gratipay": {
+      "slug": "gratipay-legacy",
+      "status": "new"
+    },
+    "grav": {
+      "slug": "grav",
+      "status": "new"
+    },
+    "gripfire": {
+      "slug": "gripfire",
+      "status": "new"
+    },
+    "grunt": {
+      "slug": "grunt",
+      "status": "new"
+    },
+    "guilded": {
+      "slug": "guilded-legacy",
+      "status": "new"
+    },
+    "gulp": {
+      "slug": "gulp",
+      "status": "new"
+    },
+    "hacker-news": {
+      "slug": "hacker-news",
+      "status": "new"
+    },
+    "hackerrank": {
+      "slug": "hackerrank",
+      "status": "new"
+    },
+    "hashnode": {
+      "slug": "hashnode",
+      "status": "new"
+    },
+    "hips": {
+      "slug": "hips",
+      "status": "new"
+    },
+    "hire-a-helper": {
+      "slug": "hire-a-helper",
+      "status": "new"
+    },
+    "hive": {
+      "slug": "hive",
+      "status": "new"
+    },
+    "hooli": {
+      "excluded": "Fictional identity"
+    },
+    "hornbill": {
+      "slug": "hornbill",
+      "status": "new"
+    },
+    "hotjar": {
+      "slug": "hotjar",
+      "status": "new"
+    },
+    "houzz": {
+      "slug": "houzz",
+      "status": "new"
+    },
+    "html5": {
+      "slug": "html5",
+      "status": "new"
+    },
+    "hubspot": {
+      "slug": "hubspot",
+      "status": "existing"
+    },
+    "hugging-face": {
+      "slug": "hugging-face",
+      "status": "existing"
+    },
+    "ideal": {
+      "slug": "ideal",
+      "status": "new"
+    },
+    "imdb": {
+      "slug": "imdb",
+      "status": "new"
+    },
+    "instagram": {
+      "slug": "instagram",
+      "status": "existing"
+    },
+    "instalod": {
+      "slug": "instalod",
+      "status": "new"
+    },
+    "intercom": {
+      "slug": "intercom",
+      "status": "new"
+    },
+    "internet-archive": {
+      "slug": "internet-archive",
+      "status": "new"
+    },
+    "internet-explorer": {
+      "slug": "internet-explorer-legacy",
+      "status": "new"
+    },
+    "invision": {
+      "slug": "invision-legacy",
+      "status": "new"
+    },
+    "ioxhost": {
+      "slug": "ioxhost",
+      "status": "new"
+    },
+    "itch-io": {
+      "slug": "itch-io",
+      "status": "new"
+    },
+    "itunes": {
+      "slug": "itunes",
+      "status": "new"
+    },
+    "itunes-note": {
+      "slug": "itunes",
+      "status": "new"
+    },
+    "java": {
+      "slug": "java",
+      "status": "new"
+    },
+    "jedi-order": {
+      "excluded": "Fictional identity"
+    },
+    "jenkins": {
+      "slug": "jenkins",
+      "status": "new"
+    },
+    "jira": {
+      "slug": "jira",
+      "status": "new"
+    },
+    "joget": {
+      "slug": "joget",
+      "status": "new"
+    },
+    "joomla": {
+      "slug": "joomla",
+      "status": "new"
+    },
+    "js": {
+      "slug": "js",
+      "status": "new"
+    },
+    "jsfiddle": {
+      "slug": "jsfiddle",
+      "status": "new"
+    },
+    "julia": {
+      "slug": "julia",
+      "status": "new"
+    },
+    "jxl": {
+      "slug": "jxl",
+      "status": "new"
+    },
+    "kaggle": {
+      "slug": "kaggle",
+      "status": "new"
+    },
+    "kakao-talk": {
+      "slug": "kakao-talk",
+      "status": "new"
+    },
+    "keybase": {
+      "slug": "keybase",
+      "status": "new"
+    },
+    "keycdn": {
+      "slug": "keycdn",
+      "status": "new"
+    },
+    "kickstarter": {
+      "slug": "kickstarter",
+      "status": "existing"
+    },
+    "kickstarter-k": {
+      "slug": "kickstarter",
+      "status": "existing"
+    },
+    "ko-fi": {
+      "slug": "ko-fi",
+      "status": "new"
+    },
+    "korvue": {
+      "slug": "korvue",
+      "status": "new"
+    },
+    "kubernetes": {
+      "slug": "kubernetes",
+      "status": "new"
+    },
+    "laravel": {
+      "slug": "laravel",
+      "status": "new"
+    },
+    "lastfm": {
+      "slug": "lastfm",
+      "status": "new"
+    },
+    "leanpub": {
+      "slug": "leanpub",
+      "status": "new"
+    },
+    "leetcode": {
+      "slug": "leetcode",
+      "status": "new"
+    },
+    "less": {
+      "slug": "less",
+      "status": "new"
+    },
+    "lets-encrypt": {
+      "slug": "lets-encrypt",
+      "status": "new"
+    },
+    "letterboxd": {
+      "slug": "letterboxd",
+      "status": "new"
+    },
+    "line": {
+      "slug": "line",
+      "status": "new"
+    },
+    "linkedin": {
+      "slug": "linkedin",
+      "status": "existing"
+    },
+    "linkedin-in": {
+      "slug": "linkedin",
+      "status": "existing"
+    },
+    "linktree": {
+      "slug": "linktree",
+      "status": "existing"
+    },
+    "linode": {
+      "slug": "linode",
+      "status": "new"
+    },
+    "linux": {
+      "slug": "linux",
+      "status": "new"
+    },
+    "lumon": {
+      "excluded": "Fictional identity"
+    },
+    "lumon-drop": {
+      "excluded": "Fictional identity"
+    },
+    "lyft": {
+      "slug": "lyft",
+      "status": "existing"
+    },
+    "magento": {
+      "slug": "magento",
+      "status": "new"
+    },
+    "mailchimp": {
+      "slug": "mailchimp",
+      "status": "existing"
+    },
+    "mandalorian": {
+      "excluded": "Fictional identity"
+    },
+    "markdown": {
+      "slug": "markdown",
+      "status": "new"
+    },
+    "mastodon": {
+      "slug": "mastodon",
+      "status": "new"
+    },
+    "matrix": {
+      "slug": "matrix",
+      "status": "new"
+    },
+    "mattermost": {
+      "slug": "mattermost",
+      "status": "new"
+    },
+    "maxcdn": {
+      "slug": "maxcdn-legacy",
+      "status": "new"
+    },
+    "mdb": {
+      "slug": "mdbootstrap",
+      "status": "new"
+    },
+    "medapps": {
+      "slug": "medapps",
+      "status": "new"
+    },
+    "medium": {
+      "slug": "medium",
+      "status": "new"
+    },
+    "medrt": {
+      "slug": "medrt",
+      "status": "new"
+    },
+    "meetup": {
+      "slug": "meetup",
+      "status": "new"
+    },
+    "megaport": {
+      "slug": "megaport",
+      "status": "new"
+    },
+    "mendeley": {
+      "slug": "mendeley",
+      "status": "new"
+    },
+    "meta": {
+      "slug": "meta",
+      "status": "existing"
+    },
+    "microblog": {
+      "slug": "microblog",
+      "status": "new"
+    },
+    "microsoft": {
+      "slug": "microsoft",
+      "status": "new"
+    },
+    "mintbit": {
+      "slug": "mintbit",
+      "status": "new"
+    },
+    "mix": {
+      "slug": "mix",
+      "status": "new"
+    },
+    "mixcloud": {
+      "slug": "mixcloud",
+      "status": "new"
+    },
+    "mixer": {
+      "slug": "mixer-legacy",
+      "status": "new"
+    },
+    "mizuni": {
+      "slug": "mizuni",
+      "status": "new"
+    },
+    "modx": {
+      "slug": "modx",
+      "status": "new"
+    },
+    "monero": {
+      "slug": "monero",
+      "status": "new"
+    },
+    "napster": {
+      "slug": "napster",
+      "status": "new"
+    },
+    "neos": {
+      "slug": "neos",
+      "status": "new"
+    },
+    "nextcloud": {
+      "slug": "nextcloud",
+      "status": "new"
+    },
+    "nfc-directional": {
+      "excluded": "Generic symbol rather than a brand identity"
+    },
+    "nfc-symbol": {
+      "excluded": "Generic symbol rather than a brand identity"
+    },
+    "nimblr": {
+      "slug": "nimblr",
+      "status": "new"
+    },
+    "node": {
+      "slug": "node-js",
+      "status": "new"
+    },
+    "node-js": {
+      "slug": "node-js",
+      "status": "new"
+    },
+    "notion": {
+      "slug": "notion",
+      "status": "existing"
+    },
+    "npm": {
+      "slug": "npm",
+      "status": "new"
+    },
+    "ns8": {
+      "slug": "ns8",
+      "status": "new"
+    },
+    "nutritionix": {
+      "slug": "nutritionix",
+      "status": "new"
+    },
+    "obs-studio": {
+      "slug": "obs-studio",
+      "status": "new"
+    },
+    "obsidian": {
+      "slug": "obsidian",
+      "status": "new"
+    },
+    "octopus-deploy": {
+      "slug": "octopus-deploy",
+      "status": "new"
+    },
+    "odnoklassniki": {
+      "slug": "odnoklassniki",
+      "status": "new"
+    },
+    "odysee": {
+      "slug": "odysee",
+      "status": "new"
+    },
+    "old-republic": {
+      "excluded": "Fictional identity"
+    },
+    "openai": {
+      "slug": "openai",
+      "status": "existing"
+    },
+    "opencart": {
+      "slug": "opencart",
+      "status": "new"
+    },
+    "openid": {
+      "slug": "openid",
+      "status": "new"
+    },
+    "openstreetmap": {
+      "slug": "openstreetmap",
+      "status": "new"
+    },
+    "opensuse": {
+      "slug": "opensuse",
+      "status": "new"
+    },
+    "opera": {
+      "slug": "opera",
+      "status": "new"
+    },
+    "optin-monster": {
+      "slug": "optin-monster",
+      "status": "new"
+    },
+    "orcid": {
+      "slug": "orcid",
+      "status": "new"
+    },
+    "osi": {
+      "slug": "open-source-initiative",
+      "status": "new"
+    },
+    "padlet": {
+      "slug": "padlet",
+      "status": "new"
+    },
+    "page4": {
+      "slug": "page4",
+      "status": "new"
+    },
+    "pagelines": {
+      "slug": "pagelines",
+      "status": "new"
+    },
+    "palfed": {
+      "slug": "palfed",
+      "status": "new"
+    },
+    "pandora": {
+      "slug": "pandora",
+      "status": "new"
+    },
+    "patreon": {
+      "slug": "patreon",
+      "status": "new"
+    },
+    "paypal": {
+      "slug": "paypal",
+      "status": "new"
+    },
+    "perbyte": {
+      "slug": "perbyte",
+      "status": "new"
+    },
+    "periscope": {
+      "slug": "periscope-legacy",
+      "status": "new"
+    },
+    "phabricator": {
+      "slug": "phabricator-legacy",
+      "status": "new"
+    },
+    "phoenix-framework": {
+      "slug": "phoenix-framework",
+      "status": "new"
+    },
+    "phoenix-squadron": {
+      "excluded": "Fictional identity"
+    },
+    "php": {
+      "slug": "php",
+      "status": "new"
+    },
+    "pied-piper": {
+      "excluded": "Fictional identity"
+    },
+    "pied-piper-alt": {
+      "excluded": "Fictional identity"
+    },
+    "pied-piper-hat": {
+      "excluded": "Fictional identity"
+    },
+    "pied-piper-pp": {
+      "excluded": "Fictional identity"
+    },
+    "pinterest": {
+      "slug": "pinterest",
+      "status": "new"
+    },
+    "pinterest-p": {
+      "slug": "pinterest",
+      "status": "new"
+    },
+    "pix": {
+      "slug": "pix",
+      "status": "new"
+    },
+    "pixelfed": {
+      "slug": "pixelfed",
+      "status": "new"
+    },
+    "pixiv": {
+      "slug": "pixiv",
+      "status": "new"
+    },
+    "playstation": {
+      "slug": "playstation",
+      "status": "new"
+    },
+    "postgresql": {
+      "slug": "postgres",
+      "status": "existing"
+    },
+    "product-hunt": {
+      "slug": "product-hunt",
+      "status": "new"
+    },
+    "pushed": {
+      "slug": "pushed",
+      "status": "new"
+    },
+    "python": {
+      "slug": "python",
+      "status": "new"
+    },
+    "qq": {
+      "slug": "qq",
+      "status": "new"
+    },
+    "quinscape": {
+      "slug": "quinscape",
+      "status": "new"
+    },
+    "quora": {
+      "slug": "quora",
+      "status": "new"
+    },
+    "r-project": {
+      "slug": "r-project",
+      "status": "new"
+    },
+    "raspberry-pi": {
+      "slug": "raspberry-pi",
+      "status": "new"
+    },
+    "ravelry": {
+      "slug": "ravelry",
+      "status": "new"
+    },
+    "react": {
+      "slug": "react",
+      "status": "new"
+    },
+    "reacteurope": {
+      "slug": "reacteurope",
+      "status": "new"
+    },
+    "readme": {
+      "slug": "readme",
+      "status": "new"
+    },
+    "rebel": {
+      "excluded": "Fictional identity"
+    },
+    "red-river": {
+      "slug": "red-river",
+      "status": "new"
+    },
+    "reddit": {
+      "slug": "reddit",
+      "status": "existing"
+    },
+    "reddit-alien": {
+      "slug": "reddit",
+      "status": "existing"
+    },
+    "redhat": {
+      "slug": "redhat",
+      "status": "new"
+    },
+    "renren": {
+      "slug": "renren",
+      "status": "new"
+    },
+    "replyd": {
+      "slug": "replyd",
+      "status": "new"
+    },
+    "researchgate": {
+      "slug": "researchgate",
+      "status": "new"
+    },
+    "resolving": {
+      "slug": "resolving",
+      "status": "new"
+    },
+    "rev": {
+      "slug": "rev",
+      "status": "new"
+    },
+    "roblox-creator-studio": {
+      "slug": "roblox-creator-studio",
+      "status": "new"
+    },
+    "rocketchat": {
+      "slug": "rocketchat",
+      "status": "new"
+    },
+    "rockrms": {
+      "slug": "rockrms",
+      "status": "new"
+    },
+    "ror": {
+      "slug": "research-organization-registry",
+      "status": "new"
+    },
+    "rust": {
+      "slug": "rust",
+      "status": "new"
+    },
+    "safari": {
+      "slug": "safari",
+      "status": "new"
+    },
+    "salesforce": {
+      "slug": "salesforce",
+      "status": "new"
+    },
+    "sass": {
+      "slug": "sass",
+      "status": "new"
+    },
+    "scaleway": {
+      "slug": "scaleway",
+      "status": "new"
+    },
+    "schlix": {
+      "slug": "schlix",
+      "status": "new"
+    },
+    "screenpal": {
+      "slug": "screenpal",
+      "status": "new"
+    },
+    "scribd": {
+      "slug": "scribd",
+      "status": "new"
+    },
+    "searchengin": {
+      "slug": "searchengin",
+      "status": "new"
+    },
+    "sellcast": {
+      "slug": "sellcast",
+      "status": "new"
+    },
+    "sellsy": {
+      "slug": "sellsy",
+      "status": "new"
+    },
+    "servicestack": {
+      "slug": "servicestack",
+      "status": "new"
+    },
+    "shirtsinbulk": {
+      "slug": "shirtsinbulk",
+      "status": "new"
+    },
+    "shoelace": {
+      "slug": "shoelace",
+      "status": "new"
+    },
+    "shopify": {
+      "slug": "shopify",
+      "status": "existing"
+    },
+    "shopware": {
+      "slug": "shopware",
+      "status": "new"
+    },
+    "signal-messenger": {
+      "slug": "signal-messenger",
+      "status": "new"
+    },
+    "simplybuilt": {
+      "slug": "simplybuilt",
+      "status": "new"
+    },
+    "sistrix": {
+      "slug": "sistrix",
+      "status": "new"
+    },
+    "sith": {
+      "excluded": "Fictional identity"
+    },
+    "sitrox": {
+      "slug": "sitrox",
+      "status": "new"
+    },
+    "sketch": {
+      "slug": "sketch",
+      "status": "new"
+    },
+    "skyatlas": {
+      "slug": "skyatlas",
+      "status": "new"
+    },
+    "skype": {
+      "slug": "skype-legacy",
+      "status": "new"
+    },
+    "slack": {
+      "slug": "slack",
+      "status": "existing"
+    },
+    "slideshare": {
+      "slug": "slideshare",
+      "status": "new"
+    },
+    "snapchat": {
+      "slug": "snapchat",
+      "status": "new"
+    },
+    "solana": {
+      "slug": "solana",
+      "status": "new"
+    },
+    "soundcloud": {
+      "slug": "soundcloud",
+      "status": "new"
+    },
+    "sourcetree": {
+      "slug": "sourcetree",
+      "status": "new"
+    },
+    "space-awesome": {
+      "slug": "space-awesome",
+      "status": "new"
+    },
+    "speakap": {
+      "slug": "speakap",
+      "status": "new"
+    },
+    "speaker-deck": {
+      "slug": "speaker-deck",
+      "status": "new"
+    },
+    "spotify": {
+      "slug": "spotify",
+      "status": "new"
+    },
+    "square-behance": {
+      "slug": "behance",
+      "status": "new"
+    },
+    "square-bluesky": {
+      "slug": "bluesky",
+      "status": "new"
+    },
+    "square-build-awesome-stroke": {
+      "slug": "build-awesome",
+      "status": "new"
+    },
+    "square-deskpro": {
+      "slug": "deskpro",
+      "status": "new"
+    },
+    "square-dribbble": {
+      "slug": "dribbble",
+      "status": "new"
+    },
+    "square-facebook": {
+      "slug": "facebook",
+      "status": "new"
+    },
+    "square-figma": {
+      "slug": "figma",
+      "status": "existing"
+    },
+    "square-font-awesome": {
+      "slug": "font-awesome",
+      "status": "new"
+    },
+    "square-font-awesome-stroke": {
+      "slug": "font-awesome",
+      "status": "new"
+    },
+    "square-git": {
+      "slug": "git",
+      "status": "new"
+    },
+    "square-github": {
+      "slug": "github",
+      "status": "existing"
+    },
+    "square-gitlab": {
+      "slug": "gitlab",
+      "status": "new"
+    },
+    "square-google-plus": {
+      "slug": "google-plus-legacy",
+      "status": "new"
+    },
+    "square-hacker-news": {
+      "slug": "hacker-news",
+      "status": "new"
+    },
+    "square-instagram": {
+      "slug": "instagram",
+      "status": "existing"
+    },
+    "square-js": {
+      "slug": "js",
+      "status": "new"
+    },
+    "square-lastfm": {
+      "slug": "lastfm",
+      "status": "new"
+    },
+    "square-letterboxd": {
+      "slug": "letterboxd",
+      "status": "new"
+    },
+    "square-linkedin": {
+      "slug": "linkedin",
+      "status": "existing"
+    },
+    "square-odnoklassniki": {
+      "slug": "odnoklassniki",
+      "status": "new"
+    },
+    "square-pied-piper": {
+      "excluded": "Fictional identity"
+    },
+    "square-pinterest": {
+      "slug": "pinterest",
+      "status": "new"
+    },
+    "square-reddit": {
+      "slug": "reddit",
+      "status": "existing"
+    },
+    "square-snapchat": {
+      "slug": "snapchat",
+      "status": "new"
+    },
+    "square-steam": {
+      "slug": "steam",
+      "status": "existing"
+    },
+    "square-threads": {
+      "slug": "threads",
+      "status": "new"
+    },
+    "square-tumblr": {
+      "slug": "tumblr",
+      "status": "new"
+    },
+    "square-twitter": {
+      "slug": "twitter-legacy",
+      "status": "existing"
+    },
+    "square-upwork": {
+      "slug": "upwork",
+      "status": "new"
+    },
+    "square-viadeo": {
+      "slug": "viadeo",
+      "status": "new"
+    },
+    "square-vimeo": {
+      "slug": "vimeo",
+      "status": "new"
+    },
+    "square-web-awesome": {
+      "slug": "web-awesome",
+      "status": "new"
+    },
+    "square-web-awesome-stroke": {
+      "slug": "web-awesome",
+      "status": "new"
+    },
+    "square-whatsapp": {
+      "slug": "whatsapp",
+      "status": "existing"
+    },
+    "square-x-twitter": {
+      "slug": "x",
+      "status": "existing"
+    },
+    "square-xing": {
+      "slug": "xing",
+      "status": "new"
+    },
+    "square-youtube": {
+      "slug": "youtube",
+      "status": "existing"
+    },
+    "squarespace": {
+      "slug": "squarespace",
+      "status": "new"
+    },
+    "stack-exchange": {
+      "slug": "stack-exchange",
+      "status": "new"
+    },
+    "stack-overflow": {
+      "slug": "stack-overflow",
+      "status": "new"
+    },
+    "stackpath": {
+      "slug": "stackpath-legacy",
+      "status": "new"
+    },
+    "staylinked": {
+      "slug": "staylinked",
+      "status": "new"
+    },
+    "steam": {
+      "slug": "steam",
+      "status": "existing"
+    },
+    "steam-symbol": {
+      "slug": "steam",
+      "status": "existing"
+    },
+    "sticker-mule": {
+      "slug": "sticker-mule",
+      "status": "new"
+    },
+    "storybook": {
+      "slug": "storybook",
+      "status": "new"
+    },
+    "strava": {
+      "slug": "strava",
+      "status": "new"
+    },
+    "stripe": {
+      "slug": "stripe",
+      "status": "existing"
+    },
+    "stripe-s": {
+      "slug": "stripe",
+      "status": "existing"
+    },
+    "stubber": {
+      "slug": "stubber",
+      "status": "new"
+    },
+    "studiovinari": {
+      "slug": "studiovinari",
+      "status": "new"
+    },
+    "stumbleupon": {
+      "slug": "stumbleupon-legacy",
+      "status": "new"
+    },
+    "stumbleupon-circle": {
+      "slug": "stumbleupon-legacy",
+      "status": "new"
+    },
+    "substack": {
+      "slug": "substack",
+      "status": "new"
+    },
+    "superpowers": {
+      "slug": "superpowers",
+      "status": "new"
+    },
+    "supple": {
+      "slug": "supple",
+      "status": "new"
+    },
+    "supportnow": {
+      "slug": "supportnow",
+      "status": "new"
+    },
+    "suse": {
+      "slug": "suse",
+      "status": "new"
+    },
+    "svelte": {
+      "slug": "svelte",
+      "status": "new"
+    },
+    "swift": {
+      "slug": "swift",
+      "status": "new"
+    },
+    "symfony": {
+      "slug": "symfony",
+      "status": "new"
+    },
+    "symfonycasts": {
+      "slug": "symfonycasts",
+      "status": "new"
+    },
+    "tailwind-css": {
+      "slug": "tailwind-css",
+      "status": "new"
+    },
+    "teamspeak": {
+      "slug": "teamspeak",
+      "status": "new"
+    },
+    "telegram": {
+      "slug": "telegram",
+      "status": "existing"
+    },
+    "tencent-weibo": {
+      "slug": "tencent-weibo-legacy",
+      "status": "new"
+    },
+    "tesla": {
+      "slug": "tesla",
+      "status": "existing"
+    },
+    "tex": {
+      "slug": "tex",
+      "status": "new"
+    },
+    "the-red-yeti": {
+      "slug": "the-red-yeti",
+      "status": "new"
+    },
+    "themeco": {
+      "slug": "themeco",
+      "status": "new"
+    },
+    "themeisle": {
+      "slug": "themeisle",
+      "status": "new"
+    },
+    "think-peaks": {
+      "slug": "think-peaks",
+      "status": "new"
+    },
+    "threads": {
+      "slug": "threads",
+      "status": "new"
+    },
+    "threema": {
+      "slug": "threema",
+      "status": "new"
+    },
+    "tidal": {
+      "slug": "tidal",
+      "status": "new"
+    },
+    "tiktok": {
+      "slug": "tiktok",
+      "status": "new"
+    },
+    "tor-browser": {
+      "slug": "tor-browser",
+      "status": "new"
+    },
+    "trade-federation": {
+      "excluded": "Fictional identity"
+    },
+    "trello": {
+      "slug": "trello",
+      "status": "existing"
+    },
+    "tumblr": {
+      "slug": "tumblr",
+      "status": "new"
+    },
+    "twitch": {
+      "slug": "twitch",
+      "status": "existing"
+    },
+    "twitter": {
+      "slug": "twitter-legacy",
+      "status": "existing"
+    },
+    "typescript": {
+      "slug": "typescript",
+      "status": "new"
+    },
+    "typo3": {
+      "slug": "typo3",
+      "status": "new"
+    },
+    "uber": {
+      "slug": "uber",
+      "status": "existing"
+    },
+    "ubuntu": {
+      "slug": "ubuntu",
+      "status": "new"
+    },
+    "uikit": {
+      "slug": "uikit",
+      "status": "new"
+    },
+    "ultralytics": {
+      "slug": "ultralytics",
+      "status": "new"
+    },
+    "ultralytics-hub": {
+      "slug": "ultralytics-hub",
+      "status": "new"
+    },
+    "ultralytics-yolo": {
+      "slug": "ultralytics-yolo",
+      "status": "new"
+    },
+    "umbraco": {
+      "slug": "umbraco",
+      "status": "new"
+    },
+    "uncharted": {
+      "slug": "uncharted",
+      "status": "new"
+    },
+    "uniregistry": {
+      "slug": "uniregistry-legacy",
+      "status": "new"
+    },
+    "unison": {
+      "slug": "unison",
+      "status": "new"
+    },
+    "unity": {
+      "slug": "unity",
+      "status": "new"
+    },
+    "unreal-engine": {
+      "slug": "unreal-engine",
+      "status": "new"
+    },
+    "unsplash": {
+      "slug": "unsplash",
+      "status": "new"
+    },
+    "untappd": {
+      "slug": "untappd",
+      "status": "new"
+    },
+    "ups": {
+      "slug": "ups",
+      "status": "new"
+    },
+    "upwork": {
+      "slug": "upwork",
+      "status": "new"
+    },
+    "usb": {
+      "excluded": "Generic symbol rather than a brand identity"
+    },
+    "usps": {
+      "slug": "usps",
+      "status": "new"
+    },
+    "ussunnah": {
+      "slug": "ussunnah",
+      "status": "new"
+    },
+    "vaadin": {
+      "slug": "vaadin",
+      "status": "new"
+    },
+    "venmo": {
+      "slug": "venmo",
+      "status": "new"
+    },
+    "venmo-v": {
+      "slug": "venmo",
+      "status": "new"
+    },
+    "viacoin": {
+      "slug": "viacoin",
+      "status": "new"
+    },
+    "viadeo": {
+      "slug": "viadeo",
+      "status": "new"
+    },
+    "viber": {
+      "slug": "viber",
+      "status": "new"
+    },
+    "vim": {
+      "slug": "vim",
+      "status": "new"
+    },
+    "vimeo": {
+      "slug": "vimeo",
+      "status": "new"
+    },
+    "vimeo-v": {
+      "slug": "vimeo",
+      "status": "new"
+    },
+    "vine": {
+      "slug": "vine-legacy",
+      "status": "new"
+    },
+    "visual-studio": {
+      "slug": "visual-studio",
+      "status": "new"
+    },
+    "vk": {
+      "slug": "vk",
+      "status": "new"
+    },
+    "vnv": {
+      "slug": "vnv",
+      "status": "new"
+    },
+    "vsco": {
+      "slug": "vsco",
+      "status": "new"
+    },
+    "vuejs": {
+      "slug": "vuejs",
+      "status": "new"
+    },
+    "w3c": {
+      "slug": "w3c",
+      "status": "new"
+    },
+    "watchman-monitoring": {
+      "slug": "watchman-monitoring",
+      "status": "new"
+    },
+    "waze": {
+      "slug": "waze",
+      "status": "new"
+    },
+    "web-awesome": {
+      "slug": "web-awesome",
+      "status": "new"
+    },
+    "webflow": {
+      "slug": "webflow",
+      "status": "new"
+    },
+    "weebly": {
+      "slug": "weebly",
+      "status": "new"
+    },
+    "weibo": {
+      "slug": "weibo",
+      "status": "new"
+    },
+    "weixin": {
+      "slug": "wechat",
+      "status": "new"
+    },
+    "whatsapp": {
+      "slug": "whatsapp",
+      "status": "existing"
+    },
+    "whmcs": {
+      "slug": "whmcs",
+      "status": "new"
+    },
+    "wikipedia-w": {
+      "slug": "wikipedia",
+      "status": "new"
+    },
+    "windows": {
+      "slug": "windows",
+      "status": "new"
+    },
+    "wirsindhandwerk": {
+      "slug": "wirsindhandwerk",
+      "status": "new"
+    },
+    "wix": {
+      "slug": "wix",
+      "status": "new"
+    },
+    "wizards-of-the-coast": {
+      "slug": "wizards-of-the-coast",
+      "status": "new"
+    },
+    "wodu": {
+      "slug": "wodu",
+      "status": "new"
+    },
+    "wolf-pack-battalion": {
+      "excluded": "Fictional identity"
+    },
+    "wordpress": {
+      "slug": "wordpress",
+      "status": "new"
+    },
+    "wordpress-simple": {
+      "slug": "wordpress",
+      "status": "new"
+    },
+    "wpbeginner": {
+      "slug": "wpbeginner",
+      "status": "new"
+    },
+    "wpexplorer": {
+      "slug": "wpexplorer",
+      "status": "new"
+    },
+    "wpforms": {
+      "slug": "wpforms",
+      "status": "new"
+    },
+    "wpressr": {
+      "slug": "wpressr",
+      "status": "new"
+    },
+    "x-twitter": {
+      "slug": "x",
+      "status": "existing"
+    },
+    "xbox": {
+      "slug": "xbox",
+      "status": "new"
+    },
+    "xing": {
+      "slug": "xing",
+      "status": "new"
+    },
+    "xmpp": {
+      "slug": "xmpp",
+      "status": "new"
+    },
+    "xrp": {
+      "slug": "xrp",
+      "status": "new"
+    },
+    "xrpl": {
+      "slug": "xrpl",
+      "status": "new"
+    },
+    "y-combinator": {
+      "slug": "y-combinator",
+      "status": "new"
+    },
+    "yahoo": {
+      "slug": "yahoo",
+      "status": "new"
+    },
+    "yammer": {
+      "slug": "yammer-legacy",
+      "status": "new"
+    },
+    "yandex": {
+      "slug": "yandex",
+      "status": "new"
+    },
+    "yandex-international": {
+      "slug": "yandex",
+      "status": "new"
+    },
+    "yarn": {
+      "slug": "yarn",
+      "status": "new"
+    },
+    "yelp": {
+      "slug": "yelp",
+      "status": "new"
+    },
+    "yoast": {
+      "slug": "yoast",
+      "status": "new"
+    },
+    "youtube": {
+      "slug": "youtube",
+      "status": "existing"
+    },
+    "youtube-shorts": {
+      "slug": "youtube-shorts",
+      "status": "new"
+    },
+    "zhihu": {
+      "slug": "zhihu",
+      "status": "new"
+    },
+    "zoom": {
+      "slug": "zoom",
+      "status": "existing"
+    },
+    "zulip": {
+      "slug": "zulip",
+      "status": "new"
+    }
+  }
+}

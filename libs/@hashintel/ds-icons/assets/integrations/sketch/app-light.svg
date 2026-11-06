@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sketch-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="sketch-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="sketch-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sketch-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sketch-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#sketch-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="sketch-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#sketch-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 232" preserveAspectRatio="xMidYMid" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+	<g>
+		<polygon fill="#FDB300" points="127.9998 0.0002 55.8548 7.6282 -0.0002 82.6072 127.9998 231.6622 255.9998 82.6072 200.1458 7.6282" />
+		<polygon fill="#EB6C00" points="0 82.6076 128 231.6616 51.846 82.6076" />
+		<polygon fill="#EB6C00" points="204.1533 82.6076 128.0003 231.6616 255.9993 82.6076" />
+		<polygon fill="#FDAD00" points="51.8463 82.6076 128.0003 231.6616 204.1543 82.6076" />
+		<polygon fill="#FDD231" points="55.8548 7.6282 51.8458 82.6072 127.9998 0.0002" />
+		<polygon fill="#FDD231" points="204.1533 82.6076 200.1453 7.6276 128.0003 0.0006" />
+		<polygon fill="#FDAD00" points="204.1542 82.6076 255.9992 82.6076 200.1452 7.6276" />
+		<polygon fill="#FDAD00" points="0 82.6076 51.846 82.6076 55.855 7.6276" />
+		<polygon fill="#FEEEB7" points="127.9998 0.0002 51.8458 82.6072 204.1538 82.6072" />
+	</g>
+</svg></g></svg>

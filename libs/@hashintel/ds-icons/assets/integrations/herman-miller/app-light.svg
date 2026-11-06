@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="herman-miller-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="herman-miller-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="herman-miller-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#herman-miller-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#herman-miller-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#herman-miller-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="herman-miller-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#herman-miller-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="12.36461 12.07653 235.42234 235.70945" preserveAspectRatio="xMidYMid meet" fill="#E22A00" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+<g transform="translate(0.000000,260.000000) scale(0.100000,-0.100000)" fill="#E22A00" stroke="none">
+<path d="M1110 2465 c-248 -39 -451 -146 -640 -335 -143 -143 -235 -286 -289 -451 -25 -76 -28 -87 -46 -194 -13 -80 -13 -312 0 -385 36 -194 101 -346 212 -494 192 -256 466 -425 763 -471 93 -14 328 -14 395 0 93 19 126 28 180 46 358 122 663 449 755 808 32 124 38 188 35 336 -4 196 -36 335 -112 490 -144 290 -432 536 -723 618 -152 43 -375 56 -530 32z m-440 -567 c3 -79 78 -433 110 -513 4 -11 23 -58 40 -105 113 -293 268 -444 465 -454 226 -11 404 172 529 544 53 160 78 264 104 433 33 215 39 142 39 -500 0 -335 -1 -611 -3 -614 -2 -4 -38 2 -81 12 -87 21 -111 25 -203 40 -118 18 -203 23 -380 22 -161 0 -215 -3 -340 -19 -55 -7 -258 -50 -282 -59 -10 -4 -18 -3 -19 1 -1 5 -2 282 -3 617 -1 480 2 607 12 607 6 0 12 -6 12 -12z" />
+</g>
+</svg></g></svg>

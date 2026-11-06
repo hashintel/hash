@@ -20,6 +20,16 @@
         <path d="M64 0H0V19.75H64V0Z" fill="black" fill-opacity="0.3" />
       </g>
     </g>
+    <rect
+      x="0.5"
+      y="0.5"
+      width="63"
+      height="63"
+      rx="9.5"
+      stroke="#9EADBB"
+      stroke-width="1"
+      stroke-opacity="0.5"
+    />
     <defs>
       <filter
         id="filter0_dd_8505_34590"

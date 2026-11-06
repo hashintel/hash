@@ -1,0 +1,1868 @@
+[
+  {
+    "requested": "Rockstar Games",
+    "label": "Rockstar Games",
+    "slug": "rockstar-games",
+    "added": true
+  },
+  {
+    "requested": "Take Two",
+    "label": "Take-Two Interactive",
+    "slug": "take-two-interactive",
+    "added": true
+  },
+  {
+    "requested": "Duolingo",
+    "label": "Duolingo",
+    "slug": "duolingo",
+    "added": false
+  },
+  {
+    "requested": "Sonos",
+    "label": "Sonos",
+    "slug": "sonos",
+    "added": true
+  },
+  {
+    "requested": "Qonto",
+    "label": "Qonto",
+    "slug": "qonto",
+    "added": true
+  },
+  {
+    "requested": "Wise",
+    "label": "Wise",
+    "slug": "wise",
+    "added": true
+  },
+  {
+    "requested": "N26",
+    "label": "N26",
+    "slug": "n26",
+    "added": true
+  },
+  {
+    "requested": "HSBC",
+    "label": "HSBC",
+    "slug": "hsbc",
+    "added": true
+  },
+  {
+    "requested": "J.P. Morgan",
+    "label": "J.P. Morgan",
+    "slug": "j-p-morgan",
+    "added": true
+  },
+  {
+    "requested": "Supreme",
+    "label": "Supreme",
+    "slug": "supreme",
+    "added": true
+  },
+  {
+    "requested": "Palace",
+    "label": "Palace",
+    "slug": "palace",
+    "added": true
+  },
+  {
+    "requested": "StockX",
+    "label": "StockX",
+    "slug": "stockx",
+    "added": true
+  },
+  {
+    "requested": "eBay",
+    "label": "eBay",
+    "slug": "ebay",
+    "added": false
+  },
+  {
+    "requested": "Flink",
+    "label": "Flink",
+    "slug": "flink",
+    "added": true
+  },
+  {
+    "requested": "Audible",
+    "label": "Audible",
+    "slug": "audible",
+    "added": false
+  },
+  {
+    "requested": "Signal",
+    "label": "Signal",
+    "slug": "signal-messenger",
+    "added": false
+  },
+  {
+    "requested": "Lime",
+    "label": "Lime",
+    "slug": "lime",
+    "added": true
+  },
+  {
+    "requested": "FreeNow",
+    "label": "FreeNow",
+    "slug": "freenow",
+    "added": true
+  },
+  {
+    "requested": "Booking.com",
+    "label": "Booking.com",
+    "slug": "booking-com",
+    "added": true
+  },
+  {
+    "requested": "Sonder",
+    "label": "Sonder",
+    "slug": "sonder",
+    "added": true
+  },
+  {
+    "requested": "BBC",
+    "label": "BBC",
+    "slug": "bbc",
+    "added": true
+  },
+  {
+    "requested": "ZDF",
+    "label": "ZDF",
+    "slug": "zdf",
+    "added": true
+  },
+  {
+    "requested": "DW",
+    "label": "Deutsche Welle",
+    "slug": "deutsche-welle",
+    "added": true
+  },
+  {
+    "requested": "FAZ",
+    "label": "Frankfurter Allgemeine Zeitung",
+    "slug": "frankfurter-allgemeine-zeitung",
+    "added": true
+  },
+  {
+    "requested": "NYT",
+    "label": "The New York Times",
+    "slug": "the-new-york-times",
+    "added": true
+  },
+  {
+    "requested": "WSJ",
+    "label": "The Wall Street Journal",
+    "slug": "the-wall-street-journal",
+    "added": true
+  },
+  {
+    "requested": "WaPo",
+    "label": "The Washington Post",
+    "slug": "the-washington-post",
+    "added": true
+  },
+  {
+    "requested": "The Times",
+    "label": "The Times",
+    "slug": "the-times",
+    "added": true
+  },
+  {
+    "requested": "The Telegraph",
+    "label": "The Telegraph",
+    "slug": "the-telegraph",
+    "added": true
+  },
+  {
+    "requested": "The Guardian",
+    "label": "The Guardian",
+    "slug": "the-guardian",
+    "added": true
+  },
+  {
+    "requested": "Daily Mail",
+    "label": "Daily Mail",
+    "slug": "daily-mail",
+    "added": true
+  },
+  {
+    "requested": "Substack",
+    "label": "Substack",
+    "slug": "substack",
+    "added": false
+  },
+  {
+    "requested": "The Information",
+    "label": "The Information",
+    "slug": "the-information",
+    "added": true
+  },
+  {
+    "requested": "Xero",
+    "label": "Xero",
+    "slug": "xero",
+    "added": true
+  },
+  {
+    "requested": "Namecheap",
+    "label": "Namecheap",
+    "slug": "namecheap",
+    "added": true
+  },
+  {
+    "requested": "GoDaddy",
+    "label": "GoDaddy",
+    "slug": "godaddy",
+    "added": true
+  },
+  {
+    "requested": "Wix",
+    "label": "Wix",
+    "slug": "wix",
+    "added": false
+  },
+  {
+    "requested": "Adobe",
+    "label": "Adobe",
+    "slug": "adobe",
+    "added": true
+  },
+  {
+    "requested": "OpenTable",
+    "label": "OpenTable",
+    "slug": "opentable",
+    "added": true
+  },
+  {
+    "requested": "Starbucks",
+    "label": "Starbucks",
+    "slug": "starbucks",
+    "added": true
+  },
+  {
+    "requested": "Resy",
+    "label": "Resy",
+    "slug": "resy",
+    "added": true
+  },
+  {
+    "requested": "Michelin Guide",
+    "label": "Michelin Guide",
+    "slug": "michelin-guide",
+    "added": true
+  },
+  {
+    "requested": "Hugo Boss",
+    "label": "Hugo Boss",
+    "slug": "hugo-boss",
+    "added": true
+  },
+  {
+    "requested": "ResidentAdvisor",
+    "label": "Resident Advisor",
+    "slug": "resident-advisor",
+    "added": true
+  },
+  {
+    "requested": "Postmates",
+    "label": "Postmates",
+    "slug": "postmates",
+    "added": true
+  },
+  {
+    "requested": "Plex",
+    "label": "Plex",
+    "slug": "plex",
+    "added": true
+  },
+  {
+    "requested": "Apple TV",
+    "label": "Apple TV",
+    "slug": "apple-tv",
+    "added": true
+  },
+  {
+    "requested": "Disney+",
+    "label": "Disney+",
+    "slug": "disney",
+    "added": true
+  },
+  {
+    "requested": "Formula One",
+    "label": "Formula 1",
+    "slug": "formula-1",
+    "added": true
+  },
+  {
+    "requested": "Goodreads",
+    "label": "Goodreads",
+    "slug": "goodreads",
+    "added": false
+  },
+  {
+    "requested": "PlayStation",
+    "label": "PlayStation",
+    "slug": "playstation",
+    "added": false
+  },
+  {
+    "requested": "Sony",
+    "label": "Sony",
+    "slug": "sony",
+    "added": true
+  },
+  {
+    "requested": "Xbox",
+    "label": "Xbox",
+    "slug": "xbox",
+    "added": false
+  },
+  {
+    "requested": "LG",
+    "label": "LG",
+    "slug": "lg",
+    "added": true
+  },
+  {
+    "requested": "Samsung",
+    "label": "Samsung",
+    "slug": "samsung",
+    "added": true
+  },
+  {
+    "requested": "NASA",
+    "label": "NASA",
+    "slug": "nasa",
+    "added": true
+  },
+  {
+    "requested": "Phaidon",
+    "label": "Phaidon",
+    "slug": "phaidon",
+    "added": true
+  },
+  {
+    "requested": "Penguin Books",
+    "label": "Penguin Books",
+    "slug": "penguin-books",
+    "added": true
+  },
+  {
+    "requested": "Fortnum & Mason",
+    "label": "Fortnum & Mason",
+    "slug": "fortnum-mason",
+    "added": true
+  },
+  {
+    "requested": "Waitrose",
+    "label": "Waitrose",
+    "slug": "waitrose",
+    "added": true
+  },
+  {
+    "requested": "Walmart",
+    "label": "Walmart",
+    "slug": "walmart",
+    "added": true
+  },
+  {
+    "requested": "Trader Joe’s",
+    "label": "Trader Joe’s",
+    "slug": "trader-joes",
+    "added": true
+  },
+  {
+    "requested": "Oxford University Press",
+    "label": "Oxford University Press",
+    "slug": "oxford-university-press",
+    "added": true
+  },
+  {
+    "requested": "Cambridge University Press",
+    "label": "Cambridge University Press",
+    "slug": "cambridge-university-press",
+    "added": true
+  },
+  {
+    "requested": "Dyson",
+    "label": "Dyson",
+    "slug": "dyson",
+    "added": true
+  },
+  {
+    "requested": "Nespresso",
+    "label": "Nespresso",
+    "slug": "nespresso",
+    "added": true
+  },
+  {
+    "requested": "Philips Hue",
+    "label": "Philips Hue",
+    "slug": "philips-hue",
+    "added": true
+  },
+  {
+    "requested": "Verizon",
+    "label": "Verizon",
+    "slug": "verizon",
+    "added": true
+  },
+  {
+    "requested": "AT&T",
+    "label": "AT&T",
+    "slug": "at-t",
+    "added": true
+  },
+  {
+    "requested": "T-Mobile",
+    "label": "T-Mobile",
+    "slug": "t-mobile",
+    "added": true
+  },
+  {
+    "requested": "EE",
+    "label": "EE",
+    "slug": "ee",
+    "added": true
+  },
+  {
+    "requested": "Three",
+    "label": "Three",
+    "slug": "three",
+    "added": true
+  },
+  {
+    "requested": "Nanoleaf",
+    "label": "Nanoleaf",
+    "slug": "nanoleaf",
+    "added": true
+  },
+  {
+    "requested": "Netgear",
+    "label": "Netgear",
+    "slug": "netgear",
+    "added": true
+  },
+  {
+    "requested": "Barry’s Bootcamp",
+    "label": "Barry’s",
+    "slug": "barrys",
+    "added": true
+  },
+  {
+    "requested": "NHS",
+    "label": "NHS",
+    "slug": "nhs",
+    "added": true
+  },
+  {
+    "requested": "hims",
+    "label": "hims",
+    "slug": "hims",
+    "added": true
+  },
+  {
+    "requested": "Oura",
+    "label": "Oura",
+    "slug": "oura",
+    "added": true
+  },
+  {
+    "requested": "Oral-B",
+    "label": "Oral-B",
+    "slug": "oral-b",
+    "added": true
+  },
+  {
+    "requested": "JetBlue",
+    "label": "JetBlue",
+    "slug": "jetblue",
+    "added": true
+  },
+  {
+    "requested": "Virgin Atlantic",
+    "label": "Virgin Atlantic",
+    "slug": "virgin-atlantic",
+    "added": true
+  },
+  {
+    "requested": "Virgin",
+    "label": "Virgin",
+    "slug": "virgin",
+    "added": true
+  },
+  {
+    "requested": "Virgin Active",
+    "label": "Virgin Active",
+    "slug": "virgin-active",
+    "added": true
+  },
+  {
+    "requested": "United Airlines",
+    "label": "United Airlines",
+    "slug": "united-airlines",
+    "added": true
+  },
+  {
+    "requested": "Delta",
+    "label": "Delta",
+    "slug": "delta",
+    "added": true
+  },
+  {
+    "requested": "Lufthansa",
+    "label": "Lufthansa",
+    "slug": "lufthansa",
+    "added": true
+  },
+  {
+    "requested": "American Airlines",
+    "label": "American Airlines",
+    "slug": "american-airlines",
+    "added": true
+  },
+  {
+    "requested": "British Airways",
+    "label": "British Airways",
+    "slug": "british-airways",
+    "added": true
+  },
+  {
+    "requested": "Cathay Pacific",
+    "label": "Cathay Pacific",
+    "slug": "cathay-pacific",
+    "added": true
+  },
+  {
+    "requested": "Qatar Airways",
+    "label": "Qatar Airways",
+    "slug": "qatar-airways",
+    "added": true
+  },
+  {
+    "requested": "SAS",
+    "label": "SAS",
+    "slug": "sas",
+    "added": true
+  },
+  {
+    "requested": "Alaskan Airlines",
+    "label": "Alaska Airlines",
+    "slug": "alaska-airlines",
+    "added": true
+  },
+  {
+    "requested": "Air France",
+    "label": "Air France",
+    "slug": "air-france",
+    "added": true
+  },
+  {
+    "requested": "KLM",
+    "label": "KLM",
+    "slug": "klm",
+    "added": true
+  },
+  {
+    "requested": "Wizz Air",
+    "label": "Wizz Air",
+    "slug": "wizz-air",
+    "added": true
+  },
+  {
+    "requested": "RyanAir",
+    "label": "Ryanair",
+    "slug": "ryanair",
+    "added": true
+  },
+  {
+    "requested": "Eurowings",
+    "label": "Eurowings",
+    "slug": "eurowings",
+    "added": true
+  },
+  {
+    "requested": "EasyJet",
+    "label": "easyJet",
+    "slug": "easyjet",
+    "added": true
+  },
+  {
+    "requested": "Priority Pass",
+    "label": "Priority Pass",
+    "slug": "priority-pass",
+    "added": true
+  },
+  {
+    "requested": "Aegean",
+    "label": "Aegean",
+    "slug": "aegean",
+    "added": true
+  },
+  {
+    "requested": "Finnair",
+    "label": "Finnair",
+    "slug": "finnair",
+    "added": true
+  },
+  {
+    "requested": "SWISS Air",
+    "label": "SWISS",
+    "slug": "swiss",
+    "added": true
+  },
+  {
+    "requested": "AirCanada",
+    "label": "Air Canada",
+    "slug": "air-canada",
+    "added": true
+  },
+  {
+    "requested": "Starling",
+    "label": "Starling Bank",
+    "slug": "starling-bank",
+    "added": true
+  },
+  {
+    "requested": "Discover",
+    "label": "Discover",
+    "slug": "discover",
+    "added": false
+  },
+  {
+    "requested": "Curve",
+    "label": "Curve",
+    "slug": "curve",
+    "added": true
+  },
+  {
+    "requested": "MBNA",
+    "label": "MBNA",
+    "slug": "mbna",
+    "added": true
+  },
+  {
+    "requested": "Venmo",
+    "label": "Venmo",
+    "slug": "venmo",
+    "added": false
+  },
+  {
+    "requested": "FreeAgent",
+    "label": "FreeAgent",
+    "slug": "freeagent",
+    "added": true
+  },
+  {
+    "requested": "HMRC",
+    "label": "HMRC",
+    "slug": "hmrc",
+    "added": true
+  },
+  {
+    "requested": "American Express",
+    "label": "American Express",
+    "slug": "american-express",
+    "added": false
+  },
+  {
+    "requested": "Bonify",
+    "label": "Bonify",
+    "slug": "bonify",
+    "added": true
+  },
+  {
+    "requested": "Cash App",
+    "label": "Cash App",
+    "slug": "cash-app",
+    "added": false
+  },
+  {
+    "requested": "Block",
+    "label": "Block",
+    "slug": "block",
+    "added": true
+  },
+  {
+    "requested": "Gemini",
+    "label": "Gemini Exchange",
+    "slug": "gemini-exchange",
+    "added": true
+  },
+  {
+    "requested": "PayPal",
+    "label": "PayPal",
+    "slug": "paypal",
+    "added": false
+  },
+  {
+    "requested": "Solana",
+    "label": "Solana",
+    "slug": "solana",
+    "added": false
+  },
+  {
+    "requested": "Bitcoin",
+    "label": "Bitcoin",
+    "slug": "bitcoin",
+    "added": false
+  },
+  {
+    "requested": "Helium",
+    "label": "Helium",
+    "slug": "helium",
+    "added": true
+  },
+  {
+    "requested": "Coinbase",
+    "label": "Coinbase",
+    "slug": "coinbase",
+    "added": true
+  },
+  {
+    "requested": "Authy",
+    "label": "Authy",
+    "slug": "authy",
+    "added": true
+  },
+  {
+    "requested": "YubiKey",
+    "label": "YubiKey",
+    "slug": "yubikey",
+    "added": true
+  },
+  {
+    "requested": "Proton VPN",
+    "label": "Proton VPN",
+    "slug": "proton-vpn",
+    "added": true
+  },
+  {
+    "requested": "Proton Mail",
+    "label": "Proton Mail",
+    "slug": "proton-mail",
+    "added": true
+  },
+  {
+    "requested": "Proton Drive",
+    "label": "Proton Drive",
+    "slug": "proton-drive",
+    "added": true
+  },
+  {
+    "requested": "Proton",
+    "label": "Proton",
+    "slug": "proton",
+    "added": true
+  },
+  {
+    "requested": "Apple Safari",
+    "label": "Safari",
+    "slug": "safari",
+    "added": false
+  },
+  {
+    "requested": "Brave",
+    "label": "Brave",
+    "slug": "brave",
+    "added": false
+  },
+  {
+    "requested": "Internet Explorer",
+    "label": "Internet Explorer",
+    "slug": "internet-explorer-legacy",
+    "added": false
+  },
+  {
+    "requested": "Edge",
+    "label": "Microsoft Edge",
+    "slug": "edge",
+    "added": false
+  },
+  {
+    "requested": "Chrome",
+    "label": "Chrome",
+    "slug": "chrome",
+    "added": false
+  },
+  {
+    "requested": "WeTransfer",
+    "label": "WeTransfer",
+    "slug": "wetransfer",
+    "added": true
+  },
+  {
+    "requested": "Klarna",
+    "label": "Klarna",
+    "slug": "klarna",
+    "added": true
+  },
+  {
+    "requested": "Hasbro",
+    "label": "Hasbro",
+    "slug": "hasbro",
+    "added": true
+  },
+  {
+    "requested": "Monopoly",
+    "label": "Monopoly",
+    "slug": "monopoly",
+    "added": true
+  },
+  {
+    "requested": "Raycast",
+    "label": "Raycast",
+    "slug": "raycast",
+    "added": true
+  },
+  {
+    "requested": "Shazam",
+    "label": "Shazam",
+    "slug": "shazam",
+    "added": true
+  },
+  {
+    "requested": "Smirnoff",
+    "label": "Smirnoff",
+    "slug": "smirnoff",
+    "added": true
+  },
+  {
+    "requested": "Absolut",
+    "label": "Absolut",
+    "slug": "absolut",
+    "added": true
+  },
+  {
+    "requested": "Petrossian",
+    "label": "Petrossian",
+    "slug": "petrossian",
+    "added": true
+  },
+  {
+    "requested": "Dom Perignon",
+    "label": "Dom Pérignon",
+    "slug": "dom-perignon",
+    "added": true
+  },
+  {
+    "requested": "Bollinger",
+    "label": "Bollinger",
+    "slug": "bollinger",
+    "added": true
+  },
+  {
+    "requested": "Ruinart",
+    "label": "Ruinart",
+    "slug": "ruinart",
+    "added": true
+  },
+  {
+    "requested": "Moët Chandon",
+    "label": "Moët & Chandon",
+    "slug": "moet-chandon",
+    "added": true
+  },
+  {
+    "requested": "Veuve Cliquot",
+    "label": "Veuve Clicquot",
+    "slug": "veuve-clicquot",
+    "added": true
+  },
+  {
+    "requested": "Taittinger",
+    "label": "Taittinger",
+    "slug": "taittinger",
+    "added": true
+  },
+  {
+    "requested": "Billecart-Salmon",
+    "label": "Billecart-Salmon",
+    "slug": "billecart-salmon",
+    "added": true
+  },
+  {
+    "requested": "Edeka",
+    "label": "Edeka",
+    "slug": "edeka",
+    "added": true
+  },
+  {
+    "requested": "Lidl",
+    "label": "Lidl",
+    "slug": "lidl",
+    "added": true
+  },
+  {
+    "requested": "Aldi Nord",
+    "label": "Aldi Nord",
+    "slug": "aldi-nord",
+    "added": true
+  },
+  {
+    "requested": "Aldi Süd",
+    "label": "Aldi Süd",
+    "slug": "aldi-sud",
+    "added": true
+  },
+  {
+    "requested": "Kaufland",
+    "label": "Kaufland",
+    "slug": "kaufland",
+    "added": true
+  },
+  {
+    "requested": "Rossman",
+    "label": "Rossmann",
+    "slug": "rossmann",
+    "added": true
+  },
+  {
+    "requested": "dm-drogerie markt",
+    "label": "dm-drogerie markt",
+    "slug": "dm-drogerie-markt",
+    "added": true
+  },
+  {
+    "requested": "MediaMarkt",
+    "label": "MediaMarkt",
+    "slug": "mediamarkt",
+    "added": true
+  },
+  {
+    "requested": "Saturn",
+    "label": "Saturn",
+    "slug": "saturn",
+    "added": true
+  },
+  {
+    "requested": "Currys",
+    "label": "Currys",
+    "slug": "currys",
+    "added": true
+  },
+  {
+    "requested": "Morrisons",
+    "label": "Morrisons",
+    "slug": "morrisons",
+    "added": true
+  },
+  {
+    "requested": "Marks & Spencer (M&S)",
+    "label": "Marks & Spencer",
+    "slug": "marks-spencer",
+    "added": true
+  },
+  {
+    "requested": "John Lewis",
+    "label": "John Lewis",
+    "slug": "john-lewis",
+    "added": true
+  },
+  {
+    "requested": "Evri",
+    "label": "Evri",
+    "slug": "evri",
+    "added": true
+  },
+  {
+    "requested": "DPD",
+    "label": "DPD",
+    "slug": "dpd",
+    "added": true
+  },
+  {
+    "requested": "ParcelForce",
+    "label": "Parcelforce",
+    "slug": "parcelforce",
+    "added": true
+  },
+  {
+    "requested": "FedEx",
+    "label": "FedEx",
+    "slug": "fedex",
+    "added": false
+  },
+  {
+    "requested": "Rheinmetall",
+    "label": "Rheinmetall",
+    "slug": "rheinmetall",
+    "added": true
+  },
+  {
+    "requested": "ThyssenKrupp",
+    "label": "ThyssenKrupp",
+    "slug": "thyssenkrupp",
+    "added": true
+  },
+  {
+    "requested": "BAE Systems",
+    "label": "BAE Systems",
+    "slug": "bae-systems",
+    "added": true
+  },
+  {
+    "requested": "Boeing",
+    "label": "Boeing",
+    "slug": "boeing",
+    "added": true
+  },
+  {
+    "requested": "Airbus",
+    "label": "Airbus",
+    "slug": "airbus",
+    "added": true
+  },
+  {
+    "requested": "Helsing",
+    "label": "Helsing",
+    "slug": "helsing",
+    "added": true
+  },
+  {
+    "requested": "Scale AI",
+    "label": "Scale AI",
+    "slug": "scale-ai",
+    "added": true
+  },
+  {
+    "requested": "Rolls-Royce",
+    "label": "Rolls-Royce",
+    "slug": "rolls-royce",
+    "added": true
+  },
+  {
+    "requested": "QinetiQ",
+    "label": "QinetiQ",
+    "slug": "qinetiq",
+    "added": true
+  },
+  {
+    "requested": "Thales",
+    "label": "Thales",
+    "slug": "thales",
+    "added": true
+  },
+  {
+    "requested": "Leonardo",
+    "label": "Leonardo",
+    "slug": "leonardo",
+    "added": true
+  },
+  {
+    "requested": "Anduril",
+    "label": "Anduril",
+    "slug": "anduril",
+    "added": true
+  },
+  {
+    "requested": "HBO",
+    "label": "HBO",
+    "slug": "hbo",
+    "added": true
+  },
+  {
+    "requested": "Paramount Pictures",
+    "label": "Paramount Pictures",
+    "slug": "paramount-pictures",
+    "added": true
+  },
+  {
+    "requested": "Warner Bros Entertainment",
+    "label": "Warner Bros Entertainment",
+    "slug": "warner-bros-entertainment",
+    "added": true
+  },
+  {
+    "requested": "Universal Pictures",
+    "label": "Universal Pictures",
+    "slug": "universal-pictures",
+    "added": true
+  },
+  {
+    "requested": "Sony Pictures",
+    "label": "Sony Pictures",
+    "slug": "sony-pictures",
+    "added": true
+  },
+  {
+    "requested": "Walt Disney Studios",
+    "label": "Walt Disney Studios",
+    "slug": "walt-disney-studios",
+    "added": true
+  },
+  {
+    "requested": "Columbia Pictures",
+    "label": "Columbia Pictures",
+    "slug": "columbia-pictures",
+    "added": true
+  },
+  {
+    "requested": "Liongate",
+    "label": "Lionsgate",
+    "slug": "lionsgate",
+    "added": true
+  },
+  {
+    "requested": "Dreamworks",
+    "label": "DreamWorks",
+    "slug": "dreamworks",
+    "added": true
+  },
+  {
+    "requested": "Pixar",
+    "label": "Pixar",
+    "slug": "pixar",
+    "added": true
+  },
+  {
+    "requested": "Marvel Studios",
+    "label": "Marvel Studios",
+    "slug": "marvel-studios",
+    "added": true
+  },
+  {
+    "requested": "20th Century Fox",
+    "label": "20th Century Fox",
+    "slug": "20th-century-fox",
+    "added": true
+  },
+  {
+    "requested": "Nintendo Switch",
+    "label": "Nintendo Switch",
+    "slug": "nintendo-switch",
+    "added": true
+  },
+  {
+    "requested": "Spotify",
+    "label": "Spotify",
+    "slug": "spotify",
+    "added": false
+  },
+  {
+    "requested": "TIDAL",
+    "label": "TIDAL",
+    "slug": "tidal",
+    "added": false
+  },
+  {
+    "requested": "1Password",
+    "label": "1Password",
+    "slug": "1password",
+    "added": true
+  },
+  {
+    "requested": "LastPass",
+    "label": "LastPass",
+    "slug": "lastpass",
+    "added": true
+  },
+  {
+    "requested": "King’s College London",
+    "label": "King's College London",
+    "slug": "king-s-college-london",
+    "added": true
+  },
+  {
+    "requested": "Imperial College London",
+    "label": "Imperial College London",
+    "slug": "imperial-college-london",
+    "added": true
+  },
+  {
+    "requested": "University College London",
+    "label": "University College London",
+    "slug": "university-college-london",
+    "added": true
+  },
+  {
+    "requested": "the London School of Economics",
+    "label": "London School of Economics",
+    "slug": "london-school-of-economics",
+    "added": true
+  },
+  {
+    "requested": "Loewe",
+    "label": "Loewe",
+    "slug": "loewe",
+    "added": true
+  },
+  {
+    "requested": "Therabody",
+    "label": "Therabody",
+    "slug": "therabody",
+    "added": true
+  },
+  {
+    "requested": "Idealo",
+    "label": "Idealo",
+    "slug": "idealo",
+    "added": true
+  },
+  {
+    "requested": "Yahoo!",
+    "label": "Yahoo!",
+    "slug": "yahoo",
+    "added": false
+  },
+  {
+    "requested": "Star Trek badge",
+    "label": "Star Trek",
+    "slug": "star-trek",
+    "added": true
+  },
+  {
+    "requested": "Star Wars",
+    "label": "Star Wars",
+    "slug": "star-wars",
+    "added": true
+  },
+  {
+    "requested": "Game of Thrones",
+    "label": "Game of Thrones",
+    "slug": "game-of-thrones",
+    "added": true
+  },
+  {
+    "requested": "James Bond (007)",
+    "label": "007",
+    "slug": "007",
+    "added": true
+  },
+  {
+    "requested": "Foundation (TV Series)",
+    "label": "Foundation (TV Series)",
+    "slug": "foundation-tv-series",
+    "added": true
+  },
+  {
+    "requested": "noma (Copenhagen Restaurant)",
+    "label": "noma",
+    "slug": "noma",
+    "added": true
+  },
+  {
+    "requested": "The French Laundry",
+    "label": "The French Laundry",
+    "slug": "the-french-laundry",
+    "added": true
+  },
+  {
+    "requested": "Dior",
+    "label": "Dior",
+    "slug": "dior",
+    "added": true
+  },
+  {
+    "requested": "Louis Vuitton",
+    "label": "Louis Vuitton",
+    "slug": "louis-vuitton",
+    "added": true
+  },
+  {
+    "requested": "Chanel",
+    "label": "Chanel",
+    "slug": "chanel",
+    "added": true
+  },
+  {
+    "requested": "Hermès",
+    "label": "Hermès",
+    "slug": "hermes",
+    "added": true
+  },
+  {
+    "requested": "Balenciaga",
+    "label": "Balenciaga",
+    "slug": "balenciaga",
+    "added": true
+  },
+  {
+    "requested": "Dolce & Gabbana",
+    "label": "Dolce & Gabbana",
+    "slug": "dolce-gabbana",
+    "added": true
+  },
+  {
+    "requested": "Gucci",
+    "label": "Gucci",
+    "slug": "gucci",
+    "added": true
+  },
+  {
+    "requested": "Max Mara",
+    "label": "Max Mara",
+    "slug": "max-mara",
+    "added": true
+  },
+  {
+    "requested": "Prada",
+    "label": "Prada",
+    "slug": "prada",
+    "added": true
+  },
+  {
+    "requested": "Ralph Lauren",
+    "label": "Ralph Lauren",
+    "slug": "ralph-lauren",
+    "added": true
+  },
+  {
+    "requested": "Valentino",
+    "label": "Valentino",
+    "slug": "valentino",
+    "added": true
+  },
+  {
+    "requested": "Versace",
+    "label": "Versace",
+    "slug": "versace",
+    "added": true
+  },
+  {
+    "requested": "Yves Saint Laurent",
+    "label": "Yves Saint Laurent",
+    "slug": "yves-saint-laurent",
+    "added": true
+  },
+  {
+    "requested": "Zegna",
+    "label": "Zegna",
+    "slug": "zegna",
+    "added": true
+  },
+  {
+    "requested": "Aston Martin",
+    "label": "Aston Martin",
+    "slug": "aston-martin",
+    "added": true
+  },
+  {
+    "requested": "Cadillac",
+    "label": "Cadillac",
+    "slug": "cadillac",
+    "added": true
+  },
+  {
+    "requested": "BMW",
+    "label": "BMW",
+    "slug": "bmw",
+    "added": true
+  },
+  {
+    "requested": "Porsche",
+    "label": "Porsche",
+    "slug": "porsche",
+    "added": true
+  },
+  {
+    "requested": "Bentley",
+    "label": "Bentley",
+    "slug": "bentley",
+    "added": true
+  },
+  {
+    "requested": "Maserati",
+    "label": "Maserati",
+    "slug": "maserati",
+    "added": true
+  },
+  {
+    "requested": "Pagani",
+    "label": "Pagani",
+    "slug": "pagani",
+    "added": true
+  },
+  {
+    "requested": "Lexus",
+    "label": "Lexus",
+    "slug": "lexus",
+    "added": true
+  },
+  {
+    "requested": "Koenigsegg",
+    "label": "Koenigsegg",
+    "slug": "koenigsegg",
+    "added": true
+  },
+  {
+    "requested": "Peugeot",
+    "label": "Peugeot",
+    "slug": "peugeot",
+    "added": true
+  },
+  {
+    "requested": "Toyota",
+    "label": "Toyota",
+    "slug": "toyota",
+    "added": true
+  },
+  {
+    "requested": "McDonald’s",
+    "label": "McDonald’s",
+    "slug": "mcdonalds",
+    "added": true
+  },
+  {
+    "requested": "Subway",
+    "label": "Subway",
+    "slug": "subway",
+    "added": true
+  },
+  {
+    "requested": "M&M’s",
+    "label": "M&M’s",
+    "slug": "m-ms",
+    "added": true
+  },
+  {
+    "requested": "YouGov",
+    "label": "YouGov",
+    "slug": "yougov",
+    "added": true
+  },
+  {
+    "requested": "Vaseline",
+    "label": "Vaseline",
+    "slug": "vaseline",
+    "added": true
+  },
+  {
+    "requested": "Lego",
+    "label": "Lego",
+    "slug": "lego",
+    "added": true
+  },
+  {
+    "requested": "Kleenex",
+    "label": "Kleenex",
+    "slug": "kleenex",
+    "added": true
+  },
+  {
+    "requested": "Tencent",
+    "label": "Tencent",
+    "slug": "tencent",
+    "added": true
+  },
+  {
+    "requested": "Mastercard",
+    "label": "Mastercard",
+    "slug": "mastercard",
+    "added": false
+  },
+  {
+    "requested": "Visa",
+    "label": "Visa",
+    "slug": "visa",
+    "added": false
+  },
+  {
+    "requested": "IBM",
+    "label": "IBM",
+    "slug": "ibm",
+    "added": true
+  },
+  {
+    "requested": "Costco",
+    "label": "Costco",
+    "slug": "costco",
+    "added": true
+  },
+  {
+    "requested": "TikTok",
+    "label": "TikTok",
+    "slug": "tiktok",
+    "added": false
+  },
+  {
+    "requested": "Cisco",
+    "label": "Cisco",
+    "slug": "cisco",
+    "added": true
+  },
+  {
+    "requested": "Home Depot",
+    "label": "Home Depot",
+    "slug": "home-depot",
+    "added": true
+  },
+  {
+    "requested": "VMWare",
+    "label": "VMWare",
+    "slug": "vmware",
+    "added": true
+  },
+  {
+    "requested": "Aramco",
+    "label": "Aramco",
+    "slug": "aramco",
+    "added": true
+  },
+  {
+    "requested": "Moutai",
+    "label": "Moutai",
+    "slug": "moutai",
+    "added": true
+  },
+  {
+    "requested": "Marlboro",
+    "label": "Marlboro",
+    "slug": "marlboro",
+    "added": true
+  },
+  {
+    "requested": "Siemens",
+    "label": "Siemens",
+    "slug": "siemens",
+    "added": true
+  },
+  {
+    "requested": "Bosch",
+    "label": "Bosch",
+    "slug": "bosch",
+    "added": true
+  },
+  {
+    "requested": "ADP",
+    "label": "ADP",
+    "slug": "adp",
+    "added": true
+  },
+  {
+    "requested": "Intuit",
+    "label": "Intuit",
+    "slug": "intuit",
+    "added": true
+  },
+  {
+    "requested": "Huawei",
+    "label": "Huawei",
+    "slug": "huawei",
+    "added": true
+  },
+  {
+    "requested": "Texas Instruments",
+    "label": "Texas Instruments",
+    "slug": "texas-instruments",
+    "added": true
+  },
+  {
+    "requested": "Morgan Stanley",
+    "label": "Morgan Stanley",
+    "slug": "morgan-stanley",
+    "added": true
+  },
+  {
+    "requested": "Goldman Sachs",
+    "label": "Goldman Sachs",
+    "slug": "goldman-sachs",
+    "added": true
+  },
+  {
+    "requested": "Nomura",
+    "label": "Nomura",
+    "slug": "nomura",
+    "added": true
+  },
+  {
+    "requested": "Trafigura",
+    "label": "Trafigura",
+    "slug": "trafigura",
+    "added": true
+  },
+  {
+    "requested": "RBC",
+    "label": "Royal Bank of Canada",
+    "slug": "royal-bank-of-canada",
+    "added": true
+  },
+  {
+    "requested": "ServiceNow",
+    "label": "ServiceNow",
+    "slug": "servicenow",
+    "added": true
+  },
+  {
+    "requested": "Deloitte",
+    "label": "Deloitte",
+    "slug": "deloitte",
+    "added": true
+  },
+  {
+    "requested": "Accenture",
+    "label": "Accenture",
+    "slug": "accenture",
+    "added": true
+  },
+  {
+    "requested": "UPS",
+    "label": "UPS",
+    "slug": "ups",
+    "added": false
+  },
+  {
+    "requested": "Zara",
+    "label": "Zara",
+    "slug": "zara",
+    "added": true
+  },
+  {
+    "requested": "CommBank",
+    "label": "Commonwealth Bank",
+    "slug": "commonwealth-bank",
+    "added": true
+  },
+  {
+    "requested": "Dell",
+    "label": "Dell",
+    "slug": "dell",
+    "added": true
+  },
+  {
+    "requested": "L’Oreal",
+    "label": "L’Oreal",
+    "slug": "loreal",
+    "added": true
+  },
+  {
+    "requested": "Bank of America",
+    "label": "Bank of America",
+    "slug": "bank-of-america",
+    "added": true
+  },
+  {
+    "requested": "KFC",
+    "label": "KFC",
+    "slug": "kfc",
+    "added": true
+  },
+  {
+    "requested": "Harry Potter",
+    "label": "Harry Potter",
+    "slug": "harry-potter",
+    "added": true
+  },
+  {
+    "requested": "Lowe’s",
+    "label": "Lowe’s",
+    "slug": "lowes",
+    "added": true
+  },
+  {
+    "requested": "Xfinity",
+    "label": "Xfinity",
+    "slug": "xfinity",
+    "added": true
+  },
+  {
+    "requested": "Berry Bros",
+    "label": "Berry Bros. & Rudd",
+    "slug": "berry-bros-rudd",
+    "added": true
+  },
+  {
+    "requested": "ExxonMobil",
+    "label": "ExxonMobil",
+    "slug": "exxonmobil",
+    "added": true
+  },
+  {
+    "requested": "Hilton",
+    "label": "Hilton",
+    "slug": "hilton",
+    "added": true
+  },
+  {
+    "requested": "Uniqlo",
+    "label": "Uniqlo",
+    "slug": "uniqlo",
+    "added": true
+  },
+  {
+    "requested": "UnitedHealthcare",
+    "label": "UnitedHealthcare",
+    "slug": "unitedhealthcare",
+    "added": true
+  },
+  {
+    "requested": "Charles Schwab",
+    "label": "Charles Schwab",
+    "slug": "charles-schwab",
+    "added": true
+  },
+  {
+    "requested": "Allianz",
+    "label": "Allianz",
+    "slug": "allianz",
+    "added": true
+  },
+  {
+    "requested": "Shell",
+    "label": "Shell",
+    "slug": "shell",
+    "added": true
+  },
+  {
+    "requested": "Honda",
+    "label": "Honda",
+    "slug": "honda",
+    "added": true
+  },
+  {
+    "requested": "BlackRock",
+    "label": "BlackRock",
+    "slug": "blackrock",
+    "added": true
+  },
+  {
+    "requested": "Blackstone",
+    "label": "Blackstone",
+    "slug": "blackstone",
+    "added": true
+  },
+  {
+    "requested": "Qualcomm",
+    "label": "Qualcomm",
+    "slug": "qualcomm",
+    "added": true
+  },
+  {
+    "requested": "Salesforce",
+    "label": "Salesforce",
+    "slug": "salesforce",
+    "added": false
+  },
+  {
+    "requested": "AXA",
+    "label": "AXA",
+    "slug": "axa",
+    "added": true
+  },
+  {
+    "requested": "GE",
+    "label": "General Electric",
+    "slug": "general-electric",
+    "added": true
+  },
+  {
+    "requested": "Pampers",
+    "label": "Pampers",
+    "slug": "pampers",
+    "added": true
+  },
+  {
+    "requested": "Citi",
+    "label": "Citi",
+    "slug": "citi",
+    "added": true
+  },
+  {
+    "requested": "HP",
+    "label": "HP",
+    "slug": "hp",
+    "added": true
+  },
+  {
+    "requested": "Budweiser",
+    "label": "Budweiser",
+    "slug": "budweiser",
+    "added": true
+  },
+  {
+    "requested": "H&M",
+    "label": "H&M",
+    "slug": "h-m",
+    "added": true
+  },
+  {
+    "requested": "Monster",
+    "label": "Monster Energy",
+    "slug": "monster-energy",
+    "added": true
+  },
+  {
+    "requested": "Cartier",
+    "label": "Cartier",
+    "slug": "cartier",
+    "added": true
+  },
+  {
+    "requested": "Philips",
+    "label": "Philips",
+    "slug": "philips",
+    "added": true
+  },
+  {
+    "requested": "Colgate",
+    "label": "Colgate",
+    "slug": "colgate",
+    "added": true
+  },
+  {
+    "requested": "Santander",
+    "label": "Santander",
+    "slug": "santander",
+    "added": true
+  },
+  {
+    "requested": "Corona",
+    "label": "Corona",
+    "slug": "corona",
+    "added": true
+  },
+  {
+    "requested": "Nissan",
+    "label": "Nissan",
+    "slug": "nissan",
+    "added": true
+  },
+  {
+    "requested": "Caterpillar",
+    "label": "Caterpillar",
+    "slug": "caterpillar",
+    "added": true
+  },
+  {
+    "requested": "3M",
+    "label": "3M",
+    "slug": "3m",
+    "added": true
+  },
+  {
+    "requested": "John Deere",
+    "label": "John Deere",
+    "slug": "john-deere",
+    "added": true
+  },
+  {
+    "requested": "Kia",
+    "label": "Kia",
+    "slug": "kia",
+    "added": true
+  },
+  {
+    "requested": "Danone",
+    "label": "Danone",
+    "slug": "danone",
+    "added": true
+  },
+  {
+    "requested": "Sephora",
+    "label": "Sephora",
+    "slug": "sephora",
+    "added": true
+  },
+  {
+    "requested": "Tiffany & Co",
+    "label": "Tiffany & Co",
+    "slug": "tiffany-co",
+    "added": true
+  },
+  {
+    "requested": "Lord of the Rings",
+    "label": "The Lord of the Rings",
+    "slug": "the-lord-of-the-rings",
+    "added": true
+  }
+]

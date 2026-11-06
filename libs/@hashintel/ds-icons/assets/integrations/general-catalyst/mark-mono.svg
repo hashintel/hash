@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="general-catalyst-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -.13819 -.46488 -.04693 1 0" result="tones"/><feFlood flood-color="currentColor"/><feComposite in2="tones" operator="in"/></filter></defs><g filter="url(#general-catalyst-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1006 1077" fill="none" x="0.0" y="0.0" width="64" height="64">
+<g clip-path="url(#general-catalyst-mark-mono-clip0_27749_131)">
+<path d="M908.991 500.418L908.972 500.219H502.627V643.971H827.093C840.554 643.971 850.288 656.856 846.613 669.806C803.137 822.963 660.131 934.257 491.936 929.349C300.497 923.764 146.451 766.059 145.101 574.544C143.702 375.898 304.31 214.427 502.63 214.427V69.5312C224.942 69.5312 -0.127724 294.802 0.195446 572.565C0.518617 850.769 224.429 1074.4 502.632 1074.4C770.645 1074.4 989.567 864.53 1004.21 600.176C1004.21 545.912 958.663 500.532 908.991 500.418Z" fill="#1F1F1F" />
+<path d="M793.5 433.539C871.296 433.539 939.48 392.514 977.692 330.942L884.431 273.126C865.578 303.538 831.913 323.804 793.498 323.804C734.443 323.804 686.57 275.93 686.57 216.876C686.57 157.822 734.443 109.948 793.498 109.948C831.874 109.948 865.51 130.175 884.374 160.538L977.632 102.721C939.409 41.2017 871.254 0.216309 793.498 0.216309C673.838 0.216309 576.837 97.217 576.837 216.876C576.837 336.535 673.841 433.536 793.498 433.536L793.5 433.539Z" fill="#1F1F1F" />
+</g>
+<defs>
+<clipPath id="general-catalyst-mark-mono-clip0_27749_131">
+<rect width="1006" height="1076.37" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

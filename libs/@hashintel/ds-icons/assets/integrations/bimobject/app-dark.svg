@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bimobject-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="bimobject-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bimobject-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bimobject-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bimobject-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bimobject-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="bimobject-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bimobject-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 30.72 448 450.56" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#F5F7FA" d="M416 32L32 32C14.4 32 0 46.4 0 64L0 448c0 17.6 14.4 32 32 32l384 0c17.6 0 32-14.4 32-32l0-384c0-17.6-14.4-32-32-32zM352 289.4c0 49.4-11.4 82.6-103.8 82.6l-16.9 0c-44.1 0-62.4-14.9-70.4-38.8l-.9 0 0 34.8-64 0 0-232 64 0 0 74.7 1.1 0c4.6-30.5 39.7-38.8 69.7-38.8l17.3 0c92.4 0 103.8 33.1 103.8 82.5l0 35 .1 0zm-64-28.9l0 22.9c0 21.7-3.4 33.8-38.4 33.8l-45.3 0c-28.9 0-44.1-6.5-44.1-35.7l0-19c0-29.3 15.2-35.7 44.1-35.7l45.3 0c35-.2 38.4 12 38.4 33.7z" /></svg></g></svg>
