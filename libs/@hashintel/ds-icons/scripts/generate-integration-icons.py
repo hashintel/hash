@@ -387,6 +387,8 @@ def generate(catalog_only=False):
         if len(set(categories)) != len(categories) or (not categories and brand["name"] != "genericApp"):
             raise ValueError(f'Missing or duplicate categories for {brand["name"]}')
         catalog.append({key: brand[key] for key in ("name", "slug", "label", "integrationNames", "source", "categories")} | {"category": "Integrations", "variants": available, "logoSource": brand.get("logoSource"), "logoNotes": brand.get("logoNotes"), "logoRaster": brand.get("logoRaster", False), "lastCheckedAutomated": brand.get("lastCheckedAutomated"), "lastCheckedManually": brand.get("lastCheckedManually")})
+        if "searchAliases" in brand:
+            catalog[-1]["searchAliases"] = brand["searchAliases"]
         if catalog_only:
             continue
         geometries = []

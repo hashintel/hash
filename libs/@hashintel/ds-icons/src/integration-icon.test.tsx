@@ -85,10 +85,34 @@ describe("IntegrationIcon", () => {
     },
   );
 
+  it("preserves related Fox searches without assigning legacy integration names", () => {
+    for (const name of [
+      "brand20thCenturyFoxLegacy",
+      "brand21stCenturyFoxLegacy",
+      "brand20thCenturyStudios",
+    ]) {
+      const brand = integrationIconCatalog.find((icon) => icon.name === name);
+      expect(brand).toBeDefined();
+      const searchableNames =
+        brand && "searchAliases" in brand
+          ? [brand.label, ...brand.searchAliases]
+          : [];
+      for (const query of ["20th Century Fox", "21st Century Fox"]) {
+        expect(searchableNames.some((alias) => alias.includes(query))).toBe(
+          true,
+        );
+      }
+      if (name.endsWith("Legacy")) expect(brand?.integrationNames).toEqual([]);
+    }
+    expect(integrationIconNameByIntegration["20th Century Studios"]).toBe(
+      "brand20thCenturyStudios",
+    );
+  });
+
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(1444);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(1549);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      1329,
+      1415,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",

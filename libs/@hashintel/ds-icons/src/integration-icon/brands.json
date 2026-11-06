@@ -19475,7 +19475,13 @@
     "logoNotes": "Historical 20th Century Fox identity, distinct from 20th Century Studios.",
     "categories": ["Film & television"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "21st Century Fox",
+      "20th Century Studios",
+      "Twentieth Century Fox",
+      "Twenty-First Century Fox"
+    ]
   },
   {
     "name": "hermes",
@@ -36017,5 +36023,2376 @@
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
     "logoSource": "https://www.hochtief.com/_assets/1710094660852ef5f22e6cbd04149805/Images/logo-hochtief.svg"
+  },
+  {
+    "name": "brand21stCenturyFoxLegacy",
+    "slug": "21st-century-fox",
+    "label": "21st Century Fox (legacy)",
+    "integrationNames": [],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5f/21st_Century_Fox_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#96979B": "#96979B",
+      "#270F6C": "#8274AA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#96979B": "#96979B",
+      "#270F6C": "#8274AA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Historical 2013–2019 corporate identity; distinct from the former 20th Century Fox studio and current 20th Century Studios.",
+    "brandWebsite": "https://www.21cf.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5f/21st_Century_Fox_logo.svg",
+    "searchAliases": [
+      "20th Century Fox",
+      "21st Century Fox",
+      "Twentieth Century Fox",
+      "Twenty-First Century Fox",
+      "20th Century Studios"
+    ]
+  },
+  {
+    "name": "brand20thCenturyStudios",
+    "slug": "20th-century-studios",
+    "label": "20th Century Studios",
+    "integrationNames": ["20th Century Studios", "Twentieth Century Studios"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://lumiere-a.akamaihd.net/v1/images/logo_20cs_618cd78c.svg?region=",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.20thcenturystudios.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://lumiere-a.akamaihd.net/v1/images/logo_20cs_618cd78c.svg?region=",
+    "searchAliases": [
+      "20th Century Fox",
+      "21st Century Fox",
+      "Twentieth Century Fox",
+      "Twenty-First Century Fox",
+      "20th Century Studios"
+    ]
+  },
+  {
+    "name": "target",
+    "slug": "target",
+    "label": "Target",
+    "integrationNames": ["Target"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/target.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#CC0000": "#DA4747"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Verified brand symbol; a separate full wordmark lock-up is not included.",
+    "brandWebsite": "https://www.target.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "bestBuy",
+    "slug": "best-buy",
+    "label": "Best Buy",
+    "integrationNames": ["Best Buy"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Best_Buy_logo_2018.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFED31": "#FFED31",
+      "#1C252C": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFED31": "#FFED31",
+      "#1C252C": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.bestbuy.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Best_Buy_logo_2018.svg"
+  },
+  {
+    "name": "cvs",
+    "slug": "cvs",
+    "label": "CVS",
+    "integrationNames": ["CVS"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9f/CVS_Logo_2016.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#19361A": "#F5F7FA",
+      "#CC0000": "#DA4747",
+      "#1EAB4B": "#1EAB4B",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#19361A": "#F5F7FA",
+      "#CC0000": "#DA4747",
+      "#1EAB4B": "#1EAB4B",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.cvs.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Health & wellbeing"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9f/CVS_Logo_2016.svg"
+  },
+  {
+    "name": "walgreens",
+    "slug": "walgreens",
+    "label": "Walgreens",
+    "integrationNames": ["Walgreens"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.walgreens.com/images/adaptive/livestyleguide/v5/icons/Branding.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E62600": "#E83613"
+    },
+    "logoDarkColors": {
+      "#E62324": "#E83536",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.walgreens.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Health & wellbeing"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Walgreens_2020_primary_logo.svg"
+  },
+  {
+    "name": "kroger",
+    "slug": "kroger",
+    "label": "Kroger",
+    "integrationNames": ["Kroger"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/1/1c/Kroger_%282021%29_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#21409A": "#6479B8",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#21409A": "#6479B8",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.kroger.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/1/1c/Kroger_%282021%29_logo.svg"
+  },
+  {
+    "name": "dollarGeneral",
+    "slug": "dollar-general",
+    "label": "Dollar General",
+    "integrationNames": ["Dollar General"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/05/Dollar_General_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1C1B1B": "#1C1B1B",
+      "#CACBCC": "#CACBCC",
+      "#FFEE00": "#FFEE00",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#1C1B1B": "#1C1B1B",
+      "#CACBCC": "#CACBCC",
+      "#FFEE00": "#FFEE00",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.dollargeneral.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/05/Dollar_General_logo.svg"
+  },
+  {
+    "name": "dollarTree",
+    "slug": "dollar-tree",
+    "label": "Dollar Tree",
+    "integrationNames": ["Dollar Tree"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Dollar_Tree_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#00954C": "#00954C",
+      "#6FBE4A": "#6FBE4A"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#00954C": "#00954C",
+      "#6FBE4A": "#6FBE4A"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.dollartree.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Dollar_Tree_logo.svg"
+  },
+  {
+    "name": "macys",
+    "slug": "macys",
+    "label": "Macy’s",
+    "integrationNames": ["Macy’s", "Macy's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/macys.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E21A2C": "#E63746"
+    },
+    "logoDarkColors": {
+      "#E11A2B": "#E53847",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.macys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Macy%27s_logo.svg"
+  },
+  {
+    "name": "nordstrom",
+    "slug": "nordstrom",
+    "label": "Nordstrom",
+    "integrationNames": ["Nordstrom"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/81/Nordstrom_Logo_2019.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231F20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231F20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.nordstrom.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/81/Nordstrom_Logo_2019.svg"
+  },
+  {
+    "name": "tjMaxx",
+    "slug": "tj-maxx",
+    "label": "TJ Maxx",
+    "integrationNames": ["TJ Maxx"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/17/TJ_Maxx_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#C2121C": "#D25057",
+      "#F6BB60": "#F6BB60",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#C2121C": "#D25057",
+      "#F6BB60": "#F6BB60",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.tjmaxx.tjx.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/17/TJ_Maxx_Logo.svg"
+  },
+  {
+    "name": "rei",
+    "slug": "rei",
+    "label": "REI",
+    "integrationNames": ["REI"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/9/9b/REI_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.rei.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/9/9b/REI_logo.svg"
+  },
+  {
+    "name": "chewy",
+    "slug": "chewy",
+    "label": "Chewy",
+    "integrationNames": ["Chewy"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/63/Chewy_pet_food_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1C49C2": "#5677D2",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1C49C2": "#5677D2",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.chewy.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail", "Websites & commerce"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/63/Chewy_pet_food_logo.svg"
+  },
+  {
+    "name": "petco",
+    "slug": "petco",
+    "label": "Petco",
+    "integrationNames": ["Petco"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/af/Petco_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00205B": "#6A7D9F",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#00205B": "#6A7D9F",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.petco.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/af/Petco_Logo.svg"
+  },
+  {
+    "name": "chipotle",
+    "slug": "chipotle",
+    "label": "Chipotle",
+    "integrationNames": ["Chipotle"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.chipotle.com/content/dam/chipotle/global-ui/header/cmg-medallion-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#AC2318": "#AC2318",
+      "#FEFEFE": "#FEFEFE",
+      "#441500": "#441500",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#AC2318": "#AC2318",
+      "#FEFEFE": "#FEFEFE",
+      "#441500": "#441500",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.chipotle.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.chipotle.com/content/dam/chipotle/global-ui/header/cmg-medallion-logo.svg"
+  },
+  {
+    "name": "wendys",
+    "slug": "wendys",
+    "label": "Wendy’s",
+    "integrationNames": ["Wendy’s", "Wendy's"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/3/32/Wendy%27s_full_logo_2012.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#FFFFFF": "#FFFFFF",
+      "#CF202E": "#CF202E",
+      "#453635": "#453635",
+      "#A51D36": "#A51D36",
+      "#00A0DD": "#00A0DD",
+      "#F4D3D6": "#F4D3D6"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#FFFFFF": "#FFFFFF",
+      "#CF202E": "#CF202E",
+      "#453635": "#453635",
+      "#A51D36": "#A51D36",
+      "#00A0DD": "#00A0DD",
+      "#F4D3D6": "#F4D3D6"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.wendys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/3/32/Wendy%27s_full_logo_2012.svg"
+  },
+  {
+    "name": "burgerKing",
+    "slug": "burger-king",
+    "label": "Burger King",
+    "integrationNames": ["Burger King"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Burger_King_2020.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF8732": "#FF8732",
+      "#F5EBDC": "#F5EBDC",
+      "#D62300": "#D62300",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FF8732": "#FF8732",
+      "#F5EBDC": "#F5EBDC",
+      "#D62300": "#D62300",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.bk.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Burger_King_2020.svg"
+  },
+  {
+    "name": "tacoBell",
+    "slug": "taco-bell",
+    "label": "Taco Bell",
+    "integrationNames": ["Taco Bell"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/tacobell.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#682DAB": "#9268C3"
+    },
+    "logoDarkColors": {
+      "#5B2994": "#8F6CB6",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.tacobell.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.yum.com/wps/portal/yumbrands/Yumbrands/company/our-brands/taco-bell"
+  },
+  {
+    "name": "dominos",
+    "slug": "dominos",
+    "label": "Domino’s",
+    "integrationNames": ["Domino’s", "Domino's", "Dominos Pizza"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/64/Domino%27s_2025.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF0000": "#FF0000",
+      "#FFFFFF": "#FFFFFF",
+      "#0090E2": "#0090E2",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FF0000": "#FF0000",
+      "#FFFFFF": "#FFFFFF",
+      "#0090E2": "#0090E2",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.dominos.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/64/Domino%27s_2025.svg"
+  },
+  {
+    "name": "dunkin",
+    "slug": "dunkin",
+    "label": "Dunkin’",
+    "integrationNames": ["Dunkin’", "Dunkin'", "Dunkin Donuts"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.dunkindonuts.com/403.html",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#EF6A00": "#EF6A00",
+      "#C63663": "#CD4F76",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#EF6A00": "#EF6A00",
+      "#C63663": "#CD4F76",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.dunkindonuts.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.dunkindonuts.com/403.html"
+  },
+  {
+    "name": "chickFilA",
+    "slug": "chick-fil-a",
+    "label": "Chick-fil-A",
+    "integrationNames": ["Chick-fil-A"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.chick-fil-a.com/wp-content/uploads/sites/2/2025/04/Chick-fil-A-header-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#DD0031": "#E4365C"
+    },
+    "logoDarkColors": {
+      "#E51636": "#E8314D",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.chick-fil-a.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/02/Chick-fil-A_Logo.svg"
+  },
+  {
+    "name": "hersheys",
+    "slug": "hersheys",
+    "label": "The Hershey Company",
+    "integrationNames": ["The Hershey Company", "Hershey's", "Hershey"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/81/HersheyCo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#A8A9AD": "#A8A9AD",
+      "#3E000F": "#95737B",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#A8A9AD": "#A8A9AD",
+      "#3E000F": "#95737B",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Corporate Hershey identity with the Kisses symbol; separate from individual product wordmarks.",
+    "brandWebsite": "https://www.thehersheycompany.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/81/HersheyCo.svg"
+  },
+  {
+    "name": "heinz",
+    "slug": "heinz",
+    "label": "Heinz",
+    "integrationNames": ["Heinz"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/35/H._J._Heinz_Company_-_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.heinz.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/35/H._J._Heinz_Company_-_Logo.svg"
+  },
+  {
+    "name": "gatorade",
+    "slug": "gatorade",
+    "label": "Gatorade",
+    "integrationNames": ["Gatorade"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Gatorade_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#EF3C42": "#EF3C42",
+      "#F9B63E": "#F9B63E",
+      "#FBB031": "#FBB031",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#EF3C42": "#EF3C42",
+      "#F9B63E": "#F9B63E",
+      "#FBB031": "#FBB031",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.gatorade.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Gatorade_logo.svg"
+  },
+  {
+    "name": "drPepper",
+    "slug": "dr-pepper",
+    "label": "Dr Pepper",
+    "integrationNames": ["Dr Pepper"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/1/19/Dr_Pepper_modern.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#7A0000": "#B06767",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#7A0000": "#B06767",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.drpepper.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/1/19/Dr_Pepper_modern.svg"
+  },
+  {
+    "name": "benAndJerrys",
+    "slug": "ben-and-jerrys",
+    "label": "Ben & Jerry’s",
+    "integrationNames": ["Ben & Jerry’s", "Ben & Jerry's"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Ben_%26_Jerry%27s.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#231F20": "#231F20",
+      "#FAB20B": "#FAB20B",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#231F20": "#231F20",
+      "#FAB20B": "#FAB20B",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.benjerry.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Ben_%26_Jerry%27s.svg"
+  },
+  {
+    "name": "generalMills",
+    "slug": "general-mills",
+    "label": "General Mills",
+    "integrationNames": ["General Mills"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/00/General_Mills_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#234291": "#657BB2",
+      "#E32123": "#E63739",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#234291": "#657BB2",
+      "#E32123": "#E63739",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.generalmills.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/00/General_Mills_logo.svg"
+  },
+  {
+    "name": "pepsico",
+    "slug": "pepsico",
+    "label": "PepsiCo",
+    "integrationNames": ["PepsiCo"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/67/PEP_BIG.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#71A8E3": "#71A8E3",
+      "#111111": "#F5F7FA",
+      "#EB9F0A": "#EB9F0A",
+      "#02355A": "#608097",
+      "#5E910D": "#5E910D",
+      "#8EBC29": "#8EBC29"
+    },
+    "logoDarkColors": {
+      "#71A8E3": "#71A8E3",
+      "#111111": "#F5F7FA",
+      "#EB9F0A": "#EB9F0A",
+      "#02355A": "#608097",
+      "#5E910D": "#5E910D",
+      "#8EBC29": "#8EBC29"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.pepsico.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/67/PEP_BIG.svg",
+    "monoInkScale": 1.61392
+  },
+  {
+    "name": "ford",
+    "slug": "ford",
+    "label": "Ford",
+    "integrationNames": ["Ford"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Ford_logo_flat.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#00095B": "#00095B",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#00095B": "#00095B",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.ford.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Ford_logo_flat.svg"
+  },
+  {
+    "name": "chevrolet",
+    "slug": "chevrolet",
+    "label": "Chevrolet",
+    "integrationNames": ["Chevrolet"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.chevrolet.com/content/dam/chevrolet/na/us/english/index/favicon/chevrolet-favicon-180.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F1CE6C": "#F1CE6C",
+      "#E1B63D": "#E1B63D",
+      "#76777A": "#76777A",
+      "#977124": "#977124",
+      "#FFFFFF": "#FFFFFF",
+      "#B1B1B1": "#B1B1B1",
+      "#F4D78F": "#F4D78F",
+      "#F3E7C0": "#F3E7C0",
+      "#F1CD6A": "#F1CD6A",
+      "#D2A12A": "#D2A12A",
+      "#D9D8D6": "#D9D8D6"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Verified brand symbol; a separate full wordmark lock-up is not included.",
+    "brandWebsite": "https://www.chevrolet.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "generalMotors",
+    "slug": "general-motors",
+    "label": "General Motors",
+    "integrationNames": ["General Motors", "GM"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/generalmotors.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0170CE": "#1A7ED3"
+    },
+    "logoDarkColors": {
+      "#0372CF": "#1A7FD3",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.gm.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/e/ea/General_Motors_%28logo_with_wordmark%2C_horizontal%29.svg"
+  },
+  {
+    "name": "jeep",
+    "slug": "jeep",
+    "label": "Jeep",
+    "integrationNames": ["Jeep"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/jeep.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.jeep.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/jeep.svg"
+  },
+  {
+    "name": "harleyDavidson",
+    "slug": "harley-davidson",
+    "label": "Harley-Davidson",
+    "integrationNames": ["Harley-Davidson"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Harley_Davidson_orange_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#FF6600": "#FF6600",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#FF6600": "#FF6600",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.harley-davidson.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Harley_Davidson_orange_logo.svg"
+  },
+  {
+    "name": "rivian",
+    "slug": "rivian",
+    "label": "Rivian",
+    "integrationNames": ["Rivian"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Rivian_logo_and_wordmark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFB100": "#FFB100",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFB100": "#FFB100",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.rivian.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Rivian_logo_and_wordmark.svg",
+    "monoInkScale": 3.1875
+  },
+  {
+    "name": "lucid",
+    "slug": "lucid",
+    "label": "Lucid",
+    "integrationNames": ["Lucid"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Lucid_Motors_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lucidmotors.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Automotive"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Lucid_Motors_logo.svg"
+  },
+  {
+    "name": "fidelityInvestments",
+    "slug": "fidelity-investments",
+    "label": "Fidelity Investments",
+    "integrationNames": ["Fidelity Investments", "Fidelity"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/9/9c/Fidelity_Investments_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#006B3C": "#006B3C"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#006B3C": "#006B3C"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.fidelity.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/9/9c/Fidelity_Investments_Logo.svg"
+  },
+  {
+    "name": "vanguard",
+    "slug": "vanguard",
+    "label": "Vanguard",
+    "integrationNames": ["Vanguard"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/81/Vanguard.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#96151D": "#B96268",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#96151D": "#B96268",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.vanguard.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/81/Vanguard.svg"
+  },
+  {
+    "name": "capitalOne",
+    "slug": "capital-one",
+    "label": "Capital One",
+    "integrationNames": ["Capital One"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.capitalone.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#CC2427": "#D54D4F",
+      "#013D5B": "#5A8194",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#CC2427": "#D54D4F",
+      "#013D5B": "#5A8194",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.capitalone.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.capitalone.com/"
+  },
+  {
+    "name": "stateFarm",
+    "slug": "state-farm",
+    "label": "State Farm",
+    "integrationNames": ["State Farm"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://static1.st8fm.com/en_US/dxl-1x/prod/css/images/header/state-farm-logo-4.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#EC0C21": "#EC0C21",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#EC0C21": "#EC0C21",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.statefarm.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://static1.st8fm.com/en_US/dxl-1x/prod/css/images/header/state-farm-logo-4.svg"
+  },
+  {
+    "name": "progressive",
+    "slug": "progressive",
+    "label": "Progressive",
+    "integrationNames": ["Progressive"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Logo_of_the_Progressive_Corporation.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2480FE": "#2480FE",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2480FE": "#2480FE",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.progressive.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Logo_of_the_Progressive_Corporation.svg"
+  },
+  {
+    "name": "pnc",
+    "slug": "pnc",
+    "label": "PNC",
+    "integrationNames": ["PNC"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1b/PNClogo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F58025": "#F58025",
+      "#0069AA": "#2A82B8",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#F58025": "#F58025",
+      "#0069AA": "#2A82B8",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.pnc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1b/PNClogo.svg",
+    "monoInkScale": 1.54545
+  },
+  {
+    "name": "usBank",
+    "slug": "us-bank",
+    "label": "U.S. Bank",
+    "integrationNames": ["U.S. Bank", "US Bank"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.usbank.com/etc.clientlibs/ecm-global/clientlibs/clientlib-resources/resources/images/svg/logo-personal.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#CF2A36": "#CF2A36",
+      "#001E79": "#001E79",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#CF2A36": "#CF2A36",
+      "#001E79": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.usbank.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.usbank.com/etc.clientlibs/ecm-global/clientlibs/clientlib-resources/resources/images/svg/logo-personal.svg",
+    "monoInkScale": 1.26866
+  },
+  {
+    "name": "robinhood",
+    "slug": "robinhood",
+    "label": "Robinhood",
+    "integrationNames": ["Robinhood"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/robinhood.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#CCFF00": "#CCFF00"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.robinhood.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://robinhood.com/eu/de/"
+  },
+  {
+    "name": "chime",
+    "slug": "chime",
+    "label": "Chime",
+    "integrationNames": ["Chime"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Chime_company_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1EC677": "#1EC677",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1EC677": "#1EC677",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.chime.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Chime_company_logo.svg"
+  },
+  {
+    "name": "sofi",
+    "slug": "sofi",
+    "label": "SoFi",
+    "integrationNames": ["SoFi"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/16/SoFi_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0C0C0C": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#515254": "#F5F7FA",
+      "#0074F5": "#0677F5",
+      "#313233": "#F5F7FA",
+      "#03AAFF": "#03AAFF",
+      "#00A2C7": "#00A2C7",
+      "#48494B": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0C0C0C": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#515254": "#F5F7FA",
+      "#0074F5": "#0677F5",
+      "#313233": "#F5F7FA",
+      "#03AAFF": "#03AAFF",
+      "#00A2C7": "#00A2C7",
+      "#48494B": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.sofi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/16/SoFi_logo.svg"
+  },
+  {
+    "name": "espn",
+    "slug": "espn",
+    "label": "ESPN",
+    "integrationNames": ["ESPN"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2f/ESPN_wordmark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E52534": "#E73442",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#E52534": "#E73442",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.espn.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Sport & fitness", "Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2f/ESPN_wordmark.svg"
+  },
+  {
+    "name": "nbc",
+    "slug": "nbc",
+    "label": "NBC",
+    "integrationNames": ["NBC"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7a/NBC_logo_2022_%28vertical%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#6E55DC": "#6E55DC",
+      "#EF1541": "#EF1541",
+      "#05AC3F": "#05AC3F",
+      "#FCCC12": "#FCCC12",
+      "#FF7112": "#FF7112",
+      "#069DE0": "#069DE0"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#6E55DC": "#6E55DC",
+      "#EF1541": "#EF1541",
+      "#05AC3F": "#05AC3F",
+      "#FCCC12": "#FCCC12",
+      "#FF7112": "#FF7112",
+      "#069DE0": "#069DE0"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.nbc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7a/NBC_logo_2022_%28vertical%29.svg",
+    "monoInkScale": 1.28788
+  },
+  {
+    "name": "cbs",
+    "slug": "cbs",
+    "label": "CBS",
+    "integrationNames": ["CBS"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ee/CBS_logo_%282020%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.cbs.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/ee/CBS_logo_%282020%29.svg"
+  },
+  {
+    "name": "hulu",
+    "slug": "hulu",
+    "label": "Hulu",
+    "integrationNames": ["Hulu"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Hulu_logo_%282018%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1CE783": "#1CE783",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1CE783": "#1CE783",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.hulu.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Hulu_logo_%282018%29.svg"
+  },
+  {
+    "name": "peacock",
+    "slug": "peacock",
+    "label": "Peacock",
+    "integrationNames": ["Peacock"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/20/NBCUniversal_Peacock_Logo_%282026%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#D9005A": "#E1347C",
+      "#00CC99": "#00CC99",
+      "#00A637": "#00A637",
+      "#6E64FF": "#6F65FF",
+      "#FFFFFF": "#FFFFFF",
+      "#C814C8": "#CF31CF",
+      "#FF5401": "#FF5401",
+      "#FF8700": "#FF8700",
+      "#000000": "#F5F7FA",
+      "#00C8FF": "#00C8FF",
+      "#FFDC23": "#FFDC23",
+      "#8250FF": "#8A5AFF"
+    },
+    "logoDarkColors": {
+      "#D9005A": "#E1347C",
+      "#00CC99": "#00CC99",
+      "#00A637": "#00A637",
+      "#6E64FF": "#6F65FF",
+      "#FFFFFF": "#FFFFFF",
+      "#C814C8": "#CF31CF",
+      "#FF5401": "#FF5401",
+      "#FF8700": "#FF8700",
+      "#000000": "#F5F7FA",
+      "#00C8FF": "#00C8FF",
+      "#FFDC23": "#FFDC23",
+      "#8250FF": "#8A5AFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.peacocktv.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/20/NBCUniversal_Peacock_Logo_%282026%29.svg"
+  },
+  {
+    "name": "nationalGeographic",
+    "slug": "national-geographic",
+    "label": "National Geographic",
+    "integrationNames": ["National Geographic"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://assets-cdn.nationalgeographic.com/natgeo/static/icons/redesign-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#FFCC00": "#FFCC00"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#FFCC00": "#FFCC00"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.nationalgeographic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["News & publishing", "Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://assets-cdn.nationalgeographic.com/natgeo/static/icons/redesign-logo.svg",
+    "monoInkScale": 4.63636
+  },
+  {
+    "name": "warnerBrosDiscovery",
+    "slug": "warner-bros-discovery",
+    "label": "Warner Bros. Discovery",
+    "integrationNames": ["Warner Bros. Discovery"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/64/Warner_Bros._Discovery.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0022AF": "#6176CD",
+      "#04006C": "#7775B0",
+      "#4047FF": "#6369FF",
+      "#FFC200": "#FFC200"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0022AF": "#6176CD",
+      "#04006C": "#7775B0",
+      "#4047FF": "#6369FF",
+      "#FFC200": "#FFC200"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.wbd.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/64/Warner_Bros._Discovery.svg"
+  },
+  {
+    "name": "broadcom",
+    "slug": "broadcom",
+    "label": "Broadcom",
+    "integrationNames": ["Broadcom"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/broadcom-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#CC092F": "#D84562",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#CC092F": "#D84562",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.broadcom.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/broadcom.svg"
+  },
+  {
+    "name": "micron",
+    "slug": "micron",
+    "label": "Micron",
+    "integrationNames": ["Micron"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/micron-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.micron.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/16/Micron_Technology_logo_2024.svg"
+  },
+  {
+    "name": "motorola",
+    "slug": "motorola",
+    "label": "Motorola",
+    "integrationNames": ["Motorola"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/13/Motorola-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#0F589F": "#477FB6",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#0F589F": "#477FB6",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.motorola.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/13/Motorola-Logo.svg"
+  },
+  {
+    "name": "hewlettPackardEnterprise",
+    "slug": "hewlett-packard-enterprise",
+    "label": "Hewlett Packard Enterprise",
+    "integrationNames": ["Hewlett Packard Enterprise", "HPE"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Hewlett_Packard_Enterprise_logo_2025.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#03A883": "#03A883",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#03A883": "#03A883",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.hpe.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Technology & electronics", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Hewlett_Packard_Enterprise_logo_2025.svg"
+  },
+  {
+    "name": "workday",
+    "slug": "workday",
+    "label": "Workday",
+    "integrationNames": ["Workday"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/80/Workday_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F49813": "#F49813",
+      "#3069B5": "#4C7DBF",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#F49813": "#F49813",
+      "#3069B5": "#4C7DBF",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.workday.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Business software"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/80/Workday_logo.svg"
+  },
+  {
+    "name": "crowdstrike",
+    "slug": "crowdstrike",
+    "label": "CrowdStrike",
+    "integrationNames": ["CrowdStrike"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4f/CrowdStrike_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FC0000": "#FC0000",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FC0000": "#FC0000",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.crowdstrike.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Security & identity"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4f/CrowdStrike_logo.svg"
+  },
+  {
+    "name": "datadog",
+    "slug": "datadog",
+    "label": "Datadog",
+    "integrationNames": ["Datadog"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/datadog-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#632CA6": "#9069C0",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#632CA6": "#9069C0",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.datadoghq.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Developer tools", "Cloud & hosting"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/datadog.svg"
+  },
+  {
+    "name": "electronicArts",
+    "slug": "electronic-arts",
+    "label": "Electronic Arts",
+    "integrationNames": ["Electronic Arts", "EA"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Electronic_Arts_Logo_Blue.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#255AF6": "#4572F7",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#255AF6": "#4572F7",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.ea.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Gaming"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Electronic_Arts_Logo_Blue.svg"
+  },
+  {
+    "name": "roblox",
+    "slug": "roblox",
+    "label": "Roblox",
+    "integrationNames": ["Roblox"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/roblox.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.roblox.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Gaming"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Roblox_Logo_2022.svg"
+  },
+  {
+    "name": "honeywell",
+    "slug": "honeywell",
+    "label": "Honeywell Technologies",
+    "integrationNames": ["Honeywell Technologies", "Honeywell"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.honeywell.com/content/dam/honcorp/us-en/common-assets/logos/hon-honeywell-technologies-logo-mini.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E20100": "#E83534"
+    },
+    "logoDarkColors": {
+      "#E20100": "#E83534"
+    },
+    "logoNotes": "Current Honeywell Technologies identity from the official corporate website.",
+    "brandWebsite": "https://www.honeywell.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.honeywell.com/content/dam/honcorp/us-en/common-assets/logos/hon-honeywell-technologies-logo-full-horizontal.svg"
+  },
+  {
+    "name": "lockheedMartin",
+    "slug": "lockheed-martin",
+    "label": "Lockheed Martin",
+    "integrationNames": ["Lockheed Martin"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Lockheed_Martin_logo_%282%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#003478": "#5D7EA9",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#003478": "#5D7EA9",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lockheedmartin.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Lockheed_Martin_logo_%282%29.svg"
+  },
+  {
+    "name": "northropGrumman",
+    "slug": "northrop-grumman",
+    "label": "Northrop Grumman",
+    "integrationNames": ["Northrop Grumman"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/36/Northrop_Grumman_logo_blue-on-clear_2020.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2B3790": "#6F77B4",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2B3790": "#6F77B4",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.northropgrumman.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/36/Northrop_Grumman_logo_blue-on-clear_2020.svg"
+  },
+  {
+    "name": "chevron",
+    "slug": "chevron",
+    "label": "Chevron",
+    "integrationNames": ["Chevron"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/86/Chevron_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#06569C": "#06569C",
+      "#1371B1": "#1371B1",
+      "#111111": "#111111",
+      "#E6192F": "#E6192F",
+      "#A21C38": "#A21C38",
+      "#2FA1D3": "#2FA1D3",
+      "#0056A2": "#0056A2",
+      "#A71C37": "#A71C37",
+      "#9D1A36": "#9D1A36",
+      "#06549B": "#06549B"
+    },
+    "logoDarkColors": {
+      "#06569C": "#06569C",
+      "#1371B1": "#1371B1",
+      "#111111": "#111111",
+      "#E6192F": "#E6192F",
+      "#A21C38": "#A21C38",
+      "#2FA1D3": "#2FA1D3",
+      "#0056A2": "#F5F7FA",
+      "#A71C37": "#A71C37",
+      "#9D1A36": "#9D1A36",
+      "#06549B": "#06549B"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.chevron.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/86/Chevron_Logo.svg"
+  },
+  {
+    "name": "conocophillips",
+    "slug": "conocophillips",
+    "label": "ConocoPhillips",
+    "integrationNames": ["ConocoPhillips"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.conocophillips.com/favicons/safari-pinned-tab.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E50019": "#EA2F44"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#E40015": "#E93041",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.conocophillips.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.conocophillips.com/images/logo-black.svg"
+  },
+  {
+    "name": "eaton",
+    "slug": "eaton",
+    "label": "Eaton",
+    "integrationNames": ["Eaton"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Eaton_Corporation_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1175C7": "#237FCB",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1175C7": "#237FCB",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.eaton.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Eaton_Corporation_logo.svg"
+  },
+  {
+    "name": "emerson",
+    "slug": "emerson",
+    "label": "Emerson",
+    "integrationNames": ["Emerson"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/a/a9/Emerson_Electric_Company.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#175490": "#175490",
+      "#004685": "#004685",
+      "#004786": "#004786",
+      "#C2C3C5": "#C2C3C5",
+      "#5076A9": "#5076A9",
+      "#BCBEBF": "#BCBEBF",
+      "#E7E8E9": "#E7E8E9",
+      "#5B7CAD": "#5B7CAD",
+      "#96989A": "#96989A",
+      "#7289B7": "#7289B7",
+      "#9FA1A3": "#9FA1A3",
+      "#949698": "#949698",
+      "#DDDEDF": "#DDDEDF",
+      "#1A5691": "#1A5691"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#175490": "#175490",
+      "#004685": "#004685",
+      "#004786": "#F5F7FA",
+      "#C2C3C5": "#C2C3C5",
+      "#5076A9": "#5076A9",
+      "#BCBEBF": "#BCBEBF",
+      "#E7E8E9": "#E7E8E9",
+      "#5B7CAD": "#5B7CAD",
+      "#96989A": "#96989A",
+      "#7289B7": "#7289B7",
+      "#9FA1A3": "#9FA1A3",
+      "#949698": "#949698",
+      "#DDDEDF": "#DDDEDF",
+      "#1A5691": "#1A5691"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.emerson.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/a/a9/Emerson_Electric_Company.svg"
+  },
+  {
+    "name": "patagonia",
+    "slug": "patagonia",
+    "label": "Patagonia",
+    "integrationNames": ["Patagonia"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Patagonia_%28Unternehmen%29_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231F20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231F20": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.patagonia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Patagonia_%28Unternehmen%29_logo.svg"
+  },
+  {
+    "name": "theNorthFace",
+    "slug": "the-north-face",
+    "label": "The North Face",
+    "integrationNames": ["The North Face", "North Face"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e9/The_North_Face_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.thenorthface.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e9/The_North_Face_logo.svg"
+  },
+  {
+    "name": "underArmour",
+    "slug": "under-armour",
+    "label": "Under Armour",
+    "integrationNames": ["Under Armour"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.underarmour.com/en-us/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.underarmour.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/44/Under_armour_logo.svg"
+  },
+  {
+    "name": "newBalance",
+    "slug": "new-balance",
+    "label": "New Balance",
+    "integrationNames": ["New Balance"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/newbalance.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#CF0A2C": "#DA445E"
+    },
+    "logoDarkColors": {
+      "#E21836": "#E6354F",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.newbalance.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/ea/New_Balance_logo.svg"
+  },
+  {
+    "name": "levis",
+    "slug": "levis",
+    "label": "Levi’s",
+    "integrationNames": ["Levi’s", "Levi's", "Levis"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/09/Levis-logo-quer.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#A8112E": "#A8112E",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#A8112E": "#A8112E",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.levi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/09/Levis-logo-quer.svg"
+  },
+  {
+    "name": "carhartt",
+    "slug": "carhartt",
+    "label": "Carhartt",
+    "integrationNames": ["Carhartt"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Carhartt_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F5A600": "#F5A600",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#F5A600": "#F5A600",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.carhartt.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Carhartt_logo.svg",
+    "monoInkScale": 3.03571
+  },
+  {
+    "name": "gap",
+    "slug": "gap",
+    "label": "Gap",
+    "integrationNames": ["Gap"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.gap.com/Asset_Archive/GPWeb/content/0030/015/725/assets/logo/logo_gap--dark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.gap.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.gap.com/Asset_Archive/GPWeb/content/0030/015/725/assets/logo/logo_gap--dark.svg"
+  },
+  {
+    "name": "oldNavy",
+    "slug": "old-navy",
+    "label": "Old Navy",
+    "integrationNames": ["Old Navy"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Old_Navy_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#003874": "#003874",
+      "#003764": "#003764",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#003874": "#003874",
+      "#003764": "#003764",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.oldnavy.gap.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Retail"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Old_Navy_Logo.svg"
+  },
+  {
+    "name": "calvinKlein",
+    "slug": "calvin-klein",
+    "label": "Calvin Klein",
+    "integrationNames": ["Calvin Klein"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Calvin_klein_logo_web23.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.calvinklein.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Calvin_klein_logo_web23.svg"
+  },
+  {
+    "name": "tommyHilfiger",
+    "slug": "tommy-hilfiger",
+    "label": "Tommy Hilfiger",
+    "integrationNames": ["Tommy Hilfiger"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/26/Tommy_hilfig_vectorlogo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#02154E": "#707B9B",
+      "#D61233": "#DE405B",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#02154E": "#707B9B",
+      "#D61233": "#DE405B",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.tommy.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/26/Tommy_hilfig_vectorlogo.svg"
+  },
+  {
+    "name": "coach",
+    "slug": "coach",
+    "label": "Coach",
+    "integrationNames": ["Coach"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/5/50/Coach_New_York_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.coach.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/5/50/Coach_New_York_logo.svg"
+  },
+  {
+    "name": "kateSpade",
+    "slug": "kate-spade",
+    "label": "Kate Spade",
+    "integrationNames": ["Kate Spade"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/39/Kate_Spade_New_York_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.katespade.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/39/Kate_Spade_New_York_logo.svg"
+  },
+  {
+    "name": "crocs",
+    "slug": "crocs",
+    "label": "Crocs",
+    "integrationNames": ["Crocs"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/e/e1/Crocs_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#231F20": "#231F20",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#75B709": "#75B709",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.crocs.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Crocs_wordmark.svg"
+  },
+  {
+    "name": "converse",
+    "slug": "converse",
+    "label": "Converse",
+    "integrationNames": ["Converse"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.converse.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury", "Sport & fitness"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg"
+  },
+  {
+    "name": "popeyes",
+    "slug": "popeyes",
+    "label": "Popeyes",
+    "integrationNames": ["Popeyes"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://ninos.kiddle.co/images/0/0d/Popeyes_Logo_2020.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ff7c00": "#ff7c00",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#ff7c00": "#ff7c00",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.popeyes.com/",
+    "artworkAttribution": "Popeyes wordmark vector by Tucrack, licensed under Creative Commons Attribution-ShareAlike 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Bounds and theme colors adjusted; app tiles composed. Popeyes trademarks remain the property of their owner.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://ninos.kiddle.co/images/0/0d/Popeyes_Logo_2020.svg"
+  },
+  {
+    "name": "oreo",
+    "slug": "oreo",
+    "label": "Oreo",
+    "integrationNames": ["Oreo"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://brandslogos.com/wp-content/uploads/images/large/oreo-logo-vector.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#51c4f1": "#51c4f1",
+      "#1064ad": "#1064ad",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#51c4f1": "#51c4f1",
+      "#1064ad": "#1064ad",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.oreo.com/",
+    "artworkAttribution": "Oreo artwork from Brandslogos.com, provided for personal, non-commercial or editorial use. Bounds and theme colors adjusted; app tiles composed. Oreo trademarks remain the property of their owner.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://brandslogos.com/wp-content/uploads/images/large/oreo-logo-vector.svg"
+  },
+  {
+    "name": "comcast",
+    "slug": "comcast",
+    "label": "Comcast",
+    "integrationNames": ["Comcast"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.companieslogo.com/img/orig/CMCSA-34dbe8c4.svg?t=1720244491&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f36f21": "#f36f21",
+      "#0089cf": "#0089cf",
+      "#111111": "#111111",
+      "#ffffff": "#ffffff",
+      "#645faa": "#645faa",
+      "#fdb913": "#fdb913",
+      "#c9234a": "#c9234a",
+      "#0db14b": "#0db14b"
+    },
+    "logoDarkColors": {
+      "#f36f21": "#f36f21",
+      "#0089cf": "#0089cf",
+      "#111111": "#F5F7FA",
+      "#ffffff": "#ffffff",
+      "#645faa": "#645faa",
+      "#000000": "#F5F7FA",
+      "#fdb913": "#fdb913",
+      "#c9234a": "#c9234a",
+      "#0db14b": "#0db14b"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.comcast.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Communication", "Film & television"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.companieslogo.com/img/orig/CMCSA_BIG-b6c8cf0f.svg?t=1720244491&download=true"
+  },
+  {
+    "name": "timberland",
+    "slug": "timberland",
+    "label": "Timberland",
+    "integrationNames": ["Timberland"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://logo-teka.com/download/logo/33414/svg/?lt_dl_lang=en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000001": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000001": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.timberland.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Fashion & luxury"],
+    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedManually": null,
+    "logoSource": "https://logo-teka.com/download/logo/33414/svg2/?lt_dl_lang=en"
   }
 ]
