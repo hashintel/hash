@@ -38,7 +38,7 @@ interface ThisOwner {
 interface FileState {
   readonly classBodies: ESTree.ClassBody[];
   /** `this` reached with a key only evaluation can tell, such as `this[key]`, which may name any property of its class. */
-  readonly dynamicKeys: ESTree.ThisExpression[];
+  readonly dynamicKeys: ESTree.Node[];
   readonly memberExpressions: ESTree.StaticMemberExpression[];
   readonly patternKeys: ESTree.IdentifierName[];
   /** Names accessed in ways a private name cannot be, such as `this["foo"]` or `typeof this.foo`. */
@@ -81,6 +81,15 @@ const elementName = (element: ESTree.ClassElement): string | null => {
   return null;
 };
 
+/** Whether `node` is `this`, alone or inside type and non-null assertions, which leave its value unchanged. */
+const isThis = (node: ESTree.Node | undefined): node is ESTree.Node =>
+  node?.type === "ThisExpression" ||
+  ((node?.type === "TSAsExpression" ||
+    node?.type === "TSSatisfiesExpression" ||
+    node?.type === "TSTypeAssertion" ||
+    node?.type === "TSNonNullExpression") &&
+    isThis(node.expression));
+
 /** Records the key that accesses `object`. A literal names one property, and any other key on `this` may name each of its class's fields. */
 const addKey = (
   state: FileState,
@@ -91,10 +100,7 @@ const addKey = (
     state.unrenameableNames.add(String(key.value));
   } else if (key.type === "TemplateLiteral" && key.expressions.length === 0) {
     state.unrenameableNames.add(key.quasis[0]?.value.cooked ?? "");
-  } else if (
-    key.type !== "PrivateIdentifier" &&
-    object?.type === "ThisExpression"
-  ) {
+  } else if (key.type !== "PrivateIdentifier" && isThis(object)) {
     state.dynamicKeys.push(object);
   }
 };
