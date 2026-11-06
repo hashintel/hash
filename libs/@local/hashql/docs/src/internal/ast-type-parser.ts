@@ -3,11 +3,17 @@ import { Context, Effect } from "effect";
 import * as Comments from "./ast-comments.js";
 
 import type * as AST from "../AST/index.js";
-import type { Failure } from "./ast-context.js";
-import type { Chunk, Option } from "effect";
+import type * as DocumentationError from "../DocumentationError.js";
+import type { Cause, Chunk, Option } from "effect";
 import type * as Syntax from "typescript/ast";
 
 export type TypeSource = Syntax.TypeNode | Syntax.ExpressionWithTypeArguments;
+
+/** What parsing a declaration, a type or a member fails with. They parse through each other, so any of them can reach a comment. */
+export type Failure =
+  | Cause.UnknownError
+  | AST.ParseError.ParseError
+  | DocumentationError.DocumentationError;
 
 type Parsed<T> = Effect.Effect<T, Failure, AST.Store>;
 

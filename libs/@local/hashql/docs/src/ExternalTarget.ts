@@ -217,36 +217,34 @@ const topOf = (node: Node): Node => {
   return top;
 };
 
-/**
- * The page on effect.website that documents `symbol`, or on MDN or in TypeScript's handbook for one of TypeScript's own declarations, or none for a symbol neither declares.
- *
- * A module links to its page, and a declaration at the top of a module's file to its section of the page. A namespace's member links to the namespace, whose section names its members. The pages do not document the members of an interface or a class, so those have no link. When declarations of different kinds share a name, as the `Option` type and namespace do, the section is the one `reading` names, and its anchor carries the kind, as in `#Option-type`.
- */
-export const resolve = Effect.fnUntraced(function* ({
-  symbol,
-  reading,
-}: {
-  readonly symbol: CompilerSymbol;
-  readonly reading: Meaning;
-}): Effect.fn.Return<
-  Option.Option<URL>,
-  Cause.UnknownError,
-  Program.Program | Checker.Checker
-> {
-  const program = yield* Program.Program;
-  const checker = yield* Checker.Checker;
-  const handle = pipe(
+type Handle = CompilerSymbol["declarations"][number];
+
+/** The declaration of `symbol` a name with `reading` means, or its first declaration when none has that meaning. */
+const handleOf = (
+  symbol: CompilerSymbol,
+  reading: Meaning,
+): Option.Option<Handle> =>
+  pipe(
     symbol.declarations,
     Array.findFirst((declaration) =>
       meanings[reading].includes(declaration.kind),
     ),
     Option.orElse(() => Array.head(symbol.declarations)),
   );
-  if (Option.isNone(handle)) {
-    return Option.none();
-  }
 
-  const resolved = yield* program.resolve(handle.value);
+/** The page that documents `handle`, one of `symbol`'s declarations. */
+const pageOfHandle = Effect.fnUntraced(function* (
+  symbol: CompilerSymbol,
+  handle: Handle,
+): Effect.fn.Return<
+  Option.Option<URL>,
+  Cause.UnknownError,
+  Program.Program | Checker.Checker
+> {
+  const program = yield* Program.Program;
+  const checker = yield* Checker.Checker;
+
+  const resolved = yield* program.resolve(handle);
   if (Option.isNone(resolved)) {
     return Option.none();
   }
@@ -289,4 +287,44 @@ export const resolve = Effect.fnUntraced(function* ({
   }
 
   return Option.some(new URL(`${page.value}#${anchor}`));
+});
+
+/**
+ * The page that documents `symbol` for each meaning a name can read it with.
+ *
+ * Effect's symbols have pages on effect.website, and TypeScript's own declarations have pages on MDN or in TypeScript's handbook. A symbol none of them documents has no page.
+ *
+ * A module links to its page, and a declaration at the top of a module's file to its section of the page. A namespace's member links to the namespace, whose section names its members. The pages do not document the members of an interface or a class, so those have no link. When declarations of different kinds share a name, as the `Option` type and namespace do, each meaning has its own section, and its anchor carries the kind, as in `#Option-type`. Meanings that pick the same declaration share its page.
+ */
+export const pages = Effect.fnUntraced(function* (
+  symbol: CompilerSymbol,
+): Effect.fn.Return<
+  Readonly<Record<Meaning, Option.Option<URL>>>,
+  Cause.UnknownError,
+  Program.Program | Checker.Checker
+> {
+  const found = new Map<Handle, Option.Option<URL>>();
+
+  const pageFor = Effect.fnUntraced(function* (reading: Meaning) {
+    const handle = handleOf(symbol, reading);
+    if (Option.isNone(handle)) {
+      return Option.none<URL>();
+    }
+
+    const existing = found.get(handle.value);
+    if (existing !== undefined) {
+      return existing;
+    }
+
+    const page = yield* pageOfHandle(symbol, handle.value);
+    found.set(handle.value, page);
+
+    return page;
+  });
+
+  return {
+    type: yield* pageFor("type"),
+    value: yield* pageFor("value"),
+    namespace: yield* pageFor("namespace"),
+  };
 });

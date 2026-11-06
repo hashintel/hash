@@ -18,11 +18,10 @@ import { SignatureKind } from "typescript/async";
 import * as AST from "../AST/index.js";
 import * as TypeScript from "../TypeScript/index.js";
 import * as Comments from "./ast-comments.js";
-import * as References from "./ast-references.js";
 import * as Types from "./ast-type-parser.js";
 import * as Source from "./ast/source.js";
 
-import type { Failure } from "./ast-context.js";
+import type { Failure } from "./ast-type-parser.js";
 import type { Symbol as CompilerSymbol, Signature } from "typescript/async";
 
 type ValueSource = Data.TaggedEnum<{
@@ -171,7 +170,6 @@ export declare namespace DeclarationParser {
 type Requirements =
   | AST.Store
   | Types.TypeParser
-  | References.References
   | Comments.CommentParser
   | TypeScript.Checker.Checker
   | TypeScript.Program.Program;
@@ -296,17 +294,16 @@ const classDeclaration = (
 const enumMember = (
   member: Syntax.EnumMember,
 ): Parsed<AST.EnumMember.Interned> =>
-  pipe(
-    Comments.documentation(member),
-    Effect.map((documentation) =>
-      AST.EnumMember.make({
-        node: member,
-        name: Source.nameOf(member.name),
-        documentation,
-      }),
+  Effect.flatMap(TypeScript.Checker.getSymbolOfDeclaration(member), (symbol) =>
+    AST.reserveSymbol([symbol], () =>
+      Effect.map(Comments.documentation(member), (documentation) =>
+        AST.EnumMember.make({
+          node: member,
+          name: Source.nameOf(member.name),
+          documentation,
+        }),
+      ),
     ),
-    Effect.flatMap(AST.intern),
-    Effect.tap((id) => References.bind(member, id)),
   );
 
 const enumDeclaration = (

@@ -155,31 +155,39 @@ layer(Compiler.layer(), { excludeTestServices: true })("compiler", (it) => {
     );
 
     it.effect(
-      "external_reference_identity",
+      "external_item_identity",
       Effect.fnUntraced(function* () {
         expect.hasAssertions();
-        const { source, exported } = yield* Compiler.Fixture;
-        const node = Array.head(source.statements).pipe(Option.getOrThrow);
+        const { exported } = yield* Compiler.Fixture;
         const symbol = exported("Link");
-        const external = {
-          _tag: "External",
+        // SAFETY: The test compares the base by identity and never resolves it.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- No store looks this base up.
+        const base = exported("Box") as AST.ExternalItem.InternedSymbol;
+        const fields = {
           symbol,
           name: symbol.name,
-          url: Option.none(),
-          bases: [],
-        } as const;
-        const fields = { node, url: Option.none(), quickInfo: Option.none() };
-        const first = Nodes.Reference.make({ ...fields, target: external });
-        const second = Nodes.Reference.make({ ...fields, target: external });
-        const distinct = Nodes.Reference.make({
+          pages: {
+            type: Option.none(),
+            value: Option.none(),
+            namespace: Option.none(),
+          },
+          bases: [base],
+        };
+        const first = Nodes.ExternalItem.make(fields);
+        const second = Nodes.ExternalItem.make(fields);
+        const distinct = Nodes.ExternalItem.make({
           ...fields,
-          target: { ...external, symbol: shield(symbol) },
+          symbol: shield(symbol),
+          bases: [shield(base)],
         });
         expect(Equal.equals(first, second)).toBe(true);
         expect(Hash.hash(first)).toBe(Hash.hash(second));
         expect(first[Equal.symbol](distinct)).toBe(false);
         expect(() => Hash.hash(distinct)).not.toThrow();
-        expect(Object.isFrozen(first.target)).toBe(true);
+        expect([
+          Object.isFrozen(first.pages),
+          Object.isFrozen(first.bases),
+        ]).toStrictEqual([true, true]);
       }),
     );
   });

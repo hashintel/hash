@@ -4,15 +4,13 @@ import {
   TSDocTagDefinition,
   TSDocTagSyntaxKind,
 } from "@microsoft/tsdoc";
-import { Context, Effect, Result } from "effect";
+import { Context, Effect, Layer, flow } from "effect";
 
 import * as DocumentationParser from "../../src/DocumentationParser.js";
 import * as Parser from "../../src/Parser.js";
-import * as TypeScript from "../../src/TypeScript/index.js";
 import * as Compiler from "./compiler.js";
 
 import type * as AST from "../../src/AST/index.js";
-import type { Failure } from "../../src/internal/ast-context.js";
 
 /** The tags and elements the package's own TSDoc configuration defines. */
 export const configuration = (): TSDocConfiguration => {
@@ -37,46 +35,26 @@ export const configuration = (): TSDocConfiguration => {
   return value;
 };
 
-export const services = (
-  fixture: Awaited<ReturnType<typeof Compiler.open>>,
-): Context.Context<
-  | TypeScript.Checker.Checker
-  | TypeScript.Program.Program
-  | DocumentationParser.DocumentationParser
-> => {
-  const checker = TypeScript.Checker.make({ checker: fixture.project.checker });
-  const program = TypeScript.Program.make(fixture.snapshot);
-  return Context.make(TypeScript.Checker.Checker, checker).pipe(
-    Context.add(TypeScript.Program.Program, program),
-    Context.add(
-      DocumentationParser.DocumentationParser,
-      DocumentationParser.make(configuration()),
+/** The fixture parsed into a store, or the failure that stopped the parse. The compiler stops when the parse finishes. */
+export const parse = Effect.fnUntraced(function* (options: Compiler.Options) {
+  // The parse reads paths through the Node services.
+  const services = yield* Layer.build(
+    Layer.mergeAll(
+      Compiler.layer(options),
+      Layer.succeed(
+        DocumentationParser.DocumentationParser,
+        DocumentationParser.make(configuration()),
+      ),
+      NodeServices.layer,
     ),
   );
-};
+  const { source } = Context.get(services, Compiler.Fixture);
+  return yield* Parser.parse([["fixture", source]]).pipe(
+    Effect.map(({ ast }): AST.Store["Service"] => ast),
+    Effect.result,
+    Effect.provide(services),
+  );
+}, Effect.scoped);
 
-export const parse = async (
-  options: Compiler.Options,
-): Promise<Result.Result<AST.Store["Service"], Failure>> => {
-  const fixture = await Compiler.open(options);
-  try {
-    return await Parser.parse([["fixture", fixture.source]]).pipe(
-      Effect.map(({ ast }) => ast),
-      Effect.scoped,
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- This fixture entry point owns the filesystem the parse reads paths through.
-      Effect.provide(NodeServices.layer),
-      Effect.result,
-      Effect.provide(services(fixture)),
-      Effect.runPromise,
-    );
-  } finally {
-    await fixture.api.close();
-  }
-};
-
-export const success = async (
-  options: Compiler.Options,
-): Promise<AST.Store["Service"]> => {
-  const result = await parse(options);
-  return Result.getOrThrow(result);
-};
+/** The fixture parsed into a store. */
+export const success = flow(parse, Effect.flatMap(Effect.fromResult));

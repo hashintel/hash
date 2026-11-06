@@ -3,16 +3,17 @@ import { Array, Context, Effect, Layer, Option } from "effect";
 import * as AST from "../AST/index.js";
 import * as DocumentationError from "../DocumentationError.js";
 import * as DocumentationParser from "../DocumentationParser.js";
+import * as TypeScript from "../TypeScript/index.js";
 import * as Links from "./ast-links.js";
-import * as References from "./ast-references.js";
 import * as DocSource from "./ast/doc-source.js";
 import * as Source from "./ast/source.js";
 
+import type { Cause } from "effect";
 import type { JSDoc, Node } from "typescript/ast";
 
 type Documentation = AST.Documentation.Interned;
 
-/** Parses each source node's comment into documentation interned in the same graph, and records the comment's links for the references to resolve. */
+/** Parses each source node's comment into documentation interned in the same graph, and resolves the links in it the compiler binds. */
 export class CommentParser extends Context.Service<
   CommentParser,
   CommentParser.Shape
@@ -25,7 +26,7 @@ export declare namespace CommentParser {
       node: Node,
     ) => Effect.Effect<
       Option.Option<Documentation>,
-      DocumentationError.DocumentationError,
+      DocumentationError.DocumentationError | Cause.UnknownError,
       AST.Store
     >;
   }
@@ -41,44 +42,35 @@ const stray = (comment: JSDoc): DocumentationError.DocumentationError =>
 /** One parser serves one parse, so a cache in the layer never sees a second graph. */
 export const layer = Effect.gen(function* () {
   const parser = yield* DocumentationParser.DocumentationParser;
-  const references = yield* References.References;
-  // Several source nodes can share one comment, such as the declarators of one variable statement. Parsing it again would intern a second, unequal node. Each owner still registers the comment's links, because a link resolves in its owner's scope.
-  const parsed = new WeakMap<
-    JSDoc,
-    {
-      readonly documentation: AST.Documentation.Documentation;
-      readonly id: Documentation;
-    }
-  >();
+  const checker = yield* TypeScript.Checker.Checker;
 
-  const register = (
-    documentation: AST.Documentation.Documentation,
-    owner: Node,
-  ): Effect.Effect<void, DocumentationError.DocumentationError> =>
-    Links.register(documentation, owner).pipe(
-      Effect.provideService(References.References, references),
-    );
+  // Source nodes can share one comment, such as the declarators of one variable statement. Parsing it again would intern a second, unequal node.
+  const parsed = new WeakMap<JSDoc, Documentation>();
 
   const intern = (
     comment: JSDoc,
-    owner: Node,
   ): Effect.Effect<
     Documentation,
-    DocumentationError.DocumentationError,
+    DocumentationError.DocumentationError | Cause.UnknownError,
     AST.Store
   > => {
     const existing = parsed.get(comment);
 
     if (existing !== undefined) {
-      return Effect.as(register(existing.documentation, owner), existing.id);
+      return Effect.succeed(existing);
     }
 
     return parser.parse(comment).pipe(
-      Effect.tap((documentation) => register(documentation, owner)),
-      Effect.flatMap((documentation) =>
-        Effect.tap(AST.intern(documentation), (id) =>
-          Effect.sync(() => parsed.set(comment, { documentation, id })),
+      Effect.tap((documentation) =>
+        Links.register(documentation).pipe(
+          Effect.provideService(TypeScript.Checker.Checker, checker),
         ),
+      ),
+      Effect.flatMap(AST.intern),
+      Effect.tap((id) =>
+        Effect.sync(() => {
+          parsed.set(comment, id);
+        }),
       ),
     );
   };
@@ -88,11 +80,7 @@ export const layer = Effect.gen(function* () {
       Option.match(Array.head(Source.strayModuleComments(node)), {
         onSome: (comment) => Effect.fail(stray(comment)),
         onNone: () =>
-          Effect.transposeOption(
-            Option.map(Source.commentOf(node), (comment) =>
-              intern(comment, node),
-            ),
-          ),
+          Effect.transposeOption(Option.map(Source.commentOf(node), intern)),
       }),
   });
 }).pipe(Layer.effect(CommentParser));
@@ -102,7 +90,7 @@ export const documentation = (
   node: Node,
 ): Effect.Effect<
   Option.Option<Documentation>,
-  DocumentationError.DocumentationError,
+  DocumentationError.DocumentationError | Cause.UnknownError,
   CommentParser | AST.Store
 > => Effect.flatMap(CommentParser, (parser) => parser.documentation(node));
 

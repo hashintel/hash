@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 
+import { describe, expect, it } from "@effect/vitest";
 import {
   DocCodeSpan,
   DocExcerpt,
@@ -9,16 +10,23 @@ import {
   TSDocTagDefinition,
   TSDocTagSyntaxKind,
 } from "@microsoft/tsdoc";
-import { Array, Chunk, Effect, Option, Result, pipe } from "effect";
+import {
+  Array,
+  Chunk,
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Result,
+  pipe,
+} from "effect";
 import { isJSDoc } from "typescript/ast";
-import { describe, expect, test } from "vitest";
 
 import * as AST from "../src/AST/index.js";
 import * as DocumentationParser from "../src/DocumentationParser.js";
 import * as Compiler from "./fixtures/compiler.js";
 import * as ParserFixture from "./fixtures/parser.js";
 
-import type * as DocumentationError from "../src/DocumentationError.js";
 import type { DocNode } from "@microsoft/tsdoc";
 
 /** The standard tags, the package's own, and a custom block a package might define. */
@@ -44,35 +52,27 @@ const configuration = (): TSDocConfiguration => {
   return value;
 };
 
-/** `comment` parsed as the compiler reads it above a declaration. */
-const parse = async (
+/** `comment` parsed as the compiler reads it above a declaration. The compiler stops when the parse finishes. */
+const parse = Effect.fnUntraced(function* (
   comment: string,
   parser: DocumentationParser.DocumentationParser["Service"] = DocumentationParser.make(
     configuration(),
   ),
-): Promise<
-  Result.Result<
-    AST.Documentation.Documentation,
-    DocumentationError.DocumentationError
-  >
-> => {
-  const fixture = await Compiler.open({
-    source: `${comment}\nexport type Subject = string;`,
-  });
-  try {
-    // The comment as written, whatever it documents, so a `@module` comment parses too.
-    const jsDoc = pipe(
-      Array.head(fixture.source.statements),
-      Option.flatMap(({ jsDoc: comments }) =>
-        Array.findLast(comments ?? [], isJSDoc),
-      ),
-      Option.getOrThrow,
-    );
-    return await Effect.runPromise(Effect.result(parser.parse(jsDoc)));
-  } finally {
-    await fixture.api.close();
-  }
-};
+) {
+  const compiler = yield* Layer.build(
+    Compiler.layer({ source: `${comment}\nexport type Subject = string;` }),
+  );
+  const fixture = Context.get(compiler, Compiler.Fixture);
+  // The comment as written, whatever it documents, so a `@module` comment parses too.
+  const jsDoc = pipe(
+    Array.head(fixture.source.statements),
+    Option.flatMap(({ jsDoc: comments }) =>
+      Array.findLast(comments ?? [], isJSDoc),
+    ),
+    Option.getOrThrow,
+  );
+  return yield* Effect.result(parser.parse(jsDoc));
+}, Effect.scoped);
 
 const descendants = (node: DocNode): DocNode[] =>
   pipe(node.getChildNodes(), Array.flatMap(descendants), Array.prepend(node));
@@ -121,8 +121,7 @@ const fixture = `/**
  * @privateRemarks Do not publish this.
  */`;
 
-const documented = async (): Promise<AST.Documentation.Documentation> =>
-  Result.getOrThrow(await parse(fixture));
+const documented = Effect.map(parse(fixture), Result.getOrThrow);
 
 const source = `export type Box = string;
 /** String overload with {@link Box}. */
@@ -141,125 +140,157 @@ const emitted = (
   Option.map(documentation, (id) => ast.get(id).source.emitAsTsdoc());
 
 describe("documentation", () => {
-  test("rich_description", async () => {
-    expect.hasAssertions();
-    const doc = await documented();
-    const nodes = descendants(doc.source.summarySection);
-    expect(plain(doc.source.summarySection)).toContain("Read");
-    expect(codes(nodes)).toStrictEqual(["value"]);
-    expect(Array.map(links(nodes), ({ linkText }) => linkText)).toStrictEqual([
-      "its box",
-    ]);
-    expect(
-      Option.map(doc.remarks, ({ content }) => plain(content)),
-    ).toStrictEqual(Option.some("Keep the rich paragraph."));
-  });
+  it.effect(
+    "rich_description",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = yield* documented;
+      const nodes = descendants(doc.source.summarySection);
+      expect(plain(doc.source.summarySection)).toContain("Read");
+      expect(codes(nodes)).toStrictEqual(["value"]);
+      expect(Array.map(links(nodes), ({ linkText }) => linkText)).toStrictEqual(
+        ["its box"],
+      );
+      expect(
+        Option.map(doc.remarks, ({ content }) => plain(content)),
+      ).toStrictEqual(Option.some("Keep the rich paragraph."));
+    }),
+  );
 
-  test("parameters", async () => {
-    expect.hasAssertions();
-    const doc = await documented();
-    expect([
-      Array.map(doc.parameters, ({ name, content }) => [name, plain(content)]),
-      Array.map(doc.typeParameters, ({ name, content }) => [
-        name,
-        plain(content),
-      ]),
-      Option.map(doc.returns, ({ content }) => plain(content)),
-      Array.map(doc.throws, ({ content }) => plain(content)),
-    ]).toStrictEqual([
-      [["value", "The input."]],
-      [["T", "The payload."]],
-      Option.some("The output."),
-      ["The first failure.", "The second failure."],
-    ]);
-  });
+  it.effect(
+    "parameters",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = yield* documented;
+      expect([
+        Array.map(doc.parameters, ({ name, content }) => [
+          name,
+          plain(content),
+        ]),
+        Array.map(doc.typeParameters, ({ name, content }) => [
+          name,
+          plain(content),
+        ]),
+        Option.map(doc.returns, ({ content }) => plain(content)),
+        Array.map(doc.throws, ({ content }) => plain(content)),
+      ]).toStrictEqual([
+        [["value", "The input."]],
+        [["T", "The payload."]],
+        Option.some("The output."),
+        ["The first failure.", "The second failure."],
+      ]);
+    }),
+  );
 
-  test("metadata", async () => {
-    expect.hasAssertions();
-    const doc = await documented();
-    expect([
-      Option.map(doc.since, ({ version }) => version),
-      Option.map(doc.category, ({ name }) => name),
-      Option.map(doc.stability, ({ level }) => level),
-    ]).toStrictEqual([
-      Option.some("1.2.3"),
-      Option.some("Constructors"),
-      Option.some("beta"),
-    ]);
-    expect(
-      Array.map([doc.internal, doc.trait, doc.module], Option.isSome),
-    ).toStrictEqual([true, true, true]);
-    expect(Array.map(doc.modifiers, ({ tag }) => tag)).toContain("@trait");
-  });
+  it.effect(
+    "metadata",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = yield* documented;
+      expect([
+        Option.map(doc.since, ({ version }) => version),
+        Option.map(doc.category, ({ name }) => name),
+        Option.map(doc.stability, ({ level }) => level),
+      ]).toStrictEqual([
+        Option.some("1.2.3"),
+        Option.some("Constructors"),
+        Option.some("beta"),
+      ]);
+      expect(
+        Array.map([doc.internal, doc.trait, doc.module], Option.isSome),
+      ).toStrictEqual([true, true, true]);
+      expect(Array.map(doc.modifiers, ({ tag }) => tag)).toContain("@trait");
+    }),
+  );
 
-  test("remaining_content", async () => {
-    expect.hasAssertions();
-    const doc = await documented();
-    expect(doc.see).toHaveLength(1);
-    expect(
-      Option.map(
-        doc.deprecated,
-        ({ content }) => links(descendants(content)).length,
-      ),
-    ).toStrictEqual(Option.some(1));
-    expect(
-      Array.map(doc.customBlocks, ({ tag, content }) => [tag, plain(content)]),
-    ).toStrictEqual([["@custom", "Visible extension."]]);
-    expect(
-      Option.map(
-        Option.fromUndefinedOr(doc.source.privateRemarks),
-        ({ content }) => plain(content),
-      ),
-    ).toStrictEqual(Option.some("Do not publish this."));
-  });
+  it.effect(
+    "remaining_content",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = yield* documented;
+      expect(doc.see).toHaveLength(1);
+      expect(
+        Option.map(
+          doc.deprecated,
+          ({ content }) => links(descendants(content)).length,
+        ),
+      ).toStrictEqual(Option.some(1));
+      expect(
+        Array.map(doc.customBlocks, ({ tag, content }) => [
+          tag,
+          plain(content),
+        ]),
+      ).toStrictEqual([["@custom", "Visible extension."]]);
+      expect(
+        Option.map(
+          Option.fromUndefinedOr(doc.source.privateRemarks),
+          ({ content }) => plain(content),
+        ),
+      ).toStrictEqual(Option.some("Do not publish this."));
+    }),
+  );
 
-  test("example_caption_and_indentation", async () => {
-    expect.hasAssertions();
-    const doc = await documented();
-    expect(doc.examples).toHaveLength(1);
-    const example = Array.head(doc.examples).pipe(Option.getOrThrow);
-    expect([example.language, example.code]).toStrictEqual([
-      "ts",
-      "const value = {\n  nested: 1,\n};",
-    ]);
-    const caption = Option.getOrThrow(example.caption).content;
-    expect([codes(caption), links(caption).length]).toStrictEqual([["Box"], 1]);
-  });
+  it.effect(
+    "example_caption_and_indentation",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = yield* documented;
+      expect(doc.examples).toHaveLength(1);
+      const example = Array.head(doc.examples).pipe(Option.getOrThrow);
+      expect([example.language, example.code]).toStrictEqual([
+        "ts",
+        "const value = {\n  nested: 1,\n};",
+      ]);
+      const caption = Option.getOrThrow(example.caption).content;
+      expect([codes(caption), links(caption).length]).toStrictEqual([
+        ["Box"],
+        1,
+      ]);
+    }),
+  );
 
-  test("caption_spacing", async () => {
-    expect.hasAssertions();
-    const doc = Result.getOrThrow(
-      await parse(
-        "/**\n * @example\n * <caption>{@link First} {@link Second}</caption>\n * ```ts\n * const x = 1;\n * ```\n */",
-      ),
-    );
-    const caption = pipe(
-      Array.head(doc.examples),
-      Option.flatMap(({ caption: value }) => value),
-      Option.getOrThrow,
-    ).content;
-    expect(
-      pipe(
-        caption,
-        Array.filter((node) => node instanceof DocPlainText),
-        Array.map(({ text }) => text),
-      ),
-    ).toStrictEqual([" "]);
-  });
+  it.effect(
+    "caption_spacing",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = Result.getOrThrow(
+        yield* parse(
+          "/**\n * @example\n * <caption>{@link First} {@link Second}</caption>\n * ```ts\n * const x = 1;\n * ```\n */",
+        ),
+      );
+      const caption = pipe(
+        Array.head(doc.examples),
+        Option.flatMap(({ caption: value }) => value),
+        Option.getOrThrow,
+      ).content;
+      expect(
+        pipe(
+          caption,
+          Array.filter((node) => node instanceof DocPlainText),
+          Array.map(({ text }) => text),
+        ),
+      ).toStrictEqual([" "]);
+    }),
+  );
 
-  test("example_without_caption", async () => {
-    expect.hasAssertions();
-    const doc = Result.getOrThrow(
-      await parse("/**\n * @example\n * ```ts\n * const x = 1;\n * ```\n */"),
-    );
-    const example = Array.head(doc.examples).pipe(Option.getOrThrow);
-    expect([example.caption, example.code]).toStrictEqual([
-      Option.none(),
-      "const x = 1;",
-    ]);
-  });
+  it.effect(
+    "example_without_caption",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = Result.getOrThrow(
+        yield* parse(
+          "/**\n * @example\n * ```ts\n * const x = 1;\n * ```\n */",
+        ),
+      );
+      const example = Array.head(doc.examples).pipe(Option.getOrThrow);
+      expect([example.caption, example.code]).toStrictEqual([
+        Option.none(),
+        "const x = 1;",
+      ]);
+    }),
+  );
 
-  test.each([
+  it.effect.each([
     ["missing_code", "/** @example Just prose. */"],
     [
       "two_blocks",
@@ -269,174 +300,200 @@ describe("documentation", () => {
       "uncaptioned_prose",
       "/**\n * @example\n * A description.\n * ```ts\n * 1\n * ```\n */",
     ],
-  ])("invalid_example_%s", async (_, input) => {
-    expect.hasAssertions();
-    await expect(parse(input)).resolves.toMatchObject({
-      _tag: "Failure",
-      failure: { reason: { _tag: "InvalidExample" } },
-    });
-  });
-
-  test("unknown_stability", async () => {
-    expect.hasAssertions();
-    await expect(parse("/** @stability frozen */")).resolves.toMatchObject({
-      _tag: "Failure",
-      failure: { reason: { _tag: "UnknownStability" } },
-    });
-  });
-
-  test.each(["@since", "@category", "@stability"])(
-    "duplicate_%s",
-    async (tag) => {
+  ] as const)(
+    "invalid_example_%s",
+    Effect.fnUntraced(function* ([, input]: readonly [string, string]) {
       expect.hasAssertions();
-      await expect(
-        parse(`/**\n * ${tag} beta\n * ${tag} stable\n */`),
-      ).resolves.toMatchObject({
+      expect(yield* parse(input)).toMatchObject({
+        _tag: "Failure",
+        failure: { reason: { _tag: "InvalidExample" } },
+      });
+    }),
+  );
+
+  it.effect(
+    "unknown_stability",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(yield* parse("/** @stability frozen */")).toMatchObject({
+        _tag: "Failure",
+        failure: { reason: { _tag: "UnknownStability" } },
+      });
+    }),
+  );
+
+  it.effect.each(["@since", "@category", "@stability"])(
+    "duplicate_%s",
+    Effect.fnUntraced(function* (tag: string) {
+      expect.hasAssertions();
+      expect(
+        yield* parse(`/**\n * ${tag} beta\n * ${tag} stable\n */`),
+      ).toMatchObject({
         _tag: "Failure",
         failure: { reason: { _tag: "DuplicateTag", tag } },
       });
-    },
+    }),
   );
 
-  test("absence", async () => {
-    expect.hasAssertions();
-    const doc = Result.getOrThrow(await parse("/** A summary. */"));
-    expect([doc.examples, doc.stability, doc.inheritDoc]).toStrictEqual([
-      [],
-      Option.none(),
-      Option.none(),
-    ]);
-  });
+  it.effect(
+    "absence",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = Result.getOrThrow(yield* parse("/** A summary. */"));
+      expect([doc.examples, doc.stability, doc.inheritDoc]).toStrictEqual([
+        [],
+        Option.none(),
+        Option.none(),
+      ]);
+    }),
+  );
 
-  test("inherit_doc", async () => {
-    expect.hasAssertions();
-    const doc = Result.getOrThrow(await parse("/** {@inheritDoc Box} */"));
-    expect(
-      pipe(
-        doc.inheritDoc,
-        Option.flatMap(({ reference }) => reference),
-        Option.map((reference) => reference.emitAsTsdoc()),
-      ),
-    ).toStrictEqual(Option.some("Box"));
-  });
+  it.effect(
+    "inherit_doc",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const doc = Result.getOrThrow(yield* parse("/** {@inheritDoc Box} */"));
+      expect(
+        pipe(
+          doc.inheritDoc,
+          Option.flatMap(({ reference }) => reference),
+          Option.map((reference) => reference.emitAsTsdoc()),
+        ),
+      ).toStrictEqual(Option.some("Box"));
+    }),
+  );
 
-  test("package_configuration", async () => {
-    expect.hasAssertions();
-    const configured = await Effect.runPromise(
-      DocumentationParser.fromFile(
+  it.effect(
+    "package_configuration",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const configured = yield* DocumentationParser.fromFile(
         fileURLToPath(
           new URL("../../sdk/typescript/tsdoc.json", import.meta.url),
         ),
-      ),
-    );
-    const doc = Result.getOrThrow(
-      await parse(
-        "/** A model.\n * @stability beta\n * @trait\n */",
-        configured,
-      ),
-    );
-    expect([
-      Option.isSome(doc.trait),
-      Option.map(doc.stability, ({ level }) => level),
-    ]).toStrictEqual([true, Option.some("beta")]);
-  });
-
-  test("missing_configuration", async () => {
-    expect.hasAssertions();
-    const file = fileURLToPath(
-      new URL("fixtures/missing-tsdoc.json", import.meta.url),
-    );
-    await expect(
-      Effect.runPromise(Effect.result(DocumentationParser.fromFile(file))),
-    ).resolves.toMatchObject({
-      _tag: "Failure",
-      failure: { file, reason: { _tag: "InvalidConfiguration", file } },
-    });
-  });
-
-  test("overload_comments", async () => {
-    expect.hasAssertions();
-    const ast = await ParserFixture.success({ source });
-    const group = pipe(
-      Array.fromIterable(ast.nodes()),
-      Array.findFirst(AST.FunctionOverloads.isFunctionOverloads),
-      Option.getOrThrow,
-    );
-    expect(
-      Array.map(Chunk.toReadonlyArray(group.overloads), (id) =>
-        emitted(ast, ast.get(id).documentation),
-      ),
-    ).toStrictEqual([
-      Option.some("/**\n * String overload with {@link Box}.\n */\n"),
-      Option.some("/**\n * Numeric overload.\n */\n"),
-    ]);
-  });
-
-  test("source_positions", async () => {
-    expect.hasAssertions();
-    const ast = await ParserFixture.success({ source });
-    const call = pipe(
-      Array.fromIterable(ast.nodes()),
-      Array.findFirst(AST.CallSignature.isCallSignature),
-      Option.flatMap(({ documentation }) => documentation),
-      Option.map(ast.get),
-      Option.getOrThrow,
-    );
-    const range = pipe(
-      links(descendants(call.source.summarySection)),
-      Array.head,
-      Option.flatMap((link) =>
-        Array.findFirst(
-          link.getChildNodes(),
-          (node) => node instanceof DocExcerpt,
+      );
+      const doc = Result.getOrThrow(
+        yield* parse(
+          "/** A model.\n * @stability beta\n * @trait\n */",
+          configured,
         ),
-      ),
-      Option.getOrThrow,
-      (node) => node.content.getContainingTextRange(),
-    );
-    expect([range.pos, source.slice(range.pos, range.end)]).toStrictEqual([
-      source.indexOf("{@link"),
-      "{",
-    ]);
-    expect(call.node.getSourceFile().text).toBe(source);
-  });
+      );
+      expect([
+        Option.isSome(doc.trait),
+        Option.map(doc.stability, ({ level }) => level),
+      ]).toStrictEqual([true, Option.some("beta")]);
+    }),
+  );
 
-  test("callable_constant_comment", async () => {
-    expect.hasAssertions();
-    const ast = await ParserFixture.success({ source });
-    const call = pipe(
-      Array.fromIterable(ast.nodes()),
-      Array.findFirst(AST.CallableConstant.isCallableConstant),
-      Option.getOrThrow,
-    );
-    expect(emitted(ast, call.documentation)).toStrictEqual(
-      Option.some("/**\n * A callable value.\n */\n"),
-    );
-  });
+  it.effect(
+    "missing_configuration",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const file = fileURLToPath(
+        new URL("fixtures/missing-tsdoc.json", import.meta.url),
+      );
+      expect(
+        yield* Effect.result(DocumentationParser.fromFile(file)),
+      ).toMatchObject({
+        _tag: "Failure",
+        failure: { file, reason: { _tag: "InvalidConfiguration", file } },
+      });
+    }),
+  );
 
-  test("diagnostic_position", async () => {
-    expect.hasAssertions();
-    const invalid =
-      "export type Prefix = string;\n/** @unknownTag text */\nexport type Bad = string;";
-    await expect(
-      ParserFixture.parse({ source: invalid }),
-    ).resolves.toMatchObject({
-      _tag: "Failure",
-      failure: {
-        file: fileURLToPath(
-          new URL("fixtures/declarations.d.ts", import.meta.url),
+  it.effect(
+    "overload_comments",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* ParserFixture.success({ source });
+      const group = pipe(
+        Array.fromIterable(ast.nodes()),
+        Array.findFirst(AST.FunctionOverloads.isFunctionOverloads),
+        Option.getOrThrow,
+      );
+      expect(
+        Array.map(Chunk.toReadonlyArray(group.overloads), (id) =>
+          emitted(ast, ast.get(id).documentation),
         ),
-        reason: {
-          _tag: "InvalidComment",
-          diagnostics: [
-            {
-              messageId: "tsdoc-undefined-tag",
-              start: invalid.indexOf("@unknownTag"),
-              end: invalid.indexOf("@unknownTag") + "@unknownTag".length,
-            },
-          ],
+      ).toStrictEqual([
+        Option.some("/**\n * String overload with {@link Box}.\n */\n"),
+        Option.some("/**\n * Numeric overload.\n */\n"),
+      ]);
+    }),
+  );
+
+  it.effect(
+    "source_positions",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* ParserFixture.success({ source });
+      const call = pipe(
+        Array.fromIterable(ast.nodes()),
+        Array.findFirst(AST.CallSignature.isCallSignature),
+        Option.flatMap(({ documentation }) => documentation),
+        Option.map(ast.get),
+        Option.getOrThrow,
+      );
+      const range = pipe(
+        links(descendants(call.source.summarySection)),
+        Array.head,
+        Option.flatMap((link) =>
+          Array.findFirst(
+            link.getChildNodes(),
+            (node) => node instanceof DocExcerpt,
+          ),
+        ),
+        Option.getOrThrow,
+        (node) => node.content.getContainingTextRange(),
+      );
+      expect([range.pos, source.slice(range.pos, range.end)]).toStrictEqual([
+        source.indexOf("{@link"),
+        "{",
+      ]);
+      expect(call.node.getSourceFile().text).toBe(source);
+    }),
+  );
+
+  it.effect(
+    "callable_constant_comment",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* ParserFixture.success({ source });
+      const call = pipe(
+        Array.fromIterable(ast.nodes()),
+        Array.findFirst(AST.CallableConstant.isCallableConstant),
+        Option.getOrThrow,
+      );
+      expect(emitted(ast, call.documentation)).toStrictEqual(
+        Option.some("/**\n * A callable value.\n */\n"),
+      );
+    }),
+  );
+
+  it.effect(
+    "diagnostic_position",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const invalid =
+        "export type Prefix = string;\n/** @unknownTag text */\nexport type Bad = string;";
+      expect(yield* ParserFixture.parse({ source: invalid })).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          file: fileURLToPath(
+            new URL("fixtures/declarations.d.ts", import.meta.url),
+          ),
+          reason: {
+            _tag: "InvalidComment",
+            diagnostics: [
+              {
+                messageId: "tsdoc-undefined-tag",
+                start: invalid.indexOf("@unknownTag"),
+                end: invalid.indexOf("@unknownTag") + "@unknownTag".length,
+              },
+            ],
+          },
         },
-      },
-    });
-  });
+      });
+    }),
+  );
 });

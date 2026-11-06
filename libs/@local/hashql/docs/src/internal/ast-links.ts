@@ -1,39 +1,19 @@
-import { DocLinkTag } from "@microsoft/tsdoc";
 import { Array, Effect, HashMap, Option, pipe } from "effect";
 import * as Syntax from "typescript/ast";
 
 import * as AST from "../AST/index.js";
 import * as DocumentationError from "../DocumentationError.js";
-import * as TypeScript from "../TypeScript/index.js";
-import * as References from "./ast-references.js";
+import * as Names from "./ast-names.js";
 import * as DocSource from "./ast/doc-source.js";
 import * as LinkLookup from "./link-lookup.js";
 
-import type { DocNode } from "@microsoft/tsdoc";
+import type * as TypeScript from "../TypeScript/index.js";
+import type { DocLinkTag } from "@microsoft/tsdoc";
 import type { Cause } from "effect";
-import type { Symbol as CompilerSymbol } from "typescript/async";
 
 /** The opening brace's source position, where the compiler's node for the same link starts too, since TSDoc read the comment in place. */
 const startOf = (link: DocLinkTag): Option.Option<number> =>
   Option.map(DocSource.rangeOf(link), ({ pos }) => pos);
-
-/** The links below `node`. A link holds no other link. */
-const linksIn = (node: DocNode): readonly DocLinkTag[] => {
-  if (node instanceof DocLinkTag) {
-    return [node];
-  }
-
-  return Array.flatMap(node.getChildNodes(), linksIn);
-};
-
-/** Everything a reader sees. Private remarks are left out, so their links never have to resolve. */
-const publicProse = ({
-  source,
-}: AST.Documentation.Documentation): readonly DocNode[] =>
-  Array.filter(
-    source.getChildNodes(),
-    (node) => node !== source.privateRemarks,
-  );
 
 /** The compiler's links in `comment`, its tags' text included. */
 const compilerLinks = (
@@ -57,22 +37,22 @@ const compilerLinks = (
   );
 
 /**
- * Records each link to a declaration in the public prose of `documentation`, which `owner`'s comment holds.
+ * Resolves each link to a declaration in the public prose of `documentation` that the compiler binds, where the comment stands.
  *
- * A link the compiler may bind resolves with the declarations' names. A link that names part of a declaration fails, because the reference documents whole declarations.
+ * A link the compiler does not bind waits for `resolve`, which reads the public names once the parse holds every declaration. Naming part of a declaration fails, because the reference documents whole declarations.
  */
 export const register = Effect.fnUntraced(function* (
   documentation: AST.Documentation.Documentation,
-  owner: Syntax.Node,
 ): Effect.fn.Return<
   void,
-  DocumentationError.DocumentationError,
-  References.References
+  DocumentationError.DocumentationError | Cause.UnknownError,
+  AST.Store | TypeScript.Checker.Checker
 > {
+  const store = yield* AST.Store;
   const file = documentation.node.getSourceFile().fileName;
   const compiled = compilerLinks(documentation.node);
 
-  for (const tag of Array.flatMap(publicProse(documentation), linksIn)) {
+  for (const tag of DocSource.linksOf(documentation)) {
     const destination = tag.codeDestination;
     const start = startOf(tag);
 
@@ -94,26 +74,25 @@ export const register = Effect.fnUntraced(function* (
         });
       }
 
-      const node = Array.findFirst(
-        compiled,
-        (link) => link.pos === start.value,
-      );
       // A package-qualified destination names a public path, not a binding in the comment's file.
       const name = pipe(
-        node,
+        Array.findFirst(compiled, (link) => link.pos === start.value),
         Option.flatMap((link) => Option.fromUndefinedOr(link.name)),
         Option.filter(() => destination.packageName === undefined),
       );
 
-      yield* References.link({
-        tag,
-        node: Option.getOrElse(
-          Option.orElse(name, () => node),
-          (): Syntax.Node => documentation.node,
-        ),
-        named: Option.isSome(name),
-        owner,
-      });
+      if (Option.isSome(name)) {
+        const symbol = yield* Names.symbolAt(name.value).pipe(
+          Effect.map(Option.flatMap(store.internedSymbol)),
+        );
+
+        if (Option.isSome(symbol)) {
+          store.name(tag, {
+            target: symbol.value,
+            quickInfo: Option.none(),
+          });
+        }
+      }
     }
   }
 });
@@ -131,23 +110,15 @@ const scopeOf = Effect.fnUntraced(function* (
   node: Syntax.Node,
   catalogue: LinkLookup.Scope["catalogue"],
 ): Effect.fn.Return<Scope, Cause.UnknownError, TypeScript.Checker.Checker> {
-  const checker = yield* TypeScript.Checker.Checker;
   const { ast } = catalogue;
   let documented = true;
   let current: Syntax.Node | undefined = node;
 
   while (current !== undefined) {
-    let symbol = Option.none<CompilerSymbol>();
-
-    if (Syntax.isSourceFile(current)) {
-      symbol = yield* checker.getSymbolOfSourceFile(current.fileName);
-    } else if (References.isDefinition(current)) {
-      symbol = Option.some(yield* checker.getSymbolOfDeclaration(current));
-    }
-
+    const symbol = yield* Names.declaredBy(current);
     const entry = pipe(
       symbol,
-      Option.flatMap(ast.localOf),
+      Option.flatMap(ast.lookup),
       Option.flatMap((local) =>
         ast.narrow(local, AST.Declaration.isDeclaration),
       ),
@@ -185,47 +156,82 @@ const unresolved = (
   });
 
 /** Whether a link's binding gives a reader somewhere to go. A name outside the package that no page documents does not. */
-const leadsNowhere = ({ target, url }: AST.Reference.Reference): boolean =>
-  target._tag === "External" && Option.isNone(url);
+const leadsNowhere = (
+  ast: AST.Store["Service"],
+  target: AST.Target.InternedSymbol,
+): boolean => {
+  const node = ast.getBySymbol(target);
+
+  // A link names a declaration, which for a type and a namespace of the same name is the type.
+  return (
+    AST.ExternalItem.isExternalItem(node) && Option.isNone(node.page("type"))
+  );
+};
+
+/** The syntax a node's comment documents, for a node with a comment. */
+const ownerOf = (
+  node: AST.Node.Node,
+): Option.Option<{
+  readonly owner: Syntax.Node;
+  readonly documentation: AST.Documentation.Interned;
+}> => {
+  if (!("node" in node) || AST.Documentation.isDocumentation(node)) {
+    return Option.none();
+  }
+
+  return Option.map(node.documentation, (documentation) => ({
+    owner: node.node,
+    documentation,
+  }));
+};
 
 /**
  * Resolves each link the compiler did not bind, or bound to a name outside the package that no page documents, through the public names of `catalogue`.
  *
- * A package-qualified name starts at its entrypoint. The lookup reads any other name below the public declaration around its comment, then in each enclosing namespace outwards. The compiler can bind a qualified name to something its author did not mean, such as a class's static where the comment names an instance member. A binding a reader cannot follow therefore gives way to the public name. A link in a public declaration's comment that still leads nowhere fails, because a reader would lose its destination. A private declaration's comment keeps such a link as it is, so it fails only where a page shows it.
+ * A package-qualified name starts at its entrypoint. The lookup reads any other name below the public declaration around the comment's owner, then in each enclosing namespace outwards. A comment over a variable statement documents each of its declarators, and resolves in the scope of the first. The compiler can bind a qualified name to something its author did not mean, such as a class's static where the comment names an instance member. A binding a reader cannot follow therefore gives way to the public name. A link in a public declaration's comment that still leads nowhere fails, because a reader would lose its destination. A private declaration's comment keeps such a link as it is, so it fails only where a page shows it.
  */
 export const resolve = Effect.fnUntraced(function* (
   catalogue: LinkLookup.Scope["catalogue"],
 ): Effect.fn.Return<
   void,
   DocumentationError.DocumentationError | Cause.UnknownError,
-  References.References | TypeScript.Checker.Checker
+  TypeScript.Checker.Checker
 > {
   const { ast } = catalogue;
 
-  for (const { tag, node, owner } of yield* References.links) {
-    const destination = tag.codeDestination;
+  for (const { owner, documentation } of Array.getSomes(
+    Array.map(Array.fromIterable(ast.nodes()), ownerOf),
+  )) {
+    const comment = ast.get(documentation);
 
-    if (
-      destination !== undefined &&
-      !Option.exists(ast.referenceAt(tag), (bound) => !leadsNowhere(bound))
-    ) {
-      const scope = yield* scopeOf(owner, catalogue);
-      const target = LinkLookup.reference({ catalogue, owner: scope.owner })(
-        destination,
-      );
+    for (const tag of DocSource.linksOf(comment)) {
+      const destination = tag.codeDestination;
 
-      if (Option.isNone(target) && scope.public) {
-        return yield* unresolved(tag, node, destination.emitAsTsdoc());
-      }
+      if (
+        destination !== undefined &&
+        Option.isSome(startOf(tag)) &&
+        !Option.exists(
+          ast.nameOf(tag),
+          ({ target }) => !leadsNowhere(ast, target),
+        )
+      ) {
+        const scope = yield* scopeOf(owner, catalogue);
+        const target = pipe(
+          LinkLookup.reference({ catalogue, owner: scope.owner })(destination),
+          Option.flatMap(ast.symbolOf),
+        );
 
-      if (Option.isSome(target)) {
-        const reference = AST.Reference.make({
-          node,
-          target: target.value,
-          url: Option.none(),
-          quickInfo: Option.none(),
-        });
-        ast.reference(tag, ast.intern(reference));
+        if (Option.isNone(target) && scope.public) {
+          return yield* unresolved(
+            tag,
+            comment.node,
+            destination.emitAsTsdoc(),
+          );
+        }
+
+        if (Option.isSome(target)) {
+          ast.name(tag, { target: target.value, quickInfo: Option.none() });
+        }
       }
     }
   }
