@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="raiffeisen-bank-international-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="raiffeisen-bank-international-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="raiffeisen-bank-international-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#raiffeisen-bank-international-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#raiffeisen-bank-international-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#raiffeisen-bank-international-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="raiffeisen-bank-international-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#raiffeisen-bank-international-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#FEE600" d="M0 0H400V400H0z" /><path d="M199.75,232.23l85,85,33-33-85-85,16.5-16.49v-33l12-12v27.49l11.49,11.5,41.48-41.48,11,11c0-7-2-32-22-51-21.49-22-43.48-9.5-51-2l-40,40,10,10-22,22-22-22,10-10-40-40c-7.5-7.5-30-20-52,1.5-20,19.49-21.49,44-21.49,51l11-11,41.48,41.48,11.49-11.5V137.27l12,12v33l16.5,16.49-85,84.46,33.48,33.49,84-84.46Z" fill="#2B2D33" /></svg></g></svg>

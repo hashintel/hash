@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="asml-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="asml-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="asml-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#asml-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#asml-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#asml-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="asml-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#asml-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.60857 0 1063.78286 300" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs /><g transform="translate(0,-752.36216)"><g transform="translate(-353.3275,478.58303)"><g><polygon points="1065.83,566.929 1102.68,388.346 1116.71,566.929 1196.223,566.929 1159.373,283.464 1074.333,283.464 1034.646,453.542 994.964,283.464 909.924,283.464 873.072,566.929 952.443,566.929 966.617,388.346 1003.468,566.929 " fill="#6B78B8" /><g><polygon points="1312.442,283.464 1235.907,283.464 1235.907,566.929 1417.324,566.929 1417.324,507.401 1312.442,507.401 " fill="#6B78B8" /></g><g><path d="m 535.749,283.464 -96.379,0 -85.039,283.465 85.04,0 11.338,-51.023 73.701,0 11.339,51.023 85.04,0 -85.04,-283.465 z m -48.189,62.362 25.512,116.22 -51.024,0.001 25.512,-116.221 z" fill="#6B78B8" /></g></g><g><path d="m 824.881,362.835 c -70.432,-61.604 -180.339,-36.558 -181.417,19.843 -15.981,-104.645 110.563,-126.492 181.41,-93.544 1.262,16.802 2.527,34.892 0.007,73.701 z" fill="#6B78B8" /><path d="m 766.445,396.213 c -17.745,-6.926 -43.562,-13.227 -43.599,-33.403 -0.015,-8.241 3.375,-17.189 19.83,-22.651 -56.693,5.669 -75.599,74.633 -12.896,108.91 10.928,5.974 29.904,12.311 29.904,32.82 0,23.957 -26.32,32.617 -43.634,32.251 -28.761,-0.605 -51.885,-10.652 -78.256,-29.417 l 0,68.032 c 31.207,13.434 82.039,28.928 132.996,13.256 41.183,-12.666 76.768,-47.236 76.768,-84.123 0.002,-60.022 -52.091,-74.346 -81.113,-85.675 z" fill="#6B78B8" /></g></g></g></svg></g></svg>

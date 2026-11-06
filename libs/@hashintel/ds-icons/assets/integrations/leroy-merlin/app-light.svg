@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="leroy-merlin-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="leroy-merlin-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="leroy-merlin-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#leroy-merlin-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#leroy-merlin-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#leroy-merlin-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="leroy-merlin-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#leroy-merlin-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="6.504 4.295 175.748 105.654" xml:space="preserve" fill="#111111" width="35.55555555555556" height="35.55555555555556"><g><polygon fill="#7BB51C" points="24.689,109.878 163.222,109.878 94.323,40.98  " /><polygon points="22.042,106.49 32.835,95.961 29.24,92.274 22.461,98.89 10.519,86.646 6.504,90.563  " /><polygon points="35.204,93.563 46.263,82.771 43.226,79.66 36.204,86.51 32.832,83.053 38.459,77.563 35.281,74.308 29.654,79.795    26.765,76.834 33.556,70.207 30.521,67.097 19.497,77.853  " /><path d="M71.401,42.402c-4.46-4.572-12.197-4.025-15.923-0.389c-3.727,3.636-5.629,10.886-0.366,16.281   c5.781,5.925,12.659,3.773,16.386,0.139C76.993,53.072,75.037,46.129,71.401,42.402z M68.123,55.302   c-2.467,2.407-5.483,1.754-8.929-1.779c-2.896-2.968-2.722-5.95-0.616-8.005c1.448-1.413,4.389-2.677,7.888,0.91   C70.458,50.52,70.59,52.895,68.123,55.302z" /><polygon points="83.84,46.199 87.92,42.217 81.782,35.926 78.108,20.64 73.431,25.204 75.864,33.876 67.644,30.849 63.234,35.151    77.248,39.651  " /><path d="M62.086,67.447c0,0-9.93-3.388-10.402-3.306c-0.153,0.025,2.133-6.058-3.003-8.754c0,0-3.811-2.063-7.625,1.402   L32.927,64.8l15.671,15.782l4.146-4.045l-8.48-8.69l13.708,3.614L62.086,67.447z M46.706,65.28   c-2.304,2.244-2.615,2.421-2.615,2.421s-3.612-3.702-3.74-3.833s2.583-2.455,3.01-2.872c0.181-0.177,1.869-1.278,3.266,0.153   C46.627,61.149,49.009,63.032,46.706,65.28z" /><polygon points="82.574,23.652 78.948,19.996 94.778,4.295 99.959,9.518 94.256,20.742 105.883,15.491 110.868,20.518    95.038,36.219 91.217,32.367 99.573,24.08 88.142,29.266 85.779,26.883 91.092,15.463  " /><polygon points="110.06,51.364 99.084,40.299 114.915,24.598 125.922,35.696 122.724,38.868 115.828,31.916 113.249,34.473    118.688,39.957 115.358,43.259 109.952,37.808 106.492,41.239 113.323,48.126  " /><polygon points="146.253,56.194 150.332,60.308 138.353,72.188 145.054,78.942 141.202,82.765 130.422,71.896  " /><polygon points="144.051,85.638 159.882,69.937 163.864,73.951 148.033,89.651  " /><polygon points="155.252,96.933 151.528,93.178 167.36,77.478 172.767,82.926 168.147,99.228 178.626,88.834 182.252,92.49    166.422,108.19 161.694,103.426 165.765,86.312  " /><path d="M139.099,48.981l-9.615-9.695L113.62,54.955l4.079,4.112l8.649-8.578l-3.113,14.16l4.176,4.211   c0,0,3.292-10.129,3.393-10.551c0,0,3.567,1.965,7.481-1.4C138.285,56.909,142.039,53.251,139.099,48.981z M133.228,53.573   c0,0-2.021,1.357-3.802-0.438l-2.782-2.938c0,0,3.361-3.334,3.785-3.755c0,0,2.59,2.612,2.914,2.938   C133.666,49.706,135.708,51.242,133.228,53.573z" /></g></svg></g></svg>

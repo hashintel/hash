@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="albert-heijn-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="albert-heijn-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="albert-heijn-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#albert-heijn-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#albert-heijn-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#albert-heijn-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="albert-heijn-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#albert-heijn-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="49.00951 49.00826 901.98099 949.07348" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs /><g transform="translate(-23.868215,305.62409)"><g transform="matrix(15.504137,0,0,15.504137,-5866.0511,-7379.7381)"><path d="m 440.45789,488.69519 c 0,0 -14.08691,-26.23902 -14.08691,-26.23902 -1.48437,-2.75878 -4.88404,-3.76831 -7.59765,-2.25586 0,0 -25.78247,14.375 -25.78247,14.375 -1.16089,0.66406 -2.24365,1.82374 -2.73682,3.4668 0,0 -6.91895,24.02954 -6.91895,24.02954 -0.82886,2.87354 0.79224,5.88746 3.62183,6.73219 0,0 40.64454,11.56005 40.64454,11.56005 2.82715,0.84228 5.79345,-0.8081 6.62352,-3.6853 0,0 6.72364,-23.56202 6.72364,-23.56202 0.43701,-1.38305 0.19165,-3.0896 -0.49073,-4.42138 z" fill="#00A0E2" fill-opacity="1" fill-rule="nonzero" stroke="none" /><path d="m 408.86244,493.74646 c 0,0 -4.47022,-8.71704 -7.35962,-8.71704 -2.23999,0.002 -2.43409,2.36817 -2.42798,8.07007 0.009,5.70435 0.31617,7.92602 2.42065,7.92602 2.86012,-0.002 7.36695,-7.27905 7.36695,-7.27905 z m 5.74707,-7.27295 c 2.29003,-3.29712 4.36035,-6.56127 8.23242,-6.56127 4.28712,-0.002 6.61012,3.58642 6.62475,6.60643 0,0.0305 -0.0183,19.3335 -0.0183,19.3335 0,0 -4.81446,0 -4.81446,0 0,0 -0.0208,-18.30078 -0.0208,-18.30078 0,-2.51343 -2.02026,-2.50854 -2.04834,-2.50854 -1.62841,0 -4.62159,4.08325 -7.95289,8.61694 0,0 0,12.19971 0,12.19971 0,0 -4.86816,0.005 -4.86816,0.005 0,0 -0.006,-5.64696 -0.006,-5.64696 0,0 -3.21899,5.64696 -8.03832,5.65307 -5.46754,10e-4 -7.323,-3.75855 -7.33643,-12.7649 -0.009,-8.58032 1.20849,-13.17139 7.06909,-13.17626 4.45801,-0.004 8.28735,6.4917 8.28735,6.4917 0,0 10e-4,-4.11378 10e-4,-4.11378 0,0 4.89135,-6.58813 4.89135,-6.58813 0,0 -0.0208,10.78003 -0.002,10.7544 z" fill="#FFFFFF" fill-opacity="1" fill-rule="nonzero" stroke="none" /></g></g></svg></g></svg>

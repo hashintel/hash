@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nordea-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="nordea-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nordea-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nordea-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nordea-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nordea-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nordea-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nordea-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 73.74629 15.4297" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill="#7373CB" d="M20.874 3.27c3.35 0 6.073 2.643 6.073 6.052 0 3.339-2.722 6.052-6.073 6.052-3.351 0-6.074-2.713-6.074-6.052 0-3.34 2.723-6.052 6.074-6.052zm46.284 0c3.491-.279 6.563 2.365 6.493 6.052v5.774h-2.374v-1.74c-.768 1.322-2.443 1.948-3.7 1.948-3.42 0-6.213-2.921-6.003-6.4.209-2.991 2.583-5.426 5.584-5.634zm-12.775 0c3.84-.14 5.864 2.99 6.213 5.356l-9.075 2.435c.558 1.113 2.094 2.087 3.7 1.809 1.117-.21 2.164-1.044 2.583-2.018l2.304.696c-.908 2.365-3.212 3.756-5.585 3.756-3.421 0-6.074-2.713-6.074-5.982 0-3.479 2.723-5.983 5.934-6.052zM46.703 0v15.096H44.4v-1.53c-.628 1.112-2.374 1.738-3.7 1.738-3.42 0-6.213-2.921-6.004-6.4.21-2.991 2.583-5.426 5.585-5.634 1.606-.14 3.49.487 4.05 1.252V0h2.373zM34.488 3.2v2.504c-1.815.07-3.351 1.113-3.351 3.757v5.635h-2.653V3.617h2.583V4.94c.35-.626 1.187-1.739 3.42-1.739zM2.723 1.252l7.888 9.252V1.252h2.653v13.844h-2.443L2.792 5.843v9.253H0V1.252h2.723zm64.994 4.522c-2.094 0-3.7 1.809-3.49 3.896.139 1.6 1.396 2.852 3.001 3.06 2.025.279 3.84-1.321 3.91-3.27h.07v-.417c-.14-1.808-1.606-3.27-3.491-3.27zm-26.808 0c-2.094 0-3.7 1.809-3.49 3.896.14 1.6 1.396 2.852 3.002 3.06 2.024.279 3.84-1.321 3.91-3.27h.069v-.417c-.14-1.808-1.606-3.27-3.49-3.27zm-20.035 0c-1.955 0-3.491 1.53-3.491 3.478 0 1.948 1.536 3.478 3.49 3.478 1.885 0 3.491-1.53 3.491-3.478 0-1.948-1.536-3.478-3.49-3.478zm36.72 1.46c-.698-1.321-2.303-2.225-4.188-1.53-1.606.626-2.374 2.087-2.374 3.34z" /></svg></g></svg>
