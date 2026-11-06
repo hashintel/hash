@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hellofresh-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="hellofresh-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hellofresh-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hellofresh-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hellofresh-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hellofresh-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="hellofresh-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hellofresh-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.bohemiancoding.com/sketch/ns" viewBox="0 0 607.44656 521.2183" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <defs />
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" ns1:type="MSPage">
+        <g ns1:type="MSLayerGroup">
+            <path d="M602.5408,86.1364049 C608.10727,95.7149667 608.230029,107.517369 602.864,117.209816 C583.728916,146.965487 575.125619,182.286918 578.432,217.51708 L578.432,217.449828 C585.0144,316.101423 530.0064,419.649571 429.8912,477.94384 C329.776,536.234908 212.6432,532.808282 130.2624,478.276896 L130.2624,478.34735 C101.316151,458.033914 66.397179,448.026056 31.0944,449.925571 C20.0149295,449.789938 9.82210969,443.836493 4.25481707,434.249048 C-1.31247555,424.661603 -1.43476739,412.851374 3.9328,403.150528 C23.0618887,373.392888 31.6574056,338.071015 28.3424,302.843264 L28.3424,302.913718 C21.7952,204.262123 76.8032,100.723583 176.9184,42.4677423 C277.0336,-15.7913006 394.1664,-12.3999018 476.5472,42.1314847 C505.500072,62.4374804 540.420886,72.4403878 575.7248,70.540454 C586.779768,70.6662458 596.958609,76.5861707 602.5408,86.1364049 L602.5408,86.1364049 Z" fill="#96DC14" ns1:type="MSShapeGroup" />
+            </g>
+    </g>
+</svg></g></svg>

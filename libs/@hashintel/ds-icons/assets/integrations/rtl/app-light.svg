@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rtl-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="rtl-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="rtl-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#rtl-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#rtl-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#rtl-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="rtl-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#rtl-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 439.68 77.28" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<rect width="137.4" height="77.28" fill="#0336EE" clip-rule="evenodd" fill-rule="evenodd" y="0" x="0" />
+    <path d="m74.65,37.08c5.9,0 8.77,-1.9 8.77,-5.78s-2.87,-5.73 -8.77,-5.73l-25.85,0l0,11.51l25.85,0zm-35.41,-19.32l36.66,0c11.16,0 17.37,5.01 17.37,13.42c0,7.22 -4.66,12.05 -12.6,13.19l17.97,15.15l-13.79,0l-16.9,-14.62l-19.15,0l0,14.62l-9.56,0l0,-41.76z" fill="#FFFFFF" clip-rule="evenodd" fill-rule="evenodd" />
+    <rect x="302.28" width="137.4" height="77.28" fill="#9624BB" clip-rule="evenodd" fill-rule="evenodd" y="0" />
+    <polygon points="345.11998891830444,17.76000213623047 354.6599974632263,17.76000213623047 354.6599974632263,51.290000915527344 397.07998037338257,51.290000915527344 397.07998037338257,59.519996643066406 345.11998891830444,59.519996643066406 " fill="#FFFFFF" clip-rule="evenodd" fill-rule="evenodd" />
+    <rect x="151.2" width="137.28" height="77.28" fill="#03AAED" clip-rule="evenodd" fill-rule="evenodd" y="0" />
+    <polygon points="215.0700011253357,25.98999786376953 190.92000722885132,25.98999786376953 190.92000722885132,17.76000213623047 248.76000356674194,17.76000213623047 248.76000356674194,25.98999786376953 224.6099944114685,25.98999786376953 224.6099944114685,59.519996643066406 215.0700011253357,59.519996643066406 " fill="#FFFFFF" clip-rule="evenodd" fill-rule="evenodd" />
+</svg></g></svg>

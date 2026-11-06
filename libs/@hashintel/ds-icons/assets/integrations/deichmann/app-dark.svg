@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="deichmann-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="deichmann-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="deichmann-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#deichmann-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#deichmann-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#deichmann-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="deichmann-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#deichmann-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 194.7995 194.4688" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs />
+  <g transform="translate(-17.57808,-7.155908)">
+    <path d="m 212.37758,11.455408 c 0,-2.976625 -1.65363,-4.2995 -4.63025,-4.2995 H 22.208205 c -3.30725,0 -4.630125,1.322875 -4.630125,4.2995 V 197.32521 c 0,2.97662 1.653625,4.2995 4.630125,4.2995 H 207.74733 c 3.30725,0 4.63025,-1.32288 4.63025,-4.2995 z" fill="#008E54" stroke-width="3.30729" />
+    <path fill="#FFFFFF" d="m 177.52058,87.054833 c 0,35.057377 -31.41925,61.515627 -61.18488,61.515627 -17.85937,0 -21.497495,-12.237 -42.99487,-12.237 -4.2995,0 -7.9375,0.66125 -9.921875,0.9925 -2.51345,0.44651 -5.622375,0.9925 -7.9375,0.33125 -1.322875,-0.66125 -2.9765,-1.65363 -2.9765,-5.29163 V 29.178171 c 0,-3.307338 1.984375,-5.291713 5.622375,-5.291713 h 54.23962 c 41.34113,0 65.15363,28.442625 65.15363,63.16925 M 143.7862,85.071333 c 0,-27.4505 -19.84375,-42.333375 -38.69537,-42.333375 H 87.892955 c -1.653625,0 -2.315125,0.66125 -2.315125,2.315125 v 79.374997 c 0,1.65363 0.9925,2.31513 2.645875,2.31513 h 17.528625 c 18.52087,0 38.03387,-14.22138 38.03387,-41.671877" stroke-width="3.30729" />
+    <path d="m 41.91193,176.06131 c 0,2.318 -1.045475,4.70802 -3.8631,4.70802 h -3.63575 v -9.40762 h 3.272375 c 2.635875,0 4.226375,1.4995 4.226375,4.681 z m 4.95365,-0.0186 c 0,-4.681 -2.817625,-8.453 -8.4985,-8.453 h -8.862125 v 16.997 h 8.862125 c 5.680875,0 8.4985,-3.81738 8.4985,-8.49825 z m 2.863125,8.544 H 64.08983 v -3.681 h -9.45275 v -3.0905 h 7.86225 v -3.49938 h -7.86225 v -3.0905 h 9.45275 v -3.63562 H 49.728705 Z m 17.8605,0 h 4.908375 v -16.997 h -4.908375 z m 13.134024,-8.56777 c 0,-2.86313 1.045476,-5.29336 4.090226,-5.29336 2.090625,0 3.0905,1.27225 3.453875,2.72675 h 4.9085 c -0.2275,-3.77212 -3.4995,-6.45337 -8.362375,-6.45337 -6.13525,0 -9.089375,4.09037 -9.089375,9.08937 0,4.99913 2.954125,9.04375 9.089375,9.04375 5.090125,0 8.134875,-2.86312 8.362375,-6.58975 h -4.862875 c -0.2725,1.4995 -1.272375,2.72688 -3.4995,2.72688 -3.04475,0 -4.090125,-2.36325 -4.090125,-5.2265 z m 27.313601,8.56777 h 4.90825 v -16.997 h -4.90825 v 6.408 h -7.226 v -6.3625 h -4.90825 v 16.997 h 4.95362 v -6.77163 h 7.22613 v 6.72613 z m 25.67737,0 h 4.54463 v -16.997 h -7.13525 l -3.363,11.17975 -3.4085,-11.17975 h -7.08975 v 16.997 h 4.54487 v -12.725 l 3.90825,12.725 h 4.09013 l 3.86312,-12.725 v 12.725 z m 18.17863,-6.31688 h -4.09025 l 1.99987,-6.40812 h 0.05 z m 2.04512,6.31688 h 5.27188 l -6.36275,-16.997 h -5.99888 l -6.36237,16.997 h 5.27175 l 0.865,-2.77225 h 6.45337 l 0.90875,2.72687 z m 19.0875,0 h 5.45363 v -16.997 h -4.77188 v 10.6345 h -0.0625 l -6.817,-10.6345 h -5.68075 v 16.997 h 4.77175 v -10.77063 z m 27.04088,0 v -16.997 h -4.68113 v 10.6345 h -0.05 l -6.81687,-10.6345 h -5.68088 v 16.997 h 4.77188 v -10.77063 l 7.08975,10.77063 h 5.4535 z" fill="#FFFFFF" stroke-width="0.454467" />
+  </g>
+</svg></g></svg>

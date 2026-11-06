@@ -1,4 +1,5 @@
 import * as brand007 from "./geometry/007";
+import * as oneAndOne from "./geometry/1-and-1";
 import * as brand1password from "./geometry/1password";
 import * as brand3m from "./geometry/3m";
 import * as brand20thCenturyFoxLegacy from "./geometry/20th-century-fox";
@@ -9,6 +10,7 @@ import * as a11yProject from "./geometry/a11y-project";
 import * as a16z from "./geometry/a16z";
 import * as abbVie from "./geometry/abbvie";
 import * as abcNews from "./geometry/abc-news";
+import * as aboutYou from "./geometry/about-you";
 import * as absolut from "./geometry/absolut";
 import * as accel from "./geometry/accel";
 import * as accenture from "./geometry/accenture";
@@ -27,6 +29,7 @@ import * as aerolineasArgentinas from "./geometry/aerolineas-argentinas";
 import * as aeromexico from "./geometry/aeromexico";
 import * as affiliatetheme from "./geometry/affiliatetheme";
 import * as ageOfEmpires from "./geometry/age-of-empires";
+import * as aidaCruises from "./geometry/aida-cruises";
 import * as airArabia from "./geometry/air-arabia";
 import * as airCanada from "./geometry/air-canada";
 import * as airChina from "./geometry/air-china";
@@ -49,6 +52,7 @@ import * as alipay from "./geometry/alipay";
 import * as allNipponAirways from "./geometry/all-nippon-airways";
 import * as allianz from "./geometry/allianz";
 import * as alltrails from "./geometry/alltrails";
+import * as alnatura from "./geometry/alnatura";
 import * as alphabet from "./geometry/alphabet";
 import * as amazon from "./geometry/amazon";
 import * as amazonCloudFront from "./geometry/amazon-cloudfront";
@@ -86,6 +90,7 @@ import * as appleTv from "./geometry/apple-tv";
 import * as aquafresh from "./geometry/aquafresh";
 import * as aramco from "./geometry/aramco";
 import * as archLinux from "./geometry/arch-linux";
+import * as ard from "./geometry/ard";
 import * as argos from "./geometry/argos";
 import * as aria from "./geometry/aria";
 import * as arm from "./geometry/arm";
@@ -125,6 +130,7 @@ import * as bQ from "./geometry/b-q";
 import * as babcock from "./geometry/babcock";
 import * as baccarat from "./geometry/baccarat";
 import * as baeSystems from "./geometry/bae-systems";
+import * as bahlsen from "./geometry/bahlsen";
 import * as bain from "./geometry/bain";
 import * as balenciaga from "./geometry/balenciaga";
 import * as balmain from "./geometry/balmain";
@@ -134,18 +140,26 @@ import * as bankOfAmerica from "./geometry/bank-of-america";
 import * as barbour from "./geometry/barbour";
 import * as barclays from "./geometry/barclays";
 import * as barrys from "./geometry/barrys";
+import * as basf from "./geometry/basf";
 import * as battleNet from "./geometry/battle-net";
+import * as bauhaus from "./geometry/bauhaus";
+import * as bayer from "./geometry/bayer";
 import * as bbc from "./geometry/bbc";
 import * as bcg from "./geometry/bcg";
 import * as beam from "./geometry/beam";
+import * as becks from "./geometry/becks";
 import * as behance from "./geometry/behance";
+import * as beiersdorf from "./geometry/beiersdorf";
 import * as bentley from "./geometry/bentley";
 import * as berluti from "./geometry/berluti";
 import * as berryBrosRudd from "./geometry/berry-bros-rudd";
+import * as bertelsmann from "./geometry/bertelsmann";
 import * as bigQuery from "./geometry/bigquery";
 import * as bilibili from "./geometry/bilibili";
 import * as billecartSalmon from "./geometry/billecart-salmon";
 import * as bimobject from "./geometry/bimobject";
+import * as biontech from "./geometry/biontech";
+import * as birkenstock from "./geometry/birkenstock";
 import * as bitbucket from "./geometry/bitbucket";
 import * as bitcoin from "./geometry/bitcoin";
 import * as bity from "./geometry/bity";
@@ -162,6 +176,7 @@ import * as bluesky from "./geometry/bluesky";
 import * as bluetooth from "./geometry/bluetooth";
 import * as bmw from "./geometry/bmw";
 import * as boardGameGeek from "./geometry/board-game-geek";
+import * as boehringerIngelheim from "./geometry/boehringer-ingelheim";
 import * as boeing from "./geometry/boeing";
 import * as bollinger from "./geometry/bollinger";
 import * as bolt from "./geometry/bolt";
@@ -174,9 +189,11 @@ import * as bottegaVeneta from "./geometry/bottega-veneta";
 import * as boucheron from "./geometry/boucheron";
 import * as box from "./geometry/box";
 import * as bp from "./geometry/bp";
+import * as braun from "./geometry/braun";
 import * as brave from "./geometry/brave";
 import * as breguet from "./geometry/breguet";
 import * as breitling from "./geometry/breitling";
+import * as brenntag from "./geometry/brenntag";
 import * as brewdog from "./geometry/brewdog";
 import * as brex from "./geometry/brex";
 import * as brioni from "./geometry/brioni";
@@ -222,6 +239,7 @@ import * as charlotteTilbury from "./geometry/charlotte-tilbury";
 import * as chase from "./geometry/chase";
 import * as chatgpt from "./geometry/chatgpt";
 import * as chaumet from "./geometry/chaumet";
+import * as check24 from "./geometry/check24";
 import * as chinaAirlines from "./geometry/china-airlines";
 import * as chinaEasternAirlines from "./geometry/china-eastern-airlines";
 import * as chinaSouthernAirlines from "./geometry/china-southern-airlines";
@@ -268,6 +286,7 @@ import * as costaCoffee from "./geometry/costa-coffee";
 import * as costco from "./geometry/costco";
 import * as cottonBureau from "./geometry/cotton-bureau";
 import * as coupa from "./geometry/coupa";
+import * as covestro from "./geometry/covestro";
 import * as cpanel from "./geometry/cpanel";
 import * as creativeCommons from "./geometry/creative-commons";
 import * as criticalRole from "./geometry/critical-role";
@@ -280,16 +299,20 @@ import * as curve from "./geometry/curve";
 import * as cuttlefish from "./geometry/cuttlefish";
 import * as dAndD from "./geometry/d-and-d";
 import * as dAndDBeyond from "./geometry/d-and-d-beyond";
+import * as dachser from "./geometry/dachser";
 import * as dailyMail from "./geometry/daily-mail";
 import * as dailymotion from "./geometry/dailymotion";
+import * as daimlerTruck from "./geometry/daimler-truck";
 import * as danone from "./geometry/danone";
 import * as darpa from "./geometry/darpa";
 import * as dartLang from "./geometry/dart-lang";
 import * as dashcube from "./geometry/dashcube";
 import * as databricks from "./geometry/databricks";
 import * as debian from "./geometry/debian";
+import * as deepl from "./geometry/deepl";
 import * as deepseek from "./geometry/deepseek";
 import * as deezer from "./geometry/deezer";
+import * as deichmann from "./geometry/deichmann";
 import * as deliciousLegacy from "./geometry/delicious-legacy";
 import * as deliveroo from "./geometry/deliveroo";
 import * as dell from "./geometry/dell";
@@ -297,10 +320,13 @@ import * as deloitte from "./geometry/deloitte";
 import * as delta from "./geometry/delta";
 import * as delvaux from "./geometry/delvaux";
 import * as deploydog from "./geometry/deploydog";
+import * as derSpiegel from "./geometry/der-spiegel";
 import * as deskpro from "./geometry/deskpro";
 import * as deutscheBahn from "./geometry/deutsche-bahn";
 import * as deutscheBank from "./geometry/deutsche-bank";
+import * as deutscheBorse from "./geometry/deutsche-borse";
 import * as deutschePost from "./geometry/deutsche-post";
+import * as deutscheTelekom from "./geometry/deutsche-telekom";
 import * as deutscheWelle from "./geometry/deutsche-welle";
 import * as dev from "./geometry/dev";
 import * as deviantart from "./geometry/deviantart";
@@ -309,6 +335,7 @@ import * as dfs from "./geometry/dfs";
 import * as dhl from "./geometry/dhl";
 import * as diageo from "./geometry/diageo";
 import * as diaspora from "./geometry/diaspora";
+import * as dieZeit from "./geometry/die-zeit";
 import * as digg from "./geometry/digg";
 import * as digitalOcean from "./geometry/digital-ocean";
 import * as dinersClub from "./geometry/diners-club";
@@ -319,6 +346,7 @@ import * as discourse from "./geometry/discourse";
 import * as discover from "./geometry/discover";
 import * as disney from "./geometry/disney";
 import * as disqus from "./geometry/disqus";
+import * as dkb from "./geometry/dkb";
 import * as dmDrogerieMarkt from "./geometry/dm-drogerie-markt";
 import * as dochub from "./geometry/dochub";
 import * as docker from "./geometry/docker";
@@ -327,9 +355,11 @@ import * as dolceGabbana from "./geometry/dolce-gabbana";
 import * as dolibarr from "./geometry/dolibarr";
 import * as domPerignon from "./geometry/dom-perignon";
 import * as doorDash from "./geometry/doordash";
+import * as douglas from "./geometry/douglas";
 import * as dove from "./geometry/dove";
 import * as dpd from "./geometry/dpd";
 import * as drMartens from "./geometry/dr-martens";
+import * as drOetker from "./geometry/dr-oetker";
 import * as draft2digital from "./geometry/draft2digital";
 import * as dreamworks from "./geometry/dreamworks";
 import * as dribbble from "./geometry/dribbble";
@@ -356,9 +386,12 @@ import * as eliLilly from "./geometry/eli-lilly";
 import * as elloLegacy from "./geometry/ello-legacy";
 import * as ember from "./geometry/ember";
 import * as emirates from "./geometry/emirates";
+import * as enbw from "./geometry/enbw";
 import * as encord from "./geometry/encord";
 import * as envira from "./geometry/envira";
+import * as eon from "./geometry/eon";
 import * as epicGames from "./geometry/epic-games";
+import * as ergo from "./geometry/ergo";
 import * as erlang from "./geometry/erlang";
 import * as ethereum from "./geometry/ethereum";
 import * as ethiopianAirlines from "./geometry/ethiopian-airlines";
@@ -368,9 +401,11 @@ import * as eurowings from "./geometry/eurowings";
 import * as evaAir from "./geometry/eva-air";
 import * as eventbrite from "./geometry/eventbrite";
 import * as evernote from "./geometry/evernote";
+import * as evonik from "./geometry/evonik";
 import * as evri from "./geometry/evri";
 import * as expeditedssl from "./geometry/expeditedssl";
 import * as exxonmobil from "./geometry/exxonmobil";
+import * as faberCastell from "./geometry/faber-castell";
 import * as facebook from "./geometry/facebook";
 import * as factory from "./geometry/factory";
 import * as fal from "./geometry/fal";
@@ -383,7 +418,9 @@ import * as fedora from "./geometry/fedora";
 import * as fendi from "./geometry/fendi";
 import * as ferragamo from "./geometry/ferragamo";
 import * as ferrari from "./geometry/ferrari";
+import * as festo from "./geometry/festo";
 import * as feverTree from "./geometry/fever-tree";
+import * as fielmann from "./geometry/fielmann";
 import * as figma from "./geometry/figma";
 import * as fijiAirways from "./geometry/fiji-airways";
 import * as financialTimes from "./geometry/financial-times";
@@ -394,6 +431,7 @@ import * as firstdraft from "./geometry/firstdraft";
 import * as flickr from "./geometry/flickr";
 import * as flink from "./geometry/flink";
 import * as flipboard from "./geometry/flipboard";
+import * as flixbus from "./geometry/flixbus";
 import * as flutter from "./geometry/flutter";
 import * as fly from "./geometry/fly";
 import * as flydubai from "./geometry/flydubai";
@@ -411,11 +449,13 @@ import * as fourkites from "./geometry/fourkites";
 import * as foursquare from "./geometry/foursquare";
 import * as foxNews from "./geometry/fox-news";
 import * as frankfurterAllgemeineZeitung from "./geometry/frankfurter-allgemeine-zeitung";
+import * as fraport from "./geometry/fraport";
 import * as fredPerry from "./geometry/fred-perry";
 import * as freeCodeCamp from "./geometry/free-code-camp";
 import * as freeagent from "./geometry/freeagent";
 import * as freebsd from "./geometry/freebsd";
 import * as freenow from "./geometry/freenow";
+import * as fresenius from "./geometry/fresenius";
 import * as frontierAirlines from "./geometry/frontier-airlines";
 import * as gameOfThrones from "./geometry/game-of-thrones";
 import * as garudaIndonesia from "./geometry/garuda-indonesia";
@@ -424,6 +464,7 @@ import * as generalCatalyst from "./geometry/general-catalyst";
 import * as generalElectric from "./geometry/general-electric";
 import * as genericApp from "./geometry/generic-app";
 import * as getPocketLegacy from "./geometry/get-pocket-legacy";
+import * as getyourguide from "./geometry/getyourguide";
 import * as gg from "./geometry/gg";
 import * as gileadSciences from "./geometry/gilead-sciences";
 import * as git from "./geometry/git";
@@ -470,6 +511,7 @@ import * as greatWesternRailway from "./geometry/great-western-railway";
 import * as greggs from "./geometry/greggs";
 import * as grindr from "./geometry/grindr";
 import * as gripfire from "./geometry/gripfire";
+import * as grohe from "./geometry/grohe";
 import * as grok from "./geometry/grok";
 import * as grunt from "./geometry/grunt";
 import * as gsk from "./geometry/gsk";
@@ -482,6 +524,9 @@ import * as hackerrank from "./geometry/hackerrank";
 import * as hainanAirlines from "./geometry/hainan-airlines";
 import * as halfords from "./geometry/halfords";
 import * as halifax from "./geometry/halifax";
+import * as hannoverRe from "./geometry/hannover-re";
+import * as hapagLloyd from "./geometry/hapag-lloyd";
+import * as haribo from "./geometry/haribo";
 import * as harpercollins from "./geometry/harpercollins";
 import * as harrods from "./geometry/harrods";
 import * as harryPotter from "./geometry/harry-potter";
@@ -494,10 +539,14 @@ import * as hashnode from "./geometry/hashnode";
 import * as hawaiianAirlines from "./geometry/hawaiian-airlines";
 import * as hbo from "./geometry/hbo";
 import * as heathrow from "./geometry/heathrow";
+import * as heidelbergMaterials from "./geometry/heidelberg-materials";
 import * as helium from "./geometry/helium";
+import * as hellofresh from "./geometry/hellofresh";
 import * as helsing from "./geometry/helsing";
+import * as henkel from "./geometry/henkel";
 import * as hermanMiller from "./geometry/herman-miller";
 import * as hermes from "./geometry/hermes";
+import * as hetzner from "./geometry/hetzner";
 import * as hgres from "./geometry/hgres";
 import * as higgsfieldAi from "./geometry/higgsfield";
 import * as hilton from "./geometry/hilton";
@@ -507,10 +556,12 @@ import * as hips from "./geometry/hips";
 import * as hireAHelper from "./geometry/hire-a-helper";
 import * as hive from "./geometry/hive";
 import * as hmrc from "./geometry/hmrc";
+import * as hochtief from "./geometry/hochtief";
 import * as hollandBarrett from "./geometry/holland-barrett";
 import * as homeBargains from "./geometry/home-bargains";
 import * as homeDepot from "./geometry/home-depot";
 import * as honda from "./geometry/honda";
+import * as hornbach from "./geometry/hornbach";
 import * as hornbill from "./geometry/hornbill";
 import * as hotjar from "./geometry/hotjar";
 import * as houzz from "./geometry/houzz";
@@ -535,6 +586,7 @@ import * as imperialCollegeLondon from "./geometry/imperial-college-london";
 import * as indexVentures from "./geometry/index-ventures";
 import * as indigo from "./geometry/indigo";
 import * as ineos from "./geometry/ineos";
+import * as infineon from "./geometry/infineon";
 import * as innocent from "./geometry/innocent";
 import * as insightPartners from "./geometry/insight-partners";
 import * as instagram from "./geometry/instagram";
@@ -545,6 +597,7 @@ import * as internetArchive from "./geometry/internet-archive";
 import * as internetExplorerLegacy from "./geometry/internet-explorer-legacy";
 import * as intuit from "./geometry/intuit";
 import * as invisionLegacy from "./geometry/invision-legacy";
+import * as ionos from "./geometry/ionos";
 import * as ioxhost from "./geometry/ioxhost";
 import * as ironMan from "./geometry/iron-man";
 import * as itaAirways from "./geometry/ita-airways";
@@ -554,7 +607,9 @@ import * as itv from "./geometry/itv";
 import * as itvLegacy from "./geometry/itv-legacy";
 import * as iwcSchaffhausen from "./geometry/iwc-schaffhausen";
 import * as jPMorgan from "./geometry/j-p-morgan";
+import * as jackWolfskin from "./geometry/jack-wolfskin";
 import * as jaegerLecoultre from "./geometry/jaeger-lecoultre";
+import * as jagermeister from "./geometry/jagermeister";
 import * as jaguar from "./geometry/jaguar";
 import * as japanAirlines from "./geometry/japan-airlines";
 import * as java from "./geometry/java";
@@ -581,12 +636,14 @@ import * as jxl from "./geometry/jxl";
 import * as kaDeWe from "./geometry/kadewe";
 import * as kaggle from "./geometry/kaggle";
 import * as kakaoTalk from "./geometry/kakao-talk";
+import * as karcher from "./geometry/karcher";
 import * as kaufland from "./geometry/kaufland";
 import * as kenyaAirways from "./geometry/kenya-airways";
 import * as kenzo from "./geometry/kenzo";
 import * as keybase from "./geometry/keybase";
 import * as keycdn from "./geometry/keycdn";
 import * as kfc from "./geometry/kfc";
+import * as kfw from "./geometry/kfw";
 import * as khoslaVentures from "./geometry/khosla-ventures";
 import * as kia from "./geometry/kia";
 import * as kickstarter from "./geometry/kickstarter";
@@ -602,6 +659,7 @@ import * as koFi from "./geometry/ko-fi";
 import * as koenigsegg from "./geometry/koenigsegg";
 import * as koreanAir from "./geometry/korean-air";
 import * as korvue from "./geometry/korvue";
+import * as krombacher from "./geometry/krombacher";
 import * as kubernetes from "./geometry/kubernetes";
 import * as kuwaitAirways from "./geometry/kuwait-airways";
 import * as lalique from "./geometry/lalique";
@@ -616,6 +674,7 @@ import * as leetcode from "./geometry/leetcode";
 import * as legalGeneral from "./geometry/legal-general";
 import * as lego from "./geometry/lego";
 import * as legora from "./geometry/legora";
+import * as leica from "./geometry/leica";
 import * as leonardo from "./geometry/leonardo";
 import * as less from "./geometry/less";
 import * as letsEncrypt from "./geometry/lets-encrypt";
@@ -624,6 +683,7 @@ import * as lexus from "./geometry/lexus";
 import * as lg from "./geometry/lg";
 import * as libertyLondon from "./geometry/liberty-london";
 import * as lidl from "./geometry/lidl";
+import * as liebherr from "./geometry/liebherr";
 import * as lightspeed from "./geometry/lightspeed";
 import * as lime from "./geometry/lime";
 import * as line from "./geometry/line";
@@ -656,6 +716,7 @@ import * as mailchimp from "./geometry/mailchimp";
 import * as maisonMargiela from "./geometry/maison-margiela";
 import * as malaysiaAirlines from "./geometry/malaysia-airlines";
 import * as malinGoetz from "./geometry/malin-goetz";
+import * as man from "./geometry/man";
 import * as manoloBlahnik from "./geometry/manolo-blahnik";
 import * as marcJacobs from "./geometry/marc-jacobs";
 import * as markdown from "./geometry/markdown";
@@ -693,6 +754,7 @@ import * as mercury from "./geometry/mercury";
 import * as messenger from "./geometry/messenger";
 import * as messengerLegacy from "./geometry/messenger-legacy";
 import * as meta from "./geometry/meta";
+import * as metro from "./geometry/metro";
 import * as michelinGuide from "./geometry/michelin-guide";
 import * as microblog from "./geometry/microblog";
 import * as microsoft from "./geometry/microsoft";
@@ -705,6 +767,7 @@ import * as microsoftPowerPoint from "./geometry/microsoft-powerpoint";
 import * as microsoftTeams from "./geometry/microsoft-teams";
 import * as microsoftTeamsLegacy from "./geometry/microsoft-teams-legacy";
 import * as microsoftWord from "./geometry/microsoft-word";
+import * as miele from "./geometry/miele";
 import * as mini from "./geometry/mini";
 import * as miniMax from "./geometry/minimax";
 import * as mintbit from "./geometry/mintbit";
@@ -729,11 +792,13 @@ import * as montblanc from "./geometry/montblanc";
 import * as monzo from "./geometry/monzo";
 import * as morganStanley from "./geometry/morgan-stanley";
 import * as morrisons from "./geometry/morrisons";
+import * as motelOne from "./geometry/motel-one";
 import * as mous from "./geometry/mous";
 import * as moutai from "./geometry/moutai";
 import * as msNow from "./geometry/ms-now";
 import * as msnbcLegacy from "./geometry/msnbc";
 import * as mulberry from "./geometry/mulberry";
+import * as munichRe from "./geometry/munich-re";
 import * as muse from "./geometry/muse";
 import * as myspace from "./geometry/myspace";
 import * as n26 from "./geometry/n26";
@@ -754,6 +819,7 @@ import * as nescafe from "./geometry/nescafe";
 import * as nespresso from "./geometry/nespresso";
 import * as netflix from "./geometry/netflix";
 import * as netgear from "./geometry/netgear";
+import * as nettoMarkenDiscount from "./geometry/netto-marken-discount";
 import * as newLook from "./geometry/new-look";
 import * as next from "./geometry/next";
 import * as nextcloud from "./geometry/nextcloud";
@@ -776,6 +842,7 @@ import * as ns8 from "./geometry/ns8";
 import * as nutritionix from "./geometry/nutritionix";
 import * as nvidia from "./geometry/nvidia";
 import * as o2 from "./geometry/o2";
+import * as obi from "./geometry/obi";
 import * as obsStudio from "./geometry/obs-studio";
 import * as obsidian from "./geometry/obsidian";
 import * as octopusDeploy from "./geometry/octopus-deploy";
@@ -788,6 +855,7 @@ import * as omanAir from "./geometry/oman-air";
 import * as omega from "./geometry/omega";
 import * as omp from "./geometry/omp";
 import * as oneOnly from "./geometry/one-only";
+import * as opel from "./geometry/opel";
 import * as openSourceInitiative from "./geometry/open-source-initiative";
 import * as openai from "./geometry/openai";
 import * as opencart from "./geometry/opencart";
@@ -800,6 +868,8 @@ import * as optinMonster from "./geometry/optin-monster";
 import * as oracle from "./geometry/oracle";
 import * as oralB from "./geometry/oral-b";
 import * as orcid from "./geometry/orcid";
+import * as osram from "./geometry/osram";
+import * as otto from "./geometry/otto";
 import * as oura from "./geometry/oura";
 import * as ovo from "./geometry/ovo";
 import * as oxfordUniversityPress from "./geometry/oxford-university-press";
@@ -829,9 +899,11 @@ import * as pearsonLegacy from "./geometry/pearson-legacy";
 import * as pegasusAirlines from "./geometry/pegasus-airlines";
 import * as pencil from "./geometry/pencil";
 import * as penguinBooks from "./geometry/penguin-books";
+import * as penny from "./geometry/penny";
 import * as pepsi from "./geometry/pepsi";
 import * as perbyte from "./geometry/perbyte";
 import * as periscopeLegacy from "./geometry/periscope-legacy";
+import * as personio from "./geometry/personio";
 import * as petrinaut from "./geometry/petrinaut";
 import * as petronas from "./geometry/petronas";
 import * as petrossian from "./geometry/petrossian";
@@ -853,6 +925,7 @@ import * as pixar from "./geometry/pixar";
 import * as pixelfed from "./geometry/pixelfed";
 import * as pixiv from "./geometry/pixiv";
 import * as pizzaexpress from "./geometry/pizzaexpress";
+import * as playmobil from "./geometry/playmobil";
 import * as playstation from "./geometry/playstation";
 import * as plex from "./geometry/plex";
 import * as pokemon from "./geometry/pokemon";
@@ -866,6 +939,7 @@ import * as pretAManger from "./geometry/pret-a-manger";
 import * as primeIntellect from "./geometry/prime-intellect";
 import * as priorityPass from "./geometry/priority-pass";
 import * as productHunt from "./geometry/product-hunt";
+import * as prosieben from "./geometry/prosieben";
 import * as proton from "./geometry/proton";
 import * as protonDrive from "./geometry/proton-drive";
 import * as protonMail from "./geometry/proton-mail";
@@ -892,6 +966,7 @@ import * as ramp from "./geometry/ramp";
 import * as rapha from "./geometry/rapha";
 import * as raspberryPi from "./geometry/raspberry-pi";
 import * as ravelry from "./geometry/ravelry";
+import * as ravensburger from "./geometry/ravensburger";
 import * as raycast from "./geometry/raycast";
 import * as react from "./geometry/react";
 import * as reacteurope from "./geometry/reacteurope";
@@ -916,6 +991,7 @@ import * as richardMille from "./geometry/richard-mille";
 import * as rightmove from "./geometry/rightmove";
 import * as rimowa from "./geometry/rimowa";
 import * as rioTinto from "./geometry/rio-tinto";
+import * as ritterSport from "./geometry/ritter-sport";
 import * as riverIsland from "./geometry/river-island";
 import * as robloxCreatorStudio from "./geometry/roblox-creator-studio";
 import * as roche from "./geometry/roche";
@@ -931,9 +1007,11 @@ import * as rossmann from "./geometry/rossmann";
 import * as royalAirMaroc from "./geometry/royal-air-maroc";
 import * as royalBankOfCanada from "./geometry/royal-bank-of-canada";
 import * as royalMail from "./geometry/royal-mail";
+import * as rtl from "./geometry/rtl";
 import * as rudderstack from "./geometry/rudderstack";
 import * as ruinart from "./geometry/ruinart";
 import * as rust from "./geometry/rust";
+import * as rwe from "./geometry/rwe";
 import * as ryanair from "./geometry/ryanair";
 import * as safari from "./geometry/safari";
 import * as sage from "./geometry/sage";
@@ -942,6 +1020,7 @@ import * as salesforce from "./geometry/salesforce";
 import * as samsung from "./geometry/samsung";
 import * as santander from "./geometry/santander";
 import * as sap from "./geometry/sap";
+import * as sartorius from "./geometry/sartorius";
 import * as sas from "./geometry/sas";
 import * as sass from "./geometry/sass";
 import * as saturn from "./geometry/saturn";
@@ -949,6 +1028,7 @@ import * as saudia from "./geometry/saudia";
 import * as savills from "./geometry/savills";
 import * as scaleAi from "./geometry/scale-ai";
 import * as scaleway from "./geometry/scaleway";
+import * as schaeffler from "./geometry/schaeffler";
 import * as schlix from "./geometry/schlix";
 import * as scoot from "./geometry/scoot";
 import * as scotrail from "./geometry/scotrail";
@@ -962,6 +1042,7 @@ import * as selfridges from "./geometry/selfridges";
 import * as sellcast from "./geometry/sellcast";
 import * as sellsy from "./geometry/sellsy";
 import * as semType from "./geometry/semtype";
+import * as sennheiser from "./geometry/sennheiser";
 import * as sentry from "./geometry/sentry";
 import * as sephora from "./geometry/sephora";
 import * as sequoia from "./geometry/sequoia";
@@ -974,6 +1055,8 @@ import * as shoelace from "./geometry/shoelace";
 import * as shopify from "./geometry/shopify";
 import * as shopware from "./geometry/shopware";
 import * as siemens from "./geometry/siemens";
+import * as siemensEnergy from "./geometry/siemens-energy";
+import * as siemensHealthineers from "./geometry/siemens-healthineers";
 import * as signalMessenger from "./geometry/signal-messenger";
 import * as signify from "./geometry/signify";
 import * as siliconValleyBank from "./geometry/silicon-valley-bank";
@@ -982,6 +1065,7 @@ import * as simplybuilt from "./geometry/simplybuilt";
 import * as singaporeAirlines from "./geometry/singapore-airlines";
 import * as sistrix from "./geometry/sistrix";
 import * as sitrox from "./geometry/sitrox";
+import * as sixt from "./geometry/sixt";
 import * as sketch from "./geometry/sketch";
 import * as sky from "./geometry/sky";
 import * as skyNews from "./geometry/sky-news";
@@ -989,6 +1073,7 @@ import * as skyatlas from "./geometry/skyatlas";
 import * as skypeLegacy from "./geometry/skype-legacy";
 import * as slack from "./geometry/slack";
 import * as slideshare from "./geometry/slideshare";
+import * as smart from "./geometry/smart";
 import * as smirnoff from "./geometry/smirnoff";
 import * as snapchat from "./geometry/snapchat";
 import * as snapdragon from "./geometry/snapdragon";
@@ -1002,6 +1087,7 @@ import * as soundcloud from "./geometry/soundcloud";
 import * as sourcetree from "./geometry/sourcetree";
 import * as southwestAirlines from "./geometry/southwest-airlines";
 import * as spaceAwesome from "./geometry/space-awesome";
+import * as sparkasse from "./geometry/sparkasse";
 import * as speakap from "./geometry/speakap";
 import * as speakerDeck from "./geometry/speaker-deck";
 import * as speedo from "./geometry/speedo";
@@ -1010,9 +1096,11 @@ import * as sportsDirect from "./geometry/sports-direct";
 import * as spotify from "./geometry/spotify";
 import * as squarespace from "./geometry/squarespace";
 import * as sse from "./geometry/sse";
+import * as stabilo from "./geometry/stabilo";
 import * as stackExchange from "./geometry/stack-exchange";
 import * as stackOverflow from "./geometry/stack-overflow";
 import * as stackpathLegacy from "./geometry/stackpath-legacy";
+import * as staedtler from "./geometry/staedtler";
 import * as stagecoach from "./geometry/stagecoach";
 import * as standardChartered from "./geometry/standard-chartered";
 import * as starTrek from "./geometry/star-trek";
@@ -1021,7 +1109,9 @@ import * as starbucks from "./geometry/starbucks";
 import * as starlingBank from "./geometry/starling-bank";
 import * as staylinked from "./geometry/staylinked";
 import * as steam from "./geometry/steam";
+import * as steiff from "./geometry/steiff";
 import * as stickerMule from "./geometry/sticker-mule";
+import * as stihl from "./geometry/stihl";
 import * as stockx from "./geometry/stockx";
 import * as storybook from "./geometry/storybook";
 import * as strava from "./geometry/strava";
@@ -1053,6 +1143,7 @@ import * as takeTwoInteractive from "./geometry/take-two-interactive";
 import * as tapAirPortugal from "./geometry/tap-air-portugal";
 import * as taschen from "./geometry/taschen";
 import * as taskrabbit from "./geometry/taskrabbit";
+import * as tchibo from "./geometry/tchibo";
 import * as teamspeak from "./geometry/teamspeak";
 import * as teamViewer from "./geometry/teamviewer";
 import * as telegram from "./geometry/telegram";
@@ -1097,15 +1188,18 @@ import * as tods from "./geometry/tods";
 import * as tomFord from "./geometry/tom-ford";
 import * as torBrowser from "./geometry/tor-browser";
 import * as toyota from "./geometry/toyota";
+import * as tradeRepublic from "./geometry/trade-republic";
 import * as traderJoes from "./geometry/trader-joes";
 import * as trafigura from "./geometry/trafigura";
 import * as transavia from "./geometry/transavia";
 import * as transportForLondon from "./geometry/transport-for-london";
 import * as trello from "./geometry/trello";
 import * as triumphMotorcycles from "./geometry/triumph-motorcycles";
+import * as trumpf from "./geometry/trumpf";
 import * as trunk from "./geometry/trunk";
 import * as tsb from "./geometry/tsb";
 import * as tudor from "./geometry/tudor";
+import * as tui from "./geometry/tui";
 import * as tumblr from "./geometry/tumblr";
 import * as turbopuffer from "./geometry/turbopuffer";
 import * as turkishAirlines from "./geometry/turkish-airlines";
@@ -1128,6 +1222,7 @@ import * as umbraco from "./geometry/umbraco";
 import * as umbro from "./geometry/umbro";
 import * as uncharted from "./geometry/uncharted";
 import * as unilever from "./geometry/unilever";
+import * as uniper from "./geometry/uniper";
 import * as uniqlo from "./geometry/uniqlo";
 import * as uniregistryLegacy from "./geometry/uniregistry-legacy";
 import * as unison from "./geometry/unison";
@@ -1179,6 +1274,7 @@ import * as vmware from "./geometry/vmware";
 import * as vnv from "./geometry/vnv";
 import * as vodafone from "./geometry/vodafone";
 import * as volaris from "./geometry/volaris";
+import * as volksbankenRaiffeisenbanken from "./geometry/volksbanken-raiffeisenbanken";
 import * as volkswagen from "./geometry/volkswagen";
 import * as vsco from "./geometry/vsco";
 import * as vuejs from "./geometry/vuejs";
@@ -1216,6 +1312,7 @@ import * as wise from "./geometry/wise";
 import * as wix from "./geometry/wix";
 import * as wizardsOfTheCoast from "./geometry/wizards-of-the-coast";
 import * as wizzAir from "./geometry/wizz-air";
+import * as wmf from "./geometry/wmf";
 import * as wodu from "./geometry/wodu";
 import * as wolt from "./geometry/wolt";
 import * as wordpress from "./geometry/wordpress";
@@ -1223,6 +1320,7 @@ import * as wpbeginner from "./geometry/wpbeginner";
 import * as wpexplorer from "./geometry/wpexplorer";
 import * as wpforms from "./geometry/wpforms";
 import * as wpressr from "./geometry/wpressr";
+import * as wurth from "./geometry/wurth";
 import * as x from "./geometry/x";
 import * as xAi from "./geometry/xai";
 import * as xbox from "./geometry/xbox";
@@ -1247,13 +1345,16 @@ import * as youtubeShorts from "./geometry/youtube-shorts";
 import * as yubikey from "./geometry/yubikey";
 import * as yvesSaintLaurent from "./geometry/yves-saint-laurent";
 import * as zAi from "./geometry/z-ai";
+import * as zalando from "./geometry/zalando";
 import * as zapier from "./geometry/zapier";
 import * as zara from "./geometry/zara";
 import * as zdf from "./geometry/zdf";
 import * as zegna from "./geometry/zegna";
+import * as zeiss from "./geometry/zeiss";
 import * as zendesk from "./geometry/zendesk";
 import * as zenith from "./geometry/zenith";
 import * as zettaVenturePartners from "./geometry/zetta-venture-partners";
+import * as zf from "./geometry/zf";
 import * as zhihu from "./geometry/zhihu";
 import * as zoho from "./geometry/zoho";
 import * as zoom from "./geometry/zoom";
@@ -13863,6 +13964,1016 @@ export const integrationGeometry = {
     monoInkScale: 1,
     logoViewBox: "2.58844 66.61097 187.57912 59.53407",
     ratio: 1.55,
+    alignment: "center",
+  },
+  deutscheTelekom: {
+    ...deutscheTelekom,
+    markViewBox: "0.49493 0.49502 75.72459 90.34361",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273007173029 -0.91841359431 -0.0927145714614 0 1.2841353388",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  bayer: {
+    ...bayer,
+    markViewBox: "0 0 633.33333 633.33333",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26337011534 -0.885993915763 -0.0894417795275 0 1.23880581063",
+    monoInkScale: 1,
+    logoViewBox: "0 0 633.33333 633.33333",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  basf: {
+    ...basf,
+    markViewBox: "0 3.27771 16 9.47886",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 2873.29 1037.68",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  henkel: {
+    ...henkel,
+    markViewBox: "3.28187 3.03729 427.34961 238.76794",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.29626370984 -0.996650071862 -0.100612605129 0 1.39352638683",
+    monoInkScale: 1,
+    logoViewBox: "3.28187 3.03729 427.34961 238.76794",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  beiersdorf: {
+    ...beiersdorf,
+    markViewBox: "0 0 850.90002 138.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267651110091 -0.900395455959 -0.0908956262867 0 1.25894219234",
+    monoInkScale: 1,
+    logoViewBox: "0 0 850.90002 138.8",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  munichRe: {
+    ...munichRe,
+    markViewBox: "165.73767 38.94712 49.33165 49.69912",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.304450082721 -1.02418955391 -0.103392737406 0 1.43203237404",
+    monoInkScale: 1,
+    logoViewBox: "0 38.67759 215.06808 50.64482",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hannoverRe: {
+    ...hannoverRe,
+    markViewBox: "95.94832 0 65.57228 73.55191",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265747915703 -0.89399298829 -0.0902492921624 0 1.24999019616",
+    monoInkScale: 1,
+    logoViewBox: "0 0 257.175 117.542",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  ergo: {
+    ...ergo,
+    markViewBox: "60.89722 48.87973 58.27376 84.30552",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.275912506833 -0.928187323079 -0.0937012370334 0 1.29780106695",
+    monoInkScale: 1,
+    logoViewBox: "0 0.39352 81 24.21296",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  sparkasse: {
+    ...sparkasse,
+    markViewBox: "2.73943 0 18.52114 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
+    logoViewBox: "0 0 150 42",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  volksbankenRaiffeisenbanken: {
+    ...volksbankenRaiffeisenbanken,
+    markViewBox: "2.94981 11.92229 58.13362 39.97257",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.320548372868 -1.07834523177 -0.10885979549 0 1.50775340013",
+    monoInkScale: 1,
+    logoViewBox: "1.10054 3.30435 200.21892 34.4058",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  dkb: {
+    ...dkb,
+    markViewBox: "0 0 595 303.45566",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.407585895797 -1.37114502669 -0.138418164048 0 1.91714908653",
+    monoInkScale: 1,
+    logoViewBox: "0 0 595 303.45566",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  kfw: {
+    ...kfw,
+    markViewBox: "12.80229 12.63461 232.56257 81.73078",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.319318118902 -1.07420657873 -0.108441995224 0 1.50196669286",
+    monoInkScale: 1,
+    logoViewBox: "12.80229 12.63461 232.56257 81.73078",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  deutscheBorse: {
+    ...deutscheBorse,
+    markViewBox: "-0.07591 3.74412 82.99261 30.61092",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.271372193323 -0.912913417989 -0.0921593243552 0 1.27644493567",
+    monoInkScale: 1,
+    logoViewBox: "-0.00567 -0.27303 208.07522 38.46207",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  tradeRepublic: {
+    ...tradeRepublic,
+    markViewBox: "189.2672 0 21.2827 18.08085",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0.12042 0 210.33736 18.27619",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  rwe: {
+    ...rwe,
+    markViewBox: "0 0 100 28.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280733751122 -0.944406297285 -0.0953385551789 0 1.32047860359",
+    monoInkScale: 1,
+    logoViewBox: "0 0 100 28.8",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  eon: {
+    ...eon,
+    markViewBox: "0 0 145 45",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.293831028054 -0.988466374713 -0.0997864544942 0 1.38208385726",
+    monoInkScale: 1,
+    logoViewBox: "0 0 145 45",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  enbw: {
+    ...enbw,
+    markViewBox: "0 0 101.5 17.8",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 101.5 17.8",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  uniper: {
+    ...uniper,
+    markViewBox: "0.02075 0.02076 36.27741 31.38593",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.353658377476 -1.18972940532 -0.120104115022 0 1.66349189782",
+    monoInkScale: 1,
+    logoViewBox: "0.02075 0.02076 36.27741 31.38593",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  siemensEnergy: {
+    ...siemensEnergy,
+    markViewBox: "0 0 1000 343",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.268147554606 -0.902065527066 -0.0910642212726 0 1.26127730294",
+    monoInkScale: 1,
+    logoViewBox: "0 0 1000 343",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  siemensHealthineers: {
+    ...siemensHealthineers,
+    markViewBox: "473.46862 27.06851 97.60954 95.75308",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.411541346192 -1.38445141485 -0.139761454351 0 1.93575421539",
+    monoInkScale: 1,
+    logoViewBox: "4.44343 5.17845 567.11314 133.64311",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  infineon: {
+    ...infineon,
+    markViewBox: "2.60983 2.75654 1010.63246 442.78693",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.296179868095 -0.996368022867 -0.100584132062 0 1.39313202302",
+    monoInkScale: 1,
+    logoViewBox: "2.60983 2.75654 1010.63246 442.78693",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  schaeffler: {
+    ...schaeffler,
+    markViewBox: "0 0 608.09886 68",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.383816457955 -1.29118311726 -0.130345946681 0 1.80534552189",
+    monoInkScale: 1,
+    logoViewBox: "0 0 608.09886 68",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  zf: {
+    ...zf,
+    markViewBox: "0.72887 0.72887 565.44226 565.44226",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.301912956311 -1.01565449837 -0.102531116866 0 1.42009857155",
+    monoInkScale: 1,
+    logoViewBox: "0.72887 0.72887 565.44226 565.44226",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  daimlerTruck: {
+    ...daimlerTruck,
+    markViewBox: "1.23238 1.02227 294.79265 22.87332",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
+    logoViewBox: "1.23238 1.02227 294.79265 22.87332",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  man: {
+    ...man,
+    markViewBox: "4.68829 4.69009 359.36542 200.61982",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
+    logoViewBox: "4.68829 4.69009 359.36542 200.61982",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  opel: {
+    ...opel,
+    markViewBox: "1.55853 0 451.45295 280.19815",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 454.57 402.42",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  smart: {
+    ...smart,
+    markViewBox: "0.13714 0 239.86286 223.99641",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 240 327",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  zeiss: {
+    ...zeiss,
+    markViewBox: "6.60417 8.27357 567.88448 568.87071",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26227460436 -0.882308546747 -0.0890697386398 0 1.23365288975",
+    monoInkScale: 1,
+    logoViewBox: "6.60417 8.27357 567.88448 568.87071",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  leica: {
+    ...leica,
+    markViewBox: "0 0 200 200",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269232068081 -0.90571389977 -0.0914325273538 0 1.2663784952",
+    monoInkScale: 1,
+    logoViewBox: "0 0 200 200",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  karcher: {
+    ...karcher,
+    markViewBox: "0 0 100 25.88",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 100 25.88",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  miele: {
+    ...miele,
+    markViewBox: "12.67161 11.81884 75.27125 13.94778",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.242247265318 -0.814935297062 -0.0822683563309 0 1.13945091871",
+    monoInkScale: 1,
+    logoViewBox: "12.67161 11.81884 75.27125 13.94778",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  liebherr: {
+    ...liebherr,
+    markViewBox: "0 0 1000 124",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 0 1000 124",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  stihl: {
+    ...stihl,
+    markViewBox: "39.50351 49.5713 283.82298 59.59741",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.476197586907 -1.60195914467 -0.161719029984 0 2.23987576156",
+    monoInkScale: 1,
+    logoViewBox: "39.50351 49.5713 283.82298 59.59741",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  festo: {
+    ...festo,
+    markViewBox: "-0.08617 -0.16795 141.87602 25.69215",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.426325499318 -1.4341862517 -0.144782225074 0 2.0052939761",
+    monoInkScale: 1,
+    logoViewBox: "-0.08617 -0.16795 141.87602 25.69215",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  trumpf: {
+    ...trumpf,
+    markViewBox: "0 0 68.5962 68.4546",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 0 68.5962 68.4546",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  wurth: {
+    ...wurth,
+    markViewBox: "0 0 58.81561 64.283",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.213437007874 -0.718015748031 -0.0724842519685 0 1.00393700787",
+    monoInkScale: 1.39344,
+    logoViewBox: "0 0 300 64.283",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  grohe: {
+    ...grohe,
+    markViewBox: "14.15896 26.96807 94.66057 40.36786",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252978787542 -0.851036824319 -0.0859128337749 0 1.18992844564",
+    monoInkScale: 1,
+    logoViewBox: "14.15896 26.96807 94.66057 40.36786",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  wmf: {
+    ...wmf,
+    markViewBox: "52.69091 19.11947 394.88052 458.8091",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.237616237482 -0.799356223176 -0.0806956366237 0 1.11766809728",
+    monoInkScale: 1,
+    logoViewBox: "52.69091 19.11947 394.88052 458.8091",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  braun: {
+    ...braun,
+    markViewBox: "0.41771 0 85.16457 36",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0.41771 0 85.16457 36",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  osram: {
+    ...osram,
+    markViewBox: "17.30745 16.88605 709.47957 158.9838",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.356921833111 -1.20070787884 -0.12121240052 0 1.67884211247",
+    monoInkScale: 1,
+    logoViewBox: "17.30745 16.88605 709.47957 158.9838",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  sennheiser: {
+    ...sennheiser,
+    markViewBox: "0 0 26.52974 20",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 147.59829 20",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  tchibo: {
+    ...tchibo,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 80 24",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  haribo: {
+    ...haribo,
+    markViewBox: "18.44446 29.59159 1383.9941 369.70168",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.27761817707 -0.933925306869 -0.0942804909898 0 1.30582397493",
+    monoInkScale: 1,
+    logoViewBox: "18.44446 29.59159 1383.9941 369.70168",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  ritterSport: {
+    ...ritterSport,
+    markViewBox: "0 0 501.74918 500",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290094937826 -0.975897928191 -0.0985176599768 0 1.36451052599",
+    monoInkScale: 1,
+    logoViewBox: "0 0 501.74918 500",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  drOetker: {
+    ...drOetker,
+    markViewBox: "19.85599 0 510.18687 341.43659",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270223523946 -0.909049220727 -0.0917692306159 0 1.27104197529",
+    monoInkScale: 1,
+    logoViewBox: "19.85599 0 510.18687 341.43659",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  bahlsen: {
+    ...bahlsen,
+    markViewBox: "0 0 128 128",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.382325022461 -1.28616583285 -0.129839447891 0 1.79833030321",
+    monoInkScale: 1,
+    logoViewBox: "0 0 357.325712 100",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  jagermeister: {
+    ...jagermeister,
+    markViewBox: "0.47771 0.60397 175.296 37.29536",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0.47771 0.60397 175.296 37.29536",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  becks: {
+    ...becks,
+    markViewBox: "70.58237 0 31.12427 41.28439",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.283744105347 -0.95453332147 -0.0963608861998 0 1.33463831302",
+    monoInkScale: 1,
+    logoViewBox: "0 0 170.078 75.991",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  krombacher: {
+    ...krombacher,
+    markViewBox: "-0.021 -0.10386 91.82092 115.85086",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "-0.021 -0.253 582 116",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  fielmann: {
+    ...fielmann,
+    markViewBox: "0.87943 4.87059 111.93286 25.78755",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0.87943 4.87059 111.93286 25.78755",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  douglas: {
+    ...douglas,
+    markViewBox: "0 0.30825 240 45.79154",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 0.30825 240 45.79154",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  deichmann: {
+    ...deichmann,
+    markViewBox: "0 0 194.7995 194.4688",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.3678530135 -1.23748106893 -0.124924682854 0 1.73025876529",
+    monoInkScale: 1,
+    logoViewBox: "0 0 194.7995 194.4688",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  zalando: {
+    ...zalando,
+    markViewBox: "0 0 23.01853 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.74658,
+    logoViewBox: "0 0 131.7 24",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  otto: {
+    ...otto,
+    markViewBox: "8.33829 172.09555 495.32343 167.80889",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267321430685 -0.899286393348 -0.0907836655477 0 1.25739148958",
+    monoInkScale: 1,
+    logoViewBox: "8.33829 172.09555 495.32343 167.80889",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  aboutYou: {
+    ...aboutYou,
+    markViewBox: "0 0 241.68886 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 0 241.68886 48",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  hornbach: {
+    ...hornbach,
+    markViewBox: "0 0 1102.072 183.77",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
+    logoViewBox: "0 0 1102.072 183.77",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  bauhaus: {
+    ...bauhaus,
+    markViewBox: "0 0 8.68331 11.41999",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 0 57.88876 11.41999",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  obi: {
+    ...obi,
+    markViewBox: "0 0 147 34",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.41714308578 -1.40329602516 -0.141663832518 0 1.96210294346",
+    monoInkScale: 1,
+    logoViewBox: "0 0 147 34",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  penny: {
+    ...penny,
+    markViewBox: "5.93371 12.95745 51.53829 37.67367",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.27877766282 -0.937825891103 -0.0946742580224 0 1.31127781195",
+    monoInkScale: 1,
+    logoViewBox: "0 0 165 31.67059",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  nettoMarkenDiscount: {
+    ...nettoMarkenDiscount,
+    markViewBox: "-0.25087 -0.25021 202.47041 86.78911",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.296059853098 -0.995964284739 -0.100543374382 0 1.39256751222",
+    monoInkScale: 1,
+    logoViewBox: "-0.25087 -0.25021 202.47041 86.78911",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  metro: {
+    ...metro,
+    markViewBox: "0 8.06661 283.5 48.52125",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266133545404 -0.895290271273 -0.0903802538953 0 1.25180407057",
+    monoInkScale: 1,
+    logoViewBox: "0 8.06661 283.5 48.52125",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  alnatura: {
+    ...alnatura,
+    markViewBox: "55.82751 0.30895 74.43668 54.73741",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.11354,
+    logoViewBox: "0 0.21324 186.09171 94.01179",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  flixbus: {
+    ...flixbus,
+    markViewBox: "0 0 134.63357 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.706054725655 -2.37521326335 -0.239779638722 0 3.32104762773",
+    monoInkScale: 1,
+    logoViewBox: "0 0 134.63357 24",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  sixt: {
+    ...sixt,
+    markViewBox: "0 0 1000.03 410",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 1000.03 410",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  hapagLloyd: {
+    ...hapagLloyd,
+    markViewBox: "0 0 27.42478 19.57551",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.1087,
+    logoViewBox: "0 0 129.83286 20",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  dachser: {
+    ...dachser,
+    markViewBox: "16.77409 33.58485 90.54041 30.29585",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "16.77409 33.58485 90.54041 30.29585",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  fraport: {
+    ...fraport,
+    markViewBox: "0 0 96 62",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.218922481259 -0.736469231403 -0.0743471455639 0 1.02973885823",
+    monoInkScale: 1,
+    logoViewBox: "0 0.52372 458 197.47628",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  tui: {
+    ...tui,
+    markViewBox: "0 2.37943 24 19.24114",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273151880366 -0.918900399049 -0.0927637147809 0 1.2848159942",
+    monoInkScale: 1,
+    logoViewBox: "0 0 400 175.19",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  aidaCruises: {
+    ...aidaCruises,
+    markViewBox: "5.45829 5.86962 181.52821 164.79411",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "5.45829 5.86962 181.52821 164.79411",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  motelOne: {
+    ...motelOne,
+    markViewBox: "0.97371 3.97371 22.05257 15.04569",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.462006125653 -1.55421816118 -0.15689954032 0 2.17312382715",
+    monoInkScale: 1,
+    logoViewBox: "0.96544 0 176.42427 23.64444",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  birkenstock: {
+    ...birkenstock,
+    markViewBox: "0 0 89 89",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270605241694 -0.910333343649 -0.0918988638304 0 1.27283744917",
+    monoInkScale: 1,
+    logoViewBox: "0 0 160 26",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  jackWolfskin: {
+    ...jackWolfskin,
+    markViewBox: "169.89884 0 21.99145 22",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0 0 191.89029 22",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  ravensburger: {
+    ...ravensburger,
+    markViewBox: "-0.14491 -0.14491 179.9552 179.9552",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.318158876969 -1.07030681471 -0.108048310993 0 1.49651400268",
+    monoInkScale: 1,
+    logoViewBox: "-0.14491 -0.14491 179.9552 179.9552",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  playmobil: {
+    ...playmobil,
+    markViewBox: "26.9503 0.04059 20.22989 16.27244",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.343825748783 -1.1566518134 -0.116764906219 0 1.61724246841",
+    monoInkScale: 1,
+    logoViewBox: "0 0 56.785 22.57113",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  steiff: {
+    ...steiff,
+    markViewBox: "0.47857 2.97857 24.04286 19.18571",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "8.13259 8.15103 64.80581 16.57994",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  faberCastell: {
+    ...faberCastell,
+    markViewBox: "101.69416 31.68305 203.01177 122.18942",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.226590307604 -0.762264289739 -0.0769511769004 0 1.06580577424",
+    monoInkScale: 1,
+    logoViewBox: "-342.53972 31.68305 1083.7132 338.00046",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  staedtler: {
+    ...staedtler,
+    markViewBox: "72.41474 34.10244 136.51916 155.42083",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276232762521 -0.929264683703 -0.093809997432 0 1.29930744366",
+    monoInkScale: 1,
+    logoViewBox: "34.3052 34.10267 215.0128 215.29467",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  stabilo: {
+    ...stabilo,
+    markViewBox: "9.0352 6.80615 34.22983 34.24134",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270002540005 -0.908305816612 -0.0916941833884 0 1.27000254001",
+    monoInkScale: 1,
+    logoViewBox: "8.88686 6.55543 178.92399 34.61486",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  bertelsmann: {
+    ...bertelsmann,
+    markViewBox: "44.84571 24.86251 90.30857 129.24641",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251456427763 -0.845915508637 -0.0853958329468 0 1.18276776935",
+    monoInkScale: 1,
+    logoViewBox: "-0.21895 -0.21968 177.60391 19.62567",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  derSpiegel: {
+    ...derSpiegel,
+    markViewBox: "0 0 16.10402 26",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.347625746863 -1.16943525003 -0.118055404156 0 1.63511640105",
+    monoInkScale: 1,
+    logoViewBox: "0 0 174.67513 23",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  dieZeit: {
+    ...dieZeit,
+    markViewBox: "17.34702 16.79104 780.26659 112.7565",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "17.34702 16.79104 780.26659 112.7565",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  ard: {
+    ...ard,
+    markViewBox: "0 0 512 512",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.259929615281 -0.874419853477 -0.0882733688773 0 1.22262283764",
+    monoInkScale: 1,
+    logoViewBox: "0.79886 0.29953 231.73514 106.40093",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  rtl: {
+    ...rtl,
+    markViewBox: "0 0 439.68 77.28",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273033847071 -0.918503327495 -0.0927236300966 0 1.28426080466",
+    monoInkScale: 1,
+    logoViewBox: "0 0 439.68 77.28",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  prosieben: {
+    ...prosieben,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.268351164672 -0.902750484352 -0.0911333682469 0 1.26223501727",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  ionos: {
+    ...ionos,
+    markViewBox: "0 0 82.65614 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269651755151 -0.907125753924 -0.091575055136 0 1.26835256421",
+    monoInkScale: 1,
+    logoViewBox: "0 0 82.65614 24",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  hetzner: {
+    ...hetzner,
+    markViewBox: "0 0 24 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273962426624 -0.921627128511 -0.0930389802552 0 1.28862853539",
+    monoInkScale: 1,
+    logoViewBox: "0 0 181.42 22.24",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  oneAndOne: {
+    ...oneAndOne,
+    markViewBox: "0 0.51557 400.77086 400.48443",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269651755151 -0.907125753924 -0.091575055136 0 1.26835256421",
+    monoInkScale: 1,
+    logoViewBox: "0 0.51557 400.77086 400.48443",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  check24: {
+    ...check24,
+    markViewBox: "0 0 155 38",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26306084759 -0.884953519269 -0.0893367506869 0 1.23735111755",
+    monoInkScale: 1,
+    logoViewBox: "0 0 155 38",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  personio: {
+    ...personio,
+    markViewBox: "0.68229 0 22.63543 24",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "2.55751 3.00171 613.97878 191.31514",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  getyourguide: {
+    ...getyourguide,
+    markViewBox: "111.46349 112.51525 480.5623 374.96195",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.381512482037 -1.28343239489 -0.129563505189 0 1.79450838211",
+    monoInkScale: 1,
+    logoViewBox: "111.46349 112.51525 480.5623 374.96195",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  hellofresh: {
+    ...hellofresh,
+    markViewBox: "0 0 607.44656 521.2183",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.842837598333 -2.83535959703 -0.2862317714 0 3.96442896676",
+    monoInkScale: 1,
+    logoViewBox: "0 0 1600 522",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  deepl: {
+    ...deepl,
+    markViewBox: "0.13597 0 53.86403 67.5825",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.250982160466 -0.84432004311 -0.0852347694527 0 1.18053697303",
+    monoInkScale: 1,
+    logoViewBox: "-0.9612 -0.96391 1001.92241 345.00326",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  biontech: {
+    ...biontech,
+    markViewBox: "0 0 23.04343 19.78063",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.428016516528 -1.43987494177 -0.145356502791 0 2.01324796109",
+    monoInkScale: 1,
+    logoViewBox: "0.00302 -0.642 499.99397 56.25462",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  boehringerIngelheim: {
+    ...boehringerIngelheim,
+    markViewBox: "0 0 289.25953 289.316",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251893393798 -0.847385490331 -0.0855442287498 0 1.18482311288",
+    monoInkScale: 1,
+    logoViewBox: "0 0 1000 302",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  fresenius: {
+    ...fresenius,
+    markViewBox: "0 0 256.42683 286.09464",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267728831036 -0.900656914192 -0.0909220207001 0 1.25930776593",
+    monoInkScale: 1,
+    logoViewBox: "0 0 1843.0022 286.09464",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  sartorius: {
+    ...sartorius,
+    markViewBox: "14.2276 14.23453 1659.56481 292.41095",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "14.2276 14.23453 1659.56481 292.41095",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  evonik: {
+    ...evonik,
+    markViewBox: "0 0 48.66169 48.6624",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.282170085901 -0.949238219361 -0.0958263414959 0 1.32723464676",
+    monoInkScale: 1,
+    logoViewBox: "0 0 212.9 54.8",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  covestro: {
+    ...covestro,
+    markViewBox: "0.27106 0.05708 99.39321 99.4313",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0.27106 0.05708 99.39321 99.4313",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  brenntag: {
+    ...brenntag,
+    markViewBox: "6.95314 0 38.10514 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.299043510878 -1.00600150038 -0.10155663916 0 1.40660165041",
+    monoInkScale: 1,
+    logoViewBox: "0 0 211.12171 40",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  heidelbergMaterials: {
+    ...heidelbergMaterials,
+    markViewBox: "0 0 47.86971 48",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276442074797 -0.929968823588 -0.0938810809047 0 1.30029197929",
+    monoInkScale: 1,
+    logoViewBox: "0 0 986.5 283.5",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hochtief: {
+    ...hochtief,
+    markViewBox: "203.91419 237.92677 204.61484 204.43821",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.308668545563 -1.03838073277 -0.104825348023 0 1.45187462636",
+    monoInkScale: 1,
+    logoViewBox: "203.35214 202.47319 1225.64929 275.05363",
+    ratio: 1.8,
     alignment: "center",
   },
 } as const;

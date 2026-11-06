@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bahlsen-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="bahlsen-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bahlsen-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bahlsen-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bahlsen-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bahlsen-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="bahlsen-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bahlsen-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#bahlsen-app-dark-clip0_304_4945)"><path fill="#F55036" d="M112.006 128H15.981L0 112.01V16.012L15.98 0h96.026L128 16.003v96.007L112.006 128z" /><path fill="#FFFFFF" d="M92.788 45.17h5.545V23.26l-.325-.998.64.506h8.612v-5.59H83.955v5.414h7.98l1.137-.483-.33.997.046 22.064zM35.195 45.21h-5.55V23.26l.33-.998-.646.506h-8.606v-5.59h23.305v5.414h-7.98l-1.137-.483.33.997-.046 22.105zM73.917 25.188h-19.85v27.96h19.85v-5.653H60.135l-.988.312.505-.804v-5.337l-.505-.822.83.334h13.787v-5.6H60.488l-1.007.497.343-.826v-3.513l-.677-1.305.966.483h13.804v-5.726zM25.37 100.346c0-.338.275-.614.614-.614h35.76c.338 0 .613.276.613.614v2.701a.615.615 0 01-.614.614H25.98a.615.615 0 01-.614-.614v-2.701h.005zM34.354 107.025h2.7c.34 0 .615.275.615.614v2.7a.614.614 0 01-.614.614h-2.7a.614.614 0 01-.615-.614v-2.7c0-.339.276-.614.614-.614zM42.29 107.639c0-.339.275-.614.613-.614h2.7c.34 0 .615.275.615.614v2.7a.614.614 0 01-.615.614h-2.7a.614.614 0 01-.614-.614v-2.7zM51.57 107.025h2.7c.338 0 .614.275.614.614v2.7a.614.614 0 01-.614.614h-2.7a.614.614 0 01-.615-.614v-2.7c0-.339.276-.614.614-.614zM33.15 96.373c1.626-4.548 5.975-7.803 11.086-7.803 5.112 0 9.456 3.255 11.082 7.803H33.15z" /><path fill="#FFFFFF" d="M103.598 102.545c-1.513-1.408-5.035-2.388-9.966.944-4.827 3.26-7.415 4.674-8.82 3.17-1.684-1.797-.112-4.217 3.893-8.584 2.538-2.764 6.24-6.814 8.472-9.253 6.579-7.189 5.59-15.136 1.684-19.697-3.852-4.497-10.734-6.155-21.142-3.111-7.388 2.158-27.835 12.197-31.98 13.592-1.346.452-4.272 1.594-5.59-.068-1.233-1.553.108-3.662 1.73-4.877 2.939-2.203 6.086-4.502 4.524-7.225-1.834-3.201-9.198-4.524-14.378-3.432-6.832 1.441-9.718 5.225-7.518 7.27.844.538 1.666.922 3.562.98 2.98.095 6.751-.7 9.732-2.172 3.747-1.85 5.003-1.602 5.44-.835.371.65-.257 1.67-3.715 4.159-2.999 2.154-4.462 5.554-2.231 8.381 2.226 2.827 5.77 1.955 9.582.984 8.44-2.149 23.64-7.812 29.812-9.053 6.638-1.333 11.434-.854 14.31 2.6 2.832 3.4 1.165 7.867-1.96 12.735-1.476 2.298-4.551 7.107-5.965 9.266-2.506 3.834-3.956 7.595-.948 10.801 2.556 2.723 6.353 1.572 9.33-.709 2.456-1.878 5.3-4.091 7.206-4.953.854-.357 2.818-.547 4.475.406 1.368.786 1.486-.361.461-1.323v.004zM29.126 70.353c-1.088 0-1.978-.866-1.978-1.919 0-1.052.89-1.977 1.978-1.977 1.011 0 1.892.894 1.892 1.977 0 1.084-.88 1.92-1.892 1.92z" /></g><defs><clipPath id="bahlsen-app-dark-clip0_304_4945"><path fill="#FFFFFF" d="M0 0H128V128H0z" /></clipPath></defs></svg></g></svg>

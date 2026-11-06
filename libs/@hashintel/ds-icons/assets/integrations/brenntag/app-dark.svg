@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brenntag-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="brenntag-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="brenntag-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brenntag-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brenntag-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#brenntag-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="brenntag-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#brenntag-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="6.95314 0 38.10514 48" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M41.461 24.02C39.925 25.938 37.663 27.775 34.912 28.862C36.568 30.902 37.404 33.174 36.801 35.536C36.226 37.791 34.07 39.992 31.001 39.992H15V27.994H29C36.72 27.994 43 21.715 43 13.997C43 6.279 36.72 0 29 0H7V17.996H15V7.998H29C32.31 7.998 35 10.687 35 13.997C35 17.307 32.31 19.996 29 19.996H7V47.99V48H31C38.72 48 45 41.721 45 34.003C45 30.579 44.037 26.735 41.461 24.02Z" fill="url(#brenntag-app-dark-paint0_linear_302_1244)" />
+<defs>
+<linearGradient id="brenntag-app-dark-paint0_linear_302_1244" x1="2.4477" y1="43.4477" x2="40.3431" y2="5.5523" gradientUnits="userSpaceOnUse">
+<stop stop-color="#CC28E2" />
+<stop offset="0.8" stop-color="#1778EE" />
+</linearGradient>
+</defs>
+</svg></g></svg>

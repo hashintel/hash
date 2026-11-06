@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zf-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="zf-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="zf-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zf-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zf-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#zf-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="zf-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#zf-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="0.72887 0.72887 565.44226 565.44226" xml:space="preserve" fill="#F5F7FA" width="35.55555555555556" height="35.55555555555556">
+<g>
+	<path d="M565.5,283.5c0-155.9-126.4-282-282-282c-155.9,0-282,126.4-282,282c0,155.9,126.4,282,282,282   S565.5,439.1,565.5,283.5 M60.1,160.6h137.3L84.2,440.7h399.5C437.1,500,364.7,538,283.3,538C142.5,538,28.5,424,28.5,283.3   C28.7,238.9,40,197.1,60.1,160.6 M446.7,282.5V248h-69.1v-87.2h128.8c20.1,36.4,31.4,78.2,31.4,122.8s-11.3,86.4-31.4,122.8h-326   l113.1-280.1H83c46.6-59.3,119-97.3,200.4-97.3c81.2,0,153.7,38,200.4,97.3H301.8v254.8h76v-98.7H446.7z" fill="#3B7EC8" />
+</g>
+</svg></g></svg>

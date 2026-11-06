@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rwe-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="rwe-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="rwe-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#rwe-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#rwe-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#rwe-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="rwe-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#rwe-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="11.35483870967742" y="11.35483870967742" viewBox="0 0 100 28.8" fill="#F5F7FA" width="41.29032258064516" height="41.29032258064516">
+  <defs />
+  <g>
+    <path d="M77.293,0.037 C75.961,0.037 74.938,1.041 74.938,2.392 L74.938,26.308 C74.938,27.609 75.992,28.663 77.293,28.663 L99.99,28.663 L99.99,22.936 L82.207,22.936 L82.207,16.813 L96.956,16.813 L96.956,11.32 L82.207,11.32 L82.207,5.585 L99.79,5.585 L99.79,0.037 z M17.091,13.483 L12.46,13.483 C11.654,13.483 11.153,14.361 11.564,15.055 L20.365,28.663 L29.026,28.663 L21.183,18.059 C24.975,17.565 28.122,15.573 28.122,9.293 C28.122,2.683 25.274,0.037 18.287,0.037 L2.365,0.037 C1.034,0.037 0.01,1.041 0.01,2.392 L0.01,28.663 L7.535,28.663 L7.535,5.484 L17.2,5.484 C20.04,5.484 21.131,6.791 21.131,9.433 C21.131,11.687 19.913,13.483 17.091,13.483 M44.883,27.467 C44.623,28.185 43.941,28.663 43.178,28.663 L38.654,28.663 C37.815,28.663 37.085,28.087 36.891,27.272 L30.381,0.037 L38.091,0.037 L41.67,17.701 L47.296,1.262 C47.547,0.529 48.236,0.037 49.011,0.037 L52.973,0.037 C53.748,0.037 54.437,0.529 54.688,1.262 L60.314,17.701 L63.893,0.037 L71.603,0.037 L65.094,27.272 C64.899,28.087 64.169,28.663 63.33,28.663 L58.807,28.663 C58.043,28.663 57.361,28.185 57.101,27.467 L50.992,10.591 z" fill="#647EA1" fill-opacity="1" />
+  </g>
+</svg></g></svg>

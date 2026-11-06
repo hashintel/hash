@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="osram-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="osram-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="osram-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#osram-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#osram-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#osram-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="osram-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#osram-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="17.30745 16.88605 709.47957 158.9838" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs />
+  <g transform="translate(-1558.05, 890.855)">
+    <g transform="translate(17.7165, 17.6477)">
+      <path d="M 1745.3116,-787.56904 C 1743.9367,-772.31838 1759.5622,-763.94303 1773.563,-764.19304 C 1783.9382,-764.44306 1796.6889,-766.19314 1798.314,-779.81872 C 1801.5641,-807.06989 1713.1852,-787.44403 1712.5603,-844.19647 C 1712.3101,-874.32275 1742.5615,-891.6985 1771.9379,-890.82344 C 1813.6895,-889.5734 1830.5655,-866.19741 1830.5655,-839.69629 L 1796.4387,-839.69629 C 1796.4387,-839.69629 1799.564,-859.94715 1771.3127,-860.82217 C 1760.6872,-861.07219 1749.3117,-856.82199 1747.9369,-847.07158 C 1744.4365,-821.44548 1831.5653,-840.4463 1832.1905,-782.44382 C 1832.4404,-753.69259 1805.8141,-734.19177 1772.6879,-734.69177 C 1706.9352,-735.56683 1710.8102,-783.56889 1710.5603,-787.56904 L 1745.3116,-787.56904" fill="#F0461C" fill-rule="evenodd" stroke="none" />
+      <path d="M 2230.9574,-822.32054 L 2230.9574,-740.19201 L 2266.7089,-740.19201 L 2266.5838,-886.94831 L 2230.5824,-886.94831 L 2193.8307,-826.69571 L 2159.3293,-886.94831 L 2121.4526,-886.94831 L 2121.4526,-740.31702 L 2158.3294,-740.31702 L 2158.3294,-819.94542 L 2194.3308,-761.81793 L 2230.9574,-822.32054" fill="#F0461C" fill-rule="evenodd" stroke="none" />
+      <path d="M 2061.9503,-886.94831 L 2115.3273,-740.31702 L 2078.7007,-740.31702 L 2070.0757,-765.94312 L 2012.3232,-765.94312 L 2003.4475,-740.31702 L 1966.5711,-740.31702 L 2020.0735,-886.94831 L 2061.9503,-886.94831 z M 2041.3242,-849.94669 L 2022.5733,-796.69444 L 2059.7,-796.69444 L 2041.3242,-850.32172 L 2041.3242,-849.94669" fill="#F0461C" fill-rule="evenodd" stroke="none" />
+      <path d="M 1903.8183,-787.19401 L 1881.5674,-787.19401 L 1881.5674,-740.31702 L 1847.3159,-740.31702 L 1847.3159,-886.8233 L 1922.3192,-886.8233 C 1949.3205,-886.8233 1970.3213,-863.69729 1968.6962,-835.32108 C 1967.5713,-814.07019 1958.3206,-798.31951 1938.8198,-789.44412 L 1963.3209,-740.31702 L 1925.6945,-740.31702 L 1903.8183,-787.19401 z M 1881.0673,-855.82196 L 1915.9441,-855.82196 C 1926.1942,-855.82196 1933.0695,-846.69656 1933.5696,-836.44612 C 1934.0697,-827.44576 1927.0693,-816.44527 1916.9439,-816.44527 L 1881.0673,-816.44527 L 1881.0673,-855.82196" fill="#F0461C" fill-rule="evenodd" stroke="none" />
+      <path d="M 1630.0569,-733.44173 C 1673.9337,-733.19171 1703.1849,-768.19323 1702.1847,-811.44506 C 1704.1848,-857.82205 1672.4334,-889.69841 1630.0569,-889.5734 C 1588.805,-889.5734 1557.8035,-857.19701 1558.0538,-811.44506 C 1557.5537,-766.31814 1586.8049,-731.94167 1630.0569,-733.44173 z M 1630.0569,-858.69707 C 1655.9328,-859.0721 1666.8082,-835.44609 1666.6835,-811.57007 C 1665.1831,-789.69414 1655.1829,-765.5681 1629.9318,-765.31808 C 1605.0556,-765.31808 1593.555,-788.69411 1593.1801,-811.44506 C 1593.555,-834.32105 1604.1805,-859.0721 1630.0569,-858.69707" fill="#F0461C" fill-rule="evenodd" stroke="none" />
+    </g>
+  </g>
+</svg></g></svg>
