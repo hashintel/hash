@@ -249,8 +249,9 @@ export const useEntitiesTableQuery = (params: {
         webs,
         entityTypeIds,
         // The exclusions hold whatever the selection is, so picking a type
-        // cannot bring the noisy system types back into the rows or pills.
-        excludedTypeBaseUrls: [...noisySystemBaseUrls],
+        // cannot bring the noisy system types back into the rows or pills. A
+        // pinned type is an explicit request for its entities, so it lifts them.
+        excludedTypeBaseUrls: hasPinnedTypes ? [] : [...noisySystemBaseUrls],
         includeArchived: filterState.includeArchived,
         propertyFilters:
           propertyFilters.length > 0 ? propertyFilters : undefined,
@@ -267,6 +268,7 @@ export const useEntitiesTableQuery = (params: {
     filterState.type.selectedTypeIds,
     filterState.includeArchived,
     filterState.propertyFilters,
+    hasPinnedTypes,
     internalWebIds,
     limit,
     resolvedPinnedEntityTypeIds,
