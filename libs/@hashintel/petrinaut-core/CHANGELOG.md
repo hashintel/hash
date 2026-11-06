@@ -1,5 +1,19 @@
 # @hashintel/petrinaut-core
 
+## 0.0.7
+
+### Patch Changes
+
+- Removes `createPetrinautAiWritableCallbacks`, `normalizePetrinautAiToolInput` and `petrinautAiCapabilityGuidance`, which only the built-in AI chat used. ([@kube](https://github.com/kube), [#10267](https://github.com/hashintel/hash/pull/10267))
+
+- Reject external image destinations in visualizer styles and attributes, including escaped CSS URLs and destinations computed from runtime tokens and parameters. Preserve supported non-network styling and local SVG references. ([@kube](https://github.com/kube), [#10381](https://github.com/hashintel/hash/pull/10381))
+
+- Removes the server-backed optimization capability type, the CLI's protocol schemas, and the Monte Carlo experiment APIs only the CLI used: per-run seeds, per-run results, `runExperimentToCompletion` and `ExperimentRequest.runs`. ([@kube](https://github.com/kube), [#10287](https://github.com/hashintel/hash/pull/10287))
+
+- Use SVG background colors in example visualizers so their backgrounds fill resizable windows without stretching the drawings. ([@kube](https://github.com/kube), [#10319](https://github.com/hashintel/hash/pull/10319))
+
+- Author visualizers with function bodies and Visualizer.Svg; keep legacy code working with migration hints. ([@kube](https://github.com/kube), [#10364](https://github.com/hashintel/hash/pull/10364))
+
 ## 0.0.6
 
 ### Patch Changes

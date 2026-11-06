@@ -1,5 +1,12 @@
 # @blockprotocol/graph
 
+## 0.5.2
+
+### Patch Changes
+
+- Updated dependencies:
+  - @blockprotocol/type-system@0.2.4
+
 ## 0.5.1
 
 ### Patch Changes
