@@ -15,7 +15,7 @@
  *
  * `?usedin=old` keeps the rows from before (label column, "Used in …" text, chips on hover).
  */
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { Icon, type IconName, type MenuItem, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -1195,6 +1195,7 @@ const flatRowStyle = css({
   color: "neutral.fg.body",
   "& [data-input]": { marginLeft: "auto", textStyle: "xs", color: "neutral.fg.subtle", whiteSpace: "nowrap" },
   _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
+  "&[data-pinned]": { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.active" },
 });
 
 const tableStyle = css({
@@ -1215,6 +1216,7 @@ const tableStyle = css({
   },
   "& [data-td][data-input]": { textStyle: "xs", color: "neutral.fg.muted" },
   "& [data-tr]:hover [data-td]": { backgroundColor: "neutral.bg.surface.hover", color: "neutral.fg.heading" },
+  "& [data-tr][data-pinned] [data-td]": { backgroundColor: "neutral.bg.surface.active", color: "neutral.fg.heading" },
 });
 
 const chipsStyle = css({
@@ -1235,6 +1237,7 @@ const chipsStyle = css({
     lineHeight: "[16px]",
     color: "neutral.fg.body",
     _hover: { backgroundColor: "neutral.a20", color: "neutral.fg.heading" },
+    "&[data-pinned]": { backgroundColor: "neutral.a20", color: "neutral.fg.heading", boxShadow: "[inset 0 0 0 1px rgba(0, 0, 0, 0.12)]" },
   },
 });
 
@@ -1256,6 +1259,7 @@ const sentenceStyle = css({
     textDecorationColor: "[rgba(0, 0, 0, 0.18)]",
     textUnderlineOffset: "[3px]",
     _hover: { color: "neutral.fg.heading", textDecorationColor: "[currentColor]" },
+    "&[data-pinned]": { color: "neutral.fg.heading", textDecorationColor: "[currentColor]", backgroundColor: "neutral.bg.surface.active", borderRadius: "sm" },
   },
 });
 
@@ -1291,10 +1295,34 @@ const StructureBlock = ({
     setUi((current) => ({ ...current, selectedId: id, openField: null, hoverSourceId: null }));
   // Hovering a name highlights its card on the canvas (the reference-hover highlight; journeys-rebuild owns its look).
   const hover = (id: string | null) => setUi((current) => ({ ...current, hoverSourceId: id }));
+  // Click marks the name and keeps its card lit on the canvas; a second click opens the step; Esc clears the mark.
+  const [pinned, setPinned] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pinned) {
+      return undefined;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPinned(null);
+        hover(null);
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  });
   const on = (id: string) => ({
+    "data-pinned": pinned === id || undefined,
     onPointerEnter: () => hover(id),
-    onPointerLeave: () => hover(null),
-    onClick: () => select(id),
+    onPointerLeave: () => hover(pinned),
+    onClick: () => {
+      if (pinned === id) {
+        setPinned(null);
+        select(id);
+      } else {
+        setPinned(id);
+        hover(id);
+      }
+    },
   });
   const inputsOf = (use: Use) => use.inputs.join(", ");
   const shown = take === "s4" && !more ? uses.slice(0, 2) : uses;
