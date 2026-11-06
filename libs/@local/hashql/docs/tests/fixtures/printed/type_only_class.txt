@@ -1,0 +1,6 @@
+export class TypeBox<T> {
+    value: T;
+    get current(): T;
+    set current(value: T);
+    [brand]: "Box Link T";
+}

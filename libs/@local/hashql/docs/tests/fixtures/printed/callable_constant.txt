@@ -1,0 +1,6 @@
+export declare const choose: {
+    (value: Link): Link;
+    <T>(value: T, fallback: T): T;
+    new (value: Link): Box<Link>;
+    readonly marker: typeof brand;
+};

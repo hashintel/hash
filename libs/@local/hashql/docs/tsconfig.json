@@ -14,7 +14,9 @@
   "include": [
     "oxlint.config.ts",
     "scripts",
-    "lib",
+    "src",
+    "tests",
+    "vitest.config.ts",
     "preview",
     "preview/.next/types/**/*.ts"
   ]
