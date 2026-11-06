@@ -14,6 +14,8 @@
     "probe:postgres-viewer": "tsx test/integration/viewer-probe.ts",
     "probe:two-writers": "tsx test/integration/two-writers-probe.ts",
     "proof:browser-call": "tsx test/browser-call/proof.ts",
+    "proof:restart-turn": "tsx test/restart-turn/proof.ts",
+    "start": "tsx src/main.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run"
   },
@@ -23,6 +25,7 @@
     "@earendil-works/pi-durable": "1.5.0",
     "@earendil-works/pi-schema": "1.5.0",
     "@hashintel/brunch-agent": "workspace:*",
+    "@hashintel/petrinaut-core": "workspace:*",
     "@valibot/to-json-schema": "1.7.1",
     "ai": "6.0.286",
     "hono": "4.13.13",
