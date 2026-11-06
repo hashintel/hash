@@ -39,8 +39,8 @@ type VersionGraphLayout = {
   parentLabelX: number;
   labelX: number;
   parentPills: { version: number; x: number }[];
-  /** The type's versions from its first to its last; a gap extends no parent version. */
-  pills: { version: number; x: number; gap: boolean }[];
+  /** The type's versions that extend a parent version, side by side whatever their numbers. */
+  pills: { version: number; x: number }[];
   lines: { version: number; parentVersion: number; path: string }[];
   /** Where the ellipsis after the parent's versions starts, when the parent has newer versions. */
   parentMoreX: number | null;
@@ -59,10 +59,7 @@ export const getVersionGraphLayout = ({
   parentTitle,
   parentLatestVersion,
 }: {
-  row: Pick<
-    DependentTypeRow,
-    "former" | "firstVersion" | "lastVersion" | "parentVersions"
-  > & {
+  row: Pick<DependentTypeRow, "former" | "parentVersions"> & {
     ranges: Pick<
       DependentTypeVersionRange,
       "firstVersion" | "lastVersion" | "parentVersion"
@@ -72,14 +69,6 @@ export const getVersionGraphLayout = ({
   parentTitle: string;
   parentLatestVersion: number;
 }): VersionGraphLayout => {
-  const parentFrom = Math.min(...row.parentVersions);
-  const parentTo = Math.max(...row.parentVersions);
-  const parentBandWidth = bandWidth(parentTo - parentFrom + 1);
-  const typeBandWidth = bandWidth(row.lastVersion - row.firstVersion + 1);
-  const pillsWidth = Math.max(parentBandWidth, typeBandWidth);
-  const parentLeft = Math.round((pillsWidth - parentBandWidth) / 2);
-  const typeLeft = Math.round((pillsWidth - typeBandWidth) / 2);
-
   const parentVersionsByVersion = new Map<number, number[]>();
   for (const {
     firstVersion,
@@ -96,24 +85,24 @@ export const getVersionGraphLayout = ({
     }
   }
 
-  const parentPills = Array.from(
-    { length: parentTo - parentFrom + 1 },
-    (_, index) => ({
-      version: parentFrom + index,
-      x: parentLeft + index * pillStep,
-    }),
+  const versions = [...parentVersionsByVersion.keys()].sort(
+    (left, right) => left - right,
   );
-  const pills = Array.from(
-    { length: row.lastVersion - row.firstVersion + 1 },
-    (_, index) => {
-      const version = row.firstVersion + index;
-      return {
-        version,
-        x: typeLeft + index * pillStep,
-        gap: !parentVersionsByVersion.has(version),
-      };
-    },
-  );
+  const parentTo = Math.max(...row.parentVersions);
+  const parentBandWidth = bandWidth(row.parentVersions.length);
+  const typeBandWidth = bandWidth(versions.length);
+  const pillsWidth = Math.max(parentBandWidth, typeBandWidth);
+  const parentLeft = Math.round((pillsWidth - parentBandWidth) / 2);
+  const typeLeft = Math.round((pillsWidth - typeBandWidth) / 2);
+
+  const parentPills = row.parentVersions.map((version, index) => ({
+    version,
+    x: parentLeft + index * pillStep,
+  }));
+  const pills = versions.map((version, index) => ({
+    version,
+    x: typeLeft + index * pillStep,
+  }));
 
   const edges = pills.flatMap(({ version, x }) => {
     const parentVersions = parentVersionsByVersion.get(version) ?? [];
@@ -149,10 +138,9 @@ export const getVersionGraphLayout = ({
   const parentEnd = parentLeft + parentBandWidth;
   const typeEnd = typeLeft + typeBandWidth;
 
-  const versionParts = pills.map(({ version, gap }) =>
-    gap
-      ? `v${version} doesn't extend ${parentTitle}, or is archived`
-      : `v${version} extends ${parentTitle} ${formatList(parentVersionsByVersion.get(version) ?? [])}`,
+  const versionParts = versions.map(
+    (version) =>
+      `v${version} extends ${parentTitle} ${formatList(parentVersionsByVersion.get(version) ?? [])}`,
   );
   const summary = [
     `${title}: ${versionParts.join("; ")}.`,
