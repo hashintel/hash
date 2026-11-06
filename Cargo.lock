@@ -7084,6 +7084,7 @@ dependencies = [
  "arrow-array",
  "axum",
  "backon",
+ "bytes",
  "derive_more",
  "duckdb",
  "error-stack",
@@ -7111,6 +7112,7 @@ dependencies = [
  "type-system",
  "url",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]

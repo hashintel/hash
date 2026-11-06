@@ -25,18 +25,20 @@ hash-middleware  = { workspace = true }
 # Private third-party dependencies
 arrow-array    = { workspace = true }
 backon         = { workspace = true, features = ["std", "tokio-sleep"] }
+bytes          = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
 opentelemetry  = { workspace = true, features = ["metrics"] }
 parquet        = { workspace = true, features = ["arrow", "snap"] }
 reqwest        = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
-serde_json     = { workspace = true }
+serde_json     = { workspace = true, features = ["raw_value"] }
 simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }
 time           = { workspace = true, features = ["parsing"] }
 tokio          = { workspace = true, features = ["net", "rt", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
+zeroize        = { workspace = true }
 
 [dev-dependencies]
 hash-graph-temporal-versioning = { workspace = true }
