@@ -491,6 +491,12 @@ export const Entity = ({
     [validateFn],
   );
 
+  const showSaveError = (error: unknown) => {
+    triggerSnackbar.error(
+      `Could not save changes: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  };
+
   const handleSaveChanges = async (overrideProperties?: PropertyObject) => {
     if (!draftEntitySubgraph || !draftEntity) {
       throw new Error(
@@ -546,7 +552,7 @@ export const Entity = ({
             entityId: draftEntity.metadata.recordId.entityId,
             entityTypeIds: draftEntity.metadata.entityTypeIds,
             propertyPatches: patchesFromPropertyObjects({
-              oldProperties: originalEntity.properties,
+              oldProperties: originalEntity.propertiesWithMetadata,
               newProperties: mergePropertyObjectAndMetadata(
                 overrideProperties ?? draftEntity.properties,
                 draftEntity.metadata.properties,
@@ -681,7 +687,12 @@ export const Entity = ({
               [blockProtocolPropertyTypes.query.propertyTypeBaseUrl]: value,
             };
 
-            await handleSaveChanges(properties);
+            try {
+              await handleSaveChanges(properties);
+            } catch (error) {
+              showSaveError(error);
+              return;
+            }
 
             if (!draftLocalEntity) {
               triggerSnackbar.success("Changes saved successfully");
@@ -704,7 +715,7 @@ export const Entity = ({
                         children: "Discard entity",
                       },
                       confirmButtonProps: {
-                        onClick: () => handleSaveChanges(),
+                        onClick: () => handleSaveChanges().catch(showSaveError),
                         loading: savingChanges,
                         children: "Create entity",
                       },
@@ -712,7 +723,7 @@ export const Entity = ({
                     }
                   : {
                       confirmButtonProps: {
-                        onClick: () => handleSaveChanges(),
+                        onClick: () => handleSaveChanges().catch(showSaveError),
                         loading: savingChanges,
                         children: "Save changes",
                       },
