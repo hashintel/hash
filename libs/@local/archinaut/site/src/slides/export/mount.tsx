@@ -1,6 +1,6 @@
 /**
  * What an exported deck runs: the faces and tokens the slides draw with,
- * the theme following the system's, and the player over the deck's slides,
+ * the deck's theme or else the system's, and the player over the deck's slides,
  * every one imported up front by the export's entry.
  */
 
@@ -17,7 +17,7 @@ import { resolveSlideModule, type SlideKind } from "../slide-module";
 import { ExportedDeck } from "./exported-deck";
 
 import type { SlideShape } from "../deck/slide-shape";
-import type { DeckLogo } from "../decks";
+import type { DeckLogo, DeckTheme } from "../decks";
 
 export interface ExportedSlide {
   id: string;
@@ -27,19 +27,24 @@ export interface ExportedSlide {
 
 export const mountExportedDeck = ({
   logo,
+  theme,
   shape,
   slides,
 }: {
   logo: DeckLogo;
+  theme: DeckTheme | null;
   shape: SlideShape;
   slides: readonly ExportedSlide[];
 }): void => {
   const light = matchMedia("(prefers-color-scheme: light)");
-  const followSystem = (): void => {
-    document.documentElement.dataset.theme = light.matches ? "light" : "dark";
+  const applyTheme = (): void => {
+    document.documentElement.dataset.theme =
+      theme ?? (light.matches ? "light" : "dark");
   };
-  followSystem();
-  light.addEventListener("change", followSystem);
+  applyTheme();
+  if (theme === null) {
+    light.addEventListener("change", applyTheme);
+  }
   const container = document.getElementById("deck");
   if (container === null) {
     throw new Error("an exported deck needs its #deck element");

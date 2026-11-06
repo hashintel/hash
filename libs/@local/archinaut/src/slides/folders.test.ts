@@ -71,6 +71,18 @@ describe("listDecks", () => {
     expect(() => logoOf({ logo: true })).toThrow(/"logo"/u);
   });
 
+  it("keeps a deck in the theme it names, or follows the reader's", () => {
+    const root = fixture();
+    const themeOf = (meta: Record<string, unknown>) => {
+      writeFileSync(join(root, "tour", "deck.json"), JSON.stringify(meta));
+      return listDecks(root)[0]?.theme;
+    };
+    expect(themeOf({})).toBeNull();
+    expect(themeOf({ theme: "light" })).toBe("light");
+    expect(themeOf({ theme: "dark" })).toBe("dark");
+    expect(() => themeOf({ theme: "sepia" })).toThrow(/"theme"/u);
+  });
+
   it("has no decks without a slides directory", () => {
     expect(listDecks(null)).toEqual([]);
     expect(listDecks(join(tmpdir(), "archinaut-no-such-folder"))).toEqual([]);

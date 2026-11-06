@@ -47,7 +47,7 @@ const sourceOf = (root: string | null): string => {
       deck.stylesheet === null
         ? "null"
         : `() => import(${specifier(deck.stylesheet)})`;
-    return `{ id: ${codeLiteral(deck.id)}, origin: ${codeLiteral(deck.origin)}, title: ${codeLiteral(deck.title)}, description: ${codeLiteral(deck.description)}, logo: ${logoOf(deck.logo)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
+    return `{ id: ${codeLiteral(deck.id)}, origin: ${codeLiteral(deck.origin)}, title: ${codeLiteral(deck.title)}, description: ${codeLiteral(deck.description)}, logo: ${logoOf(deck.logo)}, theme: ${codeLiteral(deck.theme)}, loadStyle: ${style}, slides: [${slides.join(", ")}] }`;
   });
   return `${logoImports.join("\n")}\nexport default [${decks.join(", ")}];`;
 };

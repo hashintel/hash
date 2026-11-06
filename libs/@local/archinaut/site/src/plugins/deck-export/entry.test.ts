@@ -16,6 +16,7 @@ describe("exportEntrySource", () => {
         title: "Tour",
         description: "",
         logo: { kind: "file", file: "/decks/tour/partner.svg", scale: 1.5 },
+        theme: "light",
         directory: "/decks/tour",
         stylesheet: "/decks/tour/deck.css",
         slides: [
@@ -30,6 +31,7 @@ describe("exportEntrySource", () => {
       `import * as slide1 from "@decks/tour/1-net.tsx";`,
     );
     expect(source).toContain(`logo: { kind: "image", src: logo, scale: 1.5 }`);
+    expect(source).toContain(`theme: "light"`);
     expect(source).toContain(`shape: "16:9"`);
     expect(source).toContain(`{ id: "net", kind: "tsx", module: slide1 }`);
   });
@@ -45,6 +47,7 @@ describe("exportEntrySource", () => {
         title: "MDX slides",
         description: "",
         logo: { kind: "hash", scale: null },
+        theme: null,
         directory,
         stylesheet: null,
         slides: [

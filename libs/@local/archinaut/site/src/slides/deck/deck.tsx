@@ -21,6 +21,7 @@ import { DeckStage } from "./deck-stage";
 import { useDisplayOptions } from "./display-options";
 import { slideShapeOptions } from "./slide-shape";
 import { useDeck } from "./use-deck";
+import { useDeckTheme } from "./use-deck-theme";
 import { useSlideOverflow } from "./use-slide-overflow";
 
 import type { DeckSummary } from "../decks";
@@ -33,6 +34,7 @@ export const Deck = ({
   deck: DeckSummary;
   slides: readonly LoadedSlide[];
 }) => {
+  useDeckTheme(deck.theme);
   const controls = useDeck(slides);
   const { state, slide } = controls;
   const steps = currentStepCount(state, slides);

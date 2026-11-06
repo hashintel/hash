@@ -47,6 +47,7 @@ export const exportEntrySource = ({
 
 mountExportedDeck({
   logo: ${logo},
+  theme: ${codeLiteral(deck.theme)},
   shape: ${codeLiteral(shape)},
   slides: [${slides.join(", ")}],
 });

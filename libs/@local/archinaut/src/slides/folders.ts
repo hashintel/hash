@@ -26,6 +26,9 @@ export type DeckFolderLogo =
   | { kind: "site" | "hash"; scale: number | null }
   | { kind: "file"; file: string; scale: number | null };
 
+/** The colours a deck keeps whatever the reader's theme; `null` follows the reader's. */
+export type DeckTheme = "dark" | "light";
+
 /** Whose deck it is: the instance's, from its slides directory, or an example archinaut ships. */
 export type DeckOrigin = "instance" | "example";
 
@@ -36,6 +39,7 @@ export interface DeckFolder {
   title: string;
   description: string;
   logo: DeckFolderLogo;
+  theme: DeckTheme | null;
   /** Absolute path of the deck's folder. */
   directory: string;
   /** `deck.css` in the folder, loaded with the deck: fonts, tokens, anything every slide shares. */
@@ -100,21 +104,34 @@ const logoOf = (
   return { kind: "file", file, scale };
 };
 
+const themeOf = (id: string, theme: unknown): DeckTheme | null => {
+  if (theme === undefined) {
+    return null;
+  }
+  if (theme === "dark" || theme === "light") {
+    return theme;
+  }
+  throw new Error(
+    `deck "${id}": "theme" must be "dark" or "light", not ${JSON.stringify(theme)}`,
+  );
+};
+
 const readDeckMeta = (
   directory: string,
   id: string,
-): Pick<DeckFolder, "title" | "description" | "logo"> => {
+): Pick<DeckFolder, "title" | "description" | "logo" | "theme"> => {
   const metaPath = join(directory, "deck.json");
   const meta = existsSync(metaPath)
     ? (JSON.parse(readFileSync(metaPath, "utf8")) as Partial<
         Record<"title" | "description", string> &
-          Record<"logo" | "logoScale", unknown>
+          Record<"logo" | "logoScale" | "theme", unknown>
       >)
     : {};
   return {
     title: meta.title ?? id,
     description: meta.description ?? "",
     logo: logoOf(directory, id, meta.logo, logoScaleOf(id, meta.logoScale)),
+    theme: themeOf(id, meta.theme),
   };
 };
 

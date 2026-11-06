@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import "./styles/print.css";
 import { SlideContent } from "./deck/slide-content";
 import { SlideHead } from "./deck/slide-head";
+import { useDeckTheme } from "./deck/use-deck-theme";
 import { slideMdxComponents } from "./mdx-components";
 import { noteFor, type LoadedSlide } from "./slide-module";
 import { SlideStepContext } from "./step-context";
@@ -39,6 +40,7 @@ export const DeckPrint = ({
   deck: DeckSummary;
   slides: readonly LoadedSlide[];
 }) => {
+  useDeckTheme(deck.theme);
   useEffect(() => {
     document.title = `${deck.title} · Print`;
   }, [deck.title]);

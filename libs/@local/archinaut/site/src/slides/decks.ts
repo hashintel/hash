@@ -21,6 +21,9 @@ export type DeckLogo =
   | { kind: "site" | "hash"; scale: number | null }
   | { kind: "image"; src: string; scale: number | null };
 
+/** The colours a deck keeps whatever the reader's theme; `null` follows the reader's. */
+export type DeckTheme = "dark" | "light";
+
 export interface DeckSummary {
   id: string;
   /** The instance's own deck, or an example archinaut ships. */
@@ -28,6 +31,7 @@ export interface DeckSummary {
   title: string;
   description: string;
   logo: DeckLogo;
+  theme: DeckTheme | null;
   /** The deck folder's `deck.css`, when it has one. */
   loadStyle: (() => Promise<unknown>) | null;
   slides: SlideSource[];
