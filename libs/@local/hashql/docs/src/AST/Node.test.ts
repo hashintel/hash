@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from "@effect/vitest";
 import {
   Array,
   Effect,
@@ -7,7 +8,6 @@ import {
   MutableHashMap,
   Option,
 } from "effect";
-import { describe, expect, test } from "vitest";
 
 import { cases } from "../../tests/fixtures/node-cases.js";
 import * as AST from "./index.js";
@@ -49,14 +49,18 @@ describe("node", () => {
       );
     });
 
-    test("intern_identity", () => {
-      expect.hasAssertions();
-      const ast = AST.make();
-      const first = fixture.make();
-      const id = Effect.runSync(ast.intern(first));
-      expect(Effect.runSync(ast.intern(fixture.make()))).toBe(id);
-      expect(ast.get(id)).toBe(first);
-    });
+    it.effect(
+      "intern_identity",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const ast = AST.make();
+        const first = fixture.make();
+        const id = yield* ast.intern(first);
+        const again = yield* ast.intern(fixture.make());
+        expect(again).toBe(id);
+        expect(ast.get(id)).toBe(first);
+      }),
+    );
 
     test("documentation_absent", () => {
       expect.hasAssertions();
