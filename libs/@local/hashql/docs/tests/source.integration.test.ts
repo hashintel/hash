@@ -105,7 +105,7 @@ describe("source", () => {
           '"tagName":"api-export"',
           '"tagName":"api-code"',
           '"href":"#Value"',
-          '"names":["again"]',
+          String.raw`"names":"[\"again\"]"`,
         ].filter((text) => !body.includes(text)),
       ).toStrictEqual([]);
     });
