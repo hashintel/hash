@@ -6,7 +6,11 @@ HashQL is unlike other query languages you may be familiar with, such as SQL. It
 
 That is a lot to unpack! What does it mean? Let's break it down piece by piece.
 
-> **Note.** The examples throughout this guide use three different notations: TypeScript, using the Draft API; HashQL's functional notation, which is similar to Lisp; and HashQL's reference notation, which is similar to other functional languages.
+<Callout type="info" title="Note">
+
+The examples throughout this guide use three different notations: TypeScript, using the Draft API; HashQL's functional notation, which is similar to Lisp; and HashQL's reference notation, which is similar to other functional languages.
+
+</Callout>
 
 ## Functional programming
 
@@ -14,7 +18,13 @@ In HashQL, you build a query by combining expressions, each of which produces a 
 
 These compiler-recognised functions are called special forms. Unlike regular functions, they receive special treatment from the compiler, and their behaviour cannot be recreated using regular HashQL code. Everything else builds on them, which is why SDKs expose them as function calls.
 
-> **Note.** Nothing stops you from calling these special forms directly! They are all available in the `::kernel::special_form` module and preloaded in the prelude. You can even give them different names if you want.
+<Accordions>
+  <Accordion title="Calling special forms directly" id="calling-special-forms">
+
+Nothing stops you from calling these special forms directly! They are all available in the `::kernel::special_form` module and preloaded in the prelude. You can even give them different names if you want.
+
+  </Accordion>
+</Accordions>
 
 ### Naming a value with `let`
 
@@ -47,7 +57,13 @@ Draft also makes HashQL expressions easier to write by converting TypeScript val
 
 Because a HashQL binding is referenced by name, you must supply that name explicitly. By convention, it matches the TypeScript variable holding the binding: in the example above, both are named `foo`.
 
-> **Note.** A `let` binding is available within its body. If a nested binding uses the same name, it shadows the outer binding. Referring to the outer binding through its Draft handle from within that inner scope causes the Draft program to fail compilation.
+<Accordions>
+  <Accordion title="Shadowing a binding" id="shadowing-a-binding">
+
+A `let` binding is available within its body. If a nested binding uses the same name, it shadows the outer binding. Referring to the outer binding through its Draft handle from within that inner scope causes the Draft program to fail compilation.
+
+  </Accordion>
+</Accordions>
 
 You can think of a binding as similar to `const` in JavaScript, but HashQL's immutability goes further. A JavaScript `const` can hold a list whose contents you can change. In HashQL, the values themselves are immutable. Adding an item to a list produces a new list and leaves the original unchanged.
 
@@ -88,7 +104,13 @@ The comparison is true, so the `if` expression evaluates to `2`, the value of `f
 
 In Draft, `$.eq(foo, 2n)` constructs the HashQL comparison. The `then` and `else` callbacks construct the branch expressions. Both callbacks run while Draft builds the program, but HashQL evaluates only the selected branch when the program runs.
 
-> **Note.** In JavaScript and Python, `if` is a statement, so it does not need to produce a value: its branches can perform side effects instead. In HashQL, an expression contributes to the query's result through the value it produces. However, there are still legitimate uses for an `if` without an `else` branch. HashQL supports this by returning an `Option`: when the condition is true, the branch's result is automatically wrapped in `Some`; otherwise, the expression returns `None`.
+<Accordions>
+  <Accordion title="Omitting the else branch" id="omitting-the-else-branch">
+
+In JavaScript and Python, `if` is a statement, so it does not need to produce a value: its branches can perform side effects instead. In HashQL, an expression contributes to the query's result through the value it produces. However, there are still legitimate uses for an `if` without an `else` branch. HashQL supports this by returning an `Option`: when the condition is true, the branch's result is automatically wrapped in `Some`; otherwise, the expression returns `None`.
+
+  </Accordion>
+</Accordions>
 
 ### Receiving a value with `input`
 
@@ -127,7 +149,13 @@ The program now returns `2` when the caller supplies `2`, and `0` when the calle
 
 Inputs are strongly typed: you must specify the type of each value you request. In the Draft API, you declare inputs upfront and access them through the program-building callback's arguments. This is a convenience for constructing the query and does not change how HashQL inputs work. The second argument to the `Draft.program` callback contains the reference to the input values that will need to be supplied by the caller before sending the query to execute on the server.
 
-> **Note.** An `input` can also specify a default value. For example, `input(foo, Integer, 2)` in the reference notation uses `2` when the caller does not supply `foo`. Without a default, the caller must supply the input if execution needs it.
+<Accordions>
+  <Accordion title="Inputs with default values" id="input-defaults">
+
+An `input` can also specify a default value. For example, `input(foo, Integer, 2)` in the reference notation uses `2` when the caller does not supply `foo`. Without a default, the caller must supply the input if execution needs it.
+
+  </Accordion>
+</Accordions>
 
 ### Defining a function with `fn`
 
@@ -153,13 +181,29 @@ in
 matches_foo(2)
 ```
 
-`fn` produces a closure, and `let` gives that closure the name `matches_foo`. A closure does not need a name, though: it can also be invoked immediately. Here, its parameter, `value`, is an integer, and its result is a Boolean. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
+<Callout type="warn" title="Constructing closures in Draft">
 
-> **Note.** HashQL closures participate in the type system like other values. You can write `_` in any type position to let the compiler infer a concrete type from its use. This is useful when composing closures without spelling out every intermediate type.
+Draft cannot construct HashQL closures yet. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015/build-typed-hashql-functions-in-draft). A TypeScript callback used to build a Draft program is not itself a HashQL closure.
+
+</Callout>
+
+`fn` produces a closure, and `let` gives that closure the name `matches_foo`. A closure does not need a name, though: it can also be invoked immediately. Here, its parameter, `value`, is an integer, and its result is a Boolean. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
 
 The closure also refers to `foo`, which was defined outside its body. This is called capturing a binding: the closure can use `foo` without receiving it as another argument. Since bindings are immutable, `foo` keeps the value it had when the closure was created. The empty `[]` in the functional notation means that this closure declares no generic type parameters.
 
-> **Note.** HashQL closures are values: they can be passed to other functions or returned as results. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015/build-typed-hashql-functions-in-draft). A TypeScript callback used to build a Draft program is not itself a HashQL closure.
+<Callout type="info" title="Note">
+
+HashQL closures are values: they can be passed to other functions or returned as results. HashQL closures participate in the type system like other values.
+
+</Callout>
+
+<Accordions>
+  <Accordion title="Inferring closure types" id="inferring-closure-types">
+
+You can write `_` in any type position to let the compiler infer a concrete type from its use. This is useful when composing closures without spelling out every intermediate type.
+
+  </Accordion>
+</Accordions>
 
 ### Bringing names into scope with `use`
 
@@ -190,11 +234,21 @@ use(::core::cmp, {eq: same},
 
 This still evaluates to `true`. The name `same` refers to the existing `eq` function rather than defining a new one. Like a `let` binding, the imported name is available within the body of the `use` expression. The import does not rename the function in its original module.
 
-> **Note.** Why have a dedicated import form when we could use `let`? A `*` import brings every public item from a module into scope under its original name. It can also import modules themselves, which neither `let` nor `type` can bind.
+<Accordions>
+  <Accordion title="Why a separate import form?" id="why-use-instead-of-let">
+
+Why have a dedicated import form when we could use `let`? A `*` import brings every public item from a module into scope under its original name. It can also import modules themselves, which neither `let` nor `type` can bind.
+
+  </Accordion>
+</Accordions>
 
 Draft spells this operation `$.import`. `$.modules().cmp` selects the comparison module, and `{ eq: "same" }` selects `eq` under its new local name.
 
-> **Important.** The SDK's `import` constructs a HashQL import, not a host-language import. The imported names belong to the HashQL program's scope. They do not become imports in the host language's module system.
+<Callout type="warn" title="Important">
+
+The SDK's `import` constructs a HashQL import, not a host-language import. The imported names belong to the HashQL program's scope. They do not become imports in the host language's module system.
+
+</Callout>
 
 ### Reading a field with `access`
 
