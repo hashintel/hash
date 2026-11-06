@@ -1075,6 +1075,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Meta"],
   },
   {
     name: "messengerLegacy",
@@ -1101,6 +1102,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Meta"],
   },
   {
     name: "instagram",
@@ -1127,6 +1129,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Meta"],
   },
   {
     name: "notion",
@@ -2939,6 +2942,16 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "Facebook",
+      "Instagram",
+      "WhatsApp",
+      "Messenger",
+      "Threads",
+      "Muse",
+      "Meta Muse",
+      "Muse (Meta)",
+    ],
   },
   {
     name: "zAi",
@@ -4549,6 +4562,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Meta"],
   },
   {
     name: "pepsi",
@@ -5289,7 +5303,7 @@ export const integrationIconCatalog = [
   {
     name: "muse",
     slug: "muse",
-    label: "Muse (Meta)",
+    label: "Muse",
     integrationNames: ["Muse", "Meta Muse"],
     source: "https://muse.ai/images/landing/brand/muse-logo.svg",
     categories: ["AI"],
@@ -5300,6 +5314,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Meta", "Muse (Meta)"],
   },
   {
     name: "xAi",
@@ -8535,6 +8550,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Meta"],
   },
   {
     name: "fantasyFlightGames",
@@ -12359,6 +12375,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Meta"],
   },
   {
     name: "tumblr",

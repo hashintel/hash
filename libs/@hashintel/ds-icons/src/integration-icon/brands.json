@@ -840,7 +840,8 @@
     },
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Meta"]
   },
   {
     "name": "messengerLegacy",
@@ -867,7 +868,8 @@
     },
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Meta"]
   },
   {
     "name": "instagram",
@@ -890,7 +892,8 @@
     "logoNotes": "Lock-up composed from the sourced brand mark and wordmark. The wordmark is black on light backgrounds and white on dark backgrounds; the mark retains its gradient.",
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Meta"]
   },
   {
     "name": "notion",
@@ -2440,7 +2443,17 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Facebook",
+      "Instagram",
+      "WhatsApp",
+      "Messenger",
+      "Threads",
+      "Muse",
+      "Meta Muse",
+      "Muse (Meta)"
+    ]
   },
   {
     "name": "zAi",
@@ -3822,7 +3835,8 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Meta"]
   },
   {
     "name": "pepsi",
@@ -4447,7 +4461,7 @@
   {
     "name": "muse",
     "slug": "muse",
-    "label": "Muse (Meta)",
+    "label": "Muse",
     "integrationNames": ["Muse", "Meta Muse"],
     "ratio": 1.8,
     "alignment": "center",
@@ -4458,7 +4472,8 @@
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0538
+    "monoInkScale": 1.0538,
+    "searchAliases": ["Meta", "Muse (Meta)"]
   },
   {
     "name": "xAi",
@@ -7692,7 +7707,8 @@
     },
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Meta"]
   },
   {
     "name": "fantasyFlightGames",
@@ -11883,7 +11899,8 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Meta"]
   },
   {
     "name": "tumblr",
