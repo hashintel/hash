@@ -14,6 +14,7 @@ import {
 
 /** The mark in each slide's top-left corner, as `deck.json` names it. */
 export type DeckLogo =
+  | { kind: "site" }
   | { kind: "hash" }
   | { kind: "none" }
   | { kind: "image"; src: string };

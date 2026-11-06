@@ -46,7 +46,7 @@ describe("listDecks", () => {
     ).toEqual([["tour", "Tour", "A walk"]]);
   });
 
-  it("shows HASH's logo unless the deck names another or none", () => {
+  it("shows the site's logo unless the deck names HASH's, another or none", () => {
     const root = fixture();
     const deck = join(root, "tour");
     const logoOf = (meta: Record<string, unknown>) => {
@@ -54,7 +54,8 @@ describe("listDecks", () => {
       return listDecks(root)[0]?.logo;
     };
     writeFileSync(join(deck, "partner.svg"), "<svg/>");
-    expect(logoOf({})).toEqual({ kind: "hash" });
+    expect(logoOf({})).toEqual({ kind: "site" });
+    expect(logoOf({ logo: "hash" })).toEqual({ kind: "hash" });
     expect(logoOf({ logo: false })).toEqual({ kind: "none" });
     expect(logoOf({ logo: "partner.svg" })).toEqual({
       kind: "file",

@@ -5,12 +5,15 @@
  * moves with the slide while the logo holds still.
  */
 
+import siteLogoUrl from "../../content/logo.png";
 import { HashLogo } from "./hash-logo";
 
 import type { DeckLogo } from "../decks";
 
 const Logo = ({ logo }: { logo: DeckLogo }) => {
   switch (logo.kind) {
+    case "site":
+      return <img className="deck-head__logo" src={siteLogoUrl} alt="" />;
     case "hash":
       return <HashLogo className="deck-head__logo" />;
     case "image":

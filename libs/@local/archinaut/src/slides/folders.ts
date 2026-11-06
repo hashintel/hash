@@ -15,11 +15,12 @@ export interface DeckSlideFile {
 }
 
 /**
- * The mark in each slide's top-left corner: HASH's unless `deck.json` names
- * an image in the deck folder (`"logo": "partner.svg"`) or none
- * (`"logo": false`).
+ * The mark in each slide's top-left corner: the site's logo, unless
+ * `deck.json` names HASH's wordmark (`"logo": "hash"`), an image in the
+ * deck folder (`"logo": "partner.svg"`) or none (`"logo": false`).
  */
 export type DeckFolderLogo =
+  | { kind: "site" }
   | { kind: "hash" }
   | { kind: "none" }
   | { kind: "file"; file: string };
@@ -64,10 +65,13 @@ const logoOf = (
   logo: unknown,
 ): DeckFolderLogo => {
   if (logo === undefined) {
-    return { kind: "hash" };
+    return { kind: "site" };
   }
   if (logo === false) {
     return { kind: "none" };
+  }
+  if (logo === "hash") {
+    return { kind: "hash" };
   }
   const file = typeof logo === "string" ? resolve(directory, logo) : null;
   if (
@@ -76,7 +80,7 @@ const logoOf = (
     !existsSync(file)
   ) {
     throw new Error(
-      `deck "${id}": "logo" must be false or the path of an image in the deck folder, not ${JSON.stringify(logo)}`,
+      `deck "${id}": "logo" must be false, "hash" or the path of an image in the deck folder, not ${JSON.stringify(logo)}`,
     );
   }
   return { kind: "file", file };
