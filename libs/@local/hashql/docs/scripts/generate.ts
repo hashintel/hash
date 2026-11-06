@@ -6,6 +6,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, HashMap, Layer, Option } from "effect";
 
 import * as Generation from "../src/Generation.js";
+import * as Page from "../src/Page.js";
 import * as TypeScript from "../src/TypeScript/index.js";
 
 import type * as Catalogue from "../src/Catalogue.js";
@@ -14,15 +15,21 @@ const spelling = (name: Catalogue.Name): string =>
   `${name.entrypoint} ${name.path.join(".")}`;
 
 const main = Effect.gen(function* () {
-  const catalogue = yield* Generation.fromDirectory({
+  const result = yield* Generation.fromDirectory({
     directory: fileURLToPath(new URL("../.generated", import.meta.url)),
+    sourceUrl: ({ file, line }) => `${file}#L${line}`,
   });
 
-  for (const [name, id] of catalogue.byName) {
-    const { name: canonical } = HashMap.get(catalogue.byId, id).pipe(
+  for (const [name, id] of result.catalogue.byName) {
+    const { name: canonical } = HashMap.get(result.catalogue.byId, id).pipe(
       Option.getOrThrow,
     );
     process.stdout.write(`${spelling(name)} -> ${spelling(canonical)}\n`);
+  }
+
+  for (const page of result.pages) {
+    const markdown = yield* Effect.fromResult(Page.toMarkdown(page));
+    process.stdout.write(`\n=== ${page.file}\n${markdown}`);
   }
 });
 

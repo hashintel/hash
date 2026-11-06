@@ -18,6 +18,18 @@ const PackageJson = Schema.fromJsonString(
   }),
 );
 
+/** A declaration map as TypeScript writes it. Each source is relative to `sourceRoot`, which is relative to the map's own directory. */
+const DeclarationMap = Schema.fromJsonString(
+  Schema.Struct({
+    version: Schema.Finite,
+    file: Schema.String,
+    sourceRoot: Schema.String,
+    sources: Schema.Array(Schema.String),
+    names: Schema.Array(Schema.String),
+    mappings: Schema.String,
+  }),
+);
+
 /** One `[entrypoint, declaration file]` pair per entrypoint, as `src/Generation.ts` reads it. */
 const Roots = Schema.fromJsonString(
   Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
@@ -44,6 +56,33 @@ const copy = Effect.gen(function* () {
       return pipe(
         fs.makeDirectory(path.dirname(target), { recursive: true }),
         Effect.andThen(fs.copyFile(path.join(dist, file), target)),
+      );
+    },
+    { discard: true },
+  );
+
+  // A declaration map names its sources relative to itself, so each copy is rebased onto its new location.
+  yield* Effect.forEach(
+    Array.filter(files, (file) => file.endsWith(".d.ts.map")),
+    (file) => {
+      const from = path.dirname(path.join(dist, file));
+      const to = path.dirname(path.join(generated, file));
+
+      return pipe(
+        path.join(dist, file),
+        fs.readFileString,
+        Effect.flatMap(Schema.decodeEffect(DeclarationMap)),
+        Effect.map((map) => ({
+          ...map,
+          sourceRoot: "",
+          sources: Array.map(map.sources, (source) =>
+            path.relative(to, path.resolve(from, map.sourceRoot, source)),
+          ),
+        })),
+        Effect.flatMap(Schema.encodeEffect(DeclarationMap)),
+        Effect.flatMap((text) =>
+          fs.writeFileString(path.join(generated, file), text),
+        ),
       );
     },
     { discard: true },
