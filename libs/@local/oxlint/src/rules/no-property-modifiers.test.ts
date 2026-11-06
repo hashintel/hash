@@ -100,6 +100,37 @@ tester.run("no-property-modifiers", noPropertyModifiers, {
       errors: [privateError],
       output: null,
     },
+    // Parentheses and type assertions around `this` still reach the field.
+    {
+      code: "class A { private foo = 1; m(key: string) { return (this)[key]; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; m(key: string) { return (this as A)[key as never]; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; m(key: string) { return (<A>this)[key as never]; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; m(key: string) { return (this satisfies A)[key as never]; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; m(key: string) { return this![key as never]; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; has(key: string) { return key in (this as object); } }",
+      errors: [privateError],
+      output: null,
+    },
     {
       code: "class A { private foo = 1; m() { delete this.foo; } }",
       errors: [privateError],

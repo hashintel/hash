@@ -34,6 +34,7 @@ export interface Options extends OxlintConfig {
 
   /** Adds restrictions without replacing built-in entries. Duplicate keys throw. */
   readonly additionalRestrictedTypes?: AdditionalRestrictedTypes;
+  readonly additionalDefinedJsDocTags?: readonly string[];
   readonly frameworks?: readonly Framework[];
 }
 
@@ -52,10 +53,16 @@ const defineOverride = (override: Overrides[number]): Overrides[number] =>
 const createDefaults = (
   options: Pick<
     Options,
-    "runtime" | "frameworks" | "additionalRestrictedTypes"
+    | "runtime"
+    | "frameworks"
+    | "additionalRestrictedTypes"
+    | "additionalDefinedJsDocTags"
   >,
 ): OxlintConfig => {
   const additionalRestrictedTypes = options.additionalRestrictedTypes ?? {};
+  const additionalDefinedJsDocTags = [
+    ...(options.additionalDefinedJsDocTags ?? []),
+  ];
   for (const typeName of Object.keys(defaultRestrictedTypes)) {
     if (Object.hasOwn(additionalRestrictedTypes, typeName)) {
       throw new Error(
@@ -256,6 +263,13 @@ const createDefaults = (
       }
       case "effect": {
         extend.push(effectStrict);
+        additionalDefinedJsDocTags.push(
+          "effect-leakable-service",
+          "effect-expect-leaking",
+          "effect-identifier",
+          "effect-diagnostics",
+          "effect-codegens",
+        );
         Object.assign(
           rules,
           defineRules({
@@ -434,6 +448,10 @@ const createDefaults = (
       "id-length": ["deny", { checkGeneric: false, exceptions: ["$", "_"] }], // Type parameters and conventional helper bindings need their short names.
       "unicorn/no-array-callback-reference": "allow", // goes against functional programming
       "typescript/explicit-member-accessibility": "allow", // goes against modern ts and js interop
+      "jsdoc/check-tag-names": [
+        "deny", // deny is the default, but we want to allow additional tags
+        { definedTags: additionalDefinedJsDocTags },
+      ],
       ...rules,
       ...pluginDeny,
     },
@@ -451,12 +469,18 @@ export const defineConfig = ({
   runtime,
   frameworks = [],
   additionalRestrictedTypes = {},
+  additionalDefinedJsDocTags = [],
   ...config
 }: Options): OxlintConfig =>
   inheritConfig({
     ...config,
     extends: [
-      createDefaults({ runtime, frameworks, additionalRestrictedTypes }),
+      createDefaults({
+        runtime,
+        frameworks,
+        additionalRestrictedTypes,
+        additionalDefinedJsDocTags,
+      }),
       ...(config.extends ?? []),
     ],
   });
