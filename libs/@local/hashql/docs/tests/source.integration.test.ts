@@ -86,7 +86,7 @@ describe("source", () => {
         "fixture.html",
       ]);
       expect(loaded.folders).toStrictEqual([
-        { directory: "", pages: ["index", "fixture", "traits"] },
+        { directory: "", pages: ["fixture", "traits"] },
       ]);
       const page = modulePage(loaded);
       expect(page.description).toBe("Module with rich text and Value.");
