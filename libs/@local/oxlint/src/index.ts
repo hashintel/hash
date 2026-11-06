@@ -34,6 +34,8 @@ export interface Options extends OxlintConfig {
 
   /** Adds restrictions without replacing built-in entries. Duplicate keys throw. */
   readonly additionalRestrictedTypes?: AdditionalRestrictedTypes;
+
+  /** Adds JSDoc tags to the standard ones and those the frameworks define. */
   readonly additionalDefinedJsDocTags?: readonly string[];
   readonly frameworks?: readonly Framework[];
 }
@@ -268,6 +270,7 @@ const createDefaults = (
           "effect-expect-leaking",
           "effect-identifier",
           "effect-diagnostics",
+          "effect-diagnostics-next-line",
           "effect-codegens",
         );
         Object.assign(

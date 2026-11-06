@@ -14,9 +14,9 @@ const binary = fileURLToPath(
 const entry = new URL("../dist/index.js", import.meta.url).href;
 const timeout = 10_000;
 
-const lintFiles = (
+const runOxlint = (
   files: Readonly<Record<string, string>>,
-  rule: string,
+  args: readonly string[],
 ): SpawnSyncReturns<string> => {
   const directory = mkdtempSync(path.join(tmpdir(), "hash-oxlint-config-"));
   try {
@@ -33,10 +33,7 @@ const lintFiles = (
         "--disable-nested-config",
         "-c",
         "oxlint.config.mjs",
-        "-A",
-        "all",
-        "-D",
-        rule,
+        ...args,
         "--format",
         "json",
         ".",
@@ -52,6 +49,12 @@ const lintFiles = (
     rmSync(directory, { force: true, recursive: true });
   }
 };
+
+// `-D` drops the options the config gives the rule, so a test of those options calls `runOxlint` without arguments.
+const lintFiles = (
+  files: Readonly<Record<string, string>>,
+  rule: string,
+): SpawnSyncReturns<string> => runOxlint(files, ["-A", "all", "-D", rule]);
 
 describe("config_inheritance", () => {
   test("environment_globals", () => {
@@ -102,6 +105,37 @@ export default defineConfig({
       diagnostics: [
         { filename: "generated/keep.js", code: "eslint(no-undef)" },
       ],
+    });
+  });
+});
+
+describe("jsdoc_tags", () => {
+  test("framework_and_additional_tags", () => {
+    expect.hasAssertions();
+
+    const result = runOxlint(
+      {
+        "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
+export default defineConfig({
+  frameworks: ["effect"],
+  runtime: "node",
+  additionalDefinedJsDocTags: ["category"],
+  ignorePatterns: ["oxlint.config.mjs"],
+  options: { typeAware: false },
+});
+`,
+        "framework.ts":
+          "/** @effect-diagnostics-next-line floatingEffect:off */\nexport const framework = 1;\n",
+        "additional.ts":
+          "/** @category models */\nexport const additional = 1;\n",
+        "unknown.ts": "/** @unknown */\nexport const unknown = 1;\n",
+      },
+      [],
+    );
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      diagnostics: [{ filename: "unknown.ts", code: "jsdoc(check-tag-names)" }],
     });
   });
 });
