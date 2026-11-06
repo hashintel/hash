@@ -22,7 +22,7 @@ use super::{
     fingerprint,
 };
 use crate::{
-    ArtifactNamespace, ParquetStorage, Workspace, WorkspaceConfig,
+    ArtifactNamespace, ArtifactStorage, Format, Workspace, WorkspaceConfig,
     storage::tests::{minio, s3_storage},
 };
 
@@ -150,12 +150,12 @@ fn run() -> CaptureRun {
 fn reader(directory: &Path) -> SourceReader {
     reader_with(
         directory,
-        ParquetStorage::local(directory.join("captures"))
+        ArtifactStorage::local(&directory.join("captures"))
             .expect("should create local capture storage"),
     )
 }
 
-fn reader_with(directory: &Path, captures: ParquetStorage) -> SourceReader {
+fn reader_with(directory: &Path, captures: ArtifactStorage) -> SourceReader {
     let local = directory.join("local");
     fs::create_dir_all(&local).expect("should create the local source root");
     SourceReader::new(
@@ -181,7 +181,7 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
     // the capture.
     let captures = || match &minio {
         Some((_, port)) => s3_storage(*port, directory.path()),
-        None => ParquetStorage::local(directory.path().join("captures"))
+        None => ArtifactStorage::local(&directory.path().join("captures"))
             .expect("should create local capture storage"),
     };
     let run = run();
@@ -202,16 +202,22 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
     let capture = workspace
         .capture(
             "SELECT 7 AS id, 'initial' AS value".into(),
-            earlier
-                .staging(&key)
-                .expect("should prepare the staging path"),
+            earlier.staging_file(Format::Parquet),
         )
         .await
         .expect("should publish the earlier capture");
-    earlier
-        .store(&key, &capture)
+    let artifact = earlier
+        .publish(
+            &ArtifactNamespace::new(run.web, definition.connector()).artifacts(),
+            capture.path(),
+            Format::Parquet,
+        )
         .await
         .expect("should store the earlier capture");
+    let _bound = earlier
+        .bind(&key, &artifact)
+        .await
+        .expect("should bind the earlier capture to the run");
     workspace
         .close()
         .await
@@ -333,7 +339,7 @@ fn overlapping_roots(#[case] captures: &str) {
     fs::create_dir_all(&local).expect("should create the local source root");
     let error = CaptureStore::new(
         &local,
-        ParquetStorage::local(local.join(captures)).expect("should create local capture storage"),
+        ArtifactStorage::local(&local.join(captures)).expect("should create local capture storage"),
     )
     .expect_err("should keep captures outside the local source root");
     assert!(
@@ -351,8 +357,7 @@ fn local_root_invalid_key(#[case] key: &str) {
     let captures = TempDir::new().expect("should create the capture directory");
     let store = CaptureStore::new(
         directory.path(),
-        ParquetStorage::local(captures.path().to_owned())
-            .expect("should create local capture storage"),
+        ArtifactStorage::local(captures.path()).expect("should create local capture storage"),
     )
     .expect("should open storage");
     let error = store
@@ -373,8 +378,7 @@ fn local_root_symlink() {
     let captures = TempDir::new().expect("should create the capture directory");
     let store = CaptureStore::new(
         directory.path(),
-        ParquetStorage::local(captures.path().to_owned())
-            .expect("should create local capture storage"),
+        ArtifactStorage::local(captures.path()).expect("should create local capture storage"),
     )
     .expect("should open storage");
     symlink(outside.path(), directory.path().join("escape"))

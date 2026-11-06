@@ -28,16 +28,10 @@ impl ArtifactNamespace {
 
     // Origin: the capture path of `CaptureStore::path` in `sources/mod.rs` (hashintel/hash#10133,
     // hashintel/hash#10383).
-    /// The key of the capture of `source` in the run `run`, named after the `fingerprint` of the
-    /// source's definition so that a changed definition is captured again.
+    /// The key the capture of `source` in the run `run` is bound to, named after the
+    /// `fingerprint` of the source's definition so that a changed definition is captured again.
     pub(crate) fn capture(&self, run: Uuid, source: &SourceName, fingerprint: &str) -> ArtifactKey {
-        ArtifactKey(
-            format!(
-                "{}/captures/{run}/{source}.{fingerprint}.parquet",
-                self.root
-            )
-            .into(),
-        )
+        ArtifactKey(format!("{}/captures/{run}/{source}.{fingerprint}.json", self.root).into())
     }
 
     // Origin: `Keyspace::artifact_prefix` in the durable kernel (`durable-kernel/src/keyspace.rs`),

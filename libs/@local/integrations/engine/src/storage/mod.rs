@@ -1,18 +1,16 @@
 mod artifact;
 mod bucket;
 mod namespace;
-mod parquet;
 #[cfg(test)]
 pub(crate) mod tests;
 
 use core::fmt::Write as _;
 
-pub(crate) use self::parquet::Stored;
+pub(crate) use self::artifact::Bound;
 pub use self::{
     artifact::{ArtifactRef, ArtifactRefV1, ArtifactStorage, Format},
     bucket::S3Bucket,
     namespace::ArtifactNamespace,
-    parquet::ParquetStorage,
 };
 
 /// Reports why an artifact could not be read or stored.

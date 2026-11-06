@@ -17,7 +17,7 @@ pub enum Format {
 }
 
 impl Format {
-    const fn extension(self) -> &'static str {
+    pub(super) const fn extension(self) -> &'static str {
         match self {
             Self::Parquet => "parquet",
             Self::DuckDb => "duckdb",

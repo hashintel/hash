@@ -1,3 +1,4 @@
+mod binding;
 mod local;
 mod reference;
 mod s3;
@@ -15,7 +16,9 @@ use hash_crypto::digest::{Sha256, Sha256Digest};
 use object_store::{ObjectStore, WriteMultipart};
 use tempfile::{NamedTempFile, TempDir};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+use uuid::Uuid;
 
+pub(crate) use self::binding::Bound;
 pub use self::reference::{ArtifactRef, ArtifactRefV1, Format};
 use super::{ArtifactError, ArtifactKey, S3Bucket};
 
@@ -33,6 +36,8 @@ const UPLOAD_CONCURRENCY: usize = 4;
 pub struct ArtifactStorage {
     store: Arc<dyn ObjectStore>,
     staging: TempDir,
+    /// The local directory artifacts are kept or staged in.
+    directory: PathBuf,
 }
 
 impl ArtifactStorage {
@@ -46,6 +51,7 @@ impl ArtifactStorage {
         Ok(Self {
             store: Arc::new(store),
             staging,
+            directory: root.to_owned(),
         })
     }
 
@@ -57,8 +63,26 @@ impl ArtifactStorage {
     pub fn s3(bucket: &S3Bucket, staging: TempDir) -> Result<Self, Report<ArtifactError>> {
         Ok(Self {
             store: s3::open(bucket)?,
+            directory: staging.path().to_owned(),
             staging,
         })
+    }
+
+    /// Returns the canonical path of the local directory artifacts are kept or staged in.
+    pub(crate) fn directory(&self) -> Result<PathBuf, Report<ArtifactError>> {
+        self.directory
+            .canonicalize()
+            .change_context(ArtifactError::Read)
+    }
+
+    /// Returns a new path in staging for a writer to publish a file of `format` to.
+    ///
+    /// Each call returns a different path, so a file left by a failed attempt never blocks the
+    /// next one.
+    pub(crate) fn staging_file(&self, format: Format) -> PathBuf {
+        self.staging
+            .path()
+            .join(format!("{}.{}", Uuid::new_v4(), format.extension()))
     }
 
     // Origin: `ArtifactStore::publish` in labs `pocs/integrations_rs/src/blob.rs`, without its

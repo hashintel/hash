@@ -42,7 +42,7 @@ pub use self::{
     },
     storage::{
         ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactRefV1, ArtifactStorage,
-        Format, ParquetStorage, S3Bucket,
+        Format, S3Bucket,
     },
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
