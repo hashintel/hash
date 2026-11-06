@@ -147,17 +147,26 @@ export const getFormDataFromDataType = (dataTypeWithMetadata: {
   } = dataTypeWithMetadata.schema;
 
   if ("anyOf" in constraints) {
-    if (title === "Value") {
-      return {
-        allOf: [],
-        conversions: {},
-        description,
-        label,
-        title,
-        constraints: { type: "anything" },
-      };
-    }
-    throw new Error("anyOf constraints are not supported");
+    /**
+     * Types whose values may take several shapes (e.g. a primitive or a list)
+     * cannot be represented by the single-constraint form — display them as
+     * unconstrained. They are edited via the data type editor drawer, which
+     * reads the schema directly.
+     */
+    const { conversions } =
+      "webId" in dataTypeWithMetadata.metadata
+        ? dataTypeWithMetadata.metadata
+        : { conversions: null };
+
+    return {
+      allOf: allOf?.map(({ $ref }) => $ref) ?? [],
+      abstract: !!abstract,
+      conversions: conversions ?? {},
+      description,
+      label: label?.left?.length || label?.right?.length ? label : undefined,
+      title,
+      constraints: { type: "anything" },
+    };
   }
 
   let nulledConstraints: NullableSingleValueConstraints;
