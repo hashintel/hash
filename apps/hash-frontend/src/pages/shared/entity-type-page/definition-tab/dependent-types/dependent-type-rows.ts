@@ -106,15 +106,12 @@ export type ParentVersionRow = {
 /** Groups dependent types by the parent version they extend, newest parent version first. */
 export const getParentVersionRows = ({
   rows,
-  parentLatestVersion,
 }: {
   rows: DependentTypeRow[];
-  parentLatestVersion: number;
 }): ParentVersionRow[] =>
-  Array.from({ length: parentLatestVersion }, (_, index) => {
-    const parentVersion = parentLatestVersion - index;
-
-    return {
+  [...new Set(rows.flatMap((row) => row.parentVersions))]
+    .sort((left, right) => right - left)
+    .map((parentVersion) => ({
       parentVersion,
       types: rows.flatMap((row) => {
         const ranges = row.ranges.filter(
@@ -133,5 +130,4 @@ export const getParentVersionRows = ({
             ]
           : [];
       }),
-    };
-  });
+    }));
