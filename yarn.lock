@@ -9677,14 +9677,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hashql-docs@workspace:libs/@local/hashql/docs"
   dependencies:
+    "@effect/platform-node": "npm:4.0.3"
     "@fumadocs/base-ui": "npm:16.17.8"
     "@local/oxlint": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@microsoft/tsdoc": "npm:0.16.0"
     "@tsconfig/bases": "catalog:"
     "@types/mdx": "npm:2.0.13"
     "@types/node": "catalog:"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
+    effect: "npm:4.0.3"
     fumadocs-core: "npm:16.17.8"
     fumadocs-mdx: "npm:15.4.10"
     next: "npm:16.4.1"
@@ -9692,6 +9695,7 @@ __metadata:
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
     typescript: "catalog:beta"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
