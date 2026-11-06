@@ -9575,12 +9575,12 @@ export const integrationGeometry = {
   },
   berryBrosRudd: {
     ...berryBrosRudd,
-    markViewBox: "0 0 243 65.51368",
+    markViewBox: "0 0 1200 1607",
     monoAlphaMatrix:
-      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
     monoInkScale: 1,
     logoViewBox: "0 0 243 65.51368",
-    ratio: 1.8,
+    ratio: 1.4,
     alignment: "center",
   },
   hilton: {

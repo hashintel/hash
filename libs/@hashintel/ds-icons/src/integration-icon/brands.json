@@ -17084,25 +17084,22 @@
     "slug": "berry-bros-rudd",
     "label": "Berry Bros. & Rudd",
     "integrationNames": ["Berry Bros. & Rudd", "Berry Bros"],
-    "ratio": 1.8,
+    "ratio": 1.4,
     "alignment": "center",
-    "source": "https://www.bbr.com/_ipx/s_243x66/bbr/logo/gold.svg",
-    "markLightColors": {
-      "white": "#8B733E",
-      "#D4BE80": "#8B733E"
+    "source": "https://images.squarespace-cdn.com/content/60d1cb13763e9a2b36d15fe0/def9d4c1-a69a-44db-a1b7-8a88013a80d4/berry-bros-%26-rudd-spirits-specialist-whisky-rum-gin-logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231F20": "#F5F7FA",
+      "#FFFFFF": "#231F20"
     },
-    "markDarkColors": {},
     "logoDarkColors": {},
     "logoSource": "https://www.bbr.com/_ipx/s_243x66/bbr/logo/gold.svg",
-    "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
+    "logoNotes": "Marks and app icons use the arched window badge vectorized from the supplied raster, retaining its lettering and grid as paths. Dark marks invert the monochrome palette for contrast. Full logos retain the native outlined website lock-up.",
     "logoLightColors": {
       "white": "#8B733E",
       "#D4BE80": "#8B733E"
     },
-    "markMonoColors": {
-      "white": "#111111",
-      "#D4BE80": "#111111"
-    },
+    "markMonoColors": {},
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null

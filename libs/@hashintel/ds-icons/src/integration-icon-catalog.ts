@@ -17990,7 +17990,8 @@ export const integrationIconCatalog = [
     slug: "berry-bros-rudd",
     label: "Berry Bros. & Rudd",
     integrationNames: ["Berry Bros. & Rudd", "Berry Bros"],
-    source: "https://www.bbr.com/_ipx/s_243x66/bbr/logo/gold.svg",
+    source:
+      "https://images.squarespace-cdn.com/content/60d1cb13763e9a2b36d15fe0/def9d4c1-a69a-44db-a1b7-8a88013a80d4/berry-bros-%26-rudd-spirits-specialist-whisky-rum-gin-logo.png",
     categories: ["Food & drink"],
     category: "Integrations",
     variants: [
@@ -18004,7 +18005,7 @@ export const integrationIconCatalog = [
     ],
     logoSource: "https://www.bbr.com/_ipx/s_243x66/bbr/logo/gold.svg",
     logoNotes:
-      "Sourced outlined brand artwork, with colors adapted for the preview theme.",
+      "Marks and app icons use the arched window badge vectorized from the supplied raster, retaining its lettering and grid as paths. Dark marks invert the monochrome palette for contrast. Full logos retain the native outlined website lock-up.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
