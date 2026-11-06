@@ -252,6 +252,13 @@ const affixError = { messageId: "kindAffix" };
 // oxlint-disable-next-line vitest/require-hook -- RuleTester declares and runs test cases rather than setting up shared state.
 tester.run("naming-conventions/kind-affixes", namingConventions, {
   invalid: [
+    // `UserShape` keeps its name while its overlapping rename waits, so `IUserShape` cannot take it and capture the outer reference.
+    {
+      code: "const foo_bar = 0; const UserShape = 1; console.log(foo_bar, UserShape); function read() { const IUserShape = 2; return [IUserShape, UserShape]; }",
+      errors: [error, affixError, affixError],
+      output:
+        "const fooBar = 0; const UserShape = 1; console.log(fooBar, UserShape); function read() { const IUserShape = 2; return [IUserShape, UserShape]; }",
+    },
     {
       code: "interface IUser {} let user: IUser;",
       errors: [

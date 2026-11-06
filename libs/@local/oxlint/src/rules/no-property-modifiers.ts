@@ -30,12 +30,15 @@ type ClassMemberProperty = ClassProperty & {
 
 interface ThisOwner {
   readonly body: ESTree.ClassBody;
-  readonly isStatic: boolean;
+  /** A static method's `this` is whatever class its caller names, which may be a subclass without the class's static private names. */
+  readonly receiver: "instance" | "class" | "static method";
 }
 
 /** Nodes retained until traversal of the whole file finishes. */
 interface FileState {
   readonly classBodies: ESTree.ClassBody[];
+  /** `this` reached with a key only evaluation can tell, such as `this[key]`, which may name any property of its class. */
+  readonly dynamicKeys: ESTree.ThisExpression[];
   readonly memberExpressions: ESTree.StaticMemberExpression[];
   readonly patternKeys: ESTree.IdentifierName[];
   /** Names accessed in ways a private name cannot be, such as `this["foo"]` or `typeof this.foo`. */
@@ -78,9 +81,21 @@ const elementName = (element: ESTree.ClassElement): string | null => {
   return null;
 };
 
-const addStringKey = (state: FileState, node: ESTree.Node): void => {
-  if (node.type === "Literal" && typeof node.value === "string") {
-    state.unrenameableNames.add(node.value);
+/** Records the key that accesses `object`. A literal names one property, and any other key on `this` may name each of its class's fields. */
+const addKey = (
+  state: FileState,
+  key: ESTree.Node,
+  object?: ESTree.Node,
+): void => {
+  if (key.type === "Literal") {
+    state.unrenameableNames.add(String(key.value));
+  } else if (key.type === "TemplateLiteral" && key.expressions.length === 0) {
+    state.unrenameableNames.add(key.quasis[0]?.value.cooked ?? "");
+  } else if (
+    key.type !== "PrivateIdentifier" &&
+    object?.type === "ThisExpression"
+  ) {
+    state.dynamicKeys.push(object);
   }
 };
 
@@ -93,7 +108,8 @@ const methodOwner = (method: ESTree.Function): ThisOwner | null => {
     parent.value === method &&
     parent.parent.type === "ClassBody"
   ) {
-    return { body: parent.parent, isStatic: parent.static };
+    const receiver = parent.static ? "static method" : "instance";
+    return { body: parent.parent, receiver };
   }
 
   return null;
@@ -116,7 +132,7 @@ const thisOwner = (node: ESTree.ThisExpression): ThisOwner | null => {
     }
 
     if (current.type === "StaticBlock" && current.parent.type === "ClassBody") {
-      return { body: current.parent, isStatic: true };
+      return { body: current.parent, receiver: "class" };
     }
 
     // Only initializers use the class's `this`. Computed keys use the enclosing context.
@@ -126,7 +142,8 @@ const thisOwner = (node: ESTree.ThisExpression): ThisOwner | null => {
       current.value === child &&
       current.parent.type === "ClassBody"
     ) {
-      return { body: current.parent, isStatic: current.static };
+      const receiver = current.static ? "class" : "instance";
+      return { body: current.parent, receiver };
     }
 
     child = current;
@@ -169,7 +186,8 @@ const accessesProperty = (
     const owner = thisOwner(member.object);
 
     return (
-      owner?.body === property.parent && owner.isStatic === property.static
+      owner?.body === property.parent &&
+      owner.receiver === (property.static ? "class" : "instance")
     );
   }
 
@@ -251,6 +269,7 @@ const canUsePrivateName = (
   property.decorators.length === 0 &&
   !isAmbient(property) &&
   !state.unrenameableNames.has(name) &&
+  !state.dynamicKeys.some((key) => isWithin(key, property.parent)) &&
   !property.parent.body.some(
     (element) => element !== property && elementName(element) === name,
   ) &&
@@ -396,6 +415,7 @@ export const noPropertyModifiers = defineRule({
   createOnce: (context) => {
     const state: FileState = {
       classBodies: [],
+      dynamicKeys: [],
       memberExpressions: [],
       patternKeys: [],
       unrenameableNames: new Set(),
@@ -404,7 +424,7 @@ export const noPropertyModifiers = defineRule({
     return {
       BinaryExpression: (node): void => {
         if (node.operator === "in") {
-          addStringKey(state, node.left);
+          addKey(state, node.left, node.right);
         }
       },
       ClassBody: (node): void => {
@@ -412,7 +432,7 @@ export const noPropertyModifiers = defineRule({
       },
       MemberExpression: (node): void => {
         if (node.computed) {
-          addStringKey(state, node.property);
+          addKey(state, node.property, node.object);
         } else if (isStaticMember(node)) {
           state.memberExpressions.push(node);
         }
@@ -441,7 +461,7 @@ export const noPropertyModifiers = defineRule({
       },
       TSIndexedAccessType: (node): void => {
         if (node.indexType.type === "TSLiteralType") {
-          addStringKey(state, node.indexType.literal);
+          addKey(state, node.indexType.literal);
         }
       },
       TSParameterProperty: (node): void => {
@@ -456,6 +476,7 @@ export const noPropertyModifiers = defineRule({
         state.classBodies.length = 0;
         state.memberExpressions.length = 0;
         state.patternKeys.length = 0;
+        state.dynamicKeys.length = 0;
         state.unrenameableNames.clear();
       },
     };

@@ -46,8 +46,9 @@ const intrinsicJsxNamePattern = /^[a-z]/u;
  */
 const claimedNames = new WeakMap<Variable, string>();
 
-const effectiveName = (variable: Variable): string =>
-  claimedNames.get(variable) ?? variable.name;
+/** Whether `variable` may carry `name` after this pass. A claimed fix that overlaps another waits a pass, so the variable keeps its original name until then. */
+const mayBeNamed = (variable: Variable, name: string): boolean =>
+  variable.name === name || claimedNames.get(variable) === name;
 
 interface Rename {
   /** The variables to rename together, such as a class's outer and inner binding. */
@@ -126,8 +127,7 @@ const isRenameable = (sourceCode: SourceCode, variable: Variable): boolean =>
 const declares = (scope: Scope, rename: Rename): boolean =>
   scope.variables.some(
     (candidate) =>
-      !rename.variables.has(candidate) &&
-      effectiveName(candidate) === rename.name,
+      !rename.variables.has(candidate) && mayBeNamed(candidate, rename.name),
   );
 
 /** Whether a scope from `from` up to, but excluding, the variable's scope declares the name. */
@@ -156,7 +156,7 @@ const captures = (scope: Scope, rename: Rename): boolean =>
       return reference.identifier.name === rename.name;
     }
 
-    return effectiveName(reference.resolved) === rename.name;
+    return mayBeNamed(reference.resolved, rename.name);
   });
 
 const hasConflict = (sourceCode: SourceCode, rename: Rename): boolean =>
