@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cemex-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="cemex-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="cemex-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cemex-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cemex-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#cemex-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="cemex-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#cemex-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.05806 -1.66359 1545.11611 967.32718" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+	<defs>
+		<clipPath clipPathUnits="userSpaceOnUse" id="cemex-app-dark-cp1">
+			<path d="m-16098.75-1906.01h23043.22v12966.83h-23043.22z" />
+		</clipPath>
+	</defs>
+	<g id="cemex-app-dark-Clip-Path: Page 1" clip-path="url(#cemex-app-dark-cp1)">
+		<g id="cemex-app-dark-Page 1">
+			<path id="cemex-app-dark-Path 5" d="m1542.5 0.6h-192c-103.2 0-200.4 48-261.7 129.7l-626.4 833.2h192c103.2 0 200.4-48 261.6-130.9z" fill="#7072CF" />
+			<path id="cemex-app-dark-Path 6" d="m1079.2 0.6h-192c-102 0-199.2 48-261.6 129.7l-625.3 833.2h199.2c98.4 0 190.9-45.6 249.7-123.7z" fill="#F02230" />
+		</g>
+	</g>
+</svg></g></svg>

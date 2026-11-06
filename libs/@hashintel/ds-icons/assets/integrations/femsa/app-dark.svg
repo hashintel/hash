@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="femsa-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="femsa-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="femsa-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#femsa-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#femsa-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#femsa-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="femsa-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#femsa-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="femsa-app-dark-svg2" viewBox="-0.93078 -7.64791 4698.47446 1095.30278" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="femsa-app-dark-defs4" />
+  <g transform="translate(1368.2884,662.59567)" id="femsa-app-dark-layer1" fill="#F5F7FA">
+    <path d="m 2727.119,-640.15386 c -34.9289,0 -273.0144,701.851524 -273.0144,701.851524 h 25.3688 c 0,0 34.9289,-89.723495 95.2684,-92.954376 60.2942,-3.230926 209.5277,317.284902 209.5277,317.284902 0,0 15.8508,99.32891 136.5299,99.32891 h 403.1663 v -28.8163 c 0,0 -85.7085,6.41819 -127.0118,-83.3053 -41.258,-89.76711 -441.2387,-913.38936 -469.8349,-913.38936 z m -333.354,326.89036 v -256.42145 c 0,0 -123.8193,-92.91072 -295.2361,-92.91072 -171.4552,0 -380.9864,83.3053 -380.9864,352.5194 0,256.421404 400.0227,307.6795183 400.0227,448.70474 0,73.69988 -60.2069,80.07437 -101.5976,80.07437 -136.4845,0 -269.8254,-205.075977 -269.8254,-205.075977 V 292.44638 c 0,0 136.4845,118.58346 307.9398,118.58346 171.4133,0 387.319,-102.55984 387.319,-371.773942 0,-320.472208 -409.5408,-326.890358 -409.5408,-467.915578 0,-73.69988 44.3142,-64.09446 85.705,-64.09446 136.5298,0 276.1998,179.49064 276.1998,179.49064 z M 923.87175,-531.21953 c 67.23803,139.7154 130.15535,336.53944 234.94185,336.53944 85.705,0 155.5627,-435.86835 155.5627,-435.86835 h 346.0156 V 273.2355 c 0,76.88715 88.894,96.09799 88.894,96.09799 h -453.9878 v -640.94434 c 0,0 -263.4962,689.01518 -288.8615,689.01518 -25.41078,0 -384.17547,-689.01518 -384.17547,-689.01518 v 554.40811 c 0,51.30177 79.37583,89.76715 79.37583,89.76715 H 498.43838 v -906.9712 c 0,-60.9072 -98.412,-102.55984 -98.412,-102.55984 h 352.3901 c 0,0 117.4902,-6.41816 171.45527,105.7471 z M -34.879813,324.49361 c 0,0 276.200133,25.62904 409.540903,-169.84153 L 320.6958,372.56441 h -717.52545 v -906.9712 c 0,-60.9072 -98.41226,-102.55984 -98.41226,-102.55984 H 320.6958 l 53.96529,217.91237 C 241.32032,-614.52483 -34.879813,-588.89579 -34.879813,-588.89579 v 423.03201 H 190.54075 c 69.81565,0 107.93002,-118.58346 107.93002,-118.58346 0,0 73.00107,336.539484 69.81578,333.308558 C 311.13244,-56.885791 136.53352,-111.37479 136.53352,-111.37479 H -34.879813 Z M -552.35056,-636.96663 h -815.93784 c 0,0 98.4118,41.65264 98.4118,102.55984 v 906.9712 h 457.17331 c 0,0 -95.22301,-32.04723 -95.22301,-105.79072 v -378.14848 h 171.41333 c 0,0 174.59906,54.488999 231.75317,160.236108 3.18528,3.230926 -69.81226,-333.308558 -69.81226,-333.308558 0,0 -38.11789,118.58346 -107.97561,118.58346 H -907.9263 v -423.03201 c 0,0 276.20013,-25.62904 409.54104,169.84153 l -53.9653,-217.91237" id="femsa-app-dark-path7267" fill="#B6646D" fill-opacity="1" fill-rule="evenodd" stroke="none" stroke-width="4.41419" />
+  </g>
+</svg></g></svg>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="alicorp-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="alicorp-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="alicorp-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#alicorp-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#alicorp-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#alicorp-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="alicorp-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#alicorp-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.45085 -0.48005 400.9027 114.97811" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+<g fill="#FD000D">
+<path d="M197.41,36.682v15.951c-36.343-14.902-35.063,37.502-0.475,21.316,0,4.805,0.475,10.971,0.475,15.778-72.69,23.933-74.67-73.657-0.01-53.045" />
+<path fill="#5EB423" d="M63.594,34.005s-3.378-2.329-9.549-3.494c-8.176-1.543-25.619-1.324-32.608-14.091-3.495-6.45-3.028-11.645-2.911-16.42,0,0,3.138,1.603,11.741,2.545,5.75,0.628,33.462,0.413,33.327,31.46" />
+<rect y="10.931" x="73.048" height="81.083" width="25.805" />
+<rect y="11.047" x="109.66" height="19.301" width="27.445" />
+<rect y="36.085" x="109.66" height="56.333" width="27.445" />
+<path d="M372.72,63.035c0,9.39-2.804,12.014-7.982,12.014-5.175,0-6.468-5.111-6.468-5.111v-14.22s1.293-5.107,6.468-5.107c5.179,0,7.982,2.623,7.982,12.012v0.412zm-8.04-27.235c-3.747,1.897-6.239,4.404-7.72,6.267v-6.133h-24.846v78.084h24.846v-31.357c1.509,1.873,4.039,4.482,7.72,6.633,6.21,3.627,34.413,4.433,35.32-21.642v-10.215c-0.91-26.075-27.99-25.357-35.32-21.639" />
+<path d="M39.446,74.195s-3.121,6.472-10.358,6.472-10.5-17.006,10.358-13.543v7.071zm-1.471-16.318s-23.452-6.185-33.307,6.639c-9.158,11.923-4.573,26.778,11.413,28.414,14.791,1.514,22.651-7.481,22.651-7.481l0.231-0.198v6.748h24.962v-36.897s-0.371-15.176-19.938-18.97c-12.04-2.332-33.264,0.317-37.106,2.298l-0.233,14.79s8.599-4.435,20.495-4.192c5.707,0.117,12.113,1.282,11.645,8.735l-0.813,0.114z" />
+<path d="M309.08,38.546c-2.912,2.445-4.541,5.008-5.357,7.336l0.006-9.949h-25.997v56.833h27.395v-22.516c0.228-10.275,5.371-12.904,8.029-14.119,3.844-1.755,11.816-1.515,11.816-1.515v-19.734c-9.72-0.411-13.3,1.493-15.89,3.664" />
+<path d="M236.6,76.277c-5.849,0-6.712-3.526-6.712-13.89,0-10.355,1.109-12.429,6.712-12.429,5.609,0,6.564,2.074,6.564,12.429,0.01,10.363-0.7,13.89-6.56,13.89m0.71-41.815c-19.466,0-35.246,8.121-35.246,29.092,0,22.623,19.796,29.095,35.246,29.095,17.392,0,35.249-6.823,35.249-29.095,0-21.506-15.79-29.092-35.25-29.092" />
+</g>
+</svg></g></svg>

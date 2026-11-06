@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="perdigao-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="perdigao-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="perdigao-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#perdigao-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#perdigao-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#perdigao-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="perdigao-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#perdigao-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="6.45384 14.75746 187.26623 171.22803" preserveAspectRatio="xMidYMid meet" fill="#CF4F6B" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g transform="translate(0.000000,200.000000) scale(0.100000,-0.100000)" fill="#CF4F6B" stroke="none">
+<path d="M457 1835 c-131 -36 -258 -138 -316 -254 -104 -205 -97 -473 17 -712 187 -388 639 -759 882 -723 224 34 588 341 757 639 97 173 138 317 137 485 0 176 -46 305 -144 413 -102 112 -226 166 -379 167 -120 0 -192 -19 -313 -83 l-97 -51 -98 51 c-54 28 -126 59 -159 67 -74 19 -220 20 -287 1z m304 -59 c25 -8 86 -35 137 -60 50 -25 99 -46 107 -46 9 0 49 18 89 40 99 54 177 80 266 87 239 18 463 -156 521 -407 19 -83 14 -241 -10 -335 -105 -408 -623 -892 -909 -850 -138 20 -310 124 -473 285 -157 156 -257 299 -321 461 -80 200 -75 424 13 589 61 115 204 223 330 250 57 12 191 4 250 -14z" />
+<path d="M475 1727 c-206 -78 -316 -255 -316 -507 0 -230 92 -427 314 -674 40 -45 76 -76 88 -76 17 0 19 7 19 68 0 83 -13 133 -46 172 -29 34 -75 40 -111 15 -21 -15 -23 -14 -40 12 -29 44 -24 127 12 192 29 52 67 90 205 203 112 92 131 163 80 296 -32 84 -23 134 27 153 19 7 43 3 104 -18 43 -14 77 -28 74 -31 -2 -3 -20 -6 -40 -7 -48 -3 -70 -26 -70 -73 0 -38 17 -72 118 -236 87 -142 68 -305 -50 -423 -26 -26 -79 -70 -117 -98 -96 -69 -110 -90 -114 -178 -5 -93 14 -123 123 -195 113 -75 173 -96 271 -96 77 -1 85 1 179 48 129 64 200 131 209 198 14 98 -22 161 -138 240 -76 53 -132 111 -164 173 -24 44 -27 61 -27 150 0 111 0 110 110 287 31 51 49 92 52 121 5 39 2 46 -23 66 -19 15 -38 21 -56 19 -16 -3 -28 -1 -28 4 0 4 1 8 3 8 2 0 36 11 75 25 80 28 109 24 138 -20 16 -24 15 -29 -10 -109 -48 -156 -33 -216 78 -305 178 -142 236 -217 236 -309 0 -44 -23 -112 -37 -112 -4 0 -17 7 -27 15 -32 24 -81 19 -105 -11 -29 -36 -51 -116 -51 -181 0 -86 19 -83 118 22 213 226 324 479 309 706 -6 99 -43 220 -86 283 -46 66 -127 135 -199 169 -57 27 -81 32 -164 35 -117 5 -198 -16 -300 -78 -37 -22 -77 -40 -90 -40 -13 0 -73 25 -135 57 l-112 57 -113 3 c-99 3 -121 0 -173 -20z m-21 -123 c19 -51 -12 -114 -91 -183 -73 -65 -83 -68 -83 -28 0 59 27 131 62 163 66 62 101 77 112 48z" />
+</g>
+</svg></g></svg>

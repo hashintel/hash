@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="globo-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="globo-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="globo-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#globo-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#globo-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#globo-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="globo-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.427204342255 -1.43714273556 -0.145080684435 0 2.00942776225" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#globo-app-mono-light-mono)"><defs><clipPath id="globo-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#globo-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-0.03607 -0.03607 32.07213 32.07213" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g id="globo-app-mono-light-TV Globo=monocromatica=positiva" fill="none"><path id="globo-app-mono-light-Globo" fill-rule="evenodd" clip-rule="evenodd" d="M9.6 16.0003C9.6 19.5232 12.452 22.4 15.9959 22.4C19.5397 22.4 22.4 19.5232 22.4 16.0003C22.4 12.4758 19.5397 9.6 15.9959 9.6C12.452 9.6 9.6 12.4758 9.6 16.0003ZM0 16.0039C0 24.8148 7.16803 32 15.9968 32C24.833 32 32 24.8148 32 16.0039C32 7.19375 24.833 0 15.9968 0C7.16803 0 0 7.19375 0 16.0039ZM15.9964 23.9998C12.3965 24.005 8.53966 23.9231 5.06291 23.5714C4.05926 23.4717 3.51933 23.233 3.40797 22.1826C3.21335 20.2588 3.2 18.2791 3.2 16.2674C3.2 14.2553 3.21335 12.2746 3.40797 10.3507C3.51933 9.30049 4.05926 9.06241 5.06291 8.96118C8.53966 8.6027 12.3965 8.52741 15.9964 8.53368C19.6042 8.52741 23.4528 8.6027 26.9299 8.96118C27.9392 9.06241 28.4794 9.30049 28.5843 10.3507C28.7859 12.2746 28.8 14.2553 28.8 16.2674C28.8 18.2791 28.7859 20.2588 28.5843 22.1826C28.4794 23.233 27.9392 23.4717 26.9299 23.5714C23.4528 23.9231 19.6042 24.005 15.9964 23.9998Z" fill="#009DDB" /></g></svg></g></g></svg>
