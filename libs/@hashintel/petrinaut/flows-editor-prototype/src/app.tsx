@@ -457,8 +457,7 @@ export const Editor = ({
                     variant={runBarVariant(location.query)}
                     back={runBackTake(location.query)}
                     forEachSwitch={
-                      forEachSwitchTake(location.query) !== null &&
-                      forEachSwitchTake(location.query) !== "box" ? (
+                      forEachSwitchTake(location.query) === "top" ? (
                         <ForEachTopSwitch />
                       ) : undefined
                     }
