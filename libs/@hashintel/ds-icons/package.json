@@ -49,7 +49,7 @@
     "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "dev:lib": "vite build --watch",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
-    "generate:integrations": "uv run --python python3 --script scripts/generate-integration-icons.py && oxfmt --write src/integration-icon-catalog.ts src/integration-icon/geometry.ts \"src/integration-icon/geometry/*.tsx\"",
+    "generate:integrations": "uv run --python python3 --script scripts/generate-integration-icons.py && oxfmt --write src/integration-icon-catalog.ts src/integration-icon/app-tile.tsx src/integration-icon/geometry.ts \"src/integration-icon/geometry/*.tsx\"",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",

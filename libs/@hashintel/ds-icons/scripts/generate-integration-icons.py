@@ -8,7 +8,7 @@ import json
 import re
 from pathlib import Path
 # defusedxml provides the parsers; these imports only build and serialize elements.
-from xml.etree.ElementTree import Element, SubElement, register_namespace, tostring  # nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
+from xml.etree.ElementTree import Comment, Element, SubElement, register_namespace, tostring  # nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
 
 from defusedxml import ElementTree as ET
 
@@ -220,7 +220,7 @@ def variant_svg(brand, variant):
     if mono:
         body = mono_defs(prefix + "-mono") + f'<g filter="url(#{prefix}-mono)">{body}</g>'
     color = f' color="{("#CBD5E1" if dark else "#374151")}"' if app else ""
-    attribution = ET.tostring(ET.Comment(brand["artworkAttribution"]), encoding="unicode") if brand.get("artworkAttribution") else ""
+    attribution = tostring(Comment(brand["artworkAttribution"]), encoding="unicode") if brand.get("artworkAttribution") else ""
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{outer_viewbox}" fill="none"{color}>{attribution}{background}{body}</svg>\n'
 
 

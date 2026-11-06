@@ -42,6 +42,18 @@ class SvgParsingTests(unittest.TestCase):
         self.assertEqual(mark[0].get("d"), "M2 2h20v20H2Z")
         self.assertEqual(tile[0].get("d"), mark[0].get("d"))
 
+    def test_attribution_survives_mark_and_tile_generation(self):
+        self.mark.write_text(svg)
+        self.tile.write_text(svg)
+        attribution = "Copyright Example; CC BY 4.0"
+        brand = {"slug": "example", "ratio": 2, "alignment": "center", "artworkAttribution": attribution}
+        for variant in ("mark-light", "app-light"):
+            with self.subTest(variant=variant):
+                generated = generator.variant_svg(brand, variant)
+                self.assertIn(f"<!--{attribution}-->", generated)
+                document = generator.ET.fromstring(generated, forbid_dtd=True)
+                self.assertEqual(document.get("viewBox"), "0 0 64 64")
+
     def test_both_parsers_reject_document_types_and_entities(self):
         documents = [
             '<!DOCTYPE svg SYSTEM "https://example.invalid/artwork.dtd">' + svg,
