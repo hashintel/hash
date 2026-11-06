@@ -23,23 +23,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="jet2com-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="jet2com-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="jet2com-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#jet2com-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#jet2com-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#jet2com-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#jet2com-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="jet2com-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#jet2com-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="1.488 0 21.024 24" fill="#E7372E" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M22.4851 0.0138S21.9501 2.3418 21.2901 5.3958L20.7251 6.0558 17.6451 5.8688 19.1221 2.3108H18.4621L15.914 5.8378S15.254 5.8678 14.971 5.8678C14.909 5.8998 14.814 5.8998 14.688 5.8998 14.752 5.5218 14.783 5.1758 14.845 4.8928 15.035 3.7918 15.443 2.0598 16.198 1.1458 16.951 0.2658 18.2721 0.0448 19.4041 0.0138S22.4841 0.0138 22.4841 0.0138M20.7241 6.7818L20.9451 7.0338A325.003 325.003 0 0 0 20.1901 10.5579C19.3401 14.6179 18.7751 18.3639 17.6751 19.939 15.475 23.087 12.928 24 9.093 24 4.0609 24 1.5149 20.977 1.5149 18.648 1.5149 16.0669 1.7669 13.6429 1.7669 13.6429L7.614 13.6729S7.394 16.1929 7.394 17.6399C7.394 18.4279 8.4 18.931 9.501 18.931 12.896 18.931 12.833 16.1309 13.619 12.1649 14.028 10.1169 14.342 8.2609 14.562 6.8448 14.719 6.8748 14.878 6.8748 15.002 6.8748 15.254 6.9078 15.946 6.9078 15.946 6.9078L18.4931 10.4319H19.1531L17.6751 6.9078Z" /></svg></g></svg>

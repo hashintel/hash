@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="sadia-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="sadia-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="sadia-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sadia-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sadia-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sadia-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#sadia-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="sadia-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#sadia-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="11.35483870967742" y="11.35483870967742" viewBox="0.82857 0.82857 198.22952 99.94376" xml:space="preserve" fill="#F5F7FA" width="41.29032258064516" height="41.29032258064516"><path d="M186.2,34.4h-18.6c-0.5,0-0.9,0.4-0.9,0.9v8.8c0,0.5,0.4,0.9,0.9,0.9h16.9c1.4,0,2.5,1.1,2.5,2.5v4.8  c0,1.4-1.1,2.5-2.5,2.5h-8.5c-7,0-12.8,5.8-12.8,12.8v17c0,7.1,5.7,12.8,12.8,12.8h22c0.5,0,0.9-0.4,0.9-0.9V47.2  C199,40.2,193.3,34.4,186.2,34.4z M187,84.3c0,1.4-1.1,2.5-2.5,2.5h-6.8c-1.4,0-2.5-1.1-2.5-2.5V68c0-1.4,1.1-2.5,2.5-2.5h6.8  c1.4,0,2.5,1.1,2.5,2.5V84.3z" fill="#D9474D" /><path d="M84.4,34.4H65.8c-0.5,0-0.9,0.4-0.9,0.9v8.8c0,0.5,0.4,0.9,0.9,0.9h16.9c1.4,0,2.5,1.1,2.5,2.5v4.8  c0,1.4-1.1,2.5-2.5,2.5h-8.5c-7,0-12.8,5.8-12.8,12.8v0.1c-1.2-1.9-2.7-3.7-4.5-5.4C52.9,58.6,45,56,37.4,53.5  c-11.9-3.9-24.2-8-24.7-16.9c-0.3-5.2,2.8-9.8,9.1-13.5c4.6-2.8,10.9-5.1,18.6-6.8c8.5-1.9,13.1-2.4,15.9-2.6c0.3,0,0.7-0.1,0.9-0.1  c1-0.1,1.4-0.6,1.4-1.9L58.7,2c0-0.5-0.4-1-1-1c-0.3,0-0.6,0-1,0c-1.4,0-14.5,0.2-30,5.9c-8.2,3-14.6,7.2-19,12.3  c-4.8,5.5-7,12-6.6,19.3c0.9,16.3,18.4,22,32.5,26.6c7.1,2.3,13.3,4.3,16.4,7.3c3.6,3.4,3.9,7.6,0.8,11.4c-1.4,1.7-3.6,3.5-9.3,3.9  c-0.4,0-0.8,0-1.2,0c-10.1,0-24.5-7.4-25.1-7.7C15,80,14.8,80,14.7,80c-0.4,0-0.8,0.3-1,0.7c-0.1,0.2-4.2,9.6-4.2,9.7  c-0.2,0.4-0.1,0.7,0,0.9c0.1,0.3,0.3,0.6,0.6,0.7c3,1.4,18.6,8.6,29.9,8.6l0,0c0.5,0,1,0,1.5-0.1c11.2-0.7,15.5-4.9,18.9-9  c0.7-0.9,1.3-1.8,1.9-2.8c1.7,5.1,6.5,8.8,12.1,8.8h22c0.5,0,0.9-0.4,0.9-0.9V47.2C97.2,40.2,91.5,34.4,84.4,34.4z M85.2,84.3  c0,1.4-1.1,2.5-2.5,2.5h-6.8c-1.4,0-2.5-1.1-2.5-2.5V68c0-1.4,1.1-2.5,2.5-2.5h6.8c1.4,0,2.5,1.1,2.5,2.5V84.3z" fill="#D9474D" /><ellipse cx="151.2" cy="20" rx="6.7" ry="6.7" fill="#D9474D" /><path d="M138.1,14H128c-0.5,0-0.9,0.4-0.9,0.9v17c0,1.4-1.1,2.5-2.5,2.5h-8.5c-7,0-12.8,5.8-12.8,12.8v37.4  c0,7.1,5.7,12.8,12.8,12.8h22c0.5,0,0.9-0.4,0.9-0.9V14.9C139,14.4,138.6,14,138.1,14z M127.1,84.3c0,1.4-1.1,2.5-2.5,2.5h-6.8  c-1.4,0-2.5-1.1-2.5-2.5V47.6c0-1.4,1.1-2.5,2.5-2.5h6.8c1.4,0,2.5,1.1,2.5,2.5V84.3z" fill="#D9474D" /><path d="M156.3,34.4h-10.2c-0.5,0-0.9,0.4-0.9,0.9v61.3c0,0.5,0.4,0.9,0.9,0.9h10.2c0.5,0,0.9-0.4,0.9-0.9V35.3  C157.2,34.8,156.8,34.4,156.3,34.4z" fill="#D9474D" /></svg></g></svg>

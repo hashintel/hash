@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="supercell-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="supercell-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="supercell-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#supercell-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#supercell-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#supercell-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#supercell-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="supercell-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#supercell-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 317 258" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#F5F7FA" d="M167.6 108.8H149v13.6h18.6v-13.6zm9 60.7l-9-9V135H149v13.6h6.6v21h-48v-21h9v-39.8h-9v-21H188l13.4 13.6v17l-12 8.8 12 9v15.3h7.6v18h-32.4m25-148.5v42.7l-18 18h-49l-18-18V21h-9V0H157v21h-7.8v39.8h27.5V21H170V0h39.2v21h-7.7m83 0H257v14h27.6V21zM304 49.3h-47v11.3h8.7v21h-50.2v-21h9V21h-9V0h87L317 14v22.4l-13 12.8m-5.4 120.3h-61.8l-21.3-21v-39.8l21.3-21h48.7l6 7.7 6-7.6H317v34.4h-25.5v-13.5h-42.8v40h42.8V135H317v16.5l-18.4 18m-98.4 88.2h-92.6v-21h9V197h-9v-21H158v21h-9v39.8h34.8v-26.4h25.4V248l-9 9.7m107.8 0h-92.6v-21h8.8V197h-8.8v-21h50.2v21h-9v39.8h35v-26.4H317V248l-9 9.7M85.6 81.7H29l-6.7-7.2-6 7.2H0v-25h22.8v7h42.7V52H14.7L0 38.3v-20L17 0h50.8l6.7 7.2 6-7.2h16.3v25h-23v-7H35.4v11.8H85l16.6 15.7v19l-16 17.2m6.8 87.8H0v-21h9V109H0V88h92.4l9 10v28l-25.4.2V109H41.4v12h15v15.2h-15v12.4H76v-17h25.4v28l-9 10m0 88H0v-21h9V197H0v-21h92.4l9 10v28H76v-17H41.4v12.3h15v15h-15V237H76v-17h25.4v28l-9 10" /></svg></g></svg>

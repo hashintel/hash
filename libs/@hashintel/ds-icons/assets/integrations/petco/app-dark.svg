@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="petco-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="petco-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="petco-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#petco-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#petco-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#petco-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#petco-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="petco-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#petco-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 315.93546 110" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g fill="#6A7D9F"><path d="m163.41383 63.657522v-30.098062h13.4472v-13.720699h-13.4472v-19.838761h-13.98636v9.720136c0 5.727384-3.06295 10.118625-9.9858 10.118625h-3.32859v13.720699h11.98606v32.629603c0 12.111137 7.4542 19.307475 19.44026 19.307475 5.59457 0 8.52467-1.062738 9.45448-1.468913v-12.7831c-.66416.132-3.19577.5313-5.32889.5313-5.72738 0-8.25116-2.390987-8.25116-8.118303" /><path d="m32.629619 72.580612c-10.126424 0-17.447777-7.99326-17.447777-20.377884 0-12.118907 7.321353-20.112222 17.447777-20.112222 10.384294 0 17.439977 7.993315 17.439977 20.112222 0 12.384625-7.188511 20.377884-17.439977 20.377884m-27.2616768 37.396018c6.4853008 0 9.5794908-3.8599 9.9467278-9.05603v-23.550175c3.328597 4.930337 10.38428 8.923063 19.713728 8.923063 18.643283 0 30.48871-14.650488 30.48871-34.09076 0-19.174596-10.782782-33.825124-29.95738-33.825124-9.993608 0-17.447791 4.656918-20.64356 10.251477v-8.78251h-14.916168v90.153429" /><path d="m282.25101 72.846263c-9.46229 0-18.11976-7.196311-18.11976-20.643535 0-13.447212 8.65747-20.377885 18.11976-20.377885 9.5873 0 18.10415 6.930673 18.10415 20.377885 0 13.579994-8.51685 20.643535-18.10415 20.643535m0-54.999973c-19.31524 0-33.56727 14.509866-33.56727 34.356438 0 19.97941 14.25203 34.489235 33.56727 34.489235 19.44025 0 33.68445-14.509825 33.68445-34.489235 0-19.846572-14.2442-34.356438-33.68445-34.356438" /><path d="m86.46539 45.147039c.531337-6.92285 6.125872-14.384852 15.846-14.384852 10.65776 0 15.71317 6.790025 15.97883 14.384852zm47.40518 6.391536c0-20.510724-11.71262-33.692285-31.692-33.692285-16.377338 0-31.559177 13.58005-31.559177 34.090788 0 21.971785 15.58034 34.754885 33.160967 34.754885 15.58034 0 25.83179-9.18885 29.2932-20.5029l.48445-1.836189h-14.44735c-2.46911 5.235188-7.15728 9.024688-15.3303 9.024688-9.587305 0-17.31497-7.055674-17.713456-16.908595h47.405166c.13277-.273473.3985-2.398783.3985-4.930392" /><path d="m244.06589 60.594545h-14.18951c-1.46894 4.922638-6.12588 11.986067-16.24448 11.986067-9.72795 0-18.11196-7.329121-18.11196-20.377884 0-13.048723 8.38401-20.112222 17.83846-20.112222 9.8608 0 14.25203 6.391537 15.72102 12.118893l.0624-.02337-.0545.04675h14.49424c.58603 0-.47661-4.344354-.65634-5.078838l-.006-.02337-.0234-.09378c-2.70353-10.353021-12.283-21.19051-29.66048-21.19051-18.65108 0-33.16095 14.377041-33.16095 34.356437 0 19.705937 14.50987 34.489249 33.55945 34.489249 17.04147 0 26.76943-11.0484 29.82455-21.174794 0 0 1.24236-4.922637.60945-4.922637" /></g></svg></g></svg>

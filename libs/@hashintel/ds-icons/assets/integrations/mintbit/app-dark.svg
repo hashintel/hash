@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="mintbit-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="mintbit-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="mintbit-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mintbit-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mintbit-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mintbit-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mintbit-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="mintbit-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mintbit-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#F5F7FA" d="M73.2 512l0-73.1 292.5 0 0-73.2 73.2 0 0-146.3 73.1 0 0-219.4-219.4 0 0 73.1-146.3 0 0 73.2-73.1 0 0 292.6-73.2 0 0 73.1 73.2 0zm73.1-219.4l73.2 0 0 73.1-73.2 0 0-73.1zm73.2-73.1l73.1 0 0 73.1-73.2 0 0-73.2 .1 .1zm73.1 0l0-73.2 73.2 0 0 73.1-73.2 0 0 .1zM365.7 73.1l73.2 0 0 73.2-73.2 0 0-73.2z" /></svg></g></svg>

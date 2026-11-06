@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="exa-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="exa-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="exa-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#exa-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#exa-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#exa-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#exa-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="exa-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#exa-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 310.60014" preserveAspectRatio="xMidYMid" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g><path d="M256,22.390191 C256,23.0313157 255.776276,23.6528104 255.369725,24.1496453 L148.041309,155.163179 L255.369725,286.173826 C255.776276,286.669386 256,287.292444 256,287.932342 L256,307.543043 C256,309.080241 254.749072,310.326358 253.204657,310.326358 L2.79474144,310.326358 C1.2512455,310.326358 0,309.080241 0,307.543043 L0,2.78319441 C0,1.24607339 1.25124309,0 2.79471739,0 L253.204657,0 C254.749072,0 256,1.2460782 256,2.78319441 L256,22.390191 Z M45.7945479,279.97211 L210.954806,279.97211 L128.37167,179.17017 L45.7945479,279.97211 Z M30.4791001,250.647472 L96.5682701,169.978255 L30.4791001,169.978255 L30.4791001,250.647472 Z M30.4791001,139.62497 L95.9760038,139.62497 L30.4791001,59.6750369 L30.4791001,139.62497 Z M128.37167,131.153301 L210.954806,30.3532857 L45.7945479,30.3532857 L128.37167,131.153301 Z" fill="#4777E3" /></g></svg></g></svg>

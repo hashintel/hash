@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bayes-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="bayes-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="bayes-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bayes-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bayes-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bayes-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bayes-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="bayes-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bayes-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 69.47047 70.31317" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="bayes-app-dark-brand-symbol-bounds"><rect x="0.0" y="0.0" width="80.101025" height="70.58774" /></clipPath></defs><g clip-path="url(#bayes-app-dark-brand-symbol-bounds)"><path d="M100 22.6H120.9C129.4 22.6 134 26.6 134 33.1C134 37.3 131.1 40 128.1 41C131.7 42.1 134.9 45.3 134.9 50.4C134.9 57.2 130.3 61.5 121.3 61.5H100V22.6ZM107.2 28.9V38.5H120C124.1 38.5 126.3 36.9 126.3 33.7C126.3 30.4 124.2 28.9 120 28.9H107.2ZM107.2 44.6V55.3H120.3C125 55.3 127.3 53.4 127.3 49.9C127.3 46.4 125 44.6 120.3 44.6H107.2Z" /><path d="M174.8 53.6H155.1L151.5 61.6H144.1L161.6 22.5H168.6L186.2 61.6H178.3L174.8 53.6ZM172 47.2L165 31.4L158 47.2H172Z" /><path d="M212.4 61.6H204.8V45.2L187.3 22.6H196.7L208.9 38.5L220.9 22.6H229.4L212.4 45.1V61.6Z" /><path d="M240.8 22.6H272.4V29H248.2V37.9H262.6V44.3H248.2V55.1H274.6V61.6H240.8V22.6Z" /><path d="M293.1 32.8C293.1 35.4 295.4 37 299.5 37.5C301.9 37.7 303.7 37.9 306.4 38.2C314.2 39 320.2 41.9 320.2 50.2C320.2 57.2 314.7 62.3 303.6 62.3C290.9 62.3 286 55.9 284.4 50.3H292.3C293.3 52.8 296.5 56.1 303.6 56.1C309.5 56.1 312.7 53.8 312.7 50.7C312.7 47 310 45.8 305.9 45.3L299 44.6C291.2 43.8 285.7 40.2 285.7 33.1C285.7 26.1 292 22 301.3 22C313.5 22 318 27.9 319.3 32.8H311.8C310.7 30.8 307.7 28.2 301.4 28.2C295.9 28.2 293.1 30 293.1 32.8Z" /><path d="M69.4 70.2H60.9C55.4 70.2 50.1 67.3 46.2 62.2C43.1 58.1 39 55.8 34.7 55.8C30.4 55.8 26.3 58.1 23.2 62.2C19.4 67.3 14 70.2 8.5 70.2H0V53.2H8.5C12.8 53.2 16.9 50.9 20 46.8C23.8 41.7 29.2 38.8 34.7 38.8C40.2 38.8 45.5 41.7 49.4 46.8C52.5 50.9 56.6 53.2 60.9 53.2H65.4V44.2H60.9C55.4 44.2 50.1 41.3 46.2 36.2C43.1 32.1 39 29.8 34.7 29.8C30.4 29.8 26.3 32.1 23.2 36.2C19.4 41.3 14 44.2 8.5 44.2H0V27.2H8.5C12.8 27.2 16.9 24.9 20 20.8C23.8 15.7 29.2 12.8 34.7 12.8C40.2 12.8 45.5 15.7 49.4 20.8C52.5 24.9 56.6 27.2 60.9 27.2H65.4V18.2H60.9C55.4 18.2 50.1 15.3 46.2 10.2C43 6.3 39 4 34.7 4C30.4 4 26.3 6.3 23.2 10.4C19.4 15.5 14 18.4 8.5 18.4H0V14.4H8.5C12.8 14.4 16.9 12.1 20 8C23.8 2.9 29.2 0 34.7 0C40.2 0 45.5 2.9 49.4 8C52.5 12.1 56.6 14.4 60.9 14.4H69.4V31.4H60.9C55.4 31.4 50.1 28.5 46.2 23.4C43 19.2 39 17 34.7 17C30.4 17 26.3 19.3 23.2 23.4C19.4 28.5 14 31.4 8.5 31.4H4V40.4H8.5C12.8 40.4 16.9 38.1 20 34C23.8 28.9 29.2 26 34.7 26C40.2 26 45.5 28.9 49.4 34C52.5 38.1 56.6 40.4 60.9 40.4H69.4V57.4H60.9C55.4 57.4 50.1 54.5 46.2 49.4C43.1 45.3 39 43 34.7 43C30.4 43 26.3 45.3 23.2 49.4C19.4 54.5 14 57.4 8.5 57.4H4V66.4H8.5C12.8 66.4 16.9 64.1 20 60C23.8 54.9 29.2 52 34.7 52C40.2 52 45.5 54.9 49.4 60C52.5 64.1 56.6 66.4 60.9 66.4H69.4V70.2Z" /></g></svg></g></svg>

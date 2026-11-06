@@ -23,23 +23,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="tap-air-portugal-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="tap-air-portugal-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="tap-air-portugal-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tap-air-portugal-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tap-air-portugal-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tap-air-portugal-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#tap-air-portugal-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="tap-air-portugal-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#tap-air-portugal-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5.24229 24 13.50171" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#EE282F" d="m12.475 5.277 3.841 13.446V14.88h2.881a4.802 4.802 0 1 0 0-9.604Zm3.841 3.842h2.881a.96.96 0 1 1 0 1.92h-2.88z" /><path fill="#DE4449" d="M12.475 5.277v13.446h3.841z" /><path id="tap-air-portugal-app-dark-path20" fill="#bfd730" d="M0 5.277V9.12h2.871v9.604L6.713 5.277H0zm9.594 0V9.12l1.008 3.361H8.584l1.01-3.36H6.713v9.603l.72-2.4h4.31v-.046l.732 2.446V5.277H9.594z" /><path fill="#72bf44" d="M6.713 5.277 2.87 18.723h3.842V9.119h2.88V5.277Z" /></svg></g></svg>

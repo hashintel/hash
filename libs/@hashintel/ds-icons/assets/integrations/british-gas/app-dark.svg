@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="british-gas-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="british-gas-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="british-gas-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#british-gas-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#british-gas-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#british-gas-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#british-gas-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="british-gas-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#british-gas-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" viewBox="109 0 35.36229 31" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="british-gas-app-dark-identity-part"><rect x="109" y="0" width="36" height="31" /></clipPath></defs><g clip-path="url(#british-gas-app-dark-identity-part)"><g fill="#2973FF"><path d="M27.6,40h3.6v-3.6c-1.8-0.2-3.6,0.3-3.6,2.3V40z" /><path d="M23,41.1c-3.8,0.1-5.8,1.3-5.8,5.2v9.5h3.6v-9.5c0-1.8,0.7-2.1,2.1-2.1c0.9-0.1,1.2,0.1,2-0.3c0.7-0.4,1-1.3,1-2.6C25,41.1,24.2,41,23,41.1" /><path d="M3.8,44.2V39h4.7c2.1,0,2.6,0.7,2.6,2.6s-0.6,2.7-2.6,2.7L3.8,44.2L3.8,44.2z M15.3,50.1c0-3.2-1.4-4.3-3.2-4.7c1.5-0.7,2.6-1.6,2.6-4.3c0-3.8-1.8-5.2-5.6-5.2H0v19.9h9.6C13.2,55.8,15.3,54.4,15.3,50.1 M3.7,47.2H9c2,0,2.6,0.8,2.6,2.7S11,52.7,9,52.7H3.8C3.8,52.7,3.8,47.2,3.7,47.2z" /><path d="M46.6,40h3.6v-3.6c-1.8-0.2-3.6,0.3-3.6,2.3V40z" /><rect x="46.6" y="41.2" width="3.7" height="14.5" /><path d="M75.7,41.1c-1.9,0-4.4,1-5.9,1.6v-7.3c-1.8-0.2-3.6,0.3-3.6,2.3v18h3.6V45.6c1.6-0.6,3.5-1.2,4.8-1.2c1.1,0,1.7,0.7,1.7,1.6v9.7h3.6v-9.9C79.9,42.8,78.8,41.1,75.7,41.1" /><rect x="27.6" y="41.2" width="3.6" height="14.5" /><path d="M39.5,44.1H42c1.9,0,2.6-0.9,2.4-2.9h-5v-4.8c-1.8-0.2-3.6,0.3-3.6,2.3v2.6h-2.7v2.9h2.7v6.6c0,3.6,1.5,5.2,5.3,5.2c1.2,0,2.1-0.1,3.1-0.2l-0.1-2.9C43.4,53,42.4,53,41.6,53c-1.4,0-2.1-0.5-2.1-2C39.5,51,39.5,44.1,39.5,44.1z" /><path d="M55.8,45.3c0-0.9,0.7-1.2,1.6-1.2c1.5,0,2.9,0.1,3.8,0.1c1.6,0.1,2.4-0.8,2.3-2.7c-1.1-0.1-3.6-0.3-5.7-0.3c-3.2,0-5.6,1.2-5.6,4.2s1.8,4,5,4.5c2.9,0.5,3.5,0.7,3.5,1.7c0,1.2-1.4,1.4-2.7,1.4c-1.9,0-4-0.1-5.3-0.2l-0.2,3c1.4,0.1,3.4,0.2,5.6,0.2c3.8,0,6.1-1.2,6.1-4.3s-1.6-3.9-4.7-4.5C56.7,46.6,55.8,46.4,55.8,45.3" /><path d="M104.3,44.3h-7.5c-0.2,2.2,0.5,3.1,2.4,3.1h1.3v5c-1,0.2-3.4,0.3-4.4,0.3c-3,0-4.1-1.2-4.1-7s0.9-7,5.6-6.7l3.2,0.2c2.1,0.1,2.9-1,2.9-2.9c-1.5-0.2-5.3-0.7-6.9-0.7c-6.8,0-8.7,2-8.7,10s2.2,10.2,7.9,10.2c2.1,0,6.2-0.5,8.3-0.9L104.3,44.3L104.3,44.3z" /><path d="M125,45.3c0-0.9,0.7-1.2,1.6-1.2c1.5,0,2.9,0.1,3.8,0.1c1.6,0.1,2.4-0.8,2.4-2.7c-1.1-0.1-3.6-0.3-5.7-0.3c-3.2,0-5.6,1.2-5.6,4.2s1.8,4,5,4.5c2.9,0.5,3.5,0.7,3.5,1.7c0,1.2-1.4,1.4-2.7,1.4c-1.9,0-4-0.1-5.3-0.2l-0.2,3c1.4,0.1,3.4,0.2,5.6,0.2c3.8,0,6.1-1.2,6.1-4.3s-1.6-3.9-4.7-4.5C125.9,46.6,125,46.4,125,45.3" /><path d="M119.5,45.8c0-3-1.3-4.6-5-4.6c-2.3,0-5.3,0.3-6.7,0.4c0,1.8,0.5,2.7,2.1,2.7c1.1,0,3.2-0.1,4.4-0.1c1.1,0,1.6,0.4,1.6,1.6v0.5c-1.6,0.1-3.1,0.3-4.5,0.5c-3.2,0.5-5.1,1.4-5.1,4.6c0,2.8,1.4,4.6,4.5,4.6s6.8-0.2,8.7-0.5V45.8L119.5,45.8z M115.8,53.1c-0.9,0.1-2.8,0.2-4.3,0.2s-1.7-1-1.7-1.8c0-1.3,0.6-1.7,2.1-2c1.2-0.2,2.5-0.4,3.9-0.5V53.1z" /></g><path fill="#2973FF" d="M144.3,0l-22.2,7.2c0,0-4.9,1.7-7.6,4c-1.7,1.4-2.8,3.3-3.3,5.4c1.9-1,3.8-1.7,3.8-1.7l17.8-5.8c0,0,0.7,13.5-7.2,19.5c2.3-0.5,5-1.4,8-3.2C145.3,18.8,144.3,0,144.3,0L144.3,0L144.3,0z" /><path fill="#80BC00" d="M122.1,28.9L122.1,28.9c-6.1,0-11.1-4.5-11.1-10.1c0-0.7,0.1-1.5,0.2-2.2c-0.8,0.4-1.6,1-2.3,1.5c-1.8,1.5-2.8,3.7-2.8,6.1c0,4.5,4,8.1,8.9,8.1l0,0c2.4,0.1,5.4-0.6,9.2-2.8c0.5-0.3,0.9-0.6,1.4-0.9C124.3,28.9,123.1,28.9,122.1,28.9L122.1,28.9z" /></g></svg></g></svg>

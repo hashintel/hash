@@ -23,23 +23,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="brussels-airlines-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="brussels-airlines-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="brussels-airlines-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brussels-airlines-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brussels-airlines-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brussels-airlines-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#brussels-airlines-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="brussels-airlines-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#brussels-airlines-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.08229 0 23.83543 24" fill="#F7002E" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M21.0505 0c-1.4373 0-2.6034 1.1667-2.6034 2.6057s1.166 2.6057 2.6034 2.6057c1.438 0 2.6035-1.1667 2.6035-2.6057S22.4885 0 21.0505 0ZM11.793.7097c-1.0458 0-1.8938.8492-1.8938 1.896s.848 1.8949 1.8937 1.8949c1.0458 0 1.8949-.8481 1.8949-1.8949 0-1.0468-.849-1.896-1.8948-1.896zM2.5362.9052c-.9384 0-1.6994.7614-1.6994 1.7005 0 .9394.761 1.7005 1.6994 1.7005.9383 0 1.6993-.761 1.6993-1.7005 0-.9391-.761-1.7005-1.6993-1.7005zm9.2565 7.686c-1.8097 0-3.2765 1.4678-3.2765 3.2788s1.4668 3.28 3.2766 3.28c1.8095 0 3.2776-1.469 3.2776-3.28 0-1.811-1.468-3.2787-3.2776-3.2787zm9.2577.4321c-1.5708 0-2.8445 1.2745-2.8445 2.8467 0 1.5721 1.2737 2.8468 2.8445 2.8468 1.5711 0 2.8445-1.2747 2.8445-2.8468 0-1.5722-1.2734-2.8467-2.8445-2.8467zm-18.5142.4143C1.1937 9.4376.105 10.5264.105 11.87c0 1.3438 1.0887 2.4336 2.4313 2.4336 1.3425 0 2.4313-1.0898 2.4313-2.4336 0-1.3436-1.0888-2.4324-2.4313-2.4324zm9.2565 8.8323c-1.5808 0-2.8622 1.2831-2.8622 2.8656C8.9306 22.718 10.212 24 11.7928 24c1.5814 0 2.8634-1.282 2.8634-2.8645S13.3742 18.27 11.793 18.27zm-9.2565 1.1274c-.9591 0-1.7372.7783-1.7372 1.7382 0 .96.778 1.7371 1.7372 1.7371s1.736-.777 1.736-1.737c0-.96-.7768-1.7383-1.736-1.7383zm18.5142.0377c-.9383 0-1.6993.7614-1.6993 1.7005 0 .9392.761 1.7005 1.6993 1.7005.9384 0 1.6994-.7613 1.6994-1.7005 0-.9391-.761-1.7005-1.6994-1.7005z" /></svg></g></svg>

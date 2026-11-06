@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="niteshift-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="niteshift-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="niteshift-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#niteshift-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#niteshift-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#niteshift-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#niteshift-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="niteshift-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#niteshift-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 185 185" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill-rule="evenodd" clip-rule="evenodd" d="M91.1513 0.268238C92.0148 -0.0894126 92.9852 -0.0894126 93.8486 0.268238L156.765 26.3289C157.628 26.6865 158.313 27.3721 158.671 28.2351L184.732 91.1513C185.089 92.0148 185.089 92.9852 184.732 93.8486L158.671 156.765C158.313 157.628 157.628 158.313 156.765 158.671L93.8486 184.732C92.9852 185.089 92.0148 185.089 91.1513 184.732L28.2351 158.671C27.3721 158.313 26.6865 157.628 26.3289 156.765L0.268238 93.8486C-0.0894126 92.9852 -0.0894126 92.0148 0.268238 91.1513L26.3289 28.2351C26.6865 27.3721 27.3721 26.6865 28.2351 26.3289L91.1513 0.268238ZM95.1445 5.17353C94.2362 2.7197 90.7658 2.71969 89.8574 5.17353L67.4354 65.7675C67.1499 66.5391 66.5411 67.148 65.7694 67.4335L5.17646 89.8545C2.72211 90.7627 2.72211 94.2344 5.17646 95.1426L65.7694 117.565C66.5409 117.85 67.1499 118.458 67.4354 119.23L89.8574 179.824C90.7656 182.278 94.2363 182.278 95.1445 179.824L117.566 119.23C117.852 118.458 118.461 117.85 119.232 117.565L179.826 95.1426C182.28 94.2341 182.28 90.7628 179.826 89.8545L119.232 67.4335C118.461 67.148 117.852 66.5391 117.566 65.7675L95.1445 5.17353Z" fill="#F5F7FA" /></svg></g></svg>

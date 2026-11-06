@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="stumbleupon-legacy-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="stumbleupon-legacy-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="stumbleupon-legacy-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#stumbleupon-legacy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#stumbleupon-legacy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#stumbleupon-legacy-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#stumbleupon-legacy-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="stumbleupon-legacy-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#stumbleupon-legacy-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 63.146667 504.32 386.56" fill="#EB4924" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#EB4924" d="M502.9 266l0 69.7c0 62.1-50.3 112.4-112.4 112.4-61.8 0-112.4-49.8-112.4-111.3l0-70.2 34.3 16 51.1-15.2 0 70.6c0 14.7 12 26.5 26.7 26.5S417 352.7 417 338l0-72 85.9 0zM278.2 207.8l34.3 16 51.1-15.2 0-35.6c0-60.5-51.1-109-112.1-109-60.8 0-112.1 48.2-112.1 108.2l0 162.4c0 14.9-12 26.7-26.7 26.7S86 349.5 86 334.6l0-68.6-86 0 0 69.7c0 62 50.3 112.3 112.4 112.3 61.6 0 112.4-49.5 112.4-110.8l0-160.3c0-14.7 12-26.7 26.7-26.7s26.7 12 26.7 26.7l0 30.9z" /></svg></g></svg>

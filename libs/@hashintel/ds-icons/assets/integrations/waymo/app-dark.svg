@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="waymo-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="waymo-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="waymo-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#waymo-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#waymo-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#waymo-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#waymo-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="waymo-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#waymo-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="13.583235 12.641566 38.268307 20.2653" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M29.765 14.3678L21.9292 27.8241L27.7998 31.1633L35.6355 17.707L29.765 14.3678Z" fill="#0583FF" /><path d="M45.4368 14.3678L37.601 27.8241L43.4715 31.1633L51.3073 17.707L45.4368 14.3678Z" fill="#0583FF" /><path d="M51.7593 16.0372C51.7593 16.6993 51.5606 17.3465 51.1884 17.897C50.8163 18.4475 50.2873 18.8766 49.6684 19.13C49.0495 19.3833 48.3684 19.4496 47.7114 19.3205C47.0544 19.1913 46.4509 18.8725 45.9772 18.4043C45.5035 17.9361 45.1809 17.3397 45.0502 16.6903C44.9195 16.0409 44.9866 15.3679 45.2429 14.7562C45.4993 14.1445 45.9334 13.6217 46.4904 13.2538C47.0474 12.886 47.7023 12.6897 48.3722 12.6897C48.817 12.6897 49.2574 12.7762 49.6684 12.9445C50.0793 13.1127 50.4527 13.3593 50.7672 13.6701C51.0817 13.981 51.3312 14.35 51.5015 14.7562C51.6717 15.1623 51.7593 15.5976 51.7593 16.0372Z" fill="#00EBA7" /><path d="M24.8677 32.8415C24.2718 32.8421 23.6863 32.6873 23.1703 32.3926C22.6544 32.098 22.2262 31.6739 21.9292 31.1633L14.0934 17.707C13.6453 16.9376 13.5249 16.0238 13.7586 15.1667C13.9922 14.3095 14.5609 13.5792 15.3393 13.1364C16.1178 12.6936 17.0424 12.5746 17.9097 12.8055C18.777 13.0365 19.5159 13.5984 19.9639 14.3678L27.7998 27.8242C28.0958 28.3329 28.2514 28.9096 28.2508 29.4965C28.2503 30.0833 28.0937 30.6598 27.7967 31.1679C27.4997 31.6761 27.0728 32.0983 26.5587 32.392C26.0446 32.6857 25.4615 32.8407 24.8677 32.8415V32.8415Z" fill="#00EBA7" /><path d="M40.5392 32.8415C39.9433 32.8421 39.3578 32.6872 38.8419 32.3926C38.326 32.0979 37.8979 31.6739 37.6008 31.1633L29.765 17.707C29.317 16.9376 29.1965 16.0238 29.4302 15.1667C29.6639 14.3095 30.2325 13.5792 31.011 13.1364C31.3964 12.9172 31.8218 12.7751 32.2628 12.7183C32.7039 12.6615 33.1519 12.6912 33.5813 12.8055C34.4486 13.0365 35.1875 13.5984 35.6356 14.3678L43.4714 27.8241C43.7674 28.3329 43.923 28.9096 43.9224 29.4965C43.9219 30.0833 43.7653 30.6597 43.4683 31.1679C43.1713 31.6761 42.7444 32.0982 42.2303 32.392C41.7162 32.6857 41.133 32.8407 40.5392 32.8415Z" fill="#00EBA7" /></svg></g></svg>

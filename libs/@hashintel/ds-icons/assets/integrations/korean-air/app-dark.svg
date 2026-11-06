@@ -23,23 +23,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="korean-air-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="korean-air-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="korean-air-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#korean-air-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#korean-air-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#korean-air-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#korean-air-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="korean-air-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#korean-air-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.61029 0 22.77942 24" fill="#5271F7" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="m2.214 17.892-.096.066C4.074 21.564 7.776 24 12 24c6.282 0 11.37-5.376 11.37-12 0-1.824-.756-3.36-1.65-4.524-1.188-1.548-2.88-2.292-4.566-2.304-1.392-.012-2.832.456-3.846 1.374-1.158 1.05-1.416 2.4-1.716 4.59-.33 2.4-2.262 4.056-4.746 4.056-3.216 0-5.208-1.98-5.076-5.01.012-.21.03-.42.066-.624.606-3.576 4.452-7.266 10.236-7.254 3.882 0 6.798.87 9.714 3.804l.096-.066C19.926 2.436 16.23 0 12 0 5.724 0 .63 5.376.63 12c0 1.824.756 3.36 1.65 4.524a5.766 5.766 0 0 0 4.566 2.304c1.392.018 2.832-.456 3.846-1.374 1.158-1.05 1.416-2.4 1.716-4.59.33-2.4 2.268-4.056 4.746-4.056 3.222 0 5.214 1.98 5.082 5.01-.012.21-.03.42-.066.624-.618 3.576-4.446 7.266-10.242 7.254-3.882 0-6.798-.87-9.714-3.804" /></svg></g></svg>

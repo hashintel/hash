@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="mol-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="mol-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="mol-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mol-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mol-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mol-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mol-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="mol-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mol-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52.1153 60.15" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="mol-app-dark-brand-symbol-bounds"><rect x="0.0" y="0.0" width="58.893899999999995" height="60.15" /></clipPath></defs><g clip-path="url(#mol-app-dark-brand-symbol-bounds)"><path fill="#E0403A" d="M0 0v60.15l52.08-30.08L0 0z" /><path fill="#A16D74" d="M13.94 36.09L0 60.15l52.08-30.08-38.14 6.02z" /><path fill="#C45A60" d="M0 0v60.15l13.92-24.06L0 0z" /><path d="M74.08 25.71v25.98h-7.21V8.27l21.72 21.71 21.78-21.71v43.42h-7.33V25.71L88.59 40.24 74.08 25.71zm70.53-17.44a20.74 20.74 0 0 1 15.32 6.38A20.84 20.84 0 0 1 166.37 30a20.52 20.52 0 0 1-6.44 15.32 21.56 21.56 0 0 1-30.66 0A20.76 20.76 0 0 1 122.88 30a20.93 20.93 0 0 1 6.39-15.33 20.62 20.62 0 0 1 15.34-6.38m0 7.26A14.37 14.37 0 0 0 130.14 30a14.29 14.29 0 0 0 14.46 14.45A14.4 14.4 0 0 0 159 30a13.93 13.93 0 0 0-4.25-10.21 13.88 13.88 0 0 0-10.19-4.24m34.34-7.28h7.18v36.16h21.73v7.26H178.9V8.27zm57.99 0a21.37 21.37 0 0 1 8.46 1.67 22.06 22.06 0 0 1 6.93 4.71l-5.19 5.12a13.8 13.8 0 0 0-10.2-4.24A14.39 14.39 0 0 0 222.44 30a14.53 14.53 0 0 0 20.5 13.17 14.68 14.68 0 0 0 4.84-3.6v-5.96h-10.89v-7.2H255v15.53a23.14 23.14 0 0 1-3.48 4 21.8 21.8 0 0 1-4.28 3.1 20.64 20.64 0 0 1-4.95 2 21.6 21.6 0 0 1-20.78-5.7A20.77 20.77 0 0 1 215.18 30a20.94 20.94 0 0 1 6.37-15.33 20.78 20.78 0 0 1 15.34-6.38m59.33 43.4l-8.4-14.47h-12.26v14.47h-7.18V8.27h21.71a13.88 13.88 0 0 1 10.2 4.25 13.92 13.92 0 0 1 4.25 10.19 14.06 14.06 0 0 1-2.54 8.2 13.94 13.94 0 0 1-6.39 5.19l8.94 15.6zm-6.14-36.16h-14.52v14.39l14.53.06a6.91 6.91 0 0 0 5.07-2.13 7.21 7.21 0 0 0 0-10.22 7 7 0 0 0-5.07-2.11m46.64-7.25a20.75 20.75 0 0 1 15.33 6.38A20.78 20.78 0 0 1 358.52 30a20.46 20.46 0 0 1-6.46 15.32 21.56 21.56 0 0 1-30.65 0A20.72 20.72 0 0 1 315 30a20.89 20.89 0 0 1 6.38-15.33 20.6 20.6 0 0 1 15.32-6.38m0 7.26A14.39 14.39 0 0 0 322.28 30a14.31 14.31 0 0 0 14.45 14.45A14.42 14.42 0 0 0 351.18 30a13.87 13.87 0 0 0-4.26-10.21 13.88 13.88 0 0 0-10.2-4.24m68.44 18.06a17.51 17.51 0 0 1-5.32 12.84A18.05 18.05 0 0 1 369 33.61V8.27h7.19v25.34a10.38 10.38 0 0 0 3.14 7.63 10.5 10.5 0 0 0 7.7 3.2 10.32 10.32 0 0 0 7.63-3.2 10.34 10.34 0 0 0 3.26-7.63V8.27h7.26zm18.89 3.61v14.47h-7.19V8.27h21.71a13.87 13.87 0 0 1 10.19 4.25A14 14 0 0 1 453 22.77 14.12 14.12 0 0 1 448.76 33a14 14 0 0 1-10.19 4.18zm0-21.69V30h14.52a6.86 6.86 0 0 0 5.05-2.13 6.89 6.89 0 0 0 2.13-5.08 7 7 0 0 0-2.12-5.14 6.89 6.89 0 0 0-5.05-2.11z" fill="#EE2734" /></g></svg></g></svg>

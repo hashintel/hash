@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="akzonobel-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="akzonobel-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="akzonobel-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#akzonobel-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#akzonobel-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#akzonobel-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#akzonobel-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="akzonobel-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#akzonobel-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" viewBox="0 0 264.58333 38.66595" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs><linearGradient gradientTransform="matrix(1,0,0,-1,0.1401,60.0547)" gradientUnits="userSpaceOnUse" ns1:href="#akzonobel-app-dark-SVGID_1_" y2="55.417999" x2="183.7038" y1="-5.6064" x1="63.936501" /><linearGradient gradientTransform="matrix(1,0,0,-1,0.1401,60.0547)" gradientUnits="userSpaceOnUse" id="akzonobel-app-dark-SVGID_1_" y2="55.417999" x2="183.7038" y1="-5.6064" x1="63.936501"><stop offset="0.3371" stop-color="#4281B1" stop-opacity="1" /><stop offset="0.92699999" stop-color="#0093D0" stop-opacity="1" /></linearGradient><linearGradient gradientTransform="matrix(1.9857448,0,0,-1.9857448,-107.70462,240.58041)" gradientUnits="userSpaceOnUse" ns1:href="#akzonobel-app-dark-SVGID_1_" y2="55.417999" x2="183.7038" y1="-5.6064" x1="63.936501" /></defs><g transform="translate(0,-258.33405)"><g transform="matrix(2.4176772,0,0,2.4176772,-173.89385,83.115335)"><path d="m 100.156,88.201 h 8.483 c 0.746,0 1.245,-0.549 1.245,-1.338 v -0.679 c -0.407,0.093 -1.019,0.135 -2.176,0.135 h -2.792 l 4.855,-9.35 h -9.545 v 1.852 h 4.271 l -4.07,7.725 c -0.362,0.679 -0.405,1.223 -0.271,1.655" fill="#4281B1" /><path d="m 91.699,82.23 2.198,4.228 c 0.613,1.218 0.885,1.743 2.27,1.743 h 3.129 c -0.18,-0.141 -0.342,-0.433 -0.659,-0.997 l -3.2,-5.884 3.745,-4.351 h -3.333 z" fill="#4281B1" /><path d="m 87.593,88.201 h 3.879 V 74.772 c 0,-1.393 -1.021,-2.298 -2.426,-2.298 h -1.453 z" fill="#4281B1" /><path d="M 85.871,87.182 81.995,75.658 C 81.54,74.281 81.065,73.649 79.16,73.649 h -1.839 l -5.395,14.553 h 2.447 l 1.231,-3.599 H 80.8 l 0.74,2.328 c 0.273,0.859 0.612,1.24 1.543,1.24 h 3.266 c -0.158,-0.157 -0.273,-0.424 -0.478,-0.989 z m -9.661,-4.341 2.085,-6.089 1.944,6.089 z" fill="#4281B1" /><path d="m 116.441,88.467 c 3.22,0 5.962,-2.302 5.962,-6.12 0,-3.256 -2.605,-5.67 -5.894,-5.67 -3.266,0 -5.991,2.369 -5.991,6.191 0.001,3.361 2.726,5.599 5.923,5.599 m 0.043,-2.075 c -1.313,0 -1.79,-1.517 -1.79,-3.888 0,-2.258 0.455,-3.797 1.79,-3.797 1.318,0 1.746,1.627 1.746,3.998 0,2.242 -0.427,3.687 -1.746,3.687" fill="#4281B1" /><path d="m 124.147,88.201 h 2.425 v -9.279 l 6.164,7.401 c 0.863,1.043 1.43,1.878 2.36,1.878 h 1.766 V 74.869 c 0,-0.769 -0.519,-1.263 -1.312,-1.263 h -1.067 v 8.775 l -5.927,-7.063 c -0.884,-1.058 -1.337,-1.712 -2.627,-1.712 h -1.782 z" fill="#4281B1" /><path d="m 144.462,88.467 c 3.221,0 5.966,-2.302 5.966,-6.12 0,-3.251 -2.61,-5.67 -5.897,-5.67 -3.267,0 -5.986,2.369 -5.986,6.191 -10e-4,3.364 2.719,5.599 5.917,5.599 m 0.046,-2.075 c -1.317,0 -1.793,-1.517 -1.793,-3.887 0,-2.259 0.454,-3.798 1.793,-3.798 1.313,0 1.745,1.631 1.745,4.002 0,2.238 -0.432,3.683 -1.745,3.683" fill="#4281B1" /><path d="m 175.802,82.796 c 0.069,-0.449 0.092,-0.902 0.092,-1.308 0,-2.667 -1.973,-4.79 -5.351,-4.79 -3.355,0 -5.807,2.348 -5.807,5.92 0,3.456 2.154,5.849 5.668,5.849 3.517,0 4.783,-1.828 4.856,-3.592 -0.752,0.546 -1.906,0.859 -3.2,0.859 -1.964,0 -3.234,-1.117 -3.418,-2.938 z m -7.161,-1.555 c 0.126,-1.651 0.764,-2.69 1.854,-2.69 1.498,0 1.792,2.69 1.792,2.69 z" fill="#4281B1" /><path d="m 158.909,76.812 c -1.316,0 -2.405,0.475 -2.951,1.017 v -3.05 c 0,-1.399 -0.997,-2.304 -2.401,-2.304 h -1.451 v 15.727 h 4.535 c 4.33,0 6.734,-2.262 6.734,-6.466 0,-2.824 -1.925,-4.924 -4.466,-4.924 z m -2.362,9.511 h -0.589 v -7.251 c 0.25,-0.026 0.456,-0.048 0.841,-0.048 1.476,0 2.588,1.359 2.588,3.164 0,2.687 -1.024,4.135 -2.84,4.135 z" fill="#4281B1" /><path d="m 177.508,88.201 h 3.855 V 74.778 c 0,-1.399 -1.021,-2.304 -2.427,-2.304 h -1.429 v 15.727 z" fill="#4281B1" /></g></g></svg></g></svg>

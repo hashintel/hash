@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="london-school-of-economics-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="london-school-of-economics-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="london-school-of-economics-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#london-school-of-economics-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#london-school-of-economics-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#london-school-of-economics-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#london-school-of-economics-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="london-school-of-economics-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#london-school-of-economics-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(-.167 -.677) scale(4.6535)"><clipPath id="london-school-of-economics-app-dark-a"><path d="M0 0h56v56H0z" /></clipPath><g clip-path="url(#london-school-of-economics-app-dark-a)" fill-rule="nonzero"><path fill="#e0112b" d="M.046.16h55.862v55.872H.046z" /><path d="M10.55 10.857h3.684V41.44h5.447v3.794H10.55V10.857zm25.654 0h9.291v3.749h-5.629v11.04h5.263v4h-5.263V41.44h5.629v3.794h-9.291V10.857zM22.885 45.234v-3.771h1.144c1.511 0 4.074-1.052 4.463-3.429.366-2.308.091-3.977-2.884-9.051l-.023-.069c-2.059-3.36-4.027-6.308-3.295-10.925a8.066 8.066 0 012.75-5.179 8.085 8.085 0 015.534-1.953h1.144v3.749h-1.144c-1.51 0-4.142 1.051-4.531 3.428-.366 2.286-.114 3.795 2.769 8.8l.092.115c2.151 3.451 4.073 6.514 3.341 11.108a8.018 8.018 0 01-2.693 5.211 8.04 8.04 0 01-5.523 1.989h-1.144" fill="#fff" /></g></g></svg></g></svg>

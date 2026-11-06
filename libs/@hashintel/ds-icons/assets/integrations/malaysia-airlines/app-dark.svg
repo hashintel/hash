@@ -23,23 +23,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="malaysia-airlines-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="malaysia-airlines-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="malaysia-airlines-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#malaysia-airlines-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#malaysia-airlines-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#malaysia-airlines-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#malaysia-airlines-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="malaysia-airlines-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#malaysia-airlines-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 2.96229 24 18.07543" fill="#307BDC" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="m4.97 2.996-.13.475h7.941a1.092 1.092 0 0 1 1.165 1.222 1.78 1.78 0 0 1-.064.341l-1.424 5.174a2.689 2.689 0 0 1-.111.272 2.028 2.028 0 0 1-1.818 1.197h-.036a1.061 1.061 0 0 1-1.088-1.288l.013-.09a1.15 1.15 0 0 1 .028-.125l.651-2.371a.907.907 0 0 0-.241-.967 1.003 1.003 0 0 0-.531-.23.964.964 0 0 0-.096-.008l-5.253.006-.13.467h2.25a1.223 1.223 0 0 1 .399.07.87.87 0 0 1 .459 1.129s-.281.983-.612 2.217a1.67 1.67 0 0 1-.42.76 1.715 1.715 0 0 1-1.169.47H2.564l-.062.224-.015.055-.002.007-.072.268h2.07c.232 0 1.29.042 1.052 1.132a156.585 156.585 0 0 0-.638 2.324 1.602 1.602 0 0 1-.078.21 1.748 1.748 0 0 1-.336.502 1.562 1.562 0 0 1-1.105.483H1.12l-.126.475 5.26.005a1.715 1.715 0 0 0 .878-.314 1.667 1.667 0 0 0 .656-.893l.652-2.366a1.898 1.898 0 0 1 .147-.365 2.06 2.06 0 0 1 1.728-1.144h.035a1.084 1.084 0 0 1 1.117 1.47l-1.417 5.172a2.15 2.15 0 0 1-1.006 1.287 2.002 2.002 0 0 1-.96.274H.136L0 21.004h9.484a12.016 12.016 0 0 0 5.638-1.654 13.13 13.13 0 0 0 4.794-4.883 4.33 4.33 0 0 1 3.332-2.143l.563-.037a.05.05 0 0 0 .049-.034l.012-.042a.006.006 0 0 1 0-.005c.016-.052.038-.125.058-.202v-.001l.004-.007h-.001l.066-.251a.023.023 0 0 0 0-.014c0-.011-.011-.014-.027-.018l-.189-.014-.368-.024a2.122 2.122 0 0 1-2.14-2.012c0-.033-.005-.063-.006-.082v-.049c.043-2.433-1.357-6.31-6.828-6.536z" /></svg></g></svg>

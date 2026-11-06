@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="gap-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="gap-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="gap-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gap-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gap-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gap-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#gap-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="gap-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#gap-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 67.682 50.419" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M6.821 50.419c-3.358-.04-6.772-1.223-6.82-7.6V6.139C.012 1.153 3.793.006 6.424-.005a9.475 9.475 0 014.9 1.59c.411.252.92.315.923-.478V.441h1.22v15.583h-1.708c-.886 0-1.187-.273-1.187-1.075a65.492 65.492 0 00-.889-10.354C9.16 2.367 8.033.903 6.415.895c-1.965-.017-2.2 2.648-2.2 3.791v42.063a2.727 2.727 0 002.649 2.852 2.779 2.779 0 002.774-2.852V28.124H6.97v-.908h9.22v.908h-2.183v21.885h-1.086c0-.941-.615-1.449-1.175-1.233-1.048.416-2.3 1.641-4.884 1.641zm44.322-.587v-.845h.483c1.465-.057 1.848-.41 1.9-1.413V1.259H51.14V.478h9.062c5.352-.005 7.479 2.469 7.479 5.22V23.34c0 2.752-2.468 4.807-6.8 4.807h-2.974v18.624c.031 1.468.664 2.157 2.379 2.216h1.073v.845zm6.764-24.438v1.778h2.5a2.787 2.787 0 002.922-2.941v-19.8a3.124 3.124 0 00-3.145-3.173h-2.277zM34.45 49.827v-.846h.673c1.406-.088 1.528-.51 1.531-1.664l-2.387-19.206h-5.3l-2.273 18.586c-.193 1.181.681 2.284 2.612 2.284v.846h-6.821v-.846c2.636-.043 2.805-1.051 3.136-2.7L31.231.464h3.87l5.774 46.3v-.036a2.3 2.3 0 002.428 2.252h.24v.846zm-5.384-22.586h5.093l-2.7-19.871z" fill="#F5F7FA" /></svg></g></svg>

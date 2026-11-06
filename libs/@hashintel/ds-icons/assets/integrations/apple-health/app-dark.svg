@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="apple-health-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="apple-health-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="apple-health-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#apple-health-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#apple-health-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#apple-health-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#apple-health-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="apple-health-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#apple-health-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-384 -144 1024 1024" fill="none" x="0.0" y="0.0" width="64.0" height="64.0"><defs><linearGradient id="apple-health-app-dark-heart-color" x1="0" y1="0" x2="0" y2="460" gradientUnits="userSpaceOnUse"><stop offset="0.00000" stop-color="#FF46A0" /><stop offset="0.03486" stop-color="#FF49A0" /><stop offset="0.07843" stop-color="#FF3795" /><stop offset="0.12200" stop-color="#FF2C8B" /><stop offset="0.16558" stop-color="#FF2785" /><stop offset="0.20915" stop-color="#FF227E" /><stop offset="0.25272" stop-color="#FF1D78" /><stop offset="0.29630" stop-color="#FF1870" /><stop offset="0.33987" stop-color="#FF1368" /><stop offset="0.38344" stop-color="#FF0E60" /><stop offset="0.42702" stop-color="#FF0A58" /><stop offset="0.47059" stop-color="#FF054F" /><stop offset="0.51416" stop-color="#FF0047" /><stop offset="0.55773" stop-color="#FF003F" /><stop offset="0.60131" stop-color="#FF0038" /><stop offset="0.64488" stop-color="#FF0032" /><stop offset="0.68845" stop-color="#FF002C" /><stop offset="0.73203" stop-color="#FF0028" /><stop offset="0.77560" stop-color="#FF0025" /><stop offset="0.81917" stop-color="#FF0024" /><stop offset="0.86275" stop-color="#FF0025" /><stop offset="0.90632" stop-color="#FF012A" /><stop offset="0.94989" stop-color="#FF1B41" /><stop offset="1.00000" stop-color="#FF0026" /></linearGradient><clipPath id="apple-health-app-dark-heart-shape"><path d="M1331 4429 c-566 -64 -1013 -490 -1141 -1089 -28 -131 -39 -434 -20 -574 45 -341 170 -649 403 -996 332 -492 887 -1008 1572 -1460 175 -115 238 -144 315 -144 56 -1 75 4 138 37 195 100 650 430 942 681 140 121 400 376 515 506 342 388 573 799 661 1175 49 213 60 511 24 718 -96 562 -470 987 -985 1116 -261 66 -556 43 -771 -59 -166 -80 -355 -252 -464 -423 -30 -47 -57 -86 -60 -86 -3 0 -20 25 -39 57 -132 221 -358 414 -571 488 -146 51 -351 72 -519 53z" transform="translate(0.000000,460.000000) scale(0.100000,-0.100000)" />

@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="ntopology-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
-      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
-      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
     </linearGradient>
     <radialGradient id="ntopology-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="ntopology-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
-      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
       <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
-      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
     </linearGradient>
   </defs>
-  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ntopology-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ntopology-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
   <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ntopology-app-dark-background-sheen)" />
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ntopology-app-dark-background-reflection)" stroke-width="1.5" />
 </g><defs><clipPath id="ntopology-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ntopology-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.25788 0 138.46412 138" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#ntopology-app-dark-clip0_2877_11190)"><path d="M90.917 0.093811H48.0253C21.7134 0.093811 0.376343 21.3723 0.376343 47.6207V137.91H90.917C117.237 137.91 138.574 116.632 138.574 90.3833V47.6127C138.574 21.3723 117.237 0.093811 90.917 0.093811ZM87.3682 74.5181C81.463 74.5181 76.1942 79.7904 76.1942 85.4295V107.373H31.2279V63.4819H53.7131C59.6183 63.4819 64.8871 58.2136 64.8871 52.5746C64.8871 40.4097 74.9011 30.627 87.3682 30.627C99.8354 30.627 109.853 40.4097 109.853 52.5746C109.853 64.7395 99.8354 74.5181 87.3682 74.5181Z" fill="#F5F7FA" /><path d="M87.3682 74.5181C81.463 74.5181 76.1942 79.7904 76.1942 85.4295V107.373H31.2279V63.4819H53.7131C59.6183 63.4819 64.8871 58.2136 64.8871 52.5746C64.8871 40.4097 74.9011 30.627 87.3682 30.627C99.8354 30.627 109.853 40.4097 109.853 52.5746C109.853 64.7395 99.8354 74.5181 87.3682 74.5181Z" fill="#101010" /></g><defs><clipPath id="ntopology-app-dark-clip0_2877_11190"><rect width="139" height="138" fill="#FFFFFF" /></clipPath></defs></svg></g></svg>
