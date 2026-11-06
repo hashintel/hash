@@ -16,7 +16,9 @@ import {
   type NodeProps,
   Position,
   ReactFlow,
+  useNodesInitialized,
   useReactFlow,
+  useStoreApi,
 } from "@xyflow/react";
 import { Fragment, useEffect, useRef, useState } from "react";
 
@@ -2951,6 +2953,9 @@ const wholeFlowFit = {
   minZoom: 0.2,
 } as const;
 
+/** The least a run opens at: a card's 13 px title still reads (8 px on screen), as the editor's own fit floor. */
+const runMinZoom = 0.6;
+
 export const FlowCanvas = ({
   onInit,
   mode = "select",
@@ -3069,6 +3074,46 @@ export const FlowCanvas = ({
           zoom: ui.viewport.zoom,
         }
       : undefined;
+  });
+
+  // A run fits the flow between the side panels, never below runMinZoom. Held at the floor, the flow's left end (the
+  // trigger, then Start) sits 48 px in, centred top to bottom, and the rest pans.
+  const store = useStoreApi<StepNode>();
+  const nodesReady = useNodesInitialized();
+  const runFitted = useRef(false);
+  const fitRun = () => {
+    const { width, height } = store.getState();
+    const bounds = flow.getNodesBounds(flow.getNodes());
+    if (bounds.width === 0 || width === 0) {
+      return;
+    }
+    const fit = Math.min(
+      (width - 96) / bounds.width,
+      (height - 144) / bounds.height,
+      1,
+    );
+    const zoom = Math.max(fit, runMinZoom);
+    flow
+      .setViewport({
+        x:
+          fit >= runMinZoom
+            ? (width - bounds.width * zoom) / 2 - bounds.x * zoom
+            : 48 - bounds.x * zoom,
+        y: 48 + (height - 144 - bounds.height * zoom) / 2 - bounds.y * zoom,
+        zoom,
+      })
+      .catch(() => undefined);
+  };
+  useEffect(() => {
+    if (!readOnly || viewingVersion) {
+      runFitted.current = false;
+      return;
+    }
+    if (startViewport || runFitted.current || !nodesReady) {
+      return;
+    }
+    runFitted.current = true;
+    fitRun();
   });
 
   const [copied, setCopied] = useState(false);
@@ -3480,6 +3525,10 @@ export const FlowCanvas = ({
         }
         onInit(
           () => {
+            if (readOnly && !viewingVersion) {
+              fitRun();
+              return;
+            }
             instance
               .fitView(readOnly ? wholeFlowFit : fitOptions)
               .catch(() => undefined);
@@ -3497,7 +3546,7 @@ export const FlowCanvas = ({
           saveViewport(flowId, viewport);
         }
       }}
-      fitView={!startViewport}
+      fitView={!startViewport && (!readOnly || viewingVersion)}
       fitViewOptions={readOnly ? wholeFlowFit : fitOptions}
       defaultViewport={startViewport}
       // A run has nothing to select, so a drag pans. The editor pans with the middle button, space or the hand, never
