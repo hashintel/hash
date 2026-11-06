@@ -82,6 +82,15 @@ const metresFromGraph = makeDataTypeFixture({
   type: "number",
 });
 
+const centimetresFromGraph = makeDataTypeFixture({
+  $id: "https://example.com/@example/types/data-type/centimetres/v/1",
+  title: "Centimetres",
+  description: "A length in centimetres",
+  allOf: [{ $ref: metresFromGraph.schema.$id }],
+  abstract: false,
+  type: "number",
+});
+
 describe("buildDataTypeTree", () => {
   it("offers every primitive root even when the graph holds no data types", () => {
     const tree = buildDataTypeTree({ latestDataTypes: {} });
@@ -112,5 +121,22 @@ describe("buildDataTypeTree", () => {
     });
 
     expect(tree.roots.map((root) => root.title)).not.toContain("Number");
+  });
+
+  it("keeps the edited type's descendants reachable, hoisted past its node", () => {
+    const tree = buildDataTypeTree({
+      latestDataTypes: {
+        [numberFromGraph.metadata.recordId.baseUrl]: numberFromGraph,
+        [metresFromGraph.metadata.recordId.baseUrl]: metresFromGraph,
+        [centimetresFromGraph.metadata.recordId.baseUrl]: centimetresFromGraph,
+      },
+      excludedBaseUrl: metresFromGraph.metadata.recordId.baseUrl,
+    });
+
+    const numberRoot = tree.roots.find((root) => root.title === "Number")!;
+    expect(numberRoot.children.map((child) => child.title)).toEqual([
+      "Centimetres",
+    ]);
+    expect(tree.nodeById.has(metresFromGraph.schema.$id)).toBe(false);
   });
 });

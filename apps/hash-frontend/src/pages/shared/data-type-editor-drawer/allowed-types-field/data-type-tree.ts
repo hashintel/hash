@@ -37,10 +37,9 @@ export const buildDataTypeTree = ({
   const targets: DataType[] = [];
 
   for (const dataType of Object.values(latestDataTypes)) {
-    if (dataType.metadata.recordId.baseUrl === excludedBaseUrl) {
-      continue;
-    }
-
+    // The excluded (edited) type stays in the pool so types extending it
+    // still attach to the tree through it — its own node is hoisted out of
+    // the built forest below
     pool[dataType.schema.$id] = dataType.schema;
 
     if (
@@ -52,10 +51,21 @@ export const buildDataTypeTree = ({
     }
   }
 
-  const roots = buildDataTypeTreesForSelector({
+  const builtRoots = buildDataTypeTreesForSelector({
     targetDataTypes: targets,
     dataTypePoolById: pool,
   });
+
+  // The edited type must not be pickable, but its descendants must stay
+  // reachable: replace its node with its children wherever it appears
+  const hoistExcluded = (nodes: DataTypeTreeNode[]): DataTypeTreeNode[] =>
+    nodes.flatMap((node) =>
+      node.baseUrl === excludedBaseUrl
+        ? hoistExcluded(node.children)
+        : [{ ...node, children: hoistExcluded(node.children) }],
+    );
+
+  const roots = excludedBaseUrl ? hoistExcluded(builtRoots) : builtRoots;
 
   // The primitive types are served on demand by the type fetcher, so until
   // something references one the graph may have no copy of it to put in the

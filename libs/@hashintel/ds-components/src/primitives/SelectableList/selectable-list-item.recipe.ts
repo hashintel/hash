@@ -38,10 +38,16 @@ export const styles = sva({
         backgroundColor: "neutral.a35",
         "--item-bg": "{colors.neutral.s35}",
       },
+      // Dimming sits on the row's children, not the row, so the collapse
+      // toggle can keep (or drop) it from its own disabled state — a dimmed
+      // folder row may hold enabled items its chevron still reveals.
       "&[data-disabled]:not([data-loading])": {
         cursor: "default",
-        opacity: "[0.5]",
       },
+      "&[data-disabled]:not([data-loading]) > :not([data-collapsible-toggle])":
+        {
+          opacity: "[0.5]",
+        },
     },
     textColumn: {
       minWidth: "0",
@@ -98,6 +104,10 @@ export const styles = sva({
       paddingTop: "[var(--selectable-list-item-padding-y)]",
       paddingBottom: "[var(--selectable-list-item-padding-y)]",
       paddingLeft: "[var(--selectable-list-item-padding-x)]",
+      "&:disabled": {
+        cursor: "default",
+        opacity: "[0.5]",
+      },
     },
     collapseChevron: {
       position: "relative",
@@ -105,12 +115,12 @@ export const styles = sva({
       borderRadius: "sm",
       transition:
         "[transform 0.15s ease, background-color 0.1s ease, box-shadow 0.1s ease]",
-      "[data-collapsible-toggle]:hover &": {
+      "[data-collapsible-toggle]:enabled:hover &": {
         background: "neutral.a30",
         boxShadow: "[0 0 0 2px {colors.neutral.a30}]",
         color: "neutral.s120",
       },
-      "[data-collapsible-toggle]:active &": {
+      "[data-collapsible-toggle]:enabled:active &": {
         background: "neutral.a40",
         boxShadow: "[0 0 0 2px {colors.neutral.a40}]",
       },

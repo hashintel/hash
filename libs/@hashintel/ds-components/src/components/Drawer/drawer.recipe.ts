@@ -40,7 +40,11 @@ export const styles = sva({
       inset: "0",
       width: "[100dvw]",
       height: "[100dvh]",
-      overflow: "hidden",
+      // `clip`, not `hidden`: a hidden positioner is still programmatically
+      // scrollable, so focusing a field while the panel is mid slide-in
+      // scrolls the panel's bleed strip into view and strands the drawer
+      // offset from the viewport edge.
+      overflow: "clip",
       overscrollBehaviorY: "none",
       zIndex: "modal",
     },

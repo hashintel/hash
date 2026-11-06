@@ -1,7 +1,10 @@
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 
 import {
   Button,
+  Form,
+  NumberInput,
+  ReorderableList,
   SegmentedControl,
   Select,
   TextInput,
@@ -31,33 +34,54 @@ const elementLabelInputWidth = 144;
 const FlexibleItemsEditor = ({
   config,
   onChange,
+  readonly,
 }: {
   config: ListConfig;
   onChange: (config: ListConfig) => void;
+  readonly?: boolean;
 }) => (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-    <Typography
-      component="span"
-      sx={{ flexShrink: 0, fontSize: 14, fontWeight: 500 }}
-    >
-      Item type
-    </Typography>
-    <Select<ListItemType>
-      items={elementTypeItems}
-      value={config.itemType}
-      onChange={(itemType) => onChange({ ...config, itemType })}
-      size="sm"
-      width="xs"
-    />
-  </Box>
+  <Form.Row align="center">
+    <Form.Field label="Item type" layout="inline" size="sm">
+      <Select<ListItemType>
+        items={elementTypeItems}
+        value={config.itemType}
+        onChange={(itemType) => onChange({ ...config, itemType })}
+        disabled={readonly}
+        size="sm"
+        width="xs"
+      />
+    </Form.Field>
+    <Form.Field label="Minimum items" layout="inline" size="sm">
+      <NumberInput
+        value={config.minItems}
+        onChange={(minItems) => onChange({ ...config, minItems })}
+        placeholder="No minimum"
+        disabled={readonly}
+        size="sm"
+        width="xs"
+      />
+    </Form.Field>
+    <Form.Field label="Maximum items" layout="inline" size="sm">
+      <NumberInput
+        value={config.maxItems}
+        onChange={(maxItems) => onChange({ ...config, maxItems })}
+        placeholder="No maximum"
+        disabled={readonly}
+        size="sm"
+        width="xs"
+      />
+    </Form.Field>
+  </Form.Row>
 );
 
 const FixedElementsEditor = ({
   config,
   onChange,
+  readonly,
 }: {
   config: ListConfig;
   onChange: (config: ListConfig) => void;
+  readonly?: boolean;
 }) => {
   const setElement = (index: number, element: Partial<ListElement>) => {
     onChange({
@@ -70,79 +94,94 @@ const FixedElementsEditor = ({
 
   return (
     <>
-      {config.elements.map((element, index) => (
-        <Box
-          // eslint-disable-next-line react/no-array-index-key -- elements have no identity beyond position
-          key={index}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            background: "white",
-            border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-            borderRadius: "10px",
-            padding: "6px",
-          }}
-        >
-          <Box sx={{ width: elementLabelInputWidth, flexShrink: 0 }}>
-            <TextInput
-              value={element.before}
-              onChange={(before) => setElement(index, { before })}
-              placeholder="Label before"
+      <ReorderableList
+        disabled={readonly}
+        onChange={(orderedKeys) =>
+          onChange({
+            ...config,
+            elements: orderedKeys.flatMap((key) => {
+              const element = config.elements.find((item) => item.key === key);
+              return element ? [element] : [];
+            }),
+          })
+        }
+      >
+        {config.elements.map((element, index) => (
+          <ReorderableList.Item
+            key={element.key}
+            id={element.key}
+            label={`element ${index + 1}`}
+          >
+            <Box sx={{ width: elementLabelInputWidth, flexShrink: 0 }}>
+              <TextInput
+                value={element.before}
+                onChange={(before) => setElement(index, { before })}
+                placeholder="Label before"
+                disabled={readonly}
+                size="sm"
+                width="fullWidth"
+              />
+            </Box>
+            <Select<ListItemType>
+              items={elementTypeItems}
+              value={element.type}
+              onChange={(type) => setElement(index, { type })}
+              required
+              disabled={readonly}
               size="sm"
-              width="fullWidth"
+              width="fitContent"
             />
-          </Box>
-          <Select<ListItemType>
-            items={elementTypeItems}
-            value={element.type}
-            onChange={(type) => setElement(index, { type })}
-            required
-            size="sm"
-            width="fitContent"
-          />
-          <Box sx={{ width: elementLabelInputWidth, flexShrink: 0 }}>
-            <TextInput
-              value={element.after}
-              onChange={(after) => setElement(index, { after })}
-              placeholder="Label after"
-              size="sm"
-              width="fullWidth"
-            />
-          </Box>
-          <Box sx={{ marginLeft: "auto" }}>
-            <Button
-              variant="ghost"
-              size="xs"
-              iconName="close"
-              tooltip="Remove element"
-              onClick={() =>
-                onChange({
-                  ...config,
-                  elements: config.elements.filter(
-                    (_, elementIndex) => elementIndex !== index,
-                  ),
-                })
-              }
-            />
-          </Box>
+            <Box sx={{ width: elementLabelInputWidth, flexShrink: 0 }}>
+              <TextInput
+                value={element.after}
+                onChange={(after) => setElement(index, { after })}
+                placeholder="Label after"
+                disabled={readonly}
+                size="sm"
+                width="fullWidth"
+              />
+            </Box>
+            {readonly ? null : (
+              <Box sx={{ marginLeft: "auto" }}>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  iconName="close"
+                  tooltip="Remove element"
+                  onClick={() =>
+                    onChange({
+                      ...config,
+                      elements: config.elements.filter(
+                        (item) => item.key !== element.key,
+                      ),
+                    })
+                  }
+                />
+              </Box>
+            )}
+          </ReorderableList.Item>
+        ))}
+      </ReorderableList>
+      {readonly ? null : (
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="subtle"
+            size="xs"
+            iconName="plus"
+            onClick={() =>
+              onChange({
+                ...config,
+                elements: [
+                  ...config.elements,
+                  defaultListElement(config.elements),
+                ],
+              })
+            }
+          >
+            Add
+          </Button>
         </Box>
-      ))}
-      <Box>
-        <Button
-          variant="subtle"
-          size="xs"
-          iconName="plus"
-          onClick={() =>
-            onChange({
-              ...config,
-              elements: [...config.elements, defaultListElement()],
-            })
-          }
-        >
-          Add
-        </Button>
-      </Box>
+      )}
     </>
   );
 };
@@ -150,9 +189,12 @@ const FixedElementsEditor = ({
 export const ListEntryEditor = ({
   config,
   onChange,
+  readonly,
 }: {
   config: ListConfig;
   onChange: (config: ListConfig) => void;
+  /** Show the list configuration without allowing changes */
+  readonly?: boolean;
 }) => (
   <Box
     sx={{
@@ -172,13 +214,22 @@ export const ListEntryEditor = ({
         ]}
         value={config.shape}
         onChange={(shape) => onChange({ ...config, shape })}
+        disabled={readonly}
         size="sm"
       />
     </Box>
     {config.shape === "flexible" ? (
-      <FlexibleItemsEditor config={config} onChange={onChange} />
+      <FlexibleItemsEditor
+        config={config}
+        onChange={onChange}
+        readonly={readonly}
+      />
     ) : (
-      <FixedElementsEditor config={config} onChange={onChange} />
+      <FixedElementsEditor
+        config={config}
+        onChange={onChange}
+        readonly={readonly}
+      />
     )}
   </Box>
 );

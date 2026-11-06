@@ -265,7 +265,8 @@ export const DataType = ({
               isInSlide={inSlide}
               isReadOnly
               latestVersion={latestVersion}
-              onEdit={canEdit ? () => setShowEditDrawer(true) : undefined}
+              onEdit={() => setShowEditDrawer(true)}
+              editButtonLabel={canEdit ? "Edit" : "View"}
             />
           </Container>
         </Box>
@@ -298,6 +299,7 @@ export const DataType = ({
         <DataTypeEditorDrawer
           mode="edit"
           dataType={latestDataType ?? dataType}
+          readonly={!canEdit}
           onClose={() => setShowEditDrawer(false)}
           onUpdated={(updatedDataType) => {
             setShowEditDrawer(false);
