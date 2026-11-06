@@ -2,11 +2,11 @@ import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
-import * as Reference from "./Reference.js";
 
 import type * as $Interned from "./Interned.js";
 import type * as LeafDeclaration from "./LeafDeclaration.js";
 import type * as NamespaceDeclaration from "./NamespaceDeclaration.js";
+import type * as Target from "./Target.js";
 import type { Inspectable } from "effect";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
@@ -23,7 +23,7 @@ export class Declaration implements Traits.Traits {
   readonly leaf: Option.Option<LeafDeclaration.Interned>;
   readonly namespace: Option.Option<NamespaceDeclaration.Interned>;
   /** The interfaces and classes it extends or implements directly, as the checker reads them, so a base the syntax cannot name is among them too. Empty for any other declaration. */
-  readonly bases: readonly Reference.Reference.Target[];
+  readonly bases: readonly Target.InternedSymbol[];
 
   declare readonly pipe: Traits.Traits["pipe"];
   declare readonly toString: Traits.Traits["toString"];
@@ -37,7 +37,7 @@ export class Declaration implements Traits.Traits {
     this.symbol = Equal.byReferenceUnsafe(symbol);
     this.leaf = leaf;
     this.namespace = namespace;
-    this.bases = Object.freeze(Array.map(bases, Reference.freezeTarget));
+    this.bases = Object.freeze(Array.map(bases, Equal.byReferenceUnsafe));
     Object.freeze(this);
   }
 
@@ -61,11 +61,7 @@ export class Declaration implements Traits.Traits {
       symbol: Source.inspectSymbol(this.symbol),
       leaf: this.leaf,
       namespace: this.namespace,
-      bases: Array.map(this.bases, (base) =>
-        base._tag === "Local"
-          ? { _tag: base._tag, node: base.node }
-          : { _tag: base._tag, name: base.name },
-      ),
+      bases: Array.map(this.bases, Source.inspectSymbol),
     };
   }
 }

@@ -5,7 +5,7 @@
  *
  * Each declaration returns a handle that HashQL resolves by name, so the handle is valid only where its name still means that declaration. Using it where a later declaration or a filter's parameter of the same name shadows it, outside the branch that declared it, or in another program fails the program with the `StaleReference` reason. Draft assumes that every module record matches HashQL's module. With a malformed record, a program Draft admits may fail to compile, or one of its names may resolve to a different binding than its handle. Apart from `$.import`, a declaration whose name, value or definition is invalid does not interrupt the callback, but Draft records the failure and the program fails.
  *
- * {@link program} uses `Prelude.builtin`. {@link withPrelude} creates a program constructor for custom declarations instead, replacing the default and retaining their exact export keys. The `Body` namespace names the types of a program callback, and a helper that receives `$` takes `Body.Context`. The `Context` namespace names the unrestricted construction operations.
+ * {@link program} uses {@link Prelude.builtin}. {@link withPrelude} creates a program constructor for custom declarations instead, replacing the default and retaining their exact export keys. The `Body` namespace names the types of a program callback, and a helper that receives `$` takes {@link Body.Context}. The `Context` namespace names the unrestricted construction operations.
  *
  * @example <caption>Bind a computed value and compare it with an input.</caption>
  * ```ts

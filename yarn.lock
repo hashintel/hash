@@ -9683,6 +9683,7 @@ __metadata:
     "@local/oxlint": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@microsoft/tsdoc": "npm:0.16.0"
+    "@microsoft/tsdoc-config": "npm:0.18.1"
     "@tsconfig/bases": "catalog:"
     "@types/mdx": "npm:2.0.13"
     "@types/node": "catalog:"

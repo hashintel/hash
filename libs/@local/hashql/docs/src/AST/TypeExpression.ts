@@ -1,13 +1,13 @@
-import { Array, Equal, Hash, Option, Predicate } from "effect";
+import { Array, Chunk, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
 
 import type * as $Interned from "./Interned.js";
-import type * as Reference from "./Reference.js";
+import type * as Target from "./Target.js";
 import type * as TypeNode from "./TypeNode.js";
 import type * as TypeParameter from "./TypeParameter.js";
-import type { Chunk, Inspectable } from "effect";
+import type { Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/TypeExpression";
@@ -23,7 +23,8 @@ export class TypeExpression implements Traits.Traits {
   readonly children: Chunk.Chunk<
     $Interned.Interned<TypeNode.TypeNode | TypeParameter.TypeParameter>
   >;
-  readonly references: Chunk.Chunk<Reference.Interned>;
+  /** The symbols the names in it resolve to, such as the parameter a type predicate tests, in source order. */
+  readonly references: Chunk.Chunk<Target.InternedSymbol>;
 
   declare readonly pipe: Traits.Traits["pipe"];
   declare readonly toString: Traits.Traits["toString"];
@@ -36,7 +37,7 @@ export class TypeExpression implements Traits.Traits {
   constructor({ node, children, references }: TypeExpression.Fields) {
     this.node = Equal.byReferenceUnsafe(node);
     this.children = children;
-    this.references = references;
+    this.references = Chunk.map(references, Equal.byReferenceUnsafe);
     Object.freeze(this);
   }
 
@@ -60,7 +61,7 @@ export class TypeExpression implements Traits.Traits {
       _tag: this._tag,
       node: Source.inspectNode(this.node),
       children: this.children,
-      references: this.references,
+      references: Chunk.map(this.references, Source.inspectSymbol),
     };
   }
 }
