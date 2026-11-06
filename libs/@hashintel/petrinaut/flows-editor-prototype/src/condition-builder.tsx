@@ -22,7 +22,7 @@ import {
   type MenuItem,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { HashIcon } from "@hashintel/ds-icons";
 
 import {
@@ -63,6 +63,7 @@ import {
   mockEntityTypes,
 } from "./mock-graph";
 import { SourceMenu } from "./source-menu";
+import { oldLabelColumn } from "./ui";
 
 import type { StepInputSource } from "./engine";
 
@@ -325,14 +326,28 @@ const rowStackStyle = css({
 });
 
 /**
- * The joiner column, so the chips share one left edge: 67 px, 56 px inside a group (Figma Filter label). The joiner
- * keeps its own width and may run past the column, as Figma's does.
+ * The panel's label column (`minmax(88px, 30%)` in `ui.tsx`; 120 px cap under `?labelcol=old`), measured on the
+ * builder, which spans both columns. Its top-level joiner takes this width, so its chips start at the value column,
+ * level with every other field.
+ */
+const labelColumnStyle = css({
+  containerType: "inline-size",
+  "--flows-label-column": "max(88px, 30cqw)",
+});
+
+const oldLabelColumnWidthStyle = css({
+  "--flows-label-column": "max(88px, min(30cqw, 120px))",
+});
+
+/**
+ * The joiner column, so the chips share one left edge: the panel's label column at the top level, 56 px inside a group
+ * (Figma Filter label). The joiner keeps its own width and may run past the column, as Figma's does.
  */
 const joinerColumnStyle = css({
   display: "flex",
   alignItems: "center",
   flexShrink: 0,
-  width: "[67px]",
+  width: "var(--flows-label-column)",
   "[data-condition-group] &": { width: "[56px]" },
   "& button": { flexShrink: 0 },
   textStyle: "sm",
@@ -1215,6 +1230,11 @@ const footerStyle = css({
   alignSelf: "stretch",
 });
 
+/** The builder's own footer: Add filter in the value column, under the chips (the line's 8 px gap after the label column). */
+const valueColumnFooterStyle = css({
+  paddingLeft: "[calc(var(--flows-label-column) + 8px)]",
+});
+
 /**
  * A row's joiner. "Where" on the first row stays plain text. Then AND / OR is a small chip with a menu, so it reads as
  * part of one long filter, not as an input label (26 Oct sync: Ciarán, Dora; uppercase, the team's own logic words).
@@ -1358,30 +1378,44 @@ export const ConditionBuilder = ({
   if (properties.length === 0) {
     // J2.2: with the type left at Any there is nothing to filter on yet; Add filter first asks for a type.
     return (
-      <div>
-        <Button
-          size="sm"
-          variant="subtle"
-          iconName="plus"
-          onClick={() =>
-            setUi((current) => ({
-              ...current,
-              openField: {
-                stepId: step.stepId,
-                inputName: "entityType",
-                mode: "menu",
-              },
-            }))
-          }
-        >
-          Add filter
-        </Button>
+      <div
+        className={cx(
+          labelColumnStyle,
+          oldLabelColumn && oldLabelColumnWidthStyle,
+        )}
+      >
+        <div className={valueColumnFooterStyle}>
+          <Button
+            size="sm"
+            variant="subtle"
+            iconName="plus"
+            onClick={() =>
+              setUi((current) => ({
+                ...current,
+                openField: {
+                  stepId: step.stepId,
+                  inputName: "entityType",
+                  mode: "menu",
+                },
+              }))
+            }
+          >
+            Add filter
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={builderStyle} data-condition-builder>
+    <div
+      className={cx(
+        builderStyle,
+        labelColumnStyle,
+        oldLabelColumn && oldLabelColumnWidthStyle,
+      )}
+      data-condition-builder
+    >
       {topRows.length + groups.length > 0 ? (
         <div className={rowsStyle}>
           {topRows.map((row, index) => (
@@ -1529,7 +1563,7 @@ export const ConditionBuilder = ({
           })}
         </div>
       ) : null}
-      <div className={footerStyle}>
+      <div className={cx(footerStyle, valueColumnFooterStyle)}>
         <AddCondition
           label="Add filter"
           properties={properties}
