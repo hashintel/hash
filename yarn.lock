@@ -435,6 +435,32 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@apps/durable-agents@workspace:apps/durable-agents":
+  version: 0.0.0-use.local
+  resolution: "@apps/durable-agents@workspace:apps/durable-agents"
+  dependencies:
+    "@earendil-works/chord": "npm:1.5.0"
+    "@earendil-works/pi-ai": "npm:1.5.0"
+    "@earendil-works/pi-durable": "npm:1.5.0"
+    "@earendil-works/pi-schema": "npm:1.5.0"
+    "@hashintel/brunch-agent": "workspace:*"
+    "@local/tsconfig": "workspace:*"
+    "@tsconfig/bases": "catalog:"
+    "@types/node": "catalog:"
+    "@types/pg": "npm:8.23.1"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    "@valibot/to-json-schema": "npm:1.7.1"
+    ai: "npm:6.0.286"
+    hono: "npm:4.13.13"
+    oxlint: "npm:1.86.0"
+    oxlint-tsgolint: "npm:7.0.2003"
+    pg: "npm:8.23.0"
+    tsx: "catalog:"
+    valibot: "npm:1.4.2"
+    vitest: "catalog:"
+  languageName: unknown
+  linkType: soft
+
 "@apps/hash-ai-worker-ts@workspace:*, @apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts":
   version: 0.0.0-use.local
   resolution: "@apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts"
@@ -4633,6 +4659,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@earendil-works/chord@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@earendil-works/chord@npm:1.5.0"
+  dependencies:
+    "@earendil-works/pi-schema": "npm:1.5.0"
+    "@earendil-works/pi-telemetry": "npm:1.5.0"
+  peerDependencies:
+    esbuild: 0.28.2
+    ws: 8.21.0
+  peerDependenciesMeta:
+    esbuild:
+      optional: true
+    ws:
+      optional: true
+  checksum: 10c0/603f817d6a51acbb5c6f6652ad85c53797efdd3fe6cd9758ae63c09ed5122570d52c6342beeb98ea225b2d67f1a2ea4acc508f9c04765b2f34ee209995e852c1
+  languageName: node
+  linkType: hard
+
 "@earendil-works/pi-agent-core@npm:1.2.0":
   version: 1.2.0
   resolution: "@earendil-works/pi-agent-core@npm:1.2.0"
@@ -4673,6 +4717,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@earendil-works/pi-ai@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@earendil-works/pi-ai@npm:1.5.0"
+  dependencies:
+    "@anthropic-ai/sdk": "npm:0.129.0"
+    "@aws-sdk/client-bedrock-runtime": "npm:3.1127.0"
+    "@earendil-works/pi-schema": "npm:1.5.0"
+    "@earendil-works/pi-telemetry": "npm:1.5.0"
+    "@google/genai": "npm:2.21.0"
+    "@smithy/node-http-handler": "npm:4.12.1"
+    http-proxy-agent: "npm:9.1.0"
+    https-proxy-agent: "npm:9.1.0"
+    openai: "npm:7.19.0"
+    partial-json: "npm:0.1.7"
+  bin:
+    pi-ai: dist/cli.js
+  checksum: 10c0/908c0925c235f2322a5524ecc918d8a9e54cbe9070dd02f6409fa65fb7046757af1ebf24910eb79a21beda3d72bf67309c090d132ff325a77e98146cfaa946b8
+  languageName: node
+  linkType: hard
+
 "@earendil-works/pi-ai@patch:@earendil-works/pi-ai@npm%3A1.2.0#~/.yarn/patches/@earendil-works-pi-ai-npm-1.2.0-brunch-anthropic-schema.patch":
   version: 1.2.0
   resolution: "@earendil-works/pi-ai@patch:@earendil-works/pi-ai@npm%3A1.2.0#~/.yarn/patches/@earendil-works-pi-ai-npm-1.2.0-brunch-anthropic-schema.patch::version=1.2.0&hash=c382e1"
@@ -4693,10 +4757,41 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@earendil-works/pi-telemetry@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "@earendil-works/pi-telemetry@npm:1.2.0"
-  checksum: 10c0/6d6f7816d5ecebdc575550238678e090219945bbed058768466112543b5acd5cc3da72e34b6f900ce9ad8f74df8554ff265cf057b7b690fbbd9c205af4eab719
+"@earendil-works/pi-codemode@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@earendil-works/pi-codemode@npm:1.5.0"
+  dependencies:
+    quickjs-wasi: "npm:3.6.2"
+  checksum: 10c0/a19b5218ea90b68a584760095ddfb8399c69785a7f515bb29b964a8ff7716fccdf036250f2874a31a804855e45b84c6824ca0dcf9c926c538c8c5dc45c4eccdd
+  languageName: node
+  linkType: hard
+
+"@earendil-works/pi-durable@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@earendil-works/pi-durable@npm:1.5.0"
+  dependencies:
+    "@earendil-works/chord": "npm:1.5.0"
+    "@earendil-works/pi-ai": "npm:1.5.0"
+    "@earendil-works/pi-codemode": "npm:1.5.0"
+    "@earendil-works/pi-schema": "npm:1.5.0"
+    "@earendil-works/pi-telemetry": "npm:1.5.0"
+    "@silvia-odwyer/photon": "npm:0.3.3"
+    diff: "npm:8.0.4"
+  checksum: 10c0/2b99baabdecfff9bec29a84bba08f811d995bd5644184bc1cf3fee4d6cd6e38884bdd585f26aeb3a95df50fd93840b649fe86d9ea2966cce666e5a8519381eb9
+  languageName: node
+  linkType: hard
+
+"@earendil-works/pi-schema@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@earendil-works/pi-schema@npm:1.5.0"
+  checksum: 10c0/93da82f0e0216051cbdf9b70792f26e9d362ccdf176bd20b9e1f7ed0766cc76f7fcf5879c85c105ea3259ec1c93cd047e5316bbb9613a34172d23e13f6af7269
+  languageName: node
+  linkType: hard
+
+"@earendil-works/pi-telemetry@npm:1.5.0, @earendil-works/pi-telemetry@npm:^1.2.0":
+  version: 1.5.0
+  resolution: "@earendil-works/pi-telemetry@npm:1.5.0"
+  checksum: 10c0/bdef9227b347c8329e507a3417eb9386177af6d9b6075f6b0f204b0d2be73c1d52ecef6115a79d654b7c61e432dc12ab1bd4b69aeb264b290cf591ab1198ddb0
   languageName: node
   linkType: hard
 
@@ -14499,6 +14594,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@silvia-odwyer/photon@npm:0.3.3":
+  version: 0.3.3
+  resolution: "@silvia-odwyer/photon@npm:0.3.3"
+  checksum: 10c0/8202af818d5989c441093ee1a1bde7588ca4ffd81ca09e45895eeb21beb79a87f551217f8684bfdf7169836f05a3934186b67ce783685c9fea05d627d5b76700
+  languageName: node
+  linkType: hard
+
 "@sindresorhus/fnv1a@npm:^3.1.0":
   version: 3.1.0
   resolution: "@sindresorhus/fnv1a@npm:3.1.0"
@@ -18337,6 +18439,87 @@ __metadata:
     "@typescript-eslint/types": "npm:8.71.0"
     eslint-visitor-keys: "npm:^5.0.0"
   checksum: 10c0/0797c64e03402d04bac7dabf797cd36dc5e36a7bf1f2aaad063730af8be315ab41529962b5c58d4fca17890c64b32c12e3c8e62876f43f91acd0706421815f03
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview-darwin-arm64@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview-darwin-arm64@npm:7.0.0-dev.20260511.1"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview-darwin-x64@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview-darwin-x64@npm:7.0.0-dev.20260511.1"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview-linux-arm64@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview-linux-arm64@npm:7.0.0-dev.20260511.1"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview-linux-arm@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview-linux-arm@npm:7.0.0-dev.20260511.1"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview-linux-x64@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview-linux-x64@npm:7.0.0-dev.20260511.1"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview-win32-arm64@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview-win32-arm64@npm:7.0.0-dev.20260511.1"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview-win32-x64@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview-win32-x64@npm:7.0.0-dev.20260511.1"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@typescript/native-preview@npm:7.0.0-dev.20260511.1":
+  version: 7.0.0-dev.20260511.1
+  resolution: "@typescript/native-preview@npm:7.0.0-dev.20260511.1"
+  dependencies:
+    "@typescript/native-preview-darwin-arm64": "npm:7.0.0-dev.20260511.1"
+    "@typescript/native-preview-darwin-x64": "npm:7.0.0-dev.20260511.1"
+    "@typescript/native-preview-linux-arm": "npm:7.0.0-dev.20260511.1"
+    "@typescript/native-preview-linux-arm64": "npm:7.0.0-dev.20260511.1"
+    "@typescript/native-preview-linux-x64": "npm:7.0.0-dev.20260511.1"
+    "@typescript/native-preview-win32-arm64": "npm:7.0.0-dev.20260511.1"
+    "@typescript/native-preview-win32-x64": "npm:7.0.0-dev.20260511.1"
+  dependenciesMeta:
+    "@typescript/native-preview-darwin-arm64":
+      optional: true
+    "@typescript/native-preview-darwin-x64":
+      optional: true
+    "@typescript/native-preview-linux-arm":
+      optional: true
+    "@typescript/native-preview-linux-arm64":
+      optional: true
+    "@typescript/native-preview-linux-x64":
+      optional: true
+    "@typescript/native-preview-win32-arm64":
+      optional: true
+    "@typescript/native-preview-win32-x64":
+      optional: true
+  bin:
+    tsgo: bin/tsgo.js
+  checksum: 10c0/b7a770653b042a1b18930d3d7e2a920ad88f9139ad1273666bc8139e39686d0e2f84700ce9be4577dc32d840892eec74e5b13b49265ddc9761542ccaaef181ae
   languageName: node
   linkType: hard
 
@@ -23870,6 +24053,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"diff@npm:8.0.4, diff@npm:^8.0.2":
+  version: 8.0.4
+  resolution: "diff@npm:8.0.4"
+  checksum: 10c0/7ee5d03926db4039be7252ac3b0abaae1bd122a2ca971e5ca7270e444e36ff83dd906fad1a719740ca347e97ed5dc8f458a76a8391dbcd7aff363bdafb348a00
+  languageName: node
+  linkType: hard
+
 "diff@npm:^4.0.1":
   version: 4.0.4
   resolution: "diff@npm:4.0.4"
@@ -23881,13 +24071,6 @@ __metadata:
   version: 5.2.2
   resolution: "diff@npm:5.2.2"
   checksum: 10c0/52da594c54e9033423da26984b1449ae6accd782d5afc4431c9a192a8507ddc83120fe8f925d7220b9da5b5963c7b6f5e46add3660a00cb36df7a13420a09d4b
-  languageName: node
-  linkType: hard
-
-"diff@npm:^8.0.2":
-  version: 8.0.4
-  resolution: "diff@npm:8.0.4"
-  checksum: 10c0/7ee5d03926db4039be7252ac3b0abaae1bd122a2ca971e5ca7270e444e36ff83dd906fad1a719740ca347e97ed5dc8f458a76a8391dbcd7aff363bdafb348a00
   languageName: node
   linkType: hard
 
@@ -35593,6 +35776,13 @@ __metadata:
   version: 5.1.1
   resolution: "quick-lru@npm:5.1.1"
   checksum: 10c0/a24cba5da8cec30d70d2484be37622580f64765fb6390a928b17f60cd69e8dbd32a954b3ff9176fa1b86d86ff2ba05252fae55dc4d40d0291c60412b0ad096da
+  languageName: node
+  linkType: hard
+
+"quickjs-wasi@npm:3.6.2":
+  version: 3.6.2
+  resolution: "quickjs-wasi@npm:3.6.2"
+  checksum: 10c0/044491e56924c683b1c96e17e542fbdb0b7d8d9888dc8441302a13e1c6738a5843f470bef3c832b7f1cfd83eb2d8a38c84560256f7ebd08317d611b0275475d5
   languageName: node
   linkType: hard
 

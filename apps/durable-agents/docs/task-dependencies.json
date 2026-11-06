@@ -1,0 +1,81 @@
+{
+  "package": "@apps/durable-agents",
+  "dependencies": [
+    "@hashintel/brunch-agent",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@local/eslint"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@local/eslint"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ]
+    },
+    "probe:async-browser-call": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
+    "probe:ownership-unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
+    "probe:postgres-viewer": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
+    "probe:two-writers": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
+    "proof:browser-call": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

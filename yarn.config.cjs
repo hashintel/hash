@@ -36,6 +36,15 @@ const ignoredDependencies = [
 ];
 const ignoredWorkspaces = [];
 
+/**
+ * Dependency scopes a workspace may pin apart from the rest of the project.
+ * The durable agents spike runs on Pi Durable, which pins a newer Pi than
+ * Brunch's Flue deployment, so Yarn keeps both.
+ */
+const workspaceSubstrateExemptions = {
+  "@apps/durable-agents": "@earendil-works/",
+};
+
 const allowedGitDependencies = [];
 
 const brunchAgentCore = "@hashintel/brunch-agent";
@@ -77,6 +86,12 @@ const isNamedCatalogRange = (range) => /^catalog:./.test(range);
 const shouldIgnoreDependencyForConsistency = (dependency) =>
   ignoredDependencies.includes(dependency.ident) ||
   ignoredWorkspaces.includes(dependency.workspace.ident) ||
+  Boolean(
+    workspaceSubstrateExemptions[dependency.workspace.ident] &&
+    dependency.ident.startsWith(
+      workspaceSubstrateExemptions[dependency.workspace.ident],
+    ),
+  ) ||
   (dependency.ident in catalog && dependency.range !== "catalog:") ||
   dependency.type === "peerDependencies";
 
