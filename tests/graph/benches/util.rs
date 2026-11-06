@@ -24,7 +24,6 @@ use hash_telemetry::TelemetryRegistry;
 use regex::Regex;
 use time::OffsetDateTime;
 use tokio::runtime::Runtime;
-use tokio_postgres::NoTls;
 use tracing::Instrument as _;
 use type_system::{
     ontology::{
@@ -114,7 +113,6 @@ impl StoreWrapper {
         let source_db_pool = PostgresStorePool::new(
             &source_db_connection_info,
             &DatabasePoolConfig::default(),
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("could not connect to database");
@@ -205,7 +203,6 @@ impl StoreWrapper {
                     bench_db_name.to_owned(),
                 ),
                 &DatabasePoolConfig::default(),
-                NoTls,
                 PostgresStoreSettings::default(),
             )
             .expect("could not connect to database");
@@ -222,7 +219,6 @@ impl StoreWrapper {
         let pool = PostgresStorePool::new(
             &bench_db_connection_info,
             &DatabasePoolConfig::default(),
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("could not connect to database");
