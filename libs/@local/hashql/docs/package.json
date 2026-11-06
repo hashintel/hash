@@ -10,7 +10,14 @@
     "dev": "cd preview && next dev --hostname 127.0.0.1 --port ${PORT:-4323}",
     "dev:reference": "cd reference && typst watch --root ../../../../.. --features html,bundle --format bundle --no-serve main.typ dist",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "test:integration": "vitest run --project integration",
+    "test:unit": "vitest run --project unit"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.3",
+    "@microsoft/tsdoc": "0.16.0",
+    "effect": "4.0.3"
   },
   "devDependencies": {
     "@fumadocs/base-ui": "16.17.8",
@@ -27,6 +34,7 @@
     "oxlint": "catalog:",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "typescript": "catalog:beta"
+    "typescript": "catalog:beta",
+    "vitest": "catalog:"
   }
 }

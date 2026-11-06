@@ -1,0 +1,5 @@
+export interface Shadow {
+    first: Link;
+    second<Link>(value: Link): Link;
+    text: "Link";
+}
