@@ -1,0 +1,170 @@
+.guide-comparison {
+  min-width: 0;
+  --guide-focus: var(--color-fd-ring, currentColor);
+}
+
+.guide-comparison-controls,
+.guide-comparison-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.guide-comparison-controls {
+  position: sticky;
+  top: var(--fd-docs-row-3, 0px);
+  z-index: 10;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--color-fd-border);
+  background: var(--color-fd-background);
+}
+
+.guide-comparison-controls > div {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.guide-comparison-controls select {
+  width: 100%;
+  min-height: 2.75rem;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.375rem;
+  background: var(--color-fd-background);
+  color: var(--color-fd-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.guide-comparison :is(a, select, summary):focus-visible {
+  outline: 2px solid var(--guide-focus);
+  outline-offset: 3px;
+}
+
+.guide-comparison select:hover {
+  border-color: var(--color-fd-muted-foreground);
+}
+
+.guide-comparison a {
+  text-underline-offset: 0.2em;
+}
+
+.guide-comparison-jump {
+  margin-block: 0.75rem 0;
+  font-size: 0.8125rem;
+}
+
+.guide-comparison-jump summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.guide-comparison-topics {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1.125rem;
+  row-gap: 0.5rem;
+  padding-block: 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.guide-comparison-row {
+  padding-block: 1.75rem;
+  border-bottom: 1px solid var(--color-fd-border);
+  scroll-margin-top: calc(var(--fd-docs-row-3, 0px) + 8rem);
+}
+
+.guide-comparison-row h3 {
+  margin: 0 0 0.875rem;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+.guide-comparison-row h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.guide-comparison-row h3 a:hover {
+  text-decoration: underline;
+}
+
+.guide-comparison-pair > * {
+  min-width: 0;
+  margin: 0;
+}
+
+.guide-comparison-pair figcaption {
+  color: color-mix(
+    in srgb,
+    var(--color-fd-foreground) 75%,
+    var(--color-fd-background)
+  );
+}
+
+.guide-comparison-pair pre {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-fd-muted-foreground) transparent;
+}
+
+.guide-comparison-unavailable {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border: 1px dashed var(--color-fd-border);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.guide-comparison-unavailable p {
+  margin: 0;
+}
+
+.guide-comparison-row details {
+  margin-block: 0.875rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.guide-comparison-row summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.guide-comparison-row details p {
+  margin-block: 0.625rem;
+}
+
+.guide-comparison-explanation,
+.guide-comparison-notice {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.guide-comparison-notice {
+  margin-block: 0.75rem 0;
+}
+
+@media (max-width: 640px) {
+  .guide-comparison-pair {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+  }
+
+  .guide-comparison-controls {
+    gap: 0.625rem;
+  }
+
+  .guide-comparison-controls label {
+    font-size: 0.8125rem;
+  }
+}
