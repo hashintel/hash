@@ -25,6 +25,7 @@ import {
 import { HashShellStrip } from "./hash-shell";
 import { LeftPanel } from "./left-panel";
 import { mockRuns, runStatus } from "./mock-runs";
+import { ReviewSide } from "./needs-review";
 import { PropertiesPanel } from "./properties-panel";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
@@ -791,11 +792,13 @@ export const Editor = ({
                   {inHistory ? (
                     openRun && history ? (
                       // A selected step shows its outputs; otherwise the run's log (minimal log, 4 Nov).
-                      ui.selectedId ? (
-                        <RunStepPanel history={history} />
-                      ) : (
-                        <RunLogPanel history={history} />
-                      )
+                      <ReviewSide>
+                        {ui.selectedId ? (
+                          <RunStepPanel history={history} />
+                        ) : (
+                          <RunLogPanel history={history} />
+                        )}
+                      </ReviewSide>
                     ) : null
                   ) : viewingVersion === null ? (
                     <PropertiesPanel />

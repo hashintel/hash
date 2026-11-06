@@ -11,6 +11,7 @@ import { Results } from "./src/briefing";
 import { emptyDocument } from "./src/document";
 import { type EditorUi, initialUi } from "./src/editor-context";
 import { Guide } from "./src/guide";
+import { isReviewInboxPath, ReviewInbox } from "./src/needs-review";
 import { type FlowListEntry, Home } from "./src/home";
 import { RoutedApp } from "./src/routed-app";
 import { useLocation } from "./src/router";
@@ -155,7 +156,7 @@ const ScreenPage = () => {
 const Routes = () => {
   const { route } = useLocation();
   if (route.page === "legacy") {
-    return <ScreenPage />;
+    return isReviewInboxPath() ? <ReviewInbox /> : <ScreenPage />;
   }
   return (
     <>
