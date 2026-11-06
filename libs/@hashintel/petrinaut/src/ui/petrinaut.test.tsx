@@ -277,3 +277,15 @@ test("mounts a plugin's hook once when the editor opens", () => {
 
   expect(hookMounts).toEqual(["mount"]);
 });
+
+test("includes the browser FPS shortcut without a toolbar button", () => {
+  localStorage.removeItem("petrinaut:plugin:hash.fps");
+  render(<Petrinaut handle={createHandle()} />);
+  expect(
+    screen.queryByRole("button", { name: "Toggle browser FPS" }),
+  ).toBeNull();
+  fireEvent.keyDown(window, { key: "F", metaKey: true, shiftKey: true });
+  expect(
+    JSON.parse(localStorage.getItem("petrinaut:plugin:hash.fps") ?? "{}"),
+  ).toEqual({ showFps: true });
+});
