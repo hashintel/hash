@@ -6,7 +6,13 @@ import type { OxlintConfig } from "oxlint";
 describe("options", () => {
   test("native_fields", () => {
     expectTypeOf<
-      Omit<Options, "runtime" | "frameworks" | "additionalRestrictedTypes">
+      Omit<
+        Options,
+        | "runtime"
+        | "frameworks"
+        | "additionalRestrictedTypes"
+        | "additionalDefinedJsDocTags"
+      >
     >().toEqualTypeOf<OxlintConfig>();
   });
 
