@@ -42,7 +42,7 @@ const popperModifiers: PopperProps["modifiers"] = [
   { name: "offset", options: { offset: [-openColumnWidth, 0] } },
 ];
 
-type PillLook = "parent" | "version" | "gap";
+type PillLook = "parent" | "version";
 
 const pillLooks = ({ palette }: Theme) =>
   ({
@@ -56,12 +56,6 @@ const pillLooks = ({ palette }: Theme) =>
       border: `1px solid ${palette.gray[50]}`,
       background: palette.common.white,
       color: palette.gray[90],
-      fontWeight: 500,
-    },
-    gap: {
-      border: `1.5px dotted ${palette.gray[50]}`,
-      background: "transparent",
-      color: palette.gray[70],
       fontWeight: 500,
     },
   }) satisfies Record<PillLook, object>;
@@ -223,13 +217,13 @@ const VersionGraphCard = ({
             {layout.parentMoreX === null ? null : (
               <Ellipsis x={layout.parentMoreX} top={parentPillTop} />
             )}
-            {layout.pills.map(({ version, x, gap }) => (
+            {layout.pills.map(({ version, x }) => (
               <Pill
                 key={version}
                 x={x}
                 top={pillTop}
                 version={version}
-                look={gap ? "gap" : "version"}
+                look="version"
               />
             ))}
             {layout.moreX === null ? null : (
@@ -239,35 +233,6 @@ const VersionGraphCard = ({
           <GraphLabel x={layout.labelX}>{title}</GraphLabel>
         </Box>
       </Box>
-      {layout.pills.some(({ gap }) => gap) ? (
-        <Box
-          aria-hidden
-          sx={({ palette }) => ({
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            mt: 1.25,
-            pt: 1,
-            borderTop: `1px solid ${palette.gray[20]}`,
-            fontSize: 12,
-            lineHeight: "16px",
-            color: palette.gray[80],
-          })}
-        >
-          <Box
-            component="span"
-            sx={({ palette }) => ({
-              flex: "none",
-              width: 20,
-              height: 14,
-              boxSizing: "border-box",
-              borderRadius: "7px",
-              border: `1.5px dotted ${palette.gray[50]}`,
-            })}
-          />
-          <span>{`version that doesn't extend ${parentTitle}, or is archived`}</span>
-        </Box>
-      ) : null}
     </Box>
   );
 };

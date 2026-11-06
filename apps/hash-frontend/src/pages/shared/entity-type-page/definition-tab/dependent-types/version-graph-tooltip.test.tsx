@@ -28,7 +28,7 @@ const shellCompany = makeRow(
   true,
 );
 const shellCompanySummary =
-  "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v3 doesn't extend Company, or is archived; v4 extends Company v2. Company has versions newer than v2. Its newer versions don't extend Company, or are archived.";
+  "Shell Company: v1 extends Company v1; v2 extends Company v1 and v2; v4 extends Company v2. Company has versions newer than v2. Its newer versions don't extend Company, or are archived.";
 
 const machine = makeRow("Machine", 2, [
   [1, 1, 1],
@@ -242,7 +242,7 @@ describe("VersionGraphTooltip", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("draws the parent's versions, the type's versions with a dotted pill for the gap, a line for each extension, and a key", () => {
+  it("draws the parent's versions, only the type's versions that extend one, and a line for each extension", () => {
     renderRows([shellCompany]);
 
     focusWithKeyboard(screen.getByRole("button", { name: "Shell Company" }));
@@ -252,28 +252,10 @@ describe("VersionGraphTooltip", () => {
       within(tooltip)
         .getAllByText(/^v\d+$/)
         .map((pill) => pill.textContent),
-    ).toEqual(["v1", "v2", "v1", "v2", "v3", "v4"]);
+    ).toEqual(["v1", "v2", "v1", "v2", "v4"]);
     expect(within(tooltip).getAllByText("…")).toHaveLength(2);
     expect(tooltip.querySelectorAll("path")).toHaveLength(4);
-    expect(getComputedStyle(within(tooltip).getByText("v3")).borderStyle).toBe(
-      "dotted",
-    );
     within(tooltip).getByText("Company");
-    within(tooltip).getByText(
-      "version that doesn't extend Company, or is archived",
-    );
-  });
-
-  it("shows no key when every version extends the parent", () => {
-    renderRows([machine]);
-
-    focusWithKeyboard(screen.getByRole("button", { name: "Machine" }));
-
-    expect(
-      within(screen.getByRole("tooltip")).queryByText(
-        "version that doesn't extend Company, or is archived",
-      ),
-    ).toBeNull();
   });
 
   it("opens scrolled to the newest versions", () => {
