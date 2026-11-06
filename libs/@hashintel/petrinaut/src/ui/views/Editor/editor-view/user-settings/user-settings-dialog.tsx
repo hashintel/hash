@@ -13,6 +13,10 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import {
+  codeEditorThemes,
+  resolveCodeEditorThemeId,
+} from "../../../../monaco/code-editor-themes";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
 import { FocusControls } from "../../../../worksheet/focus-controls";
@@ -516,6 +520,30 @@ export const UserSettingsDialog = ({
                           value={settings.keepPanelsMounted}
                           onChange={settings.setKeepPanelsMounted}
                         />
+                      </SettingsGroup>
+                      <SettingsGroup title="Code editor">
+                        <SettingRow
+                          label="Theme"
+                          description="Choose the theme of the code editors."
+                          wideControl
+                        >
+                          {(aria) => (
+                            <Select
+                              {...aria}
+                              size="sm"
+                              className={selectStyle}
+                              required
+                              value={resolveCodeEditorThemeId(
+                                settings.codeEditorTheme,
+                              )}
+                              onChange={settings.setCodeEditorTheme}
+                              items={codeEditorThemes.map((theme) => ({
+                                value: theme.id,
+                                text: theme.label,
+                              }))}
+                            />
+                          )}
+                        </SettingRow>
                       </SettingsGroup>
                       <AssistantGroup />
                       <PluginSettingsRows

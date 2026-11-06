@@ -12,12 +12,12 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                             |
-| ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, and the AI assistant.                     |
-| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
-| **Plugins**  | The host's plugins: switch each on or off and see what it adds.      |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
+| Section      | Settings                                                                |
+| ------------ | ----------------------------------------------------------------------- |
+| **General**  | Animations, panel loading, the code editor theme, and the AI assistant. |
+| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection.    |
+| **Plugins**  | The host's plugins: switch each on or off and see what it adds.         |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.         |
 
 Plugins can add their own settings to **General**, **Viewport** and **Labs**,
 in a group under the plugin's name after the built-in groups.
@@ -35,6 +35,10 @@ Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow
 ### Keep panels mounted
 
 When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
+
+### Code editor theme
+
+Choose the colours of every [code editor](code-editor.md) in Petrinaut. **Petrinaut Light** is the default. **HASH Light** uses HASH's brand colours on a white surface: slate text, purple keywords, blue types and green strings. The change applies to open editors immediately and is saved with your other preferences.
 
 ### AI assistant
 

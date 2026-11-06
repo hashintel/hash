@@ -178,6 +178,30 @@ describe("UserSettingsProvider", () => {
     expect(screen.getByRole("status").textContent).toBe("");
   });
 
+  it("persists the code editor theme and defaults saved preferences to the light theme", () => {
+    localStorage.setItem(storageKey, JSON.stringify({ compactNodes: true }));
+    const ThemeProbe = () => {
+      const { codeEditorTheme, setCodeEditorTheme } = use(UserSettingsContext);
+      return (
+        <button type="button" onClick={() => setCodeEditorTheme("hash-light")}>
+          {codeEditorTheme}
+        </button>
+      );
+    };
+    render(
+      <UserSettingsProvider>
+        <ThemeProbe />
+      </UserSettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "petrinaut-light" }));
+    expect(screen.getByRole("button", { name: "hash-light" })).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem(storageKey) ?? "{}")).toMatchObject({
+      codeEditorTheme: "hash-light",
+      compactNodes: true,
+    });
+  });
+
   it("reuses an ancestor provider, so a host and the editor share one state", () => {
     // The host mounts the provider above the editor and reads the settings
     // in its own components; the editor's own provider must not fork them.
