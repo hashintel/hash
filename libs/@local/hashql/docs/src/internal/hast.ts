@@ -228,7 +228,7 @@ const exported =
         {
           name: place.id,
           title: place.title,
-          names: Array.copy(place.names),
+          names: Content.names(place.names),
           kind: value.kind,
           ...Content.facts(
             Output.leading(output)({

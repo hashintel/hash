@@ -1,4 +1,4 @@
-import { Array } from "effect";
+import { Array, Result, Schema } from "effect";
 import { Children, isValidElement } from "react";
 
 import type * as Components from "../components.js";
@@ -24,6 +24,19 @@ const words = (value: string | number | undefined): readonly string[] => {
 
 const numbers = (value: string | number | undefined): readonly number[] =>
   Array.map(words(value), Number);
+
+const decodeNames = Schema.decodeUnknownResult(
+  Schema.fromJsonString(Schema.Array(Schema.String)),
+);
+
+/** A list of names from the JSON the page writes it as, because a name may contain a space. */
+const namesOf = (value: string | number | undefined): readonly string[] => {
+  if (value === undefined) {
+    return [];
+  }
+
+  return Result.getOrThrow(decodeNames(String(value)));
+};
 
 /** The overloads an element names, or none when it holds in every overload. */
 const overloadsOf = (
@@ -136,7 +149,7 @@ const documentation = (
       href={href}
       kind={kind}
       depth={depth}
-      names={words(names)}
+      names={namesOf(names)}
       summary={summary}
       deprecated={deprecated}
     />
@@ -156,7 +169,7 @@ const documentation = (
     <drawn.Export
       name={name}
       title={title}
-      names={words(names)}
+      names={namesOf(names)}
       kind={kind}
       since={since}
       stability={stability}
