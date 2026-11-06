@@ -4,6 +4,8 @@
  * the two differ the comment says why.
  */
 /* oxlint-disable eslint/no-await-in-loop -- A transaction's statements run in order on one client, and a fork walk needs each parent before the next. */
+import { randomUUID } from "node:crypto";
+
 import { apply, type Op } from "@earendil-works/chord/delta";
 import {
   type ConversationId,
@@ -317,17 +319,23 @@ const prepareDocumentActions = (writes: readonly StorageWrite[]) => {
 /**
  * Open (creating if needed) the Pi Durable tables in one Postgres schema. The storage owns a `pg` pool built from
  * `pool` and ends it on `close()`; dropping the schema is the caller's business.
+ *
+ * One storage owns a schema at a time. Opening takes ownership from whichever storage held it: that storage's next
+ * commit fails, which fails its Session, so a process that lost the schema stops writing instead of corrupting it.
+ * `readOnly` opens without taking ownership, for a read-only Harness; its commits fail the same way.
  */
 export const openPostgresStorage = async (options: {
   readonly pool: PoolConfig;
   readonly schema: string;
+  readonly readOnly?: boolean;
 }): Promise<PostgresStorage> => {
   const tables = createPostgresTables(options.schema);
   const pool = new Pool(options.pool);
+  const ownerToken = options.readOnly === true ? undefined : randomUUID();
   // An idle client's connection error removes that client from the pool; the next query surfaces a lasting failure.
   pool.on("error", () => {});
   try {
-    await inTransaction(pool, "BEGIN", async (client) => {
+    const nextId = await inTransaction(pool, "BEGIN", async (client) => {
       // Serializes concurrent opens of one schema; DDL is transactional in Postgres.
       await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
         options.schema,
@@ -356,15 +364,23 @@ export const openPostgresStorage = async (options: {
           [migration.version],
         );
       }
+      if (ownerToken !== undefined) {
+        // Waits for the metadata row lock, so a commit of the previous owner lands before or fails after this.
+        await client.query(
+          `UPDATE ${tables.durableMetadata} SET owner_token = $1 WHERE singleton = 1`,
+          [ownerToken],
+        );
+      }
+      const metadata = await get<{ next_id: string }>(
+        client,
+        `SELECT next_id FROM ${tables.durableMetadata} WHERE singleton = 1`,
+      );
+      if (metadata === undefined) {
+        throw new Error("Durable Postgres metadata is missing");
+      }
+      return Number(metadata.next_id);
     });
-    const metadata = await get<{ next_id: string }>(
-      pool,
-      `SELECT next_id FROM ${tables.durableMetadata} WHERE singleton = 1`,
-    );
-    if (metadata === undefined) {
-      throw new Error("Durable Postgres metadata is missing");
-    }
-    return new PostgresStorage(pool, tables, Number(metadata.next_id));
+    return new PostgresStorage(pool, tables, nextId, ownerToken);
   } catch (error) {
     await pool.end().catch(() => {
       // Preserve the initialization failure.
@@ -406,6 +422,8 @@ export class PostgresStorage implements Storage {
     private readonly pool: Pool,
     private readonly tables: PostgresTables,
     private nextId: number,
+    /** Absent when opened read-only. */
+    private readonly ownerToken: string | undefined,
   ) {}
 
   /**
@@ -424,13 +442,27 @@ export class PostgresStorage implements Storage {
       let refused: { error: unknown } | undefined;
       let candidateNextId = this.nextId;
       await inTransaction(this.pool, "BEGIN", async (client) => {
-        // The row lock also serializes commits from a second process on the sequence, though nothing else is fenced.
-        const metadata = await get<{ next_id: string; next_seq: string }>(
+        // The row lock serializes commits, and opens taking ownership, across processes.
+        const metadata = await get<{
+          next_id: string;
+          next_seq: string;
+          owner_token: string | null;
+        }>(
           client,
-          `SELECT next_id, next_seq FROM ${this.tables.durableMetadata} WHERE singleton = 1 FOR UPDATE`,
+          `SELECT next_id, next_seq, owner_token FROM ${this.tables.durableMetadata} WHERE singleton = 1 FOR UPDATE`,
         );
         if (metadata === undefined) {
           throw new Error("Durable Postgres metadata is missing");
+        }
+        if (this.ownerToken === undefined) {
+          throw new Error(
+            `Postgres storage ${this.tables.durableMetadata} was opened read-only and cannot commit`,
+          );
+        }
+        if (metadata.owner_token !== this.ownerToken) {
+          throw new Error(
+            `Postgres storage ${this.tables.durableMetadata} is owned by a storage opened later; this one can no longer commit`,
+          );
         }
         let next = Number(metadata.next_seq);
         const watch = watchQueries(client);
