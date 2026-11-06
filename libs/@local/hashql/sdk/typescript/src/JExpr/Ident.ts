@@ -122,10 +122,10 @@ export declare namespace Ident {
 
   /** A base-URL name stored without its source backticks. */
   export interface BaseUrl extends $Schema.Schema.Type<typeof BaseUrlSchema> {}
-}
 
-/** Identifier source text, with backticks around a quoted symbol or base URL. */
-export type Encoded = (typeof Schema)["Encoded"];
+  /** Identifier source text, with backticks around a quoted symbol or base URL. */
+  export type Encoded = (typeof Schema)["Encoded"];
+}
 
 /** Input accepted by {@link make} before validation: an identifier object, not source text. */
 type MakeIn = (typeof Schema)["~type.make.in"];
@@ -166,7 +166,7 @@ export const parse: (
 > = Grammar.parseIdent;
 
 /** Source text accepted by the identifier grammar, paired with the identifier it parses to. */
-export type Sample = Parser.Sample<Ident>;
+export type Sample = Parser.Parser.Sample<Ident>;
 
 /** Generates source text and its parsed identifier from the identifier grammar. */
 export const arbitrary: () => Arbitrary.Arbitrary<Sample> =

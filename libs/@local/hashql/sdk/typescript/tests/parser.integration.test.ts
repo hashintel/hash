@@ -3,11 +3,11 @@ import { expect, layer } from "@effect/vitest";
 import { Arbitrary, Effect, Option, Stream, pipe } from "effect";
 import { ChildProcess } from "effect/process";
 
-import { typeSyntax } from "../src/internal/type-parser.js";
 import * as Ident from "../src/JExpr/Ident.js";
 import * as JExpr from "../src/JExpr/index.js";
 import * as Path from "../src/JExpr/Path.js";
 import * as Type from "../src/JExpr/Type/index.js";
+import { pathGrammar } from "../src/JExpr/Type/schema.js";
 
 // Package scripts run from the SDK directory. Turbo builds the CLI before this suite.
 const parser = "../../../../../target/debug/parse";
@@ -129,7 +129,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       "type_annotation",
       {
         source: pipe(
-          typeSyntax.arbitrary(),
+          pathGrammar.typeSyntax.arbitrary(),
           Arbitrary.map(({ output }) =>
             pipe(JExpr.literal(null), JExpr.typed(output), JExpr.compile),
           ),
