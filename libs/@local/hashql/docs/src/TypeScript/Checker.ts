@@ -1,6 +1,8 @@
 import { Array, Context, Effect, Function, Option, Struct, flow } from "effect";
 import { SymbolFlags, isClassOrInterfaceType } from "typescript/async";
 
+import { hasFlag } from "./Symbol.js";
+
 import type { Cause } from "effect";
 import type {
   CallSignatureDeclaration,
@@ -205,6 +207,17 @@ export const getSymbolOfDeclaration = (
   Effect.flatMap(Checker, (checker) =>
     checker.getSymbolOfDeclaration(declaration),
   );
+
+/** The symbol an alias finally names, or `symbol` itself when it is no alias. */
+export const resolveAlias = (
+  symbol: $Symbol,
+): Effect.Effect<$Symbol, Cause.UnknownError, Checker> => {
+  if (!hasFlag(symbol, SymbolFlags.Alias)) {
+    return Effect.succeed(symbol);
+  }
+
+  return Effect.flatMap(Checker, (checker) => checker.getAliasedSymbol(symbol));
+};
 
 /** The type of the value `symbol` names. */
 export const getTypeOfSymbol = (
