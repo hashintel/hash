@@ -12,6 +12,7 @@ import { type EditorUi, initialUi } from "./editor-context";
 import { HashShell } from "./hash-shell";
 import { Home } from "./home";
 import { navigate, routePath, useLocation } from "./router";
+import { runLabel } from "./run-id";
 import { outcomeOf, outcomeState, runProgress } from "./run-history";
 import { monthlyReviewId } from "./seed-flows";
 import {
@@ -147,7 +148,7 @@ export const RoutedApp = () => {
                       ? {
                           state: outcomeState[outcomeOf(newest, listedAt)],
                           progress: runProgress(newest, listedAt),
-                          label: `Run ${newest.id} · ${newest.when.replace(", ", " ")}`,
+                          label: `${runLabel(newest)} · ${newest.when.replace(", ", " ")}`,
                         }
                       : undefined,
                   };

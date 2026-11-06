@@ -12,6 +12,7 @@ import {
   type StepState,
   suppliers,
 } from "./run-history";
+import { runLabel } from "./run-id";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * The log's rows
@@ -308,19 +309,19 @@ export const logRows = (
   const ending =
     outcome === "warnings"
       ? {
-          title: `Run ${run.id} completed`,
+          title: `${runLabel(run)} completed`,
           note: `${facts.failures.length === 1 ? "1 warning" : `${facts.failures.length} warnings`} · ${facts.failures.length} of ${facts.n} suppliers failed at Fetch certificate`,
           glyph: "done" as const,
         }
       : outcome === "error"
         ? {
-            title: `Run ${run.id} ended in an error`,
+            title: `${runLabel(run)} ended in an error`,
             note: run.ending ?? "",
             glyph: "cross" as const,
           }
         : outcome === "abandoned"
           ? {
-              title: `Run ${run.id} abandoned`,
+              title: `${runLabel(run)} abandoned`,
               note:
                 run.kind === "live" && run.stopped
                   ? `stopped by you at ${run.stopped.clock}`
@@ -328,7 +329,7 @@ export const logRows = (
               glyph: "abandoned" as const,
             }
           : {
-              title: `Run ${run.id} completed`,
+              title: `${runLabel(run)} completed`,
               note: run.ending ?? "",
               glyph: "done" as const,
             };
