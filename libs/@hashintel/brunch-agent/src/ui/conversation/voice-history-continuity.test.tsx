@@ -50,10 +50,10 @@ const voiceAnswerTool = definePetrinautAiInteractiveTool({
   component: ({ submittedOutput, toolCallId }) => (
     <span>{`${toolCallId}: ${submittedOutput?.answer}`}</span>
   ),
-  inputSchema: {
+  inputParser: {
     parse: (raw: unknown) => raw as { question: string },
   },
-  outputSchema: {
+  outputParser: {
     parse: (raw: unknown) => raw as { answer: string },
   },
   toolName: voiceAnswerToolName,

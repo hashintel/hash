@@ -4,7 +4,7 @@ import type { PluginEdits } from "@hashintel/petrinaut/ui/plugin";
 /**
  * Runtime parser used at a host-owned automatic dynamic-tool boundary.
  */
-export type PetrinautAiAutomaticToolSchema<Value> = {
+export type PetrinautAiAutomaticToolParser<Value> = {
   parse: (value: unknown) => Value;
 };
 
@@ -39,8 +39,8 @@ export type PetrinautAiAutomaticTool = {
   toolName: string;
   /** Whether this implementation detail appears in the transcript. Defaults to visible. */
   visibility?: "visible" | "hidden";
-  inputSchema: PetrinautAiAutomaticToolSchema<unknown>;
-  outputSchema: PetrinautAiAutomaticToolSchema<unknown>;
+  inputParser: PetrinautAiAutomaticToolParser<unknown>;
+  outputParser: PetrinautAiAutomaticToolParser<unknown>;
   /** Execute once; Petrinaut owns validated output insertion and continuation. */
   execute: (params: PetrinautAiAutomaticToolExecuteParams) => unknown;
 };

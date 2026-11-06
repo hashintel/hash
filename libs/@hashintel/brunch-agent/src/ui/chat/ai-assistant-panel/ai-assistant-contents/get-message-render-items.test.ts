@@ -114,8 +114,8 @@ describe("conversation turn structure", () => {
     const draftTool = definePetrinautAiInteractiveTool({
       toolName: "draft",
       placement: "card",
-      inputSchema: { parse: (input: unknown) => input },
-      outputSchema: { parse: (output: unknown) => output },
+      inputParser: { parse: (input: unknown) => input },
+      outputParser: { parse: (output: unknown) => output },
       component: () => null,
     });
     const turn = getMessageRenderItems(

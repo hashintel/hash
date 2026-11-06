@@ -247,8 +247,8 @@ describe("AiAssistantContents", () => {
     const card = definePetrinautAiInteractiveTool({
       toolName: "draft",
       placement: "card",
-      inputSchema: { parse: (raw: unknown) => raw },
-      outputSchema: { parse: (raw: unknown) => raw },
+      inputParser: { parse: (raw: unknown) => raw },
+      outputParser: { parse: (raw: unknown) => raw },
       component: () => (
         <section aria-label="Drafted experiment">Experiment draft</section>
       ),
@@ -673,8 +673,8 @@ describe("AiAssistantContents", () => {
       interactiveTools: [
         definePetrinautAiInteractiveTool({
           toolName: "confirm",
-          inputSchema: { parse: (value: unknown) => value },
-          outputSchema: { parse: (value: unknown) => value },
+          inputParser: { parse: (value: unknown) => value },
+          outputParser: { parse: (value: unknown) => value },
           component: () => <button type="button">Approve change</button>,
         }),
       ],
@@ -2402,10 +2402,10 @@ describe("AiAssistantContents", () => {
   test("retains spoken tool answers without per-message voice markers", () => {
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       component: ({ submittedOutput, toolCallId }) => (
@@ -2594,8 +2594,8 @@ describe("AiAssistantContents", () => {
       interactiveTools: [
         definePetrinautAiInteractiveTool({
           toolName: "confirm",
-          inputSchema: { parse: (value: unknown) => value },
-          outputSchema: { parse: (value: unknown) => value },
+          inputParser: { parse: (value: unknown) => value },
+          outputParser: { parse: (value: unknown) => value },
           component: () => <span>Approval</span>,
         }),
       ],
@@ -2643,8 +2643,8 @@ describe("AiAssistantContents", () => {
           definePetrinautAiInteractiveTool({
             toolName: "confirm",
             placement: "card",
-            inputSchema: { parse: (value: unknown) => value },
-            outputSchema: { parse: (value: unknown) => value },
+            inputParser: { parse: (value: unknown) => value },
+            outputParser: { parse: (value: unknown) => value },
             component: () => <span>Preparing a draft</span>,
           }),
         ]}
@@ -2802,7 +2802,7 @@ describe("AiAssistantContents", () => {
     const onInteractiveToolSubmit = vi.fn();
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => {
           if (
             typeof raw !== "object" ||
@@ -2815,7 +2815,7 @@ describe("AiAssistantContents", () => {
           return raw as { question: string };
         },
       },
-      outputSchema: { parse: parseOutput },
+      outputParser: { parse: parseOutput },
       component: ({ input, state, submit, submittedOutput, toolCallId }) => (
         <div>
           <span>{`${toolCallId}:${input.question}:${state}`}</span>
@@ -2920,8 +2920,8 @@ describe("AiAssistantContents", () => {
     });
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: parseInput },
-      outputSchema: { parse: (raw: unknown) => raw },
+      inputParser: { parse: parseInput },
+      outputParser: { parse: (raw: unknown) => raw },
       component: ({ input }) => <span>{input.question}</span>,
     });
     const createMessages = (
@@ -2986,8 +2986,8 @@ describe("AiAssistantContents", () => {
       .mockResolvedValueOnce(undefined);
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: () => ({ question: "Ship this change?" }) },
-      outputSchema: { parse: () => ({ approved: true }) },
+      inputParser: { parse: () => ({ question: "Ship this change?" }) },
+      outputParser: { parse: () => ({ approved: true }) },
       component: ({ submit }) => (
         <button type="button" onClick={() => submit({ approved: true })}>
           Approve
@@ -5263,8 +5263,8 @@ describe("interactive ending", () => {
     definePetrinautAiInteractiveTool({
       toolName: "decide",
       placement,
-      inputSchema: { parse: (value: unknown) => value },
-      outputSchema: { parse: (value: unknown) => value },
+      inputParser: { parse: (value: unknown) => value },
+      outputParser: { parse: (value: unknown) => value },
       component: ({ state, submit }) =>
         state === "awaiting" ? (
           <button type="button" onClick={() => submit({ approved: true })}>

@@ -6,10 +6,11 @@ import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
 
 /**
  * Every tool the server issues to the bound browser and awaits in band, by
- * the schema that parses its input: Petrinaut's canonical tools, the filtered
- * net readers, the reviewed experiment draft and HASH's graph reads.
+ * the parser for its input: Petrinaut's canonical tools, the filtered
+ * net readers, the reviewed experiment draft, HASH's graph reads and HASH's
+ * Save.
  */
-export const browserExecutedToolInputSchemas: Readonly<
+export const browserExecutedToolInputParsers: Readonly<
   Record<string, { readonly parse: (input: unknown) => unknown }>
 > = {
   ...Object.fromEntries(
@@ -29,7 +30,7 @@ export const browserExecutedToolInputSchemas: Readonly<
   // transforms, so the input the server issues is the model's, and both sides
   // compare it as it is.
   ...Object.fromEntries(
-    [...hashGraphReadToolNames].map((name) => [
+    [...hashGraphReadToolNames, brunchTools.saveHashNet].map((name) => [
       name,
       { parse: (input: unknown) => input },
     ]),
@@ -37,17 +38,19 @@ export const browserExecutedToolInputSchemas: Readonly<
 };
 
 export const browserExecutedToolNames: ReadonlySet<string> = new Set(
-  Object.keys(browserExecutedToolInputSchemas),
+  Object.keys(browserExecutedToolInputParsers),
 );
 
 /**
  * The browser-executed tools Petrinaut runs on the net: all but the reviewed
- * draft and HASH's graph reads, which read the graph rather than the net.
+ * draft, HASH's graph reads, which read the graph rather than the net, and
+ * HASH's Save, which the page runs through its editor's Save.
  */
 export const browserNetToolNames: ReadonlySet<string> = new Set(
   [...browserExecutedToolNames].filter(
     (name) =>
       name !== brunchTools.draftPetrinautExperiment &&
+      name !== brunchTools.saveHashNet &&
       !hashGraphReadToolNames.has(name),
   ),
 );

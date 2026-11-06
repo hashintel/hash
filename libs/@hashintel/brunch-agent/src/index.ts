@@ -24,7 +24,7 @@ export {
   type ClientToolResultMetadata,
 } from "./petrinaut/browser-metadata";
 export {
-  browserExecutedToolInputSchemas,
+  browserExecutedToolInputParsers,
   browserExecutedToolNames,
   browserNetToolNames,
 } from "./petrinaut/browser-executed-tools";
@@ -41,6 +41,7 @@ export {
   petrinautSubmissionContext,
   readPetrinautSubmissionContext,
   type PetrinautSubmissionContext,
+  type VersionLoad,
 } from "./petrinaut/submission-context";
 export {
   isNetObservationTool,

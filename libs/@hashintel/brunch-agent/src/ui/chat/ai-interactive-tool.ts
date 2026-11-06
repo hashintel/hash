@@ -4,7 +4,7 @@ import type { ComponentType } from "react";
 /**
  * A runtime parser such as a Zod schema.
  */
-export type PetrinautAiInteractiveToolSchema<Value> = {
+export type PetrinautAiInteractiveToolParser<Value> = {
   parse: (value: unknown) => Value;
 };
 
@@ -50,9 +50,9 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   /** Produced cards stay below the answer rather than inside the work fold. */
   placement?: "work" | "card";
   /** Runtime contract for the tool-call input. */
-  inputSchema: PetrinautAiInteractiveToolSchema<Input>;
+  inputParser: PetrinautAiInteractiveToolParser<Input>;
   /** Runtime contract for the widget's submitted output. */
-  outputSchema: PetrinautAiInteractiveToolSchema<Output>;
+  outputParser: PetrinautAiInteractiveToolParser<Output>;
   /**
    * Render an interaction only for matching call identities. Defaults to all.
    * This runs during render without parsing the input; when it
@@ -99,7 +99,7 @@ export type PetrinautAiInteractiveTool = {
 
 /**
  * Define a host-owned interactive AI tool while preserving the relationship
- * between its schemas and component props.
+ * between its parsers and component props.
  */
 export const definePetrinautAiInteractiveTool = <Input, Output>(
   definition: PetrinautAiInteractiveToolDefinition<Input, Output>,
@@ -112,14 +112,14 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
     [interactiveToolDefinition]: {
       toolName: definition.toolName,
       placement: definition.placement,
-      parseInput: (value) => definition.inputSchema.parse(value),
-      parseOutput: (value) => definition.outputSchema.parse(value),
+      parseInput: (value) => definition.inputParser.parse(value),
+      parseOutput: (value) => definition.outputParser.parse(value),
       shouldHandle,
       fromComposerText: fromComposerText
         ? ({ input, text }) =>
-            definition.outputSchema.parse(
+            definition.outputParser.parse(
               fromComposerText({
-                input: definition.inputSchema.parse(input),
+                input: definition.inputParser.parse(input),
                 text,
               }),
             )

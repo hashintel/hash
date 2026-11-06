@@ -312,6 +312,7 @@ test("HASH's graph reads run in band beside the net tools, and the draft still r
   const calls = createCalls();
   expect(hashGraphReadToolNames.size).toBe(3);
   for (const name of hashGraphReadToolNames) expect(calls.has(name)).toBe(true);
+  expect(calls.has(brunchTools.saveHashNet)).toBe(true);
   expect(calls.has("readNetOutline")).toBe(true);
   expect(calls.has(brunchTools.draftPetrinautExperiment)).toBe(false);
   expect(calls.has("unmounted_tool")).toBe(false);
