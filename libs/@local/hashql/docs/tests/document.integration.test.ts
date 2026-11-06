@@ -1,5 +1,5 @@
-import { Array, HashMap, HashSet, Option, pipe } from "effect";
-import { beforeAll, describe, expect, test } from "vitest";
+import { expect, layer } from "@effect/vitest";
+import { Array, Effect, HashMap, HashSet, Option, pipe } from "effect";
 
 import * as Related from "../src/internal/related.js";
 import * as Tree from "../src/Tree/index.js";
@@ -8,22 +8,14 @@ import * as Reference from "./fixtures/reference.js";
 import type * as AST from "../src/AST/index.js";
 import type * as Placement from "../src/Placement.js";
 
-type Local = Extract<
-  AST.Reference.Reference.Target,
-  { readonly _tag: "Local" }
->;
-
-let loaded: Reference.Reference | null = null;
-const reference = (): Reference.Reference =>
-  Option.fromNullishOr(loaded).pipe(Option.getOrThrow);
-
 /** The page of the module at `path` below `entrypoint`. */
 const moduleAt = (
+  reference: Reference.Reference,
   entrypoint: string,
   path: readonly string[] = [],
 ): Tree.Page.Module =>
   pipe(
-    reference().document.pages,
+    reference.document.pages,
     Array.filter((tree) => tree.type === "module"),
     Array.findFirst(
       ({ origin }) =>
@@ -74,7 +66,7 @@ const summaryOf = (row: Tree.Row.Row): Option.Option<string> =>
 /** Prose without its origins: each node's type with its text, and each link's target. */
 type Shape =
   | readonly ["text" | "inlineCode" | "code", string]
-  | readonly ["link", AST.Reference.Reference.Target | string, readonly Shape[]]
+  | readonly ["link", AST.Target.Interned | string, readonly Shape[]]
   | readonly ["paragraph", readonly Shape[]];
 
 const shapeOf = (
@@ -92,7 +84,7 @@ const shapeOf = (
           "link",
           node.destination instanceof URL
             ? node.destination.href
-            : node.destination.target,
+            : node.destination,
           shapeOf(node.children),
         ];
       }
@@ -102,166 +94,198 @@ const shapeOf = (
     }
   });
 
-const local = (node: Local["node"]): Local => ({ _tag: "Local", node });
-
-describe("document", () => {
-  beforeAll(async () => {
-    loaded = await Reference.success({
-      source: Reference.source,
-      other: 'export { Value as Renamed } from "./index.js";',
-    });
-  });
-
-  test("rich_page_lead", () => {
-    expect.hasAssertions();
-    const lead = moduleAt("@scope/pkg").comment.pipe(
-      Option.flatMap(({ description }) => description),
-      Option.getOrThrow,
-    );
-    expect(shapeOf(lead.children)).toStrictEqual([
-      [
-        "paragraph",
-        [
-          ["text", "Module with "],
-          ["inlineCode", "code"],
-          ["text", " and "],
-          [
-            "link",
-            local(Reference.id(reference(), ["Value"])),
-            [["inlineCode", "Value"]],
-          ],
-          ["text", "."],
-        ],
-      ],
-    ]);
-  });
-
-  test("canonical_entries", () => {
-    expect.hasAssertions();
-    const root = moduleAt("@scope/pkg");
-    const labels = Array.map(rowsOf(root), ({ label }) => label.join("."));
-    expect(Array.filter(labels, (label) => label === "again")).toHaveLength(1);
-    expect(Array.filter(labels, (label) => label === "Cycle")).toHaveLength(1);
-    const choose = Reference.id(reference(), ["choose"]);
-    expect(
-      Array.filter(exportsOf(root), ({ origin }) => origin.id === choose),
-    ).toHaveLength(1);
-  });
-
-  test("alias_rows", () => {
-    expect.hasAssertions();
-    const other = moduleAt("@scope/pkg/Other");
-    expect(exportsOf(other)).toStrictEqual([]);
-    const [renamed] = rowsOf(other);
-    expect(renamed?.label).toStrictEqual(["Renamed"]);
-    expect(
-      Option.flatMap(Option.fromUndefinedOr(renamed), summaryOf),
-    ).toStrictEqual(Option.some("A value. More detail."));
-    expect(renamed?.origin).toStrictEqual({
-      _tag: "Reference",
-      target: local(Reference.id(reference(), ["Value"])),
-    });
-  });
-
-  test("attached_namespace_and_members", () => {
-    expect.hasAssertions();
-    const root = moduleAt("@scope/pkg");
-    const model = Array.findFirst(
-      exportsOf(root),
-      (exported) => titleOf(exported) === "Model",
-    ).pipe(Option.getOrThrow);
-    const namespace = Option.getOrThrow(model.namespace);
-    expect(Array.map(namespace.exports, titleOf)).toStrictEqual(["child"]);
-    expect(
-      Array.map(namespace.index, ({ label }) => label.join(".")),
-    ).toStrictEqual(["child", "Alias", "Helpers"]);
-    expect(
-      pipe(
-        rowsOf(root),
-        Array.filter(({ label }) => label.join(".") === "make"),
-        Array.map((row) => [row.depth, summaryOf(row)]),
-      ),
-    ).toStrictEqual([
-      [1, Option.some("Static make.")],
-      [1, Option.some("Instance make.")],
-    ]);
-    expect(
-      Array.map(
-        exportsOf(moduleAt("@scope/pkg", ["Model", "Helpers"])),
-        titleOf,
-      ),
-    ).toStrictEqual(["nested"]);
-  });
-
-  test("complete_placement", () => {
-    expect.hasAssertions();
-    const { document } = reference();
-    const documented = documentedOf(reference());
-    const placed = pipe(
-      document.placement.places,
-      Array.fromIterable,
-      Array.filter(([, place]) => place.names.length > 0),
-      Array.map(([id]) => id),
-      HashSet.fromIterable,
-    );
-    expect(
-      HashSet.fromIterable(Array.map(documented, ({ origin }) => origin.id)),
-    ).toStrictEqual(placed);
-    expect(documented).toHaveLength(HashSet.size(placed));
-    expect(Array.flatMap(documented, ({ members }) => members)).toHaveLength(
-      HashMap.size(document.owners),
-    );
-  });
-
-  test("relation_labels_and_member_docs", () => {
-    expect.hasAssertions();
-    const { document } = reference();
-    const model = HashMap.get(
-      document.entries,
-      Reference.id(reference(), ["Model"]),
-    ).pipe(Option.getOrThrow);
-    const member = Array.head(model.members).pipe(Option.getOrThrow);
-    const pageOf = (entrypoint: string): Option.Option<Placement.Page> =>
-      Array.findFirst(
-        document.placement.pages,
-        ({ entry }) => moduleAt(entrypoint).origin === entry,
-      );
-    const row = (entrypoint: string): Tree.Row.Row =>
-      Related.row({ ...document, page: pageOf(entrypoint) })(
-        local(member.id),
-      ).pipe(Option.getOrThrow);
-    expect(row("@scope/pkg/Other")).toMatchObject({
-      label: ["pkg", "Model", "make"],
-    });
-    expect(summaryOf(row("@scope/pkg/Other"))).toStrictEqual(
-      Option.some("Static make."),
-    );
-    expect(row("@scope/pkg").label).toStrictEqual(["Model", "make"]);
-  });
-
-  test("deprecation_scope", () => {
-    expect.hasAssertions();
-    const rows = rowsOf(moduleAt("@scope/pkg"));
-    const deprecated = (label: string): boolean =>
-      Array.findFirst(rows, (row) => row.label.join(".") === label).pipe(
+layer(
+  Reference.layer({
+    source: Reference.source,
+    other: 'export { Value as Renamed } from "./index.js";',
+  }),
+  { excludeTestServices: true },
+)("document", (it) => {
+  it.effect(
+    "rich_page_lead",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const lead = moduleAt(reference, "@scope/pkg").comment.pipe(
+        Option.flatMap(({ description }) => description),
         Option.getOrThrow,
-      ).deprecated;
-    expect(deprecated("choose")).toBe(false);
-    expect(deprecated("old")).toBe(true);
-  });
+      );
+      expect(shapeOf(lead.children)).toStrictEqual([
+        [
+          "paragraph",
+          [
+            ["text", "Module with "],
+            ["inlineCode", "code"],
+            ["text", " and "],
+            [
+              "link",
+              Reference.id(reference, ["Value"]),
+              [["inlineCode", "Value"]],
+            ],
+            ["text", "."],
+          ],
+        ],
+      ]);
+    }),
+  );
 
-  test("deprecated_entrypoint", async () => {
-    expect.hasAssertions();
-    const result = await Reference.success({
-      source:
-        "/** Old. @deprecated Use the other one. @module */ export interface Value {}",
-    });
-    const overview = Array.findFirst(
-      result.document.pages,
-      (tree) => tree.type === "overview",
-    ).pipe(Option.getOrThrow);
-    expect(
-      Array.map(overview.entrypoints, ({ deprecated }) => deprecated),
-    ).toStrictEqual([true]);
-  });
+  it.effect(
+    "canonical_entries",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const root = moduleAt(reference, "@scope/pkg");
+      const labels = Array.map(rowsOf(root), ({ label }) => label.join("."));
+      expect(Array.filter(labels, (label) => label === "again")).toHaveLength(
+        1,
+      );
+      expect(Array.filter(labels, (label) => label === "Cycle")).toHaveLength(
+        1,
+      );
+      const choose = Reference.id(reference, ["choose"]);
+      expect(
+        Array.filter(exportsOf(root), ({ origin }) => origin.id === choose),
+      ).toHaveLength(1);
+    }),
+  );
+
+  it.effect(
+    "alias_rows",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const other = moduleAt(reference, "@scope/pkg/Other");
+      expect(exportsOf(other)).toStrictEqual([]);
+      const [renamed] = rowsOf(other);
+      expect(renamed?.label).toStrictEqual(["Renamed"]);
+      expect(
+        Option.flatMap(Option.fromUndefinedOr(renamed), summaryOf),
+      ).toStrictEqual(Option.some("A value. More detail."));
+      expect(renamed?.origin).toStrictEqual({
+        _tag: "Reference",
+        target: Reference.id(reference, ["Value"]),
+      });
+    }),
+  );
+
+  it.effect(
+    "attached_namespace_and_members",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const root = moduleAt(reference, "@scope/pkg");
+      const model = Array.findFirst(
+        exportsOf(root),
+        (exported) => titleOf(exported) === "Model",
+      ).pipe(Option.getOrThrow);
+      const namespace = Option.getOrThrow(model.namespace);
+      expect(Array.map(namespace.exports, titleOf)).toStrictEqual(["child"]);
+      expect(
+        Array.map(namespace.index, ({ label }) => label.join(".")),
+      ).toStrictEqual(["child", "Alias", "Helpers"]);
+      expect(
+        pipe(
+          rowsOf(root),
+          Array.filter(({ label }) => label.join(".") === "make"),
+          Array.map((row) => [row.depth, summaryOf(row)]),
+        ),
+      ).toStrictEqual([
+        [1, Option.some("Static make.")],
+        [1, Option.some("Instance make.")],
+      ]);
+      expect(
+        Array.map(
+          exportsOf(moduleAt(reference, "@scope/pkg", ["Model", "Helpers"])),
+          titleOf,
+        ),
+      ).toStrictEqual(["nested"]);
+    }),
+  );
+
+  it.effect(
+    "complete_placement",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const { document } = reference;
+      const documented = documentedOf(reference);
+      const placed = pipe(
+        document.placement.places,
+        Array.fromIterable,
+        Array.filter(([, place]) => place.names.length > 0),
+        Array.map(([id]) => id),
+        HashSet.fromIterable,
+      );
+      expect(
+        HashSet.fromIterable(Array.map(documented, ({ origin }) => origin.id)),
+      ).toStrictEqual(placed);
+      expect(documented).toHaveLength(HashSet.size(placed));
+      expect(Array.flatMap(documented, ({ members }) => members)).toHaveLength(
+        HashMap.size(document.owners),
+      );
+    }),
+  );
+
+  it.effect(
+    "relation_labels_and_member_docs",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const { document } = reference;
+      const model = HashMap.get(
+        document.entries,
+        Reference.id(reference, ["Model"]),
+      ).pipe(Option.getOrThrow);
+      const member = Array.head(model.members).pipe(Option.getOrThrow);
+      const pageOf = (entrypoint: string): Option.Option<Placement.Page> =>
+        Array.findFirst(
+          document.placement.pages,
+          ({ entry }) => moduleAt(reference, entrypoint).origin === entry,
+        );
+      const row = (entrypoint: string): Tree.Row.Row =>
+        Related.row({ ...document, page: pageOf(entrypoint) })(member.id).pipe(
+          Option.getOrThrow,
+        );
+      expect(row("@scope/pkg/Other")).toMatchObject({
+        label: ["pkg", "Model", "make"],
+      });
+      expect(summaryOf(row("@scope/pkg/Other"))).toStrictEqual(
+        Option.some("Static make."),
+      );
+      expect(row("@scope/pkg").label).toStrictEqual(["Model", "make"]);
+    }),
+  );
+
+  it.effect(
+    "deprecation_scope",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const rows = rowsOf(moduleAt(reference, "@scope/pkg"));
+      const deprecated = (label: string): boolean =>
+        Array.findFirst(rows, (row) => row.label.join(".") === label).pipe(
+          Option.getOrThrow,
+        ).deprecated;
+      expect(deprecated("choose")).toBe(false);
+      expect(deprecated("old")).toBe(true);
+    }),
+  );
+
+  it.effect(
+    "deprecated_entrypoint",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* Reference.success({
+        source:
+          "/** Old. @deprecated Use the other one. @module */ export interface Value {}",
+      });
+      const overview = Array.findFirst(
+        result.document.pages,
+        (tree) => tree.type === "overview",
+      ).pipe(Option.getOrThrow);
+      expect(
+        Array.map(overview.entrypoints, ({ deprecated }) => deprecated),
+      ).toStrictEqual([true]);
+    }),
+  );
 });

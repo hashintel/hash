@@ -8,10 +8,7 @@ import * as Placement from "../Placement.js";
 import type * as Tree from "../Tree/index.js";
 
 type Row = Tree.Row.Row;
-type Local = Extract<
-  AST.Reference.Reference.Target,
-  { readonly _tag: "Local" }
->;
+type Local = AST.Interned.Interned<AST.Target.Local>;
 
 /** What rows read besides the catalogue: where each export is documented and what its entry distilled. */
 export interface Context {
@@ -102,7 +99,7 @@ const declarationRow = (id: Catalogue.DeclarationId, context: Context): Row => {
     depth: 0,
     summary: summary(Entry.summary(entry)),
     deprecated: entry.deprecated,
-    origin: { _tag: "Reference", target: { _tag: "Local", node: id } },
+    origin: { _tag: "Reference", target: id },
   };
 };
 
@@ -120,7 +117,7 @@ const memberRow = (
     depth: 0,
     summary: summary(Array.head(member.comments)),
     deprecated: member.deprecated,
-    origin: { _tag: "Reference", target: { _tag: "Local", node: member.id } },
+    origin: { _tag: "Reference", target: member.id },
   };
 };
 
@@ -129,17 +126,17 @@ export const row =
   (context: Context) =>
   (target: Local): Option.Option<Row> => {
     const { ast } = context.catalogue;
-    const declaration = ast.narrow(target.node, AST.Declaration.isDeclaration);
+    const declaration = ast.narrow(target, AST.Declaration.isDeclaration);
 
     if (Option.isSome(declaration)) {
       return Option.some(declarationRow(declaration.value, context));
     }
 
-    return HashMap.get(context.owners, target.node).pipe(
+    return HashMap.get(context.owners, target).pipe(
       Option.flatMap((owner) =>
         Array.findFirst(
           entryAt(owner, context).members,
-          ({ id }) => id === target.node,
+          ({ id }) => id === target,
         ).pipe(Option.map((member) => memberRow(member, owner, context))),
       ),
     );
@@ -159,10 +156,7 @@ export const listing =
         depth,
         summary: summary(Entry.summary(entry)),
         deprecated: entry.deprecated,
-        origin: {
-          _tag: "Reference",
-          target: { _tag: "Local", node: exported.target },
-        },
+        origin: { _tag: "Reference", target: exported.target },
       };
       if (
         !exported.canonical ||
@@ -179,10 +173,7 @@ export const listing =
         depth: depth + 1,
         summary: summary(Array.head(member.comments)),
         deprecated: member.deprecated,
-        origin: {
-          _tag: "Reference",
-          target: { _tag: "Local", node: member.id },
-        },
+        origin: { _tag: "Reference", target: member.id },
       }));
       const nested = pipe(
         Placement.exportsOf(context.catalogue, entry.origin),

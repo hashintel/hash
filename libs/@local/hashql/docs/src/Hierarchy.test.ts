@@ -1,21 +1,22 @@
+import { describe, expect, test } from "@effect/vitest";
 import { Array, Option, pipe } from "effect";
-import { describe, expect, test } from "vitest";
 
-import * as AST from "./AST/index.js";
 import * as Hierarchy from "./Hierarchy.js";
 import * as Trait from "./Trait.js";
 
+import type * as AST from "./AST/index.js";
+
 /** A vertex no AST node backs, since the walks read positions and traits alone. */
 const vertex = (
-  ast: AST.Store["Service"],
+  index: number,
   label: string,
   trait: Option.Option<Trait.Trait>,
 ): Hierarchy.Vertex => ({
-  target: {
-    _tag: "Local",
-    node: ast.reserve<AST.Declaration.Declaration>().id,
-  },
+  // SAFETY: The walks compare a vertex's target by identity and never look it up in an AST.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- No walk dereferences this identity.
+  target: index as AST.Target.Interned,
   label,
+  external: false,
   trait,
   entry: Option.none(),
 });
@@ -25,12 +26,11 @@ const explained = (explanation: string): Option.Option<Trait.Trait> =>
 
 /** A cycle and a diamond: `One` and `Three` extend each other, and both reach `Four` through `Two`. */
 const diamond = (): Hierarchy.Hierarchy => {
-  const ast = AST.make();
   const vertices = [
-    vertex(ast, "One", explained("One.")),
-    vertex(ast, "Two", Option.none()),
-    vertex(ast, "Three", explained("Three.")),
-    vertex(ast, "Four", Option.none()),
+    vertex(0, "One", explained("One.")),
+    vertex(1, "Two", Option.none()),
+    vertex(2, "Three", explained("Three.")),
+    vertex(3, "Four", Option.none()),
   ];
 
   return {

@@ -5,13 +5,15 @@ import * as Trait from "./Trait.js";
 
 import type * as Catalogue from "./Catalogue.js";
 
-type Target = AST.Reference.Reference.Target;
+type Target = AST.Target.Interned;
 
 /** An interface or a class in the hierarchy, and what the reference knows about it. */
 export interface Vertex {
   readonly target: Target;
   /** A public declaration's path below its entrypoint, or the declared name of a private or external one. */
   readonly label: string;
+  /** Declared outside the package, such as one of Effect's interfaces. */
+  readonly external: boolean;
   readonly trait: Option.Option<Trait.Trait>;
   /** The public declaration a local type is, or none for a private or external one. */
   readonly entry: Option.Option<Catalogue.Entry>;
@@ -25,18 +27,21 @@ export interface Hierarchy {
   readonly indexOf: (target: Target) => Option.Option<number>;
 }
 
-/** The interfaces and classes `target` extends or implements directly. Only a declaration of the AST has bases of its own there. */
+/** The interfaces and classes `target` extends or implements directly. A member or a parameter has none. */
 const basesOf = (
   ast: AST.Store["Service"],
   target: Target,
 ): readonly Target[] => {
-  if (target._tag === "External") {
-    return target.bases;
+  const node = ast.get(target);
+
+  if (
+    AST.ExternalItem.isExternalItem(node) ||
+    AST.Declaration.isDeclaration(node)
+  ) {
+    return Array.map(node.bases, ast.idOf);
   }
 
-  const node = ast.get(target.node);
-
-  return AST.Declaration.isDeclaration(node) ? node.bases : [];
+  return [];
 };
 
 const describe = (
@@ -44,16 +49,18 @@ const describe = (
   catalogue: Catalogue.Catalogue,
 ): Option.Option<Omit<Vertex, "target">> => {
   const { ast } = catalogue;
+  const node = ast.get(target);
 
-  if (target._tag === "External") {
+  if (AST.ExternalItem.isExternalItem(node)) {
     return Option.some({
-      label: target.name,
-      trait: HashMap.get(Trait.explained, target.name),
+      label: node.name,
+      external: true,
+      trait: HashMap.get(Trait.explained, node.name),
       entry: Option.none(),
     });
   }
 
-  return ast.narrow(target.node, AST.Declaration.isDeclaration).pipe(
+  return ast.narrow(target, AST.Declaration.isDeclaration).pipe(
     Option.filter((id) => Option.isSome(Trait.namedTypeOf(ast, ast.get(id)))),
     Option.map((id) => {
       const declaration = ast.get(id);
@@ -64,6 +71,7 @@ const describe = (
           onNone: () => declaration.symbol.name,
           onSome: ({ name }) => Array.join(name.path, "."),
         }),
+        external: false,
         trait: Trait.declaredBy(ast, declaration),
         entry,
       };
@@ -74,18 +82,12 @@ const describe = (
 /** Walks the bases of every public interface and class, keeping the private and external types between them. */
 export const collect = (catalogue: Catalogue.Catalogue): Hierarchy => {
   const { ast } = catalogue;
-  const locals = MutableHashMap.empty<number, number>();
-  const externals = MutableHashMap.empty<number, number>();
+  const indices = MutableHashMap.empty<Target, number>();
   const vertices: Vertex[] = [];
   const bases: number[][] = [];
 
-  const indexOf = (target: Target): Option.Option<number> => {
-    if (target._tag === "Local") {
-      return MutableHashMap.get(locals, target.node);
-    }
-
-    return MutableHashMap.get(externals, target.symbol.id);
-  };
+  const indexOf = (target: Target): Option.Option<number> =>
+    MutableHashMap.get(indices, target);
 
   const visit = (target: Target): Option.Option<number> => {
     const known = indexOf(target);
@@ -101,11 +103,7 @@ export const collect = (catalogue: Catalogue.Catalogue): Hierarchy => {
     const index = vertices.length;
     vertices.push({ target, ...described.value });
     bases.push([]);
-    if (target._tag === "Local") {
-      MutableHashMap.set(locals, target.node, index);
-    } else {
-      MutableHashMap.set(externals, target.symbol.id, index);
-    }
+    MutableHashMap.set(indices, target, index);
 
     bases[index] = pipe(
       basesOf(ast, target),
@@ -118,7 +116,7 @@ export const collect = (catalogue: Catalogue.Catalogue): Hierarchy => {
 
   for (const entry of catalogue.entries) {
     if (Option.isSome(Trait.namedTypeOf(ast, ast.get(entry.id)))) {
-      visit({ _tag: "Local", node: entry.id });
+      visit(entry.id);
     }
   }
 

@@ -10,7 +10,7 @@ import type { SourceFile } from "typescript/ast";
 /** A comment's documentation, which every owner of the comment shares. Which overloads it documents is each owner's to say. */
 export interface Content extends Omit<Tree.Comment.Comment, "applies"> {}
 
-/** What a comment's prose needs from the AST: the reference of each link, and the program of each TypeScript example. */
+/** What a comment's prose needs from the AST: the target of each link, and the program of each TypeScript example. */
 export interface Context extends Prose.Context {
   readonly program: (
     example: AST.Documentation.Example.Example,
@@ -19,9 +19,10 @@ export interface Context extends Prose.Context {
 
 export type Failure = Prose.ProseError;
 
-/** The context the AST holds: the reference the parser resolved each link to, and the program each example was compiled as. */
+/** The context the AST holds: the node each link names, and the program the parser compiled each example as. */
 export const contextOf = (ast: AST.Store["Service"]): Context => ({
-  reference: (link) => ast.referenceAt(link),
+  target: (link) =>
+    Option.map(ast.nameOf(link), ({ target }) => ast.idOf(target)),
   program: (example) => ast.programOf(example),
 });
 

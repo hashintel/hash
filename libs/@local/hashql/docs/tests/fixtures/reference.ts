@@ -1,13 +1,13 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import {
   Array,
+  Context,
   Effect,
   Function,
   HashMap,
   Layer,
   Option,
   Path,
-  Result,
 } from "effect";
 
 import * as Catalogue from "../../src/Catalogue.js";
@@ -16,6 +16,8 @@ import * as DocumentationLinks from "../../src/DocumentationLinks.js";
 import * as DocumentationParser from "../../src/DocumentationParser.js";
 import * as Parser from "../../src/Parser.js";
 import * as TypeScript from "../../src/TypeScript/index.js";
+
+import type { Result } from "effect";
 
 /** Declarations that exercise every part of a page: overloads, call comments, merged types and values, members, a merged namespace, an alias and a cycle. */
 export const source = `/** Module with \`code\` and {@link Value}. @module */
@@ -153,14 +155,23 @@ const build = Effect.fnUntraced(
 export type Failure = Effect.Error<ReturnType<typeof build>>;
 
 /** The reference for `options`, collected as the generation collects a directory's, or the failure that stopped it. */
-export const run = async (
+export const run = (
   options: Options,
-): Promise<Result.Result<Reference, Failure>> =>
-  build(options).pipe(Effect.result, Effect.runPromise);
+): Effect.Effect<Result.Result<Reference, Failure>> =>
+  Effect.result(build(options));
 
 /** The reference for `options`, which must build. */
-export const success = async (options: Options): Promise<Reference> =>
-  Result.getOrThrow(await run(options));
+export const success: (options: Options) => Effect.Effect<Reference, Failure> =
+  build;
+
+/** One reference, shared by the tests of one `layer` block. */
+export class Fixture extends Context.Service<Fixture, Reference>()(
+  "@local/hashql-docs/tests/fixtures/reference/Fixture",
+) {}
+
+/** The reference for `options` as the tests of one `layer` block share it. */
+export const layer = (options: Options): Layer.Layer<Fixture, Failure> =>
+  Layer.effect(Fixture, build(options));
 
 /** The identity of the export at `path` below `@scope/pkg`. */
 export const id: {

@@ -10,8 +10,7 @@ import * as Usage from "./Usage.js";
 import type * as AST from "./AST/index.js";
 import type * as Catalogue from "./Catalogue.js";
 
-type Target = AST.Reference.Reference.Target;
-type Local = Extract<Target, { readonly _tag: "Local" }>;
+type Local = AST.Interned.Interned<AST.Target.Local>;
 
 /** The hierarchy of the public types and who uses each declaration, with every trait by its position in the hierarchy. */
 export interface Index {
@@ -31,9 +30,7 @@ export interface Relations extends Usage.Usage {
 
 /** A public declaration, an external type and a trait are shown in a hierarchy. A private type is not, and its bases take its place. */
 const isShown = (vertex: Hierarchy.Vertex): boolean =>
-  Option.isSome(vertex.entry) ||
-  vertex.target._tag === "External" ||
-  Option.isSome(vertex.trait);
+  Option.isSome(vertex.entry) || vertex.external || Option.isSome(vertex.trait);
 
 const vertexAt = (
   hierarchy: Hierarchy.Hierarchy,
@@ -76,7 +73,7 @@ const roleOf = (
     return "trait";
   }
 
-  return vertex.target._tag === "External" ? "external" : "type";
+  return vertex.external ? "external" : "type";
 };
 
 /** The hierarchy around `index`: its ancestors and descendants that are shown, with an edge from each to its nearest shown bases. None when it has no edge. */
@@ -165,7 +162,7 @@ const implementorsOf = (
   Array.flatMap(Hierarchy.descendantsOf(hierarchy, index), (descendant) =>
     vertexAt(hierarchy, descendant).pipe(
       Option.flatMap(({ entry }) => entry),
-      Option.map(({ id }): Local => ({ _tag: "Local", node: id })),
+      Option.map(({ id }) => id),
       Option.toArray,
     ),
   );
@@ -177,7 +174,7 @@ export const of: {
 } = Function.dual(
   2,
   (entry: Catalogue.Entry, { hierarchy, usage }: Index): Relations => {
-    const index = hierarchy.indexOf({ _tag: "Local", node: entry.id });
+    const index = hierarchy.indexOf(entry.id);
     const isTrait = Option.exists(
       Option.flatMap(index, (own) => vertexAt(hierarchy, own)),
       ({ trait }) => Option.isSome(trait),

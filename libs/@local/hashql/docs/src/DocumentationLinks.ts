@@ -1,12 +1,12 @@
 import { DocCodeSpan, DocLinkTag, DocParagraph } from "@microsoft/tsdoc";
 import { Array, Option, Result, pipe } from "effect";
 
-import * as AST from "./AST/index.js";
 import * as DocumentationError from "./DocumentationError.js";
 import * as DocSource from "./internal/ast/doc-source.js";
 import * as LinkLookup from "./internal/link-lookup.js";
 import * as Parts from "./internal/parts.js";
 
+import type * as AST from "./AST/index.js";
 import type * as Catalogue from "./Catalogue.js";
 import type { DocNode } from "@microsoft/tsdoc";
 
@@ -84,12 +84,12 @@ const unlinkedName = (
       return Option.none();
     }
 
+    const { ast } = scope.catalogue;
     const linked = pipe(
       Array.take(paragraph.nodes, index),
       Array.filter((earlier) => earlier instanceof DocLinkTag),
-      Array.flatMap((link) =>
-        Option.toArray(scope.catalogue.ast.referenceAt(link)),
-      ),
+      Array.flatMap((link) => Option.toArray(ast.nameOf(link))),
+      Array.map(({ target }) => ast.idOf(target)),
     );
 
     return pipe(
@@ -97,11 +97,7 @@ const unlinkedName = (
       Option.liftPredicate(
         (mentions) =>
           mentions.length > 0 &&
-          !Array.some(mentions, (mention) =>
-            Array.some(linked, ({ target }) =>
-              AST.Reference.sameTarget(target, mention),
-            ),
-          ),
+          !Array.some(mentions, (mention) => linked.includes(mention)),
       ),
       Option.as(node),
     );

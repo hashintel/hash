@@ -20,10 +20,11 @@ export interface Overload {
   readonly comment: Option.Option<AST.Documentation.Documentation>;
 }
 
-/** What numbering and grouping read: the AST, and how the comments' prose resolves. */
+/** What numbering and grouping read: the AST with what the names in its types resolve to, and how the comments' prose resolves. */
 export interface Context {
   readonly ast: AST.Store["Service"];
-  readonly prose: Prose.Context;
+  readonly names: References.Names;
+  readonly content: Prose.Context;
 }
 
 /** The numbered overloads of an export or a member, and what their comments document about the calls. */
@@ -219,16 +220,16 @@ const named = <Origin extends { readonly name: string }>(
 
 /** Equal types have the same spelling and resolve the same, so equal spellings of different types stay apart. */
 const typeEquivalence = (
-  ast: AST.Store["Service"],
+  names: References.Names,
 ): Equivalence.Equivalence<TypeNode> => {
-  const syntax = References.syntax(ast);
+  const syntax = References.syntax(names);
   return (self, that) => syntax([self], [that]);
 };
 
 const parametersOf = (
   entries: readonly Overload[],
   documented: readonly Documented[],
-  ast: AST.Store["Service"],
+  { ast, names }: Context,
 ): Tree.Callable.Parameter[] =>
   Array.map(
     named(documented, ({ parameters }) => parameters),
@@ -264,7 +265,7 @@ const parametersOf = (
                 Option.toArray,
               ),
             ),
-            typeEquivalence(ast),
+            typeEquivalence(names),
           ),
           entries.length,
         ),
@@ -309,7 +310,7 @@ const typeParametersOf = (
 const returnsOf = (
   entries: readonly Overload[],
   documented: readonly Documented[],
-  ast: AST.Store["Service"],
+  { ast, names }: Context,
 ): Option.Option<Tree.Callable.Returns> => {
   const blocks = Array.flatMap(documented, ({ index, returns }) =>
     Array.map(Option.toArray(returns), (block) => [index, block] as const),
@@ -334,7 +335,7 @@ const returnsOf = (
             Option.toArray,
           ),
         ),
-        typeEquivalence(ast),
+        typeEquivalence(names),
       ),
       entries.length,
     ),
@@ -453,16 +454,16 @@ export const collect: {
     parts: readonly Parts.Part[],
     context: Context,
   ): Result.Result<Overloads, Prose.ProseError>;
-} = Function.dual(2, (parts: readonly Parts.Part[], { ast, prose }: Context) =>
+} = Function.dual(2, (parts: readonly Parts.Part[], context: Context) =>
   Result.gen(function* () {
-    const entries = entriesOf(parts, ast);
-    const documented = yield* documentedOf(entries, prose);
+    const entries = entriesOf(parts, context.ast);
+    const documented = yield* documentedOf(entries, context.content);
 
     return {
       entries,
       typeParameters: typeParametersOf(entries, documented),
-      parameters: parametersOf(entries, documented, ast),
-      returns: returnsOf(entries, documented, ast),
+      parameters: parametersOf(entries, documented, context),
+      returns: returnsOf(entries, documented, context),
       throws: throwsOf(entries, documented),
     };
   }),

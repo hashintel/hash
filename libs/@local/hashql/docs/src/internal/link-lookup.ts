@@ -126,7 +126,7 @@ export const mentioned =
               Array.filter(([name]) =>
                 samePath(Array.takeRight(name.path, path.length), path),
               ),
-              Array.map(([, id]): Local => ({ _tag: "Local", node: id })),
+              Array.map(([, id]) => id),
             ),
         }),
     });

@@ -1,5 +1,5 @@
-import { Array, HashMap, Option, pipe } from "effect";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "@effect/vitest";
+import { Array, Effect, HashMap, Option, pipe } from "effect";
 
 import * as Tree from "../src/Tree/index.js";
 import * as Reference from "./fixtures/reference.js";
@@ -15,7 +15,7 @@ export declare namespace Space { interface Value {} }`;
 type Shape =
   | readonly ["text" | "inlineCode", string]
   | readonly ["code", Option.Option<string>, string]
-  | readonly ["link", AST.Reference.Reference.Target | string, readonly Shape[]]
+  | readonly ["link", AST.Target.Interned | string, readonly Shape[]]
   | readonly ["paragraph", readonly Shape[]];
 
 const shapeOf = (
@@ -35,7 +35,7 @@ const shapeOf = (
           "link",
           node.destination instanceof URL
             ? node.destination.href
-            : node.destination.target,
+            : node.destination,
           shapeOf(node.children),
         ];
       }
@@ -51,8 +51,10 @@ interface Described {
 }
 
 /** The description of `comment` on a public declaration beside `declarations`. */
-const described = async (comment: string): Promise<Described> => {
-  const reference = await Reference.success({
+const described = Effect.fnUntraced(function* (
+  comment: string,
+): Effect.fn.Return<Described, Reference.Failure> {
+  const reference = yield* Reference.success({
     source: `${declarations}\n${comment}\nexport type Use = string;`,
     configuration: "render-tsdoc.json",
   });
@@ -65,190 +67,221 @@ const described = async (comment: string): Promise<Described> => {
   );
 
   return { reference, blocks };
-};
+});
 
 /** Whether two comments' descriptions say the same, wherever they stand. */
-const equivalent = async (left: string, right: string): Promise<boolean> => {
-  const [self, that] = await Promise.all([described(left), described(right)]);
+const equivalent = Effect.fnUntraced(function* (left: string, right: string) {
+  const [self, that] = yield* Effect.all([described(left), described(right)], {
+    concurrency: "unbounded",
+  });
 
   return Tree.Prose.equivalence(self.blocks, that.blocks);
-};
-
-const local = (
-  reference: Reference.Reference,
-  name: string,
-): AST.Reference.Reference.Target => ({
-  _tag: "Local",
-  node: Reference.id(reference, [name]),
 });
 
 describe("prose", () => {
-  test("rich_lead", async () => {
-    expect.hasAssertions();
-    const { reference, blocks } = await described(
-      "/** Read `input` through {@link Box}.\n *\n * More detail.\n */",
-    );
-    expect(shapeOf(blocks)).toStrictEqual([
-      [
-        "paragraph",
+  it.effect(
+    "rich_lead",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { reference, blocks } = yield* described(
+        "/** Read `input` through {@link Box}.\n *\n * More detail.\n */",
+      );
+      expect(shapeOf(blocks)).toStrictEqual([
         [
-          ["text", "Read "],
-          ["inlineCode", "input"],
-          ["text", " through "],
-          ["link", local(reference, "Box"), [["inlineCode", "Box"]]],
-          ["text", "."],
-        ],
-      ],
-      ["paragraph", [["text", "More detail."]]],
-    ]);
-    expect(Tree.Prose.plain(blocks)).toStrictEqual(
-      Option.some("Read input through Box."),
-    );
-  });
-
-  test("link_spacing", async () => {
-    expect.hasAssertions();
-    const { reference, blocks } = await described("/** {@link A} {@link B} */");
-    expect(shapeOf(blocks)).toStrictEqual([
-      [
-        "paragraph",
-        [
-          ["link", local(reference, "A"), [["inlineCode", "A"]]],
-          ["text", " "],
-          ["link", local(reference, "B"), [["inlineCode", "B"]]],
-        ],
-      ],
-    ]);
-  });
-
-  test("link_labels", async () => {
-    expect.hasAssertions();
-    const labelled = await described("/** {@link Box | its `value`} */");
-    expect(shapeOf(labelled.blocks)).toStrictEqual([
-      [
-        "paragraph",
-        [
+          "paragraph",
           [
-            "link",
-            local(labelled.reference, "Box"),
+            ["text", "Read "],
+            ["inlineCode", "input"],
+            ["text", " through "],
+            ["link", Reference.id(reference, ["Box"]), [["inlineCode", "Box"]]],
+            ["text", "."],
+          ],
+        ],
+        ["paragraph", [["text", "More detail."]]],
+      ]);
+      expect(Tree.Prose.plain(blocks)).toStrictEqual(
+        Option.some("Read input through Box."),
+      );
+    }),
+  );
+
+  it.effect(
+    "link_spacing",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { reference, blocks } = yield* described(
+        "/** {@link A} {@link B} */",
+      );
+      expect(shapeOf(blocks)).toStrictEqual([
+        [
+          "paragraph",
+          [
+            ["link", Reference.id(reference, ["A"]), [["inlineCode", "A"]]],
+            ["text", " "],
+            ["link", Reference.id(reference, ["B"]), [["inlineCode", "B"]]],
+          ],
+        ],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "link_labels",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const labelled = yield* described("/** {@link Box | its `value`} */");
+      expect(shapeOf(labelled.blocks)).toStrictEqual([
+        [
+          "paragraph",
+          [
             [
-              ["text", "its "],
-              ["inlineCode", "value"],
+              "link",
+              Reference.id(labelled.reference, ["Box"]),
+              [
+                ["text", "its "],
+                ["inlineCode", "value"],
+              ],
             ],
           ],
         ],
-      ],
-    ]);
-    const unfinished = await described(
-      "/** {@link Box | an `unfinished label} */",
-    );
-    expect(Tree.Prose.plain(unfinished.blocks)).toStrictEqual(
-      Option.some("an `unfinished label"),
-    );
-  });
+      ]);
+      const unfinished = yield* described(
+        "/** {@link Box | an `unfinished label} */",
+      );
+      expect(Tree.Prose.plain(unfinished.blocks)).toStrictEqual(
+        Option.some("an `unfinished label"),
+      );
+    }),
+  );
 
-  test("url_label", async () => {
-    expect.hasAssertions();
-    const { blocks } = await described(
-      "/** {@link https://example.com/guide} */",
-    );
-    expect(shapeOf(blocks)).toStrictEqual([
-      [
-        "paragraph",
+  it.effect(
+    "url_label",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { blocks } = yield* described(
+        "/** {@link https://example.com/guide} */",
+      );
+      expect(shapeOf(blocks)).toStrictEqual([
         [
+          "paragraph",
           [
-            "link",
-            "https://example.com/guide",
-            [["inlineCode", "https://example.com/guide"]],
+            [
+              "link",
+              "https://example.com/guide",
+              [["inlineCode", "https://example.com/guide"]],
+            ],
           ],
         ],
-      ],
-    ]);
-  });
+      ]);
+    }),
+  );
 
-  test("qualified_label", async () => {
-    expect.hasAssertions();
-    const { blocks } = await described("/** {@link @scope/pkg#Space.Value} */");
-    expect(Tree.Prose.plain(blocks)).toStrictEqual(Option.some("Space.Value"));
-  });
+  it.effect(
+    "qualified_label",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { blocks } = yield* described(
+        "/** {@link @scope/pkg#Space.Value} */",
+      );
+      expect(Tree.Prose.plain(blocks)).toStrictEqual(
+        Option.some("Space.Value"),
+      );
+    }),
+  );
 
-  test("escaped_text", async () => {
-    expect.hasAssertions();
-    const { blocks } = await described(
-      String.raw`/** Literal \@tag and \{ braces. */`,
-    );
-    expect(Tree.Prose.plain(blocks)).toStrictEqual(
-      Option.some("Literal @tag and { braces."),
-    );
-  });
+  it.effect(
+    "escaped_text",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { blocks } = yield* described(
+        String.raw`/** Literal \@tag and \{ braces. */`,
+      );
+      expect(Tree.Prose.plain(blocks)).toStrictEqual(
+        Option.some("Literal @tag and { braces."),
+      );
+    }),
+  );
 
-  test("html_code", async () => {
-    expect.hasAssertions();
-    const { blocks } = await described(
-      "/** Before <code>  a\\`b\n * c  </code> after. */",
-    );
-    expect(shapeOf(blocks)).toStrictEqual([
-      [
-        "paragraph",
+  it.effect(
+    "html_code",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { blocks } = yield* described(
+        "/** Before <code>  a\\`b\n * c  </code> after. */",
+      );
+      expect(shapeOf(blocks)).toStrictEqual([
         [
-          ["text", "Before "],
-          ["inlineCode", "  a`b\nc  "],
-          ["text", " after."],
+          "paragraph",
+          [
+            ["text", "Before "],
+            ["inlineCode", "  a`b\nc  "],
+            ["text", " after."],
+          ],
         ],
-      ],
-    ]);
-  });
+      ]);
+    }),
+  );
 
-  test("fenced_bytes", async () => {
-    expect.hasAssertions();
-    const { blocks } = await described(
-      "/**\n * ```ts\n * const value = {\n *   text: ` keep `,\n * };\n * ```\n */",
-    );
-    expect(shapeOf(blocks)).toStrictEqual([
-      ["code", Option.some("ts"), "const value = {\n  text: ` keep `,\n};\n"],
-    ]);
-    expect(Tree.Prose.plain(blocks)).toStrictEqual(Option.none());
-  });
+  it.effect(
+    "fenced_bytes",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { blocks } = yield* described(
+        "/**\n * ```ts\n * const value = {\n *   text: ` keep `,\n * };\n * ```\n */",
+      );
+      expect(shapeOf(blocks)).toStrictEqual([
+        ["code", Option.some("ts"), "const value = {\n  text: ` keep `,\n};\n"],
+      ]);
+      expect(Tree.Prose.plain(blocks)).toStrictEqual(Option.none());
+    }),
+  );
 
-  test("missing_target", async () => {
-    expect.hasAssertions();
-    await expect(
-      Reference.run({
-        source: `/** A private trait with {@link Missing}. @trait */ interface Hidden {}
+  it.effect(
+    "missing_target",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(
+        yield* Reference.run({
+          source: `/** A private trait with {@link Missing}. @trait */ interface Hidden {}
 export declare class Model implements Hidden {}
 export {};`,
-        configuration: "render-tsdoc.json",
-      }),
-    ).resolves.toMatchObject({
-      _tag: "Failure",
-      failure: {
-        _tag: "ProseError",
-        reason: { _tag: "MissingTarget", reference: "Missing" },
-      },
-    });
-  });
+          configuration: "render-tsdoc.json",
+        }),
+      ).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          _tag: "ProseError",
+          reason: { _tag: "MissingTarget", reference: "Missing" },
+        },
+      });
+    }),
+  );
 
-  test("unsupported_scheme", async () => {
-    expect.hasAssertions();
-    await expect(
-      Reference.run({
-        source:
-          "/** See {@link file:///guide.html | the guide}. */ export interface Box {}",
-      }),
-    ).resolves.toMatchObject({
-      _tag: "Failure",
-      failure: {
-        _tag: "ProseError",
-        reason: { _tag: "UnsupportedScheme", url: "file:///guide.html" },
-      },
-    });
-  });
+  it.effect(
+    "unsupported_scheme",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(
+        yield* Reference.run({
+          source:
+            "/** See {@link file:///guide.html | the guide}. */ export interface Box {}",
+        }),
+      ).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          _tag: "ProseError",
+          reason: { _tag: "UnsupportedScheme", url: "file:///guide.html" },
+        },
+      });
+    }),
+  );
 
-  test("semantic_equivalence", async () => {
-    expect.hasAssertions();
-    await expect(
-      Promise.all(
-        Array.map(
+  it.effect(
+    "semantic_equivalence",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(
+        yield* Effect.forEach(
           [
             ["/** {@link Box}. */", "/**\n *\n * {@link Box}.\n */"],
             ["/** {@link Box | it}. */", "/** {@link A | it}. */"],
@@ -259,9 +292,10 @@ export {};`,
               "/**\n * ```js\n * x\n * ```\n */",
             ],
           ] as const,
-          async ([left, right]) => equivalent(left, right),
+          ([left, right]) => equivalent(left, right),
+          { concurrency: "unbounded" },
         ),
-      ),
-    ).resolves.toStrictEqual([true, false, false, false, false]);
-  });
+      ).toStrictEqual([true, false, false, false, false]);
+    }),
+  );
 });

@@ -18,11 +18,11 @@ import type * as TSDoc from "@microsoft/tsdoc";
 type Phrasing = Tree.Prose.Phrasing;
 type Block = Tree.Prose.Block;
 
-/** What each of a comment's `{@link}`s names: the reference the AST resolved its name to. */
+/** What each of a comment's `{@link}`s names: the node of the AST its name resolved to. */
 export interface Context {
-  readonly reference: (
+  readonly target: (
     link: TSDoc.DocLinkTag,
-  ) => Option.Option<AST.Reference.Reference>;
+  ) => Option.Option<AST.Target.Interned>;
 }
 
 // oxlint-disable-next-line unicorn/throw-new-error -- Schema constructs the tagged error.
@@ -111,13 +111,13 @@ const missing = (link: TSDoc.DocLinkTag): ProseError =>
 const isWeb = (url: URL): boolean =>
   url.protocol === "http:" || url.protocol === "https:";
 
-/** The reference a link's name resolved to, or the web address a URL link writes. */
+/** The node a link's name resolved to, or the web address a URL link writes. */
 const destinationOf = (
   context: Context,
   link: TSDoc.DocLinkTag,
 ): Result.Result<Tree.Prose.Link["destination"], ProseError> => {
   if (link.urlDestination === undefined) {
-    return Result.fromOption(context.reference(link), () => missing(link));
+    return Result.fromOption(context.target(link), () => missing(link));
   }
 
   const address = link.urlDestination;
