@@ -225,8 +225,12 @@ export const usePdfSearch = (document: DocumentCallback | null) => {
     void getPages();
   }, [document]);
 
-  const findSearchHits = (searchString: string, ignoreCase: boolean) =>
-    findStringInPages({ pages, searchString, ignoreCase });
+  // TODO(FE-1978): remove this useCallback once React Compiler compiles this hook.
+  const findSearchHits = useCallback(
+    (searchString: string, ignoreCase: boolean) =>
+      findStringInPages({ pages, searchString, ignoreCase }),
+    [pages],
+  );
 
   /** `hits` must all be on the page that `textLayer` shows. */
   const createHitRanges = useCallback(
