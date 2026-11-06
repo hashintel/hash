@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bharatpe-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="bharatpe-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bharatpe-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bharatpe-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bharatpe-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bharatpe-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="bharatpe-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239727360041 -0.806458174512 -0.0814125841719 0 1.12759811872" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.37097"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#bharatpe-app-mono-light-mono)"><defs><clipPath id="bharatpe-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bharatpe-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" xml:space="preserve" viewBox="-325.12846 0.5721 109.64023 109.65581" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556">
+ <defs><clipPath id="bharatpe-app-mono-light-symbol-crop"><rect x="-325.33618" y="0.153" width="117.8237664" height="110.494" /></clipPath></defs><g clip-path="url(#bharatpe-app-mono-light-symbol-crop)"><g>
+  <g>
+   <g>
+    <path d="M-270.3,11.8c-24,0-43.5,19.5-43.5,43.5s19.5,43.5,43.5,43.5c24,0,43.5-19.5,43.5-43.5     S-246.2,11.8-270.3,11.8 M-270.3,110.1c-30.2,0-54.7-24.6-54.7-54.7c0-30.2,24.6-54.7,54.7-54.7c30.2,0,54.7,24.6,54.7,54.7     C-215.5,85.5-240.1,110.1-270.3,110.1" fill="#00AECA">
+    </path>
+    <polygon points="-245.6,41.2 -294.9,55.3 -294.9,42.1 -245.6,28    " fill="#EC6A5A">
+    </polygon>
+    <polygon points="-245.6,68.5 -294.9,82.7 -294.9,69.5 -245.6,55.3    " fill="#007270">
+    </polygon>
+   </g>
+   <g transform="translate(38.684211, 7.000259)">
+    <path d="M-211.1,54h-7.9v11.4h7.8c3.9,0,7.4-1.3,7.4-6C-203.8,54.9-207.4,54-211.1,54 M-212.9,31h-6.1     v9.7h6c3.4,0,6.2-1,6.2-5S-209.7,31-212.9,31 M-194.4,73.9c-6.3,5.5-12.1,5.4-20.1,5.4H-234V17h19c7.4,0,14.4,0.1,19.7,6.1     c2.6,2.9,3.7,6.4,3.7,10.3c0,5.3-2.6,9.9-7.2,12.5c6.7,2.4,10.1,7.4,10.1,14.5C-188.7,65.4-190.5,70.7-194.4,73.9" fill="#1D1D1B">
+    </path>
+    <path d="M-156,79.3V53.9c0-5-1.4-9.8-7.4-9.8c-6,0-7.7,4-7.7,9.3v25.9H-185V17h13.8v19.9h0.2     c2.4-4.4,7.2-5.9,11.9-5.9c4.5,0,9.6,1.6,12.6,5.1c4.4,5.1,4.3,10.7,4.3,17.1v26.1H-156z" fill="#1D1D1B">
+    </path>
+    <path d="M-113.5,44.1c-6.7,0-11.4,5.4-11.4,12c0,6.5,5,11.8,11.5,11.8c6.7,0,11.6-5.2,11.6-11.9     C-101.9,49.1-106.8,44.1-113.5,44.1L-113.5,44.1z M-101.9,79.3v-5h-0.2c-2.5,4.8-8.5,6.6-13.5,6.6c-14.2,0-23.2-11.1-23.2-25     c0-13.6,9.3-24.9,23.2-24.9c5.1,0,10.7,1.9,13.5,6.6h0.2v-5h13.8v46.7H-101.9z" fill="#1D1D1B">
+    </path>
+    <path d="M-68.4,53.7v25.7h-13.8V32.6h13v5h0.2c2.4-4.8,6.2-6.6,11.6-6.6v14.1     C-63.6,45.2-68.4,46.4-68.4,53.7" fill="#1D1D1B">
+    </path>
+    <path d="M-31.7,44.1c-6.7,0-11.4,5.4-11.4,12c0,6.5,5,11.8,11.5,11.8c6.7,0,11.6-5.2,11.6-11.9     C-20,49.1-24.9,44.1-31.7,44.1L-31.7,44.1z M-20,79.3v-5h-0.2c-2.5,4.8-8.5,6.6-13.5,6.6c-14.2,0-23.2-11.1-23.2-25     c0-13.6,9.3-24.9,23.2-24.9c5.1,0,10.7,1.9,13.5,6.6h0.2v-5h13.8v46.7H-20z" fill="#1D1D1B">
+    </path>
+    <polygon points="18.7,43.2 18.7,79.3 4.9,79.3 4.9,43.2 -1.9,43.2 -1.9,32.6 4.9,32.6 4.9,17 18.7,17      18.7,32.6 25.4,32.6 25.4,43.2    " fill="#1D1D1B">
+    </polygon>
+    <path d="M52.8,31H47v14.8h6.4c5.2,0,9.8-1.2,9.8-7.5C63.2,31.9,58,31,52.8,31 M71.8,54.4     c-5.3,4.7-11.1,5.4-18,5.4H47v19.5H31.9V17h20.1c6.3,0,13.9,0.3,19,4.5c4.8,4.1,7.2,10.1,7.2,16.5C78.3,43.8,76.1,50.5,71.8,54.4     " fill="#00AECA">
+    </path>
+    <g transform="translate(93.074561, 4.115936)">
+     <g>
+     </g>
+     <defs>
+      <filter id="bharatpe-app-mono-light-Adobe_OpacityMaskFilter" filterUnits="userSpaceOnUse" x="-15.1" y="26.9" width="48.6" height="49.8">
+       <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0">
+       </feColorMatrix>
+      </filter>
+     </defs>
+     <mask maskUnits="userSpaceOnUse" x="-15.1" y="26.9" width="48.6" height="49.8" id="bharatpe-app-mono-light-mask-2">
+      <g filter="url(#bharatpe-app-mono-light-Adobe_OpacityMaskFilter)">
+       <polygon points="-15.1,26.9 33.5,26.9 33.5,76.7 -15.1,76.7       " fill="#FFFFFF">
+       </polygon>
+      </g>
+     </mask>
+     <path d="M9.2,38.7c-5,0-9.4,2.9-10.5,8h21C18.6,41.6,14.2,38.7,9.2,38.7 M33.2,56.1H-1.4      c0.8,5.6,5.4,8.8,10.8,8.8c3.7,0,6.2-1.5,8.4-4.4h14.1c-4,9.3-12.1,16.2-22.5,16.2c-13.5,0-24.5-11.1-24.5-24.7      c0-13.5,10.6-25.1,24.2-25.1c14.1,0,24.4,11.4,24.4,25.5C33.5,53.7,33.4,54.8,33.2,56.1" mask="url(#bharatpe-app-mono-light-mask-2)" fill="#00AECA">
+     </path>
+    </g>
+   </g>
+  </g>
+ </g>
+</g></svg></g></g></svg>

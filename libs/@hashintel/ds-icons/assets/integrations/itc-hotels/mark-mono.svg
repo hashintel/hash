@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="itc-hotels-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.664814951071 -2.23648002354 -0.225774409536 0 3.12706938415" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#itc-hotels-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.06897 0.07657 23.86206 23.84679" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+
+  <defs>
+    </defs>
+  <g>
+    <g>
+      <g>
+        <polygon points="10.8 .1 10.8 17.5 .1 23.9 7.2 14.7 10.8 .1" fill="#D1AA67" />
+        <polygon points="13.2 .1 13.2 17.5 23.9 23.9 16.8 14.7 13.2 .1" fill="#D1AA67" />
+      </g>
+    </g>
+  </g>
+</svg></g></svg>

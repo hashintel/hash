@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hero-motocorp-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="hero-motocorp-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hero-motocorp-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hero-motocorp-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hero-motocorp-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hero-motocorp-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="hero-motocorp-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#hero-motocorp-app-mono-dark-mono)"><defs><clipPath id="hero-motocorp-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hero-motocorp-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.05977 0.28401 24.6951 40.09176" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="hero-motocorp-app-mono-dark-symbol-crop"><rect x="-0.08366" y="0.17796" width="26.727272" height="40.30387" /></clipPath></defs><g clip-path="url(#hero-motocorp-app-mono-dark-symbol-crop)"><g clip-path="url(#hero-motocorp-app-mono-dark-clip0_3700_5269)">
+<path d="M54.977 17.5344H45.9541V9.6875H40.2344V30.9895H45.9541V22.4558H54.977V30.9895H60.6852V9.6875H54.977V17.5344Z" fill="#EE2326" />
+<path d="M68.9198 17.8398C69.3991 14.9641 70.9603 13.462 73.4915 13.462C76.0515 13.462 77.7906 15.233 77.8739 17.8398H68.9198ZM73.5231 9.125C67.2294 9.125 63.0078 13.5496 63.0078 20.1866C63.0078 27.0895 67.1806 31.4761 73.7039 31.4761C78.9156 31.4761 82.4887 29.0417 83.8289 24.4329H77.6558C77.0961 26.1163 75.7903 26.9609 73.8273 26.9609C70.8771 26.9609 69.1035 25.1811 68.9542 22.0862H83.8289C83.8289 21.338 83.8719 21.075 83.8719 20.7185C83.8719 13.5496 79.877 9.125 73.5231 9.125" fill="#EE2326" />
+<path d="M93.5938 9.49961C91.5705 9.90876 86.3789 11.4986 86.3789 19.5646V30.9828H92.1646V21.5519C92.1646 18.0596 92.641 16.42 94.0702 15.3621C94.9455 14.649 96.2112 14.2545 97.6805 14.2545C98.289 14.2545 98.5501 14.3013 99.2475 14.4298V9.59606C99.2475 9.59606 96.9401 8.83329 93.5938 9.49961Z" fill="#EE2326" />
+<path d="M110.69 27.0378C107.642 27.0378 105.863 24.5187 105.863 20.3132C105.863 16.0639 107.605 13.5857 110.69 13.5857C113.729 13.5857 115.471 16.0201 115.471 20.2694C115.471 24.5654 113.729 27.0378 110.69 27.0378ZM110.69 9.11719C104.204 9.11999 100.031 13.498 100.031 20.3132C100.031 27.0817 104.204 31.4683 110.69 31.4683C117.116 31.4683 121.294 27.0817 121.294 20.3132C121.294 13.498 117.116 9.11719 110.69 9.11719Z" fill="#EE2326" />
+<path d="M24.5705 7.06641L15.625 0.335938V19.5074L24.5705 13.1919V7.06641Z" fill="#000000" />
+<path d="M24.5705 34.4812V21.3125L15.625 27.8618L24.5705 34.4812Z" fill="#000000" />
+<path d="M0.00390625 33.7114L8.95224 40.3338V12.918L0.00390625 6.1875V33.7114Z" fill="#EE2326" />
+</g>
+<defs>
+<clipPath id="hero-motocorp-app-mono-dark-clip0_3700_5269">
+<rect width="121.29" height="40" fill="#FFFFFF" transform="translate(0.00390625 0.335938)" />
+</clipPath>
+</defs>
+</g></svg></g></g></svg>
