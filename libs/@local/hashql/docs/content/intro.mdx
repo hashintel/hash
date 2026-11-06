@@ -343,6 +343,30 @@ So then why the `$` prefix? A `$` followed by an identifier is invalid in HashQL
 
 ## Strong typing
 
+HashQL is a strongly and statically typed language. What does that mean? Every expression has a type, and the compiler enforces, and assumes that any value that is produced is of the type it expects. This is different to TypeScript or Python, which can be gradually typed, and where types are merely a suggestion. Nothing is stopping you from lying to the compiler and saying: this string is actually a number (`"2" as unknown as number` is valid TypeScript), this is impossible to express in HashQL, and for good reason! Types in HashQL decide everything, from optimizations that are run when your program is compiled, to where you query ends up being executed. They are integral to the language's type safety and performance, and are what make HashQL work.
+
+To do so, the language uses a type lattice, that's a fancy word for types that form a hierarchy. At the bottom you have the uninhabitable type never (`!`), no value can ever occupy that type, and at the top you have unknown (`?`), any value can occupy that type. And in between, you have everything else! In general, we have the following primitives: string, integers, numbers, and booleans. The important thing here is that integers in themselves are a subtype of numbers, which means that every integer is also a number, but not every number is an integer. To then add more complex behaviour, we have our ADT (algebraic data types): structs and tuples. They allow you to group data together, either by name (struct) or by position (tuple). These collections are heterogenous, meaning that the types of the elements don't need to necessarily be the same. We then also have dynamic collections, which are homogenous collections, elements in them must be of the same type.
+
+What makes the type system also special is that it is a structural type system, with nominal opt-in. What does that mean? That sounds very abstract, but it basically means that for most types, except if a program writer explicitly chooses to, we compare by _how_ the data looks, let's say we have:
+
+```
+type Pair1 = (Integer, Integer) in
+type Pair2 = (Integer, Integer) in
+...
+```
+
+in a nominal type system `Pair1` and `Pair2` would be different types, in a structural type system `Pair1` and `Pair2` would be the same type, because we don't compare about the name that we gave the type, we care and compare about the structure of the data, but sometimes we actually _care_ about the semantic meaning and want to compare by that, this is where nominal opt-in comes in, we can say that the type that we define should instead be compared by its name, instead of what it contains, so that two with the same structure are not the same type:
+
+```
+newtype Pair1 = (Integer, Integer) in
+newtype Pair2 = (Integer, Integer) in
+...
+```
+
+these types are different, even though they have the same structure, because we defined them as `newtype` rather than `type`.
+
+The type system is vast, and has a bunch of features that are too complex to get into here, but range from variance, to recursive, type inference and generics.
+
 The comparison in the example produces a Boolean, which is the type `if` expects for its condition. Supplying an integer directly as the condition is a type error. HashQL does not treat `0` as false or other integers as true.
 
 Every HashQL expression has a type, and the compiler checks how expressions fit together before executing the query. Draft represents these types in TypeScript too, so your editor can catch many of these mistakes while you construct the program.
