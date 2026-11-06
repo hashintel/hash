@@ -1463,7 +1463,12 @@ export const integrationIconCatalog = [
     label: "HASH",
     integrationNames: ["HASH"],
     source: "https://hash.ai/",
-    categories: ["Databases & analytics"],
+    categories: [
+      "Databases & analytics",
+      "AI",
+      "Business software",
+      "Developer tools",
+    ],
     category: "Integrations",
     variants: [
       "mark-mono",
