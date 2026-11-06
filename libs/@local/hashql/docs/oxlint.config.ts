@@ -19,6 +19,19 @@ const config: OxlintConfig = defineConfig({
       },
     },
     {
+      files: [
+        "src/internal/ast-types.ts",
+        "src/internal/ast-references.ts",
+        "src/internal/ast-exposure.ts",
+      ],
+      rules: {
+        "max-classes-per-file": [
+          "deny", // Keep each public service key and its private state key together.
+          2,
+        ],
+      },
+    },
+    {
       files: ["preview/mdx-types.d.ts"],
       rules: {
         "import/unambiguous": "allow", // An ambient module declaration exists only in a script.
