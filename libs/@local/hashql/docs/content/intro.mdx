@@ -161,7 +161,7 @@ An `input` can also specify a default value. For example, `input(foo, Integer, 2
 
 We have called functions throughout these examples. The `fn` special form lets us define one of our own. Let's give our comparison a name so that we can call it with different values:
 
-```text tab="TypeScript" tab-group="hashql-language"
+```text tab="TypeScript (Draft)" tab-group="hashql-language"
 // Draft cannot construct HashQL closures yet.
 // The functional and reference tabs show the HashQL program.
 ```
@@ -253,7 +253,7 @@ The SDK's `import` constructs a HashQL import, not a host-language import. The i
 
 ### Reading a field with `access`
 
-The values that we have handled so far have been primitives, integers, strings, and so on. And that is nice and well, but for a program to do anything useful, we need _structure_, HashQL supports dynamic and static collections for this: tuples, structs, lists and dictionaries. More on them later. What's important is that these collections have values nested inside them. So how do we access them? `access` is the operator for reading a field from a struct or tuple, aka collections of values where the keys are always known upfront, without any uncertainty about what fields are available. We call this projection.
+The values that we have handled so far have been primitives: integers, strings, and so on. That's all well and good, but a useful program also needs _structure_. HashQL supports static collections (tuples and structs) and dynamic collections (lists and dictionaries). More on them later. What's important is that these collections have values nested inside them. So how do we access them? The `access` operator reads a field from a struct or an element from a tuple. These collections have fields and positions known at compile time. We call this projection.
 
 In this example we project the `value` field from the `foo` struct:
 
@@ -281,7 +281,7 @@ let foo = (value: 2, label: "two") in
 foo.value
 ```
 
-The result is `2`, the `access` special forms takes a look at the value it is given in the first slot, and then projects a reference to the value out, so that you can use it directly. This is very similar to `foo.bar` in JavaScript, Rust, or Python. But unlike dynamic languages, HashQL requires you to know and guarantee that the field exists at compile time. If you ask for a field that does not exist, you will get a type error.
+The result is `2`. The `access` special form takes the value in its first slot and projects a reference to the selected field. You can then use that value directly, much like `foo.bar` in JavaScript, Rust, or Python. But unlike dynamic languages, HashQL checks that the field exists at compile time. If you ask for a field that does not exist, you will get a type error.
 
 In our little example, the Draft API uses `Program.Structural.struct` to construct the struct expression, with `foo.value` constructing its HashQL field access.
 
@@ -293,13 +293,13 @@ Tuples use `access`/`.` too, but select by position instead of a field name. Pos
 
 ### Looking up an element with `index`
 
-Static collections, like tuples and structs are useful, but sometimes you have dynamic collections, values where you want to add and remove values from at runtime, where you might not know all the keys and positions beforehand. This is where the dynamic collections come in: `List<T>` and `Dict<K, V>`. They are similar to arrays and records in TypeScript, or lists and dicts in Python.
+Static collections like tuples and structs are useful, but sometimes the keys or positions you need are only known at runtime. You might also want to add or remove elements, producing a new collection. This is where dynamic collections come in: `List<T>` and `Dict<K, V>`. They are similar to arrays and records in TypeScript, or lists and dicts in Python.
 
 So how do we project into a collection when we can't guarantee that the key we want exists? Instead of `access`, we use `index` here. While `access` is called projection, we can think of `index` as subscripting into a collection.
 
 <Callout type="info" title="access vs index">
 
-You cannot interchange one for the other `access` can only be used with static collections (tuples and structs), and `index` can only be used with dynamic collections (lists and dicts).
+You cannot interchange the two: `access` works with static collections (tuples and structs), while `index` works with dynamic collections (lists and dicts).
 
 </Callout>
 
@@ -327,14 +327,16 @@ let position = 0 in
 foo[position]
 ```
 
-Because we don't know if an element exists at a given position, `index` returns an `Option` result. `Some` contains the value if the element exists, and `None` if it does not. This is important, because unlike JavaScript or Python, HashQL has no notion of secondary control-flow. There is no exception throwing, you must always handle it yourself. In our example the results for position `0` is `Some(2)`, for position `1` it is `Some(3)`, and for position `2` it is `None()`, which is past the end of this list.
+Because we don't know if an element exists at a given position, `index` returns an `Option` result. `Some` contains the value if the element exists, and `None` if it does not. Unlike JavaScript or Python, HashQL has no secondary control flow through exceptions. You handle the missing element as part of the result instead. In our example, positions `0` and `1` give `Some(2)` and `Some(3)`. Position `2` is past the end of the list, so it gives `None()`.
 
-The Draft API uses `Program.Structural.list` to construct the list, and the `$index` to construct the lookup. The first argument is the type of the list elements, and the second argument is the list itself.
+The Draft API uses `Program.Structural.list` to construct the list, and `$index` to construct the lookup. The first argument to `Program.Structural.list` is the type of the list elements, and the second argument is the list itself.
 
 <Accordions>
-  <Accordion title="Why is indexing done over `$index`?" id="why-use-instead-of-let">
+  <Accordion title="Why is indexing done over `$index`?" id="why-draft-uses-index">
 
-The reason is a limitation inside of JavaScript, we make use of `Reflect` a lot, but we cannot differentiate between if the indexing was done via `[]` or via `.`, and what is inside the brackets must always evaluate to a string. In most cases, that isn't something we can accomodate. So then why the `$` prefix? A `$` prefix is invalid inside of HashQL followed by an identifier (note that `$` alone _is_ a valid identifier). Because the language itself doesn't stop a type from supporting subscription and projection at the same time, we prefix `$` to the index expression to make sure that if that would ever be the case the SDK is able to protect against it (it also simplifies the implementation).
+The reason is a limitation inside of JavaScript. We make use of `Reflect` and proxies, but a proxy cannot tell whether you wrote `foo.bar` or `foo["bar"]`. JavaScript also converts the property key to a string or symbol before the proxy sees it. Passing the lookup expression to `$index` lets Draft keep it as a HashQL expression.
+
+So then why the `$` prefix? A `$` followed by an identifier is invalid in HashQL, although `$` alone is a valid identifier. HashQL doesn't rule out a type supporting both subscripting and projection. The prefix keeps `$index` separate from that type's fields, and also simplifies the implementation.
 
   </Accordion>
 </Accordions>
@@ -349,7 +351,7 @@ Every HashQL expression has a type, and the compiler checks how expressions fit 
 
 The compiler can usually infer an expression's type. When we want to state one explicitly, the `as` special form checks that the expression fits that type. It can broaden the type, but it does not convert the value or let us claim an incompatible type:
 
-```text tab="TypeScript" tab-group="hashql-language"
+```text tab="TypeScript (Draft)" tab-group="hashql-language"
 // Draft has no builder for the HashQL `as` special form yet.
 // The functional and reference tabs show the HashQL program.
 ```
