@@ -17992,7 +17992,7 @@ export const integrationIconCatalog = [
     integrationNames: ["Berry Bros. & Rudd", "Berry Bros"],
     source:
       "https://images.squarespace-cdn.com/content/60d1cb13763e9a2b36d15fe0/def9d4c1-a69a-44db-a1b7-8a88013a80d4/berry-bros-%26-rudd-spirits-specialist-whisky-rum-gin-logo.png",
-    categories: ["Food & drink"],
+    categories: ["Food & drink", "Retail"],
     category: "Integrations",
     variants: [
       "mark-mono",
