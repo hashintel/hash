@@ -317,23 +317,28 @@ const prepareDocumentActions = (writes: readonly StorageWrite[]) => {
 };
 
 /**
- * Open (creating if needed) the Pi Durable tables in one Postgres schema. The storage owns a `pg` pool built from
- * `pool` and ends it on `close()`; dropping the schema is the caller's business.
+ * Open (creating if needed) the Pi Durable tables in one Postgres schema. Given a `PoolConfig`, the storage owns a `pg`
+ * pool built from it and ends it on `close()`; given a `Pool`, it shares that pool and leaves ending it to the caller.
+ * Dropping the schema is the caller's business.
  *
  * One storage owns a schema at a time. Opening takes ownership from whichever storage held it: that storage's next
  * commit fails, which fails its Session, so a process that lost the schema stops writing instead of corrupting it.
  * `readOnly` opens without taking ownership, for a read-only Harness; its commits fail the same way.
  */
 export const openPostgresStorage = async (options: {
-  readonly pool: PoolConfig;
+  readonly pool: PoolConfig | Pool;
   readonly schema: string;
   readonly readOnly?: boolean;
 }): Promise<PostgresStorage> => {
   const tables = createPostgresTables(options.schema);
-  const pool = new Pool(options.pool);
+  const ownsPool = !(options.pool instanceof Pool);
+  const pool =
+    options.pool instanceof Pool ? options.pool : new Pool(options.pool);
   const ownerToken = options.readOnly === true ? undefined : randomUUID();
-  // An idle client's connection error removes that client from the pool; the next query surfaces a lasting failure.
-  pool.on("error", () => {});
+  if (ownsPool) {
+    // An idle client's connection error removes that client from the pool; the next query surfaces a lasting failure.
+    pool.on("error", () => {});
+  }
   try {
     const nextId = await inTransaction(pool, "BEGIN", async (client) => {
       // Serializes concurrent opens of one schema; DDL is transactional in Postgres.
@@ -380,11 +385,13 @@ export const openPostgresStorage = async (options: {
       }
       return Number(metadata.next_id);
     });
-    return new PostgresStorage(pool, tables, nextId, ownerToken);
+    return new PostgresStorage(pool, tables, nextId, ownerToken, ownsPool);
   } catch (error) {
-    await pool.end().catch(() => {
-      // Preserve the initialization failure.
-    });
+    if (ownsPool) {
+      await pool.end().catch(() => {
+        // Preserve the initialization failure.
+      });
+    }
     throw error;
   }
 };
@@ -424,6 +431,8 @@ export class PostgresStorage implements Storage {
     private nextId: number,
     /** Absent when opened read-only. */
     private readonly ownerToken: string | undefined,
+    /** False when the caller passed a pool it shares and ends itself. */
+    private readonly ownsPool: boolean,
   ) {}
 
   /**
@@ -914,7 +923,9 @@ export class PostgresStorage implements Storage {
             this.drained = resolve;
           });
         }
-        await this.pool.end();
+        if (this.ownsPool) {
+          await this.pool.end();
+        }
       })();
     }
     return this.closing;
