@@ -34,6 +34,7 @@ import { useEditor } from "./editor-context";
 import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
 import { useLocation } from "./router";
+import { treeTileColor } from "./status-colors";
 import { sourceOptions } from "./shapes";
 import { SearchHeader } from "./source-menu";
 import { kindLabel } from "./ui";
@@ -48,11 +49,17 @@ export const useOldUsedIn = () => useLocation().query.get("usedin") === "old";
  * u1 count at the row's end, a flat list below; u2 the count under the name; u3 count at the row's end, a menu;
  * u4 count at the row's end, the names on one wrapping line.
  */
-export type MinimalUsedIn = "u1" | "u2" | "u3" | "u4";
+export type MinimalUsedIn = "u1" | "u1a" | "u1b" | "u1c" | "u2" | "u3" | "u4";
 
 export const useMinimalUsedIn = (): MinimalUsedIn | null => {
   const value = useLocation().query.get("usedin");
-  return value === "u1" || value === "u2" || value === "u3" || value === "u4"
+  return value === "u1" ||
+    value === "u1a" ||
+    value === "u1b" ||
+    value === "u1c" ||
+    value === "u2" ||
+    value === "u3" ||
+    value === "u4"
     ? value
     : null;
 };
@@ -968,8 +975,39 @@ const hoverAddStyle = css({
   "[data-output]:hover &, [data-output]:focus-within &, &[data-open]": { visibility: "visible" },
 });
 
+/** u1a–u1c lead each name with its step icon: a hue tile, the bare coloured icon, or a neutral tile with a bold icon. */
+const leadStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  width: "[20px]",
+  height: "[20px]",
+  borderRadius: "[4px]",
+  "& svg": { width: "[12px !important]", height: "[12px !important]" },
+  "&[data-look=bare]": { width: "[16px]", "& svg": { width: "[14px !important]", height: "[14px !important]" } },
+  "&[data-look=bold] svg": { strokeWidth: "[1.75]" },
+});
+
+const NameLead = ({ look, icon, tile }: { look: "u1a" | "u1b" | "u1c"; icon: IconName; tile: React.CSSProperties }) => (
+  <span
+    className={leadStyle}
+    data-look={look === "u1a" ? "tile" : look === "u1b" ? "bare" : "bold"}
+    style={
+      look === "u1a"
+        ? tile
+        : look === "u1b"
+          ? { color: tile.color }
+          : { backgroundColor: "var(--colors-neutral-a10)", color: "var(--colors-neutral-s110)" }
+    }
+  >
+    <Icon name={icon} size="sm" />
+  </span>
+);
+
 const MinimalBlock = ({
-  take,
+  take: look,
+  iconOf,
   stepId,
   outputName,
   label,
@@ -979,6 +1017,7 @@ const MinimalBlock = ({
   end,
 }: {
   take: MinimalUsedIn;
+  iconOf: (id: string) => IconName;
   stepId: string;
   outputName: string;
   label: string;
@@ -987,6 +1026,7 @@ const MinimalBlock = ({
   readOnly: boolean;
   end: React.ReactNode;
 }) => {
+  const take = look === "u1a" || look === "u1b" || look === "u1c" ? "u1" : look;
   const { document, setUi } = useEditor();
   const uses = usesOf(document, stepId, outputName);
   const usedIcon = useUsedIcon();
@@ -1079,6 +1119,9 @@ const MinimalBlock = ({
               onPointerLeave={() => hover(null)}
               onClick={() => select(use.stepId)}
             >
+              {look === "u1a" || look === "u1b" || look === "u1c" ? (
+                <NameLead look={look} icon={iconOf(use.stepId)} tile={treeTileColor(iconOf(use.stepId))} />
+              ) : null}
               {nameOf(use.stepId)}
               <span data-input>{use.inputs.join(", ")}</span>
             </button>
@@ -1088,7 +1131,7 @@ const MinimalBlock = ({
       )
     ) : null;
   return (
-    <div className={blockStyle} data-output={`${stepId}.${outputName}`} data-used-take={take}>
+    <div className={blockStyle} data-output={`${stepId}.${outputName}`} data-used-take={look}>
       <div
         className={headStyle}
         data-row
@@ -1475,6 +1518,7 @@ export const UsedInBlock = ({
     return (
       <MinimalBlock
         take={minimal}
+        iconOf={iconOf}
         stepId={stepId}
         outputName={outputName}
         label={label}
