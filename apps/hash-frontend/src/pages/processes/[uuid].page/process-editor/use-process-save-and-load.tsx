@@ -39,9 +39,9 @@ import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/petrinet";
 
 /**
- * Result of {@link persistDefinition}. The caller (the bridge layer in
- * `process-editor.tsx`) needs both the new entity id and the freshly-saved
- * snapshot to ack the editor's pending save request, so we return both.
+ * Result of {@link persistDefinition}. The caller (`process-editor.tsx`)
+ * needs both the new entity id and the freshly-saved revision to complete
+ * the editor's save, so we return both.
  */
 export type PersistResult = {
   entityId: EntityId;
@@ -54,7 +54,6 @@ export type PersistResult = {
 };
 
 type UseProcessSaveAndLoadParams = {
-  selectedNetId: EntityId | null;
   setSelectedNetId: Dispatch<SetStateAction<EntityId | null>>;
   refetchRevisions: () => Promise<unknown>;
 };
@@ -62,11 +61,9 @@ type UseProcessSaveAndLoadParams = {
 /**
  * Encapsulates the GraphQL persistence + persisted-nets-list reads needed by
  * the process editor host. The editor owns the live SDCPN and title; the
- * host calls {@link persistDefinition} when forwarding a `requestSave` from
- * the bridge.
+ * host calls {@link persistDefinition} when the editor saves.
  */
 export const useProcessSaveAndLoad = ({
-  selectedNetId,
   setSelectedNetId,
   refetchRevisions,
 }: UseProcessSaveAndLoadParams): {
@@ -74,12 +71,18 @@ export const useProcessSaveAndLoad = ({
   persistedNets: PersistedNet[];
   persistedNetsLoading: boolean;
   /**
-   * Persist the supplied SDCPN + title to the graph. On success resolves
-   * with the persisted entity id, the new decision-time, and whether the
-   * resulting entity is editable by the current user. The caller is
-   * responsible for any URL navigation following a create.
+   * Persist the supplied SDCPN + title to the graph: to `entityId`, or to a
+   * new net when it is `null`. On success resolves with the persisted entity
+   * id, the new decision-time, and whether the resulting entity is editable
+   * by the current user. It changes no selection: the caller decides
+   * whether the result still applies to what is open, and is responsible
+   * for any URL navigation following a create.
    */
-  persistDefinition: (petriNet: SDCPN, title: string) => Promise<PersistResult>;
+  persistDefinition: (
+    petriNet: SDCPN,
+    title: string,
+    entityId: EntityId | null,
+  ) => Promise<PersistResult>;
   setUserEditable: Dispatch<SetStateAction<boolean>>;
   userEditable: boolean;
 } => {
@@ -155,29 +158,31 @@ export const useProcessSaveAndLoad = ({
         return null;
       }
 
-      setSelectedNetId(updatedNet.entityId);
-      setUserEditable(updatedNet.userEditable);
       return {
         decisionTime: updatedNet.lastUpdated,
         userEditable: updatedNet.userEditable,
       };
     },
-    [refetch, refetchRevisions, setSelectedNetId, setUserEditable],
+    [refetch, refetchRevisions],
   );
 
   const persistDefinition = useCallback(
-    async (petriNet: SDCPN, title: string): Promise<PersistResult> => {
+    async (
+      petriNet: SDCPN,
+      title: string,
+      entityId: EntityId | null,
+    ): Promise<PersistResult> => {
       if (!activeWorkspaceWebId) {
         throw new Error("No active workspace; cannot persist Petri net.");
       }
 
-      let persistedEntityId = selectedNetId;
+      let persistedEntityId = entityId;
 
-      if (selectedNetId) {
+      if (entityId) {
         await updateEntity({
           variables: {
             entityUpdate: {
-              entityId: selectedNetId,
+              entityId,
               propertyPatches: [
                 {
                   op: "replace",
@@ -260,13 +265,7 @@ export const useProcessSaveAndLoad = ({
         userEditable: refetched.userEditable,
       };
     },
-    [
-      activeWorkspaceWebId,
-      createEntity,
-      refetchPersistedNets,
-      selectedNetId,
-      updateEntity,
-    ],
+    [activeWorkspaceWebId, createEntity, refetchPersistedNets, updateEntity],
   );
 
   return useMemo(

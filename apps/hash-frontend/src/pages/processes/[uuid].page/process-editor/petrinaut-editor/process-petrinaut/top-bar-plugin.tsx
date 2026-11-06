@@ -1,9 +1,9 @@
 import { definePetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
-import { EmbedActions, EmbedBreadcrumbs } from "./embed-chrome";
+import { TopBarActions, TopBarBreadcrumbs } from "./top-bar-plugin/top-bar";
 
-/** HASH's breadcrumbs, version picker and Save in the embed's top bar. */
-export const embedChromePlugin = definePetrinautPlugin({
+/** HASH's breadcrumbs, version picker and Save in the editor's top bar. */
+export const topBarPlugin = definePetrinautPlugin({
   id: "hash.process-embed",
   name: "Process controls",
   description:
@@ -16,7 +16,7 @@ export const embedChromePlugin = definePetrinautPlugin({
   },
 })({
   topBarItems: {
-    breadcrumbs: <EmbedBreadcrumbs />,
-    actions: <EmbedActions />,
+    breadcrumbs: <TopBarBreadcrumbs />,
+    actions: <TopBarActions />,
   },
 });

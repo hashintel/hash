@@ -24,12 +24,12 @@ import {
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../../shared/auth-info-context";
-import { embedChromePlugin } from "./embed-chrome-plugin";
+import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
 
-const embedPlugins = [embedChromePlugin];
-const embedPluginsWithBrunch = [embedChromePlugin, brunchPlugin];
+const editorPlugins = [topBarPlugin];
+const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 
 /** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
 const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
@@ -56,7 +56,7 @@ const brunchWords = { enabled: false };
 const noNetSwitchingError = () => {
   throw new Error(
     "Net switching from inside the Petrinaut editor is not supported; " +
-      "the host (process-editor) drives all net loads via the bridge.",
+      "the host (process-editor) drives all net loads.",
   );
 };
 
@@ -160,10 +160,10 @@ const BrunchSession = memo(
 /**
  * The Petrinaut editor for the open net, with Brunch as its assistant while
  * the net is saved, the user may edit it, and the account's owner key is
- * known. Rendered inside the embed's `ErrorTrackerContext`, so Brunch's
+ * known. Rendered inside the editor's `ErrorTrackerContext`, so Brunch's
  * contained failures reach the same reporter as Petrinaut's.
  */
-export const EmbedPetrinaut = ({
+export const ProcessPetrinaut = ({
   handle,
   savedEntityId,
   readTitle,
@@ -230,8 +230,8 @@ export const EmbedPetrinaut = ({
           loadPetriNet={noNetSwitchingError}
           plugins={
             ownerKey !== null && openDocument !== null
-              ? embedPluginsWithBrunch
-              : embedPlugins
+              ? editorPluginsWithBrunch
+              : editorPlugins
           }
           readonly={readonly}
           setTitle={setTitle}

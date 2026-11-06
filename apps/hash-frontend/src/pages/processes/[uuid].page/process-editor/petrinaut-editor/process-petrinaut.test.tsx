@@ -7,7 +7,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ErrorTrackerContext } from "@hashintel/petrinaut";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 
-import { EmbedPetrinaut } from "./embed-petrinaut";
+import { ProcessPetrinaut } from "./process-petrinaut";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
@@ -24,7 +24,7 @@ const observed = vi.hoisted(() => ({
 }));
 
 const brunchPluginMarker = vi.hoisted(() => ({ id: "brunch" }));
-const embedChromePluginMarker = vi.hoisted(() => ({ id: "embed-chrome" }));
+const topBarPluginMarker = vi.hoisted(() => ({ id: "top-bar" }));
 const brunchHostContext = await vi.hoisted(async () => {
   const { createContext: createHostContext } = await import("react");
   return createHostContext<BrunchAssistantHost | null>(null);
@@ -66,8 +66,8 @@ vi.mock("@hashintel/brunch-agent/ui", () => ({
   },
 }));
 
-vi.mock("./embed-chrome-plugin", () => ({
-  embedChromePlugin: embedChromePluginMarker,
+vi.mock("./process-petrinaut/top-bar-plugin", () => ({
+  topBarPlugin: topBarPluginMarker,
 }));
 
 vi.mock("../../../../shared/auth-info-context", () => ({
@@ -113,7 +113,7 @@ const renderEditor = (props: {
 }) => {
   const element = (next: typeof props) => (
     <ErrorTrackerContext value={{ captureException }}>
-      <EmbedPetrinaut
+      <ProcessPetrinaut
         handle={handle}
         readTitle={() => "Net"}
         setTitle={() => {}}
@@ -151,15 +151,12 @@ test("Brunch is offered on an editable saved net only once the owner key is know
 
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([embedChromePluginMarker]);
+  expect(lastPlugins()).toEqual([topBarPluginMarker]);
 
   act(() => respond(Response.json({ ownerKey: "hash:alice-account" })));
 
   await waitFor(() =>
-    expect(lastPlugins()).toEqual([
-      embedChromePluginMarker,
-      brunchPluginMarker,
-    ]),
+    expect(lastPlugins()).toEqual([topBarPluginMarker, brunchPluginMarker]),
   );
   await waitFor(() =>
     expect(observed.brunchInputs.at(-1)).toMatchObject({ selected: true }),
@@ -181,7 +178,7 @@ test("a 503 from the identity route turns Brunch off without reporting it", asyn
   await settleIdentity();
 
   expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([embedChromePluginMarker]);
+  expect(lastPlugins()).toEqual([topBarPluginMarker]);
   expect(captureException).not.toHaveBeenCalled();
 });
 
@@ -199,7 +196,7 @@ test("other identity failures are still reported, and offer no Brunch", async ()
     { source: "brunch.identity" },
   );
   expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([embedChromePluginMarker]);
+  expect(lastPlugins()).toEqual([topBarPluginMarker]);
 });
 
 test("a net the user may not edit gets no Brunch, and gaining or losing permission keeps the editor mounted", async () => {
@@ -207,18 +204,15 @@ test("a net the user may not edit gets no Brunch, and gaining or losing permissi
   await settleIdentity();
 
   expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([embedChromePluginMarker]);
+  expect(lastPlugins()).toEqual([topBarPluginMarker]);
 
   rerender({ savedEntityId, readonly: false });
   await waitFor(() =>
-    expect(lastPlugins()).toEqual([
-      embedChromePluginMarker,
-      brunchPluginMarker,
-    ]),
+    expect(lastPlugins()).toEqual([topBarPluginMarker, brunchPluginMarker]),
   );
 
   rerender({ savedEntityId, readonly: true });
-  await waitFor(() => expect(lastPlugins()).toEqual([embedChromePluginMarker]));
+  await waitFor(() => expect(lastPlugins()).toEqual([topBarPluginMarker]));
 
   expect(observed.petrinautMounts).toBe(1);
   expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -229,5 +223,5 @@ test("an unsaved draft gets no Brunch", async () => {
   await settleIdentity();
 
   expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([embedChromePluginMarker]);
+  expect(lastPlugins()).toEqual([topBarPluginMarker]);
 });
