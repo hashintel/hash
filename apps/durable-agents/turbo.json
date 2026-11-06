@@ -18,6 +18,20 @@
       "dependsOn": ["^build"],
       "env": ["TEST_COVERAGE"]
     },
+    "proof:restart-turn": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": [
+        "BRUNCH_POSTGRES_HOST",
+        "BRUNCH_POSTGRES_PORT",
+        "BRUNCH_POSTGRES_USER",
+        "BRUNCH_POSTGRES_PASSWORD",
+        "BRUNCH_POSTGRES_DATABASE",
+        "POSTGRES_PORT",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD"
+      ]
+    },
     "proof:browser-call": {
       "dependsOn": ["^build"],
       "cache": false
