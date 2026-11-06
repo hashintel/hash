@@ -25,6 +25,7 @@ const DOCUMENT_KEY_ORDER = [
   "subnets",
   "places",
   "componentInstances",
+  "fusions",
   "transitions",
   "metrics",
   "scenarios",
@@ -40,6 +41,7 @@ const SUBNET_KEY_ORDER = [
   "differentialEquations",
   "places",
   "componentInstances",
+  "fusions",
   "transitions",
 ] as const satisfies readonly (keyof Subnet)[];
 
