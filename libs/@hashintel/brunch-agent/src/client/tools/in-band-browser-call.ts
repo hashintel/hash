@@ -9,7 +9,7 @@ import {
   browserToolFacts,
 } from "../../petrinaut/browser-executed-tools";
 
-import type { BrunchFetch } from "../brunch-flue-client";
+import type { BrunchConnection, BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
 import type {
   BrowserCallClaim,
@@ -44,34 +44,36 @@ export const BROWSER_CALL_STALE_MESSAGE =
   "The document changed by other means after the agent's last view of the net; the call was not started.";
 
 /** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
-export const createInBandBrowserCalls = (input: {
-  readonly client: Promise<FlueClient>;
-  readonly ownerKey: string;
-  readonly binding: BrowserContext["binding"];
-  readonly metadataFor: (
-    toolCallId: string,
-    output: unknown,
-  ) => ClientToolResultMetadata | undefined;
-  readonly prepareInput: (call: {
-    toolCallId: string;
-    toolName: string;
-    input: unknown;
-  }) => void;
-  readonly admit: InBandBrowserCallAdmission;
-  /** Whether a change issued against `expected` may still run on the bound document. */
-  readonly acceptsRevision: (expected: string) => boolean;
-  /** Carries the claim, lease, fail and result requests; the global `fetch` when omitted. */
-  readonly fetch?: BrunchFetch;
-}) => {
+export const createInBandBrowserCalls = (
+  input: Pick<BrunchConnection, "actorKey" | "legacyActorHeader" | "fetch"> & {
+    readonly client: Promise<FlueClient>;
+    readonly binding: BrowserContext["binding"];
+    readonly metadataFor: (
+      toolCallId: string,
+      output: unknown,
+    ) => ClientToolResultMetadata | undefined;
+    readonly prepareInput: (call: {
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+    }) => void;
+    readonly admit: InBandBrowserCallAdmission;
+    /** Whether a change issued against `expected` may still run on the bound document. */
+    readonly acceptsRevision: (expected: string) => boolean;
+  },
+) => {
   const request: BrunchFetch = input.fetch ?? ((url, init) => fetch(url, init));
   const claim = async (call: IssuedCall) => {
     const client = await input.client;
     const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
     const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
-    const headers = agentOwnershipHeaders({
-      ownerKey: input.ownerKey,
-      conversationId: input.binding.conversationId,
-    });
+    const headers = agentOwnershipHeaders(
+      {
+        actorKey: input.actorKey,
+        conversationId: input.binding.conversationId,
+      },
+      input,
+    );
     const claimSignal = AbortSignal.any([
       call.signal,
       AbortSignal.timeout(6_000),

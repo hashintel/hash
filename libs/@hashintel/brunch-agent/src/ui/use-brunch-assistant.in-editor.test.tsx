@@ -71,7 +71,7 @@ const HookPanel = ({ handle }: { handle: PetrinautDocHandle }) => {
     [handle],
   );
   const brunch = useBrunchAssistant({
-    ownerKey: "test-owner",
+    actorKey: "test-owner",
     chatEndpoint: "/agents/petrinaut",
     selected: true,
     openDocument,

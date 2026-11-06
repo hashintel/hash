@@ -20,6 +20,12 @@ export const brunchEnv = {
   corsAllowedOrigins: "BRUNCH_CORS_ALLOWED_ORIGINS",
   dbKind: "BRUNCH_DB_KIND",
   devDbPath: "BRUNCH_DEV_DB_PATH",
+  /**
+   * Kratos's public API, the same address the graph and hash-api read. The
+   * HASH agent's route asks it who a request's session belongs to. Unset or
+   * empty, every request on that route is refused.
+   */
+  hashKratosPublicUrl: "HASH_KRATOS_PUBLIC_URL",
   panelPort: "BRUNCH_PANEL_PORT",
   /** The dedicated Postgres fields; the SQLite store rejects every one of them. */
   postgres: {

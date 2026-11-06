@@ -59,8 +59,8 @@ vi.mock("./brunch-preview-config", () => ({
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("./brunch-owner-key", () => ({
-  getOrCreateBrunchOwnerKey: () => "prompt-test-owner",
+vi.mock("./brunch-actor-key", () => ({
+  getOrCreateBrunchActorKey: () => "prompt-test-owner",
 }));
 // The real editor, observed: the props the shell hands it.
 const editorProps = vi.hoisted(() => ({

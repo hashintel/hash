@@ -18,13 +18,13 @@ import {
   brunchRoutes,
   type ConversationIdentity,
   flueConversationIdWeb,
-  localUiOwnerKey,
+  localUiActorKey,
   petrinautUserMessageText,
 } from "@hashintel/brunch-agent";
 
-/** The local UI always speaks as its one demo owner key. */
+/** The local UI always speaks as its one demo actor key. */
 type LocalConversationIdentity = ConversationIdentity & {
-  readonly ownerKey: typeof localUiOwnerKey;
+  readonly actorKey: typeof localUiActorKey;
 };
 
 type ChatConfiguration =
@@ -40,17 +40,17 @@ const chatConfiguration = (): ChatConfiguration => {
   if (parameters.get("mode") !== "observe") {
     return {
       mode: "writable",
-      ownerKey: localUiOwnerKey,
+      actorKey: localUiActorKey,
       conversationId: crypto.randomUUID(),
     };
   }
 
-  const ownerKey = parameters.get("owner-key");
+  const actorKey = parameters.get("actor-key");
   const conversationId = parameters.get("id")?.trim();
-  if (ownerKey !== localUiOwnerKey) {
+  if (actorKey !== localUiActorKey) {
     return {
       mode: "observer-error",
-      message: `Observer owner key must be "${localUiOwnerKey}".`,
+      message: `Observer actor key must be "${localUiActorKey}".`,
     };
   }
   if (!conversationId) {
@@ -62,7 +62,7 @@ const chatConfiguration = (): ChatConfiguration => {
 
   return {
     mode: "observe",
-    ownerKey: localUiOwnerKey,
+    actorKey: localUiActorKey,
     conversationId,
   };
 };

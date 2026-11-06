@@ -33,133 +33,161 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("every Brunch request, the live-tool stream included, goes through the host's fetch", async () => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn<typeof fetch>(() => {
-      throw new Error("The global fetch was used.");
-    }),
-  );
-  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-  const requests: string[] = [];
-  const hostFetch = vi.fn<typeof fetch>(async (resource, init) => {
-    const url = new URL(
-      resource instanceof Request ? resource.url : String(resource),
+test.each([
+  { legacyActorHeader: false, actorHeader: "x-brunch-actor" },
+  { legacyActorHeader: true, actorHeader: "x-brunch-principal" },
+])(
+  "every Brunch request, the live-tool stream included, goes through the host's fetch and names the actor in $actorHeader",
+  async ({ legacyActorHeader, actorHeader }) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() => {
+        throw new Error("The global fetch was used.");
+      }),
     );
-    const method = init?.method ?? "GET";
-    const path = url.pathname.replace(
-      /^\/agents\/petrinaut\/[0-9a-f]{64}/u,
-      "",
-    );
-    if (url.pathname.startsWith("/stream")) {
-      // Flue's own reply stream: held open until the test stops the turn.
-      requests.push(`${method} flue-stream`);
-      return new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () =>
-          reject(init.signal?.reason),
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const requests: string[] = [];
+    const actorHeaders: string[] = [];
+    const hostFetch = vi.fn<typeof fetch>(async (resource, init) => {
+      const url = new URL(
+        resource instanceof Request ? resource.url : String(resource),
+      );
+      const method = init?.method ?? "GET";
+      const path = url.pathname.replace(
+        /^\/agents\/petrinaut\/[0-9a-f]{64}/u,
+        "",
+      );
+      if (url.pathname.startsWith("/agents/")) {
+        const headers = new Headers(
+          resource instanceof Request ? resource.headers : undefined,
         );
-      });
-    }
-    if (path === "") {
-      requests.push(`${method} flue-send`);
-      return Response.json({
-        streamUrl: "http://brunch.test/stream",
-        offset: "-1",
-        submissionId: "submission",
-        uid: "uid",
-      });
-    }
-    if (path === `/${liveToolRouteSegment}`) {
-      requests.push(`${method} live-tool-stream`);
-      return new Response(new ReadableStream({ start: (c) => c.close() }), {
-        headers: { "content-type": "text/event-stream" },
-      });
-    }
-    const call = /^\/browser-calls\/([^/]+)(\/lease|\/fail)?$/u.exec(path);
-    if (call) {
-      const [, toolCallId, action] = call;
-      if (method === "GET") {
-        requests.push(`GET claim ${toolCallId}`);
-        return Response.json({
-          capability: "capability",
-          binding: canonicalContent(binding),
-          toolName: "addPlace",
-          input: placeInput,
+        new Headers(init?.headers).forEach((value, name) =>
+          headers.set(name, value),
+        );
+        actorHeaders.push(
+          ["x-brunch-actor", "x-brunch-principal"]
+            .filter((name) => headers.get(name) === "actor")
+            .join(","),
+        );
+      }
+      if (url.pathname.startsWith("/stream")) {
+        // Flue's own reply stream: held open until the test stops the turn.
+        requests.push(`${method} flue-stream`);
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(init.signal?.reason),
+          );
         });
       }
-      requests.push(
-        `POST ${action === undefined ? "result" : action.slice(1)} ${toolCallId}`,
-      );
-      return new Response(null, { status: 200 });
-    }
-    throw new Error(`Unexpected request ${method} ${url.href}`);
-  });
-  const connection: BrunchConnection = {
-    ownerKey: "owner",
-    chatEndpoint: "http://brunch.test/agents/petrinaut",
-    fetch: hostFetch,
-  };
-  const client = createBrunchFlueClient(connection, binding.conversationId);
+      if (path === "") {
+        requests.push(`${method} flue-send`);
+        return Response.json({
+          streamUrl: "http://brunch.test/stream",
+          offset: "-1",
+          submissionId: "submission",
+          uid: "uid",
+        });
+      }
+      if (path === `/${liveToolRouteSegment}`) {
+        requests.push(`${method} live-tool-stream`);
+        return new Response(new ReadableStream({ start: (c) => c.close() }), {
+          headers: { "content-type": "text/event-stream" },
+        });
+      }
+      const call = /^\/browser-calls\/([^/]+)(\/lease|\/fail)?$/u.exec(path);
+      if (call) {
+        const [, toolCallId, action] = call;
+        if (method === "GET") {
+          requests.push(`GET claim ${toolCallId}`);
+          return Response.json({
+            capability: "capability",
+            binding: canonicalContent(binding),
+            toolName: "addPlace",
+            input: placeInput,
+          });
+        }
+        requests.push(
+          `POST ${action === undefined ? "result" : action.slice(1)} ${toolCallId}`,
+        );
+        return new Response(null, { status: 200 });
+      }
+      throw new Error(`Unexpected request ${method} ${url.href}`);
+    });
+    const connection: BrunchConnection = {
+      actorKey: "actor",
+      legacyActorHeader,
+      chatEndpoint: "http://brunch.test/agents/petrinaut",
+      fetch: hostFetch,
+    };
+    const client = createBrunchFlueClient(connection, binding.conversationId);
 
-  // Flue's submission and the live-tool stream the transport opens for it.
-  const stop = new AbortController();
-  const transport = createBrunchPanelTransport(
-    client,
-    new BrunchPanelConversationTracker(),
-    {
-      liveToolStream: brunchLiveToolStream(connection, binding.conversationId),
-    },
-  );
-  const stream = await transport.sendMessages({
-    trigger: "submit-message",
-    chatId: binding.conversationId,
-    messageId: "user",
-    abortSignal: stop.signal,
-    messages: [
-      { id: "user", role: "user", parts: [{ type: "text", text: "Hi" }] },
-    ],
-  });
-  await vi.waitFor(() => expect(requests).toContain("GET live-tool-stream"));
-  stop.abort();
-  await stream.cancel().catch(() => {});
+    // Flue's submission and the live-tool stream the transport opens for it.
+    const stop = new AbortController();
+    const transport = createBrunchPanelTransport(
+      client,
+      new BrunchPanelConversationTracker(),
+      {
+        liveToolStream: brunchLiveToolStream(
+          connection,
+          binding.conversationId,
+        ),
+      },
+    );
+    const stream = await transport.sendMessages({
+      trigger: "submit-message",
+      chatId: binding.conversationId,
+      messageId: "user",
+      abortSignal: stop.signal,
+      messages: [
+        { id: "user", role: "user", parts: [{ type: "text", text: "Hi" }] },
+      ],
+    });
+    await vi.waitFor(() => expect(requests).toContain("GET live-tool-stream"));
+    stop.abort();
+    await stream.cancel().catch(() => {});
 
-  // The browser calls: claim, lease and result for one, claim and fail for another.
-  const calls = createInBandBrowserCalls({
-    client,
-    ownerKey: connection.ownerKey,
-    binding,
-    metadataFor: () => undefined,
-    prepareInput: () => {},
-    admit: async () => ({ admitted: true }),
-    acceptsRevision: () => true,
-    fetch: hostFetch,
-  });
-  const issued = (toolCallId: string) => ({
-    toolCallId,
-    toolName: "addPlace",
-    input: placeInput,
-    signal: new AbortController().signal,
-  });
-  await calls.run(issued("applied"), async () => {
-    vi.advanceTimersByTime(5_000);
-    return { applied: true };
-  });
-  await expect(
-    calls.run(issued("thrown"), async () => {
-      throw new Error("The edit failed.");
-    }),
-  ).rejects.toThrow("The edit failed.");
+    // The browser calls: claim, lease and result for one, claim and fail for another.
+    const calls = createInBandBrowserCalls({
+      client,
+      actorKey: connection.actorKey,
+      legacyActorHeader,
+      binding,
+      metadataFor: () => undefined,
+      prepareInput: () => {},
+      admit: async () => ({ admitted: true }),
+      acceptsRevision: () => true,
+      fetch: hostFetch,
+    });
+    const issued = (toolCallId: string) => ({
+      toolCallId,
+      toolName: "addPlace",
+      input: placeInput,
+      signal: new AbortController().signal,
+    });
+    await calls.run(issued("applied"), async () => {
+      vi.advanceTimersByTime(5_000);
+      return { applied: true };
+    });
+    await expect(
+      calls.run(issued("thrown"), async () => {
+        throw new Error("The edit failed.");
+      }),
+    ).rejects.toThrow("The edit failed.");
 
-  expect(requests).toEqual(
-    expect.arrayContaining([
-      "POST flue-send",
-      "GET live-tool-stream",
-      "GET claim applied",
-      "POST lease applied",
-      "POST result applied",
-      "GET claim thrown",
-      "POST fail thrown",
-    ]),
-  );
-  expect(globalThis.fetch).not.toHaveBeenCalled();
-});
+    expect(requests).toEqual(
+      expect.arrayContaining([
+        "POST flue-send",
+        "GET live-tool-stream",
+        "GET claim applied",
+        "POST lease applied",
+        "POST result applied",
+        "GET claim thrown",
+        "POST fail thrown",
+      ]),
+    );
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    // Each request to the agent's routes names the actor under one header only.
+    expect(actorHeaders.length).toBeGreaterThanOrEqual(7);
+    expect(new Set(actorHeaders)).toEqual(new Set([actorHeader]));
+  },
+);

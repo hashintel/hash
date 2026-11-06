@@ -61,6 +61,7 @@ import { showPersonaPanel } from "./launch/browser.ts";
 import { interviewLengthStorage } from "./launch/interview-length.ts";
 import {
   openRetainedPersonaBrowser,
+  personaSessionFileText,
   readPersonaResume,
   reconcilePersonaResume,
 } from "./launch/resume.ts";
@@ -689,7 +690,7 @@ const launchPersona = async ({
                 // Retained even if the reply fails; resume needs the identity.
                 await writeFile(
                   join(run, "session.json"),
-                  `${JSON.stringify(admitted, null, 2)}\n`,
+                  personaSessionFileText(admitted),
                   { mode: 0o600 },
                 );
               }

@@ -4059,7 +4059,7 @@ describe("AiAssistantPanel composer submissions", () => {
         client: Promise.resolve({
           url: "http://brunch.local/agents/hash/instance",
         } as FlueClient),
-        ownerKey: "owner",
+        actorKey: "owner",
         fetch: brunchFetch,
         binding,
         metadataFor: () => undefined,
@@ -4291,7 +4291,7 @@ describe("AiAssistantPanel composer submissions", () => {
       client: Promise.resolve({
         url: "http://brunch.local/agents/hash/instance",
       } as FlueClient),
-      ownerKey: "owner",
+      actorKey: "owner",
       fetch: brunchFetch,
       binding: { conversationId: "conversation", documentId: "net" },
       metadataFor: () => undefined,

@@ -1,17 +1,19 @@
 /**
- * `@hashintel/brunch-agent`: what the Brunch agent app and the Petrinaut
- * website share. Browser-safe throughout; nothing here imports the Flue
+ * `@hashintel/brunch-agent`: what the Brunch agent app, the Petrinaut website
+ * and HASH share. Browser-safe throughout; nothing here imports the Flue
  * runtime, which `apps/brunch-agent/test/architecture/import-direction.test.ts`
  * enforces. Flue tools, guidance and server mechanics live in the app.
  */
 
 export {
+  brunchActorKeyStorageKey,
+  brunchExposedResponseHeaders,
   brunchHeaders,
-  brunchOwnerKeyStorageKey,
   brunchRoutes,
   brunchSignals,
   brunchTools,
-  localUiOwnerKey,
+  hashSessionCredential,
+  localUiActorKey,
   previewConversationIdPrefix,
 } from "./constants";
 export * from "./conversation-identity";

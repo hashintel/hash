@@ -469,7 +469,7 @@ test("a call claimed in one editor never runs in a replacement with identical co
       client: Promise.resolve({
         url: "http://brunch.local/agents/petrinaut/instance",
       } as FlueClient),
-      ownerKey: "owner",
+      actorKey: "owner",
       fetch: brunchFetch,
       binding,
       metadataFor: () => undefined,

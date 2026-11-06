@@ -48,6 +48,8 @@ The HASH Backend API service is configured using the following environment varia
   - `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
 - `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to used to decide what changes should be written to connected applications (for two-way sync between them and HASH)
 - `HASH_API_RUDDERSTACK_KEY`: (optional) Rudderstack write key for product analytics. Leave blank to disable telemetry. The environment label sent with events is derived from `ENVIRONMENT`.
+- Brunch agent (the authenticated hop at `/api/brunch` to the Brunch server's HASH agent)
+  - `HASH_BRUNCH_AGENT_ORIGIN`: (optional) the Brunch server's origin. Unset, the hop is off. The hop forwards only the caller's Kratos session credential (the `ory_kratos_session` cookie, or `X-Session-Token`) and states no identity of its own, as the atlas proxy does; Brunch resolves the actor with Kratos, so it needs `HASH_KRATOS_PUBLIC_URL` set to the same Kratos.
 
 ## Metrics
 

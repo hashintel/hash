@@ -56,7 +56,7 @@ const browserCalls = () =>
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    ownerKey: "owner",
+    actorKey: "owner",
     binding,
     metadataFor: () => undefined,
     prepareInput: () => {},

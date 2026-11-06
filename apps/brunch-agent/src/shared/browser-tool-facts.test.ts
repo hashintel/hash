@@ -55,6 +55,7 @@ const onFailureOf = async (
   toolName: string,
 ): Promise<ServerSide["onFailure"]> => {
   const call = {
+    agentName: "characterization-agent",
     instanceId: "characterization",
     toolCallId: crypto.randomUUID(),
     toolName,
@@ -62,7 +63,7 @@ const onFailureOf = async (
     binding,
   };
   const result = issueBrowserCall(call);
-  const claim = claimBrowserCall(call.instanceId, call.toolCallId, binding);
+  const claim = claimBrowserCall(call);
   if (!claim) throw new Error("The issued call was not claimable.");
   failBrowserCall({
     ...call,

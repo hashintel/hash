@@ -37,6 +37,7 @@ import {
   createAgentCors,
   parseCorsAllowedOrigins,
 } from "./server/http/cors.ts";
+import { hashSessionActor } from "./server/http/hash-session-actor.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
 import { createModelCallScope } from "./server/model-call-scope.ts";
@@ -276,6 +277,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const app = new Hono();
+const kratosPublicUrl = process.env[brunchEnv.hashKratosPublicUrl];
 
 app.use(
   `${brunchRoutes.agents}/*`,
@@ -287,16 +289,25 @@ for (const { route, aliases = [], agent } of mountedAgents) {
   const broadcaster = liveToolBroadcasters.get(agent.agentName);
   if (broadcaster === undefined)
     throw new Error(`No live-tool channel for ${agent.agentName}.`);
+  const sessionActor = route === brunchRoutes.hashAgent;
+  // One session cache per agent, shared by its route and aliases.
+  const resolveSessionActor = sessionActor
+    ? hashSessionActor({ kratosPublicUrl })
+    : undefined;
   for (const segment of [route, ...aliases]) {
     const mount = `${brunchRoutes.agents}/${segment}`;
-    app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, agent.agentName));
+    if (resolveSessionActor) app.use(`${mount}/*`, resolveSessionActor);
+    app.use(
+      `${mount}/*`,
+      agentOwnershipGuard(`${mount}/`, agent.agentName, { sessionActor }),
+    );
     app.get(`${mount}/:id/${liveToolRouteSegment}`, (context) =>
       liveToolResponse(broadcaster, {
         instanceId: context.req.param("id"),
         request: context.req.raw,
       }),
     );
-    app.route(mount, createBrowserCallRouter());
+    app.route(mount, createBrowserCallRouter(agent.agentName));
     app.route(mount, createAgentRouter(agent));
   }
 }
