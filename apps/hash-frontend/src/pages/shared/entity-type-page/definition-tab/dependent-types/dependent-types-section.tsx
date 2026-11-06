@@ -1,0 +1,136 @@
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import {
+  Box,
+  FormControlLabel,
+  Skeleton,
+  Stack,
+  Switch,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { useId, useState } from "react";
+
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
+
+import { DependentTypesByTypeTable } from "./dependent-types-by-type-table";
+
+import type { DependentTypeRow } from "./dependent-type-rows";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { SxProps, Theme } from "@mui/material";
+import type { ReactNode } from "react";
+
+const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
+  color: palette.gray[70],
+  fontSize: 14,
+  lineHeight: "20px",
+});
+
+const InfoButton = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip title={text} describeChild placement="bottom-start">
+    <IconButton
+      aria-label={label}
+      size="small"
+      sx={({ palette }) => ({ color: palette.gray[70] })}
+    >
+      <FontAwesomeIcon icon={faCircleInfo} sx={{ fontSize: 14 }} />
+    </IconButton>
+  </Tooltip>
+);
+
+export const DependentTypesSection = ({
+  entityType,
+  rows,
+  incomplete,
+  error,
+  isLinkType,
+  onOpenType,
+}: {
+  /** The type on the page. */
+  entityType: EntityTypeWithMetadata;
+  /** Current and former dependent types; `undefined` until they have loaded. */
+  rows: DependentTypeRow[] | undefined;
+  /** Whether a query stopped at the Graph's row limit, so rows or versions can be missing. */
+  incomplete: boolean;
+  error: Error | undefined;
+  isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
+  onOpenType: (entityTypeId: VersionedUrl) => void;
+}) => {
+  const entityTypeTitle = entityType.schema.title;
+  const [includeFormer, setIncludeFormer] = useState(false);
+
+  const headingId = useId();
+
+  const failed = rows === undefined && !!error;
+  const loading = rows === undefined && !error;
+  const shownRows = includeFormer ? rows : rows?.filter((row) => !row.former);
+
+  const boldTitle: ReactNode = (
+    <Box component="span" sx={{ fontWeight: 700 }}>
+      {entityTypeTitle}
+    </Box>
+  );
+
+  return (
+    <Box
+      component="section"
+      aria-busy={loading}
+      aria-labelledby={headingId}
+      className={fluidFontClassName}
+    >
+      <Typography id={headingId} variant="h5">
+        Types that extend {boldTitle}
+      </Typography>
+      <Typography sx={[secondaryTextSx, { mt: 0.5, mb: 2 }]}>
+        Across all versions of {boldTitle}
+      </Typography>
+      {rows && rows.length > 0 ? (
+        <Stack direction="row" sx={{ alignItems: "center", gap: 0.5, mb: 1.5 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={includeFormer}
+                onChange={(event) => setIncludeFormer(event.target.checked)}
+                size="small"
+                inputProps={{ role: "switch" }}
+              />
+            }
+            label="Include former types"
+            sx={{ m: 0, gap: 1 }}
+          />
+          <InfoButton
+            label="About former types"
+            text={`Former types: their latest version no longer extends ${entityTypeTitle}, or is archived.`}
+          />
+        </Stack>
+      ) : null}
+      {failed ? (
+        <Typography sx={{ color: "error.main", fontSize: 14 }}>
+          Couldn't load these types. Reload the page to try again.
+        </Typography>
+      ) : null}
+      {loading ? <Skeleton variant="rounded" height={40} /> : null}
+      {rows && incomplete ? (
+        <Typography sx={[secondaryTextSx, { mb: 1 }]}>
+          Some types or versions may be missing from this table.
+        </Typography>
+      ) : null}
+      {shownRows?.length === 0 ? (
+        <Typography sx={secondaryTextSx}>
+          No types extend {boldTitle} yet.
+        </Typography>
+      ) : null}
+      {shownRows && shownRows.length > 0 ? (
+        <DependentTypesByTypeTable
+          entityTypeTitle={entityTypeTitle}
+          rows={shownRows}
+          isLinkType={isLinkType}
+          onOpenType={onOpenType}
+        />
+      ) : null}
+    </Box>
+  );
+};
