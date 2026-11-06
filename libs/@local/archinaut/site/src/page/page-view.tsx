@@ -33,8 +33,8 @@ const PageView = ({ page, Content }: LoadedPage) => {
   );
 };
 
-const indexRoute = getRouteApi("/");
-const splatRoute = getRouteApi("/$");
+const indexRoute = getRouteApi("/docs/");
+const splatRoute = getRouteApi("/docs/$");
 
 export const IndexPageView = () => <PageView {...indexRoute.useLoaderData()} />;
 

@@ -1,0 +1,23 @@
+---
+title: A slide is a file
+notes: >-
+  The number in front of the name orders the slides, and 1a sorts between 1
+  and 2, so a slide goes in without renaming the rest. A file without a number,
+  or a folder without numbered files, is not a slide. The corner shows the
+  site's logo; deck.json's logo picks HASH's wordmark with "hash", an image in
+  the folder by its file name, or none with false, and logoScale sizes it as a
+  ratio of the corner's height. This deck uses "hash". theme, "light" or
+  "dark", keeps the deck in one theme; without it the deck follows the
+  reader's.
+---
+
+## A slide is a file
+
+| File           | Becomes                                       |
+| -------------- | --------------------------------------------- |
+| `0-title.mdx`  | the first slide                               |
+| `1-files.mdx`  | the second                                    |
+| `1a-aside.mdx` | a slide between 1 and 2                       |
+| `2-chart.tsx`  | a React slide                                 |
+| `deck.json`    | the deck's title, description, logo and theme |
+| `deck.css`     | styles every slide shares                     |

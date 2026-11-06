@@ -152,6 +152,17 @@ export const withoutBadges = (markup: string): string =>
  * no longer fit. The padding is `d2`'s 100px default cut to something that
  * leaves the drawing room without a frame of empty page around it.
  */
+const renderArguments = (fontsDirectory: string): string[] => [
+  "--layout",
+  "elk",
+  "--pad",
+  "16",
+  "--font-regular",
+  `${fontsDirectory}/Inter-Regular.ttf`,
+  "--font-bold",
+  `${fontsDirectory}/Inter-Bold.ttf`,
+];
+
 export const renderD2 = async (options: {
   command: string[];
   repoRoot: string;
@@ -163,19 +174,7 @@ export const renderD2 = async (options: {
   const [executable = "", ...prefix] = options.command;
   const result = await execute(
     executable,
-    [
-      ...prefix,
-      "--layout",
-      "elk",
-      "--pad",
-      "16",
-      "--font-regular",
-      `${fontsDirectory}/Inter-Regular.ttf`,
-      "--font-bold",
-      `${fontsDirectory}/Inter-Bold.ttf`,
-      sourcePath,
-      outputPath,
-    ],
+    [...prefix, ...renderArguments(fontsDirectory), sourcePath, outputPath],
     repoRoot,
   );
   if (!result.ok) {
@@ -192,4 +191,35 @@ export const renderD2 = async (options: {
   }
 
   return { ok: true };
+};
+
+/**
+ * Renders d2 source held in memory, as `renderD2` renders a file: the same
+ * layout, padding and face, with the badges stripped and the colours made
+ * themeable. A slide's d2 block compiles through this. An error is d2's
+ * own message, whose `-:<line>:<column>` positions count from the source's
+ * first line.
+ */
+export const renderD2Source = (options: {
+  command: string[];
+  cwd: string;
+  source: string;
+  fontsDirectory: string;
+}): Promise<{ ok: true; svg: string } | { ok: false; error: string }> => {
+  const [executable = "", ...prefix] = options.command;
+  return new Promise((done) => {
+    const child = execFile(
+      executable,
+      [...prefix, ...renderArguments(options.fontsDirectory), "-", "-"],
+      { cwd: options.cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        done(
+          error === null
+            ? { ok: true, svg: withThemeableColours(withoutBadges(stdout)) }
+            : { ok: false, error: stderr.trim() || messageOf(error) },
+        );
+      },
+    );
+    child.stdin?.end(options.source);
+  });
 };

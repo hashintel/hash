@@ -11,11 +11,23 @@ import { fileURLToPath } from "node:url";
 
 import { listFiles, syncDirectory } from "./shared/sync-directory";
 import { checkBuiltCss } from "./site/check-built-css";
+import { listAllDecks, slidesRoot } from "./slides";
 
 import type { BundleManifest } from "./bundle/outputs";
 import type { ArchinautConfig } from "./config";
 
 export const siteRoot = fileURLToPath(new URL("../site", import.meta.url));
+
+/** The site logo's height in a slide's corner, checked: a ratio above zero. */
+const slideLogoScaleOf = (config: ArchinautConfig): number => {
+  const scale = config.site.slideLogoScale ?? 1;
+  if (!Number.isFinite(scale) || scale <= 0) {
+    throw new Error(
+      `site.slideLogoScale must be a positive number, not ${scale}`,
+    );
+  }
+  return scale;
+};
 
 /** Bundle directory → where it lands under the site. */
 const contentMapping = {
@@ -84,7 +96,7 @@ export const syncSite = async (
     ["search.json", await readFile(join(bundleRoot, "search.json"), "utf8")],
     [
       "site.json",
-      `${JSON.stringify({ title: config.site.title, description: config.site.description, url: config.site.url })}\n`,
+      `${JSON.stringify({ title: config.site.title, description: config.site.description, url: config.site.url, slides: slidesRoot(config), slideLogoScale: slideLogoScaleOf(config) })}\n`,
     ],
     ["logo.png", await readFile(join(config.root, config.site.logo))],
   ]);
@@ -149,6 +161,16 @@ export const buildSite = async (options: {
     manifest: JSON.parse(
       await readFile(join(options.bundleRoot, "manifest.json"), "utf8"),
     ) as BundleManifest,
+    // Every deck at its first slide, so a link to one lands on a complete
+    // page, its print layout, and its presenter window.
+    extraPaths: [
+      "/slides",
+      ...listAllDecks(slidesRoot(options.config)).flatMap((deck) => [
+        `/slides/${deck.id}`,
+        `/slides/${deck.id}/print`,
+        `/slides/${deck.id}/presenter`,
+      ]),
+    ],
   });
   const failures = await checkBuiltCss(clientDirectory);
   if (failures.length > 0) {
