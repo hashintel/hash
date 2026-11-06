@@ -3,6 +3,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { Form, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
+import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { getNameLabel } from "./shared/name-label";
 import { getStepDisplay, startDisplay } from "./shared/step-display";
@@ -179,10 +180,22 @@ const SelectedStepPanel = ({
       : undefined;
   const shapes = createStepShapeResolver(flowDefinition);
 
-  const outputNames =
-    step.kind === "for-each"
-      ? [step.collect.as]
-      : (actionDefinition?.outputs.map(({ name }) => name) ?? []);
+  /* Which outputs can be flow outputs is checked once per edit, as the editor checks the definition, not per render. */
+  const { outputNames, availableToFlow } = useMemo(() => {
+    const names =
+      step.kind === "for-each"
+        ? [step.collect.as]
+        : (actionDefinition?.outputs.map(({ name }) => name) ?? []);
+
+    return {
+      outputNames: names,
+      availableToFlow: getOutputsAvailableToFlow(
+        flowDefinition,
+        step.stepId,
+        names,
+      ),
+    };
+  }, [actionDefinition, flowDefinition, step]);
 
   const { byInputName, stepProblems } = getFieldProblems(
     problemsByStepId.get(step.stepId) ?? [],
@@ -238,18 +251,38 @@ const SelectedStepPanel = ({
       {outputNames.length > 0 && (
         <PanelSection title="Outputs">
           <Form.Section>
-            {outputNames.map((outputName) => (
-              <UsedByField
-                key={outputName}
-                name={getNameLabel(outputName)}
-                shape={shapes.getStepOutputShape(step.stepId, outputName)}
-                usedBy={stepsUsing({
-                  kind: "step-output",
-                  stepId: step.stepId,
-                  outputName,
-                })}
-              />
-            ))}
+            {outputNames.map((outputName) => {
+              const marked = flowDefinition.outputs.some(
+                (output) =>
+                  output.stepId === step.stepId &&
+                  output.outputName === outputName,
+              );
+
+              return (
+                <UsedByField
+                  key={outputName}
+                  name={getNameLabel(outputName)}
+                  shape={shapes.getStepOutputShape(step.stepId, outputName)}
+                  usedBy={stepsUsing({
+                    kind: "step-output",
+                    stepId: step.stepId,
+                    outputName,
+                  })}
+                  /* One that's marked but isn't available, e.g. inside a for-each step, can still be unmarked. */
+                  flowOutput={
+                    marked || availableToFlow.includes(outputName)
+                      ? {
+                          marked,
+                          onToggle: () =>
+                            marked
+                              ? editor.unmarkFlowOutput(step.stepId, outputName)
+                              : editor.markFlowOutput(step.stepId, outputName),
+                        }
+                      : undefined
+                  }
+                />
+              );
+            })}
           </Form.Section>
         </PanelSection>
       )}

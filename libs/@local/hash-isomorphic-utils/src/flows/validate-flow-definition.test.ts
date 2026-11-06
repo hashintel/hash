@@ -7,6 +7,7 @@ import { maxEntitiesPerStep } from "./limits.js";
 import {
   addStepIdsToDiagnostics,
   type FlowDefinitionDiagnostic,
+  getOutputsAvailableToFlow,
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
 
@@ -1572,5 +1573,87 @@ describe("addStepIdsToDiagnostics", () => {
         { code: "unusedFlowInput", stepId: undefined },
       ]),
     );
+  });
+});
+
+describe("getOutputsAvailableToFlow", () => {
+  /** `first`, then `each`, a for-each step over `questions` with `answer` inside it, collected as `explanations`. */
+  const flowDefinition: FlowDefinition<string> = {
+    ...baseDefinition,
+    inputs: [
+      ...baseDefinition.inputs,
+      { name: "questions", payloadKind: "Text", array: true, required: true },
+    ],
+    steps: [
+      {
+        kind: "action",
+        stepId: "first",
+        actionDefinitionId: "answerQuestion",
+        description: "",
+        inputs: { question: { kind: "flow-input", inputName: "question" } },
+      },
+      {
+        kind: "for-each",
+        stepId: "each",
+        description: "",
+        over: { kind: "flow-input", inputName: "questions" },
+        collect: {
+          stepId: "answer",
+          outputName: "explanation",
+          as: "explanations",
+        },
+        steps: [
+          {
+            kind: "action",
+            stepId: "answer",
+            actionDefinitionId: "answerQuestion",
+            description: "",
+            inputs: { question: { kind: "item" } },
+          },
+        ],
+      },
+    ],
+  };
+
+  it("offers the outputs a run has when it finishes: a for-each step's collected output, not those inside it", () => {
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "first", ["explanation"]),
+    ).toEqual(["explanation"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "each", [
+        "explanation",
+        "explanations",
+      ]),
+    ).toEqual(["explanations"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "answer", ["explanation"]),
+    ).toEqual([]);
+  });
+
+  it("leaves out an output the step doesn't have, and every output of a step that isn't there", () => {
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "first", [
+        "explanation",
+        "missing",
+      ]),
+    ).toEqual(["explanation"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "gone", ["explanation"]),
+    ).toEqual([]);
+  });
+
+  it("offers an output whose name a flow output already has, as marking it numbers the name", () => {
+    expect(
+      getOutputsAvailableToFlow(
+        {
+          ...flowDefinition,
+          outputs: [
+            { name: "explanation", stepId: "each", outputName: "explanations" },
+          ],
+        },
+        "first",
+        ["explanation"],
+      ),
+    ).toEqual(["explanation"]);
   });
 });

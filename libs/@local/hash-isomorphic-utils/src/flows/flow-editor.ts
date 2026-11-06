@@ -313,18 +313,68 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /**
-     * Removes a step, with every connection to and from it. Inputs that take a value from it keep their source,
-     * which is then a problem.
+     * Removes a step, with every connection to and from it and every flow output it or a step inside it gives. Inputs
+     * that take a value from it keep their source, which is then a problem.
      */
     removeStep: (stepId: string) => {
       const removedStepIds = new Set(getStepIds(getStep(stepId)));
 
-      setSteps(
-        removeConnectionsFrom(
+      setFlowDefinition({
+        ...state.flowDefinition,
+        steps: removeConnectionsFrom(
           state.flowDefinition.steps.filter((step) => step.stepId !== stepId),
           removedStepIds,
         ),
+        outputs: state.flowDefinition.outputs.filter(
+          (output) => !removedStepIds.has(output.stepId),
+        ),
+      });
+    },
+
+    /**
+     * Makes an output of a top-level step one of the flow's outputs, which a run gives back when it finishes. It's
+     * named after the output, and numbered if a flow output already has that name: "body", then "body 2". Does
+     * nothing if the output is already a flow output.
+     */
+    markFlowOutput: (stepId: string, outputName: string) => {
+      getStep(stepId);
+      const { outputs } = state.flowDefinition;
+
+      if (
+        outputs.some(
+          (output) =>
+            output.stepId === stepId && output.outputName === outputName,
+        )
+      ) {
+        return;
+      }
+
+      const takenNames = new Set(outputs.map(({ name }) => name));
+      let name = outputName;
+
+      for (let index = 2; takenNames.has(name); index++) {
+        name = `${outputName} ${index}`;
+      }
+
+      setFlowDefinition({
+        ...state.flowDefinition,
+        outputs: [...outputs, { name, stepId, outputName }],
+      });
+    },
+
+    /** Stops a step's output being a flow output. The step may not exist, e.g. if the output is a problem. */
+    unmarkFlowOutput: (stepId: string, outputName: string) => {
+      const { outputs } = state.flowDefinition;
+      const kept = outputs.filter(
+        (output) =>
+          output.stepId !== stepId || output.outputName !== outputName,
       );
+
+      if (kept.length === outputs.length) {
+        return;
+      }
+
+      setFlowDefinition({ ...state.flowDefinition, outputs: kept });
     },
 
     /** Sets where an input of an action step takes its value from, or clears it if `source` is `null`. */
