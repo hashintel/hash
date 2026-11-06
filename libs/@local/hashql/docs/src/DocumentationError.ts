@@ -16,7 +16,6 @@ const Reason = Schema.TaggedUnion({
   StrayModuleComment: { start: Schema.Finite },
   UnresolvedLink: { destination: Schema.String, start: Schema.Finite },
   UnsupportedReference: { destination: Schema.String, start: Schema.Finite },
-  UnlinkedName: { code: Schema.String, start: Schema.Finite },
   UnknownParameter: { name: Schema.String, start: Schema.Finite },
   UnknownTypeParameter: { name: Schema.String, start: Schema.Finite },
   UnknownStability: { cause: Schema.ErrorInstance() },
@@ -47,8 +46,6 @@ export class DocumentationError extends Schema.TaggedError<DocumentationError>()
         `The @param ${name} at ${start} names no parameter of what the comment documents`,
       UnknownTypeParameter: ({ name, start }) =>
         `The @typeParam ${name} at ${start} names no type parameter of what the comment documents`,
-      UnlinkedName: ({ code, start }) =>
-        `The code ${code} at ${start} names a public declaration that no earlier link in its paragraph points to`,
       UnsupportedReference: ({ destination, start }) =>
         `The link to ${destination} at ${start} selects part of a declaration, which a link to a whole declaration cannot keep`,
       UnknownStability: ({ cause }) => `Unknown stability: ${cause}`,
