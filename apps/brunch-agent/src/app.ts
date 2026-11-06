@@ -40,7 +40,10 @@ import {
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
 import { createModelCallScope } from "./server/model-call-scope.ts";
-import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
+import {
+  chronologyLogMessage,
+  createTurnChronologyObserver,
+} from "./server/observe-turn-chronology.ts";
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
 import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
 import { createStepARequestAccounting } from "./server/provider-accounting.ts";
@@ -95,8 +98,7 @@ const liveToolBroadcasters = new Map(
 for (const { agent } of mountedAgents) {
   const turnChronologyObserver = createTurnChronologyObserver(
     agent.agentName,
-    (chronology) =>
-      logger.info("[brunch] flue.submission chronology", chronology),
+    (chronology) => logger.info(chronologyLogMessage, chronology),
   );
   instrument({
     key: Symbol.for(`brunch.turn-chronology:${agent.agentName}`),

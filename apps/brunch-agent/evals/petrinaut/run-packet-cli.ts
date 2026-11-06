@@ -7,6 +7,7 @@
  */
 import { resolve } from "node:path";
 
+import { seconds } from "../../src/server/telemetry-readback.ts";
 import { writeRunPacket } from "./run-packet.ts";
 
 const directories = process.argv
@@ -25,6 +26,6 @@ const written = await Promise.all(
 for (const { directory, packet } of written) {
   const { summary } = packet;
   process.stdout.write(
-    `${packet.label}: ${summary.exchanges} exchanges, median ${Math.round((summary.activePerExchangeMs.median ?? 0) / 1000)} s, ${summary.stepsPerExchange?.toFixed(1) ?? "–"} steps per exchange → ${resolve(directory, "evidence", "packet.md")}\n`,
+    `${packet.label}: ${summary.exchanges} exchanges, median ${seconds(summary.activePerExchangeMs.median)}, ${summary.stepsPerExchange?.toFixed(1) ?? "–"} steps per exchange → ${resolve(directory, "evidence", "packet.md")}\n`,
   );
 }

@@ -14,7 +14,7 @@ import { errorCode } from "./telemetry.ts";
 import type { FlueObservation, FlueObservationSubscriber } from "@flue/runtime";
 import type { LoggerConfig } from "@local/hash-backend-utils/logger";
 
-type DiagnosticStage =
+export type DiagnosticStage =
   | "flue.tool"
   | "flue.turn"
   | "flue.task"
