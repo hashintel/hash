@@ -35,6 +35,7 @@ import {
 } from "./run-history";
 import { runId, runLabel } from "./run-id";
 import { RunOutputsCell } from "./run-outputs";
+import { StatTiles, statTilesTake } from "./stat-tiles";
 import {
   RunItemsCell,
   runStatusTake,
@@ -1601,6 +1602,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
   const lastFailure = failed[0];
   const withWarnings = runs.filter((run) => outcomeOf(run, now) === "warnings");
   const onlyWarning = withWarnings.length === 1 ? withWarnings[0] : undefined;
+  const tilesTake = statTilesTake();
   const stats: Stat[] = [
     lastFailure
       ? {
@@ -1687,7 +1689,35 @@ const Overview = ({ history }: { history: HistoryValue }) => {
         >
           All {runs.length} runs
         </span>
-        {statsTake === "rows" ? (
+        {tilesTake ? (
+          <StatTiles
+            take={tilesTake}
+            facts={{
+              lastFailure: lastFailure
+                ? {
+                    run: lastFailure,
+                    color: "var(--flows-failed-mark)",
+                    open: () => history.open(lastFailure.id),
+                  }
+                : null,
+              warnings:
+                withWarnings.length === 0
+                  ? null
+                  : onlyWarning
+                    ? {
+                        run: onlyWarning,
+                        color: "var(--flows-warnings-text)",
+                        open: () => history.open(onlyWarning.id),
+                      }
+                    : withWarnings.length,
+              // MOCK: the schedule's next date and a fixed median, as in the rows.
+              nextRun: new Date(new Date(now).getFullYear(), 11, 1, 9, 0),
+              average: "1m 44s",
+              averageHint: "Median of completed runs",
+              now,
+            }}
+          />
+        ) : statsTake === "rows" ? (
           <div className={css({ display: "flex", flexDirection: "column" })}>
             {stats.map((stat) => (
               <StatRow key={stat.label} label={stat.label}>
