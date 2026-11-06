@@ -110,6 +110,14 @@ export const isConstructor = (value: unknown): value is Constructor.Any =>
   Predicate.hasProperty(value, ConstructorId);
 
 /**
+ * Reads the number of type arguments a generic type constructor takes.
+ *
+ * An adapted constructor reports the arity of the constructor it adapts, whatever its own signature takes.
+ */
+export const arity = (constructor: Constructor.Any): number =>
+  constructor[ConstructorId].arity;
+
+/**
  * Annotates type syntax, or a construction failure, with a trusted semantic descriptor.
  *
  * The caller must ensure that successful syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.

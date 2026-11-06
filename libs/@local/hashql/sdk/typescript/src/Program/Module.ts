@@ -1,7 +1,7 @@
 /**
  * Typed declarations bound to absolute HashQL paths.
  *
- * A module record describes exports that the HashQL environment provides under one path. Defining it emits no syntax and creates nothing in HashQL. Its declarations emit references beneath that path for the HashQL compiler to resolve.
+ * A module record describes exports that the HashQL environment provides under one path. Defining it emits no syntax and creates nothing in HashQL. Its declarations emit references beneath that path for the HashQL compiler to resolve. Importing a module emits a `use` of its path.
  *
  * Modules keep type and value exports separate because a type and its constructor can share a name. Each export table has no prototype, so a name the module does not export reads as `undefined`, even a name such as `toString`. An existing export is an alias, a claim that HashQL also exports the item under this module's path. It keeps the reference it already emits until {@link relocate} moves the module. Declarations supply trusted type information. The HashQL compiler checks the emitted query.
  *
@@ -136,7 +136,7 @@ export declare namespace Module {
 /**
  * Recognizes a module assembled by this SDK.
  *
- * The guard checks for the module marker property. The record {@link root} returns does not pass.
+ * The guard checks for the module marker property. A joined namespace name that includes a module also passes. The record {@link root} returns does not.
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isModule = (value: unknown): value is Module.Any =>
@@ -412,7 +412,7 @@ export function define<
 /**
  * Rebinds a module tree while preserving each export's declared type.
  *
- * Every export becomes a reference to its name under `path`, including aliases of exports from other modules, because an alias claims that HashQL exports the item under the module's path. Child modules are rebound recursively beneath it. The path can be relative, such as a local name for the module. Each export keeps its descriptor and input requirements even though its syntax becomes a reference. The original module keeps its paths. The first export that cannot be rebound, such as a value whose construction failed, returns its failure. It accepts the module first or last.
+ * Every export becomes a reference to its name under `path`, including aliases of exports from other modules, because an alias claims that HashQL exports the item under the module's path. Child modules are rebound recursively beneath it. The path can be relative, as it is when an import binds a module under a local name. Each export keeps its descriptor and input requirements even though its syntax becomes a reference. The original module keeps its paths. The first export that cannot be rebound, such as a value whose construction failed, returns its failure. It accepts the module first or last.
  *
  * @example <caption>Rebind an alias and a child module.</caption>
  * ```ts

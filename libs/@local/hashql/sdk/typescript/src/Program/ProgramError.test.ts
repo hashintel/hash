@@ -19,6 +19,18 @@ describe("construction_factories", () => {
     expect(error.cause).toBe(issue);
   });
 
+  test("invalid_import_name", () => {
+    expect.hasAssertions();
+    const error = Construction.invalidImportName("not an identifier", issue);
+    expect(error).toBeInstanceOf(Construction);
+    expect(error.reason).toStrictEqual({
+      _tag: "InvalidImportName",
+      name: "not an identifier",
+      cause: issue,
+    });
+    expect(error.cause).toBe(issue);
+  });
+
   test("invalid_export_name", () => {
     expect.hasAssertions();
     const error = Construction.invalidExportName("not an identifier", issue);
