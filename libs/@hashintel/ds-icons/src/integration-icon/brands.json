@@ -1282,7 +1282,8 @@
     "logoDarkColors": {},
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Twitter"]
   },
   {
     "name": "twitterLegacy",

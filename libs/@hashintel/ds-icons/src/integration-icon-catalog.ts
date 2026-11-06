@@ -1622,6 +1622,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Twitter"],
   },
   {
     name: "twitterLegacy",
