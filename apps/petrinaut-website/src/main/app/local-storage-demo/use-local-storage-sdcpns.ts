@@ -103,6 +103,57 @@ const readRawStore = (storage: Storage): Record<string, unknown> => {
   return isRecord(parsed) ? parsed : {};
 };
 
+type RecognizedDocument = {
+  document: SDCPNInLocalStorage;
+  /** The entry differs from what this version writes: its key, ids or revision id. */
+  rewritten: boolean;
+};
+
+/** Entries already reported as unreadable, so each is reported once. */
+const reportedUnreadable = new Set<string>();
+
+/**
+ * The document a stored entry holds, or null when this version of the editor
+ * does not recognize it as one. An entry shaped like a document whose net
+ * this version cannot read, such as one another version wrote, counts as
+ * unrecognized too, and is reported once rather than failing every read.
+ */
+const recognizeStoredDocument = (
+  value: unknown,
+  documentId: string,
+): RecognizedDocument | null => {
+  if (!isStoredDocumentIngress(value, documentId)) {
+    return null;
+  }
+  try {
+    const id = toPetrinautId(documentId);
+    const sdcpn = canonicalizePetrinautIds(value.sdcpn);
+    const revisionId =
+      typeof value.revisionId === "string" ? value.revisionId : undefined;
+    return {
+      document: {
+        id,
+        title: value.title,
+        lastUpdated: value.lastUpdated,
+        sdcpn,
+        revisionId: revisionId ?? crypto.randomUUID(),
+      },
+      rewritten:
+        id !== documentId || sdcpn !== value.sdcpn || revisionId === undefined,
+    };
+  } catch (error) {
+    if (!reportedUnreadable.has(documentId)) {
+      reportedUnreadable.add(documentId);
+      // eslint-disable-next-line no-console -- the entry is kept but not listed, and the reason belongs in the dev tools
+      console.warn(
+        `Stored net ${documentId} is not readable by this version of Petrinaut and is left as it is`,
+        error,
+      );
+    }
+    return null;
+  }
+};
+
 /**
  * Entries this version of the editor does not recognize as documents. They are
  * never listed, but every write carries them through unchanged so an entry
@@ -113,7 +164,8 @@ const unrecognizedEntries = (
 ): Record<string, unknown> =>
   Object.fromEntries(
     Object.entries(raw).filter(
-      ([documentId, value]) => !isStoredDocumentIngress(value, documentId),
+      ([documentId, value]) =>
+        recognizeStoredDocument(value, documentId) === null,
     ),
   );
 
@@ -157,27 +209,21 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   const documents: LocalStorageSDCPNsStore = {};
   let needsNormalization = false;
   for (const [documentId, value] of Object.entries(raw)) {
-    if (!isStoredDocumentIngress(value, documentId)) {
+    const recognized = recognizeStoredDocument(value, documentId);
+    if (recognized === null) {
       continue;
     }
-    const id = toPetrinautId(documentId);
-    const sdcpn = canonicalizePetrinautIds(value.sdcpn);
-    const revisionId =
-      typeof value.revisionId === "string" ? value.revisionId : undefined;
-    needsNormalization ||=
-      id !== documentId || sdcpn !== value.sdcpn || revisionId === undefined;
+    const { document, rewritten } = recognized;
+    needsNormalization ||= rewritten;
     if (
-      !supersedes({ documentId, lastUpdated: value.lastUpdated }, documents[id])
+      !supersedes(
+        { documentId, lastUpdated: document.lastUpdated },
+        documents[document.id],
+      )
     ) {
       continue;
     }
-    documents[id] = {
-      id,
-      title: value.title,
-      lastUpdated: value.lastUpdated,
-      sdcpn,
-      revisionId: revisionId ?? crypto.randomUUID(),
-    };
+    documents[document.id] = document;
   }
   if (needsNormalization) {
     writeStore(storage, documents, raw);

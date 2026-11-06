@@ -30,6 +30,10 @@ vi.mock("@hashintel/ds-components", () => {
 
 function makeLanguageClientValue(): LanguageClientContextValue {
   return {
+    netAnalysis: {
+      get: () => ({ metricShapes: {} }),
+      subscribe: () => () => {},
+    },
     requestDiagnostics: vi.fn(() =>
       Promise.resolve({ byUri: new Map(), total: 0, errorCount: 0 }),
     ),

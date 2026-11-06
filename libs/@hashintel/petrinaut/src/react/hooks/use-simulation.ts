@@ -5,6 +5,7 @@ import {
   type SimulationContextValue,
   type SimulationState,
 } from "../simulation/context";
+import { useStore } from "../use-store";
 
 import type {
   SimulationFrameReader,
@@ -21,7 +22,7 @@ export function useSimulationStatus(): SimulationState {
 
 /** Total number of computed frames available right now. */
 export function useSimulationFrameCount(): number {
-  return use(SimulationContext).totalFrames;
+  return useStore(use(SimulationContext).totalFramesStore);
 }
 
 /**

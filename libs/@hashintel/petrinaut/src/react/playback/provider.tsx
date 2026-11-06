@@ -73,7 +73,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const {
     dt,
     state: simulationState,
-    totalFrames,
+    totalFramesStore,
     getFrame,
     initialize,
     run: runSimulation,
@@ -81,6 +81,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     setBackpressure,
     ack,
   } = use(SimulationContext);
+  const totalFrames = useStore(totalFramesStore);
 
   const { playMode } = use(PlaybackContext);
 

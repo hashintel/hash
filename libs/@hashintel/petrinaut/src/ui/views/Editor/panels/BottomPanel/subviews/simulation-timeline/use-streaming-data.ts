@@ -12,6 +12,7 @@ import {
   resolveNetParameterValues,
   sanitizeSDCPNForExtensions,
   type Metric,
+  type MetricShape,
 } from "@hashintel/petrinaut-core";
 import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-runtime";
 
@@ -124,12 +125,15 @@ type TimelineMetricState = {
   /** Identity of the compiled metric (id + code), null when none. */
   key: string | null;
   evaluate: TimelineMetricEvaluator | null;
+  /** How the metric moves over a run, inferred from its code; null until compiled. */
+  shape: MetricShape | null;
   error: string | null;
 };
 
 const EMPTY_TIMELINE_METRIC_STATE: TimelineMetricState = {
   key: null,
   evaluate: null,
+  shape: null,
   error: null,
 };
 
@@ -138,7 +142,7 @@ const EMPTY_TIMELINE_METRIC_STATE: TimelineMetricState = {
  * worker) and binds the resulting buffer program to frame readers. The
  * compile is asynchronous — while it is in flight the extractor plots gaps.
  */
-function useTimelineMetric(metric: Metric | null): TimelineMetricState {
+export function useTimelineMetric(metric: Metric | null): TimelineMetricState {
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { parameterValues } = useSimulationParameters();
@@ -197,6 +201,7 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
           setState({
             key,
             evaluate: null,
+            shape: null,
             error: message || `Metric "${metric.name}" did not compile`,
           });
           return;
@@ -209,6 +214,7 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
             places: petriNetDefinition.places,
             parameterValues: netParameterValues,
           }),
+          shape: artifact.shape,
           error: null,
         });
       })
@@ -217,6 +223,7 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
           setState({
             key,
             evaluate: null,
+            shape: null,
             error: error instanceof Error ? error.message : String(error),
           });
         }

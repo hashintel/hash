@@ -1748,3 +1748,45 @@ return true;`;
     });
   });
 });
+
+describe("metric shapes", () => {
+  it("classifies every metric that lowers, and skips one that does not", () => {
+    const sdcpn: SDCPN = {
+      ...createSDCPN({
+        types: [{ id: "c", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "p1", name: "Moving", colorId: "c", dynamicsEnabled: true },
+          { id: "p2", name: "Still", colorId: "c" },
+        ],
+      }),
+      metrics: [
+        {
+          id: "m-count",
+          name: "Count",
+          code: "return state.places.Moving.count;",
+        },
+        {
+          id: "m-still",
+          name: "Still x",
+          code: "return state.places.Still.tokens[0].x;",
+        },
+        {
+          id: "m-moving",
+          name: "Moving x",
+          code: "return state.places.Moving.tokens[0].x;",
+        },
+        {
+          id: "m-broken",
+          name: "Broken",
+          code: "return state.places.Moving.count +;",
+        },
+      ],
+    };
+    const result = check(sdcpn, DEFAULT_PETRINAUT_EXTENSIONS);
+    expect(result.metricShapes).toEqual({
+      "m-count": "discrete",
+      "m-still": "discrete",
+      "m-moving": "continuous",
+    });
+  });
+});

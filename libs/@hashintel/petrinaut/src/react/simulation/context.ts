@@ -3,13 +3,25 @@ import { createContext } from "react";
 import {
   type AdHocScenarioState,
   type CompiledScenarioResult,
+  type EventSimulation,
+  type EventSolverConfig,
   type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
   type ScenarioCompilationError,
   type SimulationFrameReader,
   type SimulationFrameState,
+  type ReadableStore,
 } from "@hashintel/petrinaut-core";
+
+/**
+ * Which runtime a Quick Simulation runs on.
+ *
+ * - `fixed-step`: one frame per time step `dt`, the frame-per-step runtime.
+ * - `event-driven`: one frame per transition firing, the state in between
+ *   interpolated from the surrounding frames. Experimental.
+ */
+export type SimulationEngine = "fixed-step" | "event-driven";
 
 // Re-export for back-compat with existing consumers that import these from
 // the simulation context module.
@@ -75,9 +87,29 @@ export type SimulationContextValue = {
    */
   maxTime: number | null;
   /**
-   * Total number of computed frames available.
+   * Total number of computed frames available. On the event-driven engine,
+   * the number of recorded events.
    */
-  totalFrames: number;
+  /**
+   * Frames recorded so far, or events for the event-driven engine. A store
+   * rather than a number, so the context value holds still while a run
+   * streams and only what shows the count renders on each batch.
+   */
+  totalFramesStore: ReadableStore<number>;
+  /**
+   * The runtime the next run uses. Changing it discards the current run.
+   */
+  engine: SimulationEngine;
+  /**
+   * How the event-driven engine advances between events. Changing it
+   * discards the current run; the fixed-step engine ignores it.
+   */
+  eventSolver: EventSolverConfig;
+  /**
+   * The event-driven run's handle while `engine` is `event-driven` and a run
+   * exists; null otherwise. Playback over events reads the trace through it.
+   */
+  eventSimulation: EventSimulation | null;
 
   // Frame access
   /**
@@ -165,6 +197,8 @@ export type SimulationContextValue = {
   setInitialMarking: (placeId: string, marking: InitialPlaceMarking) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
+  setEngine: (engine: SimulationEngine) => void;
+  setEventSolver: (solver: EventSolverConfig) => void;
   /**
    * Set the maximum simulation time in seconds.
    * Pass null to disable the time limit.
@@ -219,7 +253,10 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   adHocNetParameters: [],
   dt: 0.01,
   maxTime: null,
-  totalFrames: 0,
+  totalFramesStore: { get: () => 0, subscribe: () => () => {} },
+  engine: "fixed-step",
+  eventSolver: { kind: "fixed-step" },
+  eventSimulation: null,
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
   getFramesInRange: () => Promise.resolve([]),
@@ -229,6 +266,8 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
+  setEngine: () => {},
+  setEventSolver: () => {},
   setMaxTime: () => {},
   initialize: () => Promise.resolve(),
   run: () => {},

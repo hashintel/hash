@@ -11,6 +11,7 @@ import { cloneUserKeyedRecord } from "../validation/record-keys";
 
 import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 import type { HirFunction } from "./hir";
+import type { MetricShape } from "./metric-shape";
 
 export type HirParameterValues = Record<string, number | boolean>;
 
@@ -129,6 +130,8 @@ export type HirMetricArtifact = {
   source: string;
   /** Places referenced by the program, in `__places` ordinal order. */
   placeNames: string[];
+  /** Whether the value moves only at events or between them, from the reads the code makes. */
+  shape: MetricShape;
   /** The lowered HIR the program was emitted from — see `HirLambdaArtifact.hir`. */
   hir?: HirFunction;
 };
