@@ -19763,7 +19763,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.413328555527 -1.39046370138 -0.140368399384 0 1.94416065629",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0 0 430 108",
     ratio: 1.8,
     alignment: "center",
   },

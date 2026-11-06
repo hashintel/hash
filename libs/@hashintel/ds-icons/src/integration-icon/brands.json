@@ -50242,13 +50242,16 @@
       "#111111": "#F5F7FA",
       "#FF5C35": "#FF5C35"
     },
-    "logoDarkColors": {},
-    "logoNotes": "Vector outlines reconstructed from published brand artwork; transparent bounds and theme colors adjusted.",
+    "logoDarkColors": {
+      "#F97242": "#F97242"
+    },
+    "logoNotes": "Mark outlines reconstructed from the published app artwork. Full logo uses the native SVG wordmark from the official Caviar homepage, retaining its original orange in both themes.",
     "brandWebsite": "https://trycaviar.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "logoSource": "https://www.trycaviar.com/"
   },
   {
     "name": "indyByIndustrious",
