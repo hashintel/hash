@@ -2972,6 +2972,10 @@ export const FlowCanvas = ({
   const [dragPositions, setDragPositions] = useState<
     Record<string, { x: number; y: number }>
   >({});
+  // Each node's size as React Flow measured it, handed back on the nodes so the minimap can draw them.
+  const [measured, setMeasured] = useState<
+    Record<string, { width: number; height: number }>
+  >({});
 
   const flow = useReactFlow<StepNode>();
   // The mouse-up that ends a wire on empty canvas is also a click on the pane; it must not close the menu it opens.
@@ -3198,6 +3202,14 @@ export const FlowCanvas = ({
   ];
 
   const onNodesChange = (changes: NodeChange<StepNode>[]) => {
+    const sized = changes.flatMap((change) =>
+      change.type === "dimensions" && change.dimensions
+        ? [[change.id, change.dimensions] as const]
+        : [],
+    );
+    if (sized.length > 0) {
+      setMeasured((current) => ({ ...current, ...Object.fromEntries(sized) }));
+    }
     const moving: Record<string, { x: number; y: number }> = {};
     const settled: Record<string, { x: number; y: number }> = {};
     for (const change of changes) {
@@ -3312,7 +3324,12 @@ export const FlowCanvas = ({
   const canvas = (
     <ReactFlow
       className={canvasStyle}
-      nodes={withHighlight(nodes, highlight)}
+      nodes={withHighlight(
+        nodes.map((node) =>
+          measured[node.id] ? { ...node, measured: measured[node.id] } : node,
+        ),
+        highlight,
+      )}
       edges={edges}
       nodesDraggable={!readOnly}
       nodesConnectable={!readOnly}
@@ -3507,8 +3524,13 @@ export const FlowCanvas = ({
         ariaLabel="Minimap"
         style={{ width: 100, height: 64, borderRadius: 6 }}
         maskColor="rgba(0, 0, 0, 0.08)"
-        nodeColor="var(--colors-neutral-fg-onSolid)"
-        nodeStrokeColor="var(--colors-neutral-bd-solid)"
+        // DS neutrals: a For each box as a faint area, the steps as solid grey cards on it.
+        nodeColor={(node) =>
+          node.type === "forEach"
+            ? "var(--colors-neutral-bg-subtle)"
+            : "var(--colors-neutral-bd-solid)"
+        }
+        nodeStrokeColor="var(--colors-neutral-bd-subtle)"
       />
     </ReactFlow>
   );
