@@ -1,9 +1,5 @@
 /* Styles every slide of this deck shares, loaded with the deck. */
 
-.tsx-title {
-  gap: 1.5rem;
-}
-
 .deck .tsx-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -6,6 +6,7 @@
  */
 
 import { Slide } from "../slide";
+import { TitleSlide } from "../title-slide";
 
 import type { LoadedSlide } from "../slide-module";
 
@@ -26,17 +27,12 @@ export const SlideContent = ({ slide }: { slide: LoadedSlide }) => {
     );
   }
   return (
-    <Slide className="deck-mdx deck-title">
-      <h1 className="deck-title__title">{slide.title}</h1>
-      {layout.subtitle === null ? null : (
-        <p className="deck-title__subtitle">{layout.subtitle}</p>
-      )}
-      <div className="deck-title__body">
-        <Content />
-      </div>
-      {layout.author === null ? null : (
-        <p className="deck-title__author">{layout.author}</p>
-      )}
-    </Slide>
+    <TitleSlide
+      title={slide.title}
+      subtitle={layout.subtitle ?? undefined}
+      author={layout.author ?? undefined}
+    >
+      <Content />
+    </TitleSlide>
   );
 };
