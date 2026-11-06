@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Function, Result } from "effect";
+import { Function, Option, Result } from "effect";
 // oxlint-disable unicorn/no-thenable -- then names a HashQL branch or a declared export
 import { describe, expectTypeOf, test } from "vitest";
 
@@ -476,6 +476,182 @@ describe("import", () => {
     expectTypeOf<
       Program.Expression.Value.Inputs<Result.Result.Success<typeof result>>
     >().toEqualTypeOf<{ readonly outside: Type.PrimitiveInteger }>();
+  });
+});
+
+type Vertex = Type.Struct<{ readonly enabled: Type.PrimitiveBoolean }>;
+const graph = Result.getOrThrow(
+  Module.define("::example::graph", {
+    values: {
+      entities:
+        Module.value<
+          Type.Function<
+            readonly [Type.PrimitiveInteger],
+            Program.Query.Graph<Vertex>
+          >
+        >(),
+    },
+  }),
+);
+const graphProgram = Draft.withPrelude(graph).program;
+const axes = TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
+  Option.getOrThrow(
+    JExpr.Type.reference("::graph::temporal::QueryTemporalAxes"),
+  ),
+);
+const outsideAxis = Expression.input("outsideAxis", axes);
+
+/** An unrestricted helper's query keeps the predicate's requirements, which a program's `$` would reject. */
+const unrestrictedQuery = <S extends Program.Scope.Scope.Any>(
+  $: Context.Context<S>,
+  entities: Program.Expression.Expression<
+    Program.Query.Graph<Vertex>,
+    Program.Inputs.Empty
+  >,
+): Context.Query<S, Vertex, { readonly flag: Type.PrimitiveBoolean }> => {
+  const query = $.query(entities).filter("vertex", () =>
+    Expression.input("flag", Result.getOrThrow(Structural.type(Boolean))),
+  );
+  expectTypeOf(query).toEqualTypeOf<
+    Context.Query<S, Vertex, { readonly flag: Type.PrimitiveBoolean }>
+  >();
+  return query;
+};
+
+/** An unrestricted helper's entity query keeps axes from outside any schema, which a program's `$` would reject. */
+const unrestrictedEntities = <S extends Program.Scope.Scope.Any>(
+  $: Context.Context<S>,
+): Context.Query<
+  S,
+  Program.Query.Entity,
+  { readonly outsideAxis: Program.Query.QueryTemporalAxes }
+> => {
+  const query = $.query.entities(outsideAxis);
+  expectTypeOf(query).toEqualTypeOf<
+    Context.Query<
+      S,
+      Program.Query.Entity,
+      { readonly outsideAxis: Program.Query.QueryTemporalAxes }
+    >
+  >();
+  return query;
+};
+
+describe("query", () => {
+  test("vertex", () => {
+    const result = graphProgram({ axis: BigInt }, ($, { axis }) =>
+      $.query($.prelude().entities(axis))
+        .filter("vertex", (predicate, vertex) => {
+          expectTypeOf(vertex).toEqualTypeOf<
+            Program.Expression.Expression<Vertex, Program.Inputs.Empty>
+          >();
+          return predicate.isTrue(vertex.enabled);
+        })
+        .collect(),
+    );
+    expectTypeOf(result).toEqualTypeOf<
+      Result.Result<
+        Program.Expression.Expression<
+          Type.List<Vertex>,
+          { readonly axis: Type.PrimitiveInteger }
+        >,
+        Program.ProgramError.Construction
+      >
+    >();
+    graphProgram({}, ($) => {
+      const entities = $.prelude().entities(1n);
+      // @ts-expect-error A predicate returns a Boolean, not a vertex.
+      $.query(entities).filter("vertex", (_, vertex) => vertex);
+      // @ts-expect-error A predicate does not accept numeric truthiness.
+      $.query(entities).filter("vertex", () => 1);
+      // @ts-expect-error Only a graph starts a query.
+      $.query($.literal(true));
+      return $.literal(true);
+    });
+  });
+
+  test("schema_checks", () => {
+    const flag = Expression.input(
+      "flag",
+      Result.getOrThrow(Structural.type(Boolean)),
+    );
+    const erased: Program.Expression.Value<Type.PrimitiveBoolean> = flag;
+    graphProgram({}, ($) => {
+      const entities = $.prelude().entities(1n);
+      // @ts-expect-error The graph's inputs must fit the schema.
+      $.query($.prelude().entities(outside));
+      // @ts-expect-error A predicate's result must fit the schema.
+      $.query(entities).filter("vertex", () => flag);
+      $.query(entities).filter("vertex", (predicate) => {
+        // @ts-expect-error A discarded predicate declaration must fit the schema.
+        predicate.let("hidden", flag);
+        return true;
+      });
+      // @ts-expect-error A predicate cannot prove erased requirements.
+      $.query(entities).filter("vertex", () => erased);
+      return $.literal(true);
+    });
+    const result = graphProgram({ flag: Boolean }, ($) =>
+      $.query($.prelude().entities(1n))
+        .filter("vertex", (predicate) => predicate.let("selected", flag))
+        .collect(),
+    );
+    expectTypeOf(result).toEqualTypeOf<
+      Result.Result<
+        Program.Expression.Expression<
+          Type.List<Vertex>,
+          { readonly flag: Type.PrimitiveBoolean }
+        >,
+        Program.ProgramError.Construction
+      >
+    >();
+  });
+
+  test("escaped_filter", () => {
+    graphProgram({ flag: Boolean }, ($, { flag }) => {
+      const filtered = $.query($.prelude().entities(1n))
+        .filter("vertex", (predicate) => {
+          predicate.let("hidden", flag);
+          return true;
+        })
+        .collect();
+      expectTypeOf(filtered).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.List<Vertex>,
+          { readonly flag: Type.PrimitiveBoolean }
+        >
+      >();
+      // @ts-expect-error the filter closure emits the predicate's binding of `flag`
+      graphProgram({}, () => filtered);
+      return filtered;
+    });
+  });
+
+  test("unrestricted_context", () => {
+    expectTypeOf(unrestrictedQuery);
+  });
+
+  test("entities", () => {
+    const result = Draft.program({ axis: axes }, ($, { axis }) => {
+      expectTypeOf($.query.entities(axis)).toEqualTypeOf(
+        $.query(Program.Query.entities(axis)),
+      );
+      // @ts-expect-error The axes are a QueryTemporalAxes.
+      $.query.entities(1n);
+      // @ts-expect-error The axes' inputs must fit the schema.
+      $.query.entities(outsideAxis);
+      return $.query.entities(axis).collect();
+    });
+    expectTypeOf(result).toEqualTypeOf<
+      Result.Result<
+        Program.Expression.Expression<
+          Type.List<Program.Query.Entity>,
+          { readonly axis: Program.Query.QueryTemporalAxes }
+        >,
+        Program.ProgramError.Construction
+      >
+    >();
+    expectTypeOf(unrestrictedEntities);
   });
 });
 

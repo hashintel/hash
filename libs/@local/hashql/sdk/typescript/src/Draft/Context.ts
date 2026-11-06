@@ -13,6 +13,7 @@ import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Namespace from "../Program/Namespace.js";
 import type * as Operators from "../Program/Operators.js";
+import type { Entity, Graph, QueryTemporalAxes } from "../Program/Query.js";
 import type * as Scope from "../Program/Scope.js";
 import type * as Structural from "../Program/Structural.js";
 import type * as TypeExpression from "../Program/TypeExpression.js";
@@ -85,6 +86,45 @@ export type Optional<
 >;
 
 /**
+ * A graph query under construction: the graph expression with `filter` and `collect`.
+ *
+ * It is an expression of the graph type. Binding it with `let` gives a reference without these methods, and {@link @local/hashql!Program.Query.filter | Query.filter} and {@link @local/hashql!Program.Query.collect | Query.collect} still take that reference.
+ */
+export interface Query<
+  S extends Scope.Scope.Any,
+  V extends Type.Any,
+  I,
+> extends Expression.Expression.Handle<Graph<V>, I> {
+  /**
+   * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter. Declarations made through a captured outer `$` belong to the outer callback instead.
+   *
+   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql!Program.Query.filter | Query.filter}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
+   */
+  readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
+    name: string,
+    predicate: (
+      $: Context<S>,
+      vertex: Expression.Expression<V, Inputs.Empty>,
+    ) => P,
+  ) => Query<S, V, Inputs.Merge<I, Expression.Value.Inputs<P>>>;
+
+  /** Ends the query as a list of its vertices. This is {@link @local/hashql!Program.Query.collect | Query.collect}. */
+  readonly collect: () => Expression.Expression<Type.List<V>, I>;
+}
+
+/** `$.query`: starts a graph query from a graph expression, or from every entity with `entities`. */
+export interface Queries<S extends Scope.Scope.Any> {
+  <const G extends Expression.Expression.Any>(
+    graph: G & Graph.Check<G>,
+  ): Query<S, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
+
+  /** Starts a query from every entity at the temporal axes `axis`. This is {@link @local/hashql!Program.Query.entities | Query.entities}. */
+  readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
+    axis: A,
+  ) => Query<S, Entity, Expression.Value.Inputs<A>>;
+}
+
+/**
  * The unrestricted Draft construction context for the scope `S`.
  *
  * Its operations construct syntax and collect declarations, accepting values regardless of their input requirements. A program callback receives `Body.Context` instead, which restricts them to the program's input schema. The predicate constructors `eq`, `ne`, `and`, `or`, `not`, `isTrue`, `isFalse` and `isNone` are the standalone `Operators` functions.
@@ -106,7 +146,7 @@ export interface Context<S extends Scope.Scope.Any>
    *
    * Omitting `selection` imports every export. Given a name array, `import` selects those exports. Given an alias record, it imports each listed export under a new name, where `"_"` keeps the export's own name. The returned record joins same-named exports as `prelude()` does and refers to them by their local names. It leaves `prelude()` and `modules()` unchanged.
    *
-   * Unlike the other declarations, a failed import interrupts the callback, because it cannot supply the handles it promises. An invalid alias stops the callback with an `InvalidImportName` failure. The failure stays with the callback's result even if the callback catches the interruption: the program for a program callback, and the conditional for a branch.
+   * Unlike the other declarations, a failed import interrupts the callback, because it cannot supply the handles it promises. An invalid alias stops the callback with an `InvalidImportName` failure. The failure stays with the callback's result even if the callback catches the interruption: the program for a program callback, and otherwise the conditional or query that contains the callback.
    */
   readonly import: {
     <M extends Module.Module.Any>(
@@ -210,4 +250,7 @@ export interface Context<S extends Scope.Scope.Any>
       branches: { readonly then: ($: Context<S>) => T },
     ): Optional<C, T>;
   };
+
+  /** Starts a graph query from a graph expression, such as a call to a graph function from the prelude or an import, or from every entity with `$.query.entities(axis)`. */
+  readonly query: Queries<S>;
 }
