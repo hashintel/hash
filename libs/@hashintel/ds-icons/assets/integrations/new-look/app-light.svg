@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="new-look-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="new-look-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="new-look-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#new-look-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#new-look-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#new-look-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="new-look-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#new-look-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="new-look-app-light-svg2" viewBox="0 0 400.02661 34.92068" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="new-look-app-light-defs4" />
+
+
+  <g id="new-look-app-light-layer1" transform="translate(66.738675,213.09584)">
+    <g id="new-look-app-light-g3793" transform="matrix(0.34969316,0,0,0.34969316,42.050453,-321.47659)">
+      <path id="new-look-app-light-path2996" d="m -307.32142,404.59432 0,-90.80357 91.31499,91.99229 0,-91.95438" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+      <path id="new-look-app-light-path3768" d="m -65.405917,405.77607 -75.648773,0 0,-91.26382 75.681165,0" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+      <path id="new-look-app-light-path3770" d="m -80.476684,359.82173 -59.640936,0" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+      <path id="new-look-app-light-path3772" d="M -6.0633118,313.85081 31.38669,404.8662 67.688609,313.74056 105.10747,404.89295 141.41932,313.75623" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+      <path d="m 368.72721,405.77607 -75.64877,0 0,-91.92527" id="new-look-app-light-path3776" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+      <path id="new-look-app-light-path3782" d="m 522.10626,346.1517 c 0,28.12887 -22.80295,50.93182 -50.93182,50.93182 -28.12887,0 -50.93182,-22.80295 -50.93182,-50.93182 0,-28.12886 22.80295,-50.93182 50.93182,-50.93182 28.12887,0 50.93182,22.80296 50.93182,50.93182 z" transform="matrix(0.9025974,0,0,0.9025974,41.373695,47.496329)" fill="none" stroke="#000000" stroke-width="7.75539589" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" />
+      <path d="m 668.72817,359.93195 c 0,25.38905 -20.58189,45.97093 -45.97093,45.97093 -25.38905,0 -45.97093,-20.58188 -45.97093,-45.97093 0,-25.38903 20.58188,-45.97092 45.97093,-45.97092 25.38904,0 45.97093,20.58189 45.97093,45.97092 z" id="new-look-app-light-path3785" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" />
+      <path id="new-look-app-light-path3787" d="m 737.13335,405.87253 0,-92.02173" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+      <path id="new-look-app-light-path3789" d="M 737.77589,378.43267 828.9666,313.85138" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+      <path id="new-look-app-light-path3791" d="m 774.43137,353.97565 54.40593,51.87376" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+    </g>
+  </g>
+</svg></g></svg>

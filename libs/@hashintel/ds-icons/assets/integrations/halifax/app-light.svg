@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="halifax-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="halifax-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="halifax-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#halifax-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#halifax-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#halifax-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="halifax-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#halifax-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.32354 566 365.67646" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g fill="#005D9D"><g fill-rule="evenodd"><path d="m61.798 174.095h-35.444v-42.678h-24.168v104.112h24.168v-39.474h35.444v39.474h24.317v-104.112h-24.317z" /><path d="m223.197 131.417h-24.317v104.112h62.04v-21.961h-37.723z" /><path d="m272.2 235.529h24.608v-104.112h-24.608z" /><path d="m334.993 153.378h45.81v-21.961h-70.124v104.112h24.314v-39.474h37.958v-21.96h-37.958z" /><path d="m131.413 196.055 11.084-35.206 11.084 35.206zm-2.217-64.638-35.201 104.112h24.991l5.956-18.918h35.111l5.956 18.918h24.991l-35.166-104.112z" /><path d="m410.786 196.055 11.084-35.206 11.084 35.206zm150.098-64.638h-27.586l-19.596 31.455-19.597-31.455h-27.585l33.955 52.056-31.418 48.165-33.85-100.221h-26.639l-35.201 104.112h24.991l5.956-18.918h35.112l5.956 18.918h48.723l19.597-31.454 19.596 31.454h27.586l-33.956-52.056z" /></g><g><path d="m0 .947h206.626l104.051 109.914h-196.505z" /><path d="m294.623 67.851 64.449-66.904h206.626l-114.172 109.914h-116.188z" /><path d="m294.623 299.095 40.716-43.01h116.187l114.172 109.914h-206.626z" /><path d="m310.678 256.085h-196.505l-114.113 109.855 206.566.059z" /></g></g></svg></g></svg>

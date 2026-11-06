@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="speedo-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.320019314615 -1.07656544597 -0.108680124719 0 1.5052648853" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#speedo-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" id="speedo-mark-mono-svg2" viewBox="290.18143 25.54309 130.02286 46.30516" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+  <defs><clipPath id="speedo-mark-mono-identity-part"><rect x="285" y="0" width="155" height="97.17" /></clipPath></defs><g clip-path="url(#speedo-mark-mono-identity-part)"><defs id="speedo-mark-mono-defs4">
+    <clipPath id="speedo-mark-mono-clipPath2420" clipPathUnits="userSpaceOnUse">
+      <path id="speedo-mark-mono-path2422" d="M 4256.73,2.08594 L 4256.73,7014.59 L 693.27,7014.59 L 693.27,2.08594 L 4256.73,2.08594 z" />
+    </clipPath>
+    </defs>
+
+  <g id="speedo-mark-mono-layer1" transform="translate(-351.90378,-274.41365)">
+    <g id="speedo-mark-mono-g2497" transform="matrix(0.6924482,0,0,0.6924482,165.37823,89.066758)">
+      <path d="M 725.94881,304.80348 C 725.93256,304.83558 871.77127,304.80348 871.77127,304.80348 C 877.70704,304.70273 876.70238,311.41404 872.30183,312.35453 C 872.28559,312.38661 693.9871,370.33794 693.9871,370.33794 C 689.37343,372.03812 688.84705,370.66375 688.66217,369.35725 C 688.57774,368.07146 689.60654,366.99853 691.71654,366.10234 C 691.66812,366.1385 775.50084,324.12573 775.50084,324.12573 C 780.08217,321.7264 776.97148,319.32706 775.96316,319.19462 C 775.97494,319.23078 725.94881,307.26293 725.94881,307.26293 C 723.17167,306.32246 723.99961,304.60644 725.94881,304.80348" id="speedo-mark-mono-path2438" fill="#EF2D24" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+  </g>
+</g></svg></g></svg>

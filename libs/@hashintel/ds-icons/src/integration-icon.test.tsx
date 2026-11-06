@@ -86,9 +86,9 @@ describe("IntegrationIcon", () => {
   );
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(1196);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(1315);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      1125,
+      1227,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
