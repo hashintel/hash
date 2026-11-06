@@ -37,6 +37,7 @@ import {
   type DraftStep,
   type EditorDocument,
   findStep,
+  flaggedOutputsOf,
   flattenSteps,
   removeStep,
   startSubtitle,
@@ -44,7 +45,7 @@ import {
   updateStep,
 } from "./document";
 import { FLOW_OUTPUTS_ID, FlowOutputsCard } from "./flow-outputs";
-import { useFlowOutputTake } from "./outputs";
+import { useFlowOutputTake, useRunStars } from "./outputs";
 import {
   type CanvasMenu,
   showDebug,
@@ -61,6 +62,8 @@ import {
   useFlowTriggers,
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
+import { useHighlightedSteps, withHighlight } from "./canvas-highlight";
+import { ForEachBoxSwitch } from "./foreach-switch";
 import { mockRuns, stepRunStatus } from "./mock-runs";
 import { demoRun, nodePathsRun, nodePathsTake } from "./node-paths";
 import { pathsTake } from "./paths-flags";
@@ -73,8 +76,10 @@ import {
   glyphTooltip,
   reviewMotionOf,
   reviewOnceStyle,
+  CardMark,
   RunBar,
   RunGlyph,
+  TitleMark,
 } from "./run-glyph";
 import { flashLogRows } from "./run-log-panel";
 import {
@@ -176,7 +181,10 @@ const PATH_PILL = 20;
 const PATH_PILL_STEP = 26;
 const pillPosition = (index: number, count: number) => ({
   x: STEP_WIDTH + 40,
-  y: STEP_HEIGHT / 2 - PATH_PILL / 2 + (index - (count - 1) / 2) * PATH_PILL_STEP,
+  y:
+    STEP_HEIGHT / 2 -
+    PATH_PILL / 2 +
+    (index - (count - 1) / 2) * PATH_PILL_STEP,
 });
 
 const groupSize = (document: EditorDocument, step: DraftStep) => {
@@ -321,7 +329,11 @@ const toNodes = (
           type: "pathPill",
           parentId: step.stepId,
           position: pillPosition(index, ports.length),
-          data: { stepId: step.stepId, port: port.outputName, label: port.label },
+          data: {
+            stepId: step.stepId,
+            port: port.outputName,
+            label: port.label,
+          },
           draggable: false,
           selectable: false,
           deletable: false,
@@ -494,6 +506,17 @@ const CardTile = ({
 );
 
 // The tile sits centred on the title and description block (Aakarsh, 4 Nov).
+/** B2: the run's featured-output star, top right of the card, 12 px, filled, muted (the Steps list's faint star). */
+const runStarStyle = css({
+  position: "absolute",
+  top: "[10px]",
+  right: "[10px]",
+  display: "inline-flex",
+  color: "neutral.fg.muted",
+  pointerEvents: "none",
+  "& svg": { width: "[12px]", height: "[12px]", fill: "[currentColor]" },
+});
+
 const cardHeadStyle = css({
   display: "flex",
   alignItems: "center",
@@ -1065,15 +1088,18 @@ const RunMarkTake = ({
     );
   }
   return (
-    <RunBar
-      segments={segments}
-      colors={strongBarColor}
-      radius={radius}
-      finish={finish}
-      motion={barMotion}
-      reviewMotion={reviewMotion}
-      breakdown={breakdown}
-    />
+    <>
+      <CardMark state={mark.state} progress={mark.progress} group={group} />
+      <RunBar
+        segments={segments}
+        colors={strongBarColor}
+        radius={radius}
+        finish={finish}
+        motion={barMotion}
+        reviewMotion={reviewMotion}
+        breakdown={breakdown}
+      />
+    </>
   );
 };
 
@@ -1156,8 +1182,11 @@ const CardText = ({
   description,
   onDescription,
   label = "Step description",
+  titleEnd,
 }: {
   title: string;
+  /** ?cardmark=p4: the run state's glyph after the title. */
+  titleEnd?: React.ReactNode;
   description?: string;
   /** Renames the description in place on the card (Attio's pattern); none in a run or a past version. */
   onDescription?: (value: string) => void;
@@ -1173,16 +1202,14 @@ const CardText = ({
       flex: "1",
     })}
   >
-    <span
-      className={oneLineStyle({ tone: "title" })}
-      // The full title on hover only when it is cut off.
-      onMouseEnter={(event) => {
-        const element = event.currentTarget;
-        element.title = element.scrollWidth > element.clientWidth ? title : "";
-      }}
-    >
-      {title}
-    </span>
+    {titleEnd ? (
+      <span style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+        <CardTitle title={title} />
+        {titleEnd}
+      </span>
+    ) : (
+      <CardTitle title={title} />
+    )}
     {onDescription ? (
       <InlineRename
         compact
@@ -1196,6 +1223,19 @@ const CardText = ({
         {description ?? "Add a description…"}
       </span>
     )}
+  </span>
+);
+
+const CardTitle = ({ title }: { title: string }) => (
+  <span
+    className={oneLineStyle({ tone: "title" })}
+    // The full title on hover only when it is cut off.
+    onMouseEnter={(event) => {
+      const element = event.currentTarget;
+      element.title = element.scrollWidth > element.clientWidth ? title : "";
+    }}
+  >
+    {title}
   </span>
 );
 
@@ -1295,7 +1335,10 @@ const pathChipStyle = css({
   lineHeight: "[16px]",
   color: "neutral.fg.muted",
   whiteSpace: "nowrap",
-  "&[data-connected]": { borderStyle: "solid", borderColor: "neutral.bd.subtle" },
+  "&[data-connected]": {
+    borderStyle: "solid",
+    borderColor: "neutral.bd.subtle",
+  },
 });
 
 /**
@@ -1442,7 +1485,9 @@ const NodePaths = ({
 
   // `wires`: the ports spread down the card's right edge, at most 14 px apart.
   const spacing =
-    ports.length > 1 ? Math.min(14, (STEP_HEIGHT - 16) / (ports.length - 1)) : 0;
+    ports.length > 1
+      ? Math.min(14, (STEP_HEIGHT - 16) / (ports.length - 1))
+      : 0;
   const topOf = (index: number) =>
     STEP_HEIGHT / 2 + (index - (ports.length - 1) / 2) * spacing;
   return (
@@ -1491,7 +1536,10 @@ const pathPillStyle = css({
   lineHeight: "[16px]",
   color: "neutral.fg.muted",
   whiteSpace: "nowrap",
-  "&[data-connected]": { borderStyle: "solid", borderColor: "neutral.bd.subtle" },
+  "&[data-connected]": {
+    borderStyle: "solid",
+    borderColor: "neutral.bd.subtle",
+  },
   "&:hover [data-port-add]": { opacity: "[1]" },
   "&[data-path-taken]": { color: "neutral.fg.body" },
   "&[data-path-untaken], &[data-run-faint]": { opacity: "[0.55]" },
@@ -1549,6 +1597,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const run = nodePathsRun ? demoRun(document) : null;
   const runView = useRunView();
   const enterRef = useEnterAnimation(id);
+  const runStars = useRunStars();
   const step = flatFind(document, id);
   if (!step || step.kind !== "action") {
     return null;
@@ -1557,6 +1606,11 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   // A run draws the editor's own card (Aakarsh, 4 Nov): same size, rows and type; only the bar is added.
   const ports = portRows(step);
   const mark = runView?.steps?.[id];
+  // B2 (6 Nov, ?runstars=a|b): in a run, a filled read-only star on a card that holds a featured output.
+  const starred =
+    Boolean(runView) &&
+    runStars !== null &&
+    flaggedOutputsOf(document).some((key) => key.startsWith(`${id}.`));
   // `?nodepaths=count`: the rows open while the card is hovered or selected.
   const open = nodePathsTake === "count" && (hovered || selected);
   const portState = (port: string) => pathPortState(document, run, id, port);
@@ -1596,11 +1650,21 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         className={handleStyle}
         style={{ top: STEP_HEIGHT / 2 }}
       />
+      {starred ? (
+        <span
+          className={runStarStyle}
+          data-run-star
+          aria-label="Featured output"
+        >
+          <Icon name="star" size="xs" />
+        </span>
+      ) : null}
       {/* No tooltip over the card: the title shows its full text on hover only when it is cut off. */}
       <div className={cardHeadStyle}>
         <CardTile icon={entry?.icon ?? "cube"} tone={entry?.tone ?? "green"} />
         <CardText
           title={entry?.title ?? step.actionDefinitionId}
+          titleEnd={<TitleMark state={mark?.state} progress={mark?.progress} />}
           description={
             step.description && step.description !== entry?.title
               ? step.description
@@ -1707,8 +1771,7 @@ const triggerStyle = css({
  * only, never remembered.
  */
 const oldStartRename =
-  new URLSearchParams(globalThis.location.search).get("startrename") ===
-  "old";
+  new URLSearchParams(globalThis.location.search).get("startrename") === "old";
 
 /** Start: always on the canvas, holds the flow's inputs and lists what starts the flow; steps follow it. */
 const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
@@ -2427,6 +2490,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             {step.description || "For each"}
           </span>
         </Tooltip>
+        <ForEachBoxSwitch stepId={id} />
       </div>
       {step.steps.length === 0 && !folded ? (
         <div
@@ -2904,6 +2968,7 @@ export const FlowCanvas = ({
   const viewingVersion = useLocation().query.has("version");
   const readOnly = Boolean(runView) || viewingVersion;
   const flowTake = useFlowOutputTake();
+  const highlight = useHighlightedSteps();
   const [dragPositions, setDragPositions] = useState<
     Record<string, { x: number; y: number }>
   >({});
@@ -3247,7 +3312,7 @@ export const FlowCanvas = ({
   const canvas = (
     <ReactFlow
       className={canvasStyle}
-      nodes={nodes}
+      nodes={withHighlight(nodes, highlight)}
       edges={edges}
       nodesDraggable={!readOnly}
       nodesConnectable={!readOnly}

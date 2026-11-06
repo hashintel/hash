@@ -357,7 +357,10 @@ const BareGlyph = ({
           {done > 0 && <path d={bareArc(bareCap + inset, arcEnd - bareCap)} />}
           {failed > 0 && (
             <path
-              d={bareArc(failStart + inset + bareCap, failEnd - inset - bareCap)}
+              d={bareArc(
+                failStart + inset + bareCap,
+                failEnd - inset - bareCap,
+              )}
               style={{ stroke: red }}
             />
           )}
@@ -891,3 +894,180 @@ export const RunBar = ({
     </>
   );
 };
+
+/**
+ * The state mark on a run-view step card, next to the run bar (6 Nov sync, B13: the needs-review and failed icons
+ * were missing from the cards; B7: "if we can fit both [icon and bottom bar], I think it's clearer", "I kind of like
+ * the ping effect", "corner's better"). Read from ?cardmark= only, never remembered.
+ * Default: a still 12 px F3 glyph at the card's top right, only on cards that need you (failed, needs review, partly
+ *   failed); running keeps its bar shimmer, done stays bar only.
+ * p1 · Corner ping: the default glyph; one soft ring leaves the needs-review glyph on arrival and every 6 s.
+ * p2 · Corner dot: a 6 px dot sitting on the card's top-right corner, outside the ports' rows; needs review pings.
+ * p3 · Tile badge: a 12 px badge on the tile's top-right corner, far from the output ports (L412: "it might just get
+ *   lost" among the ports on the right); needs review pings.
+ * p4 · By the title: the glyph inline after the step name, still; the bar's shimmer is the only motion.
+ */
+export type CardMarkTake = "default" | "p1" | "p2" | "p3" | "p4";
+
+export const cardMarkTake: CardMarkTake = (() => {
+  const value = new URLSearchParams(globalThis.location.search).get("cardmark");
+  return value === "p1" || value === "p2" || value === "p3" || value === "p4"
+    ? value
+    : "default";
+})();
+
+const cardMarkStates = new Set<StepState>([
+  "failed",
+  "needsReview",
+  "doneWithFailures",
+]);
+
+const ensurePingKeyframes = () => {
+  const { document } = globalThis;
+  if (document.getElementById("flows-ping-keyframes")) {
+    return;
+  }
+  const sheet = document.createElement("style");
+  sheet.id = "flows-ping-keyframes";
+  // One ring in the first 1.2 s of every 6 s, then nothing.
+  sheet.textContent =
+    "@keyframes flowsPing { 0% { transform: scale(1); opacity: 0.55; } 20% { transform: scale(2.2); opacity: 0; } 100% { transform: scale(2.2); opacity: 0; } }";
+  document.head.append(sheet);
+};
+
+const pingStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  borderRadius: "full",
+  borderWidth: "[1.25px]",
+  borderStyle: "solid",
+  pointerEvents: "none",
+  animationName: "[flowsPing]",
+  animationDuration: "[6s]",
+  animationTimingFunction: "ease-out",
+  animationIterationCount: "infinite",
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "none",
+    display: "none",
+  },
+});
+
+const cardMarkStyle = css({
+  position: "absolute",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  pointerEvents: "none",
+  zIndex: "[2]",
+});
+
+const Ping = ({ color }: { color: string }) => {
+  ensurePingKeyframes();
+  return (
+    <span aria-hidden className={pingStyle} style={{ borderColor: color }} />
+  );
+};
+
+/** `markColor` is the state's glyph colour, for the dot and the ping ring. */
+const markColor = (state: StepState) =>
+  state === "doneWithFailures" ? red : glyphColor[state];
+
+export const CardMark = ({
+  state,
+  progress,
+  group,
+}: {
+  state: StepState;
+  progress?: GlyphProgress;
+  /** The For each box: its header is 48 px, so the mark sits lower. */
+  group?: boolean;
+}) => {
+  const partlyFailed =
+    state === "doneWithFailures" && (progress?.failed ?? 0) > 0;
+  if (
+    !cardMarkStates.has(state) ||
+    (state === "doneWithFailures" && !partlyFailed)
+  ) {
+    return null;
+  }
+  const color = markColor(state);
+  const ping =
+    state === "needsReview" &&
+    cardMarkTake !== "default" &&
+    cardMarkTake !== "p4";
+  if (cardMarkTake === "p2") {
+    return (
+      <span
+        data-card-mark="p2"
+        className={cardMarkStyle}
+        style={{
+          top: -3,
+          right: -3,
+          width: 6,
+          height: 6,
+          borderRadius: 9999,
+          backgroundColor: color,
+          boxShadow: "0 0 0 2px var(--flows-canvas-bg, #fafafa)",
+        }}
+      >
+        {ping ? <Ping color={color} /> : null}
+      </span>
+    );
+  }
+  if (cardMarkTake === "p3") {
+    return group ? null : (
+      <span
+        data-card-mark="p3"
+        className={cardMarkStyle}
+        // Centred on the 24 px tile's top-right corner (the tile sits 13 px in, 17 px down).
+        style={{
+          top: 17,
+          left: 37,
+          transform: "translate(-50%, -50%)",
+          borderRadius: 9999,
+          backgroundColor: "white",
+        }}
+      >
+        <RunGlyph state={state} progress={progress} size={10} />
+        {ping ? <Ping color={color} /> : null}
+      </span>
+    );
+  }
+  if (cardMarkTake === "p4") {
+    return null;
+  }
+  return (
+    <span
+      data-card-mark={cardMarkTake}
+      className={cardMarkStyle}
+      style={
+        group
+          ? { top: 18, right: 12, width: 12, height: 12 }
+          : { top: 10, right: 10, width: 12, height: 12 }
+      }
+    >
+      <RunGlyph state={state} progress={progress} />
+      {ping ? <Ping color={color} /> : null}
+    </span>
+  );
+};
+
+/** p4: the glyph inline after the step name, as CardMark's other takes draw nothing there. */
+export const TitleMark = ({
+  state,
+  progress,
+}: {
+  state?: StepState;
+  progress?: GlyphProgress;
+}) =>
+  cardMarkTake === "p4" &&
+  state &&
+  cardMarkStates.has(state) &&
+  (state !== "doneWithFailures" || (progress?.failed ?? 0) > 0) ? (
+    <span
+      data-card-mark="p4"
+      style={{ display: "inline-flex", marginLeft: 4, flex: "none" }}
+    >
+      <RunGlyph state={state} progress={progress} />
+    </span>
+  ) : null;
