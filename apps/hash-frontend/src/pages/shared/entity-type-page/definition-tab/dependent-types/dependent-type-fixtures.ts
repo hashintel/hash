@@ -2,12 +2,44 @@ import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 
 import type { DependentTypeRow } from "./dependent-type-rows";
 import type {
+  BaseUrl,
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
+export const typeBaseUrl = (slug: string) =>
+  `https://example.com/@alice/types/entity-type/${slug}/` as BaseUrl;
+
+export const actorBaseUrl = typeBaseUrl("actor");
+
+/** Version `version` of `slug`, whose `allOf` names the given versions of the parent, Actor by default. */
+export const makeVersion = (
+  slug: string,
+  title: string,
+  version: number,
+  parentVersions: number[],
+  parentBaseUrl: BaseUrl = actorBaseUrl,
+): EntityTypeWithMetadata =>
+  ({
+    schema: {
+      $schema: ENTITY_TYPE_META_SCHEMA,
+      kind: "entityType",
+      $id: `${typeBaseUrl(slug)}v/${version}` as VersionedUrl,
+      title,
+      description: `A ${title}`,
+      type: "object",
+      properties: {},
+      allOf: parentVersions.map((parentVersion) => ({
+        $ref: `${parentBaseUrl}v/${parentVersion}` as VersionedUrl,
+      })),
+    },
+    metadata: {
+      recordId: { baseUrl: typeBaseUrl(slug), version: `${version}` },
+    },
+  }) as unknown as EntityTypeWithMetadata;
+
 export const typeId = (title: string, version: number) =>
-  `https://example.com/@alice/types/entity-type/${title.toLowerCase().replaceAll(" ", "-")}/v/${version}` as VersionedUrl;
+  `${typeBaseUrl(title.toLowerCase().replaceAll(" ", "-"))}v/${version}` as VersionedUrl;
 
 /**
  * A row for `title`, named by version `version`, with ranges given as

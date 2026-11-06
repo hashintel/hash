@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { theme } from "@hashintel/design-system/theme";
 
-import { makeRow, typeId } from "./dependent-type-row-fixtures";
+import { makeRow, typeId } from "./dependent-type-fixtures";
 import { DependentTypesSection } from "./dependent-types-section";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
