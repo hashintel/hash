@@ -3,8 +3,8 @@ import { use } from "react";
 
 import { Button, Icon, TextInput } from "@hashintel/ds-components";
 
-import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
-import { EmbedChromeContext } from "./embed-chrome-context";
+import { ChartNetworkRegularIcon } from "../../../../../../../shared/icons/chart-network-regular-icon";
+import { TopBarContext } from "../../top-bar-context";
 import { VersionPicker } from "./version-picker";
 
 /**
@@ -24,14 +24,14 @@ const TitleInput = styled(TextInput)({
 });
 
 /**
- * HASH-style breadcrumbs at the start of Petrinaut's top bar, so the embed
+ * HASH-style breadcrumbs at the start of Petrinaut's top bar, so the editor
  * shows a single bar. The editable process title is the final crumb, tinted
  * to match, and renames in place through the page's title state. Crumbs and
  * title are siblings in the bar, so the title takes the remaining width.
  */
-export const EmbedBreadcrumbs = () => {
-  const chrome = use(EmbedChromeContext);
-  if (!chrome) {
+export const TopBarBreadcrumbs = () => {
+  const topBar = use(TopBarContext);
+  if (!topBar) {
     return null;
   }
 
@@ -49,7 +49,7 @@ export const EmbedBreadcrumbs = () => {
         <Button
           size="sm"
           variant="ghost"
-          onClick={chrome.onNavigateBack}
+          onClick={topBar.onNavigateBack}
           prefix={
             <ChartNetworkRegularIcon
               style={{ color: BREADCRUMB_TEXT_COLOR, fontSize: 14 }}
@@ -70,19 +70,19 @@ export const EmbedBreadcrumbs = () => {
       <TitleInput
         variant="subtle"
         size="sm"
-        value={chrome.title}
-        onChange={chrome.onTitleChange}
+        value={topBar.title}
+        onChange={topBar.onTitleChange}
         placeholder="Process"
-        readonly={chrome.readonly}
+        readonly={topBar.readonly}
       />
     </>
   );
 };
 
 /** Version picker and Save/Create at the end of the top bar, for an editable net. */
-export const EmbedActions = () => {
-  const chrome = use(EmbedChromeContext);
-  if (!chrome || chrome.readonly) {
+export const TopBarActions = () => {
+  const topBar = use(TopBarContext);
+  if (!topBar || topBar.readonly) {
     return null;
   }
   const {
@@ -93,7 +93,7 @@ export const EmbedActions = () => {
     persistPending,
     revisions,
     saveLabel,
-  } = chrome;
+  } = topBar;
 
   return (
     <>

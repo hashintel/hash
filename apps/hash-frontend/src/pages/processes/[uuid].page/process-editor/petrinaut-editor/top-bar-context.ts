@@ -1,12 +1,12 @@
 import { createContext } from "react";
 
-import type { RevisionSummary } from "../../shared/messages";
+import type { RevisionSummary } from "../petrinaut-editor";
 
 /**
- * What the embed's top-bar items read: the page owns this state and provides
- * it above the editor, so the plugin itself stays a stable module constant.
+ * What the top-bar items read: the editor owns this state and provides it
+ * above Petrinaut, so the plugin itself stays a stable module constant.
  */
-export type EmbedChrome = {
+export type TopBarState = {
   title: string;
   onTitleChange: (title: string) => void;
   readonly: boolean;
@@ -20,4 +20,4 @@ export type EmbedChrome = {
   onLoadRevision: (revision: RevisionSummary) => void;
 };
 
-export const EmbedChromeContext = createContext<EmbedChrome | null>(null);
+export const TopBarContext = createContext<TopBarState | null>(null);
