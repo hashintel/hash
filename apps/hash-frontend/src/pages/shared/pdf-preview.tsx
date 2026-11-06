@@ -2,7 +2,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Box, Stack, Typography } from "@mui/material";
 import { debounce } from "lodash";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import { Document, Page, pdfjs } from "react-pdf";
 
@@ -213,11 +213,13 @@ export const PdfPreview = ({
     py: `${thumbnailYPadding}px`,
   };
 
-  const setPageWidthHeightRatioDebounced = debounce(
-    (height: number, width: number) => {
-      setPageWidthHeightRatio(Math.round((height / width) * 100) / 100);
-    },
-    200,
+  // TODO(FE-1978): remove this useMemo once React Compiler compiles this component.
+  const setPageWidthHeightRatioDebounced = useMemo(
+    () =>
+      debounce((height: number, width: number) => {
+        setPageWidthHeightRatio(Math.round((height / width) * 100) / 100);
+      }, 200),
+    [],
   );
 
   return (
