@@ -27,6 +27,8 @@ use std::{
     path::PathBuf,
 };
 
+#[cfg(feature = "clap")]
+use clap::{Args as _, Command, Id};
 use error_stack::{Report, ResultExt as _};
 use opentelemetry::metrics::{Meter, MeterProvider as _};
 use opentelemetry_sdk::{
@@ -44,10 +46,29 @@ use self::{
     traces::sentry::SentryConfig,
 };
 
+/// Namespace of the environment variables the telemetry configuration reads by default.
+///
+/// Every `env` name in [`TracingConfig`] other than `HASH_OTLP_ENDPOINT` starts with it, followed
+/// by `_`, because [`TracingConfig::with_namespace`] replaces exactly that part.
+pub const DEFAULT_NAMESPACE: &str = "HASH_GRAPH";
+
 /// Arguments for configuring the tracing setup.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct TracingConfig {
+    /// Namespace of the telemetry environment variables, which the binary sets in code.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "telemetry-namespace",
+            long = "telemetry-namespace",
+            hide = true,
+            default_value = DEFAULT_NAMESPACE,
+            value_parser = [DEFAULT_NAMESPACE]
+        )
+    )]
+    pub namespace: String,
+
     #[cfg_attr(feature = "clap", clap(flatten))]
     pub logging: LoggingConfig,
 
@@ -58,6 +79,50 @@ pub struct TracingConfig {
     pub sentry: SentryConfig,
 }
 
+#[cfg(feature = "clap")]
+impl TracingConfig {
+    /// Makes the telemetry arguments in `command` read the variables of `namespace`, and parses
+    /// `namespace` into [`TracingConfig::namespace`].
+    #[must_use]
+    pub fn with_namespace(command: Command, namespace: &str) -> Command {
+        with_env_namespace(command, namespace).mut_arg("telemetry-namespace", |arg| {
+            arg.default_value(namespace.to_owned())
+                .value_parser([namespace.to_owned()])
+        })
+    }
+}
+
+/// Makes the telemetry arguments in `command` read `<namespace>_*` instead of the
+/// [`DEFAULT_NAMESPACE`] variables.
+///
+/// Arguments that are not part of [`TracingConfig`] keep their environment variables, and so
+/// does `HASH_OTLP_ENDPOINT`.
+#[cfg(feature = "clap")]
+fn with_env_namespace(command: Command, namespace: &str) -> Command {
+    let ids: Vec<Id> = TracingConfig::augment_args(Command::new("telemetry"))
+        .get_arguments()
+        .map(|arg| arg.get_id().clone())
+        .collect();
+
+    command.mut_args(|arg| {
+        let env = ids
+            .contains(arg.get_id())
+            .then(|| {
+                arg.get_env()?
+                    .to_str()?
+                    .strip_prefix(DEFAULT_NAMESPACE)?
+                    .strip_prefix('_')
+            })
+            .flatten()
+            .map(|name| format!("{namespace}_{name}"));
+
+        match env {
+            Some(env) => arg.env(env),
+            None => arg,
+        }
+    })
+}
+
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Failed to initialize tracing")]
 pub struct InitTracingError;
@@ -65,6 +130,7 @@ pub struct InitTracingError;
 #[derive(Debug, Default)]
 pub struct TelemetryRegistry {
     error_layer: bool,
+    log_level: Option<String>,
     console_logging: Option<ConsoleConfig>,
     file_logging: Option<FileConfig>,
     sentry: Option<SentryConfig>,
@@ -76,6 +142,17 @@ impl TelemetryRegistry {
     #[must_use]
     pub const fn with_error_layer(mut self) -> Self {
         self.error_layer = true;
+        self
+    }
+
+    /// Sets the `EnvFilter` directives for outputs without their own level, the OTLP logs and
+    /// traces included.
+    ///
+    /// An output with its own level ignores them. See [`logging::env_filter`] for how they combine
+    /// with `RUST_LOG`.
+    #[must_use]
+    pub fn with_log_level(mut self, directives: Option<String>) -> Self {
+        self.log_level = directives;
         self
     }
 
@@ -119,13 +196,18 @@ impl TelemetryRegistry {
     }
 
     fn build(self) -> Result<(impl Into<Dispatch>, Telemetry), Report<InitTracingError>> {
+        let filter = self::logging::env_filter(self.log_level.as_deref());
+
         let error_layer = self.error_layer.then(ErrorLayer::default);
         let console_layer = self
             .console_logging
             .as_ref()
-            .map(self::logging::console_layer);
+            .map(|config| self::logging::console_layer(config, &filter));
 
-        let (file_layer, file_guard) = self.file_logging.map(self::logging::file_layer).unzip();
+        let (file_layer, file_guard) = self
+            .file_logging
+            .map(|config| self::logging::file_layer(config, &filter))
+            .unzip();
 
         let sentry_layer = self.sentry.as_ref().map(self::traces::sentry::layer);
 
@@ -135,7 +217,12 @@ impl TelemetryRegistry {
             .map(|(otlp, service_name)| {
                 self::logging::otlp::provider(otlp, service_name)
                     .change_context(InitTracingError)
-                    .map(|provider| (self::logging::otlp::layer(&provider), provider))
+                    .map(|provider| {
+                        (
+                            self::logging::otlp::layer(&provider, filter.clone()),
+                            provider,
+                        )
+                    })
             })
             .transpose()?
             .unzip();
@@ -146,7 +233,12 @@ impl TelemetryRegistry {
             .map(|(otlp, service_name)| {
                 self::traces::otlp::provider(otlp, service_name)
                     .change_context(InitTracingError)
-                    .map(|provider| (self::traces::otlp::layer(&provider), provider))
+                    .map(|provider| {
+                        (
+                            self::traces::otlp::layer(&provider, filter.clone()),
+                            provider,
+                        )
+                    })
             })
             .transpose()?
             .unzip();
@@ -214,7 +306,6 @@ impl TelemetryRegistry {
         let default_guard = tracing::dispatcher::set_default(&registry.into());
 
         // We have to wait until logging is initialized before we can print the warnings.
-        warn_about_log_level_variables();
         telemetry_guard.warn_where_metrics_are_discarded();
 
         Ok(DropGuard(telemetry_guard, default_guard))
@@ -235,23 +326,9 @@ impl TelemetryRegistry {
         opentelemetry::global::set_meter_provider(guard.metrics_provider.clone());
 
         // We have to wait until logging is initialized before we can print the warnings.
-        warn_about_log_level_variables();
         guard.warn_where_metrics_are_discarded();
 
         Ok(guard)
-    }
-}
-
-fn warn_about_log_level_variables() {
-    if std::env::var("RUST_LOG").is_ok() {
-        if std::env::var("HASH_GRAPH_LOG_LEVEL").is_ok() {
-            warn!(
-                "`HASH_GRAPH_LOG_LEVEL` and `RUST_LOG` are set, `HASH_GRAPH_LOG_LEVEL` has been \
-                 used to determine the logging level."
-            );
-        } else {
-            warn!("`RUST_LOG` is set, please use `HASH_GRAPH_LOG_LEVEL` instead");
-        }
     }
 }
 
@@ -308,6 +385,10 @@ impl Drop for Telemetry {
 
 /// Initialize the `tracing` logging setup.
 ///
+/// Outputs without their own level, the OTLP logs and traces included, are filtered by the
+/// `LOG_LEVEL` variable in [`TracingConfig::namespace`], e.g. `HASH_GRAPH_LOG_LEVEL`, falling back
+/// to `RUST_LOG`.
+///
 /// # Errors
 ///
 /// - [`InitTracingError`], if initializing the [`tracing_subscriber::Registry`] fails.
@@ -315,11 +396,188 @@ pub fn init_tracing(
     config: TracingConfig,
     service_name: &'static str,
 ) -> Result<Telemetry, Report<InitTracingError>> {
-    TelemetryRegistry::default()
+    let log_level = std::env::var(format!("{}_LOG_LEVEL", config.namespace)).ok();
+
+    let telemetry = TelemetryRegistry::default()
         .with_error_layer()
+        .with_log_level(log_level)
         .with_console_logging(config.logging.console)
         .with_file_logging(config.logging.file)
         .with_sentry(config.sentry)
         .with_otlp(config.otlp, service_name)
-        .init_global()
+        .init_global()?;
+
+    if std::env::var_os("RUST_LOG").is_some() {
+        warn!(
+            "`RUST_LOG` is set, please use `{}_LOG_LEVEL` instead, which takes precedence over it",
+            config.namespace
+        );
+    }
+
+    Ok(telemetry)
+}
+
+#[cfg(all(test, feature = "clap"))]
+mod tests {
+    use clap::{Arg, Args as _, Command, FromArgMatches as _, error::ErrorKind};
+
+    use crate::{TracingConfig, with_env_namespace};
+
+    fn telemetry_command() -> Command {
+        TracingConfig::augment_args(Command::new("telemetry"))
+    }
+
+    /// The ID and environment variable of every argument in `command` that reads one.
+    fn env_names(command: &Command) -> Vec<(&str, &str)> {
+        command
+            .get_arguments()
+            .filter_map(|arg| Some((arg.get_id().as_str(), arg.get_env()?.to_str()?)))
+            .collect()
+    }
+
+    #[test]
+    fn env_names_default() {
+        assert_eq!(
+            env_names(&telemetry_command()),
+            [
+                ("logging-console-enabled", "HASH_GRAPH_LOG_CONSOLE_ENABLED"),
+                ("logging-console-format", "HASH_GRAPH_LOG_CONSOLE_FORMAT"),
+                ("logging-console-color", "HASH_GRAPH_LOG_CONSOLE_COLOR"),
+                ("logging-console-level", "HASH_GRAPH_LOG_CONSOLE_LEVEL"),
+                ("logging-file-enabled", "HASH_GRAPH_LOG_FILE_ENABLED"),
+                ("logging-file-format", "HASH_GRAPH_LOG_FILE_FORMAT"),
+                ("logging-file-level", "HASH_GRAPH_LOG_FILE_LEVEL"),
+                ("logging-file-output", "HASH_GRAPH_LOG_FOLDER"),
+                ("endpoint", "HASH_OTLP_ENDPOINT"),
+                ("sentry-dsn", "HASH_GRAPH_SENTRY_DSN"),
+                ("sentry-environment", "HASH_GRAPH_SENTRY_ENVIRONMENT"),
+                (
+                    "sentry-enable-span-attributes",
+                    "HASH_GRAPH_SENTRY_ENABLE_SPAN_ATTRIBUTES"
+                ),
+                ("sentry-span-filter", "HASH_GRAPH_SENTRY_SPAN_FILTER"),
+                ("sentry-event-filter", "HASH_GRAPH_SENTRY_EVENT_FILTER"),
+            ],
+            "telemetry arguments should read the `HASH_GRAPH_` variables unless a binary sets a \
+             namespace"
+        );
+    }
+
+    #[test]
+    fn with_env_namespace_telemetry_arguments() {
+        let command = with_env_namespace(telemetry_command(), "TEST");
+
+        assert_eq!(
+            env_names(&command),
+            [
+                ("logging-console-enabled", "TEST_LOG_CONSOLE_ENABLED"),
+                ("logging-console-format", "TEST_LOG_CONSOLE_FORMAT"),
+                ("logging-console-color", "TEST_LOG_CONSOLE_COLOR"),
+                ("logging-console-level", "TEST_LOG_CONSOLE_LEVEL"),
+                ("logging-file-enabled", "TEST_LOG_FILE_ENABLED"),
+                ("logging-file-format", "TEST_LOG_FILE_FORMAT"),
+                ("logging-file-level", "TEST_LOG_FILE_LEVEL"),
+                ("logging-file-output", "TEST_LOG_FOLDER"),
+                ("endpoint", "HASH_OTLP_ENDPOINT"),
+                ("sentry-dsn", "TEST_SENTRY_DSN"),
+                ("sentry-environment", "TEST_SENTRY_ENVIRONMENT"),
+                (
+                    "sentry-enable-span-attributes",
+                    "TEST_SENTRY_ENABLE_SPAN_ATTRIBUTES"
+                ),
+                ("sentry-span-filter", "TEST_SENTRY_SPAN_FILTER"),
+                ("sentry-event-filter", "TEST_SENTRY_EVENT_FILTER"),
+            ],
+            "every telemetry variable except `HASH_OTLP_ENDPOINT` should move to the namespace"
+        );
+    }
+
+    #[test]
+    fn with_env_namespace_other_arguments() {
+        let command = with_env_namespace(
+            telemetry_command().arg(
+                Arg::new("worker-threads")
+                    .long("worker-threads")
+                    .env("HASH_GRAPH_WORKER_THREADS"),
+            ),
+            "TEST",
+        );
+
+        let worker_threads = command
+            .get_arguments()
+            .find(|arg| arg.get_id() == "worker-threads")
+            .and_then(Arg::get_env);
+        assert_eq!(
+            worker_threads.and_then(|env| env.to_str()),
+            Some("HASH_GRAPH_WORKER_THREADS"),
+            "an argument outside the telemetry configuration should keep its variable"
+        );
+    }
+
+    #[test]
+    fn with_env_namespace_subcommand() {
+        let mut command = with_env_namespace(
+            telemetry_command().subcommand(Command::new("server")),
+            "TEST",
+        );
+        command.build();
+
+        let server = command
+            .find_subcommand("server")
+            .expect("should have the `server` subcommand");
+        assert_eq!(
+            env_names(server),
+            [
+                ("logging-console-enabled", "TEST_LOG_CONSOLE_ENABLED"),
+                ("logging-console-format", "TEST_LOG_CONSOLE_FORMAT"),
+                ("logging-console-color", "TEST_LOG_CONSOLE_COLOR"),
+                ("logging-console-level", "TEST_LOG_CONSOLE_LEVEL"),
+                ("logging-file-enabled", "TEST_LOG_FILE_ENABLED"),
+                ("logging-file-format", "TEST_LOG_FILE_FORMAT"),
+                ("logging-file-level", "TEST_LOG_FILE_LEVEL"),
+                ("logging-file-output", "TEST_LOG_FOLDER"),
+            ],
+            "the global logging arguments a subcommand inherits should read the namespace's \
+             variables"
+        );
+    }
+
+    #[test]
+    fn namespace_default() {
+        let matches = telemetry_command()
+            .try_get_matches_from(["bin"])
+            .expect("should parse without arguments");
+        let config = TracingConfig::from_arg_matches(&matches).expect("should build the config");
+
+        assert_eq!(
+            config.namespace, "HASH_GRAPH",
+            "a binary without a namespace should use the default"
+        );
+    }
+
+    #[test]
+    fn with_namespace_parsed() {
+        let matches = TracingConfig::with_namespace(telemetry_command(), "TEST")
+            .try_get_matches_from(["bin"])
+            .expect("should parse without arguments");
+        let config = TracingConfig::from_arg_matches(&matches).expect("should build the config");
+
+        assert_eq!(
+            config.namespace, "TEST",
+            "the parsed config should carry the namespace the command was built with"
+        );
+    }
+
+    #[test]
+    fn with_namespace_other_value() {
+        let error = TracingConfig::with_namespace(telemetry_command(), "TEST")
+            .try_get_matches_from(["bin", "--telemetry-namespace", "OTHER"])
+            .expect_err("should reject a namespace other than the binary's");
+
+        assert_eq!(
+            error.kind(),
+            ErrorKind::InvalidValue,
+            "the namespace should not be changeable from the command line"
+        );
+    }
 }
