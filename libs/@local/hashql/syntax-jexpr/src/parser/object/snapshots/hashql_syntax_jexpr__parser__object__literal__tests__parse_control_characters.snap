@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
+description: Escapes control characters in a string literal
+expression: "{\"#literal\": \"\\u001b[2J\\nnext\"}"
+---
+Expr#4294967040@1
+  ExprKind (Literal)
+    LiteralExpr#4294967040@0
+      Primitive (String)
+        String (\u{1b}[2J\nnext)

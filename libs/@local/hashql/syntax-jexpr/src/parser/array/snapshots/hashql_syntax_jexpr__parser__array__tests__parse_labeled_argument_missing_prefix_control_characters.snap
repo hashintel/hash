@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
+description: "Escapes control characters in a key without ':'"
+expression: "[\"greet\", {\":name\": {\"#literal\": 1}, \"\\u001b[2Jage\": {\"#literal\": 2}}]"
+---
+error[parser::array::labeled-argument-missing-prefix]: Missing `:` prefix in labeled argument
+  ╭▸ 
+1 │ ["greet", {":name": {"#literal": 1}, "\u001b[2Jage": {"#literal": 2}}]
+  │                                      ━━━━━━━━━━━━━━ Missing ':' prefix
+  │
+  ├ help: Add ':' prefix to '\u{1b}[2Jage' to make it a valid labeled argument
+  ╰ note: In J-Expr, labeled arguments use the format:
+          - `["function", {":label": value}]`
+          - `["function", {":label1": value1}, {":label2": value2}]`
+          - `["function", ":variable1"]`
+          
+          The colon prefix (':') is required to distinguish labeled arguments from positional arguments.

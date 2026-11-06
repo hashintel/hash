@@ -1,0 +1,191 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Twenty nested tuples without trailing commas
+expression: "(A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, (A, A))))))))))))))))))))"
+info:
+  kind: Ok
+---
+Type#4294967040@123
+  TypeKind (Tuple)
+    TupleType#4294967040@123
+      TupleField#4294967040@4
+        Type#4294967040@4
+          TypeKind (Path)
+            Path#4294967040@4 (rooted: false)
+              PathSegment#4294967040@3 (name: A)
+      TupleField#4294967040@122
+        Type#4294967040@121
+          TypeKind (Tuple)
+            TupleType#4294967040@121
+              TupleField#4294967040@8
+                Type#4294967040@8
+                  TypeKind (Path)
+                    Path#4294967040@8 (rooted: false)
+                      PathSegment#4294967040@7 (name: A)
+              TupleField#4294967040@120
+                Type#4294967040@119
+                  TypeKind (Tuple)
+                    TupleType#4294967040@119
+                      TupleField#4294967040@12
+                        Type#4294967040@12
+                          TypeKind (Path)
+                            Path#4294967040@12 (rooted: false)
+                              PathSegment#4294967040@11 (name: A)
+                      TupleField#4294967040@118
+                        Type#4294967040@117
+                          TypeKind (Tuple)
+                            TupleType#4294967040@117
+                              TupleField#4294967040@16
+                                Type#4294967040@16
+                                  TypeKind (Path)
+                                    Path#4294967040@16 (rooted: false)
+                                      PathSegment#4294967040@15 (name: A)
+                              TupleField#4294967040@116
+                                Type#4294967040@115
+                                  TypeKind (Tuple)
+                                    TupleType#4294967040@115
+                                      TupleField#4294967040@20
+                                        Type#4294967040@20
+                                          TypeKind (Path)
+                                            Path#4294967040@20 (rooted: false)
+                                              PathSegment#4294967040@19 (name: A)
+                                      TupleField#4294967040@114
+                                        Type#4294967040@113
+                                          TypeKind (Tuple)
+                                            TupleType#4294967040@113
+                                              TupleField#4294967040@24
+                                                Type#4294967040@24
+                                                  TypeKind (Path)
+                                                    Path#4294967040@24 (rooted: false)
+                                                      PathSegment#4294967040@23 (name: A)
+                                              TupleField#4294967040@112
+                                                Type#4294967040@111
+                                                  TypeKind (Tuple)
+                                                    TupleType#4294967040@111
+                                                      TupleField#4294967040@28
+                                                        Type#4294967040@28
+                                                          TypeKind (Path)
+                                                            Path#4294967040@28 (rooted: false)
+                                                              PathSegment#4294967040@27 (name: A)
+                                                      TupleField#4294967040@110
+                                                        Type#4294967040@109
+                                                          TypeKind (Tuple)
+                                                            TupleType#4294967040@109
+                                                              TupleField#4294967040@32
+                                                                Type#4294967040@32
+                                                                  TypeKind (Path)
+                                                                    Path#4294967040@32 (rooted: false)
+                                                                      PathSegment#4294967040@31 (name: A)
+                                                              TupleField#4294967040@108
+                                                                Type#4294967040@107
+                                                                  TypeKind (Tuple)
+                                                                    TupleType#4294967040@107
+                                                                      TupleField#4294967040@36
+                                                                        Type#4294967040@36
+                                                                          TypeKind (Path)
+                                                                            Path#4294967040@36 (rooted: false)
+                                                                              PathSegment#4294967040@35 (name: A)
+                                                                      TupleField#4294967040@106
+                                                                        Type#4294967040@105
+                                                                          TypeKind (Tuple)
+                                                                            TupleType#4294967040@105
+                                                                              TupleField#4294967040@40
+                                                                                Type#4294967040@40
+                                                                                  TypeKind (Path)
+                                                                                    Path#4294967040@40 (rooted: false)
+                                                                                      PathSegment#4294967040@39 (name: A)
+                                                                              TupleField#4294967040@104
+                                                                                Type#4294967040@103
+                                                                                  TypeKind (Tuple)
+                                                                                    TupleType#4294967040@103
+                                                                                      TupleField#4294967040@44
+                                                                                        Type#4294967040@44
+                                                                                          TypeKind (Path)
+                                                                                            Path#4294967040@44 (rooted: false)
+                                                                                              PathSegment#4294967040@43 (name: A)
+                                                                                      TupleField#4294967040@102
+                                                                                        Type#4294967040@101
+                                                                                          TypeKind (Tuple)
+                                                                                            TupleType#4294967040@101
+                                                                                              TupleField#4294967040@48
+                                                                                                Type#4294967040@48
+                                                                                                  TypeKind (Path)
+                                                                                                    Path#4294967040@48 (rooted: false)
+                                                                                                      PathSegment#4294967040@47 (name: A)
+                                                                                              TupleField#4294967040@100
+                                                                                                Type#4294967040@99
+                                                                                                  TypeKind (Tuple)
+                                                                                                    TupleType#4294967040@99
+                                                                                                      TupleField#4294967040@52
+                                                                                                        Type#4294967040@52
+                                                                                                          TypeKind (Path)
+                                                                                                            Path#4294967040@52 (rooted: false)
+                                                                                                              PathSegment#4294967040@51 (name: A)
+                                                                                                      TupleField#4294967040@98
+                                                                                                        Type#4294967040@97
+                                                                                                          TypeKind (Tuple)
+                                                                                                            TupleType#4294967040@97
+                                                                                                              TupleField#4294967040@56
+                                                                                                                Type#4294967040@56
+                                                                                                                  TypeKind (Path)
+                                                                                                                    Path#4294967040@56 (rooted: false)
+                                                                                                                      PathSegment#4294967040@55 (name: A)
+                                                                                                              TupleField#4294967040@96
+                                                                                                                Type#4294967040@95
+                                                                                                                  TypeKind (Tuple)
+                                                                                                                    TupleType#4294967040@95
+                                                                                                                      TupleField#4294967040@60
+                                                                                                                        Type#4294967040@60
+                                                                                                                          TypeKind (Path)
+                                                                                                                            Path#4294967040@60 (rooted: false)
+                                                                                                                              PathSegment#4294967040@59 (name: A)
+                                                                                                                      TupleField#4294967040@94
+                                                                                                                        Type#4294967040@93
+                                                                                                                          TypeKind (Tuple)
+                                                                                                                            TupleType#4294967040@93
+                                                                                                                              TupleField#4294967040@64
+                                                                                                                                Type#4294967040@64
+                                                                                                                                  TypeKind (Path)
+                                                                                                                                    Path#4294967040@64 (rooted: false)
+                                                                                                                                      PathSegment#4294967040@63 (name: A)
+                                                                                                                              TupleField#4294967040@92
+                                                                                                                                Type#4294967040@91
+                                                                                                                                  TypeKind (Tuple)
+                                                                                                                                    TupleType#4294967040@91
+                                                                                                                                      TupleField#4294967040@68
+                                                                                                                                        Type#4294967040@68
+                                                                                                                                          TypeKind (Path)
+                                                                                                                                            Path#4294967040@68 (rooted: false)
+                                                                                                                                              PathSegment#4294967040@67 (name: A)
+                                                                                                                                      TupleField#4294967040@90
+                                                                                                                                        Type#4294967040@89
+                                                                                                                                          TypeKind (Tuple)
+                                                                                                                                            TupleType#4294967040@89
+                                                                                                                                              TupleField#4294967040@72
+                                                                                                                                                Type#4294967040@72
+                                                                                                                                                  TypeKind (Path)
+                                                                                                                                                    Path#4294967040@72 (rooted: false)
+                                                                                                                                                      PathSegment#4294967040@71 (name: A)
+                                                                                                                                              TupleField#4294967040@88
+                                                                                                                                                Type#4294967040@87
+                                                                                                                                                  TypeKind (Tuple)
+                                                                                                                                                    TupleType#4294967040@87
+                                                                                                                                                      TupleField#4294967040@76
+                                                                                                                                                        Type#4294967040@76
+                                                                                                                                                          TypeKind (Path)
+                                                                                                                                                            Path#4294967040@76 (rooted: false)
+                                                                                                                                                              PathSegment#4294967040@75 (name: A)
+                                                                                                                                                      TupleField#4294967040@86
+                                                                                                                                                        Type#4294967040@85
+                                                                                                                                                          TypeKind (Tuple)
+                                                                                                                                                            TupleType#4294967040@85
+                                                                                                                                                              TupleField#4294967040@80
+                                                                                                                                                                Type#4294967040@80
+                                                                                                                                                                  TypeKind (Path)
+                                                                                                                                                                    Path#4294967040@80 (rooted: false)
+                                                                                                                                                                      PathSegment#4294967040@79 (name: A)
+                                                                                                                                                              TupleField#4294967040@84
+                                                                                                                                                                Type#4294967040@83
+                                                                                                                                                                  TypeKind (Path)
+                                                                                                                                                                    Path#4294967040@83 (rooted: false)
+                                                                                                                                                                      PathSegment#4294967040@82 (name: A)
