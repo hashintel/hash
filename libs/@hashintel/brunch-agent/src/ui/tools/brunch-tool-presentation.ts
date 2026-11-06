@@ -31,49 +31,53 @@ type LifecycleTitles = Readonly<
   Record<PetrinautAiToolPresentationState, string>
 >;
 
+/**
+ * A call without a result, still pending or ended by a failed response, names
+ * the requested action; only a successful result claims it happened.
+ */
 const lifecycleTitles = {
   task: {
-    pending: "Delegating task",
+    pending: "Delegate task",
     success: "Completed task",
     error: "Could not complete task",
   },
   [brunchTools.activateSkill]: {
-    pending: "Activating skill",
+    pending: "Activate skill",
     success: "Activated skill",
     error: "Could not activate skill",
   },
   [brunchTools.readSkillResource]: {
-    pending: "Reviewing modelling guidance",
+    pending: "Review modelling guidance",
     success: "Reviewed modelling guidance",
     error: "Could not review modelling guidance",
   },
   [brunchTools.ledgerCommit]: {
-    pending: "Recording in the Ledger",
+    pending: "Record in the Ledger",
     success: "Recorded in the Ledger",
     error: "Could not record in the Ledger",
   },
   [brunchTools.ledgerCompile]: {
-    pending: "Reading the Ledger",
+    pending: "Read the Ledger",
     success: "Read the Ledger",
     error: "Could not read the Ledger",
   },
   [netReaderToolNames.outline]: {
-    pending: "Reading the net outline",
+    pending: "Read the net outline",
     success: "Read the net outline",
     error: "Could not read the net outline",
   },
   [netReaderToolNames.structure]: {
-    pending: "Reading the net structure",
+    pending: "Read the net structure",
     success: "Read the net structure",
     error: "Could not read the net structure",
   },
   [brunchTools.queryBasis]: {
-    pending: "Checking recorded basis",
+    pending: "Check recorded basis",
     success: "Checked recorded basis",
     error: "Could not check recorded basis",
   },
   [brunchTools.ping]: {
-    pending: "Checking connection to the AI assistant",
+    pending: "Check connection to the AI assistant",
     success: "Checked connection to the AI assistant",
     error: "Could not reach the AI assistant",
   },

@@ -8,6 +8,8 @@ import {
   ReactFlowProvider,
   useNodesInitialized,
   useReactFlow,
+  useStore,
+  useStoreApi,
 } from "@xyflow/react";
 import {
   useCallback,
@@ -51,7 +53,10 @@ import type {
   OnConnectEnd,
   XYPosition,
 } from "@xyflow/react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+} from "react";
 
 const nodeTypes = {
   start: StartNode,
@@ -84,34 +89,50 @@ const cardBeside = (point: XYPosition, side: "left" | "right") => ({
 type CanvasProps = {
   editor: FlowEditor;
   selectedStepIds: string[];
-  onSelectedStepIdsChange: (stepIds: string[]) => void;
+  /** Whether the start step is selected, which opens its panel. */
+  startSelected: boolean;
+  onSelectionChange: (selection: { stepIds: string[]; start: boolean }) => void;
   /** A new object each time, so the same step can be focused twice. */
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
+  /** How much of the canvas's right edge a panel covers, in pixels. Steps are centred and fitted in the rest. */
+  coveredRight: number;
 };
 
 const FlowCanvas = ({
   editor,
   selectedStepIds,
-  onSelectedStepIdsChange,
+  startSelected,
+  onSelectionChange,
   focusRequest,
   collapsedStepIds,
   onToggleCollapsed,
+  coveredRight,
 }: CanvasProps) => {
   const { flowDefinition, problemsByStepId } = useSyncExternalStore(
     editor.subscribe,
     editor.getState,
   );
   const {
+    deleteElements,
     fitView,
     getInternalNode,
     getNodes,
+    getViewport,
     getZoom,
     screenToFlowPosition,
     setCenter,
   } = useReactFlow<FlowNode, ConnectionEdgeType>();
+  const store = useStoreApi<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
+  const fitPadding = useMemo(
+    () =>
+      coveredRight > 0
+        ? ({ x: "5%", y: "5%", right: `${coveredRight + 24}px` } as const)
+        : undefined,
+    [coveredRight],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<CanvasTool>("select");
@@ -177,9 +198,9 @@ const FlowCanvas = ({
   useEffect(() => {
     if (nodesInitialized && !fittedRef.current) {
       fittedRef.current = true;
-      void fitView({ maxZoom: 1 });
+      void fitView({ maxZoom: 1, padding: fitPadding });
     }
-  }, [nodesInitialized, fitView]);
+  }, [nodesInitialized, fitView, fitPadding]);
 
   /* A step picked in the Steps tab replaces any selected connections. */
   const [lastFocusRequest, setLastFocusRequest] = useState(focusRequest);
@@ -201,13 +222,69 @@ const FlowCanvas = ({
       focusedRequestRef.current = focusRequest;
       const { x, y } = node.internals.positionAbsolute;
 
+      const zoom = getZoom();
+
       void setCenter(
-        x + (node.measured.width ?? stepCardSize.width) / 2,
+        x +
+          (node.measured.width ?? stepCardSize.width) / 2 +
+          coveredRight / 2 / zoom,
         y + (node.measured.height ?? stepCardSize.height) / 2,
-        { zoom: getZoom(), duration: 300 },
+        { zoom, duration: 300 },
       );
     }
-  }, [focusRequest, nodesInitialized, getInternalNode, getZoom, setCenter]);
+  }, [
+    focusRequest,
+    nodesInitialized,
+    getInternalNode,
+    getZoom,
+    setCenter,
+    coveredRight,
+  ]);
+
+  /* A step selected partly out of view, or under the step panel when it opens, is brought into view. */
+  const paneWidth = useStore((state) => state.width);
+  const paneHeight = useStore((state) => state.height);
+  const soleSelectedStepId =
+    selectedStepIds.length === 1 ? selectedStepIds[0] : undefined;
+  useEffect(() => {
+    const node = soleSelectedStepId
+      ? getInternalNode(getStepNodeId(soleSelectedStepId))
+      : undefined;
+
+    if (!node) {
+      return;
+    }
+
+    const { x, y } = node.internals.positionAbsolute;
+    const width = node.measured.width ?? stepCardSize.width;
+    const height = node.measured.height ?? stepCardSize.height;
+    const viewport = getViewport();
+    const left = x * viewport.zoom + viewport.x;
+    const top = y * viewport.zoom + viewport.y;
+
+    if (
+      left < 0 ||
+      top < 0 ||
+      left + width * viewport.zoom > paneWidth - coveredRight ||
+      top + height * viewport.zoom > paneHeight
+    ) {
+      void setCenter(
+        x + width / 2 + coveredRight / 2 / viewport.zoom,
+        y + height / 2,
+        { zoom: viewport.zoom, duration: 300 },
+      );
+    }
+  }, [
+    soleSelectedStepId,
+    paneWidth,
+    paneHeight,
+    coveredRight,
+    /* A step just added is measured after it's selected. */
+    nodesInitialized,
+    getInternalNode,
+    getViewport,
+    setCenter,
+  ]);
 
   const graph = useMemo(
     () =>
@@ -254,11 +331,12 @@ const FlowCanvas = ({
     return measuredNodes.map((node) => {
       const stepId = getNodeStepId(node);
 
-      return stepId !== null && selectedStepIdSet.has(stepId)
-        ? { ...node, selected: true }
-        : node;
+      const selected =
+        stepId === null ? startSelected : selectedStepIdSet.has(stepId);
+
+      return selected ? { ...node, selected: true } : node;
     });
-  }, [measuredNodes, selectedStepIds]);
+  }, [measuredNodes, selectedStepIds, startSelected]);
   const nodes = useMemo(
     () =>
       selectionNodes.map((node) => {
@@ -299,10 +377,10 @@ const FlowCanvas = ({
 
   const selectStep = useCallback(
     (stepId: string) => {
-      onSelectedStepIdsChange([stepId]);
+      onSelectionChange({ stepIds: [stepId], start: false });
       setSelectedEdgeIds(new Set());
     },
-    [onSelectedStepIdsChange],
+    [onSelectionChange],
   );
 
   const getTakenPlaces = useCallback(
@@ -325,7 +403,7 @@ const FlowCanvas = ({
     }
 
     const center = screenToFlowPosition({
-      x: bounds.left + bounds.width / 2,
+      x: bounds.left + (bounds.width - coveredRight) / 2,
       y: bounds.top + bounds.height / 2,
     });
 
@@ -399,6 +477,7 @@ const FlowCanvas = ({
     const nextMeasurements = new Map(measurements);
     const nextDragPositions = new Map(dragPositions);
     const nextSelected = new Set(selectedStepIds);
+    let nextStartSelected = startSelected;
     let measurementsChanged = false;
     let dragPositionsChanged = false;
     let selectionChanged = false;
@@ -425,7 +504,10 @@ const FlowCanvas = ({
         const node = graphNodesById.get(change.id);
         const stepId = node ? getNodeStepId(node) : null;
 
-        if (stepId !== null) {
+        if (change.id === startNodeId) {
+          selectionChanged = true;
+          nextStartSelected = change.selected;
+        } else if (stepId !== null) {
           selectionChanged = true;
 
           if (change.selected) {
@@ -447,7 +529,10 @@ const FlowCanvas = ({
     }
 
     if (selectionChanged) {
-      onSelectedStepIdsChange([...nextSelected]);
+      onSelectionChange({
+        stepIds: [...nextSelected],
+        start: nextStartSelected,
+      });
     }
   };
 
@@ -569,12 +654,39 @@ const FlowCanvas = ({
       editor.removeStep(stepId);
     }
 
-    onSelectedStepIdsChange(
-      selectedStepIds.filter((stepId) => !removedStepIds.has(stepId)),
-    );
+    onSelectionChange({
+      stepIds: selectedStepIds.filter((stepId) => !removedStepIds.has(stepId)),
+      start: startSelected,
+    });
     setSelectedEdgeIds(new Set());
 
     return Promise.resolve(false);
+  };
+
+  /*
+   * React Flow's own delete key listens on the whole page, so a key pressed in the step panel or its menus would delete
+   * the selection. Only keys pressed in the canvas delete, and not those from menus portalled out of it.
+   */
+  const onCanvasKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (
+      (event.key !== "Backspace" && event.key !== "Delete") ||
+      event.repeat ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      !(event.target instanceof Element) ||
+      !event.currentTarget.contains(event.target) ||
+      event.target.closest("input, textarea, select, [contenteditable]")
+    ) {
+      return;
+    }
+
+    void deleteElements({
+      nodes: nodes.filter(({ selected }) => selected),
+      edges: edges.filter(({ selected }) => selected),
+    });
+    store.setState({ nodesSelectionActive: false });
   };
 
   const organize = async () => {
@@ -595,7 +707,7 @@ const FlowCanvas = ({
 
     setForEachLayouts((current) => new Map([...(current ?? []), ...layouts]));
     requestAnimationFrame(() => {
-      void fitView({ maxZoom: 1, duration: 300 });
+      void fitView({ maxZoom: 1, duration: 300, padding: fitPadding });
     });
   };
 
@@ -689,7 +801,8 @@ const FlowCanvas = ({
             connectOnClick={false}
             connectionLineStyle={{ stroke: "var(--colors-blue-bd-strong)" }}
             onBeforeDelete={onBeforeDelete}
-            deleteKeyCode={["Backspace", "Delete"]}
+            deleteKeyCode={null}
+            onKeyDown={onCanvasKeyDown}
             onNodeContextMenu={onNodeContextMenu}
             onEdgeContextMenu={onEdgeContextMenu}
             onSelectionContextMenu={(event, selectedNodes) => {
@@ -705,7 +818,12 @@ const FlowCanvas = ({
             proOptions={{ hideAttribution: true }}
           >
             <Background variant={BackgroundVariant.Dots} />
-            <MiniMap position="top-right" pannable zoomable />
+            <MiniMap
+              position="top-right"
+              pannable
+              zoomable
+              style={{ marginRight: coveredRight + 15 }}
+            />
             <Panel position="bottom-center">
               <CanvasToolbar
                 tool={tool}
@@ -715,6 +833,7 @@ const FlowCanvas = ({
                   void organize();
                 }}
                 canOrganize={flowDefinition.steps.length > 0}
+                fitPadding={fitPadding}
               />
             </Panel>
           </ReactFlow>

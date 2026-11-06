@@ -72,6 +72,11 @@ export type PetrinautAiMessageMetadata = {
   source?: "voice";
   /** This assistant response was stopped, rather than completed normally. */
   stopped?: true;
+  /**
+   * This assistant response failed. A call it left unanswered will not
+   * receive a result.
+   */
+  failed?: true;
   /** Identifies every interactive tool output carrying a spoken answer. */
   voiceToolCallIds?: string[];
   /** Legacy single-answer provenance retained for persisted preview messages. */

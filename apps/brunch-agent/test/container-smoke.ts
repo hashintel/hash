@@ -94,7 +94,9 @@ service:
 `.trimStart(),
   );
 
-  await run("docker", ["network", "create", network]);
+  // Internal: the smoke needs no egress, and the model lookup below must
+  // find its provider unreachable rather than reject a synthetic key.
+  await run("docker", ["network", "create", "--internal", network]);
   await run("docker", [
     "run",
     "--detach",
@@ -152,15 +154,7 @@ service:
     }
   });
 
-  await run("docker", [
-    "run",
-    "--detach",
-    "--name",
-    applicationContainer,
-    "--network",
-    network,
-    "--env",
-    "NODE_ENV=production",
+  const databaseConfiguration = [
     "--env",
     "BRUNCH_POSTGRES_AUTH_MODE=password",
     "--env",
@@ -175,10 +169,29 @@ service:
     "BRUNCH_POSTGRES_PASSWORD=container-smoke-password",
     "--env",
     "BRUNCH_POSTGRES_TLS_CA_PATH=/run/config/rds-ca.pem",
-    "--env",
-    `HASH_OTLP_ENDPOINT=http://${collectorContainer}:4317`,
     "--volume",
     `${certificate}:/run/config/rds-ca.pem:ro`,
+  ];
+  // Startup looks the model up with this key; the internal network keeps the
+  // provider unreachable, which must warn and still start.
+  const modelConfiguration = [
+    "--env",
+    "OPENAI_API_KEY=container-smoke-synthetic-key",
+  ];
+
+  await run("docker", [
+    "run",
+    "--detach",
+    "--name",
+    applicationContainer,
+    "--network",
+    network,
+    "--env",
+    "NODE_ENV=production",
+    ...databaseConfiguration,
+    ...modelConfiguration,
+    "--env",
+    `HASH_OTLP_ENDPOINT=http://${collectorContainer}:4317`,
     "brunch-agent",
   ]);
 
@@ -205,6 +218,16 @@ service:
     throw new AggregateError(
       [error],
       `Brunch failed to become healthy:\n${stdout}\n${stderr}`,
+    );
+  }
+
+  const { stderr: startupErrors, stdout: startupLogs } = await run("docker", [
+    "logs",
+    applicationContainer,
+  ]);
+  if (!`${startupLogs}\n${startupErrors}`.includes("provider-unreachable")) {
+    throw new Error(
+      `Brunch did not report its unverifiable chat model:\n${startupLogs}\n${startupErrors}`,
     );
   }
 
@@ -256,37 +279,54 @@ service:
     throw new Error(`Container wrote under /repo:\n${repositoryChanges}`);
   }
 
-  let refusalOutput = "";
-  try {
-    // An image that starts without database configuration would serve
-    // forever; the timeout turns that regression into a failure.
-    await run(
-      "docker",
-      [
-        "run",
-        "--rm",
-        "--network",
-        network,
-        "--env",
-        "NODE_ENV=production",
-        "--env",
-        `HASH_OTLP_ENDPOINT=http://${collectorContainer}:4317`,
-        "brunch-agent",
-      ],
-      { timeout: 60_000 },
-    );
-    throw new Error("Image started without required database configuration.");
-  } catch (error) {
-    refusalOutput =
-      error instanceof Error && "stderr" in error
-        ? String((error as Error & { stderr: unknown }).stderr)
-        : String(error);
-  }
-  if (!refusalOutput.includes("BRUNCH_POSTGRES_AUTH_MODE")) {
-    throw new Error(
-      `Missing database configuration did not fail clearly:\n${refusalOutput}`,
-    );
-  }
+  const assertStartupRefusal = async (
+    missing: string,
+    configuration: readonly string[],
+    expectedOutput: string,
+  ): Promise<void> => {
+    let refusalOutput = "";
+    try {
+      // An image that starts without required configuration would serve
+      // forever; the timeout turns that regression into a failure.
+      await run(
+        "docker",
+        [
+          "run",
+          "--rm",
+          "--network",
+          network,
+          "--env",
+          "NODE_ENV=production",
+          ...configuration,
+          "--env",
+          `HASH_OTLP_ENDPOINT=http://${collectorContainer}:4317`,
+          "brunch-agent",
+        ],
+        { timeout: 60_000 },
+      );
+      throw new Error(`Image started without required ${missing}.`);
+    } catch (error) {
+      refusalOutput =
+        error instanceof Error && "stderr" in error
+          ? String((error as Error & { stderr: unknown }).stderr)
+          : String(error);
+    }
+    if (!refusalOutput.includes(expectedOutput)) {
+      throw new Error(
+        `Missing ${missing} did not fail clearly:\n${refusalOutput}`,
+      );
+    }
+  };
+  await assertStartupRefusal(
+    "database configuration",
+    modelConfiguration,
+    "BRUNCH_POSTGRES_AUTH_MODE",
+  );
+  await assertStartupRefusal(
+    "chat model credential",
+    databaseConfiguration,
+    'provider "openai" is not configured',
+  );
 
   await run("docker", ["stop", "--time", "70", applicationContainer]);
   const { stderr: applicationLogErrors, stdout: applicationLogs } = await run(

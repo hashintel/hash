@@ -150,12 +150,12 @@ describe("validateFlowDefinition", () => {
       {
         severity: "error",
         code: "missingInput",
-        path: ["steps", 1, "inputs"],
+        path: ["steps", 1, "inputs", "airportIcao"],
       },
       {
         severity: "error",
         code: "missingInput",
-        path: ["steps", 1, "inputs"],
+        path: ["steps", 1, "inputs", "date"],
       },
       {
         severity: "error",
@@ -1242,7 +1242,7 @@ describe("validateFlowDefinition", () => {
           code: "missingInput",
           message:
             'Required input "propertyPatches" of action "updateEntity" is not connected',
-          path: ["steps", 0, "inputs"],
+          path: ["steps", 0, "inputs", "propertyPatches"],
         },
       ]);
     });

@@ -18,7 +18,7 @@ use hash_codec::bytes::JsonLinesEncoder;
 use hash_crypto::Secret;
 use hash_graph_api::{
     rest::{
-        self, PublicApiConfig,
+        self, CorsConfig, PublicApiConfig,
         authentication::{
             KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
@@ -449,6 +449,9 @@ pub struct ServerConfig {
     pub rate_limit: RateLimitConfig,
 
     #[clap(flatten)]
+    pub cors: CorsConfig,
+
+    #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
 
     /// Shared secret internal services present to act on behalf of an actor.
@@ -734,6 +737,7 @@ where
         service_secret: authentication.service_secret,
         api_tokens: authentication.api_tokens,
         rate_limit: config.rate_limit,
+        cors: config.cors,
         meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),

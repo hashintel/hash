@@ -24,6 +24,8 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
+import { StepPanel, stepPanelWidth } from "./edit.page/step-panel";
+import { findStep } from "./edit.page/step-panel/shared/find-step";
 import { TopBar } from "./edit.page/top-bar";
 import {
   FlowChangedElsewhereError,
@@ -39,6 +41,7 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
+import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 
@@ -170,21 +173,51 @@ const FlowEditor = ({
     editor: typeof editor;
     key: number;
     selectedStepIds: string[];
+    startSelected: boolean;
     focusRequest: { stepId: string } | null;
-  }>({ editor, key: 0, selectedStepIds: [], focusRequest: null });
+  }>({
+    editor,
+    key: 0,
+    selectedStepIds: [],
+    startSelected: false,
+    focusRequest: null,
+  });
 
   if (session.editor !== editor) {
     setSession({
       editor,
       key: session.key + 1,
       selectedStepIds: [],
+      startSelected: false,
       focusRequest: null,
     });
   }
 
-  const { selectedStepIds, focusRequest } = session;
-  const setSelectedStepIds = (stepIds: string[]) =>
-    setSession((current) => ({ ...current, selectedStepIds: stepIds }));
+  const { selectedStepIds, startSelected, focusRequest } = session;
+  const setSelection = ({
+    stepIds,
+    start,
+  }: {
+    stepIds: string[];
+    start: boolean;
+  }) =>
+    setSession((current) => ({
+      ...current,
+      selectedStepIds: stepIds,
+      startSelected: start,
+    }));
+
+  const [selectedStepId] = selectedStepIds;
+  const panelSubject: StepPanelSubject | null =
+    startSelected && selectedStepIds.length === 0
+      ? { start: true }
+      : /* A selection can briefly outlive its step, e.g. one just deleted: no panel then. */
+        !startSelected &&
+          selectedStepId !== undefined &&
+          selectedStepIds.length === 1 &&
+          findStep(flowDefinition.steps, selectedStepId)
+        ? { stepId: selectedStepId }
+        : null;
 
   /* For-each steps collapsed in the Steps tab and on the canvas. */
   const [collapsedStepIds, setCollapsedStepIds] = useState(
@@ -239,6 +272,7 @@ const FlowEditor = ({
     >
       <TopBar
         name={flowDefinition.name}
+        onRename={editor.setName}
         saveStatus={status}
         editsRefused={saveRefusedReason !== null}
         onRetrySave={() => {
@@ -256,6 +290,7 @@ const FlowEditor = ({
             setSession((current) => ({
               ...current,
               selectedStepIds: [stepId],
+              startSelected: false,
               focusRequest: { stepId },
             }))
           }
@@ -265,7 +300,10 @@ const FlowEditor = ({
         />
         <div className={canvasArea}>
           {(saveRefusedReason !== null || changedElsewhere) && (
-            <div className={notices}>
+            <div
+              className={notices}
+              style={panelSubject ? { right: stepPanelWidth + 16 } : undefined}
+            >
               {saveRefusedReason !== null && (
                 <Banner tone="error">
                   <Banner.Title>Your latest edits can't be saved</Banner.Title>
@@ -294,11 +332,20 @@ const FlowEditor = ({
             key={session.key}
             editor={editor}
             selectedStepIds={selectedStepIds}
-            onSelectedStepIdsChange={setSelectedStepIds}
+            startSelected={startSelected}
+            onSelectionChange={setSelection}
             focusRequest={focusRequest}
             collapsedStepIds={collapsedStepIds}
             onToggleCollapsed={toggleCollapsed}
+            coveredRight={panelSubject ? stepPanelWidth : 0}
           />
+          {panelSubject && (
+            <StepPanel
+              editor={editor}
+              subject={panelSubject}
+              onSelectStart={() => setSelection({ stepIds: [], start: true })}
+            />
+          )}
         </div>
       </div>
     </DsComponentsScope>

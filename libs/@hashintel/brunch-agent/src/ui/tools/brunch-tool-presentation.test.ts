@@ -61,7 +61,7 @@ describe("Brunch tool presentation", () => {
         output: undefined,
         error: undefined,
       }),
-    ).toEqual({ title: "Reading the Ledger", tone: "pending" });
+    ).toEqual({ title: "Read the Ledger", tone: "pending" });
   });
 
   test("fails safe when a skill resource path is malformed", () => {
@@ -83,7 +83,7 @@ describe("Brunch tool presentation", () => {
         error: undefined,
       }),
     ).toEqual({
-      title: "Reviewing modelling guidance: %E0%A4%A",
+      title: "Review modelling guidance: %E0%A4%A",
       tone: "pending",
     });
   });
@@ -108,7 +108,7 @@ describe("Brunch tool presentation", () => {
         output: undefined,
         error: undefined,
       }),
-    ).toEqual({ title: "Recording in the Ledger", tone: "pending" });
+    ).toEqual({ title: "Record in the Ledger", tone: "pending" });
     const message = "Unknown entity e9.";
     expect(
       resolveBrunchToolPresentation({

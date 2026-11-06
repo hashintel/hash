@@ -100,7 +100,6 @@ export const getFlowGraph = ({
       position: getStartPosition(flowDefinition.steps),
       data: {},
       draggable: false,
-      selectable: false,
       deletable: false,
     },
   ];

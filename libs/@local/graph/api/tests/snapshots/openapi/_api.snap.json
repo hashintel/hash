@@ -48,7 +48,7 @@
             "style": "simple"
           },
           "RateLimit": {
-            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
             "example": "\"actor\";r=499",
             "schema": {
               "type": "string"
@@ -56,7 +56,7 @@
             "style": "simple"
           },
           "RateLimit-Policy": {
-            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
             "example": "\"actor\";q=500;w=50",
             "schema": {
               "type": "string"
@@ -112,7 +112,7 @@
             "style": "simple"
           },
           "RateLimit": {
-            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
             "example": "\"actor\";r=499",
             "schema": {
               "type": "string"
@@ -120,7 +120,7 @@
             "style": "simple"
           },
           "RateLimit-Policy": {
-            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
             "example": "\"actor\";q=500;w=50",
             "schema": {
               "type": "string"
@@ -176,7 +176,7 @@
             "style": "simple"
           },
           "RateLimit": {
-            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
             "required": true,
             "schema": {
               "type": "string"
@@ -184,7 +184,7 @@
             "style": "simple"
           },
           "RateLimit-Policy": {
-            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
             "required": true,
             "schema": {
               "type": "string"
@@ -192,7 +192,7 @@
             "style": "simple"
           },
           "Retry-After": {
-            "description": "Whole seconds before retrying the request.",
+            "description": "The number of whole seconds to wait before retrying the request.",
             "required": true,
             "schema": {
               "format": "uint64",
@@ -250,7 +250,7 @@
             "style": "simple"
           },
           "RateLimit": {
-            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
             "example": "\"actor\";r=499",
             "schema": {
               "type": "string"
@@ -258,7 +258,7 @@
             "style": "simple"
           },
           "RateLimit-Policy": {
-            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
             "example": "\"actor\";q=500;w=50",
             "schema": {
               "type": "string"
@@ -340,7 +340,7 @@
         ]
       },
       "AuthenticatedCallerResponse": {
-        "description": "The resolved caller.",
+        "description": "The caller of the request.",
         "properties": {
           "actor": {
             "allOf": [
@@ -348,7 +348,7 @@
                 "$ref": "#/components/schemas/ActorId"
               }
             ],
-            "description": "The resolved actor."
+            "description": "The actor the request's credentials identify."
           }
         },
         "required": [
@@ -357,7 +357,7 @@
         "type": "object"
       },
       "CallerResponse": {
-        "description": "The resolved caller.",
+        "description": "The caller of the request.",
         "properties": {
           "actor": {
             "anyOf": [
@@ -368,7 +368,7 @@
                 "type": "null"
               }
             ],
-            "description": "The resolved actor, or `null` for an anonymous request."
+            "description": "The actor the request's credentials identify, or `null` for an anonymous request."
           }
         },
         "required": [
@@ -426,7 +426,7 @@
     }
   },
   "info": {
-    "description": "Errors use RFC 9457 Problem Details with the `application/problem+json` media type.\n\nReplacing `about:blank` with a specific problem type URI is a non-breaking change. Clients should handle unrecognized problem types using the HTTP status code.\n",
+    "description": "Errors use RFC 9457 Problem Details with the `application/problem+json` media type.\n\nReplacing `about:blank` with a specific problem type URI is a non-breaking change. Handle a problem type you do not recognize by its HTTP status code.\n",
     "title": "Internal",
     "version": "unversioned"
   },
@@ -444,7 +444,7 @@
                 }
               }
             },
-            "description": "The resolved caller.",
+            "description": "The caller of the request.",
             "headers": {
               "Cache-Control": {
                 "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -456,7 +456,7 @@
                 "style": "simple"
               },
               "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
                 "example": "\"actor\";r=499",
                 "schema": {
                   "type": "string"
@@ -464,7 +464,7 @@
                 "style": "simple"
               },
               "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
                 "example": "\"actor\";q=500;w=50",
                 "schema": {
                   "type": "string"
@@ -502,7 +502,7 @@
     },
     "/_api/caller": {
       "get": {
-        "description": "Returns the resolved actor, or `actor: null` for an anonymous request.",
+        "description": "Returns the actor the request's credentials identify, or `actor: null` for an anonymous request.",
         "operationId": "getCaller",
         "responses": {
           "200": {
@@ -513,7 +513,7 @@
                 }
               }
             },
-            "description": "The resolved caller.",
+            "description": "The caller of the request.",
             "headers": {
               "Cache-Control": {
                 "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -525,7 +525,7 @@
                 "style": "simple"
               },
               "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
                 "example": "\"actor\";r=499",
                 "schema": {
                   "type": "string"
@@ -533,7 +533,7 @@
                 "style": "simple"
               },
               "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
                 "example": "\"actor\";q=500;w=50",
                 "schema": {
                   "type": "string"
