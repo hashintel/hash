@@ -1,8 +1,9 @@
 /**
  * Generic entries that a reference attaches to its last path segment: a positional argument or a named bound.
  *
- * {@link argument} and {@link bound} build an entry. {@link make} checks a decoded `GenericArgument` or `GenericBound` object rather than source text. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ * {@link argument} and {@link bound} build an entry. {@link make} checks a decoded {@link GenericArgument} or {@link GenericBound} object rather than source text. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
  *
+ * @since 0.1.0
  * @module
  */
 import { Option, Result } from "effect";
@@ -13,8 +14,16 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
 
+/**
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.Generic = Defs.Generic;
 
+/**
+ * @category Models
+ * @since 0.1.0
+ */
 export type Generic = Defs.GenericType;
 
 export declare namespace Generic {
@@ -26,18 +35,29 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks a decoded generic entry object and returns it.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Generic =
   Overflow.make(Schema);
 
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Generic, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
@@ -46,6 +66,9 @@ export const makeOption: (
 
 /**
  * Creates a generic argument: the `Integer` in `List<Integer>`.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const argument = (type: Defs.Type): Defs.GenericArgumentType => ({
   _tag: "GenericArgument",
@@ -55,7 +78,10 @@ export const argument = (type: Defs.Type): Defs.GenericArgumentType => ({
 /**
  * Creates a named generic constraint: the `T: Integer` in `Foo<T: Integer>`.
  *
- * Returns `None` if `name` is not a valid identifier according to `Ident.decodeResult`. Without a bound, it compiles to the bare name, which HashQL parses as a generic argument. A declaration name such as `Pair<T>` reads that bare name as an unbounded parameter.
+ * Returns `None` if `name` is not a valid identifier according to {@link Ident.decodeResult}. Without a bound, it compiles to the bare name, which HashQL parses as a generic argument. A declaration name such as `Pair<T>` reads that bare name as an unbounded parameter.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const bound = (

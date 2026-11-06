@@ -5,6 +5,7 @@
  *
  * A projected field named `then` retains its HashQL meaning. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable max-lines -- expression constructors and their API examples belong with the private handle metadata and proxy machinery
@@ -41,7 +42,12 @@ import type { Types } from "effect";
 export type { Conditional } from "./ExpressionType.js";
 
 const TypeId = "~hashql/Expression";
-/** The string key that marks an expression handle, which {@link isExpression} checks. */
+/**
+ * The string key that marks an expression handle, which {@link isExpression} checks.
+ *
+ * @category Type IDs
+ * @since 0.1.0
+ */
 export type TypeId = typeof TypeId;
 
 const Binding: unique symbol = Symbol("~hashql/Expression");
@@ -51,7 +57,12 @@ interface Variance<T, Inputs> {
   readonly _Inputs: Types.Contravariant<Inputs>;
 }
 
-/** Host literals accepted without an explicit expression wrapper: strings, numbers, bigints, booleans and null. */
+/**
+ * Host literals accepted without an explicit expression wrapper: strings, numbers, bigints, booleans and null.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export type Primitive = Type.Primitive["value"];
 
 type InputAlternatives<E> = E extends Primitive
@@ -73,6 +84,9 @@ type InputAlternatives<E> = E extends Primitive
  * An exactly typed handle or the host primitive corresponding to its semantic descriptor.
  *
  * Argument compatibility uses the semantic metadata that adapted callables retain. {@link Type.PrimitiveInteger} operands accept bigint and Integer handles. TypeScript rejects a host number at that position rather than widening its descriptor.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Value<T extends Type.Any> =
   | (Expression.Any &
@@ -155,6 +169,9 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
  *   Result.getOrThrow(Expression.toJExpr(account.$project("active"))),
  * );
  * ```
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Expression<T extends Type.Any, Inputs> = [T] extends [Type.Any]
   ? Expression.Base<T, Inputs>
@@ -193,6 +210,9 @@ export declare namespace Expression {
  * Recognizes the private expression marker without checking the stored result or semantic type.
  *
  * Use this to distinguish SDK handles from host literals, not to validate untrusted objects.
+ *
+ * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
 export const isExpression = (value: unknown): value is Expression.Any =>
@@ -212,6 +232,9 @@ const parseNode = (
  * Extracts a handle's stored AST result or validates a host literal into an AST node.
  *
  * Existing construction failures pass through unchanged. Invalid primitive syntax, including a non-finite number, returns a {@link ProgramError.Construction} with the `InvalidExpression` reason. A host record that carries the {@link TypeId} key without being a handle fails with the same reason. Prefer {@link toJExpr} when consuming J-Expr syntax rather than builder nodes.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
 export const toNode = (
   value: Value.Any,
@@ -238,7 +261,10 @@ export const toNode = (
 /**
  * Extracts J-Expr syntax without evaluating the represented value.
  *
- * A failed handle returns its stored construction error. Host literals undergo the same syntax validation as {@link literal}. Serialize the resulting structured syntax with `JExpr.compile`.
+ * A failed handle returns its stored construction error. Host literals undergo the same syntax validation as {@link literal}. Serialize the resulting structured syntax with {@link JExpr.compile}.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
 export const toJExpr = (
   value: Value.Any,
@@ -370,6 +396,9 @@ const make = <T extends Type.Any, Inputs>(
  * Wraps an AST construction result while retaining either its node or its failure.
  *
  * This low-level builder operation trusts the caller to establish `T`, `Inputs` and the node's validity. Use {@link fromJExpr} when syntax needs validation.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
 export const fromResult = <T extends Type.Any, Inputs>(
   node: Result.Result<AST.Node.Any, ProgramError.Construction>,
@@ -379,12 +408,20 @@ export const fromResult = <T extends Type.Any, Inputs>(
  * Ascribes a semantic type to syntax supplied by a declaration or another trusted builder.
  *
  * The caller supplies the semantic type and input requirements. This operation validates syntax only. Invalid syntax stores a {@link ProgramError.Construction} with the `InvalidExpression` reason. Extract it with {@link toJExpr}. It does not resolve names or infer requirements from the syntax.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
 export const fromJExpr = <T extends Type.Any, Inputs>(
   expression: JExpr.Expression,
 ): Expression<T, Inputs> => pipe(expression, parseNode, fromResult<T, Inputs>);
 
-/** Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}. */
+/**
+ * Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}.
+ *
+ * @category Conversions
+ * @since 0.1.0
+ */
 export const fromNode = <T extends Type.Any, Inputs>(
   node: AST.Node.Any,
 ): Expression<T, Inputs> => pipe(node, Result.succeed, fromResult<T, Inputs>);
@@ -423,6 +460,9 @@ export const fromNode = <T extends Type.Any, Inputs>(
  *   Result.getOrThrow(Expression.toJExpr(trimmedLookup(" Ada "))),
  * );
  * ```
+ *
+ * @category Combinators
+ * @since 0.1.0
  */
 export const adaptCallable: {
   <
@@ -501,6 +541,9 @@ export const adaptCallable: {
  *   Result.getOrThrow(Expression.toJExpr(text)),
  * );
  * ```
+ *
+ * @category Combinators
+ * @since 0.1.0
  */
 export const assume =
   <T extends Type.Any>() =>
@@ -511,6 +554,9 @@ export const assume =
  * Constructs a typed host literal with no input requirements.
  *
  * Use a string to construct a string literal rather than a name reference. A host number has the {@link Type.PrimitiveNumber} descriptor even when its emitted syntax is integral. Bigints have the {@link Type.PrimitiveInteger} descriptor. A non-finite number stores a {@link ProgramError.Construction} with the `InvalidExpression` reason, which {@link toJExpr} returns. Objects and arrays need structural construction instead.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const literal = <const V extends Primitive>(
   value: V,
@@ -520,13 +566,21 @@ export const literal = <const V extends Primitive>(
  * Constructs an Integer literal from a bigint or integral host number.
  *
  * A fraction or a non-finite number stores a {@link ProgramError.Construction} with the `InvalidExpression` reason. Use bigint when the original integer exceeds the safe number range, because a number has already undergone JavaScript rounding. See {@link toJExpr} to inspect success or failure.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const integer = (
   value: number | bigint,
 ): Expression<Type.PrimitiveInteger, Input.Empty> =>
   fromJExpr(JExpr.integer(value));
 
-/** Constructs a Number literal, retaining non-finite values as construction failures as in {@link literal}. */
+/**
+ * Constructs a Number literal, retaining non-finite values as construction failures as in {@link literal}.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 export const number = (
   value: number,
 ): Expression<Type.PrimitiveNumber, Input.Empty> =>
@@ -559,6 +613,9 @@ export const number = (
  *   '["::kernel::special_form::input","pageSize","::kernel::type::Integer",{"#literal":10}]',
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs an input from its name and type
 export function input<const Name extends string, T extends Type.Any>(
@@ -628,6 +685,9 @@ export function input<T extends Type.Any>(
  *   Result.getOrThrow(Expression.toJExpr(label)),
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const ifElse: {
   <const Then extends Value.Any, const Else extends Value.Any>(branches: {

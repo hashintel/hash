@@ -56,7 +56,7 @@ import type { Reason } from "./parser-error.js";
 
 /** A reusable parser and its candidate-source schema. */
 interface Definition<T, R extends Reason> {
-  /** Runs immediately. Expected failures return as a failed {@link Result.Result | Result}. */
+  /** Runs immediately. Expected failures return as a failed {@link Result.Result | `Result`}. */
   readonly parse: (input: string) => Parser.Return<T, R>;
   /** Retains recursive structure for Effect's size-controlled source generation. */
   readonly schema: () => Schema.Codec<string>;
@@ -65,7 +65,7 @@ interface Definition<T, R extends Reason> {
 /**
  * A parser builder that preserves output and failure types through composition.
  *
- * {@link Parser.source | source} proposes candidates without checking complete consumption. {@link Parser.arbitrary | arbitrary} validates candidates and derives their outputs. A successful prefix parse can leave input even when its source candidate cannot produce a complete sample.
+ * {@link Parser.source | `source`} proposes candidates without checking complete consumption. {@link Parser.arbitrary | `arbitrary`} validates candidates and derives their outputs. A successful prefix parse can leave input even when its source candidate cannot produce a complete sample.
  */
 export interface Parser<T, R extends Reason> extends Definition<T, R> {
   /** Proposes source text for the complete-consumption check in {@link Parser.arbitrary}. */
@@ -273,7 +273,7 @@ export const nextChar: Parser.Append<string, ScalarReason> = and(character);
  *
  * Zero appends an empty string without examining the input. Short input and isolated surrogates produce a failed {@link Parser.Return}.
  *
- * @throws {RangeError} If `length` is not an integer in [0, 2³² − 1].
+ * @throws `RangeError` If `length` is not an integer in [0, 2³² − 1].
  */
 export const nextSlice = (
   length: number,
@@ -285,7 +285,7 @@ export const nextSlice = (
  *
  * The reader stops at the maximum or the end of input. It fails if fewer than the minimum remain. An isolated surrogate before the maximum fails with {@link ExpectedScalar}, even after the minimum. A later parser cannot make this reader return characters it has consumed.
  *
- * @throws {RangeError} If the counts violate {@link SliceBounds}.
+ * @throws `RangeError` If the counts violate {@link SliceBounds}.
  */
 export const nextSliceBetween = (
   bounds: SliceBounds,

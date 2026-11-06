@@ -3,6 +3,7 @@
  *
  * {@link make} checks a decoded object such as `{ _tag: "Union", members: [a, b] }` rather than source text. It requires at least one member and checks the paths and identifiers inside each one. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -11,8 +12,16 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
+/**
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.Union = Defs.Union;
 
+/**
+ * @category Models
+ * @since 0.1.0
+ */
 export interface Union extends Defs.UnionType {}
 
 export declare namespace Union {
@@ -24,18 +33,29 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks a decoded union object and returns it.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Union =
   Overflow.make(Schema);
 
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Union, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
+/**
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

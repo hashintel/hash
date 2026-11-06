@@ -198,9 +198,9 @@ export const compileResult = (
  *
  * Each numeric literal keeps its stored text, so an integer keeps every digit and a float keeps its fraction or exponent. `JSON.stringify` would write the SDK's tagged numeric objects instead, which HashQL rejects because a `#literal` value must be a JSON primitive. Strings are JSON-escaped, and object keys follow each object's own enumerable string-key order. A call argument whose keys all start with `:` becomes a labeled argument.
  *
- * Serialization does not validate. A literal that `JExpr.make` would reject keeps its stored text, so the output can contain non-JSON text such as `NaN`. Check a tree from an untrusted source with `JExpr.make` before compiling it.
+ * Serialization does not validate. A literal that {@link JExpr.make} would reject keeps its stored text, so the output can contain non-JSON text such as `NaN`. Check a tree from an untrusted source with `JExpr.make` before compiling it.
  *
- * @throws {TypeError} If an object in the tree has no constructor key.
+ * @throws `TypeError` If an object in the tree has no constructor key.
  *
  * @example <caption>Serialize exact numbers, unlike JSON.stringify.</caption>
  * ```ts
@@ -211,6 +211,9 @@ export const compileResult = (
  * assert.equal(JExpr.compile(values), '{"#tuple":[{"#literal":18446744073709551616},{"#literal":1.0},{"#literal":2.5}]}');
  * assert.equal(JSON.stringify(JExpr.integer(1)), '{"#literal":{"_tag":"Integer","value":"1"}}');
  * ```
+ *
+ * @category Compiling
+ * @since 0.1.0
  */
 export const compile = (expression: Expression): string =>
   Result.getOrThrowWith(

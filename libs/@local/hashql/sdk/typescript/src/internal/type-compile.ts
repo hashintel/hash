@@ -1,8 +1,11 @@
-/** Printers for the mutually recursive path and type model. @internal */
+/** Compilers for the mutually recursive path and type model, to type syntax and to constructor syntax. @internal */
+import { Array, Record, Tuple } from "effect";
+
 import { compileIdent } from "./ident-parser.js";
 import { printer, separated } from "./printer.js";
 
 import type { Path, SegmentArgument } from "../JExpr/Path.js";
+import type { ExpressionType } from "../JExpr/schema.js";
 import type { Type } from "../JExpr/Type/schema.js";
 
 /** A type to print below an operator of the given precedence, or a path to print. */
@@ -107,3 +110,85 @@ export const compilePath = (path: Path): string =>
 
 /** Prints type syntax without adding redundant groups around qualified paths. */
 export const compileType = (type: Type): string => print([typeStep(type, 0)]);
+
+/** A type and the expressions of its members built so far, in member order. */
+interface Frame {
+  readonly type: Type;
+  readonly members: readonly Type[];
+  readonly expressions: ExpressionType[];
+}
+
+const open = (type: Type): Frame => {
+  switch (type._tag) {
+    case "Infer":
+    case "Reference": {
+      return { type, members: [], expressions: [] };
+    }
+    case "Struct": {
+      return {
+        type,
+        members: Array.map(type.members, Tuple.get(1)),
+        expressions: [],
+      };
+    }
+    case "Tuple":
+    case "Union":
+    case "Intersection": {
+      return { type, members: type.members, expressions: [] };
+    }
+  }
+};
+
+const construct = ({ type, expressions }: Frame): ExpressionType => {
+  switch (type._tag) {
+    case "Infer": {
+      return "_";
+    }
+    case "Reference": {
+      return compileType(type);
+    }
+    case "Tuple": {
+      return { "#tuple": expressions };
+    }
+    case "Struct": {
+      return {
+        "#struct": Record.fromEntries(
+          Array.zipWith(type.members, expressions, ([name], expression) => [
+            compileIdent(name),
+            expression,
+          ]),
+        ),
+      };
+    }
+    case "Union": {
+      return ["::kernel::type::Union", ...expressions];
+    }
+    case "Intersection": {
+      return ["::kernel::type::Intersection", ...expressions];
+    }
+  }
+};
+
+/** Writes a type as the constructor syntax of an expression position. */
+export const typeToExpression = (type: Type): ExpressionType => {
+  // Types wait here for their members instead of on the call stack, which bounds the nesting depth by memory alone.
+  const parents: Frame[] = [];
+  let current = open(type);
+
+  for (;;) {
+    const member = current.members[current.expressions.length];
+    if (member === undefined) {
+      const expression = construct(current);
+      const parent = parents.pop();
+      if (parent === undefined) {
+        return expression;
+      }
+
+      parent.expressions.push(expression);
+      current = parent;
+    } else {
+      parents.push(current);
+      current = open(member);
+    }
+  }
+};

@@ -2,7 +2,7 @@ import { Result, pipe } from "effect";
 import { describe, expect, expectTypeOf, test } from "vitest";
 
 import { Program } from "@local/hashql";
-import { program, withPrelude } from "@local/hashql/draft";
+import { program, withPrelude } from "@local/hashql/Draft";
 
 import type { Type } from "@local/hashql";
 

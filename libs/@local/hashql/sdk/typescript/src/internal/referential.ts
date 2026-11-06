@@ -74,7 +74,12 @@ export const referenceProducer = (source: symbol): ReferenceProducer => {
   };
 };
 
-/** A value that keeps the ids of the bindings its own syntax names. */
+/**
+ * A value that keeps the ids of the bindings its own syntax names.
+ *
+ * @trait
+ * @internal
+ */
 export interface Referential {
   readonly [References]: readonly ReferenceId[];
 }

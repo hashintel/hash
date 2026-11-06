@@ -3,6 +3,7 @@
  *
  * Selection changes local names, not the declared types or callable capabilities. Each selected producer rebinds itself before the namespace join. The compiler remains responsible for resolving the emitted import.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable import/max-dependencies -- an import selects a module's exports, rebinds each producer and emits its AST node
@@ -30,7 +31,12 @@ import * as Bindings from "./Bindings.js";
 import type * as Module from "../Module.js";
 import type * as Namespace from "../Namespace.js";
 
-/** Marker for a lexical import declaration, distinct from its bindings. */
+/**
+ * Marker for a lexical import declaration, distinct from its bindings.
+ *
+ * @category Type IDs
+ * @since 0.1.0
+ */
 export type TypeId = "~hashql/Import";
 const TypeId: TypeId = "~hashql/Import";
 
@@ -48,7 +54,7 @@ export type * as Bindings from "./Bindings.js";
  *
  * Literal selections retain required exports. A widened array, an optional record entry or a union alias can leave a name absent, so its result entry is optional. The `"_"` alternative contributes the source name rather than a literal underscore key. Selection unions retain all possible names but require only names present in every alternative.
  *
- * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. HashQL binds a local name once, so two exports under one local name fail with `DuplicateImportName`. Names compare by {@link JExpr.Ident.name}, so `+` and `` `+` ``, or the precomposed `"\u00E9"` and the combining `"e\u0301"`, are one name. A symbol key in the record selects nothing.
+ * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. HashQL binds a local name once, so two exports under one local name fail with `DuplicateImportName`. Names compare by {@link JExpr.Ident.name}, so `+` and <code>\`+\`</code>, or the precomposed `"\u00E9"` and the combining `"e\u0301"`, are one name. A symbol key in the record selects nothing.
  *
  * `"*"` emits a glob `use`. HashQL then binds every export it provides under the module's path, including names the record does not declare. A selected name likewise binds the module, type and value that HashQL exports under it, including a table the record does not declare. TypeScript does not see such a binding. Inside the import, it shadows an enclosing binding of the same name. A record that declares every export of its path gives both the same bindings.
  *
@@ -78,6 +84,9 @@ export type * as Bindings from "./Bindings.js";
  * assert.ok(Result.isFailure(invalid));
  * assert.equal(invalid.failure.reason._tag, "InvalidImportName");
  * ```
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Selection<
   M extends Module.Module.Any,
@@ -231,7 +240,12 @@ const plan = (
 interface Capability extends Relocation.Relocatable<Capability> {}
 type Rebindings<E> = { readonly [K in keyof E]: Relocation.Relocatable<E[K]> };
 
-/** A module whose exports each rebind to their own type, as an import requires. */
+/**
+ * A module whose exports each rebind to their own type, as an import requires.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface Rebindable<M extends Module.Module.Any> {
   readonly modules: M["modules"] & Rebindings<M["modules"]>;
   readonly types: M["types"] & Rebindings<M["types"]>;
@@ -291,7 +305,12 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
     return Object.freeze(selected) as Bindings.Selected<E, I>;
   });
 
-/** An import's bindings and the lexical wrapper that makes their local names available. */
+/**
+ * An import's bindings and the lexical wrapper that makes their local names available.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface Declaration<M extends Module.Module.Any, I> {
   readonly [TypeId]: TypeId;
   readonly scope: Bindings.Bindings<M, I> &
@@ -342,6 +361,9 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
  * The import emits a `use` of the module's path. HashQL must therefore provide every selected export under that path, aliases included. HashQL can also bind exports the record does not declare, as {@link Selection} describes.
  *
  * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for an invalid alias or one that two exports share, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It returns frozen tables without a prototype, so a name the import does not bind reads as `undefined`. The HashQL compiler resolves the emitted import.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the module and selection construct a declaration
 export const bind = <
