@@ -129,7 +129,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
           </ListItemIcon>
           <ListItemText primary="Link type" />
         </MenuItem>
-        <MenuItem href="/new/types/data-type" onClick={popupState.close}>
+        <MenuItem href="/types/data-type?new" onClick={popupState.close}>
           <ListItemIcon>
             <BarcodeIcon />
           </ListItemIcon>
