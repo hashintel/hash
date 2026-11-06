@@ -274,23 +274,27 @@ export const overlayPartsStyles = sva({
           borderBottomRadius: "lg",
         },
       },
+      // The panel frame is a single border on the component's `content` slot,
+      // so the sections carry no external borders of their own — only the
+      // segmenting ones — and their corner radii hug the frame's inner curve.
       plain: {
         header: {
+          borderTop: "none",
+          borderInline: "none",
+          borderTopRadius: "[calc({radii.xl} - 1px)]",
           borderBottomColor: "neutral.s20",
         },
         body: {
+          borderInline: "none",
           borderBottom: "none",
           "&:last-child": {
-            borderBottomRadius: "lg",
-            borderBottom: "[1px solid {colors.neutral.s50}]",
+            borderBottomRadius: "[calc({radii.xl} - 1px)]",
           },
         },
         footer: {
           backgroundColor: "white",
           borderTop: "[1px solid {colors.neutral.s20}]",
-          borderInline: "[1px solid {colors.neutral.s50}]",
-          borderBottom: "[1px solid {colors.neutral.s50}]",
-          borderBottomRadius: "lg",
+          borderBottomRadius: "[calc({radii.xl} - 1px)]",
         },
       },
     },
