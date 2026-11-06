@@ -1,4 +1,4 @@
-import { Array, Equivalence, Option, String, pipe } from "effect";
+import { Array, Option, pipe } from "effect";
 
 import * as Catalogue from "../Catalogue.js";
 import * as Parts from "./parts.js";
@@ -16,11 +16,6 @@ export interface Scope {
   readonly catalogue: Catalogue.Catalogue;
   readonly owner: Option.Option<Catalogue.Name>;
 }
-
-const samePath = Array.makeEquivalence(Equivalence.strictEqual<string>());
-
-const isIdentifier = (text: string): boolean =>
-  /^[\p{ID_Start}$_][\p{ID_Continue}$\u200C\u200D]*$/u.test(text);
 
 /** The only member of an export that `name` spells. Static and instance members may share a spelling, which then names neither. */
 const memberOf = (
@@ -96,40 +91,3 @@ export const reference =
         });
       }),
     );
-
-/** The path a code span spells when it is a qualified name, such as `Tools.make` or `Tools.make()`. */
-const qualifiedName = (code: string): Option.Option<readonly string[]> =>
-  pipe(
-    code,
-    String.replace(/\(\)$/u, ""),
-    String.split("."),
-    Option.liftPredicate(
-      (path: readonly string[]) =>
-        path.length > 1 && Array.every(path, isIdentifier),
-    ),
-  );
-
-/**
- * The public APIs a code span may mention.
- *
- * A qualified name means what it resolves to in the scope. A name that resolves nowhere there may still mean any export whose path ends with it.
- */
-export const mentioned =
-  (scope: Scope) =>
-  (code: string): readonly Local[] =>
-    Option.match(qualifiedName(code), {
-      onNone: () => [],
-      onSome: (path) =>
-        Option.match(scoped(scope, path), {
-          onSome: Array.of,
-          onNone: () =>
-            pipe(
-              scope.catalogue.byName,
-              Array.fromIterable,
-              Array.filter(([name]) =>
-                samePath(Array.takeRight(name.path, path.length), path),
-              ),
-              Array.map(([, id]): Local => ({ _tag: "Local", node: id })),
-            ),
-        }),
-    });
