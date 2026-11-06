@@ -120,6 +120,13 @@ RUN cuda="${CUDA_VERSION%.*}" && \
 
 COPY --from=builder /out/ /
 
+# Amazon's RDS root certificates for eu-central-1, which the database server's certificate is
+# verified against.
+# To update the digest: curl -fsSL https://truststore.pki.rds.amazonaws.com/eu-central-1/eu-central-1-bundle.pem | shasum -a 256
+ADD --checksum=sha256:56a0cae044b6cc433971d964347401692a92ea0294e392753a3ebdaee54d8b84 --chmod=0644 \
+    https://truststore.pki.rds.amazonaws.com/eu-central-1/eu-central-1-bundle.pem \
+    /etc/ssl/certs/rds-eu-central-1-bundle.pem
+
 ENV HOME="/home/atlas"
 ENV HASH_GRAPH_ATLAS_ROOT="/atlas-generations"
 
