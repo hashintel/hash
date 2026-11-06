@@ -1,10 +1,10 @@
 import { upperFirst } from "lodash";
 
-import { Button, Chip, Form, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Form, Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { getStepDisplay } from "../shared/step-display";
 import { getStepName } from "./shared/find-step";
+import { StepChips } from "./shared/step-chips";
 import { getKindIcon, getKindLabel } from "./shared/value-display";
 
 import type {
@@ -32,11 +32,10 @@ const summary = css({
   _groupHover: { display: "none" },
   _groupFocusWithin: { display: "none" },
 });
-const stepChips = css({ display: "flex", flexWrap: "wrap", gap: "1" });
 const chips = css({
   display: "none",
-  _groupHover: { display: "flex" },
-  _groupFocusWithin: { display: "flex" },
+  _groupHover: { display: "block" },
+  _groupFocusWithin: { display: "block" },
 });
 
 /*
@@ -52,27 +51,6 @@ const usedByRow = css({
   "&:focus-within [data-flow-output]": { opacity: "1" },
 });
 const flowOutputToggle = css({ display: "flex" });
-
-/** A chip per step, with the step's icon and name. */
-export const StepChips = ({
-  steps,
-  className,
-}: {
-  steps: StepDefinition<string>[];
-  className?: string;
-}) => (
-  <span className={cx(stepChips, className)}>
-    {steps.map((step) => (
-      <Chip
-        key={step.stepId}
-        size="md"
-        prefix={{ iconName: getStepDisplay(step).icon }}
-      >
-        {getStepName(step)}
-      </Chip>
-    ))}
-  </span>
-);
 
 const getUsedBySummary = (names: string[]) => {
   const named = names.slice(0, namedStepCount).join(", ");
@@ -160,7 +138,9 @@ export const UsedByField = ({
           <span className={cx(usedByText, summary)}>
             {getUsedBySummary(usedByNames)}
           </span>
-          <StepChips steps={usedBy} className={chips} />
+          <span className={chips}>
+            <StepChips steps={usedBy} />
+          </span>
         </span>
       )}
     </Form.Field>

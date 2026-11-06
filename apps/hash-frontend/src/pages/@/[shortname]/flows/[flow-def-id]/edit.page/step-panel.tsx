@@ -79,6 +79,7 @@ const heading = css({
 const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
 const section = css({ display: "flex", flexDirection: "column", gap: "2" });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
+const addInputButton = css({ alignSelf: "flex-start" });
 
 const PanelHeader = ({
   icon,
@@ -174,11 +175,15 @@ const StartPanel = ({
             autoFocus={input.name === addedName}
           />
         ))}
-        <span>
-          <Button variant="subtle" size="sm" iconName="plus" onClick={addInput}>
-            Add input
-          </Button>
-        </span>
+        <Button
+          variant="subtle"
+          size="sm"
+          iconName="plus"
+          className={addInputButton}
+          onClick={addInput}
+        >
+          Add input
+        </Button>
       </PanelSection>
     </aside>
   );

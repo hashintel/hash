@@ -14,13 +14,12 @@ import { css } from "@hashintel/ds-helpers/css";
 import { CollapseButton } from "../shared/collapse-button";
 import { getNameLabel } from "../shared/name-label";
 import { flowInputTypes } from "./input-sources";
+import { StepChips } from "./shared/step-chips";
 import { getKindLabel } from "./shared/value-display";
-import { StepChips } from "./used-by-field";
 
 import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   FlowInputDefinition,
-  PayloadKind,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -45,7 +44,7 @@ const spacer = css({ flex: "1" });
 const collapsedType = css({ textStyle: "xs", color: "fg.subtle" });
 const notUsed = css({ textStyle: "sm", color: "fg.subtle" });
 
-type FlowInputType = { payloadKind: PayloadKind; array: boolean };
+type FlowInputType = Pick<FlowInputDefinition, "payloadKind" | "array">;
 
 const getTypeKey = ({ payloadKind, array }: FlowInputType) =>
   `${payloadKind}${array ? "[]" : ""}`;
@@ -80,10 +79,7 @@ const LabelInput = ({
       value={typed ?? label}
       onFocus={(event) => {
         setTyped(label);
-
-        if (event.target instanceof HTMLInputElement) {
-          event.target.select();
-        }
+        event.target.select();
       }}
       onChange={setTyped}
       onKeyDown={(event) => {
@@ -135,6 +131,7 @@ export const FlowInputCard = ({
   const { name, payloadKind, array, required } = input;
   const label = input.label ?? getNameLabel(name);
   const type = { payloadKind, array };
+  /* An input of a type that can't be typed in, e.g. one added from a step's input, keeps it until it's changed. */
   const types = flowInputTypes.some(
     (option) => getTypeKey(option) === getTypeKey(type),
   )
