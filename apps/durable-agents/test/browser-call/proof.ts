@@ -417,10 +417,19 @@ const drive = async () => {
         toolResult?.isError === false &&
         isDeepStrictEqual(JSON.parse(toolResult.text), browser?.output),
     );
+    // Since 1.5.0 a reopened Harness shows the tool slot `pending` until `resume()` reserves its task again; the rest of the
+    // view, the browser call's record included, is as committed.
+    const withoutSlots = (view: PanelView) => ({
+      ...view,
+      tools: view.tools.map(({ slot: _slot, ...tool }) => tool),
+    });
     check(
       "Proof 3: the panel views before the kill and after reopen agree (call ID, arguments, pending, entries)",
       isDeepStrictEqual(issuedView, resumedView) &&
-        isDeepStrictEqual(issuedView, resumed!.reopened) &&
+        isDeepStrictEqual(
+          withoutSlots(issuedView),
+          withoutSlots(resumed!.reopened as PanelView),
+        ) &&
         isDeepStrictEqual(issuedCall?.arguments, { title }),
     );
   } finally {
