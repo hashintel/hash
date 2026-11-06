@@ -26792,7 +26792,8 @@ export const integrationIconCatalog = [
     slug: "root-ventures",
     label: "Root Ventures",
     integrationNames: ["Root Ventures"],
-    source: "https://root.vc/images/logo.png",
+    source:
+      "https://raw.githubusercontent.com/rootvc/rootvc-octopus-wiki/48e817528cd0909589e070576e3a7a6932fdbf14/public/static/logo-stacked-white.png",
     categories: ["Investing & venture capital"],
     category: "Integrations",
     variants: [
@@ -26808,7 +26809,7 @@ export const integrationIconCatalog = [
     ],
     logoSource: "https://root.vc/images/logo.png",
     logoNotes:
-      "Faithful vectorization of sourced raster artwork; colors adapted for each theme.",
+      "Mark and app variants use the circular circuit-tree emblem matching the supplied reference, faithfully vectorized from the high-resolution alpha channel of Root Ventures\u2019 official repository artwork. Empty white areas are transparent; only the circle and circuit-tree outlines are painted. Full-logo artwork retains its existing source.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,

@@ -21313,17 +21313,19 @@
     "integrationNames": ["Root Ventures"],
     "ratio": 1.8,
     "alignment": "center",
-    "source": "https://root.vc/images/logo.png",
+    "source": "https://raw.githubusercontent.com/rootvc/rootvc-octopus-wiki/48e817528cd0909589e070576e3a7a6932fdbf14/public/static/logo-stacked-white.png",
     "markLightColors": {},
     "markDarkColors": {
-      "#111111": "#F5F7FA"
+      "#231F20": "#FFFFFF"
     },
     "logoDarkColors": {},
     "logoSource": "https://root.vc/images/logo.png",
-    "logoNotes": "Faithful vectorization of sourced raster artwork; colors adapted for each theme.",
+    "logoNotes": "Mark and app variants use the circular circuit-tree emblem matching the supplied reference, faithfully vectorized from the high-resolution alpha channel of Root Ventures’ official repository artwork. Empty white areas are transparent; only the circle and circuit-tree outlines are painted. Full-logo artwork retains its existing source.",
     "categories": ["Investing & venture capital"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "brandWebsite": "https://root.vc/",
+    "artworkAttribution": "Root Ventures trademark artwork. Circuit-tree emblem isolated and vectorized from official raster artwork; theme colors and app tiles adapted."
   },
   {
     "name": "oneOnly",
