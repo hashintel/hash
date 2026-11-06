@@ -1,18 +1,18 @@
 import { upperFirst } from "lodash";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import {
   Chip,
   EllipsisMenu,
   Form,
   Select,
-  TextInput,
   Toggle,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { CollapseButton } from "../shared/collapse-button";
 import { getNameLabel } from "../shared/name-label";
+import { RenameInput } from "../shared/rename-input";
 import { flowInputTypes } from "./input-sources";
 import { StepChips } from "./shared/step-chips";
 import { getKindLabel } from "./shared/value-display";
@@ -39,7 +39,6 @@ const titleRow = css({
   gap: "1",
   minWidth: "0",
 });
-const labelInput = css({ fontWeight: "medium", minWidth: "0" });
 const spacer = css({ flex: "1" });
 const collapsedType = css({ textStyle: "xs", color: "fg.subtle" });
 const notUsed = css({ textStyle: "sm", color: "fg.subtle" });
@@ -52,67 +51,9 @@ const getTypeKey = ({ payloadKind, array }: FlowInputType) =>
 const getTypeLabel = (type: FlowInputType) => upperFirst(getKindLabel(type));
 
 /**
- * The input's label, edited in place. Escape, or leaving it blank or unchanged, keeps the label it has. Only the label
- * changes: steps refer to the input by its name.
- */
-const LabelInput = ({
-  label,
-  autoFocus,
-  onRename,
-}: {
-  label: string;
-  autoFocus: boolean;
-  onRename: (label: string) => void;
-}) => {
-  const [typed, setTyped] = useState<string | null>(null);
-  const cancelledRef = useRef(false);
-
-  return (
-    <TextInput
-      variant="subtle"
-      size="sm"
-      width="fitContent"
-      showEditIcon
-      autoFocus={autoFocus}
-      aria-label="Input name"
-      className={labelInput}
-      value={typed ?? label}
-      onFocus={(event) => {
-        setTyped(label);
-        event.target.select();
-      }}
-      onChange={setTyped}
-      onKeyDown={(event) => {
-        if (
-          (event.key !== "Enter" && event.key !== "Escape") ||
-          event.nativeEvent.isComposing
-        ) {
-          return;
-        }
-
-        cancelledRef.current = event.key === "Escape";
-
-        if (event.currentTarget instanceof HTMLElement) {
-          event.currentTarget.blur();
-        }
-      }}
-      onBlur={() => {
-        const renamed = typed?.trim();
-
-        if (!cancelledRef.current && renamed && renamed !== label) {
-          onRename(renamed);
-        }
-
-        cancelledRef.current = false;
-        setTyped(null);
-      }}
-    />
-  );
-};
-
-/**
  * A flow input on Start, as a card: its label, type and whether it's required, which can all be changed, and the steps
- * that use it. Collapsed, it shows its type beside its label.
+ * that use it. Collapsed, it shows its type beside its label. Renaming changes only the label: steps refer to the input
+ * by its name.
  */
 export const FlowInputCard = ({
   editor,
@@ -145,9 +86,10 @@ export const FlowInputCard = ({
           collapsed={collapsed}
           onToggle={() => setCollapsed(!collapsed)}
         />
-        <LabelInput
-          label={label}
+        <RenameInput
+          value={label}
           autoFocus={autoFocus}
+          ariaLabel="Input name"
           onRename={(renamed) =>
             editor.updateFlowInput(name, { label: renamed })
           }
