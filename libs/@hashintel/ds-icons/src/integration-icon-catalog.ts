@@ -174,6 +174,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "amazon",
@@ -228,6 +229,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "cloudflare",
@@ -552,6 +554,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Salesforce"],
   },
   {
     name: "oracle",
@@ -665,6 +668,7 @@ export const integrationIconCatalog = [
     logoRaster: true,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googleDrive",
@@ -693,6 +697,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googleCalendar",
@@ -721,6 +726,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "dropbox",
@@ -802,6 +808,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Atlassian"],
   },
   {
     name: "apple",
@@ -851,6 +858,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "appleHealth",
@@ -875,6 +883,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "discord",
@@ -930,6 +939,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftWord",
@@ -958,6 +968,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftOutlook",
@@ -986,6 +997,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftExcel",
@@ -1014,6 +1026,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftPowerPoint",
@@ -1042,6 +1055,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftOneNote",
@@ -1070,6 +1084,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftOneDrive",
@@ -1098,6 +1113,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftCopilot",
@@ -1126,6 +1142,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "microsoftTeamsLegacy",
@@ -1154,6 +1171,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "messenger",
@@ -1401,6 +1419,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "figma",
@@ -1999,6 +2018,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googleSheets",
@@ -2027,6 +2047,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googleDocs",
@@ -2055,6 +2076,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googleSlides",
@@ -2083,6 +2105,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "telegram",
@@ -2265,6 +2288,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Amazon"],
   },
   {
     name: "amazonS3",
@@ -2290,6 +2314,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "mailchimp",
@@ -2317,6 +2342,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Intuit"],
   },
   {
     name: "evernote",
@@ -2598,6 +2624,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "amazonDynamoDb",
@@ -2623,6 +2650,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "amazonRds",
@@ -2648,6 +2676,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "amazonCloudFront",
@@ -2673,6 +2702,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "awsLambda",
@@ -2697,6 +2727,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "awsAmplify",
@@ -2724,6 +2755,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "amazonQ",
@@ -2749,6 +2781,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["AWS", "Amazon Web Services", "Amazon"],
   },
   {
     name: "primeIntellect",
@@ -3573,6 +3606,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Alphabet"],
   },
   {
     name: "lyft",
@@ -3652,6 +3686,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "appleMaps",
@@ -3679,6 +3714,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "duckDb",
@@ -3931,6 +3967,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "landRover",
@@ -4132,6 +4169,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "volkswagen",
@@ -5102,6 +5140,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Marriott", "Marriott International"],
   },
   {
     name: "generalCatalyst",
@@ -5432,6 +5471,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "mistral",
@@ -6377,6 +6417,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "youTube",
@@ -6567,6 +6608,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Amazon"],
   },
   {
     name: "airbnb",
@@ -7223,6 +7265,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Amazon"],
   },
   {
     name: "amilia",
@@ -7276,6 +7319,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "angrycreative",
@@ -7357,6 +7401,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "apper",
@@ -7409,6 +7454,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "archLinux",
@@ -7534,6 +7580,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Amazon"],
   },
   {
     name: "autoprefixer",
@@ -7634,6 +7681,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "behance",
@@ -7737,6 +7785,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Atlassian"],
   },
   {
     name: "bitcoin",
@@ -7862,6 +7911,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "bluesky",
@@ -8112,6 +8162,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Block"],
   },
   {
     name: "americanExpress",
@@ -8382,6 +8433,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "chromecast",
@@ -8407,6 +8459,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "zulip",
@@ -8638,6 +8691,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Atlassian"],
   },
   {
     name: "connectdevelop",
@@ -8713,6 +8767,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft", "GitHub"],
   },
   {
     name: "cottonBureau",
@@ -9613,6 +9668,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "edgeLegacy",
@@ -9638,6 +9694,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "elementor",
@@ -10698,6 +10755,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Alphabet"],
   },
   {
     name: "googlePay",
@@ -10726,6 +10784,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googlePlay",
@@ -10754,6 +10813,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googlePlusLegacy",
@@ -10779,6 +10839,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googleScholar",
@@ -10804,6 +10865,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "googleWallet",
@@ -10829,6 +10891,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "gratipayLegacy",
@@ -11569,6 +11632,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Atlassian"],
   },
   {
     name: "joget",
@@ -14307,6 +14371,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "salesforce",
@@ -14816,6 +14881,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "slideshare",
@@ -14944,6 +15010,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Atlassian"],
   },
   {
     name: "spaceAwesome",
@@ -15104,6 +15171,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Automattic"],
   },
   {
     name: "upwork",
@@ -16011,6 +16079,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Block"],
   },
   {
     name: "tiktok",
@@ -17057,6 +17126,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "wirsindhandwerk",
@@ -17314,6 +17384,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "xmpp",
@@ -17467,6 +17538,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "yandex",
@@ -18438,6 +18510,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "disney",
@@ -18765,6 +18838,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Nestl\u00e9", "Nestle"],
   },
   {
     name: "philipsHue",
@@ -19758,6 +19832,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Proton"],
   },
   {
     name: "protonMail",
@@ -19786,6 +19861,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Proton"],
   },
   {
     name: "protonDrive",
@@ -19811,6 +19887,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Proton"],
   },
   {
     name: "proton",
@@ -19948,6 +20025,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Apple"],
   },
   {
     name: "smirnoff",
@@ -20878,6 +20956,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "dolceGabbana",
@@ -21016,6 +21099,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "bentley",
@@ -21041,6 +21125,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "maserati",
@@ -21069,6 +21154,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "koenigsegg",
@@ -21122,6 +21208,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "toyota",
@@ -24091,6 +24178,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "idealo",
@@ -24231,6 +24323,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "chanel",
@@ -24287,6 +24384,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "gucci",
@@ -24315,6 +24413,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "yvesSaintLaurent",
@@ -24343,6 +24442,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "texasInstruments",
@@ -24962,6 +25062,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "monopoly",
@@ -25214,6 +25319,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "colgate",
@@ -25409,6 +25515,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "assassinsCreed",
@@ -25465,6 +25572,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "cnn",
@@ -25795,6 +25903,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "bytedance",
@@ -26015,6 +26124,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Google", "Alphabet"],
   },
   {
     name: "nivea",
@@ -26211,6 +26321,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Hyatt"],
   },
   {
     name: "rosewood",
@@ -26516,6 +26627,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Nestl\u00e9", "Nestle"],
   },
   {
     name: "superman",
@@ -26548,7 +26660,7 @@ export const integrationIconCatalog = [
     label: "Spider-Man",
     integrationNames: ["Spider-Man"],
     source:
-      "https://upload.wikimedia.org/wikipedia/commons/b/b4/Spider-Man-Logo.svg",
+      "https://github.com/hashintel/hash/blob/d/fe-2162-add-integration-brand-variants-to-ds-icons/libs/%40hashintel/ds-icons/src/integration-icon/artwork/spider-man/mark.svg",
     categories: ["Film & television"],
     category: "Integrations",
     variants: [
@@ -26565,7 +26677,7 @@ export const integrationIconCatalog = [
     logoSource:
       "https://upload.wikimedia.org/wikipedia/commons/b/b4/Spider-Man-Logo.svg",
     logoNotes:
-      "Sourced outlined film title wordmark, also used for compact mark and app tile variants.",
+      "Mark and app variants use a vector trace of the user-supplied black spider silhouette (6 November 2026), with transparent surroundings and gaps. Full-logo wordmark artwork is unchanged.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -26678,6 +26790,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Adobe"],
   },
   {
     name: "msnbcLegacy",
@@ -28913,6 +29026,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "bottegaVeneta",
@@ -28941,6 +29059,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "celine",
@@ -28969,6 +29088,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "givenchy",
@@ -28997,6 +29121,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "mcqueen",
@@ -29025,6 +29154,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "brioni",
@@ -29053,6 +29183,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "loroPiana",
@@ -29081,6 +29212,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "brunelloCucinelli",
@@ -29163,6 +29299,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "ferragamo",
@@ -29245,6 +29386,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "montblanc",
@@ -29272,6 +29418,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "goyard",
@@ -29326,6 +29473,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "chloe",
@@ -29354,6 +29502,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "alaia",
@@ -29382,6 +29531,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "miuMiu",
@@ -29435,6 +29585,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "marcJacobs",
@@ -29461,6 +29616,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "mulberry",
@@ -29733,6 +29893,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "omega",
@@ -29815,6 +29976,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "panerai",
@@ -29843,6 +30005,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "hublot",
@@ -29871,6 +30034,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "longines",
@@ -29952,6 +30120,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "tudor",
@@ -30062,6 +30235,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "aLangeSohne",
@@ -30094,6 +30268,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "zenith",
@@ -30122,6 +30297,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "grandSeiko",
@@ -30178,6 +30358,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "vanCleefArpels",
@@ -30206,6 +30391,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "boucheron",
@@ -30234,6 +30420,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "chopard",
@@ -30288,6 +30475,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "chaumet",
@@ -30315,6 +30503,11 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: [
+      "LVMH",
+      "Mo\u00ebt Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton",
+    ],
   },
   {
     name: "graff",
@@ -30397,6 +30590,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Richemont"],
   },
   {
     name: "pomellato",
@@ -30425,6 +30619,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Kering"],
   },
   {
     name: "baccarat",
@@ -33053,6 +33248,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "jcbMachinery",
@@ -33400,6 +33596,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "itvLegacy",
@@ -34151,6 +34348,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "smart",
@@ -36712,6 +36910,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Restaurant Brands International", "RBI"],
   },
   {
     name: "tacoBell",
@@ -36794,6 +36993,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Inspire Brands"],
   },
   {
     name: "chickFilA",
@@ -37125,6 +37325,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "harleyDavidson",
@@ -38541,6 +38742,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Restaurant Brands International", "RBI"],
   },
   {
     name: "oreo",
@@ -38759,6 +38961,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "michelin",
@@ -40813,6 +41016,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Stellantis"],
   },
   {
     name: "ducati",
@@ -40841,6 +41045,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "vespa",
@@ -41277,6 +41482,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "cupra",
@@ -41303,6 +41509,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "iberdrola",
@@ -41903,6 +42110,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Volkswagen", "Volkswagen Group", "VW"],
   },
   {
     name: "cez",
@@ -42340,6 +42548,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Accor"],
   },
   {
     name: "ihg",
@@ -42426,6 +42635,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Marriott", "Marriott International"],
   },
   {
     name: "waldorfAstoria",
@@ -42454,6 +42664,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Hilton"],
   },
   {
     name: "fairmontHotels",
@@ -42482,6 +42693,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Accor"],
   },
   {
     name: "orientExpress",
@@ -42509,6 +42721,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Accor"],
   },
   {
     name: "rafflesHotels",
@@ -42536,6 +42749,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Accor"],
   },
   {
     name: "ggs",
@@ -43501,6 +43715,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Atlassian"],
   },
   {
     name: "opendoor",
@@ -48119,6 +48334,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Hyatt"],
   },
   {
     name: "caviar",
@@ -49678,6 +49894,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Microsoft"],
   },
   {
     name: "monsterEnergy",
@@ -51287,6 +51504,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Amazon"],
   },
   {
     name: "satellogic",
@@ -52079,6 +52297,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Automattic"],
   },
   {
     name: "nobu",
@@ -52132,6 +52351,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Inspire Brands"],
   },
   {
     name: "cinnabon",
@@ -52214,6 +52434,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Dine Brands", "Dine Brands Global"],
   },
   {
     name: "fiveGuys",
@@ -52349,6 +52570,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Inspire Brands"],
   },
   {
     name: "applebees",
@@ -52377,6 +52599,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Dine Brands", "Dine Brands Global"],
   },
   {
     name: "crackerBarrel",
@@ -52561,6 +52784,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Inspire Brands"],
   },
   {
     name: "jollibee",
@@ -52667,6 +52891,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["Restaurant Brands International", "RBI"],
   },
   {
     name: "dairyQueen",

@@ -12013,12 +12013,12 @@ export const integrationGeometry: Readonly<
   },
   spiderMan: {
     ...spiderMan,
-    markViewBox: "80.11985 28.55763 640.78665 41.01807",
+    markViewBox: "-4 -4 1268 1660",
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
     logoViewBox: "80.11985 28.55763 640.78665 41.01807",
-    ratio: 1.8,
+    ratio: 1.65,
     alignment: "center",
   },
   avengers: {

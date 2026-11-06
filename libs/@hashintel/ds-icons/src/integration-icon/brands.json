@@ -105,7 +105,20 @@
     "logoNotes": "Archived Google BigQuery product lock-up.",
     "categories": ["Databases & analytics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amazon",
@@ -141,7 +154,20 @@
     "logoNotes": "Archived Amazon Redshift product lock-up using the blue column mark shown in HASH.",
     "categories": ["Databases & analytics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "cloudflare",
@@ -362,7 +388,15 @@
     "logoDarkColors": {},
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Salesforce"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Salesforce"],
+        "url": "https://www.salesforce.com/news/stories/salesforce-acquisitions/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "oracle",
@@ -441,7 +475,20 @@
     "logoRaster": true,
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googleDrive",
@@ -458,7 +505,20 @@
     "logoNotes": "Horizontal logo vector archive; https://logo-teka.com/en/google-drive/",
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googleCalendar",
@@ -475,7 +535,20 @@
     "logoNotes": "Original full logo from public vector archive; https://logos-download.com/brands/google-calendar",
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "dropbox",
@@ -523,7 +596,15 @@
     "logoDarkColors": {},
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Atlassian"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Atlassian"],
+        "url": "https://www.atlassian.com/software",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "apple",
@@ -566,7 +647,15 @@
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.474
+    "monoInkScale": 1.474,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "appleHealth",
@@ -583,7 +672,15 @@
     "logoNotes": "Heart vectorized from Apple's current App Store icon, preserving its pink-to-red gradient and bevel. The mark omits the app's white tile; app variants preserve the original upper-right placement and scale on the shared translucent tile. No authentic full-logo lock-up was verified. Only mark and app-tile variants are provided.",
     "categories": ["Health & wellbeing"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "discord",
@@ -623,7 +720,15 @@
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0538
+    "monoInkScale": 1.0538,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftWord",
@@ -647,7 +752,15 @@
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.016
+    "monoInkScale": 1.016,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftOutlook",
@@ -671,7 +784,15 @@
     "categories": ["Communication", "Productivity"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0898
+    "monoInkScale": 1.0898,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftExcel",
@@ -695,7 +816,15 @@
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0806
+    "monoInkScale": 1.0806,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftPowerPoint",
@@ -719,7 +848,15 @@
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.016
+    "monoInkScale": 1.016,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftOneNote",
@@ -742,7 +879,15 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftOneDrive",
@@ -765,7 +910,15 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftCopilot",
@@ -789,7 +942,15 @@
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0324
+    "monoInkScale": 1.0324,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "microsoftTeamsLegacy",
@@ -813,7 +974,15 @@
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.3282
+    "monoInkScale": 1.3282,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "messenger",
@@ -1007,7 +1176,15 @@
     "logoNotes": "Lock-up composed from the sourced brand mark and wordmark.",
     "categories": ["Developer tools"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "figma",
@@ -1447,7 +1624,20 @@
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.02
+    "monoInkScale": 1.02,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googleSheets",
@@ -1470,7 +1660,20 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googleDocs",
@@ -1493,7 +1696,20 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googleSlides",
@@ -1516,7 +1732,20 @@
     },
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "telegram",
@@ -1666,7 +1895,15 @@
     "logoNotes": "Current native AWS wordmark and Smile Orange (#FF6200) smile extracted from the official website navigation. Exact source paths are preserved. Squid Ink lettering becomes white in dark mode.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amazonS3",
@@ -1685,7 +1922,20 @@
     "logoNotes": "Red geometric Amazon S3 brand mark from SuperTinyIcons (MIT), matching the supplied Jitterbit reference at https://www.jitterbit.com/wp-content/uploads/Amazon-S3.png. The source’s white square is removed. Dark mode modestly lifts the shadow faces while preserving the red palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/s3/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "mailchimp",
@@ -1709,7 +1959,15 @@
     },
     "categories": ["Marketing & sales"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Intuit"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Intuit"],
+        "url": "https://www.intuit.com/ca/products/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "evernote",
@@ -1939,7 +2197,20 @@
     "logoNotes": "Standalone orange stacked-square EC2 product mark, rather than the processor architecture glyph or the generic three-dimensional Compute category symbol. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/ec2/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amazonDynamoDb",
@@ -1960,7 +2231,20 @@
     "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/dynamodb/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Databases & analytics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amazonRds",
@@ -1981,7 +2265,20 @@
     "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/rds/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Databases & analytics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amazonCloudFront",
@@ -2000,7 +2297,20 @@
     "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/cloudfront/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "awsLambda",
@@ -2016,7 +2326,20 @@
     "logoNotes": "Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/lambda/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "awsAmplify",
@@ -2037,7 +2360,20 @@
     "logoNotes": "Full logo reproduces the complete lock-up published in the official aws-amplify/amplify-js README: lettering is vectorized from the 2181 × 309 source rather than typeset, with source spacing preserved. The matching native amber mark comes from https://github.com/aws-amplify/docs/blob/8f60b3bd486324ce257dbe2891b6de713f08032f/public/images/Logos/Amplify%20Logo.svg. Dark mode changes only the lettering to white. The separate mark and app variants retain the purple mark used by the current documentation header.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amazonQ",
@@ -2053,7 +2389,20 @@
     "logoNotes": "Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/q/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["AWS", "Amazon Web Services", "Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["AWS", "Amazon Web Services"],
+        "url": "https://aws.amazon.com/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "primeIntellect",
@@ -2704,7 +3053,15 @@
     },
     "categories": ["Transport & logistics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "lyft",
@@ -2765,7 +3122,20 @@
     },
     "categories": ["Transport & logistics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "appleMaps",
@@ -2782,7 +3152,15 @@
     "logoNotes": "Native Apple Maps wordmark. The light map artwork is vectorized from Apple’s published icon with flattened shading; the dark artwork uses dashboard-icons SVG geometry (Apache 2.0). Rounded corners are retained.",
     "categories": ["Transport & logistics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "duckDb",
@@ -2969,7 +3347,15 @@
     "logoDarkColors": {},
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "landRover",
@@ -3125,7 +3511,15 @@
     "logoDarkColors": {},
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "volkswagen",
@@ -3874,7 +4268,15 @@
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Marriott", "Marriott International"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Marriott", "Marriott International"],
+        "url": "https://www.marriott.com/brands.mi",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "generalCatalyst",
@@ -4132,7 +4534,20 @@
     },
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "mistral",
@@ -4832,7 +5247,15 @@
     "logoNotes": "Native LinkedIn wordmark and in-brandmark, with white letter counters retained inside the blue square; dark full logo uses white lettering.",
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "youTube",
@@ -4964,7 +5387,15 @@
     },
     "categories": ["Music & video"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "airbnb",
@@ -5479,7 +5910,15 @@
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://developer.amazon.com/docs/amazon-pay-checkout/take-your-integration-live.html"
+    "logoSource": "https://developer.amazon.com/docs/amazon-pay-checkout/take-your-integration-live.html",
+    "searchAliases": ["Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "amilia",
@@ -5530,7 +5969,20 @@
       "#3DDC84": "#000000",
       "#34A853": "#000000",
       "#202124": "#FFFFFF"
-    }
+    },
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "angrycreative",
@@ -5596,7 +6048,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Websites & commerce"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "apper",
@@ -5641,7 +6101,15 @@
     "logoNotes": "Complete primary wordmark retained in full-logo mode.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "archLinux",
@@ -5740,7 +6208,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Music & video"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "autoprefixer",
@@ -5822,7 +6298,15 @@
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Gaming"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "behance",
@@ -5906,7 +6390,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Developer tools"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Atlassian"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Atlassian"],
+        "url": "https://www.atlassian.com/software",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "bitcoin",
@@ -6002,7 +6494,20 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["News & publishing"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "bluesky",
@@ -6195,7 +6700,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Block"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Block"],
+        "url": "https://block.xyz/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "americanExpress",
@@ -6446,7 +6959,20 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "chromecast",
@@ -6466,7 +6992,20 @@
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Technology & electronics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "zulip",
@@ -6652,7 +7191,15 @@
     "categories": ["Productivity"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.004
+    "monoInkScale": 1.004,
+    "searchAliases": ["Atlassian"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Atlassian"],
+        "url": "https://www.atlassian.com/software",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "connectdevelop",
@@ -6712,7 +7259,20 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["AI", "Developer tools"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft", "GitHub"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["GitHub"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "cottonBureau",
@@ -7444,7 +8004,15 @@
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.25
+    "monoInkScale": 1.25,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "edgeLegacy",
@@ -7464,7 +8032,15 @@
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "elementor",
@@ -8344,7 +8920,15 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googlePay",
@@ -8369,7 +8953,20 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googlePlay",
@@ -8392,7 +8989,20 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Websites & commerce"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googlePlusLegacy",
@@ -8412,7 +9022,20 @@
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googleScholar",
@@ -8432,7 +9055,20 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Education & research"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "googleWallet",
@@ -8449,7 +9085,20 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. Color mark from SuperTiny Icons, with the outer square background removed.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "gratipayLegacy",
@@ -9053,7 +9702,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Developer tools"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Atlassian"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Atlassian"],
+        "url": "https://www.atlassian.com/software",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "joget",
@@ -11271,7 +11928,15 @@
     "categories": ["Browsers & search"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0852
+    "monoInkScale": 1.0852,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "salesforce",
@@ -11676,7 +12341,15 @@
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "slideshare",
@@ -11775,7 +12448,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Developer tools"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Atlassian"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Atlassian"],
+        "url": "https://www.atlassian.com/software",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "spaceAwesome",
@@ -11906,7 +12587,15 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Social & communities"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Automattic"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Automattic"],
+        "url": "https://automattic.com/products/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "upwork",
@@ -12636,7 +13325,15 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme. Full lock-up composes the sourced symbol and wordmark.",
     "categories": ["Music & video"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Block"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Block"],
+        "url": "https://block.xyz/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "tiktok",
@@ -13471,7 +14168,15 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Operating systems"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "wirsindhandwerk",
@@ -13683,7 +14388,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Gaming"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "xmpp",
@@ -13806,7 +14519,15 @@
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Communication"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "yandex",
@@ -14537,7 +15258,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Music & video"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "disney",
@@ -14799,7 +15528,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Nestlé", "Nestle"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Nestlé", "Nestle"],
+        "url": "https://www.nestle.com/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "philipsHue",
@@ -15559,7 +16296,15 @@
     "categories": ["Security & privacy"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.1487
+    "monoInkScale": 1.1487,
+    "searchAliases": ["Proton"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Proton"],
+        "url": "https://proton.me/drive",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "protonMail",
@@ -15582,7 +16327,15 @@
     "categories": ["Communication", "Security & privacy"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0324
+    "monoInkScale": 1.0324,
+    "searchAliases": ["Proton"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Proton"],
+        "url": "https://proton.me/drive",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "protonDrive",
@@ -15598,7 +16351,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Productivity", "Security & privacy"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Proton"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Proton"],
+        "url": "https://proton.me/drive",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "proton",
@@ -15689,7 +16450,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Music & video"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Apple"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://support.apple.com/en-gb/guide/shazam/dev2727afbbc/web",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "smirnoff",
@@ -16418,7 +17187,23 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "dolceGabbana",
@@ -16535,7 +17320,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "bentley",
@@ -16553,7 +17346,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "maserati",
@@ -16575,7 +17376,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "koenigsegg",
@@ -16615,7 +17424,15 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "toyota",
@@ -18999,7 +19816,23 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "idealo",
@@ -19116,7 +19949,23 @@
     },
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "chanel",
@@ -19160,7 +20009,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "gucci",
@@ -19183,7 +20040,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "yvesSaintLaurent",
@@ -19204,7 +20069,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "texasInstruments",
@@ -19705,7 +20578,23 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "monopoly",
@@ -20084,7 +20973,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "colgate",
@@ -20236,7 +21133,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Gaming"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "assassinsCreed",
@@ -20275,7 +21180,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Gaming"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "cnn",
@@ -20540,7 +21453,20 @@
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.0581
+    "monoInkScale": 1.0581,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "bytedance",
@@ -20693,7 +21619,20 @@
     },
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Google", "Alphabet"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Google"],
+        "url": "https://about.google/intl/account/products/",
+        "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Alphabet"],
+        "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "nivea",
@@ -20846,7 +21785,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Hyatt"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Hyatt"],
+        "url": "https://newsroom.hyatt.com/070225-Hyatt-Continues-Expansion-With-The-Debut-Of-Thompson-Hotels-Significant-New-Entries-for-Andaz-The-Standard-and-Park-Hyatt-Brands-In-Asia-Pacific?asPDF=1",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "rosewood",
@@ -21080,7 +22027,15 @@
     "logoNotes": "Faithful vectorization of the current official website logo; no substitute typesetting.",
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Nestlé", "Nestle"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Nestlé", "Nestle"],
+        "url": "https://www.nestle.com/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "superman",
@@ -21107,17 +22062,16 @@
     "slug": "spider-man",
     "label": "Spider-Man",
     "integrationNames": ["Spider-Man"],
-    "ratio": 1.8,
+    "ratio": 1.65,
     "alignment": "center",
-    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Spider-Man-Logo.svg",
+    "source": "https://github.com/hashintel/hash/blob/d/fe-2162-add-integration-brand-variants-to-ds-icons/libs/%40hashintel/ds-icons/src/integration-icon/artwork/spider-man/mark.svg",
     "markLightColors": {},
     "markDarkColors": {
-      "#000000": "#F5F7FA",
-      "#111111": "#F5F7FA"
+      "#000000": "#F5F7FA"
     },
     "logoDarkColors": {},
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Spider-Man-Logo.svg",
-    "logoNotes": "Sourced outlined film title wordmark, also used for compact mark and app tile variants.",
+    "logoNotes": "Mark and app variants use a vector trace of the user-supplied black spider silhouette (6 November 2026), with transparent surroundings and gaps. Full-logo wordmark artwork is unchanged.",
     "categories": ["Film & television"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -21235,7 +22189,15 @@
     "categories": ["Design & creative"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "monoInkScale": 1.02
+    "monoInkScale": 1.02,
+    "searchAliases": ["Adobe"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "msnbcLegacy",
@@ -23402,7 +24364,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "bottegaVeneta",
@@ -23427,7 +24405,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "celine",
@@ -23450,7 +24436,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "givenchy",
@@ -23475,7 +24477,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "mcqueen",
@@ -23498,7 +24516,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "brioni",
@@ -23521,7 +24547,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "loroPiana",
@@ -23546,7 +24580,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "brunelloCucinelli",
@@ -23617,7 +24667,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "ferragamo",
@@ -23696,7 +24762,23 @@
     "logoLayout": {
       "wordmarkHeight": 0.4,
       "gap": 0.25
-    }
+    },
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "montblanc",
@@ -23721,7 +24803,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "goyard",
@@ -23769,7 +24859,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "chloe",
@@ -23792,7 +24890,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "alaia",
@@ -23816,7 +24922,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "miuMiu",
@@ -23862,7 +24976,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "marcJacobs",
@@ -23890,7 +25020,23 @@
     "logoLayout": {
       "wordmarkHeight": 0.4,
       "gap": 0.25
-    }
+    },
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "mulberry",
@@ -24138,7 +25284,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "omega",
@@ -24218,7 +25372,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "panerai",
@@ -24241,7 +25403,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "hublot",
@@ -24266,7 +25436,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "longines",
@@ -24333,7 +25519,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "tudor",
@@ -24429,7 +25631,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "aLangeSohne",
@@ -24458,7 +25668,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "zenith",
@@ -24483,7 +25701,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "grandSeiko",
@@ -24533,7 +25767,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "vanCleefArpels",
@@ -24558,7 +25808,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "boucheron",
@@ -24581,7 +25839,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "chopard",
@@ -24629,7 +25895,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "chaumet",
@@ -24653,7 +25927,23 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "LVMH",
+      "Moët Hennessy Louis Vuitton",
+      "Moet Hennessy Louis Vuitton"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "LVMH",
+          "Moët Hennessy Louis Vuitton",
+          "Moet Hennessy Louis Vuitton"
+        ],
+        "url": "https://urd.lvmh.com/en/2025",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "graff",
@@ -24724,7 +26014,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Richemont"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Richemont"],
+        "url": "https://www.richemont.com/news-media/press-releases-news/richemont-and-the-damiani-group-announce-the-completion-of-the-acquisition-of-baume-mercier-by-the-damiani-group/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "pomellato",
@@ -24749,7 +26047,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Fashion & luxury"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Kering"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Kering"],
+        "url": "https://www.kering.com/en/press/resources/logo-library/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "baccarat",
@@ -27288,7 +28594,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/43/Vauxhall_logo_2026.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/43/Vauxhall_logo_2026.svg",
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "jcbMachinery",
@@ -28842,7 +30156,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "itvLegacy",
@@ -29556,7 +30878,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Opel_logo_2023.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Opel_logo_2023.svg",
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "smart",
@@ -34002,7 +35332,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Burger_King_2020.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Burger_King_2020.svg",
+    "searchAliases": ["Restaurant Brands International", "RBI"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Restaurant Brands International", "RBI"],
+        "url": "https://www.rbi.com/English/brands/default.aspx",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "tacoBell",
@@ -34082,7 +35420,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://www.dunkindonuts.com/403.html"
+    "logoSource": "https://www.dunkindonuts.com/403.html",
+    "searchAliases": ["Inspire Brands"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Inspire Brands"],
+        "url": "https://careers.inspirebrands.com/about-inspire",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "chickFilA",
@@ -34408,7 +35754,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/jeep.svg"
+    "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/jeep.svg",
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "harleyDavidson",
@@ -35791,7 +37145,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://ninos.kiddle.co/images/0/0d/Popeyes_Logo_2020.svg"
+    "logoSource": "https://ninos.kiddle.co/images/0/0d/Popeyes_Logo_2020.svg",
+    "searchAliases": ["Restaurant Brands International", "RBI"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Restaurant Brands International", "RBI"],
+        "url": "https://www.rbi.com/English/brands/default.aspx",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "oreo",
@@ -36001,7 +37363,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Citroen_2022.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Citroen_2022.svg",
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "michelin",
@@ -40533,7 +41903,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/05/FIAT_logo_coloured.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/05/FIAT_logo_coloured.svg",
+    "searchAliases": ["Stellantis"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Stellantis"],
+        "url": "https://www.stellantis.com/en/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "ducati",
@@ -40560,7 +41938,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/36/Ducati_red_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/36/Ducati_red_logo.svg",
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "vespa",
@@ -41014,7 +42400,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "cupra",
@@ -41037,7 +42431,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/70/Cupra.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/70/Cupra.svg",
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "iberdrola",
@@ -41676,7 +43078,15 @@
     "categories": ["Automotive"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://www.skoda-auto.com/"
+    "logoSource": "https://www.skoda-auto.com/",
+    "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Volkswagen", "Volkswagen Group", "VW"],
+        "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "cez",
@@ -42086,7 +43496,15 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://sofitel.accor.com/content/dam/brands/sof/global-marketing/brand-identity/logos/2601_mkt_0022.svg"
+    "logoSource": "https://sofitel.accor.com/content/dam/brands/sof/global-marketing/brand-identity/logos/2601_mkt_0022.svg",
+    "searchAliases": ["Accor"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Accor"],
+        "url": "https://group.accor.com/en/brands-and-experiences/our-hotel-brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "ihg",
@@ -42165,7 +43583,15 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://w-hotels.marriott.com/"
+    "logoSource": "https://w-hotels.marriott.com/",
+    "searchAliases": ["Marriott", "Marriott International"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Marriott", "Marriott International"],
+        "url": "https://www.marriott.com/brands.mi",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "waldorfAstoria",
@@ -42190,7 +43616,15 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Waldorf_Astoria_NY_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Waldorf_Astoria_NY_logo.svg",
+    "searchAliases": ["Hilton"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Hilton"],
+        "url": "https://stories.hilton.com/brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "fairmontHotels",
@@ -42214,7 +43648,15 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://www.fairmont.com/content/dam/brands/fai/global-marketing/brand-identity/logos/full-monochrome.svg"
+    "logoSource": "https://www.fairmont.com/content/dam/brands/fai/global-marketing/brand-identity/logos/full-monochrome.svg",
+    "searchAliases": ["Accor"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Accor"],
+        "url": "https://group.accor.com/en/brands-and-experiences/our-hotel-brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "orientExpress",
@@ -42241,7 +43683,15 @@
       "wordmarkHeight": 0.65,
       "gap": 0.3
     },
-    "logoSource": "https://contrib.orient-express.com/sites/default/files/2025-11/orient_express_logo_blue.svg"
+    "logoSource": "https://contrib.orient-express.com/sites/default/files/2025-11/orient_express_logo_blue.svg",
+    "searchAliases": ["Accor"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Accor"],
+        "url": "https://group.accor.com/en/brands-and-experiences/our-hotel-brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "rafflesHotels",
@@ -42264,7 +43714,15 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://raffles.com/content/dam/raffles-aem/property-logos/logo-brand-text-mark.svg"
+    "logoSource": "https://raffles.com/content/dam/raffles-aem/property-logos/logo-brand-text-mark.svg",
+    "searchAliases": ["Accor"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Accor"],
+        "url": "https://group.accor.com/en/brands-and-experiences/our-hotel-brands",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "ggs",
@@ -43156,7 +44614,15 @@
     "categories": ["Communication", "Productivity"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/loom.svg"
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/loom.svg",
+    "searchAliases": ["Atlassian"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Atlassian"],
+        "url": "https://www.atlassian.com/software",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "opendoor",
@@ -47697,7 +49163,15 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://ronewyork.com/case-studies/andaz-hotels-resorts/"
+    "logoSource": "https://ronewyork.com/case-studies/andaz-hotels-resorts/",
+    "searchAliases": ["Hyatt"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Hyatt"],
+        "url": "https://newsroom.hyatt.com/070225-Hyatt-Continues-Expansion-With-The-Debut-Of-Thompson-Hotels-Significant-New-Entries-for-Andaz-The-Standard-and-Park-Hyatt-Brands-In-Asia-Pacific?asPDF=1",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "caviar",
@@ -50593,7 +52067,15 @@
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Gaming"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Microsoft"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Microsoft"],
+        "url": "https://www.microsoft.com/investor/reports/ar25/index.html",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "monsterEnergy",
@@ -52249,7 +53731,15 @@
     "categories": ["Aerospace & defense", "Communication"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/55/Amazon_Leo_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/55/Amazon_Leo_logo.svg",
+    "searchAliases": ["Amazon"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Amazon"],
+        "url": "https://www.aboutamazon.com/what-we-do",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "satellogic",
@@ -52906,7 +54396,15 @@
     "categories": ["Websites & commerce"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Gravatar_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Gravatar_logo.svg",
+    "searchAliases": ["Automattic"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Automattic"],
+        "url": "https://automattic.com/products/",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "nobu",
@@ -52954,7 +54452,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://www.arbys.com/brands/arbys/logo.svg"
+    "logoSource": "https://www.arbys.com/brands/arbys/logo.svg",
+    "searchAliases": ["Inspire Brands"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Inspire Brands"],
+        "url": "https://careers.inspirebrands.com/about-inspire",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "cinnabon",
@@ -53035,7 +54541,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ad/IHOP_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ad/IHOP_logo.svg",
+    "searchAliases": ["Dine Brands", "Dine Brands Global"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Dine Brands", "Dine Brands Global"],
+        "url": "https://www.dinebrands.com/en/about-us",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "fiveGuys",
@@ -53169,7 +54683,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/97/Baskin-Robbins_logo_2022.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/97/Baskin-Robbins_logo_2022.svg",
+    "searchAliases": ["Inspire Brands"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Inspire Brands"],
+        "url": "https://careers.inspirebrands.com/about-inspire",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "applebees",
@@ -53202,7 +54724,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://commons.wikimedia.org/wiki/File:AB_Brand_Refresh_Logo_R.svg"
+    "logoSource": "https://commons.wikimedia.org/wiki/File:AB_Brand_Refresh_Logo_R.svg",
+    "searchAliases": ["Dine Brands", "Dine Brands Global"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Dine Brands", "Dine Brands Global"],
+        "url": "https://www.dinebrands.com/en/about-us",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "crackerBarrel",
@@ -53383,7 +54913,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://ninos.kiddle.co/images/f/ff/SONIC_New_Logo_2020.svg"
+    "logoSource": "https://ninos.kiddle.co/images/f/ff/SONIC_New_Logo_2020.svg",
+    "searchAliases": ["Inspire Brands"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Inspire Brands"],
+        "url": "https://careers.inspirebrands.com/about-inspire",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "jollibee",
@@ -53489,7 +55027,15 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://ninos.kiddle.co/images/b/be/Tim_Hortons_Logo.svg"
+    "logoSource": "https://ninos.kiddle.co/images/b/be/Tim_Hortons_Logo.svg",
+    "searchAliases": ["Restaurant Brands International", "RBI"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Restaurant Brands International", "RBI"],
+        "url": "https://www.rbi.com/English/brands/default.aspx",
+        "checkedOn": "2026-11-06"
+      }
+    ]
   },
   {
     "name": "dairyQueen",
