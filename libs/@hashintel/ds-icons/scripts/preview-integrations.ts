@@ -3,11 +3,14 @@ import { writeFile } from "node:fs/promises";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import {
-  IntegrationIcon,
-  integrationIconCatalog,
-  integrationIconVariants,
-} from "../dist/integrations.js";
+const builtIntegrationsUrl = new URL(
+  "../dist/integrations.js",
+  import.meta.url,
+);
+const { IntegrationIcon, integrationIconCatalog, integrationIconVariants } =
+  (await import(
+    builtIntegrationsUrl.href
+  )) as typeof import("../src/integrations");
 
 const rows = integrationIconCatalog.map((icon) => {
   const cells = integrationIconVariants.map((variant) => {
