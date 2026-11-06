@@ -487,19 +487,29 @@ So how do we construct a new `Count` value? Well! `type` and `let` bind names in
 
 ## Queries without side effects
 
-So how does a side-effect-free query work with mutations? Can that even be supported? Yes! The key is the innate property of one of our time axes, transaction time. Today, HASH distinguishes between two time axes: transaction time, which records _when_ a change was physically inserted into the store, and decision time, which records _when_ that change takes effect in the world the graph describes, when that decision was made.
+So how does a side-effect-free query work with mutations? Can that even be supported? Yes! The key is how the store assigns transaction time. HASH distinguishes two time axes: **transaction time** records when the store recorded a change, and **decision time** records when the decision about an entity was made.
 
-This property means that the transaction time of any insertion can never be set after the fact into the past or the future, it must be now, and this is what enables mutations to happen in the graph, without side-effects being observed in the program, as long as we fix one property: every program must carry a transaction time.
+A write's transaction time belongs to the store: it is the time of insertion, not a date we can choose in the past or future. Its decision time can be earlier, but never later than its transaction time. We can record yesterday's decision today, but its transaction time is still today. The store preserves earlier versions, so the new record does not replace what a query sees at an earlier transaction time.
 
-The transaction time that we set for a program must either be now, or set in the past, but it must never be set in the future, this transaction time is then a virtual cutoff, any query that selects a transaction time after this cutoff is set to the cutoff value, even if variable. This also means that modifications that happen inside of the program cannot be observed inside the program (making it side-effect free), because time has moved on, but we haven't.
+This lets us support mutations without changing what a running program observes, as long as we fix one property: every program carries a transaction-time cutoff fixed at its start. The runtime restricts each read to the part of its temporal slice at or before that cutoff. A read pinned to a later transaction time returns nothing: nothing exists at that instant in the program's visible graph. A variable interval stops at the cutoff, including one with no upper bound. If the entire interval lies beyond the cutoff, the result is empty.
 
-Side-effect freedom doesn't mean that mutations are impossible. It means that a mutation cannot change what a query observes through the temporal slice it already selected.
+<Accordions>
+  <Accordion title="Is that even internally consistent?" id="internally-consistent">
 
-HASH distinguishes two time axes. **Transaction time** records when the store recorded a change. **Decision time** records when that change takes effect in the world the graph describes. A change's decision time is earlier than or equal to its transaction time. A correction entered today can have a decision time of yesterday, but its transaction time is still today.
+While it may be unintitive, this formulation is entirely consistent. Think about it this way. The transaction time we set at the start of a program execution is basically the point in time that is frozen. For us: time hasn't moved, and it won't move. Therefore, there is no possibility that there is a vertex in the graph that suddenly "appears" in the future, because the transaction time must always be the same as the time that something was inserted. Because our transaction time, our now, is the future, it means that there is way for a vertex to appear in the future. It is only correct to exclude them from the graph. Although we issue a warning in the case that this happens, as it is likely unintentional.
 
-Every program gets a transaction-time cutoff fixed at its start. A query can select that instant or an earlier one, but never a later one. The same cutoff applies to every graph read in the program. If a query varies over transaction time, its upper endpoint cannot exceed the cutoff. The store assigns each change made during execution a transaction time strictly later than the cutoff. Such a change falls outside the original query's temporal slice, even if our own program made it. Time has moved on, but we haven't.
+  </Accordion>
+</Accordions>
 
-The user can choose which historical transaction time a query reads, but not the transaction time the store assigns to a write. The store preserves the earlier versions. This works even if we add another time axis, such as valid time. A later change can name an earlier date on that axis, but its transaction time still puts it beyond the cutoff. An update can return a new graph value without changing what the earlier graph value denotes.
+The store assigns each change made during execution a transaction time strictly later than the cutoff. That change falls outside the original query's temporal slice, even if our own program made it. An update can return a new graph value without changing what the earlier graph value denotes. Time has moved on, but we haven't.
+
+<Accordions>
+  <Accordion title="What if we add another time axis?" id="additional-time-axes">
+
+The same reasoning applies if we add valid time, which records when a fact is true. A later write can name an earlier date on that axis, or even one in the future, but its transaction time still puts it beyond the program's cutoff. Backdating on another axis does not make the write visible to the original query.
+
+  </Accordion>
+</Accordions>
 
 <Callout type="warn" title="Implementation status">
 
