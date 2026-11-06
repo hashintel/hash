@@ -1,9 +1,9 @@
 /**
- * The checks on a net's fusions: every member names a port or a place that
- * exists, the members agree on what the fused place is, and a fused flow has
- * somewhere to come from and somewhere to go. Run on a document as the editor
- * shows it, before flattening; the error-severity conditions make
- * `applyFusions` throw too.
+ * The checks on a net's fusions and ports: every member names a port or a
+ * place that exists, the members agree on what the fused place is, a port is
+ * used the way it is declared, and a fused flow has somewhere to come from
+ * and somewhere to go. Run on a document as the editor shows it, before
+ * flattening; the error-severity conditions make `applyFusions` throw too.
  */
 
 import { getArcEndpoint } from "../arc-endpoints";
@@ -15,8 +15,22 @@ import {
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
+import {
+  describePortDirection,
+  effectivePortDirection,
+  portUsage,
+  portUsageMatchesDirection,
+} from "./ports";
 
-import type { Color, Fusion, ID, Place, SDCPN, Subnet } from "../types/sdcpn";
+import type {
+  Color,
+  Fusion,
+  ID,
+  Place,
+  PortDirection,
+  SDCPN,
+  Subnet,
+} from "../types/sdcpn";
 
 export type FusionProblemCode =
   | "unresolved-member"
@@ -39,6 +53,14 @@ export type FusionProblem = {
   fusionName: string;
   code: FusionProblemCode;
   severity: ProblemSeverity;
+  message: string;
+};
+
+/** A port whose subnet uses it against the direction it declares. */
+export type PortProblem = {
+  subnetId: ID;
+  placeId: ID;
+  severity: "warning";
   message: string;
 };
 
@@ -106,33 +128,19 @@ const outsideFlow = (
 };
 
 /**
- * How a component's own transitions touch one of its ports. A port no
- * transition touches passes tokens through for the net outside to use, so it
- * counts as both produced and consumed.
+ * How a component touches one of its ports: the direction it declares, else
+ * the one its arcs give it. A port no transition touches passes tokens
+ * through for the net outside to use, so it counts as both.
  */
 const portFlow = (
   subnet: Pick<Subnet, "transitions">,
-  placeId: ID,
+  place: Pick<Place, "id" | "portDirection">,
 ): TokenFlow => {
-  let produced = false;
-  let consumed = false;
-  for (const transition of subnet.transitions) {
-    for (const arc of transition.inputArcs) {
-      const endpoint = getArcEndpoint(arc);
-      if (endpoint.kind === "place" && endpoint.placeId === placeId) {
-        consumed = true;
-      }
-    }
-    for (const arc of transition.outputArcs) {
-      const endpoint = getArcEndpoint(arc);
-      if (endpoint.kind === "place" && endpoint.placeId === placeId) {
-        produced = true;
-      }
-    }
-  }
-  return produced || consumed
-    ? { produced, consumed }
-    : { produced: true, consumed: true };
+  const direction: PortDirection = effectivePortDirection(subnet, place);
+  return {
+    produced: direction !== "in",
+    consumed: direction !== "out",
+  };
 };
 
 const factsFor = (
@@ -148,7 +156,7 @@ const factsFor = (
   const outside = outsideFlow(net, resolved);
   const inside: TokenFlow =
     resolved.kind === "port"
-      ? portFlow(resolved.subnet, place.id)
+      ? portFlow(resolved.subnet, place)
       : { produced: false, consumed: false };
   return {
     member: resolved,
@@ -303,4 +311,44 @@ export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => [
   ...(sdcpn.subnets ?? []).flatMap((subnet) =>
     checkNetFusions(sdcpn, subnet, subnet.id),
   ),
+];
+
+/** The ports whose declared direction their subnet's arcs contradict. */
+export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
+  (sdcpn.subnets ?? []).flatMap((subnet) =>
+    subnet.places.flatMap((place) => {
+      if (!place.isPort || place.portDirection === undefined) {
+        return [];
+      }
+      const usage = portUsage(subnet, place.id);
+      if (portUsageMatchesDirection(usage, place.portDirection)) {
+        return [];
+      }
+      const against =
+        place.portDirection === "in" ? "produces into" : "consumes from";
+      return [
+        {
+          subnetId: subnet.id,
+          placeId: place.id,
+          severity: "warning" as const,
+          message: `Port ${place.name} of ${subnet.name} is declared ${describePortDirection(place.portDirection)}, but a transition of ${subnet.name} ${against} it.`,
+        },
+      ];
+    }),
+  );
+
+export type CompositionProblem =
+  | ({ kind: "fusion" } & FusionProblem)
+  | ({ kind: "port" } & PortProblem);
+
+/** Every problem with the document's composition: its fusions and its ports. */
+export const checkComposition = (sdcpn: SDCPN): CompositionProblem[] => [
+  ...checkFusions(sdcpn).map((problem): CompositionProblem => ({
+    kind: "fusion",
+    ...problem,
+  })),
+  ...checkPorts(sdcpn).map((problem): CompositionProblem => ({
+    kind: "port",
+    ...problem,
+  })),
 ];

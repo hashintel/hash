@@ -10,6 +10,8 @@ import {
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   checkFusion,
+  describePortDirection,
+  effectivePortDirection,
   fusionDisplayName,
   fusionMemberKey,
   resolveFusionMember,
@@ -160,7 +162,9 @@ const MemberRow = ({ member }: { member: Fusion["members"][number] }) => {
       ? undefined
       : resolved.kind === "place"
         ? "place of this net"
-        : "instance port";
+        : `${describePortDirection(
+            effectivePortDirection(resolved.subnet, resolved.place),
+          )} port`;
   const target =
     member.kind === "place"
       ? { type: "place" as const, id: member.placeId }

@@ -226,6 +226,10 @@ export const placeSchema = z
       description:
         "When true, this place is exposed as a component port on instances of the subnet that contains it.",
     }),
+    portDirection: z.enum(["in", "out", "inout"]).optional().meta({
+      description:
+        'For a port: the direction the component promises. `"in"` means only its transitions consume from the port, `"out"` only produce into it, `"inout"` both. Omit to infer it from the subnet\'s arcs.',
+    }),
     visualizerCode: z.string().optional().meta({
       description:
         "Optional module: `export default Visualization(({ tokens, parameters }) => <JSX/>)`. JSX is compiled with React's CLASSIC runtime — do NOT `import React`, do NOT use `<>…</>` fragments (use `<g>` or explicit elements), and do NOT use hooks; treat it as a pure render. `tokens` is this place's current tokens (only meaningful for coloured places; empty for uncoloured). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.crash_threshold`). Convention is to return a sized `<svg viewBox=\"0 0 800 600\">…</svg>`.",

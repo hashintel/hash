@@ -648,8 +648,8 @@ const stageSubnet: NonNullable<SDCPN["subnets"]>[number] = {
   id: "stage",
   name: "Stage",
   places: [
-    place("stage_in", "In", 80, 160, { isPort: true }),
-    place("stage_out", "Out", 440, 160, { isPort: true }),
+    place("stage_in", "In", 80, 160, { isPort: true, portDirection: "in" }),
+    place("stage_out", "Out", 440, 160, { isPort: true, portDirection: "out" }),
   ],
   transitions: [
     {

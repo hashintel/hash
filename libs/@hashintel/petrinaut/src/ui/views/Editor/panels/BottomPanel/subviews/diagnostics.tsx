@@ -2,7 +2,7 @@ import { use, useCallback, useMemo, useState } from "react";
 
 import { Banner, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { checkFusions } from "@hashintel/petrinaut-core";
+import { checkComposition } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
@@ -14,7 +14,7 @@ import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
-  FusionProblem,
+  CompositionProblem,
   Diagnostic,
   SelectionItemType,
 } from "@hashintel/petrinaut-core";
@@ -148,13 +148,13 @@ const compositionSeverityStyle = css({
 });
 
 /**
- * The problems with the net's fusions. Clicking one opens the net the fusion
- * is in and selects it.
+ * The problems with the net's composition, its fusions and its ports.
+ * Clicking one opens the net it is in and selects the fusion or the port.
  */
 const CompositionDiagnostics = ({
   problems,
 }: {
-  problems: FusionProblem[];
+  problems: CompositionProblem[];
 }) => {
   const { setActiveSubnetId } = use(ActiveNetContext);
   const { selectItem } = use(EditorContext);
@@ -163,9 +163,13 @@ const CompositionDiagnostics = ({
     ({ severity }) => severity === "error",
   ).length;
 
-  const reveal = (problem: FusionProblem) => {
+  const reveal = (problem: CompositionProblem) => {
     setActiveSubnetId(problem.subnetId);
-    selectItem({ type: "fusion", id: problem.fusionId });
+    selectItem(
+      problem.kind === "fusion"
+        ? { type: "fusion", id: problem.fusionId }
+        : { type: "place", id: problem.placeId },
+    );
   };
 
   return (
@@ -192,7 +196,11 @@ const CompositionDiagnostics = ({
           <ul className={diagnosticsListStyle}>
             {problems.map((problem) => (
               <li
-                key={`${problem.fusionId}:${problem.code}`}
+                key={
+                  problem.kind === "fusion"
+                    ? `fusion:${problem.fusionId}:${problem.code}`
+                    : `port:${problem.subnetId}:${problem.placeId}`
+                }
                 className={compositionProblemStyle}
               >
                 <button
@@ -335,7 +343,7 @@ const DiagnosticsContent: React.FC = () => {
   }, []);
 
   const hasSimulationError = simulationState === "Error" && !!simulationError;
-  const compositionProblems = checkFusions(petriNetDefinition);
+  const compositionProblems = checkComposition(petriNetDefinition);
 
   if (
     totalDiagnosticsCount === 0 &&
