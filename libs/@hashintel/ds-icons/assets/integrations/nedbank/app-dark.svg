@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nedbank-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="nedbank-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nedbank-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nedbank-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nedbank-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nedbank-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nedbank-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nedbank-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.5158 0.58971 30.6027 30.52343" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g transform="translate(-18.000000, -12.000000)"><g transform="translate(18.000000, 12.000000)"><g transform="translate(0.504242, 0.504242)"><polygon fill="#3D886F" points="0.684330042 5.83547754 0.684330042 24.7598074 8.40344399 29.7851607 15.4266305 25.1783283 22.4544601 29.7851607 29.9345879 24.7598074 29.9345879 5.83015079 22.4544601 0.865932625 15.4266305 5.38372556 8.40344399 0.865932625" /><g transform="translate(0.012006, 0.012006)" fill="#FFFFFF"><path d="M8.32577772,0.0971584054 L15.2850096,4.6891699 L22.2793684,0.0989400388 L30.5734259,5.5473233 L30.5734259,25.1212381 L22.2793684,30.571403 L15.2850096,25.97954 L8.3271404,30.5725908 L0.0283892691,25.1213866 L0.0283892691,5.56246718 L8.32577772,0.0971584054 Z M22.3323314,1.58743532 L15.3920258,6.18122844 L8.45187149,1.58743532 L1.33820201,6.18122844 L1.33820201,24.3858096 L8.45187149,28.9794542 L15.3920258,24.3858096 L22.3323314,28.9794542 L29.2726371,24.3858096 L29.2726371,6.18122844 L22.3323314,1.58743532 Z" /><path d="M8.45187149,19.7921649 L14.0040555,23.5350796 L8.45187149,27.2781428 L8.45187149,19.7921649 Z M22.3323314,12.4761845 L22.3323314,3.28889517 L27.7110002,6.86166391 L27.7110002,23.3649336 L2.7261723,7.0318099 L8.45187149,3.28889517 L22.3323314,12.4761845 Z" /></g></g></g></g></g></svg></g></svg>
