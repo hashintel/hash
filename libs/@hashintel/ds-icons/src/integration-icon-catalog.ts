@@ -32965,7 +32965,7 @@ export const integrationIconCatalog = [
     integrationNames: ["CrowdStrike"],
     source:
       "https://upload.wikimedia.org/wikipedia/commons/4/4f/CrowdStrike_logo.svg",
-    categories: ["Security & identity"],
+    categories: ["Security & privacy"],
     category: "Integrations",
     variants: [
       "mark-mono",
@@ -33095,7 +33095,7 @@ export const integrationIconCatalog = [
     integrationNames: ["Lockheed Martin"],
     source:
       "https://upload.wikimedia.org/wikipedia/commons/1/1d/Lockheed_Martin_logo_%282%29.svg",
-    categories: ["Industry & energy"],
+    categories: ["Aerospace & defense", "Industry & energy"],
     category: "Integrations",
     variants: [
       "mark-mono",
@@ -33121,7 +33121,7 @@ export const integrationIconCatalog = [
     integrationNames: ["Northrop Grumman"],
     source:
       "https://upload.wikimedia.org/wikipedia/commons/3/36/Northrop_Grumman_logo_blue-on-clear_2020.svg",
-    categories: ["Industry & energy"],
+    categories: ["Aerospace & defense", "Industry & energy"],
     category: "Integrations",
     variants: [
       "mark-mono",
@@ -33755,7 +33755,6 @@ export const integrationIconCategories = [
   "Operating systems",
   "Productivity",
   "Retail",
-  "Security & identity",
   "Security & privacy",
   "Services & consulting",
   "Social & communities",

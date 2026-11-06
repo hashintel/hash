@@ -37632,7 +37632,7 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
     "brandWebsite": "https://www.crowdstrike.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Security & identity"],
+    "categories": ["Security & privacy"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4f/CrowdStrike_logo.svg"
@@ -37753,7 +37753,7 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
     "brandWebsite": "https://www.lockheedmartin.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Industry & energy"],
+    "categories": ["Aerospace & defense", "Industry & energy"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Lockheed_Martin_logo_%282%29.svg"
@@ -37778,7 +37778,7 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
     "brandWebsite": "https://www.northropgrumman.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Industry & energy"],
+    "categories": ["Aerospace & defense", "Industry & energy"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/36/Northrop_Grumman_logo_blue-on-clear_2020.svg"
