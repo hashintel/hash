@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Traits from "../internal/ast/traits.js";
 
@@ -7,6 +7,8 @@ import type * as $Interned from "./Interned.js";
 import type { Chunk, Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Method";
+
+const fields = ["overloads", "name", "static"] as const;
 
 export class Method implements Traits.Traits {
   readonly [TypeId] = TypeId;
@@ -36,22 +38,14 @@ export class Method implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.hash(this.overloads)),
-      Hash.combine(Hash.string(this.name)),
-      Hash.combine(Hash.hash(this.static)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isMethod(other) &&
-      Equal.equals(this.overloads, other.overloads) &&
-      this.name === other.name &&
-      this.static === other.static
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -66,7 +60,7 @@ export class Method implements Traits.Traits {
 }
 
 export declare namespace Method {
-  type Fields = Pick<Method, "overloads" | "name" | "static">;
+  type Fields = Pick<Method, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<Method>;

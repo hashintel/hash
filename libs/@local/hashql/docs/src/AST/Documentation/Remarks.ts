@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as DocSource from "../../internal/ast/doc-source.js";
 import * as Traits from "../../internal/ast/traits.js";
@@ -7,6 +7,8 @@ import type { DocBlock, DocSection } from "@microsoft/tsdoc";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Documentation/Remarks";
+
+const fields = ["node"] as const;
 
 /** The `@remarks` block, which carries the detail a description leaves out. */
 export class Remarks implements Traits.Base {
@@ -24,7 +26,7 @@ export class Remarks implements Traits.Base {
   }
 
   constructor({ node }: Remarks.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     Object.freeze(this);
   }
 
@@ -33,13 +35,14 @@ export class Remarks implements Traits.Base {
   }
 
   [Hash.symbol](): number {
-    return pipe(this._tag, Hash.string, Hash.combine(Hash.random(this.node)));
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isRemarks(other) && this.node === other.node
+      isRemarks(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -49,7 +52,7 @@ export class Remarks implements Traits.Base {
 }
 
 export declare namespace Remarks {
-  type Fields = Pick<Remarks, "node">;
+  type Fields = Pick<Remarks, (typeof fields)[number]>;
 }
 
 /** Recognises this node kind by its own marker. */

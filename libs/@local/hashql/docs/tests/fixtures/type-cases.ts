@@ -3,6 +3,7 @@ import { SyntaxKind } from "typescript/ast";
 import { getSynthesizedDeepClone } from "typescript/ast/clone";
 import * as factory from "typescript/ast/factory";
 
+import * as QuickInfo from "../../src/QuickInfo.js";
 import { firstHandle, nodeCase, secondHandle, shield } from "./node-case.js";
 import * as Nodes from "./nodes.js";
 
@@ -252,9 +253,26 @@ const reference = nodeCase({
           target: { _tag: "Local" as const, node: secondHandle },
         }),
     },
+    {
+      field: "url",
+      apply: (fields): Nodes.Reference.Reference.Fields =>
+        Struct.assign(fields, {
+          url: Option.some(new URL("https://hash.dev/docs/entry")),
+        }),
+    },
+    {
+      field: "quickInfo",
+      apply: (fields): Nodes.Reference.Reference.Fields =>
+        Struct.assign(fields, {
+          quickInfo: Option.some(QuickInfo.Named({ keyword: "namespace" })),
+        }),
+    },
   ],
   trapped: (fields): Nodes.Reference.Reference.Fields =>
-    Struct.assign(fields, { node: shield(referenceSource) }),
+    Struct.assign(fields, {
+      node: shield(referenceSource),
+      quickInfo: Option.some(QuickInfo.Alias({ type: shield(syntaxType) })),
+    }),
 });
 
 const typeExpressionSource = syntaxType;

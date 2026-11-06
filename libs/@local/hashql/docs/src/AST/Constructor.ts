@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Traits from "../internal/ast/traits.js";
 
@@ -7,6 +7,8 @@ import type * as $Interned from "./Interned.js";
 import type { Chunk, Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/Constructor";
+
+const fields = ["overloads"] as const;
 
 export class Constructor implements Traits.Traits {
   readonly [TypeId] = TypeId;
@@ -30,17 +32,14 @@ export class Constructor implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.hash(this.overloads)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-      isConstructor(other) && Equal.equals(this.overloads, other.overloads)
+      isConstructor(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -53,7 +52,7 @@ export class Constructor implements Traits.Traits {
 }
 
 export declare namespace Constructor {
-  type Fields = Pick<Constructor, "overloads">;
+  type Fields = Pick<Constructor, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<Constructor>;

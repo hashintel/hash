@@ -1,5 +1,5 @@
 // oxlint-disable import/max-dependencies -- A local target is one of four node kinds, and a name in an example carries its quick info.
-import { Array, Equal, Function, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Function, Hash, Option, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -10,22 +10,13 @@ import type * as $Interned from "./Interned.js";
 import type * as Member from "./Member.js";
 import type * as Parameter from "./Parameter.js";
 import type * as TypeParameter from "./TypeParameter.js";
-import type { Inspectable } from "effect";
+import type { Data, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 const TypeId = "~hashql-docs/AST/Reference";
 
-const hashTarget = (target: Reference.Target): number => {
-  if (target._tag === "Local") {
-    return pipe(target._tag, Hash.string, Hash.combine(Hash.hash(target.node)));
-  }
-  return pipe(
-    target._tag,
-    Hash.string,
-    Hash.combine(Hash.random(target.symbol)),
-  );
-};
+const fields = ["node", "target", "url", "quickInfo"] as const;
 
 /** References name the same thing when they resolve to the same node of the AST, or to the same symbol outside it. */
 export const sameTarget: {
@@ -54,13 +45,27 @@ const inspectTarget = (target: Reference.Target): Traits.Traits.Inspection => {
   };
 };
 
-const freezeTarget = (target: Reference.Target): Reference.Target => {
+/** `info` as a reference holds it, with the syntax the compiler built for it compared by identity. */
+const identify = (info: QuickInfo.QuickInfo): QuickInfo.QuickInfo => {
+  if (info._tag === "Callable") {
+    if (Option.isSome(info.signature)) {
+      Equal.byReferenceUnsafe(info.signature.value);
+    }
+  } else if (info._tag !== "Named") {
+    Equal.byReferenceUnsafe(info.type);
+  }
+
+  return info;
+};
+
+/** `target` as a node holds it: frozen, with an external target's symbol compared by identity. */
+export const freezeTarget = (target: Reference.Target): Reference.Target => {
   if (target._tag === "Local") {
     return Object.freeze({ _tag: "Local", node: target.node });
   }
   return Object.freeze({
     _tag: "External",
-    symbol: target.symbol,
+    symbol: Equal.byReferenceUnsafe(target.symbol),
     name: target.name,
     url: target.url,
     bases: Object.freeze(Array.map(target.bases, freezeTarget)),
@@ -88,10 +93,10 @@ export class Reference implements Traits.Traits {
   }
 
   constructor({ node, target, url, quickInfo }: Reference.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.target = freezeTarget(target);
     this.url = url;
-    this.quickInfo = quickInfo;
+    this.quickInfo = Option.map(quickInfo, identify);
     Object.freeze(this);
   }
 
@@ -99,20 +104,14 @@ export class Reference implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(hashTarget(this.target)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isReference(other) &&
-      this.node === other.node &&
-      sameTarget(this.target, other.target)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -128,27 +127,26 @@ export class Reference implements Traits.Traits {
 }
 
 export declare namespace Reference {
-  type Fields = Pick<Reference, "node" | "target" | "url" | "quickInfo">;
-  type Target =
-    | {
-        readonly _tag: "Local";
-        readonly node: $Interned.Interned<
-          | Declaration.Declaration
-          | Member.Member
-          | TypeParameter.TypeParameter
-          | Parameter.Parameter
-        >;
-      }
-    | {
-        readonly _tag: "External";
-        readonly symbol: CompilerSymbol;
-        /** The name the symbol is documented under, qualified by its module for one of Effect's, as in `Equal.Equal`. */
-        readonly name: string;
-        /** The page that documents the symbol's type, which a base in a hierarchy links to. */
-        readonly url: Option.Option<URL>;
-        /** The interfaces and classes it extends or implements directly. */
-        readonly bases: readonly Target[];
-      };
+  type Fields = Pick<Reference, (typeof fields)[number]>;
+  type Target = Data.TaggedEnum<{
+    Local: {
+      readonly node: $Interned.Interned<
+        | Declaration.Declaration
+        | Member.Member
+        | TypeParameter.TypeParameter
+        | Parameter.Parameter
+      >;
+    };
+    External: {
+      readonly symbol: CompilerSymbol;
+      /** The name the symbol is documented under, qualified by its module for one of Effect's, as in `Equal.Equal`. */
+      readonly name: string;
+      /** The page that documents the symbol's type, which a base in a hierarchy links to. */
+      readonly url: Option.Option<URL>;
+      /** The interfaces and classes it extends or implements directly. */
+      readonly bases: readonly Target[];
+    };
+  }>;
 }
 
 export type Interned = $Interned.Interned<Reference>;

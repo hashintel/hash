@@ -1,4 +1,4 @@
-import { Equal, Hash, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
@@ -10,6 +10,8 @@ import type { Chunk, Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/FunctionDeclaration/const";
+
+const fields = ["node", "overloads", "type", "documentation"] as const;
 
 /** A callable constant keeps the complete type alongside its ordered call signatures. */
 export class CallableConstant implements Traits.Traits {
@@ -36,7 +38,7 @@ export class CallableConstant implements Traits.Traits {
     type,
     documentation,
   }: CallableConstant.Fields) {
-    this.node = node;
+    this.node = Equal.byReferenceUnsafe(node);
     this.overloads = overloads;
     this.type = type;
     this.documentation = documentation;
@@ -44,25 +46,14 @@ export class CallableConstant implements Traits.Traits {
   }
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.string(this.flavour)),
-      Hash.combine(Hash.random(this.node)),
-      Hash.combine(Hash.hash(this.overloads)),
-      Hash.combine(Hash.hash(this.type)),
-      Hash.combine(Hash.hash(this.documentation)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isCallableConstant(other) &&
-      this.node === other.node &&
-      Equal.equals(this.overloads, other.overloads) &&
-      this.type === other.type &&
-      Equal.equals(this.documentation, other.documentation)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -79,10 +70,7 @@ export class CallableConstant implements Traits.Traits {
 }
 
 export declare namespace CallableConstant {
-  type Fields = Pick<
-    CallableConstant,
-    "node" | "overloads" | "type" | "documentation"
-  >;
+  type Fields = Pick<CallableConstant, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<CallableConstant>;

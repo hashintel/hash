@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Traits from "../internal/ast/traits.js";
 
@@ -8,6 +8,8 @@ import type * as $Interned from "./Interned.js";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/JointDeclaration";
+
+const fields = ["declaration"] as const;
 
 /** One class or enum declaration introduces both the type and the value meaning. */
 export class JointDeclaration implements Traits.Traits {
@@ -32,16 +34,15 @@ export class JointDeclaration implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.hash(this.declaration)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
-    // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
-    return isJointDeclaration(other) && this.declaration === other.declaration;
+    return (
+      // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
+      isJointDeclaration(other) &&
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
+    );
   }
 
   toJSON(): Traits.Traits.Inspection {
@@ -53,7 +54,7 @@ export class JointDeclaration implements Traits.Traits {
 }
 
 export declare namespace JointDeclaration {
-  type Fields = Pick<JointDeclaration, "declaration">;
+  type Fields = Pick<JointDeclaration, (typeof fields)[number]>;
   type Declaration =
     | ClassDeclaration.ClassDeclaration
     | EnumDeclaration.EnumDeclaration;

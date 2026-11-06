@@ -1,4 +1,4 @@
-import { Equal, Hash, Option, Predicate, pipe } from "effect";
+import { Array, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Traits from "../internal/ast/traits.js";
 
@@ -8,6 +8,8 @@ import type * as ValueDeclaration from "./ValueDeclaration.js";
 import type { Inspectable } from "effect";
 
 const TypeId = "~hashql-docs/AST/IndependentDeclarations";
+
+const fields = ["type", "value"] as const;
 
 /** A type and a value can share a name without either declaring the other. */
 export class IndependentDeclarations implements Traits.Traits {
@@ -34,20 +36,14 @@ export class IndependentDeclarations implements Traits.Traits {
   readonly documentation: Traits.Traits["documentation"] = Option.none();
 
   [Hash.symbol](): number {
-    return pipe(
-      this._tag,
-      Hash.string,
-      Hash.combine(Hash.hash(this.type)),
-      Hash.combine(Hash.hash(this.value)),
-    );
+    return Hash.structureKeys(this, ["_tag", ...fields]);
   }
 
   [Equal.symbol](other: Equal.Equal): boolean {
     return (
       // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
       isIndependentDeclarations(other) &&
-      Equal.equals(this.type, other.type) &&
-      Equal.equals(this.value, other.value)
+      Array.every(fields, (field) => Equal.equals(this[field], other[field]))
     );
   }
 
@@ -61,7 +57,7 @@ export class IndependentDeclarations implements Traits.Traits {
 }
 
 export declare namespace IndependentDeclarations {
-  type Fields = Pick<IndependentDeclarations, "type" | "value">;
+  type Fields = Pick<IndependentDeclarations, (typeof fields)[number]>;
 }
 
 export type Interned = $Interned.Interned<IndependentDeclarations>;

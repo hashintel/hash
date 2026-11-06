@@ -1,5 +1,6 @@
 import {
   Array,
+  Effect,
   Equal,
   Hash,
   Inspectable,
@@ -52,8 +53,8 @@ describe("node", () => {
       expect.hasAssertions();
       const ast = AST.make();
       const first = fixture.make();
-      const id = ast.intern(first);
-      expect(ast.intern(fixture.make())).toBe(id);
+      const id = Effect.runSync(ast.intern(first));
+      expect(Effect.runSync(ast.intern(fixture.make()))).toBe(id);
       expect(ast.get(id)).toBe(first);
     });
 

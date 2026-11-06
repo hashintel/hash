@@ -6,7 +6,7 @@ import type { Equal, Option } from "effect";
 /**
  * Behaviour shared by every owned node, including documentation nodes that have no source comment of their own.
  *
- * Hashing and equality use owned fields and child IDs by value, but retain compiler nodes, TSDoc nodes and symbols by object identity.
+ * Hashing and equality read every owned field, child IDs by value and compiler nodes, TSDoc nodes and symbols by object identity. A node marks each of those objects with `Equal.byReferenceUnsafe` where it stores it, because Effect compares any other object by its structure, and a compiler node's structure reaches its whole source file.
  */
 export interface Base
   extends Equal.Equal, Pipeable.Pipeable, Inspectable.Inspectable {}
