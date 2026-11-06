@@ -2245,8 +2245,7 @@ export const integrationIconCatalog = [
     slug: "aws",
     label: "AWS",
     integrationNames: ["AWS"],
-    source:
-      "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws.svg",
+    source: "https://aws.amazon.com/",
     categories: ["Cloud & hosting"],
     category: "Integrations",
     variants: [
@@ -2260,10 +2259,9 @@ export const integrationIconCatalog = [
       "logo-light",
       "logo-dark",
     ],
-    logoSource:
-      "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws.svg",
+    logoSource: "https://aws.amazon.com/",
     logoNotes:
-      "AWS uses the aws lettermark and Amazon smile as its primary wordmark identity.",
+      "Current native AWS wordmark and Smile Orange (#FF6200) smile extracted from the official website navigation. Exact source paths are preserved. Squid Ink lettering becomes white in dark mode.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2285,13 +2283,10 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
-      "logo-light",
-      "logo-dark",
     ],
-    logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoSource: null,
     logoNotes:
-      "Red geometric Amazon S3 brand mark from SuperTinyIcons (MIT), matching the supplied Jitterbit reference at https://www.jitterbit.com/wp-content/uploads/Amazon-S3.png. The source\u2019s white square is removed. Dark mode modestly lifts the shadow faces while preserving the red palette. Full logos compose this mark with Amazon Ember Regular outlines; they are not downloaded official lock-ups.",
+      "Red geometric Amazon S3 brand mark from SuperTinyIcons (MIT), matching the supplied Jitterbit reference at https://www.jitterbit.com/wp-content/uploads/Amazon-S3.png. The source\u2019s white square is removed. Dark mode modestly lifts the shadow faces while preserving the red palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/s3/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2596,13 +2591,10 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
-      "logo-light",
-      "logo-dark",
     ],
-    logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoSource: null,
     logoNotes:
-      "Standalone orange stacked-square EC2 product mark, rather than the processor architecture glyph or the generic three-dimensional Compute category symbol. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+      "Standalone orange stacked-square EC2 product mark, rather than the processor architecture glyph or the generic three-dimensional Compute category symbol. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/ec2/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2624,13 +2616,10 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
-      "logo-light",
-      "logo-dark",
     ],
-    logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoSource: null,
     logoNotes:
-      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/dynamodb/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2652,13 +2641,10 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
-      "logo-light",
-      "logo-dark",
     ],
-    logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoSource: null,
     logoNotes:
-      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/rds/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2680,13 +2666,10 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
-      "logo-light",
-      "logo-dark",
     ],
-    logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoSource: null,
     logoNotes:
-      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+      "Archived standalone dimensional product mark in the same visual family as the catalogue\u2019s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/cloudfront/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2707,13 +2690,10 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
-      "logo-light",
-      "logo-dark",
     ],
-    logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoSource: null,
     logoNotes:
-      "Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+      "Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/lambda/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2738,9 +2718,9 @@ export const integrationIconCatalog = [
       "logo-dark",
     ],
     logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+      "https://s3.amazonaws.com/aws-mobile-hub-images/aws-amplify-logo.png",
     logoNotes:
-      "Native Amplify product mark from the official documentation header, using its purple primary-60 token. Dark mode uses the lighter purple token. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+      "Full logo reproduces the complete lock-up published in the official aws-amplify/amplify-js README: lettering is vectorized from the 2181 \u00d7 309 source rather than typeset, with source spacing preserved. The matching native amber mark comes from https://github.com/aws-amplify/docs/blob/8f60b3bd486324ce257dbe2891b6de713f08032f/public/images/Logos/Amplify%20Logo.svg. Dark mode changes only the lettering to white. The separate mark and app variants retain the purple mark used by the current documentation header.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -2762,13 +2742,10 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
-      "logo-light",
-      "logo-dark",
     ],
-    logoSource:
-      "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
+    logoSource: null,
     logoNotes:
-      "Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
+      "Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/q/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
@@ -7236,10 +7213,13 @@ export const integrationIconCatalog = [
       "app-light",
       "app-mono-dark",
       "app-mono-light",
+      "logo-light",
+      "logo-dark",
     ],
-    logoSource: null,
+    logoSource:
+      "https://developer.amazon.com/docs/amazon-pay-checkout/take-your-integration-live.html",
     logoNotes:
-      "No separate verified full-logo asset; mark and app-tile variants only.",
+      "Native primary and reversed SVG logos from Amazon Pay\u2019s official Brand Assets package: https://m.media-amazon.com/images/G/01/amazonpayments/documentation/AmazonPay_BrandAssets/Logos/amazonpay-logo_clr.svg and https://m.media-amazon.com/images/G/01/amazonpayments/documentation/AmazonPay_BrandAssets/Logos/amazonpay-logo-rgb_rev.svg. Preserves official lettering and colors; removes only empty padding in the reversed file.",
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,

@@ -1654,15 +1654,16 @@
     "integrationNames": ["AWS"],
     "ratio": 1.6,
     "alignment": "center",
-    "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws.svg",
+    "source": "https://aws.amazon.com/",
     "markLightColors": {},
     "markDarkColors": {
-      "#111111": "#F5F7FA",
-      "#252F3E": "#F5F7FA"
+      "#161D26": "#FFFFFF"
     },
-    "logoDarkColors": {},
-    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/aws.svg",
-    "logoNotes": "AWS uses the aws lettermark and Amazon smile as its primary wordmark identity.",
+    "logoDarkColors": {
+      "#161D26": "#FFFFFF"
+    },
+    "logoSource": "https://aws.amazon.com/",
+    "logoNotes": "Current native AWS wordmark and Smile Orange (#FF6200) smile extracted from the official website navigation. Exact source paths are preserved. Squid Ink lettering becomes white in dark mode.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -1681,12 +1682,7 @@
       "#5e1f18": "#7B2E23"
     },
     "logoDarkColors": {},
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Red geometric Amazon S3 brand mark from SuperTinyIcons (MIT), matching the supplied Jitterbit reference at https://www.jitterbit.com/wp-content/uploads/Amazon-S3.png. The source’s white square is removed. Dark mode modestly lifts the shadow faces while preserving the red palette. Full logos compose this mark with Amazon Ember Regular outlines; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoNotes": "Red geometric Amazon S3 brand mark from SuperTinyIcons (MIT), matching the supplied Jitterbit reference at https://www.jitterbit.com/wp-content/uploads/Amazon-S3.png. The source’s white square is removed. Dark mode modestly lifts the shadow faces while preserving the red palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/s3/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -1934,15 +1930,8 @@
     "source": "https://i.logos-download.com/83771/19725-1f916044b9903dcb9a0f1cd9d64d2a69.svg/Amazon_Elastic_Compute_Cloud_%28Amazon_EC2%29_Logo.svg?dl",
     "markLightColors": {},
     "markDarkColors": {},
-    "logoDarkColors": {
-      "#232F3E": "#F5F7FA"
-    },
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Standalone orange stacked-square EC2 product mark, rather than the processor architecture glyph or the generic three-dimensional Compute category symbol. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoDarkColors": {},
+    "logoNotes": "Standalone orange stacked-square EC2 product mark, rather than the processor architecture glyph or the generic three-dimensional Compute category symbol. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/ec2/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -1962,15 +1951,8 @@
       "#2D72B8": "#4C94D7",
       "#5294CF": "#77B5EA"
     },
-    "logoDarkColors": {
-      "#232F3E": "#F5F7FA"
-    },
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoDarkColors": {},
+    "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/dynamodb/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Databases & analytics"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -1990,15 +1972,8 @@
       "#2D72B8": "#4C94D7",
       "#5294CF": "#77B5EA"
     },
-    "logoDarkColors": {
-      "#232F3E": "#F5F7FA"
-    },
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoDarkColors": {},
+    "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/rds/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Databases & analytics"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -2016,15 +1991,8 @@
       "#5E1F18": "#7B2E23",
       "#8C3123": "#A74735"
     },
-    "logoDarkColors": {
-      "#232F3E": "#F5F7FA"
-    },
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoDarkColors": {},
+    "logoNotes": "Archived standalone dimensional product mark in the same visual family as the catalogue’s Redshift and red S3 marks. Preserves the product geometry and source palette; this is not the current outlined architecture tile. Dark mode lifts shadow faces within the original palette. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/cloudfront/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -2039,15 +2007,8 @@
     "source": "https://cdn.worldvectorlogo.com/logos/aws-lambda-1.svg",
     "markLightColors": {},
     "markDarkColors": {},
-    "logoDarkColors": {
-      "#232F3E": "#F5F7FA"
-    },
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoDarkColors": {},
+    "logoNotes": "Standalone solid orange lambda product mark. It does not use the three-dimensional Compute symbol or the outlined lambda architecture tile. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/lambda/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -2065,14 +2026,10 @@
       "#6B4BB4": "#C4B7E1"
     },
     "logoDarkColors": {
-      "#232F3E": "#F5F7FA"
+      "#3C3C3C": "#FFFFFF"
     },
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Native Amplify product mark from the official documentation header, using its purple primary-60 token. Dark mode uses the lighter purple token. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoSource": "https://s3.amazonaws.com/aws-mobile-hub-images/aws-amplify-logo.png",
+    "logoNotes": "Full logo reproduces the complete lock-up published in the official aws-amplify/amplify-js README: lettering is vectorized from the 2181 × 309 source rather than typeset, with source spacing preserved. The matching native amber mark comes from https://github.com/aws-amplify/docs/blob/8f60b3bd486324ce257dbe2891b6de713f08032f/public/images/Logos/Amplify%20Logo.svg. Dark mode changes only the lettering to white. The separate mark and app variants retain the purple mark used by the current documentation header.",
     "categories": ["Cloud & hosting"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -2087,15 +2044,8 @@
     "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/amazon-q.svg",
     "markLightColors": {},
     "markDarkColors": {},
-    "logoDarkColors": {
-      "#232F3E": "#F5F7FA"
-    },
-    "logoSource": "https://a0.awsstatic.com/libra-css/fonts/amazon-ember/AmazonEmber_Rg.woff2",
-    "logoNotes": "Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. Full logos compose this mark with outlined Amazon Ember Regular lettering; they are not downloaded official lock-ups.",
-    "logoLayout": {
-      "wordmarkHeight": 0.55,
-      "gap": 0.3
-    },
+    "logoDarkColors": {},
+    "logoNotes": "Amazon Q gradient hexagonal product identity. Retains only the visible native vector mark and its gradient; removes unrelated hidden Illustrator artwork. No verified full-logo lock-up was located in the reviewed product materials at https://aws.amazon.com/q/ (automated review, 2026-11-06). Mark and app-tile variants only; no typeset substitute is supplied.",
     "categories": ["AI"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null
@@ -5513,11 +5463,12 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "amazon-pay",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Native primary and reversed SVG logos from Amazon Pay’s official Brand Assets package: https://m.media-amazon.com/images/G/01/amazonpayments/documentation/AmazonPay_BrandAssets/Logos/amazonpay-logo_clr.svg and https://m.media-amazon.com/images/G/01/amazonpayments/documentation/AmazonPay_BrandAssets/Logos/amazonpay-logo-rgb_rev.svg. Preserves official lettering and colors; removes only empty padding in the reversed file.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "logoSource": "https://developer.amazon.com/docs/amazon-pay-checkout/take-your-integration-live.html"
   },
   {
     "name": "amilia",
