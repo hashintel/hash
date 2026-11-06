@@ -9,6 +9,6 @@
     "sourceMap": true,
     "inlineSources": true
   },
-  "files": ["src/main.ts"],
+  "files": ["src/main.ts", "src/Draft/index.ts"],
   "include": []
 }
