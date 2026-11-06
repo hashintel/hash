@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="apple-maps-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="apple-maps-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="apple-maps-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#apple-maps-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#apple-maps-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#apple-maps-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="apple-maps-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#apple-maps-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 230" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="apple-maps-app-light-maps-corners"><rect width="230" height="230" rx="48" /></clipPath></defs><g clip-path="url(#apple-maps-app-light-maps-corners)"><rect width="230" height="230" fill="#F3F3F8" /><g transform="translate(0.000000,230.000000) scale(0.100000,-0.100000)" fill="#35D451" stroke="none">
+<path d="M1 2183 l0 -118 233 -152 c127 -84 239 -153 247 -153 36 0 39 18 39 282 l0 258 -260 0 -260 0 1 -117z" />
+<path d="M1220 1968 c0 -183 -3 -395 -7 -471 l-6 -138 70 -72 c38 -40 77 -85 87 -102 12 -21 150 -117 448 -315 237 -157 444 -293 459 -303 l29 -19 0 425 0 426 -57 6 c-178 19 -309 64 -439 150 -102 68 -226 199 -281 296 -56 99 -100 233 -114 352 l-12 97 -89 0 -88 0 0 -332z" />
+<path d="M1823 2233 c5 -46 17 -90 41 -139 76 -160 210 -253 399 -278 l37 -5 0 245 0 244 -241 0 -242 0 6 -67z" />
+</g>
+<g transform="translate(0.000000,230.000000) scale(0.100000,-0.100000)" fill="#EE83D4" stroke="none">
+<path d="M0 695 l0 -695 265 0 265 0 0 191 0 192 -72 76 c-118 124 -170 247 -171 406 -1 89 14 164 48 242 l23 51 -174 116 c-96 64 -176 116 -179 116 -3 0 -5 -313 -5 -695z" />
+</g>
+<g transform="translate(0.000000,230.000000) scale(0.100000,-0.100000)" fill="#FFCA00" stroke="none">
+<path d="M1273 446 l-63 -63 0 -191 0 -192 447 0 c269 0 443 4 438 9 -11 10 -754 501 -758 500 -1 0 -30 -28 -64 -63z" />
+</g>
+<g transform="translate(0.000000,230.000000) scale(0.100000,-0.100000)" fill="#D2D2D7" stroke="none">
+<path d="M1463 2224 c9 -103 31 -183 78 -284 125 -267 391 -454 682 -477 l77 -6 0 152 0 151 -32 0 c-56 0 -159 29 -222 62 -88 46 -186 149 -229 240 -35 73 -57 154 -57 208 l0 30 -151 0 -152 0 6 -76z" />
+<path d="M665 305 c17 -8 37 -14 45 -14 8 0 -1 7 -20 14 -46 18 -64 17 -25 0z" />
+<path d="M828 273 c23 -2 61 -2 85 0 23 2 4 4 -43 4 -47 0 -66 -2 -42 -4z" />
+</g>
+<g transform="translate(0.000000,230.000000) scale(0.100000,-0.100000)" fill="#FFFFFF" stroke="none">
+<path d="M1415 2223 c20 -218 111 -409 267 -559 87 -85 171 -141 276 -184 83 -35 232 -70 300 -70 35 0 42 3 42 20 0 17 -7 20 -38 20 -88 0 -241 40 -337 88 -187 93 -341 261 -414 452 -29 75 -61 222 -61 281 0 23 -5 29 -21 29 -21 0 -21 -3 -14 -77z" />
+<path d="M1770 2262 c0 -141 102 -318 234 -406 99 -66 296 -113 296 -71 0 8 -3 15 -7 15 -44 1 -148 27 -199 50 -151 68 -284 261 -284 412 0 31 -3 38 -20 38 -16 0 -20 -7 -20 -38z" />
+<path d="M755 1434 c-11 -3 -42 -13 -70 -22 -27 -9 -56 -17 -63 -18 -32 -6 -113 -63 -168 -120 -103 -106 -158 -247 -158 -404 0 -160 59 -304 170 -414 107 -108 248 -166 404 -166 223 0 419 121 520 321 40 79 60 164 60 259 0 157 -49 277 -164 398 -67 70 -132 118 -173 127 -10 2 -38 11 -63 21 -30 11 -83 18 -160 20 -63 1 -124 1 -135 -2z m230 -89 c244 -64 408 -300 375 -538 -18 -123 -62 -208 -154 -295 -90 -85 -207 -132 -331 -132 -140 0 -251 46 -350 145 -193 193 -192 496 1 689 122 121 299 172 459 131z" />
+<path d="M732 926 c-62 -157 -112 -295 -112 -306 0 -11 7 -23 16 -27 11 -4 47 25 118 96 56 55 108 101 116 101 9 0 60 -45 115 -100 70 -70 106 -100 120 -98 11 2 21 10 23 18 1 8 -49 146 -111 305 -112 285 -115 290 -144 293 l-30 3 -111 -285z" />
+</g>
+<g transform="translate(0.000000,230.000000) scale(0.100000,-0.100000)" fill="#0089FF" stroke="none">
+<path d="M630 1854 l0 -446 23 6 c101 31 143 39 217 39 74 0 164 -16 223 -38 16 -7 17 18 17 439 l0 446 -240 0 -240 0 0 -446z" />
+<path d="M723 1330 c-131 -43 -252 -157 -304 -287 -20 -49 -24 -76 -24 -178 0 -118 1 -121 37 -198 92 -193 304 -309 503 -277 172 27 298 121 373 278 31 65 36 86 40 172 4 81 1 110 -17 169 -42 137 -155 260 -288 312 -84 32 -235 37 -320 9z m170 -112 c18 -14 237 -564 237 -595 0 -20 -18 -43 -33 -43 -6 0 -59 48 -118 107 l-109 107 -109 -107 c-59 -59 -112 -107 -118 -107 -5 0 -18 8 -27 19 -16 18 -11 33 98 312 101 258 131 319 156 319 3 0 14 -6 23 -12z" />
+</g>
+</g></svg></g></svg>

@@ -13,15 +13,18 @@ const LedgerBesideCanvas = ({
   api,
   messages,
   conversationId,
+  highlightChanges,
 }: {
   api: BrunchEditorApi;
   conversationId: string;
   messages: readonly LedgerHistoryMessage[];
+  highlightChanges: boolean;
 }) => {
   const { selection } = useStore(api.editor.navigation);
   return (
     <BrunchLedgerPane
       messages={messages}
+      highlightChanges={highlightChanges}
       selection={selection}
       onSelectNetElements={(items) =>
         api.editor.navigate((current) => ({ ...current, selection: items }))
@@ -39,9 +42,12 @@ const LedgerBesideCanvas = ({
 export const BrunchLedgerTab = ({
   messages,
   conversationId,
+  highlightChanges = true,
 }: {
   messages: readonly LedgerHistoryMessage[];
   conversationId: string;
+  /** Mark what the latest turn changed; off once the user has moved past it. */
+  highlightChanges?: boolean;
 }) => (
   <WithBrunchEditorApi>
     {(api) => (
@@ -50,6 +56,7 @@ export const BrunchLedgerTab = ({
         api={api}
         messages={messages}
         conversationId={conversationId}
+        highlightChanges={highlightChanges}
       />
     )}
   </WithBrunchEditorApi>

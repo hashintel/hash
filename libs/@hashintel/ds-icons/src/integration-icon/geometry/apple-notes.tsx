@@ -21,6 +21,16 @@ export const markLight = ({ id }: { id: string }) => (
         <path d="M64 0H0V19.75H64V0Z" fill="black" fillOpacity="0.3" />
       </g>
     </g>
+    <rect
+      x="0.5"
+      y="0.5"
+      width="63"
+      height="63"
+      rx="9.5"
+      stroke="#9EADBB"
+      strokeWidth="1"
+      strokeOpacity="0.5"
+    />
     <defs>
       <filter
         id={`${id}-filter0_dd_8505_34590`}
@@ -155,6 +165,16 @@ export const markDark = ({ id }: { id: string }) => (
         <path d="M64 0H0V19.75H64V0Z" fill="black" fillOpacity="0.3" />
       </g>
     </g>
+    <rect
+      x="0.5"
+      y="0.5"
+      width="63"
+      height="63"
+      rx="9.5"
+      stroke="#9EADBB"
+      strokeWidth="1"
+      strokeOpacity="0.5"
+    />
     <defs>
       <filter
         id={`${id}-filter0_dd_8505_34590`}
@@ -289,6 +309,16 @@ export const markMono = ({ id }: { id: string }) => (
         <path d="M64 0H0V19.75H64V0Z" fill="black" fillOpacity="0.3" />
       </g>
     </g>
+    <rect
+      x="0.5"
+      y="0.5"
+      width="63"
+      height="63"
+      rx="9.5"
+      stroke="#000000"
+      strokeWidth="1"
+      strokeOpacity="0.5"
+    />
     <defs>
       <filter
         id={`${id}-filter0_dd_8505_34590`}

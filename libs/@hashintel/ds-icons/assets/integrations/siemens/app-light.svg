@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="siemens-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="siemens-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="siemens-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#siemens-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#siemens-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#siemens-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="siemens-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#siemens-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 555 555" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <path d="M.2 25c0-13.8 11.2-25 25-25h505c13.8 0 25 11.2 25 25v505c0 13.8-11.2 25-25 25h-505c-13.8 0-25-11.2-25-25V25z" fill="#099" />
+  <path d="M144.4 454.9v-72.8c41.5 13.1 78 19.7 109.8 19.7 44 0 65.8-11.6 65.8-34.9 0-8.6-3-16.2-9.6-21.7-6.6-6.1-23.3-15.2-50.6-25.8-48.6-19.7-80-36.9-94.7-51-19.2-18.7-28.9-41.9-28.9-70.2 0-36.4 13.7-64.2 41.5-83.4 27.5-18.7 63.4-28.3 107.4-28.3 24.3 0 59.2 4.5 105.3 13.6v69.7c-34.4-13.6-65.8-20.2-95.2-20.2-41.5 0-61.8 11.1-61.8 33.9 0 8.6 4 15.7 12.7 20.7 7.1 4.5 25.8 13.6 57.2 27.8 45.1 19.7 74.9 37.4 89.6 52 17.7 17.7 26.3 39.9 26.3 67.7 0 39.9-17.2 70.2-52.1 91.5-28.3 17.2-64.7 25.3-109.3 25.3-36.9 0-74.9-4.5-113.4-13.6z" fill="#fff" />
+</svg></g></svg>

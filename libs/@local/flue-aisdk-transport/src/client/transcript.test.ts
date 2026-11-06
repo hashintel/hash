@@ -114,6 +114,50 @@ test("projects each assistant response from its agent metadata and outcome", () 
   ]);
 });
 
+test("keeps an empty assistant response only when its submission was aborted", () => {
+  const emptyMessage = (
+    id: string,
+    role: "assistant" | "user",
+    submissionId: string,
+  ) => ({
+    id,
+    role,
+    purpose: role,
+    display: "visible" as const,
+    submissionId,
+    parts: [],
+  });
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      emptyMessage("empty-user", "user", "stopped-turn"),
+      emptyMessage("stopped-before-reply", "assistant", "stopped-turn"),
+      emptyMessage("completed-empty", "assistant", "completed-turn"),
+      emptyMessage("failed-empty", "assistant", "failed-turn"),
+      emptyMessage("running-empty", "assistant", "running-turn"),
+    ],
+    settlements: [
+      { submissionId: "stopped-turn", outcome: "aborted" },
+      { submissionId: "completed-turn", outcome: "completed" },
+      { submissionId: "failed-turn", outcome: "failed" },
+    ],
+  };
+
+  expect(
+    snapshotToUiMessages(snapshot, {
+      ...projectionOptions,
+      projectMetadata: ({ outcome }) => ({ outcome }),
+    }),
+  ).toEqual([
+    {
+      id: "stopped-before-reply",
+      role: "assistant",
+      parts: [],
+      metadata: { outcome: "aborted" },
+    },
+  ]);
+});
+
 test("rehydrates host-defined client tools as dynamic", () => {
   expect(
     snapshotToUiMessages(snapshotWithPendingClientTool, {

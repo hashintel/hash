@@ -42,6 +42,8 @@ to communicate a selected state: pair it with an accessible state or text label.
 <HashIcon name="bell" variant="filled" aria-label="Notifications" />
 ```
 
+The Symbols set includes the official Model Context Protocol mark as `McpServerIcon` or `<HashIcon name="mcpServer" />`, labeled **MCP Server** in the AI category. Its paths and stroke proportions stay fixed across `weight`, `strokeWidth`, and `variant` settings; `size` and `color` work as usual. See the [artwork notice](./THIRD-PARTY-NOTICES.md#mcp-server-symbol) for provenance and licensing.
+
 ## Styles
 
 The icons style themselves with Panda CSS. The package ships no stylesheet. Instead, add its build info and preset to the Panda config of the application that renders the icons:
@@ -145,6 +147,14 @@ text should not be used as an individual icon's description.
 
 ## Icon-specific documentation
 
+### Test tubes
+
+Use `testTube` for an experiment without a result, `testTubeCheck` for a successful
+test, and `testTubeCross` for a failed test. The previously checked `testTube`
+artwork is now named `testTubeCheck`. Each has a named component (`TestTubeIcon`,
+`TestTubeCheckIcon`, and `TestTubeCrossIcon`) and supports outline and filled
+variants. The liquid shifts on hover; the check or cross also pulses briefly.
+
 ### Sort-by icons
 
 The Editing category includes these paired sort indicators. Each pair reverses
@@ -167,7 +177,7 @@ hover feedback as the rest of the set; continuous effects remain opt-in.
 
 ## Integrations
 
-`IntegrationIcon` provides a separate **Integrations** category with 119 current brands, four legacy identities, and a generic fallback. It covers HASH's integration listings and additional company and product brands. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, and artwork sources. These icons use SVG and need no Panda configuration.
+`IntegrationIcon` provides a separate **Integrations** category with 992 current brand identities, 28 legacy identities, and a generic fallback. It covers HASH's integration listings and additional company and product brands. `integrationIconCatalog` lists the brands, integration-name aliases, supported variants, artwork sources, and curated `categories`. The top-level `category` remains `Integrations`; `categories` groups brands by sector or purpose, with multiple categories where relevant. `integrationIconCategories` lists the available categories, and `IntegrationIconCategory` is their TypeScript union. The generic fallback has no brand categories. These icons use SVG and need no Panda configuration.
 
 ```tsx
 import {
@@ -203,11 +213,11 @@ App tiles share a translucent tinted surface, soft sheen, and reflective corner 
 
 Icons are decorative unless given `title`, `aria-label`, or `aria-labelledby`. The default variant is `mark-mono`. The mono mark applies the caller's hue to the completed artwork, so overlapping shapes, masks, and gradients retain their detail on either background.
 
-115 current brands have all seven variants. The `microsoftTeamsLegacy` and `messengerLegacy` options also have all seven. Apple, Apple Notes, Apple Health, and X have the five mark and tile variants because no separate full-logo lock-ups were verified. The `genericApp` fallback, `granolaLegacy`, and `twitterLegacy` also have only those five variants. Check each catalogue entry's `variants` before showing a logo selector; requesting an unavailable full logo throws an error.
+661 non-legacy brands have all seven variants. Brands without a verified full logo expose only the five mark and tile variants. Check each catalogue entry’s `variants` before showing a logo selector; requesting an unavailable full logo throws an error. The Font Awesome comparison groups alternate, square, circle, and card glyphs under distinct identities. Its coverage map and exclusions are recorded in `src/integration-icon/fontawesome-coverage.json`.
 
 Gmail full logos embed authentic PNG artwork. All other full logos are vectors. Microsoft Teams pairs its product mark with outlined Segoe UI Semibold lettering, matching the other Microsoft product logos. Veeva Vault pairs its mark with Veeva's corporate wordmark. BigQuery and Redshift use archived product lock-ups; the source and any limitations are recorded in the catalogue and [third-party notices](./THIRD-PARTY-NOTICES.md).
 
-The package includes 854 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
+The package includes 6,435 standalone SVGs. They are exported as `@hashintel/ds-icons/integrations/svg/<slug>/<variant>.svg`, for example `@hashintel/ds-icons/integrations/svg/slack/app-light.svg`. To recolor a mono SVG, inline it and set `color`; an external `<img>` cannot inherit the surrounding document's color.
 
 `microsoftWord`, `microsoftOutlook`, `microsoftExcel`, `microsoftPowerPoint`, `microsoftOneNote`, `microsoftOneDrive`, and `microsoftCopilot` provide all seven variants using current Microsoft product marks. Copilot uses the two-part 2026 mark. Their full logos pair each mark with outlined Segoe UI Semibold lettering, using the same spacing and light/dark text colors as Teams. These are composed lock-ups; no fonts are loaded at runtime.
 

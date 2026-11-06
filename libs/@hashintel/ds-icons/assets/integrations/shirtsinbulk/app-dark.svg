@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shirtsinbulk-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="shirtsinbulk-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="shirtsinbulk-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shirtsinbulk-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shirtsinbulk-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#shirtsinbulk-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="shirtsinbulk-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#shirtsinbulk-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 2.56 448 506.88" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#F5F7FA" d="M100 410.3l30.6 13.4 4.4-9.9-30.6-13.4-4.4 9.9zm39.4 17.5l30.6 13.4 4.4-9.9-30.6-13.4-4.4 9.9zm172.1-14l4.4 9.9 30.6-13.4-4.4-9.9-30.6 13.4zM179.1 445l30.3 13.7 4.4-9.9-30.3-13.4-4.4 9.6zM60.4 392.8l30.6 13.4 4.4-9.6-30.6-13.7-4.4 9.9zm211.4 38.5l4.4 9.9 30.6-13.4-4.4-9.9-30.6 13.4zm-39.3 17.5l4.4 9.9 30.6-13.7-4.4-9.6-30.6 13.4zm118.4-52.2l4.4 9.6 30.6-13.4-4.4-9.9-30.6 13.7zM170 46.6l-33.5 0 0 10.5 33.5 0 0-10.5zm-47.2 0l-33.6 0 0 10.5 33.5 0 .1-10.5zm-47.3 0l-33.2 0 0 10.5 33.3 0-.1-10.5zm141.5 0l-33.2 0 0 10.5 33.2 0 0-10.5zm94.5 0l-33.5 0 0 10.5 33.5 0 0-10.5zm47.3 0l-33.5 0 0 10.5 33.5 0 0-10.5zm-94.6 0l-33.2 0 0 10.5 33.2 0 0-10.5zm141.5 0l-33.3 0 0 10.5 33.3 0 0-10.5zM52.8 351.1l-10.8 0 0 33.5 10.8 0 0-33.5zm70-215.9l-33.6 0 0 10.5 33.5 0 .1-10.5zm-70 10.6l22.8 0 0-10.5-33.6 0 0 33.5 10.8 0 0-23zM221.7 374.4a91.3 91.3 0 1 0 0-182.6 91.3 91.3 0 1 0 0 182.6zM173.5 263.3c0-25.4 29.5-31.8 49.6-31.8 16.9 0 29.2 5.8 44.3 12l-8.8 16.9-.9 0c-6.4-9.9-24.8-13.1-35.6-13.1-9 0-29.8 1.8-29.8 14.9 0 21.6 78.5-10.2 78.5 37.9 0 25.4-31.5 31.2-51 31.2-18.1 0-32.4-2.9-47.2-12.2l9-18.4 .9 0c6.1 12.2 23.6 14.9 35.9 14.9 8.7 0 32.7-1.2 32.7-14.3 0-26.1-77.6 6.3-77.6-38zM52.8 178.4l-10.8 0 0 33.6 10.8 0 0-33.6zM395.2 384.6l10.8 0 0-33.5-10.8 0 0 33.5zM52.8 307.9l-10.8 0 0 33.5 10.8 0 0-33.5zM0 3.7l0 406 221.7 98.6 226.3-98.6 0-406-448 0zM418.8 390.8l-196.8 85.7-192.8-85.7 0-270.1 389.7 0 0 270.1-.1 0zm0-299.3l-389.6 0 0-58.6 389.7 0 0 58.6-.1 0zM52.8 221.6l-10.8 0 0 33.5 10.8 0 0-33.5zm0 43.2l-10.8 0 0 33.5 10.8 0 0-33.5zM170 135.2l-33.5 0 0 10.5 33.5 0 0-10.5zM395.2 298.3l10.8 0 0-33.5-10.8 0 0 33.5zm0-43.2l10.8 0 0-33.5-10.8 0 0 33.5zM217 135.2l-33.2 0 0 10.5 33.2 0 0-10.5zM395.2 212l10.8 0 0-33.5-10.8 0 0 33.5zm0 129.5l10.8 0 0-33.5-10.8 0 0 33.5zm-131-206.3l-33.2 0 0 10.5 33.2 0 0-10.5zm47.3 0l-33.5 0 0 10.5 33.5 0 0-10.5zm83.7 33.6l10.8 0 0-33.5-33.5 0 0 10.5 22.8 0-.1 23zm-36.4-33.6l-33.5 0 0 10.5 33.5 0 0-10.5z" /></svg></g></svg>

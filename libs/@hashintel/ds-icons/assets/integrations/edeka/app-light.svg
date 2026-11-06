@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="edeka-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="edeka-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="edeka-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#edeka-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#edeka-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#edeka-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="edeka-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#edeka-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" viewBox="0 0 200.40892 242.35304" id="edeka-app-light-svg2010" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs id="edeka-app-light-defs2007">
+    <linearGradient id="edeka-app-light-SVGID_1_" gradientUnits="userSpaceOnUse" x1="-305.52081" y1="-414.49149" x2="446.6221" y2="485.20499" gradientTransform="matrix(1,0,0,-1,0.04,73.439)">
+      <stop offset="0" id="edeka-app-light-stop2" stop-color="#0E347A" />
+      <stop offset="0.25" id="edeka-app-light-stop4" stop-color="#003D84" />
+      <stop offset="0.5423" id="edeka-app-light-stop6" stop-color="#00549E" />
+      <stop offset="0.75" id="edeka-app-light-stop8" stop-color="#0062AE" />
+      <stop offset="1" id="edeka-app-light-stop10" stop-color="#0075BE" />
+    </linearGradient>
+    <linearGradient id="edeka-app-light-SVGID_2_" gradientUnits="userSpaceOnUse" x1="-300.25659" y1="-411.15161" x2="450.08759" y2="493.03949" gradientTransform="matrix(0.26458333,0,0,-0.26458333,85.303469,145.55963)">
+      <stop offset="0" id="edeka-app-light-stop15" stop-color="#0E347A" />
+      <stop offset="0.25" id="edeka-app-light-stop17" stop-color="#003D84" />
+      <stop offset="0.5423" id="edeka-app-light-stop19" stop-color="#00549E" />
+      <stop offset="0.75" id="edeka-app-light-stop21" stop-color="#0062AE" />
+      <stop offset="1" id="edeka-app-light-stop23" stop-color="#0075BE" />
+    </linearGradient>
+    <clipPath id="edeka-app-light-SVGID_4_">
+      <use ns1:href="#edeka-app-light-SVGID_3_" id="edeka-app-light-use31" />
+    </clipPath>
+    <clipPath id="edeka-app-light-SVGID_6_">
+      <use ns1:href="#edeka-app-light-SVGID_5_" id="edeka-app-light-use45" />
+    </clipPath>
+    <clipPath id="edeka-app-light-SVGID_8_">
+      <use ns1:href="#edeka-app-light-SVGID_7_" id="edeka-app-light-use59" />
+    </clipPath>
+    <clipPath id="edeka-app-light-SVGID_10_">
+      <use ns1:href="#edeka-app-light-SVGID_9_" id="edeka-app-light-use71" />
+    </clipPath>
+    <clipPath id="edeka-app-light-SVGID_12_">
+      <use ns1:href="#edeka-app-light-SVGID_11_" id="edeka-app-light-use85" />
+    </clipPath>
+    <linearGradient id="edeka-app-light-SVGID_13_" gradientUnits="userSpaceOnUse" x1="-284.42899" y1="-398.69849" x2="428.12701" y2="473.103" gradientTransform="matrix(0.26458333,0,0,-0.26458333,85.303469,145.55963)">
+      <stop offset="0" id="edeka-app-light-stop96" stop-color="#FFD400" />
+      <stop offset="0.9" id="edeka-app-light-stop98" stop-color="#FFE500" />
+      <stop offset="1" id="edeka-app-light-stop100" stop-color="#FFE500" />
+    </linearGradient>
+    <linearGradient id="edeka-app-light-SVGID_14_" gradientUnits="userSpaceOnUse" x1="-209.6492" y1="-330.509" x2="357.15991" y2="390.14819" gradientTransform="matrix(0.26458333,0,0,-0.26458333,85.303469,145.55963)">
+      <stop offset="0" id="edeka-app-light-stop139" stop-color="#0E347A" />
+      <stop offset="0.25" id="edeka-app-light-stop141" stop-color="#003D84" />
+      <stop offset="0.5423" id="edeka-app-light-stop143" stop-color="#00549E" />
+      <stop offset="0.75" id="edeka-app-light-stop145" stop-color="#0062AE" />
+      <stop offset="1" id="edeka-app-light-stop147" stop-color="#0075BE" />
+    </linearGradient>
+    <path id="edeka-app-light-SVGID_3_" d="m -285.437,466.849 v -867.048 l 6.943,-6.199 h 706.352 l 6.79,5.229 v 867.928 l -6.089,5.467 H -279.47 Z m -14.481,-891.92 c -2.314,0 -4.202,1.872 -4.202,4.186 v 907.608 c 0,2.314 1.888,4.186 4.202,4.186 h 749.043 c 2.319,0 4.206,-1.877 4.206,-4.186 v -907.608 c 0,-2.314 -1.887,-4.186 -4.206,-4.186 z" />
+    <path id="edeka-app-light-SVGID_5_" d="m -285.437,466.849 v -867.048 l 6.943,-6.199 h 706.352 l 6.79,5.229 v 867.928 l -6.089,5.467 H -279.47 Z m -14.481,-891.92 c -2.314,0 -4.202,1.872 -4.202,4.186 v 907.608 c 0,2.314 1.888,4.186 4.202,4.186 h 749.043 c 2.319,0 4.206,-1.877 4.206,-4.186 v -907.608 c 0,-2.314 -1.887,-4.186 -4.206,-4.186 z" />
+    <path id="edeka-app-light-SVGID_7_" d="m -285.437,466.849 v -867.048 l 6.943,-6.199 h 706.352 l 6.79,5.229 v 867.928 l -6.089,5.467 H -279.47 Z m -14.481,-891.92 c -2.314,0 -4.202,1.872 -4.202,4.186 v 907.608 c 0,2.314 1.888,4.186 4.202,4.186 h 749.043 c 2.319,0 4.206,-1.877 4.206,-4.186 v -907.608 c 0,-2.314 -1.887,-4.186 -4.206,-4.186 z" />
+    <path id="edeka-app-light-SVGID_9_" d="m -285.437,466.849 v -867.048 l 6.943,-6.199 h 706.352 l 6.79,5.229 v 867.928 l -6.089,5.467 H -279.47 Z m -14.481,-891.92 c -2.314,0 -4.202,1.872 -4.202,4.186 v 907.608 c 0,2.314 1.888,4.186 4.202,4.186 h 749.043 c 2.319,0 4.206,-1.877 4.206,-4.186 v -907.608 c 0,-2.314 -1.887,-4.186 -4.206,-4.186 z" />
+    <path id="edeka-app-light-SVGID_11_" d="m -285.437,466.849 v -867.048 l 6.943,-6.199 h 706.352 l 6.79,5.229 v 867.928 l -6.089,5.467 H -279.47 Z m -14.481,-891.92 c -2.314,0 -4.202,1.872 -4.202,4.186 v 907.608 c 0,2.314 1.888,4.186 4.202,4.186 h 749.043 c 2.319,0 4.206,-1.877 4.206,-4.186 v -907.608 c 0,-2.314 -1.887,-4.186 -4.206,-4.186 z" />
+  </defs>
+  <g id="edeka-app-light-layer1" transform="translate(-4.8278042,-13.66219)">
+    <polygon fill="url(#edeka-app-light-SVGID_1_)" points="-285.437,-400.199 -285.437,467.598 -279.469,472.226 428.559,472.226 434.648,466.759 434.648,-401.169 427.858,-406.399 -278.494,-406.399 " id="edeka-app-light-polygon13" transform="matrix(0.26458333,0,0,0.26458333,85.292886,126.12889)" />
+    <path fill="url(#edeka-app-light-SVGID_2_)" d="M 9.7710145,249.84753 V 20.242907 L 11.608016,18.602755 H 198.49698 l 1.79653,1.383506 V 249.62555 l -1.61105,1.44647 H 11.349783 Z M 5.9395833,13.66219 c -0.6122458,0 -1.1117791,0.4953 -1.1117791,1.107546 V 254.90769 c 0,0.61224 0.4995333,1.10754 1.1117791,1.10754 H 204.12388 c 0.61357,0 1.11284,-0.49662 1.11284,-1.10754 V 14.769736 c 0,-0.612246 -0.49927,-1.107546 -1.11284,-1.107546 z" id="edeka-app-light-path26" stroke-width="0.264583" />
+    <g id="edeka-app-light-g40" transform="matrix(0.26458333,0,0,0.26458333,85.292886,126.12889)">
+      <g id="edeka-app-light-g38">
+        <defs id="edeka-app-light-defs29" />
+        <clipPath id="edeka-app-light-clipPath3847">
+          <use ns1:href="#edeka-app-light-SVGID_3_" id="edeka-app-light-use3845" />
+        </clipPath>
+        <g transform="translate(1.037872e-6)" clip-path="url(#edeka-app-light-SVGID_4_)" id="edeka-app-light-g36" />
+      </g>
+    </g>
+    <g id="edeka-app-light-g54" transform="matrix(0.26458333,0,0,0.26458333,85.292886,126.12889)">
+      <g id="edeka-app-light-g52">
+        <defs id="edeka-app-light-defs43" />
+        <clipPath id="edeka-app-light-clipPath3857">
+          <use ns1:href="#edeka-app-light-SVGID_5_" id="edeka-app-light-use3855" />
+        </clipPath>
+        <g clip-path="url(#edeka-app-light-SVGID_6_)" id="edeka-app-light-g50" />
+      </g>
+    </g>
+    <g id="edeka-app-light-g80" transform="matrix(0.26458333,0,0,0.26458333,85.292886,126.12889)">
+      <g id="edeka-app-light-g66">
+        <defs id="edeka-app-light-defs57" />
+        <clipPath id="edeka-app-light-clipPath3867">
+          <use ns1:href="#edeka-app-light-SVGID_7_" id="edeka-app-light-use3865" />
+        </clipPath>
+        <g clip-path="url(#edeka-app-light-SVGID_8_)" id="edeka-app-light-g64" />
+      </g>
+      <g id="edeka-app-light-g78">
+        <defs id="edeka-app-light-defs69" />
+        <clipPath id="edeka-app-light-clipPath3876">
+          <use ns1:href="#edeka-app-light-SVGID_9_" id="edeka-app-light-use3874" />
+        </clipPath>
+        <g clip-path="url(#edeka-app-light-SVGID_10_)" id="edeka-app-light-g76" />
+      </g>
+    </g>
+    <g id="edeka-app-light-g94" transform="matrix(0.26458333,0,0,0.26458333,85.292886,126.12889)">
+      <g id="edeka-app-light-g92">
+        <defs id="edeka-app-light-defs83" />
+        <clipPath id="edeka-app-light-clipPath3886">
+          <use ns1:href="#edeka-app-light-SVGID_11_" id="edeka-app-light-use3884" />
+        </clipPath>
+        <g clip-path="url(#edeka-app-light-SVGID_12_)" id="edeka-app-light-g90" />
+      </g>
+    </g>
+    <path fill="url(#edeka-app-light-SVGID_13_)" d="m 11.41831,18.60249 c -0.906727,0 -1.6472955,0.741892 -1.6472955,1.647296 V 249.42473 c 0,0.90646 0.7405685,1.64729 1.6472955,1.64729 h 187.22684 c 0.90673,0 1.64836,-0.74189 1.64836,-1.64729 V 20.249786 c 0,-0.905139 -0.7419,-1.647296 -1.64836,-1.647296 z" id="edeka-app-light-path103" stroke-width="0.264583" />
+    <path fill="url(#edeka-app-light-SVGID_14_)" d="m 28.932668,205.82483 v 26.05485 0.002 h 25.626483 v -6.16902 H 36.835507 v -4.19444 h 17.723644 v -5.69357 H 36.835507 v -4.12432 h 17.723644 v -5.87508 z m 38.548997,6.16823 h 3.895725 c 5.619486,0 9.267031,1.97062 9.267031,6.71301 0,5.21785 -3.028156,6.89875 -9.267031,7.0059 h -3.895725 z m -7.57211,-6.16823 V 231.881 H 72.83789 c 9.603052,0 15.490561,-4.60005 15.490561,-13.13736 0,-8.0645 -5.79808,-12.91881 -15.490561,-12.91881 z m 81.444575,0 -9.80123,11.24771 v -11.24771 h -7.90707 V 231.881 h 7.90707 v -5.55678 l 4.12856,-3.75761 7.05035,9.31439 h 9.63666 l -11.42736,-14.57299 10.74976,-11.48185 h -10.33674 z m 26.74646,6.2865 h 0.89403 l 3.24564,8.65056 h -7.17073 z m -5.65599,-6.2865 -8.71882,26.05617 h 7.84701 l 1.59412,-4.67254 h 11.01989 l 1.41711,4.67254 h 7.77478 l -8.81512,-26.05617 z m -69.831487,0 V 231.881 h 25.624897 v -6.05896 h -17.72205 v -4.3045 h 17.72205 v -5.69357 h -17.72205 v -4.12433 l 17.5969,0.099 v -5.9862 z M 28.932668,40.055701 V 190.87561 H 178.20159 V 150.20783 H 74.119797 V 134.83871 H 178.20159 V 95.133218 H 74.119797 V 81.043098 H 178.20159 V 40.055701 Z" id="edeka-app-light-path150" stroke-width="0.264583" />
+  </g>
+</svg></g></svg>

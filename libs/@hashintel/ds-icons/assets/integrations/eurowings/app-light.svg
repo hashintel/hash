@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="eurowings-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="eurowings-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="eurowings-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#eurowings-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#eurowings-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#eurowings-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="eurowings-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#eurowings-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 4.93371 24 14.13257" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#7cc5d3" d="M9.589 5.005c-2.084-.28-3.14.879-4.598 1.944L0 10.875l.953.504h.01c1.252.617 2.99.411 4.168-.467L7.243 9.23l.804-.636 4.018-3.196Z" /><path fill="#7c2045" d="m18.112 7.426-2.673-.477s-1.869-.448-3.43.757c0 0-1.15.86-2 1.524l-1.888 1.495-4.364 3.467-.037.028 1.317.701c1.253.617 2.991.412 4.178-.467l3.906-3.093 4.991-3.926M24 9.688l-2.897-.524c-1.73-.327-2.552.234-4.234 1.552l-4.308 3.476-4.673 3.776 1.308.701c1.253.617 3.112.449 4.3-.43l4.14-3.29z" /></svg></g></svg>

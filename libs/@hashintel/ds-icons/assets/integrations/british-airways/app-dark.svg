@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="british-airways-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="british-airways-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="british-airways-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#british-airways-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#british-airways-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#british-airways-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="british-airways-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#british-airways-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 8.96229 24 6.07543" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M22.348 11.207c-.677.675-2.146 1.254-2.868 1.526-.987.371-1.425.502-1.977.683-.625.202-1.876.582-1.876.582 2.591.774 4.415 1.008 4.415 1.008s.851-.263 2.198-.985c.73-.371 1.089-.621 1.345-.861.095-.086.339-.34.4-.667.004-.024.015-.085.015-.147 0 0 0-.043-.003-.08-.001-.044-.01-.073-.01-.073s-.014-.077-.033-.132a.87.87 0 0 0-.238-.33c-.09-.073-.246-.256-.811-.455-.192-.067-.503-.129-.503-.129z" fill="url(#british-airways-app-dark-a)" /><path d="M24 12.328s-.003-.072-.022-.133a.527.527 0 0 0-.074-.161 1.396 1.396 0 0 0-.191-.226 1.857 1.857 0 0 0-.227-.177c-.354-.232-.81-.362-1.213-.418-.625-.083-1.343-.068-1.411-.07-.231-.004-1.722.009-2.106.016-1.702.034-3.785.039-4.33.039-5.635.025-8.087-.096-10.816-.644-2.322-.461-3.61-.9-3.61-.9 2.047-.07 13.998-.567 16.178-.626 1.428-.04 2.44-.049 3.252-.002a10.9 10.9 0 0 1 1.289.14 6.22 6.22 0 0 1 1.062.288c.485.18.894.44 1.096.707 0 0 .06.062.141.17.091.126.196.283.232.34.296.448.436.73.484.829.054.103.1.21.145.315.044.104.062.167.077.21.032.11.04.211.04.233z" fill="#F47467" /><defs><linearGradient id="british-airways-app-dark-a" x1="247.692" y1="6.093" x2="234.438" y2="29.012" gradientUnits="userSpaceOnUse" gradientTransform="matrix(.22878 0 0 .22878 -35.182 8.994)"><stop stop-color="#E9EAF6" /><stop offset=".07" stop-color="#C7CBE8" /><stop offset=".181" stop-color="#96A0D1" /><stop offset=".277" stop-color="#7183C0" /><stop offset=".353" stop-color="#5972B6" /><stop offset=".4" stop-color="#506CB3" /><stop offset=".9" stop-color="#82A7D9" /></linearGradient></defs></svg></g></svg>

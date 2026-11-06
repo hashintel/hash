@@ -68,7 +68,7 @@ export const relatedGroups = [
   ["code", "bracketsCurly", "bracketsSquare", "expression"],
   ["bracketsSquare", "variableBrackets"],
   ["function", "lambda"],
-  ["flask", "testTube"],
+  ["flask", "testTube", "testTubeCheck", "testTubeCross"],
   ["chartLine", "chartBarSimple"],
   ["parameter", "settings"],
   ["tokenTypeTag", "typeVariable", "typeUnion"],

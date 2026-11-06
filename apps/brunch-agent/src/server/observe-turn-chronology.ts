@@ -4,9 +4,11 @@
  * observed progress) from slow generation (deltas still arriving); it does not
  * by itself separate provider failure from hidden reasoning.
  *
- * Content policy: ids, counts, durations and turn start times only — never
- * argument text.
+ * Content policy: ids, counts, durations, turn start times, provider and model
+ * ids, and error classifications only — never argument text or error messages.
  */
+
+import { classifyError, type ClassifiedError } from "./runtime-diagnostics.ts";
 
 import type {
   FlueEventContext,
@@ -47,14 +49,26 @@ type ResponseShape = {
 type TurnChronology = {
   readonly turnId: string;
   readonly purpose: LlmTurnPurpose;
+  /** Provider and model from `turn_request`; null when no request was observed. */
+  readonly provider: string | null;
+  readonly requestedModel: string | null;
+  /** The model the provider reported serving, when it reported one. */
+  readonly responseModel: string | null;
   /** ISO-8601 time of `turn_start`, the origin of this turn's millisecond offsets. */
   readonly startedAt: string;
+  /**
+   * The failed agent turn this agent turn re-attempts: Flue continues a
+   * submission past a failed turn only to retry it.
+   */
+  readonly retryOf: string | null;
   /** Milliseconds from `turn_start` to the first model event; null when none arrived. */
   readonly timeToFirstEventMs: number | null;
   /** Milliseconds from `turn_start` to `turn`, or to settlement when no `turn` arrived. */
   readonly durationMs: number;
   readonly terminal: "turn" | "settlement";
   readonly isError: boolean | null;
+  /** Type, code and name of a failed turn's error; never its message. */
+  readonly error: ClassifiedError | null;
   readonly inputTokens: number | null;
   readonly cacheReadTokens: number | null;
   readonly outputTokens: number | null;
@@ -86,10 +100,15 @@ type ToolCallState = {
 type TurnState = {
   turnId: string;
   purpose: LlmTurnPurpose;
+  provider: string | null;
+  requestedModel: string | null;
+  responseModel: string | null;
   startedAt: number;
+  retryOf: string | null;
   firstEventAt: number | null;
   endedAt: number | null;
   isError: boolean | null;
+  error: ClassifiedError | null;
   inputTokens: number | null;
   cacheReadTokens: number | null;
   outputTokens: number | null;
@@ -115,12 +134,17 @@ const finishTurn = (turn: TurnState, terminalAt: number): TurnChronology => {
   return {
     turnId: turn.turnId,
     purpose: turn.purpose,
+    provider: turn.provider,
+    requestedModel: turn.requestedModel,
+    responseModel: turn.responseModel,
     startedAt: new Date(turn.startedAt).toISOString(),
+    retryOf: turn.retryOf,
     timeToFirstEventMs:
       turn.firstEventAt === null ? null : turn.firstEventAt - turn.startedAt,
     durationMs: endedAt - turn.startedAt,
     terminal: turn.endedAt === null ? "settlement" : "turn",
     isError: turn.isError,
+    error: turn.error,
     inputTokens: turn.inputTokens,
     cacheReadTokens: turn.cacheReadTokens,
     outputTokens: turn.outputTokens,
@@ -178,13 +202,27 @@ export const createTurnChronologyObserver = (
         case "turn_start": {
           const turns = turnsOf(submissionId);
           if (!turns.has(event.turnId)) {
+            const previousAgentTurn =
+              event.purpose === "agent"
+                ? [...turns.values()].findLast(
+                    (turn) => turn.purpose === "agent",
+                  )
+                : undefined;
             turns.set(event.turnId, {
               turnId: event.turnId,
               purpose: event.purpose,
+              provider: null,
+              requestedModel: null,
+              responseModel: null,
               startedAt: at,
+              retryOf:
+                previousAgentTurn?.isError === true
+                  ? previousAgentTurn.turnId
+                  : null,
               firstEventAt: null,
               endedAt: null,
               isError: null,
+              error: null,
               inputTokens: null,
               cacheReadTokens: null,
               outputTokens: null,
@@ -198,6 +236,8 @@ export const createTurnChronologyObserver = (
         case "turn_request": {
           const turn = turnsOf(submissionId).get(event.turnId);
           if (!turn) return;
+          turn.provider = event.request.providerId;
+          turn.requestedModel = event.request.requestedModel;
           const messages = event.request.input.messages;
           const firstUser = messages.find((message) => message.role === "user");
           turn.requestShape = {
@@ -253,6 +293,12 @@ export const createTurnChronologyObserver = (
           if (!turn) return;
           turn.endedAt = at;
           turn.isError = event.isError;
+          turn.responseModel = event.response.responseModel ?? null;
+          const cause = event.response.error ?? event.errorInfo;
+          turn.error =
+            event.isError && cause !== undefined
+              ? classifyError(cause, false)
+              : null;
           const content = event.response.output?.content ?? [];
           turn.responseShape = {
             finishReason: event.response.finishReason ?? null,

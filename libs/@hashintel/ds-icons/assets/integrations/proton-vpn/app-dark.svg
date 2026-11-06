@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="proton-vpn-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="proton-vpn-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="proton-vpn-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#proton-vpn-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#proton-vpn-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#proton-vpn-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="proton-vpn-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#proton-vpn-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 918 833" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#proton-vpn-app-dark-a)"><g clip-path="url(#proton-vpn-app-dark-b)"><path fill="url(#proton-vpn-app-dark-c)" fill-rule="evenodd" d="M369.025 783.591c34.894 62.73 124.503 66.127 164.12 6.222l369.402-558.581c39.174-59.236 1.693-138.655-69.246-146.726L107.232 1.892C29.822-6.916-25.294 74.708 12.358 142.396z" clip-rule="evenodd" /><path fill="url(#proton-vpn-app-dark-d)" d="m389.854 725.08 32.784-48.898L671.66 300.021c21.773-32.888.992-77.007-38.401-81.53L15.25 147.539l320.146 575.543c11.684 20.599 41.227 21.732 54.458 1.998" /></g></g><defs><linearGradient id="proton-vpn-app-dark-c" x1="830.496" x2="239.715" y1="783.548" y2="-235.266" gradientUnits="userSpaceOnUse"><stop offset=".066" stop-color="#8effee" /><stop offset=".45" stop-color="#c9c7ff" /><stop offset="1" stop-color="#875CFF" /></linearGradient><linearGradient id="proton-vpn-app-dark-d" x1="884.537" x2="57.242" y1="-908.44" y2="861.083" gradientUnits="userSpaceOnUse"><stop offset=".48" stop-color="#6d4aff" /><stop offset=".994" stop-color="#00f0c3" /></linearGradient><clipPath id="proton-vpn-app-dark-a"><path fill="#fff" d="M0 0h918v833H0z" /></clipPath><clipPath id="proton-vpn-app-dark-b"><path fill="#fff" d="M.227 1.234h918.147v831.53H.227z" /></clipPath></defs></svg></g></svg>

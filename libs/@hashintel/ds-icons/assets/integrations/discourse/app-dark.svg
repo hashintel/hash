@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="discourse-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="discourse-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="discourse-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#discourse-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#discourse-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#discourse-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="discourse-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#discourse-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" viewBox="0 0 256 259" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <path d="M129.1 0C59.1 0 0 56.8 0 127v131.4l129-.2c70.2 0 127-59 127-129C256 59 199.1 0 129.1 0Z" />
+  <path d="M130.3 49.1a78.7 78.7 0 0 0-69.1 116.2L46.9 211l51.2-11.6a78.7 78.7 0 1 0 32.3-150.4Z" fill="#FFF9AE" />
+  <path d="M191.9 176.5A78.6 78.6 0 0 1 98 199.4l-51.2 11.7 52-6.1a78.6 78.6 0 0 0 93.9-125 78.6 78.6 0 0 1-1 96.5Z" fill="#00AEEF" />
+  <path d="M187.5 161.5a78.6 78.6 0 0 1-91 32.6l-49.6 17 51.2-11.6a78.6 78.6 0 0 0 80.2-134 78.6 78.6 0 0 1 9.2 96Z" fill="#00A94F" />
+  <path d="M65.9 167a78.7 78.7 0 0 1 127-87 78.7 78.7 0 0 0-131.7 85.3L46.9 211l19-44Z" fill="#F15D22" />
+  <path d="M61.2 165.3a78.7 78.7 0 0 1 117-99.9 78.7 78.7 0 0 0-121.9 98.7L47 211l14.2-45.8Z" fill="#D0232B" />
+</svg></g></svg>

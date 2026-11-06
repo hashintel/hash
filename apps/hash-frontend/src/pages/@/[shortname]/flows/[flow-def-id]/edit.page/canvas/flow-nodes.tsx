@@ -196,8 +196,8 @@ const Card = ({
   </div>
 );
 
-export const StartNode = (_props: NodeProps<StartNodeType>) => (
-  <Card {...startDisplay} selected={false} problems={[]}>
+export const StartNode = ({ selected }: NodeProps<StartNodeType>) => (
+  <Card {...startDisplay} selected={selected} problems={[]}>
     <Handle type="source" position={Position.Right}>
       <PortAdd stepId={null} />
     </Handle>

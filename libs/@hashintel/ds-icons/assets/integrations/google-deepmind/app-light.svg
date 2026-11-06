@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="google-deepmind-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="google-deepmind-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="google-deepmind-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-deepmind-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-deepmind-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#google-deepmind-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="google-deepmind-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#google-deepmind-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="7.68 7.68 176.64 176.64" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="none" d="M0 0h192v192H0z" /><g fill="#4285F4"><path d="M133.52 16.39C122.52 11.17 109.43 8 97 8 59.48 8 37.04 39.06 39.45 69.4c1.09 13.73 7.83 27.02 18.98 37.4 4.14 3.84 8.62 7.04 13.26 9.53a31.482 31.482 0 0 1-6.98-15.19C62.22 85.89 72.28 63.45 98 63.45c27.66 0 58.14 26.31 60.69 58.64 1.58 19.77-5.93 37.61-18.6 50.04C166.37 156.9 184 128.5 184 96c0-35.17-20.65-65.53-50.48-79.61z" /><path d="M152.55 122.6c-1.09-13.73-7.83-27.02-18.98-37.4-4.14-3.84-8.62-7.04-13.26-9.53 3.58 4.25 6.04 9.47 6.98 15.19 2.49 15.25-7.57 37.69-33.29 37.69-27.66 0-58.14-26.31-60.69-58.64-1.58-19.77 5.93-37.61 18.6-50.04C25.63 35.1 8 63.5 8 96c0 35.17 20.65 65.53 50.48 79.61 11 5.22 24.08 8.39 36.52 8.39 37.52 0 59.96-31.06 57.55-61.4z" /></g></svg></g></svg>

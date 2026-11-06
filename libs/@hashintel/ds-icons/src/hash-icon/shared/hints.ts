@@ -20,6 +20,7 @@ export type HashIconHint =
   | "up";
 
 export const hashIconHints = {
+  mcpServer: "detail",
   infinity: "grow",
   arrowUp: "up",
   arrowDown: "down",
@@ -138,6 +139,8 @@ export const hashIconHints = {
   breakpoint: "detail",
   breakpointLine: "detail",
   testTube: "detail",
+  testTubeCheck: "detail",
+  testTubeCross: "detail",
   testCheck: "detail",
   agent: "detail",
   agentOrbit: "detail",

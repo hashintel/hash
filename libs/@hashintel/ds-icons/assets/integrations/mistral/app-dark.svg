@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mistral-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="mistral-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mistral-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mistral-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mistral-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mistral-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="mistral-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mistral-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 15" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M6 0H3V3H6V0Z" fill="#FFAF01" />
+<path d="M6 9H3V12H6V9Z" fill="#E61300" />
+<path d="M9 12H0V15H9V12Z" fill="#C4001D" />
+<path d="M9 3H3V6H9V3Z" fill="#FF8204" />
+<path d="M12 9H9V12H12V9Z" fill="#E61300" />
+<path d="M18 6H3V9H18V6Z" fill="#FA500F" />
+<path d="M18 3H12V6H18V3Z" fill="#FF8204" />
+<path d="M18 0H15V3H18V0Z" fill="#FFAF01" />
+<path d="M18 9H15V12H18V9Z" fill="#E61300" />
+<path d="M21 12H12V15H21V12Z" fill="#C4001D" />
+</svg></g></svg>

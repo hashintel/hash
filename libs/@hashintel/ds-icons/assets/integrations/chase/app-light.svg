@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chase-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="chase-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="chase-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chase-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chase-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#chase-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="chase-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#chase-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="101.864924 0 23.345178 24" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M110.243 0C109.786 0 109.422 0.380486 109.422 0.851933V6.78663H124.616L117.695 0H110.243Z" fill="#005EB8" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M125.173 8.58806C125.173 8.11661 124.809 7.73834 124.35 7.73834H118.605V23.4259L125.173 16.2832V8.58806Z" fill="#005EB8" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M116.853 24C117.304 24 117.678 23.6195 117.678 23.1503V17.2156H102.482L109.399 23.9989L116.853 24Z" fill="#005EB8" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M101.924 15.4182C101.924 15.8841 102.295 16.2623 102.747 16.2623H108.497V0.573669L101.93 7.72082L101.924 15.4182Z" fill="#005EB8" />
+</svg></g></svg>

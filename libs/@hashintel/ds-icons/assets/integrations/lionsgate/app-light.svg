@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lionsgate-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="lionsgate-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lionsgate-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lionsgate-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lionsgate-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lionsgate-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lionsgate-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lionsgate-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299.82857 38.02377" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g transform="translate(-261.42854,-356.20746) matrix(5.4346842,0,0,-5.4346842,-2380.916,2519.921)" fill="#000000">
+ <g transform="translate(529.8782,396.5835)">
+  <path d="m 0,0 1.999,0 0,-5.237 1.446,0 0,5.237 1.999,0 0,1.333 L 0,1.333 0,0 z m -22.314,-2.712 -3.078,4.045 -1.333,0 0,-6.57 1.426,0 0,4.177 3.182,-4.177 1.23,0 0,6.57 -1.427,0 0,-4.045 z m 12.375,-0.187 1.903,0 c -0.089,-0.499 -0.579,-1.234 -1.803,-1.234 -1.202,0 -2.168,0.955 -2.168,2.174 0,1.244 0.941,2.182 2.189,2.182 1.26,0 1.842,-0.995 1.866,-1.037 l 1.121,0.694 c -0.658,1.059 -1.746,1.667 -2.987,1.667 -1.962,0 -3.56,-1.566 -3.56,-3.491 0,-1.965 1.544,-3.506 3.514,-3.506 1.828,0 3.259,1.313 3.259,3.088 l 0,0.764 -3.334,0 0,-1.301 z m -6.138,1.432 c -0.946,0.354 -1.883,0.477 -1.883,1.11 0,0.367 0.383,0.643 1.192,0.643 0.777,0 1.66,-0.356 2.247,-0.666 l 0,1.4 c -0.794,0.332 -1.555,0.527 -2.339,0.527 -1.589,0 -2.662,-0.803 -2.662,-1.969 0,-1.274 1.084,-1.725 1.842,-2.007 0.947,-0.354 1.854,-0.484 1.854,-1.117 0,-0.367 -0.437,-0.641 -1.245,-0.642 -0.754,-0.001 -1.672,0.355 -2.259,0.666 l 0,-1.406 c 0.822,-0.353 1.575,-0.522 2.351,-0.522 1.604,0 2.714,0.804 2.714,1.97 0,1.274 -1.055,1.729 -1.812,2.013 M -31.53,-4.074 c -1.158,0 -2.065,0.934 -2.065,2.126 0,1.188 0.921,2.119 2.096,2.119 1.163,0 2.073,-0.924 2.073,-2.103 0,-1.221 -0.904,-2.142 -2.104,-2.142 m 0.016,5.621 c -1.91,0 -3.464,-1.554 -3.464,-3.464 0,-1.944 1.536,-3.526 3.425,-3.526 1.973,0 3.518,1.545 3.518,3.518 0,1.915 -1.56,3.472 -3.479,3.472 m -10.719,-0.214 -1.445,0 0,-6.57 4.709,0 0,1.314 -3.264,0 0,5.256 z m 53.261,-5.284 -3.07,0 0,1.38 2.814,0 c -0.021,0.23 -0.033,0.463 -0.033,0.7 0,0.197 0.011,0.392 0.026,0.585 l -2.807,0 0,1.333 3.038,0 c 0.121,0.447 0.283,0.877 0.482,1.286 l 0,0 -4.955,0 0,-6.57 5,0 c -0.202,0.408 -0.368,0.839 -0.495,1.286 m -48.813,-1.286 1.446,0 0,6.57 -1.446,0 0,-6.57 z m 33.959,2.506 0.975,2.374 0.982,-2.374 -1.957,0 z m 0.308,4.065 -2.796,-6.571 1.474,0 0.524,1.293 2.931,0 0.524,-1.293 1.512,0 -2.797,6.569 -1.372,0.002 z" />
+ </g>
+</g>
+</svg></g></svg>

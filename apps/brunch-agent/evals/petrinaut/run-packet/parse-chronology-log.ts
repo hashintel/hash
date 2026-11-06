@@ -1,14 +1,20 @@
 import type { SubmissionChronology } from "../../../src/server/observe-turn-chronology.ts";
 
-type LoggedTurnChronology = Omit<
-  SubmissionChronology["turns"][number],
-  "startedAt"
-> & {
-  /** Absent from logs written before turns carried their start time. */
-  readonly startedAt?: string;
-};
+type TurnChronology = SubmissionChronology["turns"][number];
 
-/** A chronology as read back from a server log, which may predate `startedAt`. */
+/** Fields absent from logs written before turns carried them. */
+type LaterTurnFields =
+  | "startedAt"
+  | "provider"
+  | "requestedModel"
+  | "responseModel"
+  | "retryOf"
+  | "error";
+
+type LoggedTurnChronology = Omit<TurnChronology, LaterTurnFields> &
+  Partial<Pick<TurnChronology, LaterTurnFields>>;
+
+/** A chronology as read back from a server log, which may predate later turn fields. */
 export type LoggedSubmissionChronology = Omit<SubmissionChronology, "turns"> & {
   readonly turns: readonly LoggedTurnChronology[];
 };

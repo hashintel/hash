@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="amway-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="amway-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="amway-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amway-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amway-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#amway-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="amway-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#amway-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1158.24 393.568" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M0 393.568s664.432-163.227 1156.717-48.234l1.523-5.313S728.685 213.169 8.252 367.677" fill="#e4214e" /><g fill="#004b85"><path d="M318.055 73.254v27.057c2.449-5.416 5.561-12.76 13.912-19.713 9.045-7.723 22.26-11.986 35.141-11.986 6.588 0 13.199 1.176 19.791 3.492 20.521 7.723 26.438 23.947 28.869 30.896 16.008-29.742 41.379-33.98 54.936-33.98 16.68 0 31.297 6.191 41.031 15.844 17.381 16.996 18.072 35.516 18.072 81.898v106.627h-51.092v-94.662c0-32.076-.695-38.645-5.92-47.123-5.561-9.277-13.568-11.229-21.223-11.229-13.896 0-20.846 10.047-21.893 11.604-5.576 9.656-5.576 26.271-5.576 42.496v98.906h-51.096v-100.83c0-21.637 0-31.297-5.225-40.191-3.82-6.553-11.477-11.984-20.855-11.984-4.512 0-9.045 1.168-13.221 3.5-14.955 8.484-15.295 23.176-15.295 61.043v88.471h-51.129V73.254M733.088 73.254h52.137l-52.137 200.127h-47.664L655.17 138.172l-29.887 135.209h-48.324l-52.16-200.127h52.16l27.469 125.182 28.16-125.182h45.195l27.836 125.182M895.209 273.381h50.082V72.875h-49.039v25.879c-9.027-19.311-24.676-30.52-44.5-30.52-34.066 0-78.582 29.369-78.582 108.18 0 62.592 31.977 101.229 74.754 101.229 29.207 0 41.023-17 47.277-26.277M892.58 171c0 18.172-2.434 35.553-13.215 48.693-9.047 10.418-19.121 11.203-22.258 11.203-10.078 0-21.555-6.188-28.52-23.582-4.156-10.035-5.559-22.02-5.559-34.385 0-15.451 2.109-31.295 10.781-44.035 6.25-8.9 15.988-14.676 25.391-14.676 7.641 0 15.293 3.84 20.516 10.031 6.598 7.355 12.864 20.87 12.864 46.751z" /><path d="M1063.326 73.254h51.953l-57.172 198.588c-4.176 13.906-10.766 36.711-20.859 47.914-9.398 10.047-20.523 14.691-61.898 14.691-5.914 0-8.336-.402-13.559-.777v-44.438h13.559c4.875 0 16.344 0 21.555-5.016 4.176-3.492 7.656-11.984 7.656-20.105 0-4.238-2.098-11.988-3.824-17L945.1 73.254h55.633l32.684 134.83M120.715 0L34.867 273.381h63.061l16.02-58.082h80.512l16.393 58.082h63.416L184.836 0m-31.709 60.035l27.436 105.32h-53.416z" /></g></svg></g></svg>

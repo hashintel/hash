@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brex-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="brex-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="brex-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brex-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brex-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#brex-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="brex-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#brex-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 39.955 32" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M25.86 2.56C24.304 4.640000000000001 23.928 5.333 22.426 5.333H0.0V32.0H8.799C10.783999999999999 32.0 12.715 31.04 13.949 29.44C15.559 27.307000000000002 15.773 26.667 17.329 26.667H39.809V0.0H30.955999999999996C28.970999999999997 0.0 27.039999999999996 0.96 25.858999999999995 2.56H25.86ZM32.834 19.787H23.445000000000004C21.406000000000002 19.787 19.529000000000003 20.64 18.295 22.293C16.685000000000002 24.427 16.363000000000003 25.067 14.861 25.067H6.921V12.267H16.31C18.348 12.267 20.226 11.306999999999999 21.46 9.706999999999999C23.07 7.626999999999999 23.499000000000002 6.986999999999998 24.947000000000003 6.986999999999998H32.834V19.787Z" fill="#111111" /><path d="" fill="#111111" /></svg></g></svg>

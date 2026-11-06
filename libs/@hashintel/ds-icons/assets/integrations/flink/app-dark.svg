@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="flink-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".50" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".62" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".54" />
+    </linearGradient>
+    <radialGradient id="flink-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.09" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="flink-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.375" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.02" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.225" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#flink-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".7" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#flink-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#flink-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="flink-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#flink-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="83.16 65.12115 913.68 229.75769" preserveAspectRatio="xMidYMid meet" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+<g transform="translate(0.000000,360.000000) scale(0.100000,-0.100000)" fill="#e6007e" stroke="none">
+<path d="M1283 1818 c-238 -618 -435 -1131 -439 -1140 -6 -17 15 -18 344 -18 l350 0 51 133 c29 72 98 249 154 392 l102 260 452 3 c418 2 451 3 458 20 4 9 46 121 95 247 48 127 91 238 95 247 7 17 -18 18 -439 18 -350 0 -446 3 -446 13 0 6 30 92 66 190 l67 177 531 0 531 0 64 168 c36 92 86 222 112 290 l47 122 -882 0 -882 0 -431 -1122z" />
+<path d="M3661 2918 c-394 -1025 -855 -2227 -858 -2241 -5 -16 14 -17 308 -17 l314 0 424 1108 c234 609 431 1122 438 1140 l13 32 -315 0 -315 0 -9 -22z" />
+<path d="M6981 1832 c-234 -609 -431 -1122 -438 -1140 l-13 -32 316 2 317 3 52 135 c28 74 69 179 90 233 l37 97 84 65 c54 41 86 61 89 53 5 -14 115 -572 115 -582 0 -3 153 -6 340 -6 224 0 340 3 340 10 0 6 -54 227 -120 491 -79 315 -117 485 -111 493 5 6 198 157 429 336 l420 325 -374 3 -374 2 -278 -244 c-152 -135 -278 -241 -280 -237 -1 4 88 246 199 537 111 291 204 537 206 547 5 16 -14 17 -308 17 l-314 0 -424 -1108z" />
+<path d="M9251 2728 c-45 -117 -81 -216 -81 -220 0 -5 141 -8 313 -8 l312 0 79 208 c44 114 81 213 84 220 3 9 -63 12 -310 12 l-315 0 -82 -212z" />
+<path d="M6165 2346 c-147 -29 -283 -98 -393 -200 -23 -21 -45 -37 -47 -34 -3 3 13 49 35 103 22 54 40 100 40 102 0 1 -136 3 -303 3 l-302 0 -312 -812 c-172 -447 -315 -821 -319 -830 -6 -17 13 -18 308 -18 l315 0 173 448 c95 246 188 476 205 512 54 107 105 164 181 201 56 28 78 33 138 34 80 0 122 -18 150 -65 36 -62 36 -61 -212 -695 l-169 -430 310 -3 c171 -1 314 1 318 5 7 8 323 811 386 983 97 263 112 406 53 520 -24 46 -84 102 -137 129 -102 51 -290 72 -418 47z" />
+<path d="M4003 1507 c-172 -446 -315 -820 -319 -829 -6 -17 13 -18 309 -18 l314 0 317 823 c174 452 316 825 316 830 0 4 -141 7 -312 7 l-313 0 -312 -813z" />
+</g>
+</svg></g></svg>

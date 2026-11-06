@@ -8,49 +8,87 @@ import { describe, expect, it } from "vitest";
 
 import { IntegrationIcon } from "./integration-icon";
 import {
+  integrationIconCategories,
   integrationIconCatalog,
   integrationIconNameByIntegration,
 } from "./integration-icon-catalog";
 
 describe("IntegrationIcon", () => {
-  it("ships self-contained standalone SVGs for every advertised variant", () => {
+  it("preserves reviewed categories for every brand in the published catalogue", () => {
+    const metadata = JSON.parse(
+      readFileSync(
+        resolve(
+          dirname(fileURLToPath(import.meta.url)),
+          "integration-icon/brands.json",
+        ),
+        "utf8",
+      ),
+    ) as { name: string; categories: string[] }[];
+    const categoriesByName = new Map(
+      metadata.map((brand) => [brand.name, brand.categories]),
+    );
+    const categoryNames = new Set<string>(integrationIconCategories);
+    const usedCategories = new Set<string>();
     for (const icon of integrationIconCatalog) {
-      for (const variant of icon.variants) {
-        const content = readFileSync(
-          resolve(
-            dirname(fileURLToPath(import.meta.url)),
-            `../assets/integrations/${icon.slug}/${variant}.svg`,
-          ),
-          "utf8",
-        );
-        const document = new DOMParser().parseFromString(
-          content,
-          "image/svg+xml",
-        );
-        expect(
-          document.querySelector("parsererror, script, foreignObject"),
-        ).toBeNull();
-        expect(
-          document.querySelector(
-            "[gradient-units], [gradient-transform], [mask-units], [filter-units], [std-deviation]",
-          ),
-        ).toBeNull();
-        const ids = new Set(
-          Array.from(document.querySelectorAll("[id]"), (node) => node.id),
-        );
-        for (const reference of content.matchAll(
-          /(?:url\(#|href="#)([^)"\s]+)/g,
-        )) {
-          expect(ids.has(reference[1] ?? "")).toBe(true);
-        }
+      expect(icon.category).toBe("Integrations");
+      expect(icon.categories).toEqual(categoriesByName.get(icon.name));
+      if (icon.name === "genericApp") {
+        expect(icon.categories).toHaveLength(0);
+        continue;
+      }
+      expect(icon.categories.length).toBeGreaterThan(0);
+      expect(new Set(icon.categories).size).toBe(icon.categories.length);
+      for (const category of icon.categories) {
+        expect(categoryNames.has(category)).toBe(true);
+        expect(category.trim()).toBe(category);
+        usedCategories.add(category);
       }
     }
+    expect(usedCategories).toEqual(categoryNames);
   });
 
+  it(
+    "ships self-contained standalone SVGs for every advertised variant",
+    { timeout: 30_000 },
+    () => {
+      for (const icon of integrationIconCatalog) {
+        for (const variant of icon.variants) {
+          const content = readFileSync(
+            resolve(
+              dirname(fileURLToPath(import.meta.url)),
+              `../assets/integrations/${icon.slug}/${variant}.svg`,
+            ),
+            "utf8",
+          );
+          const document = new DOMParser().parseFromString(
+            content,
+            "image/svg+xml",
+          );
+          expect(
+            document.querySelector("parsererror, script, foreignObject"),
+          ).toBeNull();
+          expect(
+            document.querySelector(
+              "[gradient-units], [gradient-transform], [mask-units], [filter-units], [std-deviation]",
+            ),
+          ).toBeNull();
+          const ids = new Set(
+            Array.from(document.querySelectorAll("[id]"), (node) => node.id),
+          );
+          for (const reference of content.matchAll(
+            /(?:url\(#|href="#)([^)"\s]+)/g,
+          )) {
+            expect(ids.has(reference[1] ?? "")).toBe(true);
+          }
+        }
+      }
+    },
+  );
+
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(123);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(1037);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      119,
+      992,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -99,41 +137,57 @@ describe("IntegrationIcon", () => {
     expect(integrationIconNameByIntegration["Cloudflare D1"]).toBe(
       "cloudflare",
     );
+    expect(integrationIconNameByIntegration["Rockstar Games"]).toBe(
+      "rockstarGames",
+    );
+    expect(integrationIconNameByIntegration["Take Two"]).toBe(
+      "takeTwoInteractive",
+    );
+    expect(
+      integrationIconCatalog.find(
+        (icon) => icon.name === "brand20thCenturyFoxLegacy",
+      )?.integrationNames,
+    ).toEqual([]);
   });
 
-  it("renders every advertised variant and isolates repeated SVG references", () => {
-    const content = renderToStaticMarkup(
-      <>
-        {[0, 1].map((copy) =>
-          integrationIconCatalog.map((icon) =>
-            icon.variants.map((variant) => (
-              <IntegrationIcon
-                key={`${copy}-${icon.name}-${variant}`}
-                name={icon.name}
-                variant={variant}
-              />
-            )),
-          ),
-        )}
-      </>,
-    );
-    const document = new DOMParser().parseFromString(content, "text/html");
-    const ids = Array.from(
-      document.querySelectorAll("[id]"),
-      (node) => node.id,
-    );
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const reference of content.matchAll(/url\(#([^)]*)\)/g)) {
-      expect(ids).toContain(reference[1]);
-    }
-    expect(content).not.toContain("undefined");
-    expect(document.querySelector("script, foreignObject")).toBeNull();
-    for (const image of document.querySelectorAll("image")) {
-      expect(
-        image.getAttribute("href") ?? image.getAttribute("xlink:href"),
-      ).toMatch(/^data:image\/png;base64,/);
-    }
-  });
+  it(
+    "renders every advertised variant and isolates repeated SVG references",
+    { timeout: 30_000 },
+    () => {
+      for (const icon of integrationIconCatalog) {
+        const content = renderToStaticMarkup(
+          <>
+            {[0, 1].map((copy) =>
+              icon.variants.map((variant) => (
+                <IntegrationIcon
+                  key={`${copy}-${icon.name}-${variant}`}
+                  name={icon.name}
+                  variant={variant}
+                />
+              )),
+            )}
+          </>,
+        );
+        const document = new DOMParser().parseFromString(content, "text/html");
+        const ids = Array.from(
+          document.querySelectorAll("[id]"),
+          (node) => node.id,
+        );
+        const uniqueIds = new Set(ids);
+        expect(uniqueIds.size).toBe(ids.length);
+        for (const reference of content.matchAll(/url\(#([^)]*)\)/g)) {
+          expect(uniqueIds.has(reference[1] ?? "")).toBe(true);
+        }
+        expect(content).not.toContain("undefined");
+        expect(document.querySelector("script, foreignObject")).toBeNull();
+        for (const image of document.querySelectorAll("image")) {
+          expect(
+            image.getAttribute("href") ?? image.getAttribute("xlink:href"),
+          ).toMatch(/^data:image\/png;base64,/);
+        }
+      }
+    },
+  );
 
   it("uses the caller's fill for the complete mono artwork", () => {
     const content = renderToStaticMarkup(

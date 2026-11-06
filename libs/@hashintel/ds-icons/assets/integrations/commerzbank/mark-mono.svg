@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="commerzbank-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -.13819 -.46488 -.04693 1 0" result="tones"/><feFlood flood-color="currentColor"/><feComposite in2="tones" operator="in"/></filter></defs><g filter="url(#commerzbank-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" id="commerzbank-mark-mono-svg3681" viewBox="498.51488 17.64365 86.19716 74.66152" fill="#111111" x="0.0" y="0.0" width="64" height="64">
+  <defs id="commerzbank-mark-mono-defs3683">
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient263" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.979874,0,0,-24.979874,568.24237,786.90625)" spreadMethod="pad">
+      <stop id="commerzbank-mark-mono-stop265" offset="0" stop-color="#fedf33" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop267" offset="0.44000199" stop-color="#fbb809" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop269" offset="0.89999402" stop-color="#ee960d" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop271" offset="1" stop-color="#d87301" stop-opacity="1" />
+    </radialGradient>
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient3640" ns1:href="#commerzbank-mark-mono-radialGradient263" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.979874,0,0,-24.979874,568.24237,786.90625)" spreadMethod="pad" />
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient239" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.910126,0,0,-24.910126,543.59962,793.65115)" spreadMethod="pad">
+      <stop id="commerzbank-mark-mono-stop241" offset="0" stop-color="#fedf33" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop243" offset="0.44000199" stop-color="#fbb809" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop245" offset="0.89999402" stop-color="#ee960d" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop247" offset="1" stop-color="#e17a10" stop-opacity="1" />
+    </radialGradient>
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient3643" ns1:href="#commerzbank-mark-mono-radialGradient239" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.910126,0,0,-24.910126,543.59962,793.65115)" spreadMethod="pad" />
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient215" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.920029,0,0,-24.920029,561.75633,811.72659)" spreadMethod="pad">
+      <stop id="commerzbank-mark-mono-stop217" offset="0" stop-color="#fedf33" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop219" offset="0.44000199" stop-color="#fbb809" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop221" offset="0.89999402" stop-color="#ee960d" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop223" offset="1" stop-color="#e17a10" stop-opacity="1" />
+    </radialGradient>
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient3646" ns1:href="#commerzbank-mark-mono-radialGradient215" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.920029,0,0,-24.920029,561.75633,811.72659)" spreadMethod="pad" />
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient191" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.901733,0,0,-24.901718,568.25887,786.98686)" spreadMethod="pad">
+      <stop id="commerzbank-mark-mono-stop193" offset="0" stop-color="#fedf33" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop195" offset="0.44000199" stop-color="#fbb809" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop197" offset="0.89999402" stop-color="#ee960d" stop-opacity="1" />
+      <stop id="commerzbank-mark-mono-stop199" offset="1" stop-color="#e17a10" stop-opacity="1" />
+    </radialGradient>
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="commerzbank-mark-mono-radialGradient3649" ns1:href="#commerzbank-mark-mono-radialGradient191" gradientUnits="userSpaceOnUse" gradientTransform="matrix(24.901733,0,0,-24.901718,568.25887,786.98686)" spreadMethod="pad" />
+  </defs>
+  <g transform="translate(-544.27348,-995.30113)" id="commerzbank-mark-mono-layer1">
+    <g transform="matrix(2.6667598,0,0,-2.6667598,-401.84366,3177.6898)" id="commerzbank-mark-mono-g3651">
+      <path d="M 562.198,811.726 C 561.613,811.726 559.874,811.726 557.853,809.272 L 557.853,809.272 C 557.879,809.241 557.905,809.21 557.932,809.178 L 557.932,809.178 C 558.451,809.785 559.102,810.406 559.801,810.858 L 559.801,810.858 C 560.447,811.274 561.196,811.552 561.816,811.62 L 561.816,811.62 C 562.268,811.67 563.763,811.651 565.465,811.651 L 565.465,811.651 C 565.474,811.651 565.479,811.647 565.483,811.642 L 565.483,811.642 L 565.439,811.716 C 565.436,811.723 565.43,811.726 565.423,811.726 L 565.423,811.726 L 562.198,811.726 z" id="commerzbank-mark-mono-path201" fill="url(#commerzbank-mark-mono-radialGradient3649)" stroke="none" />
+      <path d="M 550.345,811.726 C 550.339,811.726 550.332,811.724 550.328,811.717 L 550.328,811.717 L 543.998,800.753 L 542.013,797.315 L 541.783,796.916 L 541.753,796.865 C 541.751,796.861 541.751,796.854 541.755,796.846 L 541.755,796.846 L 547.785,786.402 L 547.785,786.445 C 547.654,786.685 547.56,786.87 547.51,786.986 L 547.51,786.986 C 547.258,787.557 547.115,788.347 547.152,789.115 L 547.152,789.115 C 547.254,791.137 548.329,793.132 548.87,794.068 L 548.87,794.068 C 550.138,796.264 552.589,800.511 552.589,800.511 L 552.589,800.511 C 552.589,800.511 555.041,804.758 556.309,806.955 L 556.309,806.955 C 556.849,807.89 558.04,809.819 559.741,810.918 L 559.741,810.918 C 560.386,811.335 561.144,811.605 561.762,811.673 L 561.762,811.673 C 562.215,811.724 563.719,811.726 565.423,811.726 L 565.423,811.726 L 550.345,811.726 z" id="commerzbank-mark-mono-path225" fill="url(#commerzbank-mark-mono-radialGradient3646)" stroke="none" />
+      <path d="M 541.805,796.763 C 541.9,796.597 541.994,796.433 542.087,796.273 L 542.087,796.273 L 541.805,796.763 z M 572.137,793.703 C 571.768,793.201 571.156,792.68 570.472,792.33 L 570.472,792.33 C 568.669,791.407 566.405,791.34 565.325,791.34 L 565.325,791.34 L 557.884,791.34 L 550.444,791.34 C 549.364,791.34 547.097,791.407 545.297,792.33 L 545.297,792.33 C 544.612,792.68 544,793.201 543.631,793.703 L 543.631,793.703 C 543.397,794.022 542.797,795.044 542.087,796.273 L 542.087,796.273 L 543.6,793.651 L 549.294,783.788 C 549.297,783.783 549.304,783.779 549.31,783.779 L 549.31,783.779 L 566.459,783.779 C 566.464,783.779 566.471,783.784 566.474,783.789 L 566.474,783.789 L 573.946,796.73 C 573.122,795.303 572.4,794.06 572.137,793.703" id="commerzbank-mark-mono-path249" fill="url(#commerzbank-mark-mono-radialGradient3643)" stroke="none" />
+      <path d="M 561.762,811.673 C 561.144,811.605 560.386,811.335 559.741,810.918 L 559.741,810.918 C 559.029,810.458 558.407,809.853 557.884,809.236 L 557.884,809.236 C 558.611,808.379 559.145,807.5 559.459,806.955 L 559.459,806.955 C 560.727,804.758 563.18,800.511 563.18,800.511 L 563.18,800.511 C 563.18,800.511 565.631,796.264 566.9,794.068 L 566.9,794.068 C 567.439,793.132 568.515,791.137 568.615,789.115 L 568.615,789.115 C 568.653,788.347 568.508,787.557 568.259,786.986 L 568.259,786.986 C 568.084,786.587 567.389,785.374 566.582,783.976 L 566.582,783.976 L 574.015,796.849 C 574.015,796.85 574.016,796.851 574.016,796.853 L 574.016,796.853 L 574.016,796.861 C 574.016,796.863 574.015,796.865 574.014,796.866 L 574.014,796.866 L 565.439,811.716 C 565.436,811.723 565.43,811.726 565.423,811.726 L 565.423,811.726 C 563.719,811.726 562.215,811.724 561.762,811.673" id="commerzbank-mark-mono-path273" fill="url(#commerzbank-mark-mono-radialGradient3640)" stroke="none" />
+      </g>
+  </g>
+</svg></g></svg>

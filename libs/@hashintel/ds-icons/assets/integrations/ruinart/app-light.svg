@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ruinart-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="ruinart-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ruinart-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ruinart-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ruinart-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ruinart-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="ruinart-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ruinart-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="19.712 0 154.476 196" preserveAspectRatio="xMidYMid meet" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+<g transform="translate(0.000000,196.000000) scale(0.100000,-0.100000)" fill="#272722" stroke="none">
+<path d="M333 1828 c-118 -118 -159 -170 -120 -154 48 20 90 28 119 22 38 -7 85 -46 99 -83 5 -14 9 -310 9 -716 l0 -692 78 -76 c43 -41 103 -88 132 -102 l54 -27 138 137 c134 134 158 172 90 144 -16 -7 -45 -11 -63 -9 l-34 3 -3 327 -2 327 25 17 c18 12 38 15 66 11 47 -6 163 -73 219 -126 l40 -38 0 -150 c0 -190 17 -397 35 -432 30 -59 186 -192 237 -203 17 -3 288 254 288 273 0 8 -9 9 -27 4 -16 -5 -54 -8 -85 -9 -61 -1 -93 15 -131 66 -31 41 -42 189 -28 381 l11 161 -27 38 c-35 51 -138 133 -226 179 l-70 37 44 27 c24 16 77 61 116 100 52 52 82 93 105 141 31 65 33 76 33 179 0 101 -2 114 -28 163 -15 29 -44 70 -63 92 -38 41 -148 120 -168 120 -6 0 -67 -48 -136 -106 -69 -59 -170 -144 -225 -191 l-100 -84 -3 92 -3 92 -62 61 c-68 69 -141 122 -178 131 -21 5 -43 -13 -156 -127z m720 -115 c55 -41 103 -115 123 -190 15 -57 16 -75 6 -135 -16 -94 -55 -169 -122 -237 -61 -62 -206 -164 -221 -155 -5 3 -9 135 -9 304 l0 299 83 71 c45 38 87 70 93 70 6 0 27 -12 47 -27z m-263 -783 c0 -376 -4 -630 -9 -630 -5 0 -19 15 -30 34 -21 33 -21 43 -21 609 l0 576 26 20 c15 12 28 21 30 21 2 0 4 -283 4 -630z" />
+</g>
+</svg></g></svg>
