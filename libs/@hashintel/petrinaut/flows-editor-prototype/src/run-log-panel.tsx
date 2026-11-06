@@ -7,10 +7,10 @@
  * successes fold to "18 done". Red only for a failure, blue only for running. A live run's rows appear as its steps
  * start, the running one with a ticking duration.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { runLabel } from "./run-id";
 import { START_ID } from "./document";
@@ -30,6 +30,15 @@ import {
 } from "./run-history";
 import { type LogRow, logRows, secondsText } from "./run-log";
 import { BusinessRunLog, runLogTake } from "./run-log-business";
+import {
+  ErrorDetails,
+  ErrorList,
+  LogSummary,
+  logSummaryTake,
+  logWideTake,
+  runErrors,
+  TechnicalFold,
+} from "./run-log-summary";
 import { triggerFiredTake } from "./trigger-flags";
 import { doneTone } from "./status-colors";
 
@@ -47,6 +56,12 @@ const panelStyle = css({
   borderLeftStyle: "solid",
   borderLeftColor: "neutral.bd.solid",
   zIndex: "[5]",
+});
+
+/** `?logwide=1`, expanded: the panel takes the canvas's width; its rows keep a readable measure. */
+const wideStyle = css({
+  "&[class]": { flex: "[1000 1 0]", width: "[auto]", minWidth: "[0]" },
+  "& > *": { maxWidth: "[880px]" },
 });
 
 const summaryStyle = css({
@@ -138,6 +153,7 @@ const LogLine = ({
   onToggle,
   failure,
   itemFailure,
+  after,
 }: {
   id: string;
   time?: string;
@@ -153,6 +169,8 @@ const LogLine = ({
   failure?: boolean;
   /** A supplier that failed inside the For each. */
   itemFailure?: boolean;
+  /** Under the note: `?logsum=v1` puts the error's Show details here. */
+  after?: React.ReactNode;
 }) => (
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- the chevron inside is the keyboard control
   <div
@@ -238,6 +256,7 @@ const LogLine = ({
           {note}
         </span>
       ) : null}
+      {after}
     </span>
     <span className={monoStyle} style={{ textAlign: "right" }}>
       {duration}
@@ -304,6 +323,21 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
   const { run, now } = history;
   const { ui } = useEditor();
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
+  const sumTake = logSummaryTake();
+  // ?logwide=1: the log widened over the canvas; Esc brings it back.
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    if (!wide) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setWide(false);
+      }
+    };
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
+  }, [wide]);
   // "Show in log" on a step inside the For each (or on it) opens the For each, once per request.
   const reveal = ui.logReveal;
   const [revealedAt, setRevealedAt] = useState<number | null>(null);
@@ -349,6 +383,14 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
     live ? row.id !== "end" && row.glyph !== "notReached" : true,
   );
   const isOpen = (id: string, fallback = false) => openIds[id] ?? fallback;
+  // v1 shows its errors inside the For each, so it opens on them.
+  const loopFallback = sumTake === "v1";
+  const errors = runErrors(run, facts);
+  const errorOf = (id: string) => errors.find((error) => error.id === id);
+  const detailsFor = (id: string) => {
+    const error = sumTake === "v1" ? errorOf(id) : undefined;
+    return error ? <ErrorDetails error={error} /> : undefined;
+  };
   const toggle = (id: string, fallback = false) =>
     setOpenIds((current) => ({ ...current, [id]: !isOpen(id, fallback) }));
 
@@ -358,7 +400,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
       const children = row.children ?? [];
       const failures = children.filter((child) => child.failure);
       const rest = children.filter((child) => !child.failure);
-      const open = isOpen("loop");
+      const open = isOpen("loop", loopFallback);
       const loopMark = history.steps?.[forEachId];
       // The outline sets draw the For each's partly done mark from its items; the old set keeps R1's cross.
       const partlyDone =
@@ -378,7 +420,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
           }
           duration={live ? "" : tight(row.duration)}
           open={open}
-          onToggle={() => toggle("loop")}
+          onToggle={() => toggle("loop", loopFallback)}
         />,
       );
       if (open) {
@@ -392,11 +434,16 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
               time={failure.time}
               glyph="cross"
               title={failure.title}
-              note={failedStep?.error?.title ?? failure.note}
+              note={
+                sumTake
+                  ? (errorOf(failure.id)?.plain ?? failure.note)
+                  : (failedStep?.error?.title ?? failure.note)
+              }
               duration={tight(failure.duration)}
               depth={1}
               failure
               itemFailure
+              after={detailsFor(failure.id)}
             />,
           );
         }
@@ -456,7 +503,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
             ? run.trigger.kind === "manual"
               ? run.trigger.by
               : "monthly"
-            : row.id === "find"
+            : row.id === "find" && !(sumTake && row.failure)
               ? row.note?.replace(" suppliers found", " found")
               : undefined
         }
@@ -469,6 +516,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         }
         duration={row.id === "trigger" ? "–" : tight(row.duration)}
         failure={row.failure}
+        after={row.failure ? detailsFor(row.id) : undefined}
       />,
     );
   }
@@ -487,8 +535,29 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
     );
   }
 
+  const logLabel = sumTake ? "Technical log" : "Log";
+  const logSection = (
+    <div className={css({ paddingY: "3" })}>
+      <div
+        className={css({
+          paddingX: "4",
+          paddingBottom: "1",
+          textStyle: "sm",
+          color: "neutral.fg.subtle",
+        })}
+      >
+        {logLabel}
+      </div>
+      {lines}
+    </div>
+  );
   return (
-    <aside className={panelStyle} aria-label="Run log" data-run-log-panel>
+    <aside
+      className={cx(panelStyle, wide && wideStyle)}
+      aria-label="Run log"
+      data-run-log-panel
+      data-log-wide={wide || undefined}
+    >
       <div className={summaryStyle}>
         <div
           className={css({
@@ -506,6 +575,9 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
           >
             {runLabel(run)}
           </span>
+          <span
+            className={css({ display: "flex", alignItems: "center", gap: "1" })}
+          >
           {action === "Stop" ? (
             <Button
               size="sm"
@@ -534,6 +606,19 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
                 : `${failed} failed`}
             </Button>
           ) : null}
+          {logWideTake() ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              iconName={wide ? "collapse" : "expand"}
+              aria-label={wide ? "Collapse the log" : "Expand the log"}
+              tooltip={wide ? "Collapse · Esc" : "Expand"}
+              data-log-expand
+              onClick={() => setWide(!wide)}
+            />
+          ) : null}
+          </span>
         </div>
         <span className={css({ textStyle: "sm", color: "neutral.fg.heading" })}>
           <span style={{ color: statusTone }}>{statusWord}</span>
@@ -563,19 +648,17 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
           </span>
         ) : null}
       </div>
-      <div className={css({ paddingY: "3" })}>
-        <div
-          className={css({
-            paddingX: "4",
-            paddingBottom: "1",
-            textStyle: "sm",
-            color: "neutral.fg.subtle",
-          })}
-        >
-          Log
-        </div>
-        {lines}
-      </div>
+      {sumTake ? (
+        <LogSummary run={run} facts={facts} now={now} live={live} />
+      ) : null}
+      {sumTake === "v2" || sumTake === "v3" ? (
+        <ErrorList errors={errors} />
+      ) : null}
+      {sumTake === "v3" ? (
+        <TechnicalFold count={lines.length}>{lines}</TechnicalFold>
+      ) : (
+        logSection
+      )}
     </aside>
   );
 };
