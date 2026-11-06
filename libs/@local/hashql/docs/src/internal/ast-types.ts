@@ -12,17 +12,9 @@ import type { Failure, TypeSource } from "./ast-type-parser.js";
 import type { Cause, Data } from "effect";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
-/** The identity each syntax node parsed to, so it parses once. */
+/** The identity each type's syntax node parsed to, so it parses once. A type parameter or a parameter parses once because its symbols name its node. */
 interface Cache {
   readonly types: WeakMap<TypeSource, AST.TypeNode.Interned>;
-  readonly parameters: WeakMap<
-    Syntax.ParameterDeclaration,
-    AST.Parameter.Interned
-  >;
-  readonly typeParameters: WeakMap<
-    Syntax.TypeParameterDeclaration,
-    AST.TypeParameter.Interned
-  >;
 }
 
 class TypeParserState extends Context.Service<TypeParserState, Cache>()(
@@ -84,64 +76,43 @@ const qualifiersOf = (
   return qualifiers;
 };
 
-/** Reserves the identity `symbols` name and builds its node with `parse`, or an identity no symbol names when there are none. */
-const reserveNamed = <T extends AST.Target.Local>(
-  symbols: Parsed<readonly CompilerSymbol[]>,
-  parse: (id: AST.Interned.Interned<T>) => Parsed<T>,
-): Parsed<AST.Interned.Interned<T>> =>
-  Effect.flatMap(symbols, (named) => {
-    if (Array.isReadonlyArrayNonEmpty(named)) {
-      return AST.reserveSymbol(named, parse);
-    }
-
-    return AST.reserve(parse);
-  });
-
-/** The identity `key` parses to, reserved before parsing so names inside it can refer to it. A key parses once. */
-const reserved = <K extends WeakKey, T extends AST.Node.Node>(
-  cache: WeakMap<K, AST.Interned.Interned<T>>,
-  key: K,
-  reservation: Parsed<AST.Interned.Interned<T>>,
-): Parsed<AST.Interned.Interned<T>> => {
-  const existing = cache.get(key);
-
-  if (existing !== undefined) {
-    return Effect.succeed(existing);
-  }
-
-  return Effect.tap(reservation, (id) =>
-    Effect.sync(() => {
-      cache.set(key, id);
-    }),
-  );
-};
-
 const optionalImpl = (
   node: Option.Option<TypeSource>,
 ): Parsed<Option.Option<AST.TypeNode.Interned>> =>
   Effect.transposeOption(Option.map(node, Types.type));
 
+const typeParameterNode =
+  (node: Syntax.TypeParameterDeclaration) =>
+  (): Parsed<AST.TypeParameter.TypeParameter> =>
+    Effect.all({
+      constraint: Types.optional(Option.fromUndefinedOr(node.constraint)),
+      default: Types.optional(Option.fromUndefinedOr(node.defaultType)),
+      documentation: Comments.documentation(node),
+    }).pipe(
+      Effect.map((fields) =>
+        AST.TypeParameter.make({ node, name: node.name.text, ...fields }),
+      ),
+    );
+
 const typeParameterImpl = (
   node: Syntax.TypeParameterDeclaration,
 ): Parsed<AST.TypeParameter.Interned> =>
-  Effect.flatMap(TypeParserState, ({ typeParameters }) =>
-    reserved(
-      typeParameters,
-      node,
-      reserveNamed(
-        Effect.map(TypeScript.Checker.getSymbolOfDeclaration(node), Array.of),
-        () =>
-          Effect.all({
-            constraint: Types.optional(Option.fromUndefinedOr(node.constraint)),
-            default: Types.optional(Option.fromUndefinedOr(node.defaultType)),
-            documentation: Comments.documentation(node),
-          }).pipe(
-            Effect.map((fields) =>
-              AST.TypeParameter.make({ node, name: node.name.text, ...fields }),
-            ),
-          ),
-      ),
+  Effect.flatMap(TypeScript.Checker.getSymbolOfDeclaration(node), (symbol) =>
+    AST.reserveSymbol([symbol], typeParameterNode(node)),
+  );
+
+const typeParametersImpl = (
+  nodes: readonly Syntax.TypeParameterDeclaration[],
+): Parsed<readonly AST.TypeParameter.Interned[]> =>
+  pipe(
+    nodes,
+    Effect.forEach((node) =>
+      Effect.map(TypeScript.Checker.getSymbolOfDeclaration(node), (symbol) => ({
+        symbols: [symbol],
+        build: typeParameterNode(node),
+      })),
     ),
+    Effect.flatMap(AST.reserveSymbols),
   );
 
 /** The symbols a parameter's name declares: its own, or for a destructured parameter one for each name it binds. */
@@ -177,32 +148,37 @@ const parameterSymbols = Effect.fnUntraced(function* (
   return symbols;
 });
 
-const parameterImpl = (
-  node: Syntax.ParameterDeclaration,
-): Parsed<AST.Parameter.Interned> =>
-  Effect.flatMap(TypeParserState, ({ parameters }) =>
-    reserved(
-      parameters,
-      node,
-      reserveNamed(parameterSymbols(node), () =>
-        Effect.all({
-          type: Types.optional(Option.fromUndefinedOr(node.type)),
-          documentation: Comments.documentation(node),
-        }).pipe(
-          Effect.map((fields) =>
-            AST.Parameter.make({
-              node,
-              name: node.name.getText(),
-              optional:
-                node.questionToken !== undefined ||
-                node.initializer !== undefined,
-              rest: node.dotDotDotToken !== undefined,
-              ...fields,
-            }),
-          ),
-        ),
+const parameterNode =
+  (node: Syntax.ParameterDeclaration) => (): Parsed<AST.Parameter.Parameter> =>
+    Effect.all({
+      type: Types.optional(Option.fromUndefinedOr(node.type)),
+      documentation: Comments.documentation(node),
+    }).pipe(
+      Effect.map((fields) =>
+        AST.Parameter.make({
+          node,
+          name: node.name.getText(),
+          optional:
+            node.questionToken !== undefined || node.initializer !== undefined,
+          rest: node.dotDotDotToken !== undefined,
+          ...fields,
+        }),
       ),
+    );
+
+/** The parameters of one list. The parse reserves each before it reads any, so a type can name a parameter declared after it, as `typeof b` does in `(a: typeof b, b: string)`. */
+const parametersImpl = (
+  nodes: readonly Syntax.ParameterDeclaration[],
+): Parsed<readonly AST.Parameter.Interned[]> =>
+  pipe(
+    nodes,
+    Effect.forEach((node) =>
+      Effect.map(parameterSymbols(node), (symbols) => ({
+        symbols,
+        build: parameterNode(node),
+      })),
     ),
+    Effect.flatMap(AST.reserveSymbols),
   );
 
 const signatureImpl = (
@@ -210,13 +186,11 @@ const signatureImpl = (
 ): Parsed<AST.Signature.Signature> =>
   Effect.all({
     typeParameters: pipe(
-      node.typeParameters ?? [],
-      Effect.forEach(Types.typeParameter),
+      Types.typeParameters(node.typeParameters ?? []),
       Effect.map(Chunk.fromIterable),
     ),
     parameters: pipe(
-      node.parameters,
-      Effect.forEach(Types.parameter),
+      parametersImpl(node.parameters),
       Effect.map(Chunk.fromIterable),
     ),
     returns: Types.optional(Option.fromUndefinedOr(node.type)),
@@ -382,11 +356,13 @@ const typeImpl = (node: TypeSource): Parsed<AST.TypeNode.Interned> =>
 
 /** The parser's methods, each run by `provide` with the services its implementation needs. */
 const methods = (
-  provide: <A>(effect: Parsed<A>) => Effect.Effect<A, Failure, AST.Store>,
+  provide: <A>(
+    effect: Parsed<A>,
+  ) => Effect.Effect<A, Failure, AST.Store | Names.Reach>,
 ): Types.TypeParser["Service"] => ({
   optional: (node) => provide(optionalImpl(node)),
   typeParameter: (node) => provide(typeParameterImpl(node)),
-  parameter: (node) => provide(parameterImpl(node)),
+  typeParameters: (nodes) => provide(typeParametersImpl(nodes)),
   signature: (node) => provide(signatureImpl(node)),
   call: (node) => provide(callImpl(node)),
   construct: (node) => provide(constructImpl(node)),
@@ -400,11 +376,7 @@ export const layer = Effect.context<
   Comments.CommentParser | TypeScript.Checker.Checker
 >().pipe(
   Effect.map((services) => {
-    const cache: Cache = {
-      types: new WeakMap(),
-      parameters: new WeakMap(),
-      typeParameters: new WeakMap(),
-    };
+    const cache: Cache = { types: new WeakMap() };
 
     const context = Context.add(services, TypeParserState, cache);
     const parser: Types.TypeParser["Service"] = methods((effect) =>

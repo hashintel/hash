@@ -21,6 +21,7 @@ import * as Comments from "./ast-comments.js";
 import * as Types from "./ast-type-parser.js";
 import * as Source from "./ast/source.js";
 
+import type * as Names from "./ast-names.js";
 import type { Failure } from "./ast-type-parser.js";
 import type { Symbol as CompilerSymbol, Signature } from "typescript/async";
 
@@ -170,6 +171,7 @@ export declare namespace DeclarationParser {
 type Requirements =
   | AST.Store
   | Types.TypeParser
+  | Names.Reach
   | Comments.CommentParser
   | TypeScript.Checker.Checker
   | TypeScript.Program.Program;
@@ -183,8 +185,7 @@ const typeParametersOf = (
     | Syntax.InterfaceDeclaration,
 ): Parsed<Chunk.Chunk<AST.TypeParameter.Interned>> =>
   pipe(
-    node.typeParameters ?? [],
-    Effect.forEach(Types.typeParameter),
+    Types.typeParameters(node.typeParameters ?? []),
     Effect.map(Chunk.fromIterable),
   );
 
@@ -432,7 +433,9 @@ const parseImpl = (
     ),
   );
 
-const make = Effect.context<Exclude<Requirements, AST.Store>>().pipe(
+const make = Effect.context<
+  Exclude<Requirements, AST.Store | Names.Reach>
+>().pipe(
   Effect.map((context) => ({
     parse: flow(parseImpl, Effect.provide(context)),
   })),
@@ -449,7 +452,7 @@ export const parse: {
   ) => Effect.Effect<
     Option.Option<AST.LeafDeclaration.Interned>,
     Failure,
-    DeclarationParser | AST.Store
+    DeclarationParser | AST.Store | Names.Reach
   >;
   (
     symbol: CompilerSymbol,
@@ -457,7 +460,7 @@ export const parse: {
   ): Effect.Effect<
     Option.Option<AST.LeafDeclaration.Interned>,
     Failure,
-    DeclarationParser | AST.Store
+    DeclarationParser | AST.Store | Names.Reach
   >;
 } = Function.dual(
   2,

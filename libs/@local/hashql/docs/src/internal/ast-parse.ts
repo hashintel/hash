@@ -1,5 +1,14 @@
 // oxlint-disable import/max-dependencies -- The parser composes every AST service into one layer.
-import { Array, Chunk, Effect, Layer, Option, flow, pipe } from "effect";
+import {
+  Array,
+  Chunk,
+  Context,
+  Effect,
+  Layer,
+  Option,
+  flow,
+  pipe,
+} from "effect";
 import * as Syntax from "typescript/ast";
 
 import * as AST from "../AST/index.js";
@@ -67,7 +76,8 @@ type Requirements =
   | TypeScript.Program.Program
   | DeclarationParser.DeclarationParser
   | Exposure.Exposure
-  | Heritage.Heritage;
+  | Heritage.Heritage
+  | Names.Reach;
 type ParseDeclaration = (
   symbol: CompilerSymbol,
 ) => Effect.Effect<AST.Declaration.Interned, Failure, Requirements>;
@@ -224,17 +234,25 @@ const services = Layer.mergeAll(
 /**
  * Builds all entrypoints together so references can cross module and namespace cycles, and returns the catalogue of their public names.
  *
- * Each name in a type resolves where the parse meets it. Once every entrypoint is in, `discover` parses the private declarations the names reach and names the links the compiler binds. A link the compiler does not bind resolves through the catalogue, and the examples compile last, in a program that stays open with the calling scope.
+ * Each name in a type reaches its node where the parse meets it, which parses a private declaration it names. Once every entrypoint is in, `discover` names the links the compiler binds, parsing the private declarations they reach. A link the compiler does not bind resolves through the catalogue, and the examples compile last, in a program that stays open with the calling scope.
  */
 export const parse = Effect.fn("Parser.parse")(
   function* (
     roots: Iterable<readonly [name: string, module: TypeScript.Module.Module]>,
   ) {
-    // `discover` runs after every entrypoint, and may reach private declarations that need the same services.
-    const parseDeclaration = flow(
-      declaration,
-      Effect.provide(yield* Effect.context<Requirements>()),
+    // A name in a type and `discover` after every entrypoint both reach declarations, which need the same services.
+    const services =
+      yield* Effect.context<Exclude<Requirements, Names.Reach>>();
+    const context: Context.Context<Requirements> = Context.add(
+      services,
+      Names.Reach,
+      {
+        reach: (symbol) =>
+          // oxlint-disable-next-line eslint/no-use-before-define -- A declaration reaches the names in it, and a name reaches its declaration. Neither call runs before the parse defines both.
+          Names.reach(symbol, parseDeclaration).pipe(Effect.provide(context)),
+      },
     );
+    const parseDeclaration = flow(declaration, Effect.provide(context));
 
     yield* Effect.forEach(
       roots,

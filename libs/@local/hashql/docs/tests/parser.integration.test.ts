@@ -425,6 +425,25 @@ export declare const choose: {
   );
 
   it.effect(
+    "forward_type_parameter",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      // A's constraint names B before B's declaration parses.
+      const ast = yield* success({
+        source: "export type Pair<A extends B, B> = [A, B];",
+      });
+      const targets = Array.fromIterable(ast.nodes())
+        .filter(AST.TypeReference.isTypeReference)
+        .filter((node) => node.node.getText() === "B")
+        .map((reference) => ast.getBySymbol(reference.target));
+      expect(targets).toStrictEqual([
+        expect.objectContaining({ _tag: "TypeParameter", name: "B" }),
+        expect.objectContaining({ _tag: "TypeParameter", name: "B" }),
+      ]);
+    }),
+  );
+
+  it.effect(
     "alias_names",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
@@ -509,6 +528,59 @@ export declare const choose: {
       expect(targetOf(ast, first(ast, AST.TypeReference.isTypeReference))).toBe(
         yield* ast.intern(parameter),
       );
+    }),
+  );
+
+  it.effect(
+    "forward_parameter",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source: "export declare function pair(a: typeof b, b: string): void;",
+      });
+      const reference = first(ast, AST.TypeReference.isTypeReference);
+      expect(ast.getBySymbol(reference.target)).toMatchObject({
+        _tag: "Parameter",
+        name: "b",
+      });
+    }),
+  );
+
+  it.effect(
+    "forward_member",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source: "export declare class C { a: typeof C.b; static b: string }",
+      });
+      const reference = first(ast, AST.TypeReference.isTypeReference);
+      expect(ast.getBySymbol(reference.target)).toMatchObject({
+        _tag: "Property",
+        name: "b",
+      });
+      expect(qualified(ast, "typeof C.b")).toMatchObject([
+        { _tag: "Declaration", symbol: { name: "C" } },
+      ]);
+    }),
+  );
+
+  it.effect(
+    "unreserved_member",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      // B's constraint reaches A, whose member names a member of B before B reserves its members.
+      expect(
+        yield* parse({
+          source:
+            "export declare class B<T extends A> { static y: string }\nexport interface A { x: typeof B.y }",
+        }),
+      ).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          _tag: "ParseError",
+          reason: { _tag: "UnreservedReference", name: "y", owner: "B" },
+        },
+      });
     }),
   );
 
@@ -960,11 +1032,11 @@ export interface Box {}`;
           },
         });
         expect(qualified(ast, "Space.Value")).toMatchObject([
-          { _tag: "ExternalItem", symbol: { name: "Space" } },
+          { _tag: "Declaration", symbol: { name: "Space" } },
         ]);
-        expect(declarationNames(ast)).toContain("Value");
-        expect(declarationNames(ast)).not.toContain("Space");
-        expect(declarationNames(ast)).not.toContain("Other");
+        expect(declarationNames(ast)).toStrictEqual(
+          expect.arrayContaining(["Value", "Space", "Other"]),
+        );
       }),
     );
 
@@ -999,12 +1071,12 @@ export interface Box {}`;
           ast,
           "import('./hidden.js').Space.Hidden",
         );
-        expect(module).toMatchObject({ _tag: "ExternalItem" });
+        expect(module).toMatchObject({ _tag: "Declaration" });
         expect(
-          AST.ExternalItem.isExternalItem(module) ? module.symbol.name : "",
+          AST.Declaration.isDeclaration(module) ? module.symbol.name : "",
         ).toMatch(/hidden/u);
         expect(space).toMatchObject({
-          _tag: "ExternalItem",
+          _tag: "Declaration",
           symbol: { name: "Space" },
         });
         expect(declarationNames(ast)).toContain("Hidden");
