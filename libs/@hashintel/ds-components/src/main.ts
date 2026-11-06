@@ -91,6 +91,7 @@ export {
   type SliderProps,
   type SliderVariant,
 } from "./components/Slider/slider";
+export { type TabItem, Tabs } from "./components/Tabs/tabs";
 export { TextArea } from "./components/TextArea/text-area";
 export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";
