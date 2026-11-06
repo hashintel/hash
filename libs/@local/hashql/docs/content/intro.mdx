@@ -16,7 +16,7 @@ The examples throughout this guide use three different notations: TypeScript, us
 
 In HashQL, you build a query by combining expressions, each of which produces a value. Fundamentally, HashQL consists of only three parts: function calls, literals and paths. Everything else follows from these. This includes control flow: an `if` expression is a function call that returns a value, with a little compiler magic attached.
 
-These compiler-recognised functions are called special forms. Unlike regular functions, they receive special treatment from the compiler, and their behaviour cannot be recreated using regular HashQL code. Everything else builds on them, which is why SDKs expose them as function calls.
+These compiler-recognised functions are called special forms. Unlike regular functions, they receive special treatment from the compiler, and their behaviour cannot be recreated using regular HashQL code. While they are special, they are still only functions that are called, which is why SDKs expose them as function calls. They are the building blocks of any HashQL program.
 
 <Accordions>
   <Accordion title="Calling special forms directly" id="calling-special-forms">
@@ -30,7 +30,7 @@ Nothing stops you from calling these special forms directly! They are all availa
 
 The `let` special form gives a value a name within an expression. Here, the name is `foo`, the value is the integer `2`, and the expression's result is the value bound to `foo`:
 
-```ts tab="TypeScript" tab-group="hashql-language"
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
@@ -49,13 +49,9 @@ let foo = 2 in
 foo
 ```
 
-This HashQL expression evaluates to `2`. The name `foo` is available in the body of the `let`, which is the expression following the binding. In the reference notation, `in` separates the binding from its body.
+This HashQL expression evaluates to `2`. The name `foo` is available in the body of the `let`, which in the case of the TypeScript Draft API are any statements that follow the binding, in the reference notation, `in` is used to separate the binding from its body.
 
-In the TypeScript Draft API, `program` constructs a HashQL expression; it does not execute it. The callback passed to `program` receives the construction context (`$`) and returns the expression to use as the program's result. An expression that is not included in that result, either directly or through a `let` binding, is omitted from the generated program and is therefore not executed on the server.
-
-Draft also makes HashQL expressions easier to write by converting TypeScript values automatically: BigInt literals become HashQL integers, numbers become HashQL numbers, booleans become HashQL booleans, and strings become HashQL strings.
-
-Because a HashQL binding is referenced by name, you must supply that name explicitly. By convention, it matches the TypeScript variable holding the binding: in the example above, both are named `foo`.
+In the TypeScript Draft API, `program` constructs a HashQL expression; **it does not execute it**. HashQL programs are a single top-level expression, which is the value that the `program` call returns. Every `program` receives the construction context (`$`) to help in the construction of the final HashQL program. HashQL is side-effect free, which means that an expression that is not included in that result, either directly or through a `let` binding, is omitted from the generated program and is therefore not executed on the server. Additionally, the Draft API makes authoring of HashQL expressions easier by mapping common types from TypeScript to their HashQL equivalents: BigInt literals become HashQL integers, numbers become HashQL numbers, booleans become HashQL booleans, and strings become HashQL strings. HashQL bindings are referenced by name, which is why you must supply that name explicitly, otherwise any error returned from thes server will be illegible. We recommend that the name matches the TypeScript variable holding the binding: in the example above, both are named `foo`.
 
 <Accordions>
   <Accordion title="Shadowing a binding" id="shadowing-a-binding">
@@ -65,7 +61,7 @@ A `let` binding is available within its body. If a nested binding uses the same 
   </Accordion>
 </Accordions>
 
-You can think of a binding as similar to `const` in JavaScript, but HashQL's immutability goes further. A JavaScript `const` can hold a list whose contents you can change. In HashQL, the values themselves are immutable. Adding an item to a list produces a new list and leaves the original unchanged.
+You can think of a binding as similar to `const` in JavaScript, but HashQL's immutability goes further. A JavaScript `const` can hold a list whose contents you can change. In HashQL, the values themselves are immutable. Adding an item to a list produces a new list and leaves the original unchanged. It is therefore a lot closer in spirit to Rust's semantic notion of `const` values.
 
 ### Choosing a value with `if`
 
@@ -107,14 +103,14 @@ In Draft, `$.eq(foo, 2n)` constructs the HashQL comparison. The `then` and `else
 <Accordions>
   <Accordion title="Omitting the else branch" id="omitting-the-else-branch">
 
-In JavaScript and Python, `if` is a statement, so it does not need to produce a value: its branches can perform side effects instead. In HashQL, an expression contributes to the query's result through the value it produces. However, there are still legitimate uses for an `if` without an `else` branch. HashQL supports this by returning an `Option`: when the condition is true, the branch's result is automatically wrapped in `Some`; otherwise, the expression returns `None`.
+In JavaScript and Python, `if` is a statement, so it does not need to produce a value: its branches can perform side effects instead. In HashQL, an expression contributes to the query's result through the value it produces, as no side-effects can occur. However, there are still legitimate uses for an `if` without an `else` branch. HashQL supports this by returning an `Option`: when the condition is true, the branch's result is automatically wrapped in `Some`; otherwise, the expression returns `None`.
 
   </Accordion>
 </Accordions>
 
 ### Receiving a value with `input`
 
-So far, `foo` has always come from a literal written into the program. In many languages, programs receive values through arguments to a main function. Query programs often need a different approach: values supplied at query time should be available wherever they are needed, without being passed through every intervening function call.
+So far, `foo` has always come from a literal written into the program. In many languages, programs receive values through arguments to a main function, which are then passed down to where they are needed. This works in many cases, but query programs benefit from configuration at call time, which allows us to supply configuration values at call time, and then use them at arbitrary depth without needing to pass them through every intervening function call.
 
 HashQL provides `input` for this purpose. It lets an expression request a named value supplied to the program rather than to the enclosing function. You can think of it as a global `const` whose value is supplied for each execution.
 
@@ -183,13 +179,13 @@ matches_foo(2)
 
 <Callout type="warn" title="Constructing closures in Draft">
 
-Draft cannot construct HashQL closures yet. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015/build-typed-hashql-functions-in-draft). A TypeScript callback used to build a Draft program is not itself a HashQL closure.
+Draft cannot construct HashQL closures yet. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015). TypeScript callbacks can emulate HashQL closures, but are not equivalent to them, as they are not part of the final output.
 
 </Callout>
 
-`fn` produces a closure, and `let` gives that closure the name `matches_foo`. A closure does not need a name, though: it can also be invoked immediately. Here, its parameter, `value`, is an integer, and its result is a Boolean. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
+In our example `fn` produces a closure. A closure is a function which is able to capture bindings from its surrounding scope. Any closure is able to refer to bindings defined outside its body, as long as they have been defined before the closure is being defined. This is safe as the language is immutable, at the point of construction the value of any one binding is frozen in place and cannot be changed.
 
-The closure also refers to `foo`, which was defined outside its body. This is called capturing a binding: the closure can use `foo` without receiving it as another argument. Since bindings are immutable, `foo` keeps the value it had when the closure was created. The empty `[]` in the functional notation means that this closure declares no generic type parameters.
+We then give our closure a name via `let`, note that we're not required to give it a name. `fn` produces a value, just like any other HashQL expression, that can then be immediately invoked. In our example it has the name `matches_foo`, takes a parameter `value` of type `Integer`, and returns a `Boolean`. Calling it with `2` returns `true`. Calling it with `3` returns `false`.
 
 <Callout type="info" title="Note">
 
