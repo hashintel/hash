@@ -1,4 +1,12 @@
 {
   "title": "HashQL",
-  "pages": ["index", "intro", "reference"]
+  "pages": [
+    "index",
+    "intro",
+    "cheatsheet",
+    "using-draft",
+    "writing-a-query",
+    "troubleshooting",
+    "reference"
+  ]
 }
