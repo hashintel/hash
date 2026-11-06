@@ -1,5 +1,6 @@
 import { DocExcerpt, DocLinkTag } from "@microsoft/tsdoc";
 import { Array, Option, pipe } from "effect";
+import * as Syntax from "typescript/ast";
 
 import type * as AST from "../../AST/index.js";
 import type { DocNode, TextRange } from "@microsoft/tsdoc";
@@ -34,6 +35,10 @@ export const rangeOf = (node: DocNode): Option.Option<TextRange> => {
   );
 };
 
+/** The opening brace's source position, where the compiler's node for the same link starts too, since TSDoc read the comment in place. */
+export const startOf = (link: DocLinkTag): Option.Option<number> =>
+  Option.map(rangeOf(link), ({ pos }) => pos);
+
 /** Describes a TSDoc node by its kind and span, without following its children. */
 export const inspectNode = (
   node: DocNode,
@@ -65,3 +70,50 @@ export const linksOf = ({
     Array.filter((node) => node !== source.privateRemarks),
     Array.flatMap(linksIn),
   );
+
+/** The compiler's links in `comment`, its tags' text included. */
+const compilerLinks = (
+  comment: Syntax.JSDoc,
+): readonly (
+  | Syntax.JSDocLink
+  | Syntax.JSDocLinkCode
+  | Syntax.JSDocLinkPlain
+)[] =>
+  pipe(
+    comment.comment,
+    Array.appendAll(
+      Array.flatMap(comment.tags ?? [], (tag) => tag.comment ?? []),
+    ),
+    Array.filter(
+      (node) =>
+        Syntax.isJSDocLink(node) ||
+        Syntax.isJSDocLinkCode(node) ||
+        Syntax.isJSDocLinkPlain(node),
+    ),
+  );
+
+/** The name the compiler parsed for each link a reader of `documentation` sees, where the link names a declaration and the compiler parsed one. */
+export const namesOf = (
+  documentation: AST.Documentation.Documentation,
+): readonly (readonly [tag: DocLinkTag, name: Syntax.EntityName])[] => {
+  const compiled = compilerLinks(documentation.node);
+
+  return Array.flatMap(linksOf(documentation), (tag) => {
+    const destination = tag.codeDestination;
+
+    // A package-qualified destination names a public path, so it binds nothing in the comment's file.
+    if (destination === undefined || destination.packageName !== undefined) {
+      return [];
+    }
+
+    return pipe(
+      startOf(tag),
+      Option.flatMap((start) =>
+        Array.findFirst(compiled, (link) => link.pos === start),
+      ),
+      Option.flatMap((link) => Option.fromUndefinedOr(link.name)),
+      Option.map((name) => [tag, name] as const),
+      Option.toArray,
+    );
+  });
+};

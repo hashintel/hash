@@ -3,7 +3,6 @@ import { Array, Context, Effect, Layer, Option } from "effect";
 import * as AST from "../AST/index.js";
 import * as DocumentationError from "../DocumentationError.js";
 import * as DocumentationParser from "../DocumentationParser.js";
-import * as TypeScript from "../TypeScript/index.js";
 import * as Links from "./ast-links.js";
 import * as DocSource from "./ast/doc-source.js";
 import * as Source from "./ast/source.js";
@@ -13,7 +12,7 @@ import type { JSDoc, Node } from "typescript/ast";
 
 type Documentation = AST.Documentation.Interned;
 
-/** Parses each source node's comment into documentation interned in the same graph, and resolves the links in it the compiler binds. */
+/** Parses each source node's comment into documentation interned in the same graph. A link that names part of a declaration fails the comment. */
 export class CommentParser extends Context.Service<
   CommentParser,
   CommentParser.Shape
@@ -42,7 +41,6 @@ const stray = (comment: JSDoc): DocumentationError.DocumentationError =>
 /** One parser serves one parse, so a cache in the layer never sees a second graph. */
 export const layer = Effect.gen(function* () {
   const parser = yield* DocumentationParser.DocumentationParser;
-  const checker = yield* TypeScript.Checker.Checker;
 
   // Source nodes can share one comment, such as the declarators of one variable statement. Parsing it again would intern a second, unequal node.
   const parsed = new WeakMap<JSDoc, Documentation>();
@@ -61,11 +59,7 @@ export const layer = Effect.gen(function* () {
     }
 
     return parser.parse(comment).pipe(
-      Effect.tap((documentation) =>
-        Links.register(documentation).pipe(
-          Effect.provideService(TypeScript.Checker.Checker, checker),
-        ),
-      ),
+      Effect.tap(Links.check),
       Effect.flatMap(AST.intern),
       Effect.tap((id) =>
         Effect.sync(() => {
