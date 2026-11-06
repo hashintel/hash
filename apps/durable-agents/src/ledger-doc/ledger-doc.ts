@@ -21,10 +21,12 @@ import {
   brunchTools,
   foldCommits,
   type LedgerAppend,
-  type LedgerAppendOutput,
   ledgerAppendOutputSchema,
   prepareAppend,
 } from "@hashintel/brunch-agent";
+
+/** `ledger_commit`'s result: recorded or refused. The lib exports the schema, not the type. */
+export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
 
 /** A USER message the Ledger's turns anchor to, by its `pi.user` entry ID. */
 type LedgerTurn = { id: string; role: "user"; parts: [] };

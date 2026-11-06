@@ -24,7 +24,7 @@ import {
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { brunchTools, type LedgerAppendOutput } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 import {
   fauxAssistantMessage,
@@ -33,6 +33,8 @@ import {
 } from "../../test/scripted-model";
 import { openHarness } from "../harness";
 import { foldLedger, LedgerDoc } from "../ledger";
+
+import type { LedgerAppendOutput } from "./ledger-doc";
 
 const context = BACKGROUND_CONTEXT;
 
