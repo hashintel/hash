@@ -19,7 +19,7 @@ interface Props {
 export default async function Page({ params }: Props): Promise<ReactNode> {
   const { slug } = await params;
   const page = source.getPage(slug);
-  if (!page) {
+  if (page === undefined) {
     notFound();
   }
 
@@ -46,7 +46,7 @@ export const dynamicParams = false;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const page = source.getPage(slug);
-  if (!page) {
+  if (page === undefined) {
     notFound();
   }
 

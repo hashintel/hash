@@ -1,0 +1,88 @@
+import { Equal, Hash, Option, Predicate, pipe } from "effect";
+
+import * as Source from "../internal/ast/source.js";
+import * as Traits from "../internal/ast/traits.js";
+
+import type * as $Interned from "./Interned.js";
+import type * as Reference from "./Reference.js";
+import type * as TypeNode from "./TypeNode.js";
+import type * as TypeParameter from "./TypeParameter.js";
+import type { Chunk, Inspectable } from "effect";
+import type * as TypeScript from "typescript/ast";
+
+const TypeId = "~hashql-docs/AST/TypeExpression";
+
+/** Other type syntax keeps its source spelling and exposes its nested types and bindings for traversal. */
+export class TypeExpression implements Traits.Traits {
+  readonly [TypeId] = TypeId;
+  readonly _tag = "TypeExpression" as const;
+
+  readonly node: TypeScript.TypeNode;
+  readonly children: Chunk.Chunk<
+    $Interned.Interned<TypeNode.TypeNode | TypeParameter.TypeParameter>
+  >;
+  readonly references: Chunk.Chunk<Reference.Interned>;
+
+  declare readonly pipe: Traits.Traits["pipe"];
+  declare readonly toString: Traits.Traits["toString"];
+  declare readonly [Inspectable.NodeInspectSymbol]: Traits.Traits[Inspectable.NodeInspectSymbol];
+
+  static {
+    Object.assign(TypeExpression.prototype, Traits.Prototype);
+  }
+
+  constructor({ node, children, references }: TypeExpression.Fields) {
+    this.node = node;
+    this.children = children;
+    this.references = references;
+    Object.freeze(this);
+  }
+
+  /** Syntax in type position carries no comment of its own. */
+  readonly documentation: Traits.Traits["documentation"] = Option.none();
+
+  [Hash.symbol](): number {
+    return pipe(
+      this._tag,
+      Hash.string,
+      Hash.combine(Hash.random(this.node)),
+      Hash.combine(Hash.hash(this.children)),
+      Hash.combine(Hash.hash(this.references)),
+    );
+  }
+
+  [Equal.symbol](other: Equal.Equal): boolean {
+    return (
+      // oxlint-disable-next-line eslint/no-use-before-define -- The guard follows its class, and this method runs after module initialisation.
+      isTypeExpression(other) &&
+      this.node === other.node &&
+      Equal.equals(this.children, other.children) &&
+      Equal.equals(this.references, other.references)
+    );
+  }
+
+  toJSON(): Traits.Traits.Inspection {
+    return {
+      _tag: this._tag,
+      node: Source.inspectNode(this.node),
+      children: this.children,
+      references: this.references,
+    };
+  }
+}
+
+export declare namespace TypeExpression {
+  type Fields = Pick<TypeExpression, "node" | "children" | "references">;
+}
+
+export type Interned = $Interned.Interned<TypeExpression>;
+
+/** Recognises this node kind by its own marker. */
+export const isTypeExpression = (
+  // oxlint-disable-next-line typescript/no-restricted-types -- A node guard accepts unchecked values.
+  value: unknown,
+): value is TypeExpression => Predicate.hasProperty(value, TypeId);
+
+/** Creates a frozen node from the supplied fields. */
+export const make = (fields: TypeExpression.Fields): TypeExpression =>
+  new TypeExpression(fields);
