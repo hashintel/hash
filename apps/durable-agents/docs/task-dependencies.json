@@ -37,6 +37,12 @@
       ],
       "cache": false
     },
+    "probe:ownership-unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
     "probe:postgres-viewer": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"

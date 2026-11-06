@@ -10,6 +10,7 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "probe:async-browser-call": "tsx test/browser-call/async-probe.ts",
+    "probe:ownership-unit": "tsx test/integration/ownership-unit-probe.ts",
     "probe:postgres-viewer": "tsx test/integration/viewer-probe.ts",
     "probe:two-writers": "tsx test/integration/two-writers-probe.ts",
     "proof:browser-call": "tsx test/browser-call/proof.ts",
@@ -23,6 +24,8 @@
     "@earendil-works/pi-schema": "1.5.0",
     "@hashintel/brunch-agent": "workspace:*",
     "@valibot/to-json-schema": "1.7.1",
+    "ai": "6.0.286",
+    "hono": "4.13.13",
     "pg": "8.23.0",
     "valibot": "1.4.2"
   },
