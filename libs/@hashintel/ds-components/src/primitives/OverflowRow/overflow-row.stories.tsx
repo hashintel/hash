@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ResizeExample } from "../../../docs/blocks/resize-example";
 import { Chip } from "../../components/Chip/chip";
 import { OverflowRow, type OverflowRowProps } from "./overflow-row";
 
@@ -58,16 +59,6 @@ const caption = css({
   marginBottom: "[4px]",
 });
 
-// Every example box is drag-resizable via its bottom-right handle.
-const box = css({
-  border: "[1px solid #d4d4d8]",
-  borderRadius: "[6px]",
-  padding: "[8px]",
-  resize: "horizontal",
-  overflow: "hidden",
-  minWidth: "[24px]",
-});
-
 // Match the "+X" label to the chips: the chip-label font size, with the line
 // box pinned to the chip cells' rendered height (the 20px chip sits on the
 // text baseline, adding ~2px of descender room) so the row is as tall with
@@ -88,9 +79,7 @@ const Example = ({
 }) => (
   <div>
     <div className={caption}>{label}</div>
-    <div className={box} style={{ width }}>
-      {children}
-    </div>
+    <ResizeExample width={width}>{children}</ResizeExample>
   </div>
 );
 

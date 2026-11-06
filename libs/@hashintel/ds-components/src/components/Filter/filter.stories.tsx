@@ -1,10 +1,11 @@
 import { useState } from "react";
 
+import { ResizeExample } from "../../../docs/blocks/resize-example";
 import { formInputSizes } from "../../util/form-shared";
 import { Filter, type FilterOperator } from "./filter";
 import { FilterGroup } from "./filter-group";
 
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "../Select/select";
 import type { FilterChange, FilterValue } from "./filter-util";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -275,13 +276,6 @@ const SelectOperators: Array<ItemOrGroup<FilterOperator<SelectValues>>> = [
 
 const noop = () => {};
 
-const maxWidthContainerStyle: React.CSSProperties = {
-  maxWidth: 320,
-  padding: 8,
-  border: "1px dashed #ccc",
-  borderRadius: 6,
-};
-
 const columnStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -497,9 +491,9 @@ export const Default: Story = {
       </span>
       <PropertyClickDemo {...args} />
       <span style={stateLabelStyle}>
-        responsive, long content in a max-width container
+        responsive, long content in a resizable container (drag the handle)
       </span>
-      <div style={maxWidthContainerStyle}>
+      <ResizeExample width={320}>
         <Filter<LongContentValues>
           {...args}
           property="contactEmail"
@@ -515,7 +509,7 @@ export const Default: Story = {
           onChange={noop}
           removeable={{ onRemove: noop }}
         />
-      </div>
+      </ResizeExample>
       <KitchenSinkState
         {...args}
         label="not removeable"
@@ -602,10 +596,10 @@ export const Selects: Story = {
         }}
       />
       <span style={stateLabelStyle}>
-        multi select, overflow=&quot;summary&quot; in a max-width container —
+        multi select, overflow=&quot;summary&quot; in a resizable container —
         names fall back to &quot;x of y&quot; once they no longer fit
       </span>
-      <div style={maxWidthContainerStyle}>
+      <ResizeExample width={320}>
         <Filter<SelectValues>
           {...args}
           property="status"
@@ -618,7 +612,7 @@ export const Selects: Story = {
           onChange={noop}
           removeable={{ onRemove: noop }}
         />
-      </div>
+      </ResizeExample>
       <SelectState
         {...args}
         label="async items (1.5s), searchable — the committed value shows while options load"
@@ -658,13 +652,6 @@ const groupProperties: Array<
   { propertyLabel: "Score", operators: "kitchenSink" },
   { propertyLabel: "Tags", operators: "select" },
 ];
-
-const groupContainerStyle: React.CSSProperties = {
-  maxWidth: 560,
-  padding: 8,
-  border: "1px dashed #ccc",
-  borderRadius: 6,
-};
 
 /** Stateful harness: filters can be added, edited, removed and cleared. */
 const GroupDemo = ({
@@ -723,7 +710,7 @@ const GroupDemo = ({
   };
 
   return (
-    <div style={groupContainerStyle}>
+    <ResizeExample width={560}>
       <FilterGroup dismissAbandoned={dismissAbandoned}>
         {filters.map((filter) =>
           filter.operators === "select" ? (
@@ -778,7 +765,7 @@ const GroupDemo = ({
           onClick={() => setFilters([])}
         />
       </FilterGroup>
-    </div>
+    </ResizeExample>
   );
 };
 

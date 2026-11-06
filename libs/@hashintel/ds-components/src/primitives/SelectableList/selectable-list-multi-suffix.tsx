@@ -3,7 +3,7 @@ import {
   suffixDefaultContent,
 } from "./selectable-list-multi-suffix.recipe";
 
-import type { Tone } from "../form-shared";
+import type { Tone } from "../../util/form-shared";
 
 /**
  * The suffix slot content of a multi-selection item (a multiple Select or
