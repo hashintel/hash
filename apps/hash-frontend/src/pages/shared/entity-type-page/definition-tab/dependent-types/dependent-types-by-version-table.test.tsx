@@ -20,7 +20,7 @@ import { DependentTypesByVersionTable } from "./dependent-types-by-version-table
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 
 /*
- * Company is at v4, which no type extends yet.
+ * Company is at v4, which no type extends yet, so v4 gets no row.
  * Charity v1–v2 extend Company v1, v3–v4 v2, v5 v3, and v6 goes back to v2.
  * Public Company v1 extends Company v2, and v2–v3 extend v3.
  * Sole Trader v1–v3 extend Company v2, and its latest version no longer does.
@@ -49,7 +49,6 @@ const company = {
   },
 } as EntityTypeWithMetadata;
 
-const v4Name = "Company v4, extended by no types";
 const v3Name = "Company v3, extended by 2 types: Charity, Public Company";
 const v2Name =
   "Company v2, extended by 3 types: Charity, Public Company, Sole Trader";
@@ -64,7 +63,6 @@ const renderTable = () => {
         entityType={company}
         parentVersionRows={getParentVersionRows({
           rows: [charity, publicCompany, soleTrader],
-          parentLatestVersion: 4,
         })}
         isLinkType={() => false}
         onOpenType={onOpenType}
@@ -102,14 +100,14 @@ const focusWithKeyboard = (element: HTMLElement) => {
 describe("DependentTypesByVersionTable", () => {
   afterEach(cleanup);
 
-  it("shows one collapsed row per version of the type, newest first, naming the types that extend it", () => {
+  it("shows one collapsed row per version of the type that a type extends, newest first, naming the types that extend it", () => {
     renderTable();
 
     expect(
       screen
         .getAllByRole("button", { name: /, extended by / })
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual([v4Name, v3Name, v2Name, v1Name]);
+    ).toEqual([v3Name, v2Name, v1Name]);
     for (const name of [v3Name, v2Name, v1Name]) {
       screen.getByRole("button", { name, expanded: false });
     }
@@ -119,36 +117,12 @@ describe("DependentTypesByVersionTable", () => {
     renderTable();
 
     for (const [name, count] of [
-      [v4Name, "No types"],
       [v3Name, "2 types"],
       [v2Name, "3 types"],
       [v1Name, "1 type"],
     ] as const) {
       within(screen.getByRole("button", { name })).getByText(count);
     }
-  });
-
-  it("disables a version that no type extends, and shows no chevron for it", () => {
-    renderTable();
-
-    const v4 = screen.getByRole("button", { name: v4Name });
-    const v3 = screen.getByRole("button", { name: v3Name });
-    expect((v4 as HTMLButtonElement).disabled).toBe(true);
-    expect(v4.getAttribute("aria-expanded")).toBeNull();
-    expect((v3 as HTMLButtonElement).disabled).toBe(false);
-    // The chevron is the row's only hidden decoration beside its toggle.
-    const chevronOf = (toggle: HTMLElement) =>
-      [...(toggle.parentElement?.children ?? [])].find(
-        (sibling) => sibling.getAttribute("aria-hidden") === "true",
-      );
-    expect(chevronOf(v4)).toBeUndefined();
-    expect(chevronOf(v3)).toBeDefined();
-
-    fireEvent.click(v4);
-
-    expect(
-      screen.queryByRole("group", { name: "Types that extend Company v4" }),
-    ).toBeNull();
   });
 
   it("expands a version into the types that extend it, with their versions that do, and collapses it again", () => {

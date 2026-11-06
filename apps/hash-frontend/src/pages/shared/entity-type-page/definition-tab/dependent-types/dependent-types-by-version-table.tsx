@@ -29,7 +29,7 @@ const gridTemplateColumns = "240px minmax(0, 1fr) 128px";
 const innerCellSx = { ...cellSx, pl: 1.5 } as const;
 
 const countLabel = (count: number) =>
-  count === 0 ? "No types" : count === 1 ? "1 type" : `${count} types`;
+  count === 1 ? "1 type" : `${count} types`;
 
 const DependentTypeSubRow = ({
   type: { row, ranges, highestVersion, highestVersionId },
@@ -106,7 +106,6 @@ const ParentVersionTableRow = ({
 
   const parentTitle = parent.schema.title;
   const parentLabel = `${parentTitle} v${parentVersion}`;
-  const empty = types.length === 0;
   const count = countLabel(types.length);
   const titles = types.map(({ row }) => row.entityType.schema.title).join(", ");
 
@@ -115,13 +114,8 @@ const ParentVersionTableRow = ({
       <Box sx={toggleRowSx}>
         <RowToggle
           gridTemplateColumns={gridTemplateColumns}
-          aria-expanded={empty ? undefined : expanded}
-          aria-label={
-            empty
-              ? `${parentLabel}, extended by no types`
-              : `${parentLabel}, extended by ${count}: ${titles}`
-          }
-          disabled={empty}
+          aria-expanded={expanded}
+          aria-label={`${parentLabel}, extended by ${count}: ${titles}`}
           onClick={() => setExpanded(!expanded)}
         >
           <Box sx={{ ...cellSx, maxWidth: 1 }}>
@@ -169,7 +163,7 @@ const ParentVersionTableRow = ({
             )
           }
         />
-        {empty ? null : <ExpandChevron expanded={expanded} />}
+        <ExpandChevron expanded={expanded} />
       </Box>
       {expanded ? (
         <Box role="group" aria-label={`Types that extend ${parentLabel}`}>

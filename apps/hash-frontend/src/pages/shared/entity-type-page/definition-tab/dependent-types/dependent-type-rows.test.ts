@@ -120,7 +120,7 @@ describe("getDependentTypeRows", () => {
 });
 
 describe("getParentVersionRows", () => {
-  it("lists every parent version, newest first, each with the types and ranges that extend it", () => {
+  it("lists each parent version that a type extends, newest first, each with the types and ranges that extend it", () => {
     const userVersions = [
       makeVersion("user", "User", 4, [2]),
       makeVersion("user", "User", 3, [1, 2]),
@@ -133,19 +133,16 @@ describe("getParentVersionRows", () => {
     );
 
     expect(
-      getParentVersionRows({ rows, parentLatestVersion: 3 }).map(
-        ({ parentVersion, types }) => ({
-          parentVersion,
-          types: types.map(
-            ({ row, ranges, highestVersionId }) =>
-              `${row.entityType.schema.title} ${ranges
-                .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
-                .join(", ")} opens ${highestVersionId}`,
-          ),
-        }),
-      ),
+      getParentVersionRows({ rows }).map(({ parentVersion, types }) => ({
+        parentVersion,
+        types: types.map(
+          ({ row, ranges, highestVersionId }) =>
+            `${row.entityType.schema.title} ${ranges
+              .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
+              .join(", ")} opens ${highestVersionId}`,
+        ),
+      })),
     ).toEqual([
-      { parentVersion: 3, types: [] },
       {
         parentVersion: 2,
         types: [`User v3–v4 opens ${typeBaseUrl("user")}v/4`],
@@ -158,6 +155,15 @@ describe("getParentVersionRows", () => {
         ],
       },
     ]);
+  });
+
+  it("lists one row per parent version that a type extends, however high its number", () => {
+    const machine = makeVersion("machine", "Machine", 1, [1, 4_000_000_000]);
+    const rows = rowsFor([machine], [machine]);
+
+    expect(
+      getParentVersionRows({ rows }).map(({ parentVersion }) => parentVersion),
+    ).toEqual([4_000_000_000, 1]);
   });
 });
 
@@ -289,17 +295,15 @@ describe("on an example ontology of companies", () => {
 
   it("lists each Company version, newest first, with the types that extend it and their ranges", () => {
     expect(
-      getParentVersionRows({ rows, parentLatestVersion: 3 }).map(
-        ({ parentVersion, types }) => ({
-          parentVersion,
-          types: types.map(
-            ({ row, ranges, highestVersionId }) =>
-              `${row.entityType.schema.title} ${ranges
-                .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
-                .join(", ")} opens ${shortId(highestVersionId)}`,
-          ),
-        }),
-      ),
+      getParentVersionRows({ rows }).map(({ parentVersion, types }) => ({
+        parentVersion,
+        types: types.map(
+          ({ row, ranges, highestVersionId }) =>
+            `${row.entityType.schema.title} ${ranges
+              .map((range) => `v${range.firstVersion}–v${range.lastVersion}`)
+              .join(", ")} opens ${shortId(highestVersionId)}`,
+        ),
+      })),
     ).toEqual([
       {
         parentVersion: 3,
