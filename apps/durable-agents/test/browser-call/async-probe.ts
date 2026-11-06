@@ -13,10 +13,14 @@
  * 3. A last server resumes, a "browser" claims and finishes the call, and the
  *    run that delivers the result answers.
  *
+ * A third variant, `sync-unlimited`, runs the waiting tool with
+ * `settings.restartLimit: Infinity`, to see whether the waiting call then
+ * survives every kill.
+ *
  * Usage: `turbo run probe:async-browser-call --filter @apps/durable-agents`.
- * No model is called (a scripted faux model answers); it takes about 20 s.
- * Async criteria must pass; sync lines characterise the waiting tool's
- * behaviour under the same kills and are reported, not required.
+ * No model is called (a scripted faux model answers); it takes about 30 s.
+ * Async and sync-unlimited criteria must pass; sync lines characterise the
+ * waiting tool's behaviour under the same kills and are reported, not required.
  */
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -56,7 +60,10 @@ import { print, report, runServer, until } from "./proof/server-process";
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
-type Variant = "sync" | "async";
+type Variant = "sync" | "async" | "sync-unlimited";
+
+/** Both sync variants run the waiting tool; they differ only in `restartLimit`. */
+const waits = (variant: Variant) => variant !== "async";
 
 const context = BACKGROUND_CONTEXT;
 const absenceMs = 15 * 60_000;
@@ -79,11 +86,19 @@ const open = async (
   const { models, model, state } = scriptedModel(responses);
   const registry = createRegistry();
   registry.install(
-    variant === "sync" ? browserCallExtension : asyncBrowserCallExtension,
+    waits(variant) ? browserCallExtension : asyncBrowserCallExtension,
   );
   const harness = await Harness.open(
     await openNodeSqliteStorage(file),
-    { models, registry, now: clock.now, setTimer: clock.setTimer },
+    {
+      models,
+      registry,
+      now: clock.now,
+      setTimer: clock.setTimer,
+      ...(variant === "sync-unlimited"
+        ? { settings: { restartLimit: Infinity } }
+        : {}),
+    },
     context,
   );
   return { harness, model, state, clock };
@@ -155,7 +170,7 @@ const issue = async (file: string, variant: Variant) => {
     fauxAssistantMessage(fauxToolCall(browserToolName, { title }), {
       stopReason: "toolUse",
     }),
-    fauxAssistantMessage(variant === "sync" ? answer : waiting),
+    fauxAssistantMessage(waits(variant) ? answer : waiting),
   ]);
   const root = await harness.root(context, { agent: { model } });
   const submission = await root.submit(
@@ -187,7 +202,7 @@ const reopen = async (
   // No answers: a model request here is a criterion failure, counted and reported.
   const { harness, state } = await open(file, variant, absenceMs, []);
   harness.resume();
-  if (variant === "sync")
+  if (waits(variant))
     await until(() => toolRunning(harness)).catch(() => undefined);
   await settle();
   report("reopened", {
@@ -210,21 +225,25 @@ const finish = async (
     fauxAssistantMessage(answer),
   ]);
   harness.resume();
-  if (variant === "sync")
+  if (waits(variant))
     await until(() => toolRunning(harness)).catch(() => undefined);
   await settle();
   const before = {
     requests: state.callCount,
     records: await records(harness, conversationId),
     wake: harness.wake(),
+    toolResults: (await transcript(harness, conversationId)).filter(
+      ({ kind }) => kind === "pi.tool-result",
+    ).length,
   };
   const pending = (before.records as BrowserCallRecord[]).find(
     ({ status }) => status === "pending",
   );
   let browser: unknown = null;
-  let waitFor: SubmissionId | undefined =
-    variant === "sync" ? submissionId : undefined;
-  if (pending !== undefined && variant === "sync") {
+  let waitFor: SubmissionId | undefined = waits(variant)
+    ? submissionId
+    : undefined;
+  if (pending !== undefined && waits(variant)) {
     browser = await actAsBrowser(
       harness,
       conversationId,
@@ -340,10 +359,12 @@ const drive = async () => {
 
   const sync = await runVariant("sync");
   const async_ = await runVariant("async");
+  const unlimited = await runVariant("sync-unlimited");
 
   for (const [variant, run] of [
     ["sync", sync],
     ["async", async_],
+    ["sync-unlimited", unlimited],
   ] as const) {
     show(`${variant}: server 1 wake, tasks, records`, {
       wake: run.issued.wake,
@@ -456,6 +477,71 @@ const drive = async () => {
   if (toolResult !== undefined)
     print(`  sync tool result: ${JSON.stringify(toolResult)}`);
 
+  print("\nSync-unlimited criteria (restartLimit: Infinity)");
+  print(
+    `  pi.tool restarts after each reopen: ${JSON.stringify(
+      unlimited.rounds.map(
+        (round) =>
+          (round.tasks as TaskRow[]).find(({ kind }) => kind === "pi.tool")
+            ?.restarts ?? null,
+      ),
+    )}`,
+  );
+  print(
+    `  wake after each reopen: ${JSON.stringify(
+      unlimited.rounds.map((round) => round.wake),
+    )}`,
+  );
+  const unlimitedBefore = unlimited.done.before as {
+    requests: number;
+    records: BrowserCallRecord[];
+    wake: Wake;
+    toolResults: number;
+  };
+  check(
+    `after ${kills} kills the call is still pending, no tool result, no model request`,
+    unlimitedBefore.records[0]?.status === "pending" &&
+      unlimitedBefore.toolResults === 0 &&
+      unlimitedBefore.requests === 0 &&
+      unlimited.rounds.every(
+        (round) =>
+          round.requests === 0 &&
+          (round.records as BrowserCallRecord[])[0]?.status === "pending",
+      ),
+  );
+  const unlimitedBrowser = unlimited.done.browser as {
+    finished?: unknown;
+  } | null;
+  check(
+    "the browser claims and finishes the call",
+    unlimitedBrowser !== null &&
+      unlimitedBrowser.finished !== undefined &&
+      (unlimited.done.records as BrowserCallRecord[])[0]?.status === "settled",
+  );
+  check(
+    "the run settles done after one more model request",
+    unlimited.done.settled === "done" && unlimited.done.requests === 1,
+  );
+  const unlimitedRows = unlimited.done.transcript as Row[];
+  check(
+    "transcript: user, tool call, browser's tool result, answer",
+    JSON.stringify(unlimitedRows.map(({ kind }) => kind)) ===
+      JSON.stringify([
+        "pi.user",
+        "pi.assistant",
+        "pi.tool-result",
+        "pi.assistant",
+      ]) &&
+      unlimitedRows[1]?.toolCalls?.[0] === browserToolName &&
+      unlimitedRows[2]?.isError === false &&
+      unlimitedRows[3]?.text === answer,
+  );
+  print(
+    `  wake at the end: ${JSON.stringify(unlimited.done.wake)}; seen active while waiting: ${String(
+      unlimited.rounds.every((round) => (round.wake as Wake).active),
+    )}`,
+  );
+
   const failed = results.filter(
     ({ required, pass }) => required && !pass,
   ).length;
@@ -464,8 +550,8 @@ const drive = async () => {
   ).length;
   print(
     failed === 0
-      ? `\nAll ${required} async criteria pass.`
-      : `\n${failed} of ${required} async criteria fail.`,
+      ? `\nAll ${required} required criteria pass.`
+      : `\n${failed} of ${required} required criteria fail.`,
   );
   process.exitCode = failed === 0 ? 0 : 1;
 };
