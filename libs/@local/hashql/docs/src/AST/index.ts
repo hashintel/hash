@@ -65,6 +65,9 @@ export class Store extends Context.Service<Store, store.Store>()(
 /** What a `{@link}` in a comment or a name in an example's code resolves to. */
 export type Name = store.Name;
 
+/** A node `reserveSymbols` reserves with its siblings, with the symbols that name it and the build that makes it. */
+export type Entry<T extends Target.Target, E, R> = store.Entry<T, E, R>;
+
 export const make = store.make;
 
 export const layer = Layer.sync(Store, make);
@@ -100,3 +103,9 @@ export const reserveSymbol: {
   ): Effect.Effect<Interned.Interned<T>, E, R | Store> =>
     Effect.flatMap(Store, (graph) => graph.reserveSymbol(symbols, build)),
 );
+
+/** Reserves every entry's identity, then builds the entries in order, so a node can refer to a sibling declared after it. */
+export const reserveSymbols = <T extends Target.Target, E, R>(
+  entries: readonly store.Entry<T, E, R>[],
+): Effect.Effect<readonly Interned.Interned<T>[], E, R | Store> =>
+  Effect.flatMap(Store, (graph) => graph.reserveSymbols(entries));
