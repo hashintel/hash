@@ -1,5 +1,6 @@
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
@@ -13,6 +14,7 @@ import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
+import { DataTypeEditorDrawer } from "../shared/data-type-editor-drawer";
 import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
@@ -39,21 +41,25 @@ type ParsedQueryParams = {
 
 export type TabId = "all" | ParsedQueryKindParam;
 
-const createButtonByTab: Record<TabId, { label: string; href: string } | null> =
-  {
-    all: { label: "Create type", href: "/new/types/entity-type" },
-    "entity-type": {
-      label: "Create entity type",
-      href: "/new/types/entity-type",
-    },
-    "link-type": {
-      label: "Create link type",
-      href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
-    },
-    // TODO(H-773): add the property type creation button
-    "property-type": null,
-    "data-type": { label: "Create data type", href: "/new/types/data-type" },
-  };
+const createButtonByTab: Record<
+  TabId,
+  | { label: string; href: string }
+  | { label: string; opensDataTypeDrawer: true }
+  | null
+> = {
+  all: { label: "Create type", href: "/new/types/entity-type" },
+  "entity-type": {
+    label: "Create entity type",
+    href: "/new/types/entity-type",
+  },
+  "link-type": {
+    label: "Create link type",
+    href: `/new/types/entity-type?extends=${blockProtocolEntityTypes.link.entityTypeId}`,
+  },
+  // TODO(H-773): add the property type creation button
+  "property-type": null,
+  "data-type": { label: "Create data type", opensDataTypeDrawer: true },
+};
 
 type TypesPageProps = {
   currentTab: TabId;
@@ -70,6 +76,19 @@ export const getServerSideProps: GetServerSideProps<
 };
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
+  const router = useRouter();
+
+  const [showCreateDataTypeDrawer, setShowCreateDataTypeDrawer] =
+    useState(false);
+
+  // `/types/data-type?new` deep-links to the creation drawer
+  useEffect(() => {
+    if (router.isReady && router.query.new !== undefined) {
+      setShowCreateDataTypeDrawer(true);
+      void router.replace("/types/data-type", undefined, { shallow: true });
+    }
+  }, [router]);
+
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
 
   const [latestEntityTypesByKind, setLatestEntityTypesByKind] = useState<{
@@ -267,7 +286,9 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             <TypesPageTabs currentTab={currentTab} />
             {createButton ? (
               <CreateButton
-                href={createButton.href}
+                {...("opensDataTypeDrawer" in createButton
+                  ? { onClick: () => setShowCreateDataTypeDrawer(true) }
+                  : { href: createButton.href })}
                 variant="tertiary_quiet"
                 endIcon={<PlusRegularIcon />}
               >
@@ -290,6 +311,16 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
         <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
+      {showCreateDataTypeDrawer && (
+        <DataTypeEditorDrawer
+          mode="create"
+          onClose={() => setShowCreateDataTypeDrawer(false)}
+          onCreated={() => {
+            setShowCreateDataTypeDrawer(false);
+            void fetchDataTypes();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -1,0 +1,59 @@
+- dialog [ref=f13e997]:
+    - generic [ref=f13e1000]:
+        - button "Close drawer" [ref=f13e1001] [cursor=pointer]
+        - heading "Edit Drawer Test Scores" [level=2] [ref=f13e1004]
+    - generic [ref=f13e1006]:
+        - group [ref=f13e1007]:
+            - generic [ref=f13e1009]:
+                - text: Name
+                - generic [ref=f13e1010]: "*"
+            - textbox "Name *" [ref=f13e1014]:
+                - /placeholder: e.g. Email
+                - text: Drawer Test Scores
+        - group [ref=f13e1015]:
+            - generic [ref=f13e1017]:
+                - text: Description
+                - generic [ref=f13e1018]: "*"
+            - textbox "Description *" [ref=f13e1021]:
+                - /placeholder: Describe this data type in one or two sentences
+                - text: A list of score values.
+        - group "Type" [ref=f13e1022]:
+            - generic [ref=f13e1023]:
+                - generic [ref=f13e1024]: Type
+                - generic [ref=f13e1025]: "*"
+            - generic [ref=f13e1026]:
+                - generic [ref=f13e1027]:
+                    - generic [ref=f13e1028]:
+                        - generic [ref=f13e1029]:
+                            - generic [ref=f13e1033]: List
+                            - generic [ref=f13e1034]: An ordered list of values
+                        - generic [ref=f13e1035]:
+                            - button "Change type" [ref=f13e1037] [cursor=pointer]
+                            - button "Remove type" [ref=f13e1041] [cursor=pointer]
+                    - generic [ref=f13e1044]:
+                        - radiogroup [ref=f13e1046]:
+                            - generic [ref=f13e1048] [cursor=pointer]:
+                                - generic [ref=f13e1049]: Flexible
+                                - radio "Flexible" [ref=f13e1050]
+                            - generic [ref=f13e1051] [cursor=pointer]:
+                                - generic [ref=f13e1052]: Fixed
+                                - radio "Fixed" [checked] [ref=f13e1053]
+                        - generic [ref=f13e1073]:
+                            - textbox "Label before" [ref=f13e1077]: $
+                            - generic [ref=f13e1078]:
+                                - combobox [aria-hidden] [ref=f13e1079]
+                                - combobox [ref=f13e1082]: Number
+                            - textbox "Label after" [ref=f13e1086]: per unit
+                            - button "Remove element" [ref=f13e1089] [cursor=pointer]
+                        - generic [ref=f13e1097]:
+                            - textbox "Label before" [ref=f13e1101]
+                            - generic [ref=f13e1102]:
+                                - combobox [aria-hidden] [ref=f13e1103]
+                                - combobox [ref=f13e1106]: Number
+                            - textbox "Label after" [ref=f13e1110]
+                            - button "Remove element" [ref=f13e1113] [cursor=pointer]
+                        - button "Add" [active] [ref=f13e1093] [cursor=pointer]
+                - button "Allow another type" [ref=f13e1063] [cursor=pointer]
+    - generic [ref=f13e1068]:
+        - button "Cancel" [ref=f13e1069] [cursor=pointer]
+        - button "Save changes" [ref=f13e1070] [cursor=pointer]

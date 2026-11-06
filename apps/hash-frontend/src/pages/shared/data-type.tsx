@@ -1,9 +1,8 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import { Box, Container, Stack } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { NextSeo } from "next-seo";
-import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
@@ -15,19 +14,15 @@ import {
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
-import {
-  createDataTypeMutation,
-  queryDataTypeSubgraphQuery,
-  updateDataTypeMutation,
-} from "../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
+import { DataTypeEditorDrawer } from "./data-type-editor-drawer";
 import { DataTypeConstraints } from "./data-type/data-type-constraints";
 import { DataTypeConversions } from "./data-type/data-type-conversions";
 import {
   type DataTypeFormData,
-  getDataTypeFromFormData,
   getFormDataFromDataType,
 } from "./data-type/data-type-form";
 import { DataTypeHeader } from "./data-type/data-type-header";
@@ -35,7 +30,6 @@ import { DataTypeLabels } from "./data-type/data-type-labels";
 import { DataTypesParents } from "./data-type/data-type-parents";
 import { InheritedConstraintsProvider } from "./data-type/shared/inherited-constraints-provider";
 import { useDataTypesContext } from "./data-types-context";
-import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
 import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
@@ -45,26 +39,19 @@ import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 import type {
-  CreateDataTypeMutation,
-  CreateDataTypeMutationVariables,
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
-  UpdateDataTypeMutation,
-  UpdateDataTypeMutationVariables,
 } from "../../graphql/api-types.gen";
 import type { DataTypeRootType } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
   OntologyTypeVersion,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { Theme } from "@mui/material";
 
 type DataTypeProps = {
   isInSlide?: boolean;
-  webId?: WebId | null;
-  draftNewDataType?: DataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
   requestedVersion: OntologyTypeVersion | null;
   onDataTypeUpdated: (dataType: DataTypeWithMetadata) => void;
@@ -72,34 +59,13 @@ type DataTypeProps = {
 
 export const DataType = ({
   isInSlide: inSlide,
-  webId,
-  draftNewDataType,
   dataTypeBaseUrl,
   requestedVersion,
   onDataTypeUpdated,
 }: DataTypeProps) => {
-  const router = useRouter();
-
   const { refetch: refetchAllDataTypes } = useDataTypesContext();
 
-  const [createDataType] = useMutation<
-    CreateDataTypeMutation,
-    CreateDataTypeMutationVariables
-  >(createDataTypeMutation, {
-    onCompleted() {
-      refetchAllDataTypes();
-    },
-  });
-
-  const [updateDataType] = useMutation<
-    UpdateDataTypeMutation,
-    UpdateDataTypeMutationVariables
-  >(updateDataTypeMutation, {
-    onCompleted(data) {
-      refetchAllDataTypes();
-      onDataTypeUpdated(data.updateDataType);
-    },
-  });
+  const [showEditDrawer, setShowEditDrawer] = useState(false);
 
   const formMethods = useForm<DataTypeFormData>({
     defaultValues: {
@@ -111,34 +77,12 @@ export const DataType = ({
     },
   });
 
-  const {
-    control,
-    formState,
-    handleSubmit: wrapHandleSubmit,
-    reset,
-  } = formMethods;
-
-  const parents = useWatch({
-    control,
-    name: "allOf",
-    defaultValue: [],
-  });
+  const { control } = formMethods;
 
   const abstract = useWatch({
     control,
     name: "abstract",
   });
-
-  useEffect(() => {
-    if (draftNewDataType) {
-      reset(
-        getFormDataFromDataType({
-          schema: draftNewDataType.schema,
-          metadata: { conversions: {} },
-        }),
-      );
-    }
-  }, [draftNewDataType, reset]);
 
   const {
     loading: loadingRemoteDataType,
@@ -160,17 +104,25 @@ export const DataType = ({
           traversalPaths: [],
         },
       },
-      skip: !!draftNewDataType,
       fetchPolicy: "cache-and-network",
     },
   );
 
-  const { remoteDataType, latestVersionNumber: latestVersion } = useMemo<{
+  const {
+    remoteDataType,
+    latestDataType,
+    latestVersionNumber: latestVersion,
+  } = useMemo<{
     remoteDataType: DataTypeWithMetadata | null;
+    latestDataType: DataTypeWithMetadata | null;
     latestVersionNumber: OntologyTypeVersion | null;
   }>(() => {
-    if (!remoteDataTypeData || !!draftNewDataType) {
-      return { remoteDataType: null, latestVersionNumber: null };
+    if (!remoteDataTypeData) {
+      return {
+        remoteDataType: null,
+        latestDataType: null,
+        latestVersionNumber: null,
+      };
     }
 
     const dataTypes = getRoots<DataTypeRootType>(
@@ -200,6 +152,7 @@ export const DataType = ({
     if (!highestVersionDataType) {
       return {
         remoteDataType: null,
+        latestDataType: null,
         latestVersionNumber: null,
       };
     }
@@ -207,15 +160,17 @@ export const DataType = ({
     if (!requestedVersion || !matchedDataType) {
       return {
         remoteDataType: null,
+        latestDataType: highestVersionDataType,
         latestVersionNumber: highestVersionDataType.metadata.recordId.version,
       };
     }
 
     return {
       remoteDataType: matchedDataType,
+      latestDataType: highestVersionDataType,
       latestVersionNumber: highestVersionDataType.metadata.recordId.version,
     };
-  }, [remoteDataTypeData, requestedVersion, draftNewDataType]);
+  }, [remoteDataTypeData, requestedVersion]);
 
   useEffect(() => {
     if (remoteDataType) {
@@ -223,76 +178,14 @@ export const DataType = ({
     }
   }, [remoteDataType, formMethods]);
 
-  const dataType = remoteDataType ?? draftNewDataType;
-
-  const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
-
-  const isDraft = !!draftNewDataType;
+  const dataType = remoteDataType;
 
   const { userPermissions, loading: loadingUserPermissions } =
     useUserPermissionsOnDataType(dataType?.schema.$id);
 
-  const handleSubmit = wrapHandleSubmit(async (data) => {
-    if (!isDirty && !isDraft) {
-      /**
-       * Prevent publishing a type unless:
-       * 1. The form has been touched by the user (isDirty) – don't publish versions without changes
-       * OR
-       * 2. It's a new draft type – the user may not have touched the form from its initial state,
-       *    which is set from input the user supplies in a separate form/modal.
-       */
-      return;
-    }
-
-    const { dataType: inputDataType, conversions } =
-      getDataTypeFromFormData(data);
-
-    if (isDraft) {
-      if (!webId) {
-        throw new Error("Cannot publish draft without webId");
-      }
-
-      const response = await createDataType({
-        variables: {
-          dataType: inputDataType,
-          conversions,
-          webId,
-        },
-      });
-
-      if (!!response.errors?.length || !response.data) {
-        throw new Error("Could not publish new data type");
-      }
-
-      void router.push(response.data.createDataType.schema.$id);
-      return;
-    }
-
-    if (!remoteDataType?.schema.$id) {
-      throw new Error("Cannot update data type without existing data type");
-    }
-
-    const response = await updateDataType({
-      variables: {
-        dataTypeId: remoteDataType.schema.$id,
-        dataType: inputDataType,
-        conversions,
-      },
-    });
-
-    if (!!response.errors?.length || !response.data) {
-      throw new Error("Could not update data type");
-    }
-  });
-
   const { pushToSlideStack } = useSlideStack();
 
-  if (
-    !draftNewDataType &&
-    !dataType &&
-    !loadingRemoteDataType &&
-    !loadingUserPermissions
-  ) {
+  if (!dataType && !loadingRemoteDataType && !loadingUserPermissions) {
     return (
       <NotFound
         resourceLabel={{
@@ -330,110 +223,89 @@ export const DataType = ({
 
   const currentVersion = extractVersion(dataType.schema.$id);
 
-  const isLatest = !requestedVersion || requestedVersion === latestVersion;
-
-  const isReadOnly = !draftNewDataType && (!userPermissions.edit || !isLatest);
+  // Editing always applies to the latest version, whichever version is viewed
+  const canEdit = userPermissions.edit;
 
   return (
     <>
       {!inSlide && <NextSeo title={`${dataType.schema.title} | Data Type`} />}
       <FormProvider {...formMethods}>
-        <Box display="contents" component="form" onSubmit={handleSubmit}>
-          <TopContextBar
-            defaultCrumbIcon={null}
-            item={remoteDataType ?? undefined}
-            crumbs={[
-              {
-                href: "/types",
-                title: "Types",
-                id: "types",
-              },
-              {
-                href: "/types/data-type",
-                title: "Data Types",
-                id: "data-types",
-              },
-              {
-                title: dataType.schema.title,
-                id: dataType.schema.$id,
-              },
-            ]}
-            onItemUnarchived={() => {
-              void refetchRemoteType();
-              refetchAllDataTypes();
-            }}
-            scrollToTop={() => {}}
-            sx={{ bgcolor: "white" }}
-          />
+        <TopContextBar
+          defaultCrumbIcon={null}
+          item={dataType}
+          crumbs={[
+            {
+              href: "/types",
+              title: "Types",
+              id: "types",
+            },
+            {
+              href: "/types/data-type",
+              title: "Data Types",
+              id: "data-types",
+            },
+            {
+              title: dataType.schema.title,
+              id: dataType.schema.$id,
+            },
+          ]}
+          onItemUnarchived={() => {
+            void refetchRemoteType();
+            refetchAllDataTypes();
+          }}
+          scrollToTop={() => {}}
+          sx={{ bgcolor: "white" }}
+        />
 
-          {!isReadOnly && (
-            <EditBarTypeEditor
+        <Box sx={typeHeaderContainerStyles}>
+          <Container sx={inSlide ? inSlideContainerStyles : {}}>
+            <DataTypeHeader
               currentVersion={currentVersion}
-              isDraft={isDraft}
-              discardButtonProps={
-                // @todo confirmation of discard when draft
-                isDraft
-                  ? {
-                      href: `/new/types/data-type`,
-                    }
-                  : {
-                      onClick() {
-                        reset();
-                      },
-                    }
-              }
-              errorMessage={
-                parents.length === 0
-                  ? "must extend another data type"
-                  : Object.keys(formState.errors).length > 0
-                    ? "see validation errors below"
-                    : undefined
-              }
-              key={dataType.schema.$id} // reset edit bar state when the data type changes
-              gentleErrorStyling={parents.length === 0}
+              dataTypeSchema={dataType.schema}
+              isInSlide={inSlide}
+              isReadOnly
+              latestVersion={latestVersion}
+              onEdit={canEdit ? () => setShowEditDrawer(true) : undefined}
             />
-          )}
-
-          <Box sx={typeHeaderContainerStyles}>
-            <Container sx={inSlide ? inSlideContainerStyles : {}}>
-              <DataTypeHeader
-                currentVersion={currentVersion}
-                dataTypeSchema={dataType.schema}
-                isDraft={isDraft}
-                isReadOnly={isReadOnly}
-                isInSlide={inSlide}
-                latestVersion={latestVersion}
-              />
-            </Container>
-          </Box>
-
-          <TypeDefinitionContainer inSlide={inSlide}>
-            <Stack spacing={6.5}>
-              <DataTypesParents
-                dataTypeBaseUrl={dataType.metadata.recordId.baseUrl}
-                isReadOnly={isReadOnly}
-                onDataTypeClick={(dataTypeId) => {
-                  pushToSlideStack({
-                    kind: "dataType",
-                    itemId: dataTypeId,
-                  });
-                }}
-              />
-
-              <InheritedConstraintsProvider>
-                <DataTypeConstraints isReadOnly={isReadOnly} />
-                <DataTypeLabels isReadOnly={isReadOnly} />
-                {!abstract && (
-                  <DataTypeConversions
-                    dataType={dataType.schema}
-                    isReadOnly={isReadOnly}
-                  />
-                )}
-              </InheritedConstraintsProvider>
-            </Stack>
-          </TypeDefinitionContainer>
+          </Container>
         </Box>
+
+        <TypeDefinitionContainer inSlide={inSlide}>
+          <Stack spacing={6.5}>
+            <DataTypesParents
+              dataTypeBaseUrl={dataType.metadata.recordId.baseUrl}
+              isReadOnly
+              onDataTypeClick={(dataTypeId) => {
+                pushToSlideStack({
+                  kind: "dataType",
+                  itemId: dataTypeId,
+                });
+              }}
+            />
+
+            <InheritedConstraintsProvider>
+              <DataTypeConstraints isReadOnly />
+              <DataTypeLabels isReadOnly />
+              {!abstract && (
+                <DataTypeConversions dataType={dataType.schema} isReadOnly />
+              )}
+            </InheritedConstraintsProvider>
+          </Stack>
+        </TypeDefinitionContainer>
       </FormProvider>
+
+      {showEditDrawer && (
+        <DataTypeEditorDrawer
+          mode="edit"
+          dataType={latestDataType ?? dataType}
+          onClose={() => setShowEditDrawer(false)}
+          onUpdated={(updatedDataType) => {
+            setShowEditDrawer(false);
+            void refetchRemoteType();
+            onDataTypeUpdated(updatedDataType);
+          }}
+        />
+      )}
 
       <GlobalStyles<Theme>
         styles={(theme) => ({
