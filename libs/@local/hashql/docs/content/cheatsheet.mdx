@@ -1,0 +1,64 @@
+---
+title: HashQL cheatsheet
+description: Compare familiar language constructs with Draft and both HashQL notations.
+---
+
+import { Comparison } from "../src/guide/comparison.js";
+
+Choose the two columns independently. Draft cells go [inside the setup callback](#run-a-draft-example). The notation columns are illustrative. **What differs** marks where a familiar-language analogy stops holding.
+
+## Compare the forms
+
+<Comparison />
+
+## Run a Draft example
+
+Each Draft cell is the body of this callback. Paste one cell at a time, including its `return`:
+
+```ts
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  return $.literal(2n);
+});
+```
+
+The empty object declares no execution inputs. This constructs a program, not its evaluated result. To serialize it to J-Expr:
+
+```ts
+import { Result } from "effect";
+
+const text = Result.getOrThrow(
+  Result.flatMap(built, (root) => Program.compile(Program.program(root))),
+);
+```
+
+`getOrThrow` is convenient for these controlled examples. An application can [handle the construction result](/docs/hashql/troubleshooting#handle-a-construction-failure) instead. Serialization does not run the server-side compiler or query a database.
+
+## Run a familiar-language example
+
+The host-language cells bind their result to `value`. Run each example independently.
+
+- **Rust:** put a cell inside `fn main()`. The import example additionally uses the small module below, defined outside `main`.
+- **Python:** use Python 3.10 or later. The alias example uses `typing.TypeAlias`, while `NewType` provides a static distinction rather than a runtime wrapper.
+- **TypeScript:** compile with bigint support, targeting ES2020 or later. The import example uses Node's `node:util`. The class example needs TypeScript compilation, not an erasable-syntax-only type stripper.
+
+<details>
+<summary>Rust setup for the import example</summary>
+
+Rust has no standard free function matching the imported equality operation shown here. This fixture makes the import and renaming visible without pretending there is one:
+
+```rust
+mod cmp {
+    pub fn eq(left: i64, right: i64) -> bool {
+        left == right
+    }
+}
+```
+
+</details>
+
+## Put the forms together
+
+The [introduction](/docs/hashql/intro) explains why the language has these forms. [Writing a HashQL query](/docs/hashql/writing-a-query) combines them into a release briefing. The [Draft reference](/docs/hashql/reference/hashql/Draft) provides the exact construction API.
