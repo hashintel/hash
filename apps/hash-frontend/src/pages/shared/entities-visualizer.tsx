@@ -304,7 +304,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   /**
    * What a table summary describes. The endpoint spans its type maps over the
    * scope rather than the narrowed filter, so a type selection or a re-sort
-   * leaves a summary still answering — only these three change what it covers.
+   * leaves a summary still answering. Only the webs, archived entities and a
+   * pinned type change what it covers: a pin lifts the system-type exclusions.
    *
    * Kept in step with the scope the table query sends.
    */
@@ -314,8 +315,9 @@ export const EntitiesVisualizer: FunctionComponent<{
         filterState.web.includeOtherWebs,
         [...filterState.web.selectedInternalWebIds].toSorted(),
         filterState.includeArchived,
+        isTypePinned,
       ]),
-    [filterState.web, filterState.includeArchived],
+    [filterState.web, filterState.includeArchived, isTypePinned],
   );
 
   /**
