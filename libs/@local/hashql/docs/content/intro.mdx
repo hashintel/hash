@@ -73,7 +73,7 @@ If the language has only three primitives, how do we express control flow? With 
 
 Unlike JavaScript's `if` statement, HashQL's `if` expression produces a result that another expression can use. Let's extend the previous example: if `foo` equals `2`, return `foo`; otherwise, return `0`.
 
-```ts tab="TypeScript" tab-group="hashql-language"
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
@@ -118,7 +118,7 @@ So far, `foo` has always come from a literal written into the program. In many l
 
 HashQL provides `input` for this purpose. It lets an expression request a named value supplied to the program rather than to the enclosing function. You can think of it as a global `const` whose value is supplied for each execution.
 
-```ts tab="TypeScript" tab-group="hashql-language"
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({ foo: BigInt }, ($, inputs) => {
@@ -207,13 +207,14 @@ You can write `_` in any type position to let the compiler infer a concrete type
 
 ### Bringing names into scope with `use`
 
-The `eq` function we have been using comes from the standard library. Its full path is `::core::cmp::eq`, but the prelude makes it available without spelling that path each time. The `use` special form brings items from a module into the scope of an expression. It can also give an imported item a different local name:
+The `eq` function we have been using comes from the standard library, as the name suggests it is used to compare two values for equality. Its full path is `::core::cmp::eq`, but the prelude makes it available without spelling that path each time. The `use` special form brings items from a module into the scope of an expression. It can also give an imported item a different local name:
 
-```ts tab="TypeScript" tab-group="hashql-language"
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
-  const { same } = $.import($.modules().core.cmp, { eq: "same" });
+  const { cmp } = $.modules();
+  const { same } = $.import(cmp, { eq: "same" });
   const foo = $.let("foo", 2n);
 
   return same(foo, 2n);
@@ -232,7 +233,7 @@ use(::core::cmp, {eq: same},
   same(foo, 2))
 ```
 
-This still evaluates to `true`. The name `same` refers to the existing `eq` function rather than defining a new one. Like a `let` binding, the imported name is available within the body of the `use` expression. The import does not rename the function in its original module.
+Nothing in this example has really changed, it still evaluates to `true`, we just gave the `eq` function a different local name. Like a `let` binding, the imported name is available within the body of the `use` expression, but unlike a `let` binding, it also imports underlying modules (which can then be used to import other things), values and types. Importantly, this operation does not change the original module, the rename is only there for your specific program.
 
 <Accordions>
   <Accordion title="Why a separate import form?" id="why-use-instead-of-let">
@@ -242,7 +243,7 @@ Why have a dedicated import form when we could use `let`? A `*` import brings ev
   </Accordion>
 </Accordions>
 
-Draft spells this operation `$.import`. `$.modules().core.cmp` selects the comparison module, and `{ eq: "same" }` selects `eq` under its new local name.
+Draft spells this operation `$.import`. `$.modules().cmp` selects the comparison module, and `{ eq: "same" }` selects `eq` under its new local name.
 
 <Callout type="warn" title="Important">
 
@@ -252,9 +253,11 @@ The SDK's `import` constructs a HashQL import, not a host-language import. The i
 
 ### Reading a field with `access`
 
-Values need not be individual numbers. A struct groups fields into one value. Let's make `foo` a struct containing our integer and a label, then read the integer back:
+The values that we have handled so far have been primitives, integers, strings, and so on. And that is nice and well, but for a program to do anything useful, we need _structure_, HashQL supports dynamic and static collections for this: tuples, structs, lists and dictionaries. More on them later. What's important is that these collections have values nested inside them. So how do we access them? `access` is the operator for reading a field from a struct or tuple, aka collections of values where the keys are always known upfront, without any uncertainty about what fields are available. We call this projection.
 
-```ts tab="TypeScript" tab-group="hashql-language"
+In this example we project the `value` field from the `foo` struct:
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 
@@ -270,7 +273,7 @@ Draft.program({}, ($) => {
 
 ```text tab="Functional notation" tab-group="hashql-language"
 (let foo {value: 2, label: "two"}
-  (access foo value))
+  (`.` foo value))
 ```
 
 ```text tab="Reference notation" tab-group="hashql-language"
@@ -278,17 +281,29 @@ let foo = (value: 2, label: "two") in
 foo.value
 ```
 
-The result is `2`. The `access` special form selects a field whose name is known when the program is compiled. The compiler checks that the field exists in the struct's type. Asking for `foo.missing` would be a type error, not a lookup returning `null`.
+The result is `2`, the `access` special forms takes a look at the value it is given in the first slot, and then projects a reference to the value out, so that you can use it directly. This is very similar to `foo.bar` in JavaScript, Rust, or Python. But unlike dynamic languages, HashQL requires you to know and guarantee that the field exists at compile time. If you ask for a field that does not exist, you will get a type error.
 
-In Draft, `Program.Structural.struct` constructs the struct expression. Reading `foo.value` constructs its HashQL field access, rather than reading the integer in TypeScript. The reference notation uses the same dot spelling for the language's `access` operation.
+In our little example, the Draft API uses `Program.Structural.struct` to construct the struct expression, with `foo.value` constructing its HashQL field access.
 
-> **Note.** Tuples use `access` too, but select a position instead of a field name. Positions start at zero: `pair.0` in the reference notation selects the first element. A field name or tuple position must be fixed in the expression. For a lookup whose key is itself computed, use `index`.
+<Callout type="info" title="Tuples">
+
+Tuples use `access`/`.` too, but select by position instead of a field name. Positions start at zero: `pair.0` selects the first element, `pair.1` selects the second, and so on.
+
+</Callout>
 
 ### Looking up an element with `index`
 
-A list may contain a different number of elements on each execution, and the position we want may come from another expression. The `index` special form handles this kind of lookup. Here, `foo` is a list and `position` selects an element:
+Static collections, like tuples and structs are useful, but sometimes you have dynamic collections, values where you want to add and remove values from at runtime, where you might not know all the keys and positions beforehand. This is where the dynamic collections come in: `List<T>` and `Dict<K, V>`. They are similar to arrays and records in TypeScript, or lists and dicts in Python.
 
-```ts tab="TypeScript" tab-group="hashql-language"
+So how do we project into a collection when we can't guarantee that the key we want exists? Instead of `access`, we use `index` here. While `access` is called projection, we can think of `index` as subscripting into a collection.
+
+<Callout type="info" title="access vs index">
+
+You cannot interchange one for the other `access` can only be used with static collections (tuples and structs), and `index` can only be used with dynamic collections (lists and dicts).
+
+</Callout>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 
@@ -312,9 +327,17 @@ let position = 0 in
 foo[position]
 ```
 
-Unlike a field in a struct, an element at a computed position might not exist. The language therefore gives `index` an `Option` result: `Some(2)` for position `0`, `Some(3)` for position `1`, and `None()` for position `2`, which is past the end of this list. A missing element is a result to handle rather than a panic.
+Because we don't know if an element exists at a given position, `index` returns an `Option` result. `Some` contains the value if the element exists, and `None` if it does not. This is important, because unlike JavaScript or Python, HashQL has no notion of secondary control-flow. There is no exception throwing, you must always handle it yourself. In our example the results for position `0` is `Some(2)`, for position `1` it is `Some(3)`, and for position `2` it is `None()`, which is past the end of this list.
 
-Draft uses `Program.Structural.list` to construct the list and `$index` to construct the lookup. Its `BigInt` argument specifies the element type, including when the list is empty. Dictionaries use the same special form to look up an entry by key instead of an integer position.
+The Draft API uses `Program.Structural.list` to construct the list, and the `$index` to construct the lookup. The first argument is the type of the list elements, and the second argument is the list itself.
+
+<Accordions>
+  <Accordion title="Why is indexing done over `$index`?" id="why-use-instead-of-let">
+
+The reason is a limitation inside of JavaScript, we make use of `Reflect` a lot, but we cannot differentiate between if the indexing was done via `[]` or via `.`, and what is inside the brackets must always evaluate to a string. In most cases, that isn't something we can accomodate. So then why the `$` prefix? A `$` prefix is invalid inside of HashQL followed by an identifier (note that `$` alone _is_ a valid identifier). Because the language itself doesn't stop a type from supporting subscription and projection at the same time, we prefix `$` to the index expression to make sure that if that would ever be the case the SDK is able to protect against it (it also simplifies the implementation).
+
+  </Accordion>
+</Accordions>
 
 ## Strong typing
 
@@ -347,7 +370,7 @@ An integer is also a number in HashQL, so the assertion is valid and the result 
 
 Just as `let` gives a value a name, `type` gives a type a name. Suppose our integer represents a count. We can call its type `Count` and use that name in the binding's annotation:
 
-```ts tab="TypeScript" tab-group="hashql-language"
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
@@ -378,7 +401,7 @@ In Draft, `$.type` returns a handle for the HashQL type. It is not a TypeScript 
 
 An alias helps explain what a value means, but sometimes we need the compiler to distinguish values with the same underlying representation. The `newtype` special form creates a distinct type and a constructor with the same name:
 
-```ts tab="TypeScript" tab-group="hashql-language"
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
 
 Draft.program({}, ($) => {
