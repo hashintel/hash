@@ -93,7 +93,7 @@ export const makeOption: (
 /**
  * Parses a complete path with typed reasons and UTF-16 error offsets.
  *
- * The grammar admits ASCII spaces, tabs and line breaks around separators and generic delimiters. A plain relative path does not admit surrounding whitespace. A leading root or closing generic delimiter can consume it. Each generic list is nonempty and has no trailing comma. Type arguments support inference, paths, groups, tuples, structs, unions and intersections. Union has higher precedence than intersection. Input nested deeper than the call stack allows fails with {@link ParserError.NestingTooDeep} at offset 0.
+ * The grammar admits ASCII spaces, tabs and line breaks around separators and generic delimiters. A plain relative path does not admit surrounding whitespace. A leading root or closing generic delimiter can consume it. Each generic list is nonempty and has no trailing comma. Type arguments support inference, paths, groups, tuples, structs, unions and intersections. Union has higher precedence than intersection. A struct whose field names repeat after decoding fails with {@link ParserError.DuplicateStructField}. Input nested deeper than the call stack allows fails with {@link ParserError.NestingTooDeep} at offset 0.
  *
  * @example
  * ```ts
