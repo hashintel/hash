@@ -67,6 +67,26 @@ export const getOwn = <T>(
   record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined;
 
 /**
+ * Own-property write on a user-keyed record. `defineProperty` rather than
+ * assignment: the record has no prototype (see `createUserKeyedRecord`), so
+ * assignment would behave identically for any key, `__proto__` included,
+ * and `defineProperty` is the form scanners recognise as safe for
+ * user-controlled keys.
+ */
+export const defineOwn = <T>(
+  record: Record<string, T>,
+  key: string,
+  value: T,
+): void => {
+  Object.defineProperty(record, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+};
+
+/**
  * Copies a record's own enumerable entries into a prototype-free record.
  * Use when a record of user-authored keys arrives from outside: spreading
  * onto `{}` keeps `Object.prototype`, and assigning into it goes through

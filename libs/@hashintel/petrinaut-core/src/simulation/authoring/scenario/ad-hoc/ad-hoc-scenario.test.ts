@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { walkHir } from "../../../../hir/hir";
 import { lowerScenarioToHir } from "../../../../hir/scenario";
@@ -30,6 +30,7 @@ import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
   AdHocValue,
+  AdHocVariable,
 } from "./ad-hoc-scenario";
 
 /**
@@ -1536,5 +1537,99 @@ describe("ratio Variables", () => {
         scale: "linear",
       });
     }
+  });
+});
+
+describe("constant evaluation", () => {
+  const exposed = (name: string, expression: string): AdHocVariable => ({
+    name,
+    type: "real",
+    expression,
+    optimize: null,
+    exposed: true,
+  });
+  const withVariables = (
+    ...variables: AdHocVariable[]
+  ): AdHocScenarioState => ({
+    ...baseState(),
+    variables,
+  });
+
+  it.each([
+    '(0, eval)("globalThis.__adhocPoc = 1"), 1',
+    '(async () => { await 0; ({}).constructor.constructor("globalThis.__adhocPoc = 1")(); })(), 1',
+    'Function("globalThis.__adhocPoc = 1")()',
+    "top.__adhocPoc = 1",
+    "globalThis.__adhocPoc = 1",
+  ])("never runs an expression as JavaScript: %s", async (payload) => {
+    vi.stubGlobal("__adhocPoc", 0);
+    try {
+      const state: AdHocScenarioState = {
+        ...withVariables(exposed("probe", payload)),
+        places: { "place-queue": { kind: "uncoloured", count: cell(payload) } },
+      };
+      for (const synthesize of [
+        synthesizeAdHocScenario,
+        synthesizeAdHocOptimization,
+      ]) {
+        const outcome = synthesize(state, context);
+        expect(outcome.ok).toBe(false);
+        if (!outcome.ok) {
+          expect(outcome.errors[0]?.message).toContain(
+            "must resolve to a constant",
+          );
+        }
+      }
+      expect(
+        createAdHocPlaceTotalResolver(state, context)("place-queue"),
+      ).toEqual({
+        resolved: false,
+        text: payload,
+      });
+      // The async payload would land after a microtask; give it the chance.
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(Reflect.get(globalThis, "__adhocPoc")).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("evaluates the scenario vocabulary", () => {
+    const outcome = synthesizeAdHocScenario(
+      withVariables(
+        exposed(
+          "scaled",
+          "Math.round(parameters.rate * 2) + (parameters.lanes > 3 ? 1 : 0)",
+        ),
+      ),
+      context,
+    );
+    expect(scenarioOf(outcome).scenarioParameters).toEqual([
+      { type: "real", identifier: "scaled", default: 4 },
+    ]);
+  });
+
+  it("lets later Variables read earlier ones, and a broken one fails only its readers", () => {
+    const outcome = synthesizeAdHocScenario(
+      withVariables(
+        {
+          name: "broken",
+          type: "real",
+          expression: "wear + 1",
+          optimize: null,
+        },
+        exposed("reader", "scenario.broken * 2"),
+        exposed("independent", "parameters.lanes + 1"),
+      ),
+      context,
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors.map((error) => error.itemId)).toEqual(["reader"]);
+    expect(outcome.errors[0]?.message).toContain("`scenario.broken`");
+    expect(outcome.errors[0]?.message).toContain("Unknown identifier `wear`");
   });
 });
