@@ -1,0 +1,23 @@
+# Traits
+
+Shared interfaces and the types that implement them.
+
+## <a id="Trait"></a>Trait
+
+Trait lead.
+
+**Remarks**
+
+Extra trait detail.
+
+**Example**
+
+```ts
+const x = 1;
+```
+
+Declared inside the package, which does not export it.
+
+**Implemented by**
+
+* [`pkg.Derived`](./pkg/index.html#Derived) Implements the trait.

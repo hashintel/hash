@@ -14,6 +14,8 @@ import * as Catalogue from "../../src/Catalogue.js";
 import * as Document from "../../src/Document.js";
 import * as DocumentationLinks from "../../src/DocumentationLinks.js";
 import * as DocumentationParser from "../../src/DocumentationParser.js";
+import * as Location from "../../src/Location.js";
+import * as Page from "../../src/Page.js";
 import * as Parser from "../../src/Parser.js";
 import * as TypeScript from "../../src/TypeScript/index.js";
 
@@ -69,11 +71,39 @@ export interface Options {
   readonly files?: Readonly<Record<string, string>>;
   /** The TSDoc configuration, by its file name below the fixtures, or the SDK's when absent. */
   readonly configuration?: string;
+  /** Prints a node in place of the compiler's printer, to see what the pages make of its text. */
+  readonly print?: TypeScript.Api.Api["Service"]["print"];
+}
+
+/** A written page, with its Markdown. */
+export interface Written extends Page.Page {
+  readonly markdown: string;
 }
 
 export interface Reference {
   readonly document: Document.Document;
+  readonly pages: readonly Written[];
+  readonly folders: readonly Page.Folder[];
 }
+
+/** A declaration's file and line, as a source map would give them for these files. */
+const locations = (path: Path.Path): Location.Locations["Service"] =>
+  Location.Locations.of({
+    locate: (node) => {
+      const source = node.getSourceFile();
+      let start = 0;
+
+      // A source file is its own source file, and its location is its first line.
+      if (source !== node) {
+        start = node.getStart();
+      }
+
+      return Effect.succeedSome({
+        file: path.basename(source.fileName),
+        line: source.getLineAndCharacterOfPosition(start).line + 1,
+      });
+    },
+  });
 
 /** Builds the reference for `options` as the generation builds a directory's. */
 const build = Effect.fnUntraced(
@@ -128,10 +158,20 @@ const build = Effect.fnUntraced(
       const catalogue = yield* Parser.parse(modules);
       yield* Effect.fromResult(DocumentationLinks.check(catalogue));
       const document = yield* Effect.fromResult(Document.collect(catalogue));
+      const written = yield* Page.all(document, {
+        sourceUrl: ({ file, line }) => `${file}#L${line}`,
+      });
+      const pages = yield* Effect.forEach(written.pages, (page) =>
+        Effect.map(
+          Effect.fromResult(Page.toMarkdown(page)),
+          (markdown): Written => ({ ...page, markdown }),
+        ),
+      );
 
-      return { document };
+      return { document, pages, folders: written.folders };
     }).pipe(
       Effect.scoped,
+      Effect.provideService(Location.Locations, locations(path)),
       Effect.provideServiceEffect(
         DocumentationParser.DocumentationParser,
         DocumentationParser.fromFile(
@@ -141,8 +181,14 @@ const build = Effect.fnUntraced(
           }),
         ),
       ),
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The program serves this reference alone, and closes once its document is complete.
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The program serves this reference alone, and closes once the last page has its Markdown.
       Effect.provide(program),
+      Effect.updateService(TypeScript.Api.Api, (api) =>
+        Option.match(Option.fromUndefinedOr(options.print), {
+          onNone: () => api,
+          onSome: (print) => ({ ...api, print }),
+        }),
+      ),
     );
   },
   // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The fixture owns the compiler process and the filesystem for one reference.
@@ -152,7 +198,7 @@ const build = Effect.fnUntraced(
 /** What building a reference fails on. */
 export type Failure = Effect.Error<ReturnType<typeof build>>;
 
-/** The reference for `options`, collected as the generation collects a directory's, or the failure that stopped it. */
+/** The reference for `options`, written as the generation writes a directory's, or the failure that stopped it. */
 export const run = async (
   options: Options,
 ): Promise<Result.Result<Reference, Failure>> =>
@@ -173,4 +219,14 @@ export const id: {
       entrypoint: "@scope/pkg",
       path,
     }).pipe(Option.getOrThrow, (entry) => entry.id),
+);
+
+/** The page written to `file`. */
+export const page: {
+  (file: string): (reference: Reference) => Written;
+  (reference: Reference, file: string): Written;
+} = Function.dual(2, (reference: Reference, file: string): Written =>
+  Array.findFirst(reference.pages, (written) => written.file === file).pipe(
+    Option.getOrThrow,
+  ),
 );

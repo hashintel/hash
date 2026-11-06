@@ -2,6 +2,7 @@ import { Array, HashMap, HashSet, Option, pipe } from "effect";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import * as Related from "../src/internal/related.js";
+import * as Page from "../src/Page.js";
 import * as Tree from "../src/Tree/index.js";
 import * as Reference from "./fixtures/reference.js";
 
@@ -17,21 +18,13 @@ let loaded: Reference.Reference | null = null;
 const reference = (): Reference.Reference =>
   Option.fromNullishOr(loaded).pipe(Option.getOrThrow);
 
-/** The page of the module at `path` below `entrypoint`. */
-const moduleAt = (
-  entrypoint: string,
-  path: readonly string[] = [],
-): Tree.Page.Module =>
-  pipe(
-    reference().document.pages,
-    Array.filter((tree) => tree.type === "module"),
-    Array.findFirst(
-      ({ origin }) =>
-        origin.name.entrypoint === entrypoint &&
-        origin.name.path.join(".") === path.join("."),
-    ),
-    Option.getOrThrow,
-  );
+const moduleAt = (file: string): Tree.Page.Module => {
+  const { tree } = Reference.page(reference(), file);
+  if (tree.type !== "module") {
+    throw new Error(`${file} is not a module page`);
+  }
+  return tree;
+};
 
 /** An export, then every export below its namespace. */
 const withNested = (
@@ -52,9 +45,9 @@ const exportsOf = (page: Tree.Page.Module): readonly Tree.Export.Export[] =>
 
 /** Every export the reference documents, on any page. */
 const documentedOf = ({
-  document,
+  pages,
 }: Reference.Reference): readonly Tree.Export.Export[] =>
-  Array.flatMap(document.pages, (tree) => {
+  Array.flatMap(pages, ({ tree }) => {
     if (tree.type !== "module") {
       return [];
     }
@@ -114,7 +107,9 @@ describe("document", () => {
 
   test("rich_page_lead", () => {
     expect.hasAssertions();
-    const lead = moduleAt("@scope/pkg").comment.pipe(
+    const root = Reference.page(reference(), "pkg/index.html");
+    expect(Page.description(root)).toBe("Module with code and Value.");
+    const lead = moduleAt("pkg/index.html").comment.pipe(
       Option.flatMap(({ description }) => description),
       Option.getOrThrow,
     );
@@ -138,7 +133,7 @@ describe("document", () => {
 
   test("canonical_entries", () => {
     expect.hasAssertions();
-    const root = moduleAt("@scope/pkg");
+    const root = moduleAt("pkg/index.html");
     const labels = Array.map(rowsOf(root), ({ label }) => label.join("."));
     expect(Array.filter(labels, (label) => label === "again")).toHaveLength(1);
     expect(Array.filter(labels, (label) => label === "Cycle")).toHaveLength(1);
@@ -150,7 +145,7 @@ describe("document", () => {
 
   test("alias_rows", () => {
     expect.hasAssertions();
-    const other = moduleAt("@scope/pkg/Other");
+    const other = moduleAt("pkg/Other.html");
     expect(exportsOf(other)).toStrictEqual([]);
     const [renamed] = rowsOf(other);
     expect(renamed?.label).toStrictEqual(["Renamed"]);
@@ -165,7 +160,7 @@ describe("document", () => {
 
   test("attached_namespace_and_members", () => {
     expect.hasAssertions();
-    const root = moduleAt("@scope/pkg");
+    const root = moduleAt("pkg/index.html");
     const model = Array.findFirst(
       exportsOf(root),
       (exported) => titleOf(exported) === "Model",
@@ -186,10 +181,7 @@ describe("document", () => {
       [1, Option.some("Instance make.")],
     ]);
     expect(
-      Array.map(
-        exportsOf(moduleAt("@scope/pkg", ["Model", "Helpers"])),
-        titleOf,
-      ),
+      Array.map(exportsOf(moduleAt("pkg/Model/Helpers.html")), titleOf),
     ).toStrictEqual(["nested"]);
   });
 
@@ -213,6 +205,15 @@ describe("document", () => {
     );
   });
 
+  test("navigation_directories", () => {
+    expect.hasAssertions();
+    expect(reference().folders).toStrictEqual([
+      { directory: "", pages: ["index", "pkg", "traits"] },
+      { directory: "pkg", pages: ["index", "Other", "Model"] },
+      { directory: "pkg/Model", pages: ["Helpers"] },
+    ]);
+  });
+
   test("relation_labels_and_member_docs", () => {
     expect.hasAssertions();
     const { document } = reference();
@@ -221,27 +222,63 @@ describe("document", () => {
       Reference.id(reference(), ["Model"]),
     ).pipe(Option.getOrThrow);
     const member = Array.head(model.members).pipe(Option.getOrThrow);
-    const pageOf = (entrypoint: string): Option.Option<Placement.Page> =>
+    const pageOf = (file: string): Option.Option<Placement.Page> =>
       Array.findFirst(
         document.placement.pages,
-        ({ entry }) => moduleAt(entrypoint).origin === entry,
+        ({ entry }) => Reference.page(reference(), file).tree.origin === entry,
       );
-    const row = (entrypoint: string): Tree.Row.Row =>
-      Related.row({ ...document, page: pageOf(entrypoint) })(
-        local(member.id),
-      ).pipe(Option.getOrThrow);
-    expect(row("@scope/pkg/Other")).toMatchObject({
+    const row = (file: string): Tree.Row.Row =>
+      Related.row({ ...document, page: pageOf(file) })(local(member.id)).pipe(
+        Option.getOrThrow,
+      );
+    expect(row("pkg/Other.html")).toMatchObject({
       label: ["pkg", "Model", "make"],
     });
-    expect(summaryOf(row("@scope/pkg/Other"))).toStrictEqual(
+    expect(summaryOf(row("pkg/Other.html"))).toStrictEqual(
       Option.some("Static make."),
     );
-    expect(row("@scope/pkg").label).toStrictEqual(["Model", "make"]);
+    expect(row("pkg/index.html").label).toStrictEqual(["Model", "make"]);
+  });
+
+  test("category_and_heading_collisions", async () => {
+    expect.hasAssertions();
+    const result = await Reference.success({
+      source: `
+      declare const pageIndex: number;
+      declare const categoryName: number;
+      export { pageIndex as "page-index", categoryName as "category-a-b" };
+      /** One. @category A+B */ export const first: number;
+      /** Two. @category A B */ export const second: number;
+      /** Explicit. @category Types */ export const named: number;
+      /** Last explicit. @category Zulu */ export const last: number;
+      export class Model {}
+    `,
+    });
+    // With no page below it, the root is a file of its own.
+    const { markdown } = Reference.page(result, "pkg.html");
+    expect(
+      Array.map(
+        [
+          ...markdown.matchAll(
+            /^## <a id="(?<id>[^"]+)"><\/a>(?<heading>.+)$/gmu,
+          ),
+        ],
+        ({ groups }) => [groups?.["heading"], groups?.["id"]],
+      ),
+    ).toStrictEqual([
+      ["Index", "page-index-2"],
+      ["A B", "category-a-b-2"],
+      ["A+B", "category-a-b-3"],
+      ["Types", "category-types"],
+      ["Zulu", "category-zulu"],
+      ["Classes", "category-classes"],
+      ["Constants", "category-constants"],
+    ]);
   });
 
   test("deprecation_scope", () => {
     expect.hasAssertions();
-    const rows = rowsOf(moduleAt("@scope/pkg"));
+    const rows = rowsOf(moduleAt("pkg/index.html"));
     const deprecated = (label: string): boolean =>
       Array.findFirst(rows, (row) => row.label.join(".") === label).pipe(
         Option.getOrThrow,

@@ -1,0 +1,15 @@
+# Empty
+
+[Source](index.d.ts#L67)
+
+Namespace with `rich` content.
+
+```ts
+import { Empty } from "@scope/pkg";
+```
+
+## <a id="page-index"></a>Index
+
+**Functions**
+
+* [`Alias`](./index.html#choose) First call.
