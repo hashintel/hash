@@ -1,8 +1,8 @@
 mod local;
+mod reference;
 mod s3;
 
 use alloc::sync::Arc;
-use core::fmt::Write as _;
 use std::{
     fs::{self, File},
     io::{self, Read as _},
@@ -12,78 +12,17 @@ use std::{
 use error_stack::{Report, ResultExt as _};
 use futures_util::StreamExt as _;
 use hash_crypto::digest::{Sha256, Sha256Digest};
-use object_store::{ObjectStore, WriteMultipart, path::Path as Location};
+use object_store::{ObjectStore, WriteMultipart};
 use tempfile::{NamedTempFile, TempDir};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
+pub use self::reference::{ArtifactRef, ArtifactRefV1, Format};
 use super::{ArtifactError, ArtifactKey, S3Bucket};
 
 /// How many bytes are read, hashed and uploaded at a time.
 pub(in crate::storage) const CHUNK_SIZE: usize = 8 * 1024 * 1024;
 /// How many parts of one artifact are uploaded at the same time.
 const UPLOAD_CONCURRENCY: usize = 4;
-
-// Origin: the media type of `BlobRefV1` and the key extension of `ArtifactStore::publish` in
-// labs `pocs/integrations_rs/src/blob.rs`.
-/// The format of an artifact, which gives its file extension.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Format {
-    Parquet,
-    DuckDb,
-    Json,
-    Binary,
-}
-
-impl Format {
-    const fn extension(self) -> &'static str {
-        match self {
-            Self::Parquet => "parquet",
-            Self::DuckDb => "duckdb",
-            Self::Json => "json",
-            Self::Binary => "bin",
-        }
-    }
-}
-
-// Origin: `BlobRefV1` in labs `pocs/integrations_rs/src/blob.rs`, without the media type, ETag and
-// provider version.
-/// Identifies a stored artifact by its content.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ArtifactRef {
-    key: ArtifactKey,
-    sha256: Sha256Digest,
-    size: u64,
-    format: Format,
-}
-
-impl ArtifactRef {
-    /// Where the artifact is stored, relative to the storage root.
-    #[must_use]
-    pub const fn key(&self) -> &ArtifactKey {
-        &self.key
-    }
-
-    /// The SHA-256 digest of the artifact's bytes.
-    #[must_use]
-    pub const fn sha256(&self) -> Sha256Digest {
-        self.sha256
-    }
-
-    /// The size of the artifact in bytes.
-    #[must_use]
-    pub const fn size(&self) -> u64 {
-        self.size
-    }
-
-    #[must_use]
-    pub const fn format(&self) -> Format {
-        self.format
-    }
-
-    fn location(&self) -> Location {
-        Location::from(&*self.key.0)
-    }
-}
 
 /// Stores artifacts: files written once and addressed by their content.
 ///
@@ -143,14 +82,9 @@ impl ArtifactStorage {
         let (sha256, size) = tokio::task::spawn_blocking(move || digest(&file))
             .await
             .change_context(ArtifactError::Read)??;
-        let artifact = ArtifactRef {
-            key: key(prefix, sha256, format),
-            sha256,
-            size,
-            format,
-        };
+        let artifact = ArtifactRef::new(prefix, sha256, size, format);
         match self.store.head(&artifact.location()).await {
-            Ok(stored) if stored.size == size => return Ok(artifact),
+            Ok(stored) if stored.size == artifact.size() => return Ok(artifact),
             Ok(_) => return Err(Report::new(ArtifactError::Mismatch)),
             Err(object_store::Error::NotFound { .. }) => {}
             Err(error) => return Err(Report::new(error).change_context(ArtifactError::Read)),
@@ -168,12 +102,16 @@ impl ArtifactStorage {
     ///
     /// Returns [`ArtifactError::Read`] if the artifact cannot be downloaded,
     /// [`ArtifactError::Write`] if the local file cannot be written, or
-    /// [`ArtifactError::Mismatch`] if the downloaded bytes do not match the reference.
+    /// [`ArtifactError::Mismatch`] if the reference's key is not addressed by its digest or the
+    /// downloaded bytes do not match the reference.
     pub async fn materialize(
         &self,
         artifact: &ArtifactRef,
     ) -> Result<PathBuf, Report<ArtifactError>> {
-        let target = self.staging.path().join(&*artifact.key.0);
+        if !artifact.is_addressed() {
+            return Err(Report::new(ArtifactError::Mismatch));
+        }
+        let target = self.staging.path().join(artifact.key());
         // Only verified downloads are kept, so a file at the target is the artifact.
         if target.is_file() {
             return Ok(target);
@@ -202,7 +140,7 @@ impl ArtifactStorage {
                 .change_context(ArtifactError::Write)?;
         }
         file.sync_all().await.change_context(ArtifactError::Write)?;
-        if size != artifact.size || hash.finalize() != artifact.sha256 {
+        if !artifact.matches(hash.finalize(), size) {
             return Err(Report::new(ArtifactError::Mismatch));
         }
         match partial.persist_noclobber(&target) {
@@ -257,7 +195,7 @@ impl ArtifactStorage {
             let _aborted = upload.abort().await;
             return Err(error);
         }
-        if size != artifact.size || hash.finalize() != artifact.sha256 {
+        if !artifact.matches(hash.finalize(), size) {
             let _aborted = upload.abort().await;
             return Err(Report::new(ArtifactError::Mismatch));
         }
@@ -281,25 +219,4 @@ fn digest(path: &Path) -> Result<(Sha256Digest, u64), Report<ArtifactError>> {
         hash.update(chunk);
         size += read as u64;
     }
-}
-
-// Origin: the content-addressed key `{prefix}/sha256/{xx}/{sha256}{ext}` built by
-// `ArtifactStore::publish` in labs `pocs/integrations_rs/src/blob.rs`.
-/// The content-addressed key of an artifact under `prefix`.
-fn key(prefix: &ArtifactKey, sha256: Sha256Digest, format: Format) -> ArtifactKey {
-    let bytes = sha256.to_bytes();
-    let hex = bytes
-        .iter()
-        .fold(String::with_capacity(64), |mut hex, byte| {
-            let _infallible = write!(hex, "{byte:02x}");
-            hex
-        });
-    ArtifactKey(
-        format!(
-            "{prefix}/sha256/{:02x}/{hex}.{}",
-            bytes[0],
-            format.extension()
-        )
-        .into(),
-    )
 }

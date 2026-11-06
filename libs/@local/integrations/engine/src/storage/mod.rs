@@ -7,7 +7,7 @@ pub(crate) mod tests;
 
 pub(crate) use self::parquet::Stored;
 pub use self::{
-    artifact::{ArtifactRef, ArtifactStorage, Format},
+    artifact::{ArtifactRef, ArtifactRefV1, ArtifactStorage, Format},
     bucket::S3Bucket,
     namespace::ArtifactNamespace,
     parquet::ParquetStorage,

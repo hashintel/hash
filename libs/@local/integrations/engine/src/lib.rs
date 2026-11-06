@@ -41,8 +41,8 @@ pub use self::{
         SecretStore, SecretValue, SourceError, SourceReader,
     },
     storage::{
-        ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactStorage, Format,
-        ParquetStorage, S3Bucket,
+        ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactRefV1, ArtifactStorage,
+        Format, ParquetStorage, S3Bucket,
     },
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,

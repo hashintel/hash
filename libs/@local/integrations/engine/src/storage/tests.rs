@@ -4,6 +4,7 @@ use duckdb::Connection;
 use hash_crypto::{Secret, digest::Sha256Digest};
 use hash_integrations_definition::SourceName;
 use rstest::rstest;
+use serde_json::{Value, json};
 use tempfile::TempDir;
 use testcontainers::{
     ContainerAsync, ImageExt as _,
@@ -14,8 +15,8 @@ use testcontainers_modules::minio::MinIO;
 use uuid::Uuid;
 
 use super::{
-    ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactStorage, Format, ParquetStorage,
-    S3Bucket, Stored, artifact::CHUNK_SIZE,
+    ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactStorage, Format,
+    ParquetStorage, S3Bucket, Stored, artifact::CHUNK_SIZE,
 };
 use crate::{CaptureRun, SourceCapture, sql::literal};
 
@@ -243,7 +244,7 @@ async fn artifacts_round_trip_through_new_staging(#[case] s3: bool) {
     );
     assert_eq!(
         artifact.sha256(),
-        Sha256Digest::of(&bytes),
+        Sha256Digest::of(&bytes).to_bytes(),
         "should record the digest"
     );
 
@@ -294,14 +295,97 @@ async fn materialize_rejects_a_changed_artifact() {
         )
         .await
         .expect("should publish the artifact");
-    fs::write(root.join(artifact.key().to_string()), b"replaced")
-        .expect("should replace the stored bytes");
+    fs::write(root.join(artifact.key()), b"replaced").expect("should replace the stored bytes");
 
     let error = ArtifactStorage::local(&root)
         .expect("should create local storage")
         .materialize(&artifact)
         .await
         .expect_err("should reject bytes that do not match the reference");
+    assert!(
+        matches!(error.current_context(), ArtifactError::Mismatch),
+        "should report the mismatch"
+    );
+}
+
+/// Publishes a small JSON artifact to local storage under `directory` and returns its reference.
+async fn published(directory: &Path) -> ArtifactRef {
+    ArtifactStorage::local(&directory.join("artifacts"))
+        .expect("should create local storage")
+        .publish(
+            &ArtifactNamespace::new(Uuid::new_v4()).artifacts("test"),
+            &file(directory, b"{}"),
+            Format::Json,
+        )
+        .await
+        .expect("should publish the artifact")
+}
+
+#[tokio::test]
+async fn references_round_trip_through_json() {
+    let directory = TempDir::new().expect("should create a directory");
+    let artifact = published(directory.path()).await;
+
+    let stored = serde_json::to_value(&artifact).expect("should serialize the reference");
+    assert_eq!(stored["version"], json!("v1"), "should be versioned");
+    assert_eq!(
+        stored["value"]["format"],
+        json!("json"),
+        "should record the format"
+    );
+    let restored: ArtifactRef =
+        serde_json::from_value(stored).expect("should deserialize the reference");
+    assert_eq!(restored, artifact, "should read back the same reference");
+
+    let restore = ArtifactStorage::local(&directory.path().join("artifacts"))
+        .expect("should create local storage");
+    let path = restore
+        .materialize(&restored)
+        .await
+        .expect("should materialize the read-back reference");
+    assert_eq!(fs::read(path).expect("should read the artifact"), b"{}");
+}
+
+#[rstest]
+#[case::unknown_version(|reference: &mut Value| reference["version"] = json!("v2"))]
+#[case::unknown_field(|reference: &mut Value| reference["value"]["eTag"] = json!("etag"))]
+#[case::uppercase_digest(|reference: &mut Value| {
+    let digest = reference["value"]["sha256"].as_str().expect("should be a string").to_uppercase();
+    reference["value"]["sha256"] = json!(digest);
+})]
+#[tokio::test]
+async fn rejects_malformed_references(#[case] tamper: fn(&mut Value)) {
+    let directory = TempDir::new().expect("should create a directory");
+    let mut stored = serde_json::to_value(published(directory.path()).await)
+        .expect("should serialize the reference");
+    tamper(&mut stored);
+
+    serde_json::from_value::<ArtifactRef>(stored).expect_err("should reject the reference");
+}
+
+#[rstest]
+#[case::digest_of_other_bytes(|reference: &mut Value| {
+    reference["value"]["sha256"] = json!("0".repeat(64));
+})]
+#[case::other_format(|reference: &mut Value| reference["value"]["format"] = json!("parquet"))]
+#[case::parent_segment(|reference: &mut Value| {
+    let key = reference["value"]["key"].as_str().expect("should be a string");
+    reference["value"]["key"] = json!(format!("../{key}"));
+})]
+#[tokio::test]
+async fn materialize_rejects_unaddressed_references(#[case] tamper: fn(&mut Value)) {
+    let directory = TempDir::new().expect("should create a directory");
+    let mut stored = serde_json::to_value(published(directory.path()).await)
+        .expect("should serialize the reference");
+    tamper(&mut stored);
+    let artifact: ArtifactRef =
+        serde_json::from_value(stored).expect("should deserialize the reference");
+
+    let error = ArtifactStorage::local(&directory.path().join("artifacts"))
+        .expect("should create local storage")
+        .materialize(&artifact)
+        .await
+        .expect_err("should reject a key not addressed by the reference");
     assert!(
         matches!(error.current_context(), ArtifactError::Mismatch),
         "should report the mismatch"
