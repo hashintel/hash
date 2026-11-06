@@ -51,6 +51,7 @@ export const relatedGroups = [
   ["arrowUp", "arrowDown"],
   ["arrowLeft", "arrowRight", "arrowsLeftRight"],
   ["arrowUpRight", "externalLink"],
+  ["link", "linkBroken", "externalLink"],
   ["arrowTrendUp", "arrowTrendDown", "chartLine"],
   ["arrowUp", "chevronUp"],
   ["arrowDown", "chevronDown"],

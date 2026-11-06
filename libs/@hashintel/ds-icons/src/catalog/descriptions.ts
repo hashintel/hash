@@ -98,6 +98,9 @@ export const descriptions = {
   copy: "Two overlapping sheets for copying an item. The front sheet shifts down and right on hover.",
   download:
     "An arrow entering a tray for downloading a file. The arrow moves downward on hover.",
+  link: "Two joined chain links for a hyperlink or section anchor. On hover, the links grow slightly together.",
+  linkBroken:
+    "Two separated chain ends for a broken link or disconnected relationship. On hover, the chain ends grow slightly together.",
   externalLink:
     "An arrow leaving a square for opening an external destination. The arrow shifts up and right on hover.",
   ellipsis:
