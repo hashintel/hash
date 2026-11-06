@@ -127,6 +127,7 @@ export default defineConfig({
       "How the Petrinaut packages fit together — generated from annotations in the source.",
     url: "https://docs.petrinaut.org",
     logo: "apps/petrinaut-docs/assets/petrinaut-helmet.png",
+    slideLogoScale: 1.8,
     favicon: "apps/petrinaut-docs/assets/favicon.ico",
   },
 });

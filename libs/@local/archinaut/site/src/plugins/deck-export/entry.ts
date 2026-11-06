@@ -37,7 +37,7 @@ export const exportEntrySource = ({
   ];
   const logo =
     deck.logo.kind === "file"
-      ? `{ kind: "image", src: logo }`
+      ? `{ kind: "image", src: logo, scale: ${codeLiteral(deck.logo.scale)} }`
       : codeLiteral(deck.logo);
   const slides = deck.slides.map(
     (slide, index) =>

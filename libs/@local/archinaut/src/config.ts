@@ -44,8 +44,13 @@ export interface SiteConfig {
   description: string;
   /** The canonical URL, for sitemaps and absolute links. */
   url: string;
-  /** Repo-relative PNG shown beside the title. */
+  /** Repo-relative PNG shown beside the title, and in a slide's corner. */
   logo: string;
+  /**
+   * The logo's height in a slide's corner, as a ratio of the corner's
+   * height; 1 when absent. A deck's `logoScale` overrides it.
+   */
+  slideLogoScale?: number;
   /** Repo-relative favicon. */
   favicon: string;
 }

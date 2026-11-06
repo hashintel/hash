@@ -16,6 +16,8 @@ declare module "*/content/site.json" {
   > & {
     /** Absolute path of the instance's decks, or null. */
     slides: string | null;
+    /** The site logo's height in a slide's corner, as a ratio of the corner's. */
+    slideLogoScale: number;
   };
   export default site;
 }

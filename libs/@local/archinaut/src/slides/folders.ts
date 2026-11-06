@@ -18,12 +18,13 @@ export interface DeckSlideFile {
  * The mark in each slide's top-left corner: the site's logo, unless
  * `deck.json` names HASH's wordmark (`"logo": "hash"`), an image in the
  * deck folder (`"logo": "partner.svg"`) or none (`"logo": false`).
+ * `"logoScale"` sets its height as a ratio of the corner's; without it the
+ * site's logo takes the config's `site.slideLogoScale`, and the others 1.
  */
 export type DeckFolderLogo =
-  | { kind: "site" }
-  | { kind: "hash" }
   | { kind: "none" }
-  | { kind: "file"; file: string };
+  | { kind: "site" | "hash"; scale: number | null }
+  | { kind: "file"; file: string; scale: number | null };
 
 /** Whose deck it is: the instance's, from its slides directory, or an example archinaut ships. */
 export type DeckOrigin = "instance" | "example";
@@ -59,19 +60,32 @@ const slidePattern = /^(\d+[a-z]*)-([^.]+)\.(tsx|mdx)$/u;
 const compareSlideFiles = (left: string, right: string): number =>
   left.localeCompare(right, "en", { numeric: true });
 
+const logoScaleOf = (id: string, scale: unknown): number | null => {
+  if (scale === undefined) {
+    return null;
+  }
+  if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) {
+    throw new Error(
+      `deck "${id}": "logoScale" must be a positive number, not ${JSON.stringify(scale)}`,
+    );
+  }
+  return scale;
+};
+
 const logoOf = (
   directory: string,
   id: string,
   logo: unknown,
+  scale: number | null,
 ): DeckFolderLogo => {
   if (logo === undefined) {
-    return { kind: "site" };
+    return { kind: "site", scale };
   }
   if (logo === false) {
     return { kind: "none" };
   }
   if (logo === "hash") {
-    return { kind: "hash" };
+    return { kind: "hash", scale };
   }
   const file = typeof logo === "string" ? resolve(directory, logo) : null;
   if (
@@ -83,7 +97,7 @@ const logoOf = (
       `deck "${id}": "logo" must be false, "hash" or the path of an image in the deck folder, not ${JSON.stringify(logo)}`,
     );
   }
-  return { kind: "file", file };
+  return { kind: "file", file, scale };
 };
 
 const readDeckMeta = (
@@ -93,13 +107,14 @@ const readDeckMeta = (
   const metaPath = join(directory, "deck.json");
   const meta = existsSync(metaPath)
     ? (JSON.parse(readFileSync(metaPath, "utf8")) as Partial<
-        Record<"title" | "description", string> & { logo: unknown }
+        Record<"title" | "description", string> &
+          Record<"logo" | "logoScale", unknown>
       >)
     : {};
   return {
     title: meta.title ?? id,
     description: meta.description ?? "",
-    logo: logoOf(directory, id, meta.logo),
+    logo: logoOf(directory, id, meta.logo, logoScaleOf(id, meta.logoScale)),
   };
 };
 

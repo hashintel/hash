@@ -54,13 +54,17 @@ describe("listDecks", () => {
       return listDecks(root)[0]?.logo;
     };
     writeFileSync(join(deck, "partner.svg"), "<svg/>");
-    expect(logoOf({})).toEqual({ kind: "site" });
-    expect(logoOf({ logo: "hash" })).toEqual({ kind: "hash" });
+    expect(logoOf({})).toEqual({ kind: "site", scale: null });
+    expect(logoOf({ logo: "hash" })).toEqual({ kind: "hash", scale: null });
     expect(logoOf({ logo: false })).toEqual({ kind: "none" });
-    expect(logoOf({ logo: "partner.svg" })).toEqual({
+    expect(logoOf({ logo: "partner.svg", logoScale: 1.5 })).toEqual({
       kind: "file",
       file: join(deck, "partner.svg"),
+      scale: 1.5,
     });
+    expect(logoOf({ logoScale: 2 })).toEqual({ kind: "site", scale: 2 });
+    expect(() => logoOf({ logoScale: 0 })).toThrow(/"logoScale"/u);
+    expect(() => logoOf({ logoScale: "2" })).toThrow(/"logoScale"/u);
     expect(() => logoOf({ logo: "missing.svg" })).toThrow(/"logo" must be/u);
     expect(() => logoOf({ logo: "../tour/partner.svg" })).not.toThrow();
     expect(() => logoOf({ logo: "../elsewhere.svg" })).toThrow(/"logo"/u);

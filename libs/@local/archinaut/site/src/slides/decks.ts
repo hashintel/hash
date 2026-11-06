@@ -12,12 +12,14 @@ import {
   type SlideSource,
 } from "./slide-module";
 
-/** The mark in each slide's top-left corner, as `deck.json` names it. */
+/**
+ * The mark in each slide's top-left corner, as `deck.json` names it, with
+ * its height as a ratio of the corner's; `null` takes the default.
+ */
 export type DeckLogo =
-  | { kind: "site" }
-  | { kind: "hash" }
   | { kind: "none" }
-  | { kind: "image"; src: string };
+  | { kind: "site" | "hash"; scale: number | null }
+  | { kind: "image"; src: string; scale: number | null };
 
 export interface DeckSummary {
   id: string;

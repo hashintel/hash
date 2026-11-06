@@ -174,10 +174,11 @@
   --deck-head-caps: calc(var(--deck-head-logo) * 31.5 / 46);
 }
 
+/* `--deck-logo-scale` is the deck's or the site's ratio; the label keeps its size. */
 .deck-head__logo {
   flex: none;
   width: auto;
-  height: var(--deck-head-logo);
+  height: calc(var(--deck-head-logo) * var(--deck-logo-scale, 1));
 }
 
 /* The HASH wordmark takes the slide's ink; an image keeps its colours. */

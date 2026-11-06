@@ -6,9 +6,21 @@
  */
 
 import siteLogoUrl from "../../content/logo.png";
+import siteJson from "../../content/site.json";
 import { HashLogo } from "./hash-logo";
 
 import type { DeckLogo } from "../decks";
+import type { CSSProperties } from "react";
+
+const { slideLogoScale } = siteJson;
+
+/** The logo's height as a ratio of the corner's. */
+const scaleOf = (logo: DeckLogo): number => {
+  if (logo.kind === "none") {
+    return 1;
+  }
+  return logo.scale ?? (logo.kind === "site" ? slideLogoScale : 1);
+};
 
 const Logo = ({ logo }: { logo: DeckLogo }) => {
   switch (logo.kind) {
@@ -31,7 +43,10 @@ export const SlideHead = ({
   label: string | null;
 }) =>
   logo.kind === "none" && label === null ? null : (
-    <header className="deck-head">
+    <header
+      className="deck-head"
+      style={{ "--deck-logo-scale": scaleOf(logo) } as CSSProperties}
+    >
       <Logo logo={logo} />
       {label === null ? null : (
         <span className="deck-head__label">{label}</span>

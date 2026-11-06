@@ -18,6 +18,17 @@ import type { ArchinautConfig } from "./config";
 
 export const siteRoot = fileURLToPath(new URL("../site", import.meta.url));
 
+/** The site logo's height in a slide's corner, checked: a ratio above zero. */
+const slideLogoScaleOf = (config: ArchinautConfig): number => {
+  const scale = config.site.slideLogoScale ?? 1;
+  if (!Number.isFinite(scale) || scale <= 0) {
+    throw new Error(
+      `site.slideLogoScale must be a positive number, not ${scale}`,
+    );
+  }
+  return scale;
+};
+
 /** Bundle directory → where it lands under the site. */
 const contentMapping = {
   pages: "src/content/docs",
@@ -85,7 +96,7 @@ export const syncSite = async (
     ["search.json", await readFile(join(bundleRoot, "search.json"), "utf8")],
     [
       "site.json",
-      `${JSON.stringify({ title: config.site.title, description: config.site.description, url: config.site.url, slides: slidesRoot(config) })}\n`,
+      `${JSON.stringify({ title: config.site.title, description: config.site.description, url: config.site.url, slides: slidesRoot(config), slideLogoScale: slideLogoScaleOf(config) })}\n`,
     ],
     ["logo.png", await readFile(join(config.root, config.site.logo))],
   ]);

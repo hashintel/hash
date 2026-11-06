@@ -37,7 +37,7 @@ const sourceOf = (root: string | null): string => {
       }
       const name = `logo${logoImports.length}`;
       logoImports.push(`import ${name} from ${specifier(`${logo.file}?url`)};`);
-      return `{ kind: "image", src: ${name} }`;
+      return `{ kind: "image", src: ${name}, scale: ${codeLiteral(logo.scale)} }`;
     };
     const slides = deck.slides.map(
       (slide) =>
