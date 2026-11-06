@@ -1,4 +1,4 @@
-import { isEqual } from "lodash-es";
+import { dequal } from "dequal";
 
 import {
   extractBaseUrl,
@@ -567,7 +567,7 @@ export const patchesFromPropertyObjects = ({
         path: [key],
         property,
       });
-    } else if (!isEqual(oldProperty, property)) {
+    } else if (!dequal(oldProperty, property)) {
       patches.push({
         op: "replace",
         path: [key],
