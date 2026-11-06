@@ -99,6 +99,24 @@ describe("location", () => {
     expect(reads).toBe(1);
   });
 
+  test("relative_directory", async () => {
+    expect.hasAssertions();
+    const result = await fixture({
+      read: () => Effect.succeed(sourceMap),
+      run: ({ declaration }) =>
+        Effect.gen(function* () {
+          const path = yield* Path.Path;
+          const locations = yield* Location.make(
+            path.relative(path.resolve("."), "/project/.generated"),
+          );
+          return yield* locations.locate(declaration);
+        }),
+    });
+    expect(result).toStrictEqual(
+      Option.some({ file: "src/value.ts", line: 11 }),
+    );
+  });
+
   test("missing_map", async () => {
     expect.hasAssertions();
     const result = await fixture({
