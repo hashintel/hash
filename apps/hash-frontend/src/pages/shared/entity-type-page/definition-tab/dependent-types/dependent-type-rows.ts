@@ -1,6 +1,6 @@
 import type {
   DependentType,
-  DependentTypes,
+  DependentTypeIndex,
   DependentTypeVersion,
 } from "./get-dependent-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
@@ -79,7 +79,7 @@ const toRow = ({
 /** One row per current and former dependent type, sorted by title. */
 export const getDependentTypeRows = ({
   byType,
-}: DependentTypes): DependentTypeRow[] =>
+}: DependentTypeIndex): DependentTypeRow[] =>
   [...byType.values()]
     .map(toRow)
     .sort((left, right) =>
