@@ -1,6 +1,6 @@
 use core::cmp;
 
-use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail, ensure};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail};
 use hash_codec::serde::constant::ConstBool;
 use itertools::{EitherOrBoth, Itertools as _};
 use serde::{Deserialize, Serialize};
@@ -268,19 +268,20 @@ impl Constraint for ArrayConstraints {
             (lhs, rhs) => lhs.or(rhs),
         };
 
-        if let Some((min_items, max_items)) = self.min_items.zip(self.max_items) {
-            ensure!(
-                min_items <= max_items,
+        if let Some((min_items, max_items)) = self.min_items.zip(self.max_items)
+            && min_items > max_items
+        {
+            return Err(Report::new(
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(ValueConstraints::Typed(
                     Box::new(SingleValueConstraints::Array(ArraySchema::Constrained(
                         Box::new(Self {
                             min_items: Some(min_items),
                             max_items: Some(max_items),
                             ..Self::default()
-                        })
+                        }),
                     ))),
-                ))
-            );
+                )),
+            ));
         }
 
         Ok((self, remainder))
