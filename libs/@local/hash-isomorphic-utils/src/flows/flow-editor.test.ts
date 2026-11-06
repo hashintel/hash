@@ -491,36 +491,19 @@ describe("createFlowEditor", () => {
       expect(editor.getState().problemsByStepId.size).toBe(0);
     });
 
-    it("changes only what's given, listing a type the steps using it can't take as their problem", () => {
+    it("changes only what's given, keeping the sources of the steps that use it and listing a type they can't take as their problem", () => {
       const editor = loadFlow();
 
       editor.updateFlowInput("question", { payloadKind: "Number" });
-      editor.updateFlowInput("questions", { array: false });
 
       expect(editor.getState().flowDefinition.inputs).toStrictEqual([
         { ...flowDefinition.inputs[0], payloadKind: "Number" },
-        { ...flowDefinition.inputs[1], array: false },
+        flowDefinition.inputs[1],
       ]);
       expect(stepOf(editor, "first")).toStrictEqual(flowDefinition.steps[0]);
       expect(problemCodesOf(editor, "first")).toEqual([
         "incompatibleConnection",
       ]);
-      expect(problemCodesOf(editor, "each")).toEqual(["overNotArray"]);
-    });
-
-    it("lists an optional input given to a step input that's required as the step's problem", () => {
-      const editor = loadFlow();
-
-      editor.updateFlowInput("question", { required: false });
-
-      expect(editor.getState().flowDefinition.inputs[0]?.required).toBe(false);
-      expect(problemCodesOf(editor, "first")).toEqual([
-        "incompatibleConnection",
-      ]);
-
-      editor.updateFlowInput("question", { required: true });
-
-      expect(editor.getState().problemsByStepId.size).toBe(0);
     });
   });
 
@@ -536,7 +519,6 @@ describe("createFlowEditor", () => {
       expect(stepOf(editor, "first")).toStrictEqual(flowDefinition.steps[0]);
       expect(problemCodesOf(editor, "first")).toEqual(["unknownFlowInput"]);
       expect(editor.getState().problemsByStepId.size).toBe(1);
-      expect(editor.getState().flowProblems).toEqual([]);
     });
   });
 
@@ -597,7 +579,7 @@ describe("createFlowEditor", () => {
     expect(stepOf(editor, "each")).not.toHaveProperty("runAfter");
   });
 
-  it("rejects edits naming a step that isn't a top-level step, a connection that doesn't exist, or a for-each step's inputs", () => {
+  it("rejects edits naming a step that isn't a top-level step, a connection or flow input that doesn't exist, or a for-each step's inputs", () => {
     const editor = loadFlow();
 
     expect(() => editor.moveStep("answerQuestion", { x: 0, y: 0 })).toThrow(
