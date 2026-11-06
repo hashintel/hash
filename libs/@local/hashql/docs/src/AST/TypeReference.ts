@@ -1,17 +1,17 @@
-import { Array, Equal, Hash, Option, Predicate } from "effect";
+import { Array, Chunk, Equal, Hash, Option, Predicate } from "effect";
 
 import * as Source from "../internal/ast/source.js";
 import * as Traits from "../internal/ast/traits.js";
 
 import type * as $Interned from "./Interned.js";
-import type * as Reference from "./Reference.js";
+import type * as Target from "./Target.js";
 import type * as TypeNode from "./TypeNode.js";
-import type { Chunk, Inspectable } from "effect";
+import type { Inspectable } from "effect";
 import type * as TypeScript from "typescript/ast";
 
 const TypeId = "~hashql-docs/AST/TypeReference";
 
-const fields = ["node", "reference", "typeArguments"] as const;
+const fields = ["node", "qualifiers", "target", "typeArguments"] as const;
 
 /** Named types and type queries share resolved targets without expanding those targets inline. */
 export class TypeReference implements Traits.Traits {
@@ -23,7 +23,14 @@ export class TypeReference implements Traits.Traits {
     | TypeScript.TypeQueryNode
     | TypeScript.ImportTypeNode
     | TypeScript.ExpressionWithTypeArguments;
-  readonly reference: Reference.Interned;
+  /**
+   * The symbols the names in front of the target resolve to, in source order, such as `AST` in `AST.Node`, with an import type's module first.
+   *
+   * A qualifier names a node the AST holds for its own sake, or else an item outside the package, which is also what a private namespace of the package reads as.
+   */
+  readonly qualifiers: Chunk.Chunk<Target.InternedSymbol>;
+  /** The symbol the reference's name resolves to, aliases followed. */
+  readonly target: Target.InternedSymbol;
   readonly typeArguments: Chunk.Chunk<TypeNode.Interned>;
 
   declare readonly pipe: Traits.Traits["pipe"];
@@ -34,9 +41,15 @@ export class TypeReference implements Traits.Traits {
     Object.assign(TypeReference.prototype, Traits.Prototype);
   }
 
-  constructor({ node, reference, typeArguments }: TypeReference.Fields) {
+  constructor({
+    node,
+    qualifiers,
+    target,
+    typeArguments,
+  }: TypeReference.Fields) {
     this.node = Equal.byReferenceUnsafe(node);
-    this.reference = reference;
+    this.qualifiers = Chunk.map(qualifiers, Equal.byReferenceUnsafe);
+    this.target = Equal.byReferenceUnsafe(target);
     this.typeArguments = typeArguments;
     Object.freeze(this);
   }
@@ -60,7 +73,8 @@ export class TypeReference implements Traits.Traits {
     return {
       _tag: this._tag,
       node: Source.inspectNode(this.node),
-      reference: this.reference,
+      qualifiers: Chunk.map(this.qualifiers, Source.inspectSymbol),
+      target: Source.inspectSymbol(this.target),
       typeArguments: this.typeArguments,
     };
   }

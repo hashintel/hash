@@ -2,16 +2,15 @@ import { Array, Chunk, Context, Effect, Layer, Option, pipe } from "effect";
 import * as Syntax from "typescript/ast";
 
 import * as AST from "../AST/index.js";
+import * as TypeScript from "../TypeScript/index.js";
 import * as Comments from "./ast-comments.js";
 import * as Members from "./ast-members.js";
-import * as References from "./ast-references.js";
+import * as Names from "./ast-names.js";
 import * as Types from "./ast-type-parser.js";
 
-import type { Interned } from "../AST/Interned.js";
-import type * as TypeScript from "../TypeScript/index.js";
-import type { Failure } from "./ast-context.js";
-import type { TypeSource } from "./ast-type-parser.js";
-import type { Data } from "effect";
+import type { Failure, TypeSource } from "./ast-type-parser.js";
+import type { Cause, Data } from "effect";
+import type { Symbol as CompilerSymbol } from "typescript/async";
 
 /** The identity each syntax node parsed to, so it parses once. */
 interface Cache {
@@ -53,29 +52,68 @@ const referenceName = (
   return node.qualifier ?? node;
 };
 
+/** The names of a dotted name in source order, `A`, `B` and `C` for `A.B.C`. */
+const segments = (
+  name: Syntax.Node,
+): Array.NonEmptyReadonlyArray<Syntax.Node> => {
+  if (Syntax.isQualifiedName(name)) {
+    return Array.append(segments(name.left), name.right);
+  }
+
+  if (Syntax.isPropertyAccessExpression(name)) {
+    return Array.append(segments(name.expression), name.name);
+  }
+
+  return [name];
+};
+
+/** The names in front of a reference's target in source order, with the module of an import type that reads a name from it first. */
+const qualifiersOf = (
+  node: AST.TypeReference.TypeReference["node"],
+): readonly Syntax.Node[] => {
+  const qualifiers = Array.initNonEmpty(segments(referenceName(node)));
+
+  if (
+    Syntax.isImportTypeNode(node) &&
+    node.qualifier !== undefined &&
+    Syntax.isLiteralTypeNode(node.argument)
+  ) {
+    return Array.prepend(qualifiers, node.argument.literal);
+  }
+
+  return qualifiers;
+};
+
+/** Reserves the identity `symbols` name and builds its node with `parse`, or an identity no symbol names when there are none. */
+const reserveNamed = <T extends AST.Target.Local>(
+  symbols: Parsed<readonly CompilerSymbol[]>,
+  parse: (id: AST.Interned.Interned<T>) => Parsed<T>,
+): Parsed<AST.Interned.Interned<T>> =>
+  Effect.flatMap(symbols, (named) => {
+    if (Array.isReadonlyArrayNonEmpty(named)) {
+      return AST.reserveSymbol(named, parse);
+    }
+
+    return AST.reserve(parse);
+  });
+
 /** The identity `key` parses to, reserved before parsing so names inside it can refer to it. A key parses once. */
 const reserved = <K extends WeakKey, T extends AST.Node.Node>(
-  cache: WeakMap<K, Interned<T>>,
+  cache: WeakMap<K, AST.Interned.Interned<T>>,
   key: K,
-  parse: (id: Interned<T>) => Parsed<T>,
-): Parsed<Interned<T>> => {
+  reservation: Parsed<AST.Interned.Interned<T>>,
+): Parsed<AST.Interned.Interned<T>> => {
   const existing = cache.get(key);
 
   if (existing !== undefined) {
     return Effect.succeed(existing);
   }
 
-  return Effect.flatMap(AST.reserve<T>(), (reservation) => {
-    cache.set(key, reservation.id);
-
-    return parse(reservation.id).pipe(
-      Effect.map((node) => {
-        reservation.complete(node);
-
-        return reservation.id;
-      }),
-    );
-  });
+  return Effect.tap(reservation, (id) =>
+    Effect.sync(() => {
+      cache.set(key, id);
+    }),
+  );
 };
 
 const optionalImpl = (
@@ -87,44 +125,81 @@ const typeParameterImpl = (
   node: Syntax.TypeParameterDeclaration,
 ): Parsed<AST.TypeParameter.Interned> =>
   Effect.flatMap(TypeParserState, ({ typeParameters }) =>
-    reserved(typeParameters, node, (id) =>
-      References.bind(node, id).pipe(
-        Effect.andThen(
+    reserved(
+      typeParameters,
+      node,
+      reserveNamed(
+        Effect.map(TypeScript.Checker.getSymbolOfDeclaration(node), Array.of),
+        () =>
           Effect.all({
             constraint: Types.optional(Option.fromUndefinedOr(node.constraint)),
             default: Types.optional(Option.fromUndefinedOr(node.defaultType)),
             documentation: Comments.documentation(node),
-          }),
-        ),
-        Effect.map((fields) =>
-          AST.TypeParameter.make({ node, name: node.name.text, ...fields }),
-        ),
+          }).pipe(
+            Effect.map((fields) =>
+              AST.TypeParameter.make({ node, name: node.name.text, ...fields }),
+            ),
+          ),
       ),
     ),
   );
+
+/** The symbols a parameter's name declares: its own, or for a destructured parameter one for each name it binds. */
+const parameterSymbols = Effect.fnUntraced(function* (
+  node: Syntax.ParameterDeclaration,
+): Effect.fn.Return<
+  readonly CompilerSymbol[],
+  Cause.UnknownError,
+  TypeScript.Checker.Checker
+> {
+  if (!Syntax.isBindingPattern(node.name)) {
+    return [yield* TypeScript.Checker.getSymbolOfDeclaration(node)];
+  }
+
+  const symbols: CompilerSymbol[] = [];
+  const pending: Syntax.Node[] = [node.name];
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+
+    if (
+      current !== undefined &&
+      Syntax.isBindingElement(current) &&
+      current.name !== undefined &&
+      Syntax.isIdentifier(current.name)
+    ) {
+      symbols.push(yield* TypeScript.Checker.getSymbolOfDeclaration(current));
+    } else if (current !== undefined) {
+      pending.push(...current.childrenIter());
+    }
+  }
+
+  return symbols;
+});
 
 const parameterImpl = (
   node: Syntax.ParameterDeclaration,
 ): Parsed<AST.Parameter.Interned> =>
   Effect.flatMap(TypeParserState, ({ parameters }) =>
-    reserved(parameters, node, (id) =>
-      References.bind(node, id).pipe(
-        Effect.andThen(
-          Effect.all({
-            type: Types.optional(Option.fromUndefinedOr(node.type)),
-            documentation: Comments.documentation(node),
-          }),
-        ),
-        Effect.map((fields) =>
-          AST.Parameter.make({
-            node,
-            name: node.name.getText(),
-            optional:
-              node.questionToken !== undefined ||
-              node.initializer !== undefined,
-            rest: node.dotDotDotToken !== undefined,
-            ...fields,
-          }),
+    reserved(
+      parameters,
+      node,
+      reserveNamed(parameterSymbols(node), () =>
+        Effect.all({
+          type: Types.optional(Option.fromUndefinedOr(node.type)),
+          documentation: Comments.documentation(node),
+        }).pipe(
+          Effect.map((fields) =>
+            AST.Parameter.make({
+              node,
+              name: node.name.getText(),
+              optional:
+                node.questionToken !== undefined ||
+                node.initializer !== undefined,
+              rest: node.dotDotDotToken !== undefined,
+              ...fields,
+            }),
+          ),
         ),
       ),
     ),
@@ -198,11 +273,11 @@ const expressionParts = (node: Syntax.Node): readonly ExpressionPart[] =>
 
 type ParsedPart = Data.TaggedEnum<{
   Child: {
-    readonly id: Interned<
+    readonly id: AST.Interned.Interned<
       AST.TypeNode.TypeNode | AST.TypeParameter.TypeParameter
     >;
   };
-  Reference: { readonly id: AST.Reference.Interned };
+  Reference: { readonly target: AST.Target.InternedSymbol };
 }>;
 
 const parsePart = (part: ExpressionPart): Parsed<ParsedPart> => {
@@ -218,8 +293,8 @@ const parsePart = (part: ExpressionPart): Parsed<ParsedPart> => {
       );
     }
     case "Reference": {
-      return References.reference(part.node).pipe(
-        Effect.map((id) => ({ _tag: "Reference" as const, id })),
+      return Names.required(part.node).pipe(
+        Effect.map((target) => ({ _tag: "Reference" as const, target })),
       );
     }
   }
@@ -242,7 +317,7 @@ const expression = (
         ),
         references: Chunk.fromIterable(
           Array.flatMap(parts, (part) =>
-            part._tag === "Reference" ? [part.id] : [],
+            part._tag === "Reference" ? [part.target] : [],
           ),
         ),
       }),
@@ -263,7 +338,12 @@ const typeNode = (node: TypeSource): Parsed<AST.TypeNode.TypeNode> => {
         Effect.forEach(Types.type),
         Effect.map(Chunk.fromIterable),
       ),
-      reference: References.reference(referenceName(node)),
+      qualifiers: pipe(
+        qualifiersOf(node),
+        Effect.forEach(Names.required),
+        Effect.map(Chunk.fromIterable),
+      ),
+      target: Names.required(referenceName(node)),
     }).pipe(
       Effect.map((fields) => AST.TypeReference.make({ node, ...fields })),
     );
@@ -316,26 +396,25 @@ const methods = (
 });
 
 /** One parser serves one parse, so its caches never see a second graph. */
-export const layer = Layer.effect(
-  Types.TypeParser,
-  Effect.context<
-    References.References | Comments.CommentParser | TypeScript.Checker.Checker
-  >().pipe(
-    Effect.map((services) => {
-      const cache: Cache = {
-        types: new WeakMap(),
-        parameters: new WeakMap(),
-        typeParameters: new WeakMap(),
-      };
-      const context = Context.add(services, TypeParserState, cache);
-      const parser: Types.TypeParser["Service"] = methods((effect) =>
-        effect.pipe(
-          Effect.provideService(Types.TypeParser, parser),
-          Effect.provide(context),
-        ),
-      );
+export const layer = Effect.context<
+  Comments.CommentParser | TypeScript.Checker.Checker
+>().pipe(
+  Effect.map((services) => {
+    const cache: Cache = {
+      types: new WeakMap(),
+      parameters: new WeakMap(),
+      typeParameters: new WeakMap(),
+    };
 
-      return parser;
-    }),
-  ),
+    const context = Context.add(services, TypeParserState, cache);
+    const parser: Types.TypeParser["Service"] = methods((effect) =>
+      effect.pipe(
+        Effect.provideService(Types.TypeParser, parser),
+        Effect.provide(context),
+      ),
+    );
+
+    return parser;
+  }),
+  Layer.effect(Types.TypeParser),
 );

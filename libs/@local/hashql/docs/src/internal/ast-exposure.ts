@@ -13,9 +13,8 @@ import { SymbolFlags } from "typescript/async";
 
 import * as ParseError from "../AST/ParseError.js";
 import * as TypeScript from "../TypeScript/index.js";
-import { References } from "./ast-references.js";
 
-import type { Failure } from "./ast-context.js";
+import type { Cause } from "effect";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 export interface ExportBinding {
@@ -186,9 +185,10 @@ class ExposureState extends Context.Service<ExposureState, ExposureBindings>()(
 
 type Requirements =
   | ExposureState
-  | References
   | TypeScript.Checker.Checker
   | TypeScript.Program.Program;
+
+type Failure = Cause.UnknownError | ParseError.ParseError;
 
 const makeBinding = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
   const { all } = yield* ExposureState;
@@ -290,7 +290,6 @@ const moduleBindings = Effect.fnUntraced(function* (
   const { modules } = yield* ExposureState;
   const checker = yield* TypeScript.Checker.Checker;
   const program = yield* TypeScript.Program.Program;
-  const { target: canonical } = yield* References;
   const existing = MutableHashMap.get(modules, symbol.id);
 
   if (Option.isSome(existing)) {
@@ -355,8 +354,10 @@ const moduleBindings = Effect.fnUntraced(function* (
         !MutableHashSet.has(explicit, name) &&
         Option.isSome(target)
       ) {
-        const selected = yield* canonical(binding.symbol);
-        const inheritedSymbol = yield* canonical(target.value.symbol);
+        const selected = yield* TypeScript.Checker.resolveAlias(binding.symbol);
+        const inheritedSymbol = yield* TypeScript.Checker.resolveAlias(
+          target.value.symbol,
+        );
 
         if (selected.id === inheritedSymbol.id) {
           binding.edges.push({
@@ -410,7 +411,7 @@ const exportsImpl = Effect.fnUntraced(function* (
 });
 
 const make = Effect.context<
-  References | TypeScript.Checker.Checker | TypeScript.Program.Program
+  TypeScript.Checker.Checker | TypeScript.Program.Program
 >().pipe(
   Effect.map((services) => {
     const bindings: ExposureBindings = {
