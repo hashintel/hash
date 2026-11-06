@@ -141,10 +141,7 @@ export const external = (
   );
 
 /** The symbols `node` holds for the names in it, each of which must name a node of the AST. */
-const heldBy = (
-  store: AST.Store["Service"],
-  node: AST.Node.Node,
-): readonly CompilerSymbol[] => {
+const heldBy = (node: AST.Node.Node): readonly CompilerSymbol[] => {
   if (AST.TypeReference.isTypeReference(node)) {
     return [node.target];
   }
@@ -153,30 +150,21 @@ const heldBy = (
     return Chunk.toReadonlyArray(node.references);
   }
 
-  if (AST.Declaration.isDeclaration(node)) {
-    return node.bases;
-  }
-
-  if (AST.Documentation.isDocumentation(node)) {
-    return Array.flatMap(DocSource.linksOf(node), (tag) =>
-      Option.toArray(Option.map(store.nameOf(tag), ({ target }) => target)),
-    );
-  }
-
   return [];
 };
 
-type ParseDeclaration<E> = (
+type ParseDeclaration<E, R> = (
   symbol: CompilerSymbol,
-) => Effect.Effect<AST.Declaration.Interned, E, AST.Store>;
+) => Effect.Effect<AST.Declaration.Interned, E, R>;
 
-/** Gives `symbol` a node. A symbol the package declares gets the declaration around it, parsed with `parse`, and any other symbol gets an item outside the package. */
-const reach = Effect.fnUntraced(function* <E>(
+/** Gives `symbol` a node and returns it as the symbol of that node. A symbol the package declares gets the declaration around it, parsed with `parse`, and any other symbol gets an item outside the package. */
+export const reach = Effect.fnUntraced(function* <E, R>(
   symbol: CompilerSymbol,
-  parse: ParseDeclaration<E>,
+  parse: ParseDeclaration<E, R>,
 ): Effect.fn.Return<
-  void,
+  AST.Target.InternedSymbol,
   E | Cause.UnknownError,
+  | R
   | AST.Store
   | Heritage.Heritage
   | TypeScript.Program.Program
@@ -186,8 +174,9 @@ const reach = Effect.fnUntraced(function* <E>(
   const program = yield* TypeScript.Program.Program;
   const checker = yield* TypeScript.Checker.Checker;
 
-  if (Option.isSome(store.lookup(symbol))) {
-    return;
+  const held = store.internedSymbol(symbol);
+  if (Option.isSome(held)) {
+    return held.value;
   }
 
   for (const node of yield* program.declarations(symbol)) {
@@ -208,8 +197,38 @@ const reach = Effect.fnUntraced(function* <E>(
   }
 
   // A symbol the package declares in syntax the AST does not hold reads like one outside the package.
-  if (Option.isNone(store.lookup(symbol))) {
-    yield* external(symbol);
+  return yield* store.internedSymbol(symbol).pipe(
+    Option.match({
+      onSome: Effect.succeed,
+      onNone: () => external(symbol),
+    }),
+  );
+});
+
+/** Names each link in `documentation` the compiler binds, after `reach` gives its target a node. */
+const nameLinks = Effect.fnUntraced(function* <E, R>(
+  documentation: AST.Documentation.Documentation,
+  parse: ParseDeclaration<E, R>,
+): Effect.fn.Return<
+  void,
+  E | Cause.UnknownError,
+  | R
+  | AST.Store
+  | Heritage.Heritage
+  | TypeScript.Program.Program
+  | TypeScript.Checker.Checker
+> {
+  const store = yield* AST.Store;
+
+  for (const [tag, name] of DocSource.namesOf(documentation)) {
+    const symbol = yield* symbolAt(name);
+
+    if (Option.isSome(symbol)) {
+      store.name(tag, {
+        target: yield* reach(symbol.value, parse),
+        quickInfo: Option.none(),
+      });
+    }
   }
 });
 
@@ -218,13 +237,16 @@ const reach = Effect.fnUntraced(function* <E>(
  *
  * A parsed declaration holds names of its own, so the walk repeats over the nodes it has not seen until a pass reaches nothing new.
  *
+ * The walk names a comment's links, because a link can name a declaration the parse has not met when it reads the comment. A link the compiler does not bind stays unnamed for `Links.resolve`, which reads the public names once the walk ends.
+ *
  * A reference's qualifiers parse nothing, because reading `Node` through `AST` in `AST.Node` needs nothing from the module `AST` names beyond `Node`. Once the walk ends, a qualifier the AST holds no node for gets an item outside the package. It waits for the walk because a target may still parse the declaration the qualifier names, and a symbol keeps the first node reserved for it.
  */
-export const discover = Effect.fnUntraced(function* <E>(
-  parse: ParseDeclaration<E>,
+export const discover = Effect.fnUntraced(function* <E, R>(
+  parse: ParseDeclaration<E, R>,
 ): Effect.fn.Return<
   void,
   E | Cause.UnknownError,
+  | R
   | AST.Store
   | Heritage.Heritage
   | TypeScript.Program.Program
@@ -245,8 +267,12 @@ export const discover = Effect.fnUntraced(function* <E>(
       seen.add(node);
       unseen = true;
 
-      for (const symbol of heldBy(store, node)) {
+      for (const symbol of heldBy(node)) {
         yield* reach(symbol, parse);
+      }
+
+      if (AST.Documentation.isDocumentation(node)) {
+        yield* nameLinks(node, parse);
       }
     }
   }

@@ -11,88 +11,31 @@ import type * as TypeScript from "../TypeScript/index.js";
 import type { DocLinkTag } from "@microsoft/tsdoc";
 import type { Cause } from "effect";
 
-/** The opening brace's source position, where the compiler's node for the same link starts too, since TSDoc read the comment in place. */
-const startOf = (link: DocLinkTag): Option.Option<number> =>
-  Option.map(DocSource.rangeOf(link), ({ pos }) => pos);
-
-/** The compiler's links in `comment`, its tags' text included. */
-const compilerLinks = (
-  comment: Syntax.JSDoc,
-): readonly (
-  | Syntax.JSDocLink
-  | Syntax.JSDocLinkCode
-  | Syntax.JSDocLinkPlain
-)[] =>
-  pipe(
-    comment.comment,
-    Array.appendAll(
-      Array.flatMap(comment.tags ?? [], (tag) => tag.comment ?? []),
-    ),
-    Array.filter(
-      (node) =>
-        Syntax.isJSDocLink(node) ||
-        Syntax.isJSDocLinkCode(node) ||
-        Syntax.isJSDocLinkPlain(node),
-    ),
-  );
-
-/**
- * Resolves each link to a declaration in the public prose of `documentation` that the compiler binds, where the comment stands.
- *
- * A link the compiler does not bind waits for `resolve`, which reads the public names once the parse holds every declaration. Naming part of a declaration fails, because the reference documents whole declarations.
- */
-export const register = Effect.fnUntraced(function* (
+/** Fails on a link in `documentation` that names part of a declaration, because the reference documents whole declarations. */
+export const check = Effect.fnUntraced(function* (
   documentation: AST.Documentation.Documentation,
-): Effect.fn.Return<
-  void,
-  DocumentationError.DocumentationError | Cause.UnknownError,
-  AST.Store | TypeScript.Checker.Checker
-> {
-  const store = yield* AST.Store;
-  const file = documentation.node.getSourceFile().fileName;
-  const compiled = compilerLinks(documentation.node);
-
+): Effect.fn.Return<void, DocumentationError.DocumentationError> {
   for (const tag of DocSource.linksOf(documentation)) {
     const destination = tag.codeDestination;
-    const start = startOf(tag);
+    const start = DocSource.startOf(tag);
 
-    if (destination !== undefined && Option.isSome(start)) {
-      if (
-        Array.some(
-          destination.memberReferences,
-          (member) =>
-            member.selector !== undefined || member.memberSymbol !== undefined,
-        )
-      ) {
-        return yield* DocumentationError.DocumentationError.make({
-          file,
-          reason: {
-            _tag: "UnsupportedReference",
-            destination: destination.emitAsTsdoc(),
-            start: start.value,
-          },
-        });
-      }
-
-      // A package-qualified destination names a public path, not a binding in the comment's file.
-      const name = pipe(
-        Array.findFirst(compiled, (link) => link.pos === start.value),
-        Option.flatMap((link) => Option.fromUndefinedOr(link.name)),
-        Option.filter(() => destination.packageName === undefined),
-      );
-
-      if (Option.isSome(name)) {
-        const symbol = yield* Names.symbolAt(name.value).pipe(
-          Effect.map(Option.flatMap(store.internedSymbol)),
-        );
-
-        if (Option.isSome(symbol)) {
-          store.name(tag, {
-            target: symbol.value,
-            quickInfo: Option.none(),
-          });
-        }
-      }
+    if (
+      destination !== undefined &&
+      Option.isSome(start) &&
+      Array.some(
+        destination.memberReferences,
+        (member) =>
+          member.selector !== undefined || member.memberSymbol !== undefined,
+      )
+    ) {
+      return yield* DocumentationError.DocumentationError.make({
+        file: documentation.node.getSourceFile().fileName,
+        reason: {
+          _tag: "UnsupportedReference",
+          destination: destination.emitAsTsdoc(),
+          start: start.value,
+        },
+      });
     }
   }
 });
@@ -151,7 +94,7 @@ const unresolved = (
     reason: {
       _tag: "UnresolvedLink",
       destination,
-      start: Option.getOrElse(startOf(tag), () => node.pos),
+      start: Option.getOrElse(DocSource.startOf(tag), () => node.pos),
     },
   });
 
@@ -209,7 +152,7 @@ export const resolve = Effect.fnUntraced(function* (
 
       if (
         destination !== undefined &&
-        Option.isSome(startOf(tag)) &&
+        Option.isSome(DocSource.startOf(tag)) &&
         !Option.exists(
           ast.nameOf(tag),
           ({ target }) => !leadsNowhere(ast, target),

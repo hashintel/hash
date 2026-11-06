@@ -139,14 +139,15 @@ const declarationNodes = (
     }),
   );
 
-/** The interfaces and classes `symbol` extends or implements directly. Each names a node once `discover` has run, so the hierarchy keeps the private types between public ones. */
+/** The interfaces and classes `symbol` extends or implements directly. Each gets its node before the declaration that names it, a private one included, so the hierarchy keeps the private types between public ones. */
 const basesOf = (
   symbol: CompilerSymbol,
-): Effect.Effect<
-  readonly AST.Target.InternedSymbol[],
-  Cause.UnknownError,
-  Heritage.Heritage
-> => Heritage.bases(symbol);
+  parse: ParseDeclaration,
+): Effect.Effect<readonly AST.Target.InternedSymbol[], Failure, Requirements> =>
+  Effect.flatMap(
+    Heritage.bases(symbol),
+    Effect.forEach((base) => Names.reach(base, parse)),
+  );
 
 /** A symbol's type and value meanings form its leaf, and at most one module or namespace declares its namespace meaning. */
 const declarationOf = (
@@ -180,7 +181,7 @@ const declarationOf = (
             parseNamespace(symbol, namespace, parse),
           ),
         ),
-        bases: basesOf(symbol),
+        bases: basesOf(symbol, parse),
       });
     }),
     Effect.map((fields) => AST.Declaration.make({ symbol, ...fields })),
@@ -223,7 +224,7 @@ const services = Layer.mergeAll(
 /**
  * Builds all entrypoints together so references can cross module and namespace cycles, and returns the catalogue of their public names.
  *
- * Each name resolves where the parse meets it, and `discover` parses the private declarations the names reach once every entrypoint is in. A comment's link the compiler does not bind resolves through the catalogue, and the examples compile last, in a program that stays open with the calling scope.
+ * Each name in a type resolves where the parse meets it. Once every entrypoint is in, `discover` parses the private declarations the names reach and names the links the compiler binds. A link the compiler does not bind resolves through the catalogue, and the examples compile last, in a program that stays open with the calling scope.
  */
 export const parse = Effect.fn("Parser.parse")(
   function* (
