@@ -2,13 +2,18 @@ import { ApolloError, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { entityIdFromComponents } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import {
   archiveFlowDefinitionMutation,
+  startFlowMutation,
   updateFlowDefinitionMutation,
 } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
@@ -36,6 +41,8 @@ import {
 import type {
   ArchiveFlowDefinitionMutation,
   ArchiveFlowDefinitionMutationVariables,
+  StartFlowMutation,
+  StartFlowMutationVariables,
   UpdateFlowDefinitionMutation,
   UpdateFlowDefinitionMutationVariables,
 } from "../../../../../graphql/api-types.gen";
@@ -45,6 +52,10 @@ import type { CanvasHandle } from "./edit.page/canvas";
 import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type {
+  FlowDataSources,
+  FlowInputValues,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const editorHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
@@ -84,6 +95,18 @@ const useCollapsedSidebar = () => {
   }, []);
 };
 
+/**
+ * The API requires data sources to run a flow with an AI action. Nothing in the editor picks files or turns on internet
+ * access, so a run from it has neither.
+ */
+const editorRunDataSources: FlowDataSources = {
+  files: { fileEntityIds: [] },
+  internetAccess: {
+    enabled: false,
+    browserPlugin: { enabled: false, domains: [] },
+  },
+};
+
 const isConflictError = (error: unknown) =>
   error instanceof ApolloError &&
   error.graphQLErrors.some(({ extensions }) => extensions.code === "CONFLICT");
@@ -98,10 +121,13 @@ const getRefusalReason = (error: unknown) =>
 
 const FlowEditor = ({
   flowDefinitionEntityId,
+  shortname,
   flow,
   reloadFlow,
 }: {
   flowDefinitionEntityId: EntityId;
+  /** The shortname of the web the flow is in, for the paths of its runs. */
+  shortname: string;
   flow: FlowDefinitionToEdit;
   reloadFlow: () => Promise<FlowDefinitionToEdit | null>;
 }) => {
@@ -112,6 +138,11 @@ const FlowEditor = ({
     UpdateFlowDefinitionMutation,
     UpdateFlowDefinitionMutationVariables
   >(updateFlowDefinitionMutation);
+
+  const [startFlow] = useMutation<
+    StartFlowMutation,
+    StartFlowMutationVariables
+  >(startFlowMutation);
 
   const [archiveFlowDefinition] = useMutation<
     ArchiveFlowDefinitionMutation,
@@ -164,12 +195,13 @@ const FlowEditor = ({
     },
   });
 
-  const { flowDefinition } = useSyncExternalStore(
-    editor.subscribe,
-    editor.getState,
-  );
+  const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
+  const { flowDefinition } = editorState;
 
-  /* Replacing the editor after a conflict remounts the canvas and clears the selection. */
+  /*
+   * Replacing the editor after a conflict remounts the top bar and the canvas, e.g. closing a run form filled in for the
+   * flow as it was, and clears the selection.
+   */
   const [session, setSession] = useState<{
     editor: typeof editor;
     key: number;
@@ -236,6 +268,31 @@ const FlowEditor = ({
       return next;
     });
 
+  /* A run starts the flow as saved, so the edits not saved yet are saved first. */
+  const runFlow = async (flowInputs: FlowInputValues) => {
+    if (!(await flush())) {
+      throw new Error("Your latest edits couldn't be saved.");
+    }
+
+    const { data } = await startFlow({
+      variables: {
+        flowDefinitionEntityId,
+        flowInputs,
+        /* The web the flow is in, which the editor's path names. */
+        webId: extractWebIdFromEntityId(flowDefinitionEntityId),
+        dataSources: editorRunDataSources,
+      },
+    });
+
+    if (!data) {
+      throw new Error("The run didn't start.");
+    }
+
+    await router.push(
+      generateWorkerRunPath({ shortname, flowRunEntityId: data.startFlow }),
+    );
+  };
+
   const archiveFlow = async () => {
     /*
      * Saving first, so that no save is made after the flow is archived, which would be refused. Edits the API refused
@@ -273,13 +330,15 @@ const FlowEditor = ({
       sx={{ display: "flex", flexDirection: "column", height: editorHeight }}
     >
       <TopBar
-        name={flowDefinition.name}
+        key={session.key}
+        editorState={editorState}
         onRename={editor.setName}
         saveStatus={status}
-        editsRefused={saveRefusedReason !== null}
+        saveRefusedReason={saveRefusedReason}
         onRetrySave={() => {
           void flush();
         }}
+        onRun={runFlow}
         onArchive={archiveFlow}
         onLeave={leave}
         onLeaveWithoutSaving={leaveWithoutSaving}
@@ -373,8 +432,10 @@ const EditorLoading = () => (
 
 const FlowEditorLoader = ({
   flowDefinitionEntityId,
+  shortname,
 }: {
   flowDefinitionEntityId: EntityId;
+  shortname: string;
 }) => {
   const { flow, loading, reload } = useFlowDefinitionToEdit(
     flowDefinitionEntityId,
@@ -388,6 +449,7 @@ const FlowEditorLoader = ({
     return (
       <FlowEditor
         flowDefinitionEntityId={flowDefinitionEntityId}
+        shortname={shortname}
         flow={flow}
         reloadFlow={reload}
       />
@@ -406,7 +468,7 @@ const FlowEditorPage: NextPageWithLayout = () => {
   /* The path has the uuid of the definition's entity, and its shortname names the web the definition is in. */
   const { loading, routeNamespace } = useRouteNamespace();
 
-  if (!routeNamespace) {
+  if (!routeNamespace?.shortname) {
     return loading ? <EditorLoading /> : <NotFound />;
   }
 
@@ -419,6 +481,7 @@ const FlowEditorPage: NextPageWithLayout = () => {
     <FlowEditorLoader
       key={flowDefinitionEntityId}
       flowDefinitionEntityId={flowDefinitionEntityId}
+      shortname={routeNamespace.shortname}
     />
   );
 };

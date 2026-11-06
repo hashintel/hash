@@ -20,7 +20,10 @@ vi.mock("next/router", () => ({
 vi.mock("../../shared/use-route-namespace", () => ({
   useRouteNamespace: () => ({
     loading: false,
-    routeNamespace: { webId: "0b5a5c4c-6d4d-4cd8-9d5e-2f2b0f7a6a11" },
+    routeNamespace: {
+      webId: "0b5a5c4c-6d4d-4cd8-9d5e-2f2b0f7a6a11",
+      shortname: "alice",
+    },
   }),
 }));
 

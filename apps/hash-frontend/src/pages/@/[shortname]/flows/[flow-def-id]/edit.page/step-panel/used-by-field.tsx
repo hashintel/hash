@@ -4,8 +4,8 @@ import { Chip, Form, Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { getStepDisplay } from "../shared/step-display";
+import { getKindIcon, getKindLabel } from "../shared/value-display";
 import { getStepName } from "./shared/find-step";
-import { getKindIcon, getKindLabel } from "./shared/value-display";
 
 import type {
   PayloadKind,
