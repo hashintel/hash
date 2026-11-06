@@ -47,7 +47,7 @@ pub(crate) async fn minio() -> (ContainerAsync<MinIO>, u16) {
     (minio, port)
 }
 
-fn bucket(port: u16) -> S3Bucket {
+pub(crate) fn bucket(port: u16) -> S3Bucket {
     S3Bucket {
         uri: "s3://captures/tenants".into(),
         region: "us-east-1".into(),

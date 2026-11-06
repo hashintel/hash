@@ -128,3 +128,52 @@ impl S3Bucket {
         Ok(connection)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use crate::{
+        sql::literal,
+        storage::{
+            ArtifactKey,
+            tests::{bucket, minio},
+        },
+    };
+
+    fn key(path: &str) -> ArtifactKey {
+        ArtifactKey(path.into())
+    }
+
+    const STORED: &str = "web/run/items.parquet";
+
+    /// Starts MinIO with one object at [`STORED`] and checks whether `key` exists.
+    async fn exists(key: ArtifactKey) -> bool {
+        let (_minio, port) = minio().await;
+        let bucket = bucket(port);
+        let connection = bucket.connect().expect("should connect to the bucket");
+        connection
+            .execute_batch(&format!(
+                "COPY (SELECT 1 AS id) TO {} (FORMAT PARQUET)",
+                literal(&bucket.uri(&self::key(STORED)))
+            ))
+            .expect("should store an object");
+        bucket
+            .exists(&connection, &key)
+            .expect("should check the key")
+    }
+
+    #[tokio::test]
+    async fn exists_finds_a_stored_key() {
+        assert!(exists(key(STORED)).await, "should find the stored object");
+    }
+
+    #[rstest]
+    #[case::sibling_in_the_directory("web/run/orders.parquet")]
+    #[case::empty_directory("web/other/items.parquet")]
+    #[case::prefix_of_a_stored_key("web/run/items")]
+    #[tokio::test]
+    async fn exists_ignores_other_keys(#[case] path: &str) {
+        assert!(!exists(key(path)).await, "only the exact key should exist");
+    }
+}
