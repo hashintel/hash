@@ -17,6 +17,7 @@ const Reason = Schema.TaggedUnion({
   ReexportComment: { start: Schema.Finite },
   UnresolvedLink: { destination: Schema.String, start: Schema.Finite },
   UnsupportedReference: { destination: Schema.String, start: Schema.Finite },
+  UnlinkedName: { code: Schema.String, start: Schema.Finite },
   UnknownParameter: { name: Schema.String, start: Schema.Finite },
   UnknownTypeParameter: { name: Schema.String, start: Schema.Finite },
   UnknownStability: { cause: Schema.ErrorInstance() },
@@ -49,6 +50,8 @@ export class DocumentationError extends Schema.TaggedError<DocumentationError>()
         `The @param ${name} at ${start} names no parameter of a call the reference reads from the declaration it is on. A declaration it reads no call from, such as a type alias, takes no @param`,
       UnknownTypeParameter: ({ name, start }) =>
         `The @typeParam ${name} at ${start} names no type parameter of what the comment documents`,
+      UnlinkedName: ({ code, start }) =>
+        `The code ${code} at ${start} names a public declaration that no earlier link in its paragraph points to`,
       UnsupportedReference: ({ destination, start }) =>
         `The link to ${destination} at ${start} selects part of a declaration, which a link to a whole declaration cannot keep`,
       UnknownStability: ({ cause }) => `Unknown stability: ${cause}`,
