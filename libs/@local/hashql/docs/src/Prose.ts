@@ -27,7 +27,10 @@ export interface Context {
 
 // oxlint-disable-next-line unicorn/throw-new-error -- Schema constructs the tagged error.
 export class ProseError extends Schema.TaggedError<ProseError>()("ProseError", {
-  reason: Schema.TaggedUnion({ MissingTarget: { reference: Schema.String } }),
+  reason: Schema.TaggedUnion({
+    MissingTarget: { reference: Schema.String },
+    UnsupportedScheme: { url: Schema.String },
+  }),
 }) {}
 
 type Node = {
@@ -95,16 +98,39 @@ const labelOf = (
   ];
 };
 
-/** The reference a link's name resolved to, or the address a URL link writes. */
+const missing = (link: TSDoc.DocLinkTag): ProseError =>
+  ProseError.make({
+    reason: {
+      _tag: "MissingTarget",
+      reference:
+        link.codeDestination?.emitAsTsdoc() ?? link.urlDestination ?? "",
+    },
+  });
+
+/** Whether a link may write `url`. A reader's browser follows the link, and a scheme such as `javascript:` or `file:` can run a script or open a local file. */
+const isWeb = (url: URL): boolean =>
+  url.protocol === "http:" || url.protocol === "https:";
+
+/** The reference a link's name resolved to, or the web address a URL link writes. */
 const destinationOf = (
   context: Context,
   link: TSDoc.DocLinkTag,
-): Option.Option<Tree.Prose.Link["destination"]> => {
+): Result.Result<Tree.Prose.Link["destination"], ProseError> => {
   if (link.urlDestination === undefined) {
-    return context.reference(link);
+    return Result.fromOption(context.reference(link), () => missing(link));
   }
 
-  return Option.fromNullishOr(URL.parse(link.urlDestination));
+  const address = link.urlDestination;
+
+  return pipe(
+    Option.fromNullishOr(URL.parse(address)),
+    Result.fromOption(() => missing(link)),
+    Result.filterOrFail(isWeb, () =>
+      ProseError.make({
+        reason: { _tag: "UnsupportedScheme", url: address },
+      }),
+    ),
+  );
 };
 
 const linkOf = (
@@ -113,15 +139,6 @@ const linkOf = (
 ): Result.Result<Tree.Prose.Link, ProseError> =>
   pipe(
     destinationOf(context, link),
-    Result.fromOption(() =>
-      ProseError.make({
-        reason: {
-          _tag: "MissingTarget",
-          reference:
-            link.codeDestination?.emitAsTsdoc() ?? link.urlDestination ?? "",
-        },
-      }),
-    ),
     Result.map((destination): Tree.Prose.Link => ({
       type: "link",
       destination,
