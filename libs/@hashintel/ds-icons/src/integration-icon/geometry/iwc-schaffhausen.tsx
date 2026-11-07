@@ -133,3 +133,5 @@ export const logoDark = ({ id }: { id: string }) => (
     <g id={`${id}-XMLID_40_`} />
   </svg>
 );
+export const wordmarkLight = logoLight;
+export const wordmarkDark = logoDark;

@@ -235,3 +235,5 @@ export const logoDark = ({ id }: { id: string }) => (
     </defs>
   </svg>
 );
+export const wordmarkLight = logoLight;
+export const wordmarkDark = logoDark;

@@ -5,6 +5,7 @@
 """Generate React geometry and standalone SVG variants from reviewed brand artwork."""
 import argparse
 import json
+import math
 import re
 from datetime import date
 from pathlib import Path
@@ -17,7 +18,7 @@ root = Path(__file__).resolve().parent.parent
 source = root / "src/integration-icon"
 register_namespace("", "http://www.w3.org/2000/svg")
 svg_ns = "{http://www.w3.org/2000/svg}"
-variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "app-mono-dark", "app-mono-light", "logo-light", "logo-dark"]
+variants = ["mark-mono", "mark-light", "mark-dark", "app-dark", "app-light", "app-mono-dark", "app-mono-light", "logo-light", "logo-dark", "wordmark-light", "wordmark-dark"]
 
 market_country_codes = set("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW XK".split())
 
@@ -109,7 +110,26 @@ def color_rgb(value):
     return [int(value[index:index + 2], 16) / 255 for index in (0, 2, 4)]
 
 
-def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
+def themed_artwork(brand, kind, dark, for_logo=False, mono=False, standalone=False):
+    if kind == "wordmark" and brand["wordmark"]["source"] != "wordmark":
+        specification = brand["wordmark"]
+        document = themed_artwork(brand, specification["source"], dark, standalone=True)
+        viewbox = specification.get("darkViewBox" if dark else "viewBox", specification.get("viewBox"))
+        if viewbox:
+            values = [float(value) for value in viewbox.replace(",", " ").split()]
+            if len(values) != 4 or not all(math.isfinite(value) for value in values) or min(values[2:]) <= 0:
+                raise ValueError(f'Invalid wordmark bounds for {brand["slug"]}')
+            document.set("viewBox", viewbox)
+            content = Element(svg_ns + "g", {"clip-path": "url(#wordmark-crop)"})
+            for child in list(document):
+                document.remove(child)
+                content.append(child)
+            definitions = SubElement(document, svg_ns + "defs")
+            clip = SubElement(definitions, svg_ns + "clipPath", {"id": "wordmark-crop", "clipPathUnits": "userSpaceOnUse"})
+            SubElement(clip, svg_ns + "rect", dict(zip(("x", "y", "width", "height"), map(str, values))))
+            document.append(content)
+        document.set("overflow", "hidden")
+        return document
     path = source / "artwork" / brand["slug"] / f"{kind}.svg"
     if for_logo and path.with_name("logo-mark.svg").exists():
         path = path.with_name("logo-mark.svg")
@@ -144,7 +164,7 @@ def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
                 key, value = declaration.split(":", 1)
                 if key.strip() in paint_properties:
                     element.set(key.strip(), value.strip())
-    if kind == "logo" and document.get("fill") is None:
+    if kind in ("logo", "wordmark") and document.get("fill") is None:
         document.set("fill", "#000000")
     colors = brand.get(f"{kind}{'Dark' if dark else 'Light'}Colors", {})
     if mono:
@@ -157,7 +177,7 @@ def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
             if value and not in_mask:
                 if value in colors:
                     element.set(attribute, colors[value])
-                elif dark and kind == "logo" and not override.exists():
+                elif dark and kind in ("logo", "wordmark") and not override.exists():
                     rgb = color_rgb(value)
                     if rgb and max(rgb) < .48 and max(rgb) - min(rgb) < .24:
                         element.set(attribute, "#F5F7FA")
@@ -167,7 +187,7 @@ def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
             else:
                 visit(child, in_mask)
     visit(document)
-    if dark and kind == "logo" and document.get("fill") is None:
+    if dark and kind in ("logo", "wordmark") and document.get("fill") is None:
         document.set("fill", "#F5F7FA")
     if dark and kind == "logo" and brand.get("logoRaster") and not brand.get("logoRasterDarkOriginal") and not override.exists():
         definitions = Element(svg_ns + "defs")
@@ -179,7 +199,7 @@ def themed_artwork(brand, kind, dark, for_logo=False, mono=False):
             if tag_name(element) == "image":
                 element.set("filter", "url(#logo-contrast)")
         document.insert(0, definitions)
-    if kind == "logo" and brand.get("logoLayout"):
+    if kind == "logo" and brand.get("logoLayout") and not standalone:
         return compose_logo(themed_artwork(brand, "mark", dark, for_logo=True), document, brand["logoLayout"])
     return document
 
@@ -334,7 +354,7 @@ def prefix_svg(body, prefix):
 
 
 def variant_svg(brand, variant):
-    kind = "logo" if variant.startswith("logo") else "mark"
+    kind = variant.split("-")[0] if variant.startswith(("logo", "wordmark")) else "mark"
     dark = variant.endswith("dark")
     app = variant.startswith("app")
     mono = "mono" in variant
@@ -343,7 +363,7 @@ def variant_svg(brand, variant):
     if mono:
         artwork.set("color", "black")
     viewbox = [float(value) for value in artwork.get("viewBox").replace(",", " ").split()]
-    if kind == "logo":
+    if kind in ("logo", "wordmark"):
         outer_viewbox = f"0 0 {viewbox[2]} {viewbox[3]}"
         artwork.set("x", "0")
         artwork.set("y", "0")
@@ -382,7 +402,15 @@ def generate(catalog_only=False):
     files[source / "app-tile.tsx"] = "\n".join(f'export const AppTile{("Dark" if dark else "Light")} = ({{ id }}: {{ id: string }}) => ({jsx(app_tile(dark))});' for dark in (False, True)) + "\n"
     catalog = []
     for brand in brands:
-        available = [variant for variant in variants if not variant.startswith("logo") or (source / "artwork" / brand["slug"] / "logo.svg").exists()]
+        available = [variant for variant in variants if
+                     (not variant.startswith("logo") or (source / "artwork" / brand["slug"] / "logo.svg").exists())
+                     and (not variant.startswith("wordmark") or brand.get("wordmark"))]
+        if brand.get("wordmark"):
+            specification = brand["wordmark"]
+            if specification.get("source") not in ("logo", "mark", "wordmark"):
+                raise ValueError(f'Invalid wordmark source for {brand["name"]}')
+            if not (source / "artwork" / brand["slug"] / f'{specification["source"]}.svg').exists():
+                raise ValueError(f'Missing wordmark source for {brand["name"]}')
         categories = brand.get("categories")
         if not isinstance(categories, list) or any(not isinstance(category, str) or not category.strip() or category != category.strip() for category in categories):
             raise ValueError(f'Invalid categories for {brand["name"]}')
@@ -394,13 +422,26 @@ def generate(catalog_only=False):
         if catalog_only:
             continue
         geometries = []
-        for kind in ("mark", "logo"):
-            if kind == "logo" and "logo-light" not in available:
+        for kind in ("mark", "logo", "wordmark"):
+            if kind != "mark" and f"{kind}-light" not in available:
                 continue
             modes = ["Light", "Dark"] + (["Mono"] if kind == "mark" and brand.get("markMonoColors") else [])
             for mode in modes:
                 artwork = themed_artwork(brand, kind, mode == "Dark", mono=mode == "Mono")
                 name = kind + mode
+                if kind == "wordmark" and brand["wordmark"]["source"] == "logo" and not brand.get("logoLayout"):
+                    specification = brand["wordmark"]
+                    viewbox = specification.get("darkViewBox" if mode == "Dark" else "viewBox", specification.get("viewBox"))
+                    if viewbox:
+                        original = themed_artwork(brand, "logo", mode == "Dark").get("viewBox").replace(",", " ").split()
+                        bounds = viewbox.replace(",", " ").split()
+                        placement = " ".join(f'{key}="{value}"' for key, value in zip(("x", "y", "width", "height"), original))
+                        clip_bounds = " ".join(f'{key}="{value}"' for key, value in zip(("x", "y", "width", "height"), bounds))
+                        geometries.append(f'const Wordmark{mode}Source = logo{mode};')
+                        geometries.append(f'export const {name} = ({{ id }}: {{ id: string }}) => (<svg viewBox="{viewbox}" overflow="hidden"><defs><clipPath id={{`${{id}}-wordmark-crop`}} clipPathUnits="userSpaceOnUse"><rect {clip_bounds} /></clipPath></defs><g clipPath={{`url(#${{id}}-wordmark-crop)`}}><svg {placement}><Wordmark{mode}Source id={{id}} /></svg></g></svg>);')
+                    else:
+                        geometries.append(f'export const {name} = logo{mode};')
+                    continue
                 if kind == "mark":
                     artwork.tag = svg_ns + "g"
                     for attribute in ("viewBox", "version", "preserveAspectRatio"):
@@ -414,9 +455,11 @@ def generate(catalog_only=False):
         files[source / "geometry" / f'{brand["slug"]}.tsx'] = attribution + "\n".join(geometries) + "\n"
         mark_viewbox = themed_artwork(brand, "mark", False).get("viewBox")
         logo_viewbox = themed_artwork(brand, "logo", False).get("viewBox") if "logo-light" in available else None
+        wordmark_viewbox = themed_artwork(brand, "wordmark", False).get("viewBox") if "wordmark-light" in available else None
+        wordmark_dark_viewbox = themed_artwork(brand, "wordmark", True).get("viewBox") if "wordmark-dark" in available else None
         app_viewbox = f', appViewBox: {json.dumps(brand["appViewBox"])}' if brand.get("appViewBox") else ""
         matrix = mono_alpha_matrix(themed_artwork(brand, "mark", False, mono=True))
-        registry.append(f'  {brand["name"]}: {{ ...{brand["name"]}, markViewBox: {json.dumps(mark_viewbox)}, monoAlphaMatrix: {json.dumps(matrix)}, monoInkScale: {brand.get("monoInkScale", 1)}, logoViewBox: {json.dumps(logo_viewbox)}, ratio: {brand["ratio"]}, alignment: "{brand["alignment"]}"{app_viewbox} }}')
+        registry.append(f'  {brand["name"]}: {{ ...{brand["name"]}, markViewBox: {json.dumps(mark_viewbox)}, monoAlphaMatrix: {json.dumps(matrix)}, monoInkScale: {brand.get("monoInkScale", 1)}, logoViewBox: {json.dumps(logo_viewbox)}, wordmarkViewBox: {json.dumps(wordmark_viewbox)}, wordmarkDarkViewBox: {json.dumps(wordmark_dark_viewbox)}, ratio: {brand["ratio"]}, alignment: "{brand["alignment"]}"{app_viewbox} }}')
         for variant in available:
             files[root / "assets/integrations" / brand["slug"] / f"{variant}.svg"] = variant_svg(brand, variant)
     files[source / "geometry.ts"] = "\n".join(imports) + '\n\nimport type { IntegrationIconName } from "../integration-icon-catalog";\nimport type { IntegrationIconArtwork } from "./artwork";\n\nexport const integrationGeometry: Readonly<Record<IntegrationIconName, IntegrationIconArtwork>> = {\n' + ",\n".join(registry) + "\n} as const;\n"

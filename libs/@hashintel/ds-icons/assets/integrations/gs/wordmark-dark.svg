@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68.640163 42.24977" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><svg xmlns="http://www.w3.org/2000/svg" id="gs-wordmark-dark-Layer_3" x="0" y="0" viewBox="94.724939 20.838955 68.640163 42.24977" xml:space="preserve" fill="#F5F7FA" overflow="hidden" width="68.640163" height="42.24977">
+<defs><clipPath id="gs-wordmark-dark-wordmark-crop" clipPathUnits="userSpaceOnUse"><rect x="94.724939" y="20.838955" width="68.640163" height="42.24977" /></clipPath></defs><g clip-path="url(#gs-wordmark-dark-wordmark-crop)"><g>
+	<g>
+		<g>
+			<g>
+				<g>
+					<g>
+
+							<linearGradient id="gs-wordmark-dark-SVGID_1_" gradientUnits="userSpaceOnUse" x1="1497.2627" y1="-580.9307" x2="1484.9911" y2="-568.6591" gradientTransform="matrix(1 0 0 1 -1487.2861 604.4385)">
+							<stop offset="0" stop-color="#FABF00" />
+							<stop offset="1" stop-color="#C8C400" />
+						</linearGradient>
+						<path fill="url(#gs-wordmark-dark-SVGID_1_)" d="M8.777,22.377l-3.004-3.313C2.096,25.353,0,32.646,0,40.061h2.07        C2.08,33.125,4.492,26.815,8.777,22.377z" />
+
+							<linearGradient id="gs-wordmark-dark-SVGID_2_" gradientUnits="userSpaceOnUse" x1="1484.6675" y1="-559.7017" x2="1495.1868" y2="-549.1821" gradientTransform="matrix(1 0 0 1 -1487.2861 604.4385)">
+							<stop offset="0" stop-color="#C8C400" />
+							<stop offset="1" stop-color="#7FBF26" />
+						</linearGradient>
+						<path fill="url(#gs-wordmark-dark-SVGID_2_)" d="M8.242,54.909C4.48,51.35,2.07,46.529,2.07,40.095c0-0.01,0-0.024,0-0.034H0        c0,7.541,1.346,14.551,4.002,20.662L8.242,54.909z" />
+
+							<linearGradient id="gs-wordmark-dark-SVGID_3_" gradientUnits="userSpaceOnUse" x1="1559.3022" y1="-567.5337" x2="1568.2476" y2="-558.5884" gradientTransform="matrix(1 0 0 1 -1487.2861 604.4385)">
+							<stop offset="0" stop-color="#7DCDF4" />
+							<stop offset="1" stop-color="#00B3C4" />
+						</linearGradient>
+						<path fill="url(#gs-wordmark-dark-SVGID_3_)" d="M74.135,34.711l-3.846,3.972c5.326,0.077,8.6,4.189,8.484,9.435h2.07        C80.844,42.942,78.418,38.233,74.135,34.711z" />
+
+							<linearGradient id="gs-wordmark-dark-SVGID_4_" gradientUnits="userSpaceOnUse" x1="1570.02" y1="-552.3071" x2="1560.9805" y2="-543.2678" gradientTransform="matrix(1 0 0 1 -1487.2861 604.4385)">
+							<stop offset="0" stop-color="#00B3C4" />
+							<stop offset="1" stop-color="#009E96" />
+						</linearGradient>
+						<path fill="url(#gs-wordmark-dark-SVGID_4_)" d="M80.844,48.117h-2.07c-0.102,4.316-2.408,7.94-7.525,10.632l5.402,7.439        C79.287,61.32,80.844,55.349,80.844,48.117z" />
+
+							<linearGradient id="gs-wordmark-dark-SVGID_5_" gradientUnits="userSpaceOnUse" x1="1502.4458" y1="-561.9072" x2="1557.425" y2="-561.9072" gradientTransform="matrix(1 0 0 1 -1487.2861 604.4385)">
+							<stop offset="0" stop-color="#2980C3" />
+							<stop offset="1" stop-color="#7DCDF4" />
+						</linearGradient>
+						<path fill="url(#gs-wordmark-dark-SVGID_5_)" d="M10.938,34.016c-0.148,0.797-0.23,1.621-0.23,2.476c0,12.363,9.215,20.257,20.848,20.257        c22.115,0,28.678-18.07,38.582-18.07c0.049,0,0.1,0.005,0.152,0.005l3.846-3.972c-4.777-3.932-11.865-6.396-20.465-6.396        c-17.508,0-26.834,14.623-34.783,14.623c-3.457,0-6.105-3.798-6.105-7.481c0-0.383,0.025-0.755,0.064-1.115L10.938,34.016z" />
+
+							<linearGradient id="gs-wordmark-dark-SVGID_6_" gradientUnits="userSpaceOnUse" x1="1493.0596" y1="-591.6626" x2="1568.1299" y2="-591.6626" gradientTransform="matrix(1 0 0 1 -1487.2861 604.4385)">
+							<stop offset="0" stop-color="#FABF00" />
+							<stop offset="0.0392" stop-color="#F9BB00" />
+							<stop offset="0.6977" stop-color="#EF7D00" />
+							<stop offset="1" stop-color="#EB6100" />
+						</linearGradient>
+						<path fill="url(#gs-wordmark-dark-SVGID_6_)" d="M24.645,15.884c12.781,0,21.652,9.668,33.055,9.668c13.676,0,21.244-6.662,23.145-19.682        l-2.07-0.343c-0.578,3.448-2.826,7.594-6.855,7.594c-3.801,0-7.832-3.339-13.699-6.561C52.342,3.222,45.604,0,37.195,0        C23.672,0,12.262,7.968,5.773,19.063l3.004,3.313C12.658,18.358,18.078,15.884,24.645,15.884z" />
+
+							<linearGradient id="gs-wordmark-dark-SVGID_7_" gradientUnits="userSpaceOnUse" x1="1495.5308" y1="-534.9688" x2="1558.5388" y2="-534.9688" gradientTransform="matrix(1 0 0 1 -1487.2861 604.4385)">
+							<stop offset="0" stop-color="#7FBF26" />
+							<stop offset="1" stop-color="#009E96" />
+						</linearGradient>
+						<path fill="url(#gs-wordmark-dark-SVGID_7_)" d="M38.004,64.001c-9.898,0-22.414-2.145-29.762-9.092l-4.24,5.813        c6.1,14.031,19.113,23.308,38.609,23.308c12.887,0,27.145-5.104,34.039-17.842l-5.402-7.439        C64.896,62.093,54.207,64.001,38.004,64.001z" />
+					</g>
+				</g>
+			</g>
+		</g>
+	</g>
+	<g>
+		<g>
+			<g>
+				<path fill="#2980C3" d="M114.816,62.873c-12.801,0-19.875-8.414-19.875-20.859c0-12.514,7.66-20.988,20.111-20.988      c4.967,0,9.115,1.168,12.332,2.982l-1.344,8.707c-3.041-1.926-6.605-3.439-10.758-3.439c-6.957,0-10.34,5.137-10.34,12.676      c0,7.598,3.506,12.92,10.457,12.92c2.225,0,3.801-0.412,5.436-1.289v-7.188h-7.014l-1.172-7.424h16.896v19.639      C125.336,61.361,120.369,62.873,114.816,62.873" />
+				<path fill="#2980C3" d="M148.721,62.584c-5.441,0-9.994-1.168-14.088-3.039l1.459-8.533c4.148,2.223,8.77,3.742,12.803,3.742      c2.863,0,4.852-1.23,4.852-3.623c0-2.281-1.17-3.336-6.842-5.498c-8.064-3.098-11.572-5.727-11.572-12.393      c0-7.771,6.078-11.922,13.791-11.922c5.273,0,8.66,0.996,12.164,2.689l-1.52,8.416c-3.615-2.107-7.424-3.268-10.523-3.268      c-3.039,0-4.5,1.279-4.5,3.152c0,2.045,1.109,3.039,6.135,4.969c8.781,3.211,12.281,6.252,12.281,12.682      C163.16,58.729,156.73,62.584,148.721,62.584" />
+			</g>
+		</g>
+	</g>
+</g>
+</g></svg></svg>

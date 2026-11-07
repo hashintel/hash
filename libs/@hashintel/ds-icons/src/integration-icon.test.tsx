@@ -358,6 +358,53 @@ describe("IntegrationIcon", () => {
     expect(Number(icon?.getAttribute("width"))).toBeGreaterThan(80);
   });
 
+  it("renders a wordmark at its own aspect ratio and rejects unavailable artwork", () => {
+    const content = renderToStaticMarkup(
+      <IntegrationIcon
+        name="microsoftTeams"
+        variant="wordmark-light"
+        size={32}
+        title="Microsoft Teams wordmark"
+      />,
+    );
+    const document = new DOMParser().parseFromString(content, "text/html");
+    const icon = document.querySelector("svg");
+    const [, , width, height] = icon!
+      .getAttribute("viewBox")!
+      .split(" ")
+      .map(Number);
+    expect(Number(icon?.getAttribute("height"))).toBe(32);
+    expect(Number(icon?.getAttribute("width"))).toBeCloseTo(
+      (32 * width!) / height!,
+    );
+    expect(document.querySelector("title")?.textContent).toBe(
+      "Microsoft Teams wordmark",
+    );
+    expect(() =>
+      renderToStaticMarkup(
+        <IntegrationIcon name="genericApp" variant="wordmark-light" />,
+      ),
+    ).toThrow("no verified wordmark artwork");
+  });
+
+  it("uses each wordmark theme's natural bounds", () => {
+    for (const variant of ["wordmark-light", "wordmark-dark"] as const) {
+      const content = renderToStaticMarkup(
+        <IntegrationIcon name="evernote" variant={variant} size={32} />,
+      );
+      const document = new DOMParser().parseFromString(content, "text/html");
+      const outer = document.querySelector("svg")!;
+      const inner = outer.querySelector("svg")!;
+      const [, , width, height] = inner
+        .getAttribute("viewBox")!
+        .split(" ")
+        .map(Number);
+      expect(Number(outer.getAttribute("width"))).toBeCloseTo(
+        (32 * width!) / height!,
+      );
+    }
+  });
+
   it("labels requested icons and hides decorative ones", () => {
     const content = renderToStaticMarkup(
       <>

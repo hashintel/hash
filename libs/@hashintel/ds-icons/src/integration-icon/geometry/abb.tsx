@@ -63,3 +63,5 @@ export const logoDark = ({ id: _id }: { id: string }) => (
     <polygon points="27,16 21.3,0 17,0 17,16" />
   </svg>
 );
+export const wordmarkLight = logoLight;
+export const wordmarkDark = logoDark;

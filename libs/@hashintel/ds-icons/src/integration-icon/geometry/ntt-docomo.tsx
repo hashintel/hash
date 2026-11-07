@@ -165,3 +165,33 @@ export const logoDark = ({ id }: { id: string }) => (
     />
   </svg>
 );
+const WordmarkLightSource = logoLight;
+export const wordmarkLight = ({ id }: { id: string }) => (
+  <svg viewBox="29.48677 1.55802 96.68615 19.85394" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect x="29.48677" y="1.55802" width="96.68615" height="19.85394" />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="-0.17292" y="-0.19999" width="126.34584" height="23.36996">
+        <WordmarkLightSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);
+const WordmarkDarkSource = logoDark;
+export const wordmarkDark = ({ id }: { id: string }) => (
+  <svg viewBox="29.48677 1.55802 96.68615 19.85394" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect x="29.48677" y="1.55802" width="96.68615" height="19.85394" />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="-0.17292" y="-0.19999" width="126.34584" height="23.36996">
+        <WordmarkDarkSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);

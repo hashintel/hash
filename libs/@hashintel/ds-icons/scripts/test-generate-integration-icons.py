@@ -87,6 +87,53 @@ class SvgParsingTests(unittest.TestCase):
             self.assertEqual(mark.get("viewBox"), "0 -2 24 28")
             self.assertEqual(mark.find(f'{generator.svg_ns}path').get("fill"), "#0055AA")
 
+    def test_wordmark_omits_composed_mark_and_retains_theme_colors(self):
+        self.mark.write_text(svg.replace('<path ', '<path id="symbol" '))
+        self.mark.with_name("logo.svg").write_text(svg.replace('<path ', '<path id="lettering" fill="#123456" '))
+        brand = {"slug": "example", "wordmark": {"source": "logo"}, "logoLayout": {"wordmarkHeight": .7, "gap": .3}, "logoDarkColors": {"#123456": "#FEDCBA"}}
+        logo = generator.themed_artwork(brand, "logo", False)
+        self.assertIsNotNone(logo.find(f'.//{generator.svg_ns}path[@id="mark-symbol"]'))
+        for theme, color in (("light", "#123456"), ("dark", "#FEDCBA")):
+            document = generator.ET.fromstring(generator.variant_svg(brand, f"wordmark-{theme}"), forbid_dtd=True)
+            paths = document.findall(f'.//{generator.svg_ns}path')
+            self.assertEqual(len(paths), 1)
+            self.assertTrue(paths[0].get("id").endswith("lettering"))
+            self.assertEqual(paths[0].get("fill"), color)
+
+    def test_wordmark_crop_clips_symbol_and_preserves_natural_dimensions(self):
+        self.mark.with_name("logo.svg").write_text(svg)
+        brand = {"slug": "example", "wordmark": {"source": "logo", "viewBox": "8 3 14 9"}}
+        document = generator.ET.fromstring(generator.variant_svg(brand, "wordmark-light"), forbid_dtd=True)
+        self.assertEqual(document.get("viewBox"), "0 0 14.0 9.0")
+        artwork = document.find(f'{generator.svg_ns}svg')
+        self.assertEqual(artwork.get("viewBox"), "8 3 14 9")
+        self.assertEqual(artwork.get("overflow"), "hidden")
+        clip = artwork.find(f'.//{generator.svg_ns}clipPath')
+        self.assertEqual(clip.get("clipPathUnits"), "userSpaceOnUse")
+        self.assertEqual(clip[0].attrib, {"x": "8.0", "y": "3.0", "width": "14.0", "height": "9.0"})
+        content = artwork.find(f'{generator.svg_ns}g')
+        self.assertEqual(content.get("clip-path"), f'url(#{clip.get("id")})')
+
+    def test_wordmark_dark_bounds_follow_the_dedicated_dark_source(self):
+        self.mark.with_name("logo.svg").write_text(svg)
+        self.mark.with_name("logo-dark.svg").write_text(svg.replace("0 0 24 24", "0 0 240 240"))
+        brand = {"slug": "example", "wordmark": {"source": "logo", "viewBox": "8 3 14 9", "darkViewBox": "80 30 140 90"}}
+        artwork = generator.themed_artwork(brand, "wordmark", True)
+        self.assertEqual(artwork.get("viewBox"), "80 30 140 90")
+
+    def test_wordmark_rejects_invalid_crop_bounds(self):
+        self.mark.with_name("logo.svg").write_text(svg)
+        for bounds in ("0 0 0 24", "0 0 24 -1", "0 0 nan 24", "0 0 24"):
+            with self.subTest(bounds=bounds), self.assertRaises(ValueError):
+                generator.themed_artwork({"slug": "example", "wordmark": {"source": "logo", "viewBox": bounds}}, "wordmark", False)
+
+    def test_dedicated_wordmark_uses_its_own_theme_override(self):
+        self.mark.with_name("wordmark.svg").write_text(svg.replace('<path ', '<path fill="black" '))
+        self.mark.with_name("wordmark-dark.svg").write_text(svg.replace('<path ', '<path fill="#FFEEDD" '))
+        brand = {"slug": "example", "wordmark": {"source": "wordmark"}}
+        artwork = generator.themed_artwork(brand, "wordmark", True)
+        self.assertEqual(artwork[0].get("fill"), "#FFEEDD")
+
 
 class MonoContrastTests(unittest.TestCase):
     def alpha(self, artwork, rgb):

@@ -45,3 +45,5 @@ export const logoDark = ({ id: _id }: { id: string }) => (
     <path d="M600 12.1212H581.818C578.471 12.1212 575.758 14.8346 575.758 18.1818V60.6061H563.636V18.1818C563.636 14.8346 560.923 12.1212 557.576 12.1212H539.394V0H600V12.1212Z" />
   </svg>
 );
+export const wordmarkLight = logoLight;
+export const wordmarkDark = logoDark;

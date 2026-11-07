@@ -31,29 +31,40 @@ export const IntegrationIcon = ({
   const id = useId();
   const artwork = integrationGeometry[name];
   const logo = variant.startsWith("logo");
+  const wordmark = variant.startsWith("wordmark");
+  const wide = logo || wordmark;
   const dark = variant.endsWith("dark");
   const mono = variant.includes("mono");
   const app = variant.startsWith("app");
   const Tile = dark ? AppTileDark : AppTileLight;
-  const Geometry = logo
+  const Geometry = wordmark
     ? dark
-      ? artwork.logoDark
-      : artwork.logoLight
-    : mono
-      ? (artwork.markMono ?? artwork.markLight)
-      : dark
-        ? artwork.markDark
-        : artwork.markLight;
+      ? artwork.wordmarkDark
+      : artwork.wordmarkLight
+    : logo
+      ? dark
+        ? artwork.logoDark
+        : artwork.logoLight
+      : mono
+        ? (artwork.markMono ?? artwork.markLight)
+        : dark
+          ? artwork.markDark
+          : artwork.markLight;
 
   if (!Geometry) {
     throw new Error(
-      `The ${name} integration has no verified full-logo artwork.`,
+      `The ${name} integration has no verified ${wordmark ? "wordmark" : "full-logo"} artwork.`,
     );
   }
 
-  const sourceViewBox = logo
-    ? (artwork.logoViewBox ?? "0 0 64 64")
-    : "0 0 64 64";
+  const sourceViewBox =
+    (wordmark
+      ? dark
+        ? artwork.wordmarkDarkViewBox
+        : artwork.wordmarkViewBox
+      : logo
+        ? artwork.logoViewBox
+        : null) ?? "0 0 64 64";
   const [, , width = 64, height = 64] = sourceViewBox
     .split(/[, ]+/)
     .map(Number);
@@ -65,7 +76,7 @@ export const IntegrationIcon = ({
 
   return (
     <svg
-      width={logo ? (size * width) / height : size}
+      width={wide ? (size * width) / height : size}
       height={size}
       viewBox={viewBox}
       fill="none"
@@ -126,8 +137,8 @@ export const IntegrationIcon = ({
         filter={mono ? `url(#${id}-mono)` : undefined}
         clipPath={app ? `url(#${id}-tile)` : undefined}
       >
-        {logo ? (
-          <Geometry id={`${id}-logo`} />
+        {wide ? (
+          <Geometry id={`${id}-${wordmark ? "wordmark" : "logo"}`} />
         ) : (
           <svg
             color={mono ? "black" : undefined}

@@ -483,3 +483,5 @@ export const logoDark = ({ id: _id }: { id: string }) => (
     <path d="" fill="#FFADBC" transform="translate(0,0)" />
   </svg>
 );
+export const wordmarkLight = logoLight;
+export const wordmarkDark = logoDark;

@@ -131,3 +131,5 @@ export const logoDark = ({ id: _id }: { id: string }) => (
     />
   </svg>
 );
+export const wordmarkLight = logoLight;
+export const wordmarkDark = logoDark;

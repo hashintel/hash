@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 852.33302 151.21379" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-1.16652 -1.10689 852.33302 151.21379" overflow="hidden" x="0" y="0" width="852.33302" height="151.21379">
+  <defs><clipPath id="fanuc-wordmark-dark-wordmark-crop" clipPathUnits="userSpaceOnUse"><rect x="-1.16652" y="-1.10689" width="852.33302" height="151.21379" /></clipPath></defs><g clip-path="url(#fanuc-wordmark-dark-wordmark-crop)"><g clip-path="url(#fanuc-wordmark-dark-clip0_411_566)">
+    <path clip-rule="evenodd" d="M0 5.48389H137.464V34.4039H40.755V55.042H122.962V83.9491H40.755V143.846H0V5.48389Z" fill="#CB5362" fill-rule="evenodd" />
+    <path clip-rule="evenodd" d="M223.123 5.48413H182.368L120.206 143.846H160.956L173.382 117.672H232.793L245.923 143.846H287.371L223.123 5.48413ZM184.436 92.9167L203.092 47.4759L223.123 92.9167H184.436Z" fill="#CB5362" fill-rule="evenodd" />
+    <path clip-rule="evenodd" d="M299.805 5.48413H340.56L419.989 100.826V5.48413H460.748V143.846H414.111L340.56 55.0423V143.846H299.805V5.48413Z" fill="#CB5362" fill-rule="evenodd" />
+    <path clip-rule="evenodd" d="M487.345 5.48413H527.752V92.9167C527.752 112.518 543.63 123.186 567.131 123.186C590.632 123.186 606.493 112.518 606.493 92.9167V5.48413H647.601V101.169C647.601 140.405 591.638 149.004 567.131 149.004C542.624 149.004 487.341 141.776 487.341 92.921V5.48413H487.345Z" fill="#CB5362" fill-rule="evenodd" />
+    <path clip-rule="evenodd" d="M850 58.1356C850 44.7167 831.353 0 759.164 0C686.976 0 669.012 44.0441 669.012 73.6324C669.012 118.705 698.038 149 759.164 149C774.638 149 758.829 148.649 758.829 148.649C758.829 148.649 729.106 149 759.164 149C793.358 149 850 135.585 850 85.3289H802.336C802.336 109.776 785.073 123.546 759.164 123.546C733.255 123.546 716.328 108.041 716.328 73.6324C716.328 39.2241 734.305 23.7315 759.164 23.7315C784.024 23.7315 802.336 41.9704 802.336 58.1356H850V58.1356Z" fill="#CB5362" fill-rule="evenodd" />
+  </g>
+  <defs>
+    <clipPath id="fanuc-wordmark-dark-clip0_411_566">
+      <rect fill="#FFFFFF" height="149" width="850" />
+    </clipPath>
+  </defs>
+</g></svg></svg>
