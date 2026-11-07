@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pinpoint-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="pinpoint-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="pinpoint-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#pinpoint-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#pinpoint-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#pinpoint-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="pinpoint-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#pinpoint-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.10977 -0.10977 68.21954 68.21954" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M0 34.0065V0H33.9935L0 34.0065Z" fill="#ED9D85" />
+<path d="M0 68.0013V34.0078H33.9935L0 68.0013Z" fill="#F1564E" />
+<path d="M33.9934 4.94503e-06H50.9902C53.2233 -0.00169844 55.4349 0.436681 57.4985 1.29009C59.5622 2.14349 61.4374 3.39519 63.0171 4.97366C64.5968 6.55212 65.8499 8.42641 66.7049 10.4894C67.5598 12.5524 67.9999 14.7636 67.9999 16.9968C68.0016 19.231 67.5628 21.4437 66.7086 23.5081C65.8544 25.5726 64.6015 27.4484 63.0217 29.0283C61.4418 30.6081 59.566 31.861 57.5015 32.7152C55.437 33.5694 53.2244 34.0082 50.9902 34.0065H33.9934V4.94503e-06Z" fill="#FCB643" />
+</svg></g></svg>

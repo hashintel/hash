@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Star Wars artwork and trademarks remain with their respective owners. Bounds, theme colors, and app tiles are adaptations.--><defs><filter id="star-wars-galactic-republic-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#star-wars-galactic-republic-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" viewBox="-0.96857 -0.96857 601.93714 601.93714" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+<circle fill="none" stroke="#000000" stroke-width="31.8518" cx="300" cy="300" r="284.0741" />
+<circle cx="300" cy="300" r="93.2122" /><g id="star-wars-galactic-republic-mark-mono-Half"><g id="star-wars-galactic-republic-mark-mono-Elmt">
+<path d="M164.331,122.014A223.797,223.797 0 0,1 270.077,78.2125 V48.1605A253.611,253.611 0 0,0 143.081,100.764Z" />
+<path fill="none" stroke="#000000" stroke-width="38.881" d="M300,300v187.968" />
+</g><use ns1:href="#star-wars-galactic-republic-mark-mono-Elmt" transform="rotate(45,300,300)" />
+<use ns1:href="#star-wars-galactic-republic-mark-mono-Elmt" transform="rotate(90,300,300)" />
+<use ns1:href="#star-wars-galactic-republic-mark-mono-Elmt" transform="rotate(135,300,300)" /></g>
+<use ns1:href="#star-wars-galactic-republic-mark-mono-Half" transform="rotate(180,300,300)" /></svg></g></svg>

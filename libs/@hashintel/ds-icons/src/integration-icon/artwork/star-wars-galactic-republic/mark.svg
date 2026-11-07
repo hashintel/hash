@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" viewBox="-0.96857 -0.96857 601.93714 601.93714" fill="#111111">
+<circle fill="none" stroke="#000000" stroke-width="31.8518" cx="300" cy="300" r="284.0741" />
+<circle cx="300" cy="300" r="93.2122" /><g id="Half"><g id="Elmt">
+<path d="M164.331,122.014A223.797,223.797 0 0,1 270.077,78.2125 V48.1605A253.611,253.611 0 0,0 143.081,100.764Z" />
+<path fill="none" stroke="#000000" stroke-width="38.881" d="M300,300v187.968" />
+</g><use ns1:href="#Elmt" transform="rotate(45,300,300)" />
+<use ns1:href="#Elmt" transform="rotate(90,300,300)" />
+<use ns1:href="#Elmt" transform="rotate(135,300,300)" /></g>
+<use ns1:href="#Half" transform="rotate(180,300,300)" /></svg>

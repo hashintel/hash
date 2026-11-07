@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Starfleet emblem vector by Jesperhansen1972, with margin adjustments by AnonMoos, under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/). Bounds, theme colors, and app tiles are adaptations distributed under the same license. Star Trek trademarks remain with their owners.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="star-trek-starfleet-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="star-trek-starfleet-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="star-trek-starfleet-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#star-trek-starfleet-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#star-trek-starfleet-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#star-trek-starfleet-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="star-trek-starfleet-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#star-trek-starfleet-app-mono-dark-mono)"><defs><clipPath id="star-trek-starfleet-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#star-trek-starfleet-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="113.59452 81.6844 375.20307 598.8372" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <path d="M 302.3125 83.5625 C 173.53735 277.52458 130.10428 475.02888 115.0625 678.46875 C 198.56887 571.91447 272.07011 502.06874 326.0625 469.625 C 385.67389 433.80484 437.01418 490.46235 487.46875 630.34375 C 453.99082 447.8024 430.8417 269.16999 302.3125 83.5625 z M 303.34375 157.0625 L 322.0625 310.0625 L 367.125 325.40625 L 326.15625 347.15625 L 331.5625 395.96875 L 303.84375 348.6875 L 274.65625 397.75 L 280.5625 346.375 L 238.875 325.375 L 284.125 310.375 L 303.34375 157.0625 z " fill="#000000" fill-rule="evenodd" stroke="#000000" stroke-width="1px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+</svg></g></g></svg>

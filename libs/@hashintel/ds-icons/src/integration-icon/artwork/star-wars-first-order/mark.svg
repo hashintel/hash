@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" viewBox="-0.62489 -0.36137 458.24979 527.72274" fill="#111111">
+<defs><mask id="emblem-cutout" maskUnits="userSpaceOnUse" x="-0.62489" y="-0.36137" width="458.24979" height="527.72274"><g fill="#FFFFFF"><path d="M228,8.5l222,126v258l-222,126l-221-126v-258z" fill="#000000" stroke="#FFFFFF" stroke-width="14" />
+<circle cx="228.5" cy="263.5" r="190" />
+<g id="pt8">
+<g id="pt4">
+<g id="pt2">
+<path d="M207.5,264.4l4-176a176,176 0 0 1 35.5,0l4,176" fill="#000000" id="pt" />
+<use ns1:href="#pt" transform="rotate(21.1765 228.5 263.5)" />
+</g>
+<use ns1:href="#pt2" transform="rotate(42.353 228.5 263.5)" />
+</g>
+<use ns1:href="#pt4" transform="rotate(84.706 228.5 263.5)" />
+</g>
+<use ns1:href="#pt8" transform="rotate(169.412 228.5 263.5)" />
+<use ns1:href="#pt8" transform="rotate(-21.1765 228.5 263.5)" />
+</g></mask></defs><rect x="-0.62489" y="-0.36137" width="458.24979" height="527.72274" mask="url(#emblem-cutout)" /></svg>

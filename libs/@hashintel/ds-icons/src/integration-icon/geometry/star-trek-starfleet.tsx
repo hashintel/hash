@@ -1,0 +1,29 @@
+/* Starfleet emblem vector by Jesperhansen1972, with margin adjustments by AnonMoos, under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/). Bounds, theme colors, and app tiles are adaptations distributed under the same license. Star Trek trademarks remain with their owners. */
+export const markLight = ({ id: _id }: { id: string }) => (
+  <g fill="#111111">
+    <path
+      d="M 302.3125 83.5625 C 173.53735 277.52458 130.10428 475.02888 115.0625 678.46875 C 198.56887 571.91447 272.07011 502.06874 326.0625 469.625 C 385.67389 433.80484 437.01418 490.46235 487.46875 630.34375 C 453.99082 447.8024 430.8417 269.16999 302.3125 83.5625 z M 303.34375 157.0625 L 322.0625 310.0625 L 367.125 325.40625 L 326.15625 347.15625 L 331.5625 395.96875 L 303.84375 348.6875 L 274.65625 397.75 L 280.5625 346.375 L 238.875 325.375 L 284.125 310.375 L 303.34375 157.0625 z "
+      fill="#000000"
+      fillRule="evenodd"
+      stroke="#000000"
+      strokeWidth="1px"
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      strokeOpacity="1"
+    />
+  </g>
+);
+export const markDark = ({ id: _id }: { id: string }) => (
+  <g fill="#F5F7FA">
+    <path
+      d="M 302.3125 83.5625 C 173.53735 277.52458 130.10428 475.02888 115.0625 678.46875 C 198.56887 571.91447 272.07011 502.06874 326.0625 469.625 C 385.67389 433.80484 437.01418 490.46235 487.46875 630.34375 C 453.99082 447.8024 430.8417 269.16999 302.3125 83.5625 z M 303.34375 157.0625 L 322.0625 310.0625 L 367.125 325.40625 L 326.15625 347.15625 L 331.5625 395.96875 L 303.84375 348.6875 L 274.65625 397.75 L 280.5625 346.375 L 238.875 325.375 L 284.125 310.375 L 303.34375 157.0625 z "
+      fill="#F5F7FA"
+      fillRule="evenodd"
+      stroke="#F5F7FA"
+      strokeWidth="1px"
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      strokeOpacity="1"
+    />
+  </g>
+);

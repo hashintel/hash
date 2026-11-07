@@ -2,6 +2,24 @@
 
 Brand names, marks, and logos belong to their respective owners. The package's MIT/Apache licenses apply to its implementation; they do not grant rights to third-party trademarks or replace the owners' brand-use terms.
 
+## Apple apps and additional brand artwork
+
+Apple app icons are vector conversions of current App Store artwork. Their native rounded badges are retained; exterior corners are transparent. Continuous shading is approximated with outlined color regions. Apple names and artwork remain trademarks of Apple Inc.
+
+Pinpoint and fritz-kola full logos compose their sourced marks and outlined wordmarks horizontally. They are library compositions, not downloaded official lock-ups. The fritz-kola faces were illustrated by Chris Mitchell for Robot Food; copyright Chris Mitchell. Their vector conversion, bounds, theme colors and tiles are adaptations. Other brand rights remain with their respective owners.
+
+## UK Government
+
+Crown copyright. The Royal Coat of Arms and UK Government identity are restricted government insignia. Government branding guidance authorizes their use by His Majesty’s Government departments and affiliated organizations. Inclusion here grants no authorization to use the insignia; these restrictions apply separately from the package’s software licenses. Native outlined artwork was extracted from the official branding manual, its page background removed, and display variants composed.
+
+## Star Trek, Star Wars and Harry Potter
+
+Starfleet emblem vector by Jesperhansen1972, with margin adjustments by AnonMoos, under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). First Order emblem vector by MesserWoland from JLanzer’s artwork, optimized by EclecticArkie, under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Bounds, theme colors and app tiles are adaptations of those assets and are distributed under their respective share-alike licenses.
+
+The Federation flag vector is credited to Peppo and Oren neu dag, who released their contributions into the public domain. The seal and lettering are isolated from the flag. The Jedi Order and Mandalorian emblems use Font Awesome Free artwork, copyright Fonticons, Inc., under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); bounds, theme colors and tiles are adapted. The Font Awesome notice below also applies to these assets.
+
+Harry Potter characters and elements © & TM Warner Bros. Entertainment Inc. Publishing rights © J.K. Rowling. The house crests use the current official website artwork with display variants and tiles composed. All franchise names, characters, insignia and trademarks remain subject to their owners’ rights. No endorsement or trademark permission is implied.
+
 ## Google Noto Emoji
 
 The Google Nano Banana mark uses Google Noto Emoji banana artwork under the Apache License, Version 2.0. SVG metadata has been removed; themed variants and app tiles are composed by this library. The accompanying lettering is outlined Google Sans, and the full lock-up is a library composition.

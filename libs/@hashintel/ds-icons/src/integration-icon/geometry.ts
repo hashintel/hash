@@ -196,11 +196,31 @@ import * as appNetLegacy from "./geometry/app-net-legacy";
 import * as apper from "./geometry/apper";
 import * as apple from "./geometry/apple";
 import * as appleAppStore from "./geometry/apple-app-store";
+import * as appleBooks from "./geometry/apple-books";
+import * as appleCalendar from "./geometry/apple-calendar";
+import * as appleContacts from "./geometry/apple-contacts";
+import * as appleFaceTime from "./geometry/apple-facetime";
+import * as appleFiles from "./geometry/apple-files";
+import * as appleFindMy from "./geometry/apple-find-my";
+import * as appleFreeform from "./geometry/apple-freeform";
 import * as appleHealth from "./geometry/apple-health";
+import * as appleHome from "./geometry/apple-home";
+import * as appleKeynote from "./geometry/apple-keynote";
+import * as appleMail from "./geometry/apple-mail";
 import * as appleMaps from "./geometry/apple-maps";
+import * as appleMessages from "./geometry/apple-messages";
+import * as appleMusic from "./geometry/apple-music";
+import * as appleNews from "./geometry/apple-news";
 import * as appleNotes from "./geometry/apple-notes";
+import * as appleNumbers from "./geometry/apple-numbers";
+import * as applePages from "./geometry/apple-pages";
 import * as applePay from "./geometry/apple-pay";
+import * as applePhotos from "./geometry/apple-photos";
+import * as applePodcasts from "./geometry/apple-podcasts";
+import * as appleReminders from "./geometry/apple-reminders";
+import * as appleShortcuts from "./geometry/apple-shortcuts";
 import * as appleTv from "./geometry/apple-tv";
+import * as appleWallet from "./geometry/apple-wallet";
 import * as applebees from "./geometry/applebees";
 import * as appliedIntuition from "./geometry/applied-intuition";
 import * as appliedMaterials from "./geometry/applied-materials";
@@ -1003,6 +1023,7 @@ import * as fremantle from "./geometry/fremantle";
 import * as fresenius from "./geometry/fresenius";
 import * as freshfields from "./geometry/freshfields";
 import * as freshworks from "./geometry/freshworks";
+import * as fritzKola from "./geometry/fritz-kola";
 import * as frontierAirlines from "./geometry/frontier-airlines";
 import * as ftxLegacy from "./geometry/ftx-legacy";
 import * as fujifilm from "./geometry/fujifilm";
@@ -1147,6 +1168,10 @@ import * as harleyDavidson from "./geometry/harley-davidson";
 import * as harpercollins from "./geometry/harpercollins";
 import * as harrods from "./geometry/harrods";
 import * as harryPotter from "./geometry/harry-potter";
+import * as harryPotterGryffindor from "./geometry/harry-potter-gryffindor";
+import * as harryPotterHufflepuff from "./geometry/harry-potter-hufflepuff";
+import * as harryPotterRavenclaw from "./geometry/harry-potter-ravenclaw";
+import * as harryPotterSlytherin from "./geometry/harry-potter-slytherin";
 import * as harryWinston from "./geometry/harry-winston";
 import * as harvey from "./geometry/harvey";
 import * as harveyNichols from "./geometry/harvey-nichols";
@@ -1159,6 +1184,7 @@ import * as havaianas from "./geometry/havaianas";
 import * as havas from "./geometry/havas";
 import * as havells from "./geometry/havells";
 import * as hawaiianAirlines from "./geometry/hawaiian-airlines";
+import * as hawksmoor from "./geometry/hawksmoor";
 import * as hbo from "./geometry/hbo";
 import * as hbosLegacy from "./geometry/hbos-legacy";
 import * as hcltech from "./geometry/hcltech";
@@ -1333,6 +1359,7 @@ import * as jaguar from "./geometry/jaguar";
 import * as jang from "./geometry/jang";
 import * as japanAirlines from "./geometry/japan-airlines";
 import * as japanPost from "./geometry/japan-post";
+import * as jarritos from "./geometry/jarritos";
 import * as java from "./geometry/java";
 import * as jbs from "./geometry/jbs";
 import * as jcb from "./geometry/jcb";
@@ -1574,11 +1601,13 @@ import * as malevLegacy from "./geometry/malev-legacy";
 import * as malinGoetz from "./geometry/malin-goetz";
 import * as man from "./geometry/man";
 import * as mango from "./geometry/mango";
+import * as manifestoMarket from "./geometry/manifesto-market";
 import * as manifoldLegacy from "./geometry/manifold";
 import * as manoloBlahnik from "./geometry/manolo-blahnik";
 import * as manulife from "./geometry/manulife";
 import * as mapfre from "./geometry/mapfre";
 import * as marcJacobs from "./geometry/marc-jacobs";
+import * as maredo from "./geometry/maredo";
 import * as marico from "./geometry/marico";
 import * as marimekko from "./geometry/marimekko";
 import * as markdown from "./geometry/markdown";
@@ -1988,6 +2017,7 @@ import * as pimco from "./geometry/pimco";
 import * as pinduoduo from "./geometry/pinduoduo";
 import * as pineLabs from "./geometry/pine-labs";
 import * as pingAn from "./geometry/ping-an";
+import * as pinpoint from "./geometry/pinpoint";
 import * as pinterest from "./geometry/pinterest";
 import * as pirelli from "./geometry/pirelli";
 import * as pix from "./geometry/pix";
@@ -2359,7 +2389,17 @@ import * as standardBank from "./geometry/standard-bank";
 import * as standardChartered from "./geometry/standard-chartered";
 import * as standardOilLegacy from "./geometry/standard-oil-legacy";
 import * as starTrek from "./geometry/star-trek";
+import * as starTrekFederation from "./geometry/star-trek-federation";
+import * as starTrekKlingon from "./geometry/star-trek-klingon";
+import * as starTrekStarfleet from "./geometry/star-trek-starfleet";
 import * as starWars from "./geometry/star-wars";
+import * as starWarsFirstOrder from "./geometry/star-wars-first-order";
+import * as starWarsGalacticEmpire from "./geometry/star-wars-galactic-empire";
+import * as starWarsGalacticRepublic from "./geometry/star-wars-galactic-republic";
+import * as starWarsJediOrder from "./geometry/star-wars-jedi-order";
+import * as starWarsMandalorian from "./geometry/star-wars-mandalorian";
+import * as starWarsRebelAlliance from "./geometry/star-wars-rebel-alliance";
+import * as starWarsSith from "./geometry/star-wars-sith";
 import * as starbucks from "./geometry/starbucks";
 import * as starlingBank from "./geometry/starling-bank";
 import * as starlink from "./geometry/starlink";
@@ -2381,6 +2421,7 @@ import * as strato from "./geometry/strato";
 import * as strava from "./geometry/strava";
 import * as stripe from "./geometry/stripe";
 import * as stubber from "./geometry/stubber";
+import * as studio54 from "./geometry/studio54";
 import * as studiovinari from "./geometry/studiovinari";
 import * as stumbleuponLegacy from "./geometry/stumbleupon-legacy";
 import * as subaru from "./geometry/subaru";
@@ -2600,6 +2641,7 @@ import * as ubuntu from "./geometry/ubuntu";
 import * as ucb from "./geometry/ucb";
 import * as udacity from "./geometry/udacity";
 import * as uikit from "./geometry/uikit";
+import * as ukGovernment from "./geometry/uk-government";
 import * as ukMinistryOfDefence from "./geometry/uk-ministry-of-defence";
 import * as ukNationalLottery from "./geometry/uk-national-lottery";
 import * as ultralytics from "./geometry/ultralytics";
@@ -37109,6 +37151,510 @@ export const integrationGeometry: Readonly<
     wordmarkViewBox: "79 -716 5800 732",
     wordmarkDarkViewBox: "79 -716 5800 732",
     ratio: 1.55,
+    alignment: "center",
+  },
+  appleMessages: {
+    ...appleMessages,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.563681810336 -1.89626166864 -0.191429100218 0 2.65137257919",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleFaceTime: {
+    ...appleFaceTime,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.563258970501 -1.89483920838 -0.191285501741 0 2.64938368063",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleMail: {
+    ...appleMail,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.354698696173 -1.19322910397 -0.120457412341 0 1.66838521248",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  applePhotos: {
+    ...applePhotos,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.303166378299 -1.01987109012 -0.102956785104 0 1.42599425352",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleMusic: {
+    ...appleMusic,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.214280632411 -0.720853754941 -0.0727707509881 0 1.00790513834",
+    monoInkScale: 1,
+    logoViewBox: "-0.12754 -0.13876 79.26108 15.28152",
+    wordmarkViewBox: "14.24 -0.139 64.9 15.282",
+    wordmarkDarkViewBox: "14.24 -0.139 64.9 15.282",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  applePodcasts: {
+    ...applePodcasts,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.282831054707 -0.951461760707 -0.0960508097358 0 1.33034362515",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleBooks: {
+    ...appleBooks,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.437101502559 -1.47043741595 -0.148441808489 0 2.05598072699",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleCalendar: {
+    ...appleCalendar,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22218442623 -0.747442622951 -0.0754549180328 0 1.04508196721",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleContacts: {
+    ...appleContacts,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.491549551183 -1.65360413455 -0.166932632152 0 2.31208631789",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleReminders: {
+    ...appleReminders,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.347935415054 -1.17047699363 -0.118160568988 0 1.63657297768",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleFiles: {
+    ...appleFiles,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.35568446937 -1.19654530806 -0.120792185741 0 1.67302196317",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleFindMy: {
+    ...appleFindMy,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.367059005143 -1.23480997403 -0.124655033732 0 1.7265240129",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleShortcuts: {
+    ...appleShortcuts,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.24520428489 -0.824882900062 -0.0832725746427 0 1.15335975959",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleHome: {
+    ...appleHome,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.496267898434 -1.66947695654 -0.168535005959 0 2.33427986093",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleNews: {
+    ...appleNews,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.276260915295 -0.929359391434 -0.0938195582516 0 1.29943986498",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleWallet: {
+    ...appleWallet,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.219989579377 -0.740059017735 -0.0747095373049 0 1.03475813442",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleFreeform: {
+    ...appleFreeform,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26032928079 -0.875764353813 -0.088409097239 0 1.22450273184",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  applePages: {
+    ...applePages,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.242608263708 -0.81614971874 -0.0823909531502 0 1.1411489356",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleNumbers: {
+    ...appleNumbers,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.239639618932 -0.806163007808 -0.0813827868621 0 1.1271854136",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  appleKeynote: {
+    ...appleKeynote,
+    markViewBox: "0 0 1024 1024",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.237138123016 -0.797747815528 -0.0805332666123 0 1.11541920516",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  pinpoint: {
+    ...pinpoint,
+    markViewBox: "-0.10977 -0.10977 68.21954 68.21954",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.396802625589 -1.3348694159 -0.134756112735 0 1.86642815423",
+    monoInkScale: 1,
+    logoViewBox: "0 0 317.3901204005019 100",
+    wordmarkViewBox: "-0.26313 -0.28605 162.61811 40.57209",
+    wordmarkDarkViewBox: "-0.26313 -0.28605 162.61811 40.57209",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  ukGovernment: {
+    ...ukGovernment,
+    markViewBox: "67.93006 715.69846 49.94674 40.90644",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "56.54196 715.52898 196.2363 69.94205",
+    wordmarkViewBox: "69.1519 764.91188 183.4677 20.47271",
+    wordmarkDarkViewBox: "69.1519 764.91188 183.4677 20.47271",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  studio54: {
+    ...studio54,
+    markViewBox: "-0.32286 -0.25857 200.64571 151.80245",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "-0.32286 -0.25857 200.64571 151.80245",
+    wordmarkViewBox: "-0.32286 -0.25857 200.64571 151.80245",
+    wordmarkDarkViewBox: "-0.32286 -0.25857 200.64571 151.80245",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  jarritos: {
+    ...jarritos,
+    markViewBox: "35.49464 16.53053 123.31429 105.93893",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.449589992636 -1.51244949545 -0.15268296081 0 2.1147224489",
+    monoInkScale: 1,
+    logoViewBox: "8.28025 16.51368 176.19551 159.72864",
+    wordmarkViewBox: "24.42703 129.33632 139.62223 27.93465",
+    wordmarkDarkViewBox: "24.42703 129.33632 139.62223 27.93465",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  fritzKola: {
+    ...fritzKola,
+    markViewBox: "-1.46577 -1.40065 910.0884 796.95832",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 0 242.81789761568047 100",
+    wordmarkViewBox: "-1.0622 -0.96851 659.5134 190.93701",
+    wordmarkDarkViewBox: "-1.0622 -0.96851 659.5134 190.93701",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  manifestoMarket: {
+    ...manifestoMarket,
+    markViewBox: "1.05686 0.75257 31.99486 37.71486",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "0.76229 0.58303 250.17542 68.16787",
+    wordmarkViewBox: "0.76229 0.58303 250.17542 68.16787",
+    wordmarkDarkViewBox: "0.76229 0.58303 250.17542 68.16787",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  hawksmoor: {
+    ...hawksmoor,
+    markViewBox: "0.41849 0.11026 424.00649 454.20106",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "-0.8659 -0.9424 538.13181 53.98479",
+    wordmarkViewBox: "-0.8659 -0.9424 538.13181 53.98479",
+    wordmarkDarkViewBox: "-0.8659 -0.9424 538.13181 53.98479",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  maredo: {
+    ...maredo,
+    markViewBox: "-0.04394 -0.02451 27.30888 20.26631",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.278001698378 -0.935215497083 -0.0944107367022 0 1.30762793216",
+    monoInkScale: 1,
+    logoViewBox: "-0.35353 -0.29107 219.70706 41.3787",
+    wordmarkViewBox: "-0.35353 -0.29107 219.70706 41.3787",
+    wordmarkDarkViewBox: "-0.35353 -0.29107 219.70706 41.3787",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starTrekKlingon: {
+    ...starTrekKlingon,
+    markViewBox: "9.74706 1.95456 100.80195 125.65207",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starTrekStarfleet: {
+    ...starTrekStarfleet,
+    markViewBox: "113.59452 81.6844 375.20307 598.8372",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starTrekFederation: {
+    ...starTrekFederation,
+    markViewBox: "188.95791 47.16896 261.52128 201.924",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269254532523 -0.905789471593 -0.0914401563884 0 1.2664841605",
+    monoInkScale: 1,
+    logoViewBox: "53.34563 47.16896 512.87164 256.29265",
+    wordmarkViewBox: "53.34563 277.50496 512.87164 25.95665",
+    wordmarkDarkViewBox: "53.34563 277.50496 512.87164 25.95665",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starWarsRebelAlliance: {
+    ...starWarsRebelAlliance,
+    markViewBox: "6.75857 2.58 287.87571 293.72571",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.328509880201 -1.10512825174 -0.111563562326 0 1.54520169427",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starWarsGalacticEmpire: {
+    ...starWarsGalacticEmpire,
+    markViewBox: "-0.96857 -0.96857 601.93714 601.9372",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starWarsGalacticRepublic: {
+    ...starWarsGalacticRepublic,
+    markViewBox: "-0.96857 -0.96857 601.93714 601.93714",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starWarsFirstOrder: {
+    ...starWarsFirstOrder,
+    markViewBox: "-0.62489 -0.36137 458.24979 527.72274",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starWarsJediOrder: {
+    ...starWarsJediOrder,
+    markViewBox: "-0.25966 28.65006 449.9456 453.74903",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starWarsMandalorian: {
+    ...starWarsMandalorian,
+    markViewBox: "-3.49623 -0.82651 392.41874 513.65303",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  starWarsSith: {
+    ...starWarsSith,
+    markViewBox: "-1.45286 -1.45286 902.90571 902.90571",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.268748122436 -0.904085875666 -0.0912681770457 0 1.26410217515",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  harryPotterGryffindor: {
+    ...harryPotterGryffindor,
+    markViewBox: "4.74463 -0.08394 42.51074 52.16789",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  harryPotterHufflepuff: {
+    ...harryPotterHufflepuff,
+    markViewBox: "5.72557 -0.08879 42.95729 55.17757",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  harryPotterRavenclaw: {
+    ...harryPotterRavenclaw,
+    markViewBox: "5.13091 -0.08394 41.59331 52.16789",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  harryPotterSlytherin: {
+    ...harryPotterSlytherin,
+    markViewBox: "6.0804 -0.08717 41.8392 54.17434",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    wordmarkViewBox: null,
+    wordmarkDarkViewBox: null,
+    ratio: 1.8,
     alignment: "center",
   },
 } as const;

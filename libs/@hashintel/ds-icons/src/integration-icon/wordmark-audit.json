@@ -14266,6 +14266,216 @@
       "name": "googleNanoBanana",
       "status": "available",
       "method": "composed-google-sans-lettering"
+    },
+    {
+      "name": "appleMessages",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleFaceTime",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleMail",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "applePhotos",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleMusic",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "applePodcasts",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleBooks",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleCalendar",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleContacts",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleReminders",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleFiles",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleFindMy",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleShortcuts",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleHome",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleNews",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleWallet",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleFreeform",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "applePages",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleNumbers",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "appleKeynote",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "pinpoint",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "ukGovernment",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "studio54",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "jarritos",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "fritzKola",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "manifestoMarket",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "hawksmoor",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "maredo",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "starTrekKlingon",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starTrekStarfleet",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starTrekFederation",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "starWarsRebelAlliance",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starWarsGalacticEmpire",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starWarsGalacticRepublic",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starWarsFirstOrder",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starWarsJediOrder",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starWarsMandalorian",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "starWarsSith",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "harryPotterGryffindor",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "harryPotterHufflepuff",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "harryPotterRavenclaw",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "harryPotterSlytherin",
+      "status": "unavailable",
+      "method": "no-verified-lettering-source"
     }
   ]
 }

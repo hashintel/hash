@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="maredo-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="maredo-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="maredo-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#maredo-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#maredo-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#maredo-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="maredo-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#maredo-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.04394 -0.02451 27.30888 20.26631" xml:space="preserve" fill="#CE122E" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M191.819,237.6s2.937,3.967-3.157,4.241l-5.01-.714-.988,3.336c-.686,2.237-1.5,4.791-1.716,4.791s-1.043-2.539-1.716-4.791l-.988-3.336-5.01.714c-6.108-.288-3.157-4.241-3.157-4.241-5.765,4.241-1.222,6.946,2.567,7.852h0l-2.059,12.34h4.475l.673-5.189c.165-1.222.316-2.786.453-4.406h.055a19.557,19.557,0,0,0,.535,2.32c.192.741,1.524,2.649,1.524,4.269,0,0,.343,1.043,2.636,1.043h0c2.292,0,2.636-1.043,2.636-1.043,0-1.62,1.331-3.528,1.524-4.269a16.709,16.709,0,0,0,.535-2.32h.041c.151,1.606.288,3.171.453,4.406l.673,5.189h4.475l-2.018-12.34h0c3.775-.906,8.332-3.6,2.567-7.852" transform="translate(-167.336 -237.6)" fill="#CE122E" /></svg></g></svg>

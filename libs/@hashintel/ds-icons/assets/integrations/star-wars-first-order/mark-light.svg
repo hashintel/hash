@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--First Order emblem vector by MesserWoland from JLanzer’s artwork, optimized by EclecticArkie; CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Bounds, theme colors, and app tiles are adaptations distributed under the same license. Star Wars trademarks remain with their owners.--><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" viewBox="-0.62489 -0.36137 458.24979 527.72274" fill="#111111" x="0.0" y="0.0" width="64" height="64">
+<defs><mask id="star-wars-first-order-mark-light-emblem-cutout" maskUnits="userSpaceOnUse" x="-0.62489" y="-0.36137" width="458.24979" height="527.72274"><g fill="#FFFFFF"><path d="M228,8.5l222,126v258l-222,126l-221-126v-258z" fill="#000000" stroke="#FFFFFF" stroke-width="14" />
+<circle cx="228.5" cy="263.5" r="190" />
+<g id="star-wars-first-order-mark-light-pt8">
+<g id="star-wars-first-order-mark-light-pt4">
+<g id="star-wars-first-order-mark-light-pt2">
+<path d="M207.5,264.4l4-176a176,176 0 0 1 35.5,0l4,176" fill="#000000" id="star-wars-first-order-mark-light-pt" />
+<use ns1:href="#star-wars-first-order-mark-light-pt" transform="rotate(21.1765 228.5 263.5)" />
+</g>
+<use ns1:href="#star-wars-first-order-mark-light-pt2" transform="rotate(42.353 228.5 263.5)" />
+</g>
+<use ns1:href="#star-wars-first-order-mark-light-pt4" transform="rotate(84.706 228.5 263.5)" />
+</g>
+<use ns1:href="#star-wars-first-order-mark-light-pt8" transform="rotate(169.412 228.5 263.5)" />
+<use ns1:href="#star-wars-first-order-mark-light-pt8" transform="rotate(-21.1765 228.5 263.5)" />
+</g></mask></defs><rect x="-0.62489" y="-0.36137" width="458.24979" height="527.72274" mask="url(#star-wars-first-order-mark-light-emblem-cutout)" /></svg></svg>

@@ -730,7 +730,140 @@
     "logoNotes": "Corporate Apple symbol sourced as a native SVG from Apple's website navigation, with navigation padding removed. No separate full-logo lock-up was verified. Only mark and app-tile variants are provided.",
     "categories": ["Technology & electronics"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Apple Messages",
+      "iMessage",
+      "Apple iMessage",
+      "Apple FaceTime",
+      "FaceTime",
+      "Apple Mail",
+      "Apple Photos",
+      "Apple Music",
+      "Apple Podcasts",
+      "Podcasts",
+      "Apple Books",
+      "Apple Calendar",
+      "Apple Contacts",
+      "Apple Reminders",
+      "Reminders",
+      "Apple Files",
+      "Apple Find My",
+      "Find My",
+      "Apple Shortcuts",
+      "Shortcuts",
+      "Apple Home",
+      "Apple News",
+      "Apple Wallet",
+      "Apple Freeform",
+      "Freeform",
+      "Apple Pages",
+      "Apple Numbers",
+      "Apple Keynote",
+      "Keynote"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple Messages", "iMessage", "Apple iMessage"],
+        "url": "https://apps.apple.com/us/app/messages/id1146560473?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple FaceTime", "FaceTime"],
+        "url": "https://apps.apple.com/us/app/facetime/id1110145091?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Mail"],
+        "url": "https://apps.apple.com/us/app/mail/id1108187098?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Photos"],
+        "url": "https://apps.apple.com/us/app/photos/id1584215428?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Music"],
+        "url": "https://apps.apple.com/us/app/apple-music/id1108187390?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Podcasts", "Podcasts"],
+        "url": "https://apps.apple.com/us/app/apple-podcasts/id525463029?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Books"],
+        "url": "https://apps.apple.com/us/app/apple-books/id364709193?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Calendar"],
+        "url": "https://apps.apple.com/us/app/calendar/id1108185179?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Contacts"],
+        "url": "https://apps.apple.com/us/app/contacts/id1069512615?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Reminders", "Reminders"],
+        "url": "https://apps.apple.com/us/app/reminders/id1108187841?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Files"],
+        "url": "https://apps.apple.com/us/app/files/id1232058109?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Find My", "Find My"],
+        "url": "https://apps.apple.com/us/app/find-my/id1514844621?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Shortcuts", "Shortcuts"],
+        "url": "https://apps.apple.com/us/app/shortcuts/id915249334?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Home"],
+        "url": "https://apps.apple.com/us/app/home/id1110145103?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple News"],
+        "url": "https://apps.apple.com/us/app/apple-news/id1066498020?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Wallet"],
+        "url": "https://apps.apple.com/us/app/apple-wallet/id1160481993?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Freeform", "Freeform"],
+        "url": "https://apps.apple.com/us/app/freeform/id6443742539?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Pages"],
+        "url": "https://apps.apple.com/us/app/pages-create-documents/id361309726?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Numbers"],
+        "url": "https://apps.apple.com/us/app/numbers-make-spreadsheets/id361304891?uo=4",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Apple Keynote", "Keynote"],
+        "url": "https://apps.apple.com/us/app/keynote-design-presentations/id361285480?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "appleNotes",
@@ -19808,7 +19941,39 @@
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
     "categories": ["Film & television"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Star Trek Klingon",
+      "Klingon Empire",
+      "Klingon",
+      "Star Trek Starfleet",
+      "Starfleet",
+      "Starfleet insignia",
+      "Star Trek Federation",
+      "United Federation of Planets",
+      "UFP"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Trek Klingon", "Klingon Empire", "Klingon"],
+        "url": "https://www.startrek.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Star Trek Starfleet", "Starfleet", "Starfleet insignia"],
+        "url": "https://www.startrek.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "Star Trek Federation",
+          "United Federation of Planets",
+          "UFP"
+        ],
+        "url": "https://www.startrek.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "brand007",
@@ -23163,7 +23328,80 @@
     "lastCheckedManually": null,
     "wordmark": {
       "source": "logo"
-    }
+    },
+    "searchAliases": [
+      "Star Wars Rebel Alliance",
+      "Rebel Alliance",
+      "Rebellion",
+      "Rebel starbird",
+      "Star Wars Galactic Empire",
+      "Galactic Empire",
+      "Imperial crest",
+      "Star Wars Galactic Republic",
+      "Galactic Republic",
+      "Republic crest",
+      "Star Wars First Order",
+      "First Order",
+      "Star Wars Jedi Order",
+      "Jedi Order",
+      "Jedi",
+      "Star Wars Mandalorian",
+      "Mandalorian",
+      "Mythosaur",
+      "Star Wars Sith",
+      "Sith",
+      "Sith Eternal"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Star Wars Rebel Alliance",
+          "Rebel Alliance",
+          "Rebellion",
+          "Rebel starbird"
+        ],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "Star Wars Galactic Empire",
+          "Galactic Empire",
+          "Imperial crest"
+        ],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "Star Wars Galactic Republic",
+          "Galactic Republic",
+          "Republic crest"
+        ],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Star Wars First Order", "First Order"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Star Wars Jedi Order", "Jedi Order", "Jedi"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Star Wars Mandalorian", "Mandalorian", "Mythosaur"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": ["Star Wars Sith", "Sith", "Sith Eternal"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "foundationTvSeries",
@@ -23445,7 +23683,59 @@
     "lastCheckedManually": null,
     "wordmark": {
       "source": "logo"
-    }
+    },
+    "searchAliases": [
+      "Harry Potter Gryffindor",
+      "Gryffindor",
+      "Hogwarts Gryffindor",
+      "Harry Potter Hufflepuff",
+      "Hufflepuff",
+      "Hogwarts Hufflepuff",
+      "Harry Potter Ravenclaw",
+      "Ravenclaw",
+      "Hogwarts Ravenclaw",
+      "Harry Potter Slytherin",
+      "Slytherin",
+      "Hogwarts Slytherin"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Harry Potter Gryffindor",
+          "Gryffindor",
+          "Hogwarts Gryffindor"
+        ],
+        "url": "https://www.harrypotter.com/house/gryffindor",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "Harry Potter Hufflepuff",
+          "Hufflepuff",
+          "Hogwarts Hufflepuff"
+        ],
+        "url": "https://www.harrypotter.com/house/hufflepuff",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "Harry Potter Ravenclaw",
+          "Ravenclaw",
+          "Hogwarts Ravenclaw"
+        ],
+        "url": "https://www.harrypotter.com/house/ravenclaw",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "Harry Potter Slytherin",
+          "Slytherin",
+          "Hogwarts Slytherin"
+        ],
+        "url": "https://www.harrypotter.com/house/slytherin",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "allianz",
@@ -99176,5 +99466,1501 @@
       "source": "logo"
     },
     "monoInkScale": 3
+  },
+  {
+    "name": "appleMessages",
+    "slug": "apple-messages",
+    "label": "Apple Messages",
+    "integrationNames": ["Apple Messages", "iMessage", "Apple iMessage"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/fc/8d/32/fc8d32a0-86a7-83d8-7045-57b4b3e71a0b/messagesCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/messages/id1146560473?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Communication"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/fc/8d/32/fc8d32a0-86a7-83d8-7045-57b4b3e71a0b/messagesCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/messages/id1146560473?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleFaceTime",
+    "slug": "apple-facetime",
+    "label": "Apple FaceTime",
+    "integrationNames": ["Apple FaceTime", "FaceTime"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/b1/05/6a/b1056a9b-6401-b268-31db-89e724d65054/facetimeCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/facetime/id1110145091?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Communication"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/b1/05/6a/b1056a9b-6401-b268-31db-89e724d65054/facetimeCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/facetime/id1110145091?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleMail",
+    "slug": "apple-mail",
+    "label": "Apple Mail",
+    "integrationNames": ["Apple Mail"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/6e/20/b2/6e20b217-8f80-9b20-136f-50ee09e2937c/mailCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/mail/id1108187098?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Communication", "Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/6e/20/b2/6e20b217-8f80-9b20-136f-50ee09e2937c/mailCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/mail/id1108187098?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "applePhotos",
+    "slug": "apple-photos",
+    "label": "Apple Photos",
+    "integrationNames": ["Apple Photos"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/72/6e/79/726e7943-4a7d-091d-3c55-1d46477cdf08/photosCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/photos/id1584215428?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/72/6e/79/726e7943-4a7d-091d-3c55-1d46477cdf08/photosCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/photos/id1584215428?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleMusic",
+    "slug": "apple-music",
+    "label": "Apple Music",
+    "integrationNames": ["Apple Music"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/d5/45/38/d5453893-7719-0067-ed45-1de44d0d8eb9/musicValkyrie-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Current App Store badge vectorized with transparent exterior corners; the full logo uses the separately sourced outlined Apple Music lock-up. The vector conversion approximates the source’s continuous shading with outlined color regions. Standalone wordmarks isolate the native music lettering, omitting the Apple symbol.",
+    "brandWebsite": "https://apps.apple.com/us/app/apple-music/id1108187390?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Music & video"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/d5/45/38/d5453893-7719-0067-ed45-1de44d0d8eb9/musicValkyrie-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Apple_Music_Logo_%282026%29.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Apple_Music_Logo_%282026%29.svg",
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/apple-music/id1108187390?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"],
+    "wordmark": {
+      "source": "wordmark"
+    }
+  },
+  {
+    "name": "applePodcasts",
+    "slug": "apple-podcasts",
+    "label": "Apple Podcasts",
+    "integrationNames": ["Apple Podcasts", "Podcasts"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/e8/0a/f3/e80af3fc-6a6b-35c6-1931-272745ed02e7/podcastsCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/apple-podcasts/id525463029?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Music & video"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/e8/0a/f3/e80af3fc-6a6b-35c6-1931-272745ed02e7/podcastsCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/apple-podcasts/id525463029?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleBooks",
+    "slug": "apple-books",
+    "label": "Apple Books",
+    "integrationNames": ["Apple Books"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/58/33/db/5833dbdb-b7fd-4638-f028-dec268a4ab8b/booksCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/apple-books/id364709193?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["News & publishing"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/58/33/db/5833dbdb-b7fd-4638-f028-dec268a4ab8b/booksCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/apple-books/id364709193?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleCalendar",
+    "slug": "apple-calendar",
+    "label": "Apple Calendar",
+    "integrationNames": ["Apple Calendar"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/ca/5a/cd/ca5acd85-c64d-f468-00f9-50fdc4819e59/calendarCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/calendar/id1108185179?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/ca/5a/cd/ca5acd85-c64d-f468-00f9-50fdc4819e59/calendarCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/calendar/id1108185179?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleContacts",
+    "slug": "apple-contacts",
+    "label": "Apple Contacts",
+    "integrationNames": ["Apple Contacts"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/db/00/f5/db00f5fc-c446-f84c-29b9-1a46bb028ca6/contactsCalistoga-0-0-1x_U007epad-0-1-0-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/contacts/id1069512615?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/db/00/f5/db00f5fc-c446-f84c-29b9-1a46bb028ca6/contactsCalistoga-0-0-1x_U007epad-0-1-0-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/contacts/id1069512615?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleReminders",
+    "slug": "apple-reminders",
+    "label": "Apple Reminders",
+    "integrationNames": ["Apple Reminders", "Reminders"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/4b/b4/39/4bb43986-4714-adc7-459a-1b7c7aafff1d/remindersCalistoga-0-0-1x_U007epad-0-1-0-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/reminders/id1108187841?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/4b/b4/39/4bb43986-4714-adc7-459a-1b7c7aafff1d/remindersCalistoga-0-0-1x_U007epad-0-1-0-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/reminders/id1108187841?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleFiles",
+    "slug": "apple-files",
+    "label": "Apple Files",
+    "integrationNames": ["Apple Files"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/35/df/6a/35df6a7a-b5e0-9221-4a90-1dee835fe6ca/filesCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/files/id1232058109?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/35/df/6a/35df6a7a-b5e0-9221-4a90-1dee835fe6ca/filesCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/files/id1232058109?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleFindMy",
+    "slug": "apple-find-my",
+    "label": "Apple Find My",
+    "integrationNames": ["Apple Find My", "Find My"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/4d/ac/0e/4dac0e4f-cf5b-0f7a-e1be-0e5ec3f19469/findmyCalistoga-0-0-1x_U007epad-0-1-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/find-my/id1514844621?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Transport & logistics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/4d/ac/0e/4dac0e4f-cf5b-0f7a-e1be-0e5ec3f19469/findmyCalistoga-0-0-1x_U007epad-0-1-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/find-my/id1514844621?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleShortcuts",
+    "slug": "apple-shortcuts",
+    "label": "Apple Shortcuts",
+    "integrationNames": ["Apple Shortcuts", "Shortcuts"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple113/v4/3e/52/07/3e520776-0908-893c-2248-6c9d29a03cc7/AppIcon-0-1x_U007emarketing-0-0-GLES2_U002c0-512MB-sRGB-0-0-0-85-220-0-0-0-7.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/shortcuts/id915249334?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity", "Developer tools"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple113/v4/3e/52/07/3e520776-0908-893c-2248-6c9d29a03cc7/AppIcon-0-1x_U007emarketing-0-0-GLES2_U002c0-512MB-sRGB-0-0-0-85-220-0-0-0-7.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/shortcuts/id915249334?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleHome",
+    "slug": "apple-home",
+    "label": "Apple Home",
+    "integrationNames": ["Apple Home"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/95/9a/a1/959aa187-4f53-49d8-b416-2c09f4500ec1/homeCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/home/id1110145103?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/95/9a/a1/959aa187-4f53-49d8-b416-2c09f4500ec1/homeCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/home/id1110145103?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleNews",
+    "slug": "apple-news",
+    "label": "Apple News",
+    "integrationNames": ["Apple News"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/69/d7/ed/69d7ed5e-45ca-d921-a7ad-cda01b48f55d/newsCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/apple-news/id1066498020?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["News & publishing"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/69/d7/ed/69d7ed5e-45ca-d921-a7ad-cda01b48f55d/newsCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/apple-news/id1066498020?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleWallet",
+    "slug": "apple-wallet",
+    "label": "Apple Wallet",
+    "integrationNames": ["Apple Wallet"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/18/81/b7/1881b7e2-7323-4b41-9c34-43911b53c9d6/walletCalistoga-0-0-1x_U007ephone-0-1-0-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/apple-wallet/id1160481993?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/18/81/b7/1881b7e2-7323-4b41-9c34-43911b53c9d6/walletCalistoga-0-0-1x_U007ephone-0-1-0-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/apple-wallet/id1160481993?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleFreeform",
+    "slug": "apple-freeform",
+    "label": "Apple Freeform",
+    "integrationNames": ["Apple Freeform", "Freeform"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/30/02/e4/3002e4db-623c-9dab-162e-5b59e7d7df1b/FreeformCalistoga-0-0-1x_U007epad-0-1-85-220.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/freeform/id6443742539?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Design & creative", "Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/30/02/e4/3002e4db-623c-9dab-162e-5b59e7d7df1b/FreeformCalistoga-0-0-1x_U007epad-0-1-85-220.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/freeform/id6443742539?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "applePages",
+    "slug": "apple-pages",
+    "label": "Apple Pages",
+    "integrationNames": ["Apple Pages"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/8e/c3/22/8ec322df-60dc-407c-aa76-46ddbe61d2b1/AppIcon-0-0-1x_U007epad-0-0-0-1-0-0-P3-0-0-85-220-0.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/pages-create-documents/id361309726?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/8e/c3/22/8ec322df-60dc-407c-aa76-46ddbe61d2b1/AppIcon-0-0-1x_U007epad-0-0-0-1-0-0-P3-0-0-85-220-0.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/pages-create-documents/id361309726?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleNumbers",
+    "slug": "apple-numbers",
+    "label": "Apple Numbers",
+    "integrationNames": ["Apple Numbers"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/60/e4/e5/60e4e504-2f8c-ee70-0990-c78bc19ea7a9/AppIcon-0-0-1x_U007epad-0-0-0-1-0-0-P3-0-0-85-220-0.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/numbers-make-spreadsheets/id361304891?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/60/e4/e5/60e4e504-2f8c-ee70-0990-c78bc19ea7a9/AppIcon-0-0-1x_U007epad-0-0-0-1-0-0-P3-0-0-85-220-0.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/numbers-make-spreadsheets/id361304891?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "appleKeynote",
+    "slug": "apple-keynote",
+    "label": "Apple Keynote",
+    "integrationNames": ["Apple Keynote", "Keynote"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/82/67/5a/82675a1f-db9c-7350-cb2b-113a5d547181/AppIcon-0-0-1x_U007epad-0-0-0-1-0-0-P3-0-0-85-220-0.png/1024x1024bb.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Vector conversion of Apple’s current App Store icon; the native rounded badge is retained, with exterior corners made transparent. No separate full logo or wordmark was verified. The vector conversion approximates the source’s continuous shading with outlined color regions.",
+    "brandWebsite": "https://apps.apple.com/us/app/keynote-design-presentations/id361285480?uo=4",
+    "artworkAttribution": "Apple app artwork. Brand names and artwork remain trademarks of Apple Inc. Artwork vectorized from current App Store assets, exterior corners made transparent, mono colors adapted, and app tiles composed.",
+    "categories": ["Productivity"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/82/67/5a/82675a1f-db9c-7350-cb2b-113a5d547181/AppIcon-0-0-1x_U007epad-0-0-0-1-0-0-P3-0-0-85-220-0.png/1024x1024bb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Apple"],
+        "url": "https://apps.apple.com/us/app/keynote-design-presentations/id361285480?uo=4",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Apple"]
+  },
+  {
+    "name": "pinpoint",
+    "slug": "pinpoint",
+    "label": "Pinpoint",
+    "integrationNames": ["Pinpoint", "Pinpoint ATS", "Pinpoint HQ"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/69a5adfb47c38980c6216884/69d4e6545575f220da92bd10_Pinpoint%20Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Native Pinpoint symbol and outlined website lettering. The full logo composes these assets horizontally; the standalone wordmark contains only the native lettering.",
+    "brandWebsite": "https://www.pinpointhq.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://cdn.prod.website-files.com/69a5adfb47c38980c6216884/69d4e6545575f220da92bd10_Pinpoint%20Logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.pinpointhq.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://www.pinpointhq.com/",
+    "logoLayout": {
+      "wordmarkHeight": 0.48,
+      "gap": 0.25
+    },
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "ukGovernment",
+    "slug": "uk-government",
+    "label": "UK Government",
+    "integrationNames": [
+      "UK Government",
+      "United Kingdom Government",
+      "British Government",
+      "HM Government",
+      "His Majesty’s Government",
+      "HMG"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.communications.gov.uk/wp-content/uploads/2026/08/Funded-By-UKG-.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Royal Coat of Arms and UK Government lettering extracted as native vector paths from the official branding manual. Exterior page background removed. The full logo retains the manual’s vertical divider. Restricted government insignia: inclusion grants no authorization to use it.",
+    "brandWebsite": "https://www.communications.gov.uk/publication/branding/",
+    "artworkAttribution": "Crown copyright. The Royal Coat of Arms and UK Government identity are restricted government insignia. Government branding restrictions apply separately from the library’s software licenses; inclusion grants no authorization to use the insignia.",
+    "categories": ["Government & nonprofits"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.communications.gov.uk/wp-content/uploads/2026/08/Funded-By-UKG-.pdf",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://www.communications.gov.uk/wp-content/uploads/2026/08/Funded-By-UKG-.pdf",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "studio54",
+    "slug": "studio54",
+    "label": "Studio 54",
+    "integrationNames": ["Studio 54", "Studio54"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://commons.wikimedia.org/wiki/File:Studio_54_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Native outlined Studio 54 logotype; the stylized numerals and STUDIO lettering are the identity itself.",
+    "brandWebsite": "https://en.wikipedia.org/wiki/Studio_54",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Music & video"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://commons.wikimedia.org/wiki/File:Studio_54_logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://commons.wikimedia.org/wiki/File:Studio_54_logo.svg",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "jarritos",
+    "slug": "jarritos",
+    "label": "Jarritos",
+    "integrationNames": ["Jarritos", "Jarritos soda"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.worldvectorlogo.com/logos/jarritos.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native vector jugs and lettering from the outlined Jarritos identity; the three jugs are isolated for marks, and the lettering is isolated for wordmarks. The full logo retains its original panel.",
+    "brandWebsite": "https://jarritos.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://cdn.worldvectorlogo.com/logos/jarritos.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://cdn.worldvectorlogo.com/logos/jarritos.svg",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {}
+  },
+  {
+    "name": "fritzKola",
+    "slug": "fritz-kola",
+    "label": "fritz-kola",
+    "integrationNames": [
+      "fritz-kola",
+      "Fritz-cola",
+      "Fritz cola",
+      "Fritz kola"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.epicicons.com/assets/images/icons/_1200xAUTO_crop_center-center_none/2853.-Fritz-Kola-.-SQ-1200-pix.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Faithful vector conversion of Chris Mitchell’s current fritz-kola faces and the official website wordmark. Exterior presentation background removed. The full logo composes the two assets horizontally.",
+    "brandWebsite": "https://fritz-kola.com/",
+    "artworkAttribution": "fritz-kola faces illustrated by Chris Mitchell for Robot Food. Copyright Chris Mitchell; brand rights remain with their respective owners. Vector conversion, bounds, theme colors, and app tiles are adaptations; no endorsement or trademark permission is implied.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.epicicons.com/assets/images/icons/_1200xAUTO_crop_center-center_none/2853.-Fritz-Kola-.-SQ-1200-pix.jpg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://fritz-kola.com/cdn/shop/files/logo.png?v=1716368600",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://fritz-kola.com/cdn/shop/files/logo.png?v=1716368600",
+    "logoLayout": {
+      "wordmarkHeight": 0.3,
+      "gap": 0.25
+    },
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "manifestoMarket",
+    "slug": "manifesto-market",
+    "label": "Manifesto Market",
+    "integrationNames": [
+      "Manifesto Market",
+      "Manifesto",
+      "Manifesto Street Food Market"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.manifestomarket.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Native website wordmark; its first M is used as the compact monogram, matching the website favicon.",
+    "brandWebsite": "https://www.manifestomarket.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink", "Retail"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.manifestomarket.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://www.manifestomarket.com/",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "hawksmoor",
+    "slug": "hawksmoor",
+    "label": "Hawksmoor",
+    "integrationNames": ["Hawksmoor", "Hawksmoor steakhouse"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://thehawksmoor.com/wp-content/uploads/2024/01/cropped-Hawksmoor-siteicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "The official Beef and Liberty seal is vectorized from the website’s original site icon. The full logo and wordmark retain the native outlined website lettering.",
+    "brandWebsite": "https://thehawksmoor.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://thehawksmoor.com/wp-content/uploads/2024/01/cropped-Hawksmoor-siteicon.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://thehawksmoor.com/wp-content/themes/hawksmoor2/images/Hawksmoor.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://thehawksmoor.com/wp-content/themes/hawksmoor2/images/Hawksmoor.svg",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "maredo",
+    "slug": "maredo",
+    "label": "Maredo",
+    "integrationNames": ["Maredo", "Maredo steakhouse"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://maredo.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Native outlined Maredo bull-head M and full wordmark from the official website.",
+    "brandWebsite": "https://maredo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Food & drink"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://maredo.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://maredo.com/",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {}
+  },
+  {
+    "name": "starTrekKlingon",
+    "slug": "star-trek-klingon",
+    "label": "Star Trek Klingon",
+    "integrationNames": ["Star Trek Klingon", "Klingon Empire", "Klingon"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/1/1e/KlingonInsignia.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.startrek.com/",
+    "artworkAttribution": "Klingon artwork and Star Trek trademarks remain with their respective owners. Bounds, theme colors, and app tiles are adaptations.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/en/1/1e/KlingonInsignia.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Trek", "Star Trek badge"],
+        "url": "https://www.startrek.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Trek", "Star Trek badge"]
+  },
+  {
+    "name": "starTrekStarfleet",
+    "slug": "star-trek-starfleet",
+    "label": "Star Trek Starfleet",
+    "integrationNames": [
+      "Star Trek Starfleet",
+      "Starfleet",
+      "Starfleet insignia"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Emblem.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.startrek.com/",
+    "artworkAttribution": "Starfleet emblem vector by Jesperhansen1972, with margin adjustments by AnonMoos, under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/). Bounds, theme colors, and app tiles are adaptations distributed under the same license. Star Trek trademarks remain with their owners.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Emblem.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Trek", "Star Trek badge"],
+        "url": "https://www.startrek.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Trek", "Star Trek badge"]
+  },
+  {
+    "name": "starTrekFederation",
+    "slug": "star-trek-federation",
+    "label": "Star Trek Federation",
+    "integrationNames": [
+      "Star Trek Federation",
+      "United Federation of Planets",
+      "UFP"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://commons.wikimedia.org/wiki/File:United_Federation_of_Planets_Flag.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#253381": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#253381": "#FFFFFF"
+    },
+    "logoNotes": "Native Federation seal and lettering isolated from the vector flag; exterior blue field removed. Light artwork uses the flag’s blue, dark artwork uses white.",
+    "brandWebsite": "https://www.startrek.com/",
+    "artworkAttribution": "Federation flag vector credited to Peppo and Oren neu dag, released by its contributors into the public domain. Star Trek rights remain with their respective owners. Seal, lettering, bounds, theme colors, and tiles adapted.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://commons.wikimedia.org/wiki/File:United_Federation_of_Planets_Flag.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://commons.wikimedia.org/wiki/File:United_Federation_of_Planets_Flag.svg",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#253381": "#FFFFFF"
+    },
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Trek", "Star Trek badge"],
+        "url": "https://www.startrek.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Trek", "Star Trek badge"]
+  },
+  {
+    "name": "starWarsRebelAlliance",
+    "slug": "star-wars-rebel-alliance",
+    "label": "Star Wars Rebel Alliance",
+    "integrationNames": [
+      "Star Wars Rebel Alliance",
+      "Rebel Alliance",
+      "Rebellion",
+      "Rebel starbird"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Rebel_Alliance_%28red%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+    "artworkAttribution": "Star Wars artwork and trademarks remain with their respective owners. Bounds, theme colors, and app tiles are adaptations.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Rebel_Alliance_%28red%29.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Wars"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Wars"]
+  },
+  {
+    "name": "starWarsGalacticEmpire",
+    "slug": "star-wars-galactic-empire",
+    "label": "Star Wars Galactic Empire",
+    "integrationNames": [
+      "Star Wars Galactic Empire",
+      "Galactic Empire",
+      "Imperial crest"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/75/Emblem_of_the_First_Galactic_Empire.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+    "artworkAttribution": "Star Wars artwork and trademarks remain with their respective owners. Bounds, theme colors, and app tiles are adaptations.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/75/Emblem_of_the_First_Galactic_Empire.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Wars"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Wars"]
+  },
+  {
+    "name": "starWarsGalacticRepublic",
+    "slug": "star-wars-galactic-republic",
+    "label": "Star Wars Galactic Republic",
+    "integrationNames": [
+      "Star Wars Galactic Republic",
+      "Galactic Republic",
+      "Republic crest"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Emblem_of_the_Galactic_Republic.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+    "artworkAttribution": "Star Wars artwork and trademarks remain with their respective owners. Bounds, theme colors, and app tiles are adaptations.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Emblem_of_the_Galactic_Republic.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Wars"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Wars"]
+  },
+  {
+    "name": "starWarsFirstOrder",
+    "slug": "star-wars-first-order",
+    "label": "Star Wars First Order",
+    "integrationNames": ["Star Wars First Order", "First Order"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Emblem_of_the_First_Order.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified. White negative spaces are transparent cutouts, including in dark mode.",
+    "brandWebsite": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+    "artworkAttribution": "First Order emblem vector by MesserWoland from JLanzer’s artwork, optimized by EclecticArkie; CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Bounds, theme colors, and app tiles are adaptations distributed under the same license. Star Wars trademarks remain with their owners.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Emblem_of_the_First_Order.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Wars"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Wars"]
+  },
+  {
+    "name": "starWarsJediOrder",
+    "slug": "star-wars-jedi-order",
+    "label": "Star Wars Jedi Order",
+    "integrationNames": ["Star Wars Jedi Order", "Jedi Order", "Jedi"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/7.x/svgs/brands/jedi-order.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+    "artworkAttribution": "Font Awesome Free artwork copyright Fonticons, Inc.; CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Bounds, theme colors, and app tiles adapted. Star Wars trademarks remain with their owners.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/7.x/svgs/brands/jedi-order.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Wars"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Wars"]
+  },
+  {
+    "name": "starWarsMandalorian",
+    "slug": "star-wars-mandalorian",
+    "label": "Star Wars Mandalorian",
+    "integrationNames": ["Star Wars Mandalorian", "Mandalorian", "Mythosaur"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/7.x/svgs/brands/mandalorian.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+    "artworkAttribution": "Font Awesome Free artwork copyright Fonticons, Inc.; CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Bounds, theme colors, and app tiles adapted. Star Wars trademarks remain with their owners.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/7.x/svgs/brands/mandalorian.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Wars"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Wars"]
+  },
+  {
+    "name": "starWarsSith",
+    "slug": "star-wars-sith",
+    "label": "Star Wars Sith",
+    "integrationNames": ["Star Wars Sith", "Sith", "Sith Eternal"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/39/Sith_Emblem_%28Star_Wars%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#9E1919": "#AB3737"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined franchise emblem; no separate wordmark or full lock-up verified.",
+    "brandWebsite": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+    "artworkAttribution": "Sith emblem credited to Lucasfilm Ltd.; Wikimedia Commons classifies the simple geometric vector as public domain. Star Wars trademarks remain with their owners. Bounds, theme colors, and app tiles are adaptations.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/39/Sith_Emblem_%28Star_Wars%29.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Star Wars"],
+        "url": "https://www.starwars.com/news/5-symbols-in-the-star-wars-universe",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Star Wars"]
+  },
+  {
+    "name": "harryPotterGryffindor",
+    "slug": "harry-potter-gryffindor",
+    "label": "Harry Potter Gryffindor",
+    "integrationNames": [
+      "Harry Potter Gryffindor",
+      "Gryffindor",
+      "Hogwarts Gryffindor"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.harrypotter.com/_next/static/media/gryffindor.0hdpfojimsg0p.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Current native SVG house crest from the official HarryPotter.com house page. No separately verified house wordmark or full lock-up. Mono crests use a solid shield with subtractive border and animal details.",
+    "brandWebsite": "https://www.harrypotter.com/house/gryffindor",
+    "artworkAttribution": "Harry Potter characters and elements © & TM Warner Bros. Entertainment Inc. Publishing rights © J.K. Rowling. House crests from the official website; theme colors and app tiles adapted.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.harrypotter.com/_next/static/media/gryffindor.0hdpfojimsg0p.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Harry Potter"],
+        "url": "https://www.harrypotter.com/house/gryffindor",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Harry Potter"],
+    "markMonoColors": {
+      "#DE554B": "#000000",
+      "#FEB447": "#FFFFFF"
+    }
+  },
+  {
+    "name": "harryPotterHufflepuff",
+    "slug": "harry-potter-hufflepuff",
+    "label": "Harry Potter Hufflepuff",
+    "integrationNames": [
+      "Harry Potter Hufflepuff",
+      "Hufflepuff",
+      "Hogwarts Hufflepuff"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.harrypotter.com/_next/static/media/hufflepuff.2-n1wzmzinnm1.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Current native SVG house crest from the official HarryPotter.com house page. No separately verified house wordmark or full lock-up. Mono crests use a solid shield with subtractive border and animal details.",
+    "brandWebsite": "https://www.harrypotter.com/house/hufflepuff",
+    "artworkAttribution": "Harry Potter characters and elements © & TM Warner Bros. Entertainment Inc. Publishing rights © J.K. Rowling. House crests from the official website; theme colors and app tiles adapted.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.harrypotter.com/_next/static/media/hufflepuff.2-n1wzmzinnm1.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Harry Potter"],
+        "url": "https://www.harrypotter.com/house/hufflepuff",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Harry Potter"],
+    "markMonoColors": {
+      "#212028": "#FFFFFF",
+      "#FCB542": "#000000"
+    }
+  },
+  {
+    "name": "harryPotterRavenclaw",
+    "slug": "harry-potter-ravenclaw",
+    "label": "Harry Potter Ravenclaw",
+    "integrationNames": [
+      "Harry Potter Ravenclaw",
+      "Ravenclaw",
+      "Hogwarts Ravenclaw"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.harrypotter.com/_next/static/media/ravenclaw.0zxeg5ydz7zdy.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Current native SVG house crest from the official HarryPotter.com house page. No separately verified house wordmark or full lock-up. Mono crests use a solid shield with subtractive border and animal details.",
+    "brandWebsite": "https://www.harrypotter.com/house/ravenclaw",
+    "artworkAttribution": "Harry Potter characters and elements © & TM Warner Bros. Entertainment Inc. Publishing rights © J.K. Rowling. House crests from the official website; theme colors and app tiles adapted.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.harrypotter.com/_next/static/media/ravenclaw.0zxeg5ydz7zdy.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Harry Potter"],
+        "url": "https://www.harrypotter.com/house/ravenclaw",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Harry Potter"],
+    "markMonoColors": {
+      "#265CAA": "#000000",
+      "#F1BA8C": "#FFFFFF"
+    }
+  },
+  {
+    "name": "harryPotterSlytherin",
+    "slug": "harry-potter-slytherin",
+    "label": "Harry Potter Slytherin",
+    "integrationNames": [
+      "Harry Potter Slytherin",
+      "Slytherin",
+      "Hogwarts Slytherin"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.harrypotter.com/_next/static/media/slytherin.3v19xr-9yvat_.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoNotes": "Current native SVG house crest from the official HarryPotter.com house page. No separately verified house wordmark or full lock-up. Mono crests use a solid shield with subtractive border and animal details.",
+    "brandWebsite": "https://www.harrypotter.com/house/slytherin",
+    "artworkAttribution": "Harry Potter characters and elements © & TM Warner Bros. Entertainment Inc. Publishing rights © J.K. Rowling. House crests from the official website; theme colors and app tiles adapted.",
+    "categories": ["Film & television"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.harrypotter.com/_next/static/media/slytherin.3v19xr-9yvat_.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": ["Harry Potter"],
+        "url": "https://www.harrypotter.com/house/slytherin",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Harry Potter"],
+    "markMonoColors": {
+      "#D3E9F5": "#FFFFFF",
+      "#086C5C": "#000000"
+    }
   }
 ]
