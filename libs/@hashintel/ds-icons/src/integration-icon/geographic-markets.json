@@ -23588,22 +23588,6 @@
     "sources": [],
     "referenceUrls": ["https://www.nationalgeographic.com/"]
   },
-  "warnerBrosDiscovery": {
-    "scope": "global",
-    "basis": "brand-presence",
-    "primaryCountries": [],
-    "countries": [],
-    "regions": [],
-    "countryCoverage": "not-enumerated",
-    "localities": [],
-    "assessment": "provisional",
-    "assessedOn": "2026-11-06",
-    "verifiedOn": null,
-    "temporalContext": "current",
-    "notes": "International product-brand presence; availability, distributors and local terms differ by country. Individual country coverage has not been verified.",
-    "sources": [],
-    "referenceUrls": ["https://www.wbd.com/"]
-  },
   "broadcom": {
     "scope": "global",
     "basis": "business-presence",
@@ -46123,6 +46107,1498 @@
     "referenceUrls": [
       "https://en.wikipedia.org/wiki/Hürriyet",
       "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "newsCorp": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://newscorp.com/"
+    ]
+  },
+  "waltDisneyCompany": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://thewaltdisneycompany.com/"
+    ]
+  },
+  "foxCorporation": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.foxcorporation.com/"
+    ]
+  },
+  "nbcuniversal": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nbcuniversal.com/"
+    ]
+  },
+  "skydance": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://skydance.com/"
+    ]
+  },
+  "versant": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.versantmedia.com/"
+    ]
+  },
+  "hearst": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.hearst.com/"
+    ]
+  },
+  "advance": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.advance.com/"
+    ]
+  },
+  "condeNast": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.condenast.com/"
+    ]
+  },
+  "axelSpringer": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "DE"
+    ],
+    "countries": [
+      "DE"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.axelspringer.com/en/"
+    ]
+  },
+  "thomsonReuters": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "CA"
+    ],
+    "countries": [
+      "CA"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.thomsonreuters.com/en.html"
+    ]
+  },
+  "bloomberg": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.bloomberg.com/company/"
+    ]
+  },
+  "dowJones": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.dowjones.com/"
+    ]
+  },
+  "gannett": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.gannett.com/"
+    ]
+  },
+  "nexstarMediaGroup": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nexstar.tv/"
+    ]
+  },
+  "sinclair": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://sbgi.net/"
+    ]
+  },
+  "grayMedia": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://graymedia.com/"
+    ]
+  },
+  "eWScripps": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://scripps.com/"
+    ]
+  },
+  "coxMediaGroup": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.coxmediagroup.com/"
+    ]
+  },
+  "libertyGlobal": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "GB"
+    ],
+    "countries": [
+      "GB"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.libertyglobal.com/"
+    ]
+  },
+  "libertyMedia": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.libertymedia.com/"
+    ]
+  },
+  "universalMusicGroup": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.universalmusic.com/"
+    ]
+  },
+  "warnerMusicGroup": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.wmg.com/"
+    ]
+  },
+  "sonyMusic": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.sonymusic.com/"
+    ]
+  },
+  "rtlGroup": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "LU"
+    ],
+    "countries": [
+      "LU"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://company.rtl.com/en/"
+    ]
+  },
+  "prosiebensat1": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "DE"
+    ],
+    "countries": [
+      "DE"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.prosiebensat1.com/en/"
+    ]
+  },
+  "mfe": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "NL"
+    ],
+    "countries": [
+      "NL"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.mfemediaforeurope.com/"
+    ]
+  },
+  "canalPlus": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "FR"
+    ],
+    "countries": [
+      "FR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.canalplusgroup.com/"
+    ]
+  },
+  "vivendi": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "FR"
+    ],
+    "countries": [
+      "FR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.vivendi.com/en/"
+    ]
+  },
+  "lagardere": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "FR"
+    ],
+    "countries": [
+      "FR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.lagardere.com/en/"
+    ]
+  },
+  "banijay": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "FR"
+    ],
+    "countries": [
+      "FR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://group.banijay.com/"
+    ]
+  },
+  "fremantle": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "GB"
+    ],
+    "countries": [
+      "GB"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://fremantle.com/"
+    ]
+  },
+  "schibsted": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "NO"
+    ],
+    "countries": [
+      "NO"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://schibsted.com/"
+    ]
+  },
+  "bonnier": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "SE"
+    ],
+    "countries": [
+      "SE"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.bonnier.com/"
+    ]
+  },
+  "egmont": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "DK"
+    ],
+    "countries": [
+      "DK"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.egmont.com/"
+    ]
+  },
+  "sanoma": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "FI"
+    ],
+    "countries": [
+      "FI"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.sanoma.com/"
+    ]
+  },
+  "prisa": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "ES"
+    ],
+    "countries": [
+      "ES"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.prisa.com/en/"
+    ]
+  },
+  "grupoPlaneta": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "ES"
+    ],
+    "countries": [
+      "ES"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.planeta.es/en/"
+    ]
+  },
+  "grupoGlobo": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "BR"
+    ],
+    "countries": [
+      "BR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://grupoglobo.globo.com/"
+    ]
+  },
+  "grupoClarin": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "AR"
+    ],
+    "countries": [
+      "AR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://grupoclarin.com/"
+    ]
+  },
+  "jiostar": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "IN"
+    ],
+    "countries": [
+      "IN"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.jiostar.com/"
+    ]
+  },
+  "network18": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "IN"
+    ],
+    "countries": [
+      "IN"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nw18.com/"
+    ]
+  },
+  "timesGroup": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "IN"
+    ],
+    "countries": [
+      "IN"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.timesgroup.com/"
+    ]
+  },
+  "zeeEntertainment": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "IN"
+    ],
+    "countries": [
+      "IN"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.zee.com/"
+    ]
+  },
+  "sunGroup": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "IN"
+    ],
+    "countries": [
+      "IN"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.sun.in/"
+    ]
+  },
+  "mbcGroup": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "SA"
+    ],
+    "countries": [
+      "SA"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.mbc.net/"
+    ]
+  },
+  "srmg": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "SA"
+    ],
+    "countries": [
+      "SA"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.srmg.com/en/"
+    ]
+  },
+  "alJazeeraMediaNetwork": {
+    "scope": "regional",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "QA"
+    ],
+    "countries": [
+      "QA"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://network.aljazeera.net/en"
+    ]
+  },
+  "nineEntertainment": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "AU"
+    ],
+    "countries": [
+      "AU"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nineforbrands.com.au/"
+    ]
+  },
+  "sevenWestMedia": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "AU"
+    ],
+    "countries": [
+      "AU"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.sevenwestmedia.com.au/"
+    ]
+  },
+  "mediacorp": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "SG"
+    ],
+    "countries": [
+      "SG"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.mediacorp.sg/"
+    ]
+  },
+  "sphMedia": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "SG"
+    ],
+    "countries": [
+      "SG"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.sph.com.sg/"
+    ]
+  },
+  "wpp": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "GB"
+    ],
+    "countries": [
+      "GB"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.wpp.com/"
+    ]
+  },
+  "publicisGroupe": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "FR"
+    ],
+    "countries": [
+      "FR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.publicisgroupe.com/en/"
+    ]
+  },
+  "omnicom": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.omc.com/"
+    ]
+  },
+  "interpublicGroupLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "historical",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.interpublic.com/"
+    ]
+  },
+  "dentsu": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "JP"
+    ],
+    "countries": [
+      "JP"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.dentsu.com/"
+    ]
+  },
+  "havas": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "FR"
+    ],
+    "countries": [
+      "FR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.havas.com/"
+    ]
+  },
+  "hakuhodoDyHoldings": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "JP"
+    ],
+    "countries": [
+      "JP"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.hakuhodody-holdings.co.jp/english/"
+    ]
+  },
+  "cheilWorldwide": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "KR"
+    ],
+    "countries": [
+      "KR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.cheil.com/"
+    ]
+  },
+  "innocean": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "KR"
+    ],
+    "countries": [
+      "KR"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.innocean.com/"
+    ]
+  },
+  "adkHoldings": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "JP"
+    ],
+    "countries": [
+      "JP"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.adk.jp/en/"
+    ]
+  },
+  "stagwell": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.stagwellglobal.com/"
+    ]
+  },
+  "s4Capital": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "GB"
+    ],
+    "countries": [
+      "GB"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.s4capital.com/"
+    ]
+  },
+  "bluefocus": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "CN"
+    ],
+    "countries": [
+      "CN"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.bluefocus.com/en/"
+    ]
+  },
+  "serviceplanGroup": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "DE"
+    ],
+    "countries": [
+      "DE"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.serviceplan.com/en/"
+    ]
+  },
+  "plusCompany": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "CA"
+    ],
+    "countries": [
+      "CA"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal operating market and broad footprint inferred from corporate site context. Media audiences, licensing territories, agency offices, and service availability are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.pluscompany.com/en/"
+    ]
+  },
+  "warnerBrosDiscoveryLegacy": {
+    "scope": "global",
+    "basis": "brand-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-06",
+    "verifiedOn": null,
+    "temporalContext": "historical",
+    "notes": "International product-brand presence; availability, distributors and local terms differ by country. Individual country coverage has not been verified.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.wbd.com/"
     ]
   }
 }

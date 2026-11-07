@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="versant-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="versant-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="versant-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#versant-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#versant-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#versant-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="versant-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#versant-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.04525 0.63103 32.99857 29.91081" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="versant-app-dark-brand-isolation"><rect x="0" y="0" width="33" height="32" fill="#111111" /></clipPath></defs><g clip-path="url(#versant-app-dark-brand-isolation)"><g clip-path="url(#versant-app-dark-clip0_3003_918)">
+<path d="M26.8146 0.682129L16.4853 22.664L6.11215 0.682129H0L14.0317 30.5027H18.8951L32.9268 0.682129H26.8146Z" fill="#F5F7FA" />
+<path d="M9.12445 0.682129H15.2366L19.5405 9.79835L16.4853 16.2737L9.12445 0.682129Z" fill="#8A96AE" />
+<path d="M34.6475 0.682129H54.5321V5.53839H39.9846V13.2488H53.5855V17.9352H39.9846V25.6464H54.6179V30.5027H34.6475V0.682129ZM70.1977 13.2497C72.8238 13.2497 74.717 11.9288 74.717 9.37279C74.717 6.85929 72.8238 5.53839 70.1977 5.53839H63.9997V13.2497H70.1977ZM58.4909 0.682129H69.9394C76.0515 0.682129 80.0971 4.00516 80.0971 9.58513C80.0971 13.8884 77.3432 16.785 73.4263 17.9352L82.5507 30.5027H76.267L67.4 17.9352H63.9997V30.5027H58.4909V0.682129Z" fill="#F5F7FA" />
+<mask id="versant-app-dark-mask0_3003_918" maskUnits="userSpaceOnUse" x="82" y="0" width="24" height="32" mask-type="luminance">
+<path d="M82.6061 0H105.718V31.1848H82.6061V0Z" fill="#FFFFFF" />
+</mask>
+<g mask="url(#versant-app-dark-mask0_3003_918)">
+<path d="M94.3862 4.94208C91.7601 4.94208 89.824 6.34791 89.824 8.47745C89.824 10.1823 90.986 11.4599 93.3529 12.1411L98.5185 13.6327C103.252 15.0386 105.62 17.8927 105.62 21.897C105.62 27.8618 100.584 31.1848 94.7304 31.1848C89.1786 31.1848 84.7022 28.3307 82.8082 23.4311L87.6287 20.9176C88.8336 23.9849 91.2872 26.2003 94.8591 26.2003C97.8293 26.2003 100.025 24.9219 100.025 22.3234C100.025 20.3637 98.733 19.2136 96.1078 18.4465L91.2872 17.0407C86.9833 15.8056 84.3143 12.994 84.3143 8.77648C84.3143 3.3655 88.7049 0 94.4291 0C99.078 0 102.865 2.42857 104.759 6.34791L100.025 8.81895C98.8626 6.56024 97.184 4.94208 94.3862 4.94208Z" fill="#F5F7FA" />
+</g>
+<path d="M138.761 30.5027H132.648L122.319 8.51992L111.946 30.5027H105.834L119.865 0.682129H124.729L138.761 30.5027Z" fill="#F5F7FA" />
+<path d="M129.635 30.5028H123.524L119.22 21.3866L122.275 14.9104L129.635 30.5028Z" fill="#8A96AE" />
+<path d="M140.481 0.682129H146.852L160.581 21.344V0.682129H166.091V30.5027H159.807L145.991 9.75588V30.5027H140.481V0.682129Z" fill="#F5F7FA" />
+<mask id="versant-app-dark-mask1_3003_918" maskUnits="userSpaceOnUse" x="169" y="0" width="24" height="31" mask-type="luminance">
+<path d="M169.102 0.679443H192V30.5761H169.102V0.679443Z" fill="#FFFFFF" />
+</mask>
+<g mask="url(#versant-app-dark-mask1_3003_918)">
+<path d="M169.102 0.682129H192V5.53839H183.306V30.5027H177.797V5.53839H169.102V0.682129Z" fill="#F5F7FA" />
+</g>
+</g>
+<defs>
+<clipPath id="versant-app-dark-clip0_3003_918">
+<rect width="192" height="31.1847" fill="#111111" />
+</clipPath>
+</defs>
+</g></svg></g></svg>

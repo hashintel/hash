@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="omnicom-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="omnicom-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="omnicom-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omnicom-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omnicom-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#omnicom-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="omnicom-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#omnicom-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.76705 -0.30606 680.90324 100.61211" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g transform="translate(0.000000,100.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none">
+<path d="M415 989 c-190 -28 -364 -195 -404 -387 -58 -278 135 -552 417 -592 102 -14 187 0 288 50 169 82 274 251 274 440 0 304 -270 534 -575 489z m191 -267 c86 -44 136 -126 136 -222 1 -75 -25 -132 -83 -184 -78 -70 -184 -84 -277 -37 -45 23 -99 81 -118 127 -17 41 -18 123 -2 175 20 69 89 134 168 160 40 13 133 3 176 -19z" />
+<path d="M4095 989 c-35 -5 -94 -25 -141 -48 -168 -83 -274 -254 -274 -441 1 -244 185 -456 428 -490 141 -20 292 27 399 124 47 43 101 113 92 120 -2 2 -49 29 -103 60 l-99 57 -41 -39 c-63 -61 -100 -76 -181 -76 -82 0 -134 22 -185 80 -45 52 -60 93 -60 164 0 72 19 123 63 168 53 56 102 76 182 76 82 0 134 -22 183 -78 17 -20 33 -36 36 -36 4 0 196 109 205 116 9 7 -45 77 -92 119 -112 102 -260 146 -412 124z" />
+<path d="M5070 989 c-30 -5 -92 -27 -136 -49 -170 -83 -274 -251 -274 -440 0 -205 126 -388 318 -463 208 -82 462 0 587 188 69 104 98 242 76 360 -50 266 -307 448 -571 404z m197 -268 c51 -26 106 -89 121 -140 26 -87 9 -177 -46 -241 -44 -52 -101 -81 -173 -87 -46 -5 -66 -1 -110 19 -86 40 -129 92 -149 182 -26 117 53 249 170 285 50 15 140 7 187 -18z" />
+<path d="M1100 500 l0 -480 125 0 125 0 2 288 3 287 125 -227 c82 -149 131 -227 141 -228 11 0 56 73 139 223 67 122 126 226 131 232 5 5 9 -107 9 -283 l0 -292 120 0 120 0 0 480 0 480 -139 0 -139 0 -114 -207 c-62 -113 -118 -208 -124 -210 -6 -2 -62 90 -125 204 l-114 208 -143 3 -142 3 0 -481z" />
+<path d="M2310 500 l0 -480 120 0 120 0 0 270 c0 149 3 270 8 270 4 0 73 -121 153 -268 l147 -267 151 -3 151 -3 0 481 0 480 -120 0 -120 0 0 -290 c0 -159 -4 -290 -8 -290 -5 0 -83 129 -174 288 l-166 287 -131 3 -131 3 0 -481z" />
+<path d="M3320 500 l0 -480 120 0 120 0 0 480 0 480 -120 0 -120 0 0 -480z" />
+<path d="M5750 500 l0 -480 120 0 120 0 0 293 c1 232 3 289 13 276 7 -9 66 -114 131 -233 78 -140 125 -216 135 -216 10 0 61 82 141 229 69 126 128 227 133 224 4 -2 7 -132 7 -289 l0 -284 120 0 120 0 0 480 0 481 -142 -3 -141 -3 -113 -205 c-63 -113 -119 -205 -125 -205 -6 0 -63 93 -126 208 l-115 207 -139 0 -139 0 0 -480z" />
+</g>
+</svg></g></svg>

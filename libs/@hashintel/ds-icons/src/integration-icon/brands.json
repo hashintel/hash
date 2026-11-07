@@ -5224,7 +5224,9 @@
     "name": "ogilvy",
     "slug": "ogilvy",
     "label": "Ogilvy",
-    "integrationNames": ["Ogilvy"],
+    "integrationNames": [
+      "Ogilvy"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://www.ogilvy.com/",
@@ -5233,9 +5235,25 @@
     "logoDarkColors": {},
     "logoSource": "https://www.ogilvy.com/",
     "logoNotes": "Native SVG artwork, retrieved 2026-11-05.",
-    "categories": ["Services & consulting"],
+    "categories": [
+      "Services & consulting"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "WPP",
+      "WPP plc"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "WPP",
+          "WPP plc"
+        ],
+        "url": "https://www.wpp.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "netflix",
@@ -11447,7 +11465,9 @@
     "name": "playstation",
     "slug": "playstation",
     "label": "PlayStation",
-    "integrationNames": ["PlayStation"],
+    "integrationNames": [
+      "PlayStation"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/playstation.svg",
@@ -11459,9 +11479,29 @@
     "fontAwesomeId": "playstation",
     "paletteSource": "https://www.playstation.com/en-us/",
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
-    "categories": ["Gaming"],
+    "categories": [
+      "Gaming"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Sony",
+      "Sony Group",
+      "Sony Music",
+      "Sony Pictures"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Sony",
+          "Sony Group",
+          "Sony Music",
+          "Sony Pictures"
+        ],
+        "url": "https://www.sony.com/en/SonyInfo/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "productHunt",
@@ -15524,7 +15564,9 @@
     "name": "disney",
     "slug": "disney",
     "label": "Disney+",
-    "integrationNames": ["Disney+"],
+    "integrationNames": [
+      "Disney+"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/disneyplus.svg",
@@ -15547,9 +15589,40 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/64/Disney%2B_2024.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television", "Music & video"],
+    "categories": [
+      "Film & television",
+      "Music & video"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Disney",
+      "The Walt Disney Company",
+      "Walt Disney",
+      "Walt Disney Studios",
+      "Pixar",
+      "Marvel Studios",
+      "ABC News",
+      "ESPN",
+      "20th Century Studios"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "The Walt Disney Company",
+          "Walt Disney",
+          "Walt Disney Studios",
+          "Pixar",
+          "Marvel Studios",
+          "ABC News",
+          "ESPN",
+          "20th Century Studios"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "formula1",
@@ -15576,7 +15649,9 @@
     "name": "sony",
     "slug": "sony",
     "label": "Sony",
-    "integrationNames": ["Sony"],
+    "integrationNames": [
+      "Sony"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/sony.svg",
@@ -15590,9 +15665,29 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Sony_logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Technology & electronics"],
+    "categories": [
+      "Technology & electronics"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Sony Group",
+      "Sony Music",
+      "Sony Pictures",
+      "PlayStation"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Sony Group",
+          "Sony Music",
+          "Sony Pictures",
+          "PlayStation"
+        ],
+        "url": "https://www.sony.com/en/SonyInfo/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "lg",
@@ -15718,7 +15813,9 @@
     "name": "penguinBooks",
     "slug": "penguin-books",
     "label": "Penguin Books",
-    "integrationNames": ["Penguin Books"],
+    "integrationNames": [
+      "Penguin Books"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://www.penguin.co.uk/",
@@ -15728,9 +15825,29 @@
     },
     "logoDarkColors": {},
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Bertelsmann",
+      "RTL Group",
+      "RTL",
+      "Fremantle"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Bertelsmann",
+          "RTL Group",
+          "RTL",
+          "Fremantle"
+        ],
+        "url": "https://www.bertelsmann.com/divisions/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "fortnumMason",
@@ -17242,7 +17359,9 @@
     "name": "hbo",
     "slug": "hbo",
     "label": "HBO",
-    "integrationNames": ["HBO"],
+    "integrationNames": [
+      "HBO"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/hbo.svg",
@@ -17255,15 +17374,47 @@
     },
     "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/hbo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Skydance",
+      "Skydance Corporation",
+      "Paramount Skydance",
+      "Paramount Global",
+      "Paramount Pictures",
+      "Paramount+",
+      "Warner Bros Entertainment",
+      "Warner Bros. Discovery",
+      "CNN"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Skydance",
+          "Skydance Corporation",
+          "Paramount Skydance",
+          "Paramount Global",
+          "Paramount Pictures",
+          "Paramount+",
+          "Warner Bros Entertainment",
+          "Warner Bros. Discovery",
+          "CNN"
+        ],
+        "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "universalPictures",
     "slug": "universal-pictures",
     "label": "Universal Pictures",
-    "integrationNames": ["Universal Pictures"],
+    "integrationNames": [
+      "Universal Pictures"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://www.universalpictures.com/assets/static/logo.svg",
@@ -17277,15 +17428,43 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Universal_Pictures_logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Comcast",
+      "NBCUniversal",
+      "NBC Universal",
+      "DreamWorks",
+      "Sky",
+      "Sky News",
+      "Xfinity"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Comcast",
+          "NBCUniversal",
+          "NBC Universal",
+          "DreamWorks",
+          "Sky",
+          "Sky News",
+          "Xfinity"
+        ],
+        "url": "https://corporate.comcast.com/company",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "sonyPictures",
     "slug": "sony-pictures",
     "label": "Sony Pictures",
-    "integrationNames": ["Sony Pictures"],
+    "integrationNames": [
+      "Sony Pictures"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://www.sonypictures.com/themes/custom/sonypictures/logo.svg",
@@ -17298,9 +17477,29 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Sony_Pictures_Inc._logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Sony",
+      "Sony Group",
+      "Sony Music",
+      "PlayStation"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Sony",
+          "Sony Group",
+          "Sony Music",
+          "PlayStation"
+        ],
+        "url": "https://www.sony.com/en/SonyInfo/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "nintendoSwitch",
@@ -18798,7 +18997,9 @@
     "name": "warnerBrosEntertainment",
     "slug": "warner-bros-entertainment",
     "label": "Warner Bros Entertainment",
-    "integrationNames": ["Warner Bros Entertainment"],
+    "integrationNames": [
+      "Warner Bros Entertainment"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/glincker/thesvg/blob/db3683a96b45330036e4cccf71c5414becf14675/public/icons/warner-bros/default.svg",
@@ -18813,15 +19014,48 @@
     },
     "logoSource": "https://github.com/glincker/thesvg/blob/db3683a96b45330036e4cccf71c5414becf14675/public/icons/warner-bros/default.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Skydance",
+      "Skydance Corporation",
+      "Paramount Skydance",
+      "Paramount Global",
+      "Paramount Pictures",
+      "Paramount+",
+      "Warner Bros. Discovery",
+      "HBO",
+      "CNN"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Skydance",
+          "Skydance Corporation",
+          "Paramount Skydance",
+          "Paramount Global",
+          "Paramount Pictures",
+          "Paramount+",
+          "Warner Bros. Discovery",
+          "HBO",
+          "CNN"
+        ],
+        "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "dreamworks",
     "slug": "dreamworks",
     "label": "DreamWorks",
-    "integrationNames": ["DreamWorks", "Dreamworks"],
+    "integrationNames": [
+      "DreamWorks",
+      "Dreamworks"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/en/f/ff/DreamWorks_Animation_SKG_logo_with_fishing_boy.svg",
@@ -18836,15 +19070,43 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/en/f/ff/DreamWorks_Animation_SKG_logo_with_fishing_boy.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Comcast",
+      "NBCUniversal",
+      "NBC Universal",
+      "Universal Pictures",
+      "Sky",
+      "Sky News",
+      "Xfinity"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Comcast",
+          "NBCUniversal",
+          "NBC Universal",
+          "Universal Pictures",
+          "Sky",
+          "Sky News",
+          "Xfinity"
+        ],
+        "url": "https://corporate.comcast.com/company",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "marvelStudios",
     "slug": "marvel-studios",
     "label": "Marvel Studios",
-    "integrationNames": ["Marvel Studios"],
+    "integrationNames": [
+      "Marvel Studios"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/1/10/Marvel_Studios_2016_logo.svg",
@@ -18859,9 +19121,39 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/10/Marvel_Studios_2016_logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Disney",
+      "The Walt Disney Company",
+      "Walt Disney",
+      "Disney+",
+      "Walt Disney Studios",
+      "Pixar",
+      "ABC News",
+      "ESPN",
+      "20th Century Studios"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "The Walt Disney Company",
+          "Walt Disney",
+          "Disney+",
+          "Walt Disney Studios",
+          "Pixar",
+          "ABC News",
+          "ESPN",
+          "20th Century Studios"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "ralphLauren",
@@ -19267,7 +19559,10 @@
     "name": "theWallStreetJournal",
     "slug": "the-wall-street-journal",
     "label": "The Wall Street Journal",
-    "integrationNames": ["The Wall Street Journal", "WSJ"],
+    "integrationNames": [
+      "The Wall Street Journal",
+      "WSJ"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/WSJ_Logo.svg",
@@ -19282,15 +19577,43 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4a/WSJ_Logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "News Corp",
+      "News Corporation",
+      "News UK",
+      "News Corp Australia",
+      "Dow Jones",
+      "HarperCollins",
+      "The Times"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "News Corp",
+          "News Corporation",
+          "News UK",
+          "News Corp Australia",
+          "Dow Jones",
+          "HarperCollins",
+          "The Times"
+        ],
+        "url": "https://newscorp.com/news-corp-businesses-and-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "theTimes",
     "slug": "the-times",
     "label": "The Times",
-    "integrationNames": ["The Times"],
+    "integrationNames": [
+      "The Times"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/0/02/The_Times_masthead.svg",
@@ -19373,9 +19696,35 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/02/The_Times_masthead.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "News Corp",
+      "News Corporation",
+      "News UK",
+      "News Corp Australia",
+      "Dow Jones",
+      "The Wall Street Journal",
+      "HarperCollins"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "News Corp",
+          "News Corporation",
+          "News UK",
+          "News Corp Australia",
+          "Dow Jones",
+          "The Wall Street Journal",
+          "HarperCollins"
+        ],
+        "url": "https://newscorp.com/news-corp-businesses-and-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "theInformation",
@@ -19988,7 +20337,9 @@
     "name": "paramountPictures",
     "slug": "paramount-pictures",
     "label": "Paramount Pictures",
-    "integrationNames": ["Paramount Pictures"],
+    "integrationNames": [
+      "Paramount Pictures"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Paramount_A_Skydance_Company.svg",
@@ -20003,15 +20354,47 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Paramount_A_Skydance_Company.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Skydance",
+      "Skydance Corporation",
+      "Paramount Skydance",
+      "Paramount Global",
+      "Paramount+",
+      "Warner Bros Entertainment",
+      "Warner Bros. Discovery",
+      "HBO",
+      "CNN"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Skydance",
+          "Skydance Corporation",
+          "Paramount Skydance",
+          "Paramount Global",
+          "Paramount+",
+          "Warner Bros Entertainment",
+          "Warner Bros. Discovery",
+          "HBO",
+          "CNN"
+        ],
+        "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "waltDisneyStudios",
     "slug": "walt-disney-studios",
     "label": "Walt Disney Studios",
-    "integrationNames": ["Walt Disney Studios"],
+    "integrationNames": [
+      "Walt Disney Studios"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Walt_Disney_Studios_Logo.svg",
@@ -20026,9 +20409,39 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Walt_Disney_Studios_Logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Disney",
+      "The Walt Disney Company",
+      "Walt Disney",
+      "Disney+",
+      "Pixar",
+      "Marvel Studios",
+      "ABC News",
+      "ESPN",
+      "20th Century Studios"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "The Walt Disney Company",
+          "Walt Disney",
+          "Disney+",
+          "Pixar",
+          "Marvel Studios",
+          "ABC News",
+          "ESPN",
+          "20th Century Studios"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "columbiaPictures",
@@ -20055,7 +20468,9 @@
     "name": "pixar",
     "slug": "pixar",
     "label": "Pixar",
-    "integrationNames": ["Pixar"],
+    "integrationNames": [
+      "Pixar"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/4/40/Pixar_logo.svg",
@@ -20070,9 +20485,39 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/40/Pixar_logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Disney",
+      "The Walt Disney Company",
+      "Walt Disney",
+      "Disney+",
+      "Walt Disney Studios",
+      "Marvel Studios",
+      "ABC News",
+      "ESPN",
+      "20th Century Studios"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "The Walt Disney Company",
+          "Walt Disney",
+          "Disney+",
+          "Walt Disney Studios",
+          "Marvel Studios",
+          "ABC News",
+          "ESPN",
+          "20th Century Studios"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "universityCollegeLondon",
@@ -21358,7 +21803,9 @@
     "name": "xfinity",
     "slug": "xfinity",
     "label": "Xfinity",
-    "integrationNames": ["Xfinity"],
+    "integrationNames": [
+      "Xfinity"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/8/84/Xfinity_2025.svg",
@@ -21373,9 +21820,35 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/84/Xfinity_2025.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Technology & electronics"],
+    "categories": [
+      "Technology & electronics"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Comcast",
+      "NBCUniversal",
+      "NBC Universal",
+      "Universal Pictures",
+      "DreamWorks",
+      "Sky",
+      "Sky News"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Comcast",
+          "NBCUniversal",
+          "NBC Universal",
+          "Universal Pictures",
+          "DreamWorks",
+          "Sky",
+          "Sky News"
+        ],
+        "url": "https://corporate.comcast.com/company",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "commerzbank",
@@ -21494,7 +21967,9 @@
     "name": "cnn",
     "slug": "cnn",
     "label": "CNN",
-    "integrationNames": ["CNN"],
+    "integrationNames": [
+      "CNN"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/9/9d/CNN_Logo_%282014%29.svg",
@@ -21503,15 +21978,47 @@
     "logoDarkColors": {},
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9d/CNN_Logo_%282014%29.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Skydance",
+      "Skydance Corporation",
+      "Paramount Skydance",
+      "Paramount Global",
+      "Paramount Pictures",
+      "Paramount+",
+      "Warner Bros Entertainment",
+      "Warner Bros. Discovery",
+      "HBO"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Skydance",
+          "Skydance Corporation",
+          "Paramount Skydance",
+          "Paramount Global",
+          "Paramount Pictures",
+          "Paramount+",
+          "Warner Bros Entertainment",
+          "Warner Bros. Discovery",
+          "HBO"
+        ],
+        "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "foxNews",
     "slug": "fox-news",
     "label": "Fox News",
-    "integrationNames": ["Fox News"],
+    "integrationNames": [
+      "Fox News"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/6/67/Fox_News_Channel_logo.svg",
@@ -21530,15 +22037,33 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/67/Fox_News_Channel_logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Fox Corporation",
+      "Fox Corp"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Fox Corporation",
+          "Fox Corp"
+        ],
+        "url": "https://www.foxcorporation.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "abcNews",
     "slug": "abc-news",
     "label": "ABC News",
-    "integrationNames": ["ABC News"],
+    "integrationNames": [
+      "ABC News"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://s.abcnews.com/assets/dtci/icomoon/svg/logo.svg",
@@ -21549,9 +22074,39 @@
     "logoDarkColors": {},
     "logoSource": "https://s.abcnews.com/assets/dtci/icomoon/svg/logo.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Disney",
+      "The Walt Disney Company",
+      "Walt Disney",
+      "Disney+",
+      "Walt Disney Studios",
+      "Pixar",
+      "Marvel Studios",
+      "ESPN",
+      "20th Century Studios"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "The Walt Disney Company",
+          "Walt Disney",
+          "Disney+",
+          "Walt Disney Studios",
+          "Pixar",
+          "Marvel Studios",
+          "ESPN",
+          "20th Century Studios"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "pbs",
@@ -21578,7 +22133,9 @@
     "name": "skyNews",
     "slug": "sky-news",
     "label": "Sky News",
-    "integrationNames": ["Sky News"],
+    "integrationNames": [
+      "Sky News"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Sky_News_2026.svg",
@@ -21605,15 +22162,43 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Sky_News_2026.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Comcast",
+      "NBCUniversal",
+      "NBC Universal",
+      "Universal Pictures",
+      "DreamWorks",
+      "Sky",
+      "Xfinity"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Comcast",
+          "NBCUniversal",
+          "NBC Universal",
+          "Universal Pictures",
+          "DreamWorks",
+          "Sky",
+          "Xfinity"
+        ],
+        "url": "https://corporate.comcast.com/company",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "harpercollins",
     "slug": "harpercollins",
     "label": "HarperCollins",
-    "integrationNames": ["HarperCollins"],
+    "integrationNames": [
+      "HarperCollins"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/en/0/00/Harpercollins-logo.svg",
@@ -21627,10 +22212,36 @@
       "#ce3829": "#DB918A"
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/en/0/00/Harpercollins-logo.svg",
-    "logoNotes": "Outlined HarperCollins Publishers identity, matching the publisher\u2019s official website artwork.",
-    "categories": ["News & publishing"],
+    "logoNotes": "Outlined HarperCollins Publishers identity, matching the publisher’s official website artwork.",
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "News Corp",
+      "News Corporation",
+      "News UK",
+      "News Corp Australia",
+      "Dow Jones",
+      "The Wall Street Journal",
+      "The Times"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "News Corp",
+          "News Corporation",
+          "News UK",
+          "News Corp Australia",
+          "Dow Jones",
+          "The Wall Street Journal",
+          "The Times"
+        ],
+        "url": "https://newscorp.com/news-corp-businesses-and-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "taschen",
@@ -21799,7 +22410,9 @@
     "name": "paramountPlus",
     "slug": "paramount-plus",
     "label": "Paramount+",
-    "integrationNames": ["Paramount+"],
+    "integrationNames": [
+      "Paramount+"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/paramountplus.svg",
@@ -21813,9 +22426,39 @@
     },
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Paramount_Plus.svg",
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Skydance",
+      "Skydance Corporation",
+      "Paramount Skydance",
+      "Paramount Global",
+      "Paramount Pictures",
+      "Warner Bros Entertainment",
+      "Warner Bros. Discovery",
+      "HBO",
+      "CNN"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Skydance",
+          "Skydance Corporation",
+          "Paramount Skydance",
+          "Paramount Global",
+          "Paramount Pictures",
+          "Warner Bros Entertainment",
+          "Warner Bros. Discovery",
+          "HBO",
+          "CNN"
+        ],
+        "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "alltrails",
@@ -29374,7 +30017,9 @@
     "name": "sky",
     "slug": "sky",
     "label": "Sky",
-    "integrationNames": ["Sky"],
+    "integrationNames": [
+      "Sky"
+    ],
     "ratio": 1.55,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/en/d/db/Sky_logo_2025.svg",
@@ -30580,10 +31225,37 @@
     "logoNotes": "Current spectrum logo. Original vector silhouette retained; the source raster color field was reconstructed with native SVG gradients. No embedded raster artwork. The wordmark is the compact identity used for mark variants.",
     "brandWebsite": "https://www.sky.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Film & television", "Communication"],
+    "categories": [
+      "Film & television",
+      "Communication"
+    ],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/en/d/db/Sky_logo_2025.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/d/db/Sky_logo_2025.svg",
+    "searchAliases": [
+      "Comcast",
+      "NBCUniversal",
+      "NBC Universal",
+      "Universal Pictures",
+      "DreamWorks",
+      "Sky News",
+      "Xfinity"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Comcast",
+          "NBCUniversal",
+          "NBC Universal",
+          "Universal Pictures",
+          "DreamWorks",
+          "Sky News",
+          "Xfinity"
+        ],
+        "url": "https://corporate.comcast.com/company",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "pearsonLegacy",
@@ -32715,7 +33387,9 @@
     "name": "bertelsmann",
     "slug": "bertelsmann",
     "label": "Bertelsmann",
-    "integrationNames": ["Bertelsmann"],
+    "integrationNames": [
+      "Bertelsmann"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://www.bertelsmann.com/favicon.svg",
@@ -32730,10 +33404,30 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
     "brandWebsite": "https://www.bertelsmann.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Bertelsmann_2011_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Bertelsmann_2011_logo.svg",
+    "searchAliases": [
+      "RTL Group",
+      "RTL",
+      "Fremantle",
+      "Penguin Books"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "RTL Group",
+          "RTL",
+          "Fremantle",
+          "Penguin Books"
+        ],
+        "url": "https://www.bertelsmann.com/divisions/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "derSpiegel",
@@ -32817,7 +33511,9 @@
     "name": "rtl",
     "slug": "rtl",
     "label": "RTL",
-    "integrationNames": ["RTL"],
+    "integrationNames": [
+      "RTL"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/6/65/RTL_Logo_2021.svg",
@@ -32839,16 +33535,46 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
     "brandWebsite": "https://www.rtl.de/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/65/RTL_Logo_2021.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/65/RTL_Logo_2021.svg",
+    "searchAliases": [
+      "Bertelsmann",
+      "RTL Group",
+      "Fremantle",
+      "Penguin Books"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Bertelsmann",
+          "RTL Group",
+          "Fremantle",
+          "Penguin Books"
+        ],
+        "url": "https://www.bertelsmann.com/divisions/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "RTL Group",
+          "Fremantle"
+        ],
+        "url": "https://company.rtl.com/en/business-units/overview/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "prosieben",
     "slug": "prosieben",
     "label": "ProSieben",
-    "integrationNames": ["ProSieben"],
+    "integrationNames": [
+      "ProSieben"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/d/db/ProSieben_Logo_2015.svg",
@@ -32861,9 +33587,40 @@
     "logoNotes": "Current brand symbol. No separate verified wordmark lock-up is included.",
     "brandWebsite": "https://www.prosieben.de/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "MFE",
+      "MediaForEurope",
+      "Mediaset",
+      "MFE – MediaForEurope",
+      "ProSiebenSat.1",
+      "ProSiebenSat1"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "MFE",
+          "MediaForEurope",
+          "Mediaset",
+          "MFE – MediaForEurope",
+          "ProSiebenSat.1"
+        ],
+        "url": "https://www.mfemediaforeurope.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "ProSiebenSat.1",
+          "ProSiebenSat1"
+        ],
+        "url": "https://www.prosiebensat1.com/en/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "hetzner",
@@ -35309,7 +36066,10 @@
     "name": "brand20thCenturyStudios",
     "slug": "20th-century-studios",
     "label": "20th Century Studios",
-    "integrationNames": ["20th Century Studios", "Twentieth Century Studios"],
+    "integrationNames": [
+      "20th Century Studios",
+      "Twentieth Century Studios"
+    ],
     "ratio": 1.55,
     "alignment": "center",
     "source": "https://lumiere-a.akamaihd.net/v1/images/logo_20cs_618cd78c.svg?region=",
@@ -35323,7 +36083,9 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
     "brandWebsite": "https://www.20thcenturystudios.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Film & television"],
+    "categories": [
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
     "logoSource": "https://lumiere-a.akamaihd.net/v1/images/logo_20cs_618cd78c.svg?region=",
@@ -35332,7 +36094,33 @@
       "21st Century Fox",
       "Twentieth Century Fox",
       "Twenty-First Century Fox",
-      "20th Century Studios"
+      "20th Century Studios",
+      "Disney",
+      "The Walt Disney Company",
+      "Walt Disney",
+      "Disney+",
+      "Walt Disney Studios",
+      "Pixar",
+      "Marvel Studios",
+      "ABC News",
+      "ESPN"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "The Walt Disney Company",
+          "Walt Disney",
+          "Disney+",
+          "Walt Disney Studios",
+          "Pixar",
+          "Marvel Studios",
+          "ABC News",
+          "ESPN"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
     ]
   },
   {
@@ -36543,7 +37331,9 @@
     "name": "espn",
     "slug": "espn",
     "label": "ESPN",
-    "integrationNames": ["ESPN"],
+    "integrationNames": [
+      "ESPN"
+    ],
     "ratio": 1.55,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/2/2f/ESPN_wordmark.svg",
@@ -36559,10 +37349,41 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
     "brandWebsite": "https://www.espn.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Sport & fitness", "Film & television"],
+    "categories": [
+      "Sport & fitness",
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2f/ESPN_wordmark.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2f/ESPN_wordmark.svg",
+    "searchAliases": [
+      "Disney",
+      "The Walt Disney Company",
+      "Walt Disney",
+      "Disney+",
+      "Walt Disney Studios",
+      "Pixar",
+      "Marvel Studios",
+      "ABC News",
+      "20th Century Studios"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "The Walt Disney Company",
+          "Walt Disney",
+          "Disney+",
+          "Walt Disney Studios",
+          "Pixar",
+          "Marvel Studios",
+          "ABC News",
+          "20th Century Studios"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "nbc",
@@ -36720,10 +37541,10 @@
     "monoInkScale": 4.63636
   },
   {
-    "name": "warnerBrosDiscovery",
+    "name": "warnerBrosDiscoveryLegacy",
     "slug": "warner-bros-discovery",
-    "label": "Warner Bros. Discovery",
-    "integrationNames": ["Warner Bros. Discovery"],
+    "label": "Warner Bros. Discovery (legacy)",
+    "integrationNames": [],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/6/64/Warner_Bros._Discovery.svg",
@@ -36745,10 +37566,64 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
     "brandWebsite": "https://www.wbd.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Film & television"],
-    "lastCheckedAutomated": "2026-11-06",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/64/Warner_Bros._Discovery.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/64/Warner_Bros._Discovery.svg",
+    "searchAliases": [
+      "Skydance",
+      "Skydance Corporation",
+      "Paramount Skydance",
+      "Paramount Global",
+      "Paramount Pictures",
+      "Paramount+",
+      "Warner Bros Entertainment",
+      "HBO",
+      "CNN"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Skydance",
+          "Skydance Corporation",
+          "Paramount Skydance",
+          "Paramount Global",
+          "Paramount Pictures",
+          "Paramount+",
+          "Warner Bros Entertainment",
+          "HBO",
+          "CNN"
+        ],
+        "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "legacyHistory": {
+      "summary": "Paramount completed its acquisition of Warner Bros. Discovery on October 6, 2026, and the combined corporate group adopted the Skydance name. The WBD corporate identity is retained as legacy artwork.",
+      "sources": [
+        {
+          "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+          "checkedOn": "2026-11-07"
+        }
+      ]
+    },
+    "successorRelationships": [
+      {
+        "relationship": "company-acquisition",
+        "relatedNames": [
+          "Skydance"
+        ],
+        "notes": "Paramount completed its acquisition of Warner Bros. Discovery on October 6, 2026, and the combined corporate group adopted the Skydance name. The WBD corporate identity is retained as legacy artwork.",
+        "sources": [
+          {
+            "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+            "checkedOn": "2026-11-07"
+          }
+        ]
+      }
+    ]
   },
   {
     "name": "broadcom",
@@ -37615,7 +38490,9 @@
     "name": "comcast",
     "slug": "comcast",
     "label": "Comcast",
-    "integrationNames": ["Comcast"],
+    "integrationNames": [
+      "Comcast"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://www.companieslogo.com/img/orig/CMCSA-34dbe8c4.svg?t=1720244491&download=true",
@@ -37644,10 +38521,37 @@
     "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
     "brandWebsite": "https://www.comcast.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Communication", "Film & television"],
+    "categories": [
+      "Communication",
+      "Film & television"
+    ],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://www.companieslogo.com/img/orig/CMCSA_BIG-b6c8cf0f.svg?t=1720244491&download=true"
+    "logoSource": "https://www.companieslogo.com/img/orig/CMCSA_BIG-b6c8cf0f.svg?t=1720244491&download=true",
+    "searchAliases": [
+      "NBCUniversal",
+      "NBC Universal",
+      "Universal Pictures",
+      "DreamWorks",
+      "Sky",
+      "Sky News",
+      "Xfinity"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "NBCUniversal",
+          "NBC Universal",
+          "Universal Pictures",
+          "DreamWorks",
+          "Sky",
+          "Sky News",
+          "Xfinity"
+        ],
+        "url": "https://corporate.comcast.com/company",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "timberland",
@@ -82340,13 +83244,28 @@
     "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Age-logo-blue.svg",
-    "searchAliases": [],
+    "searchAliases": [
+      "Nine",
+      "Nine Entertainment",
+      "The Sydney Morning Herald"
+    ],
     "referenceCollection": {
       "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
       "section": "existing",
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
-    }
+    },
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Nine",
+          "Nine Entertainment",
+          "The Sydney Morning Herald"
+        ],
+        "url": "https://www.nineforbrands.com.au/our-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "theSydneyMorningHerald",
@@ -82375,14 +83294,28 @@
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5f/The_Sydney_Morning_Herald_logo.svg",
     "searchAliases": [
-      "SMH"
+      "SMH",
+      "Nine",
+      "Nine Entertainment",
+      "The Age"
     ],
     "referenceCollection": {
       "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
       "section": "existing",
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
-    }
+    },
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Nine",
+          "Nine Entertainment",
+          "The Age"
+        ],
+        "url": "https://www.nineforbrands.com.au/our-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "diePresse",
@@ -82929,13 +83862,24 @@
     "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9b/O_Globo_2025.svg",
-    "searchAliases": [],
+    "searchAliases": [
+      "Grupo Globo"
+    ],
     "referenceCollection": {
       "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
       "section": "existing",
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
-    }
+    },
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Grupo Globo"
+        ],
+        "url": "https://grupoglobo.globo.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "leDevoir",
@@ -83875,14 +84819,24 @@
     "lastCheckedManually": null,
     "logoSource": "https://www.welt.de/assets/public/images/global/welt_brand.png",
     "searchAliases": [
-      "WELT"
+      "WELT",
+      "Axel Springer"
     ],
     "referenceCollection": {
       "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
       "section": "existing",
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
-    }
+    },
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Axel Springer"
+        ],
+        "url": "https://www.axelspringer.com/en/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "kathimerini",
@@ -84102,14 +85056,28 @@
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7a/The_times_of_india.svg",
     "searchAliases": [
-      "TOI"
+      "TOI",
+      "The Times Group",
+      "Bennett Coleman",
+      "BCCL"
     ],
     "referenceCollection": {
       "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
       "section": "existing",
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
-    }
+    },
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "The Times Group",
+          "Bennett Coleman",
+          "BCCL"
+        ],
+        "url": "https://www.timesgroup.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "kompas",
@@ -85821,13 +86789,26 @@
     "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "logoSource": "https://www.straitstimes.com/assets/ST-logo-default-aoeSLh4S.png",
-    "searchAliases": [],
+    "searchAliases": [
+      "SPH Media",
+      "Singapore Press Holdings"
+    ],
     "referenceCollection": {
       "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
       "section": "existing",
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
-    }
+    },
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "SPH Media",
+          "Singapore Press Holdings"
+        ],
+        "url": "https://www.sph.com.sg/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "mailGuardian",
@@ -86149,14 +87130,24 @@
     "lastCheckedManually": null,
     "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3e/El_Pais_logo_2007.svg",
     "searchAliases": [
-      "El Pais"
+      "El Pais",
+      "PRISA"
     ],
     "referenceCollection": {
       "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
       "section": "existing",
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
-    }
+    },
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "PRISA"
+        ],
+        "url": "https://www.prisa.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "dagensNyheter",
@@ -86986,5 +87977,2648 @@
       "checkedOn": "2026-11-07",
       "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
     }
+  },
+  {
+    "name": "newsCorp",
+    "slug": "news-corp",
+    "label": "News Corp",
+    "integrationNames": [
+      "News Corp"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://newscorp.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://newscorp.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://newscorp.com/",
+    "searchAliases": [
+      "News Corporation",
+      "News UK",
+      "News Corp Australia",
+      "Dow Jones",
+      "The Wall Street Journal",
+      "HarperCollins",
+      "The Times"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "News Corporation",
+          "News UK",
+          "News Corp Australia",
+          "Dow Jones",
+          "The Wall Street Journal",
+          "HarperCollins",
+          "The Times"
+        ],
+        "url": "https://newscorp.com/news-corp-businesses-and-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "waltDisneyCompany",
+    "slug": "walt-disney-company",
+    "label": "The Walt Disney Company",
+    "integrationNames": [
+      "The Walt Disney Company"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://thewaltdisneycompany.com/app/uploads/2026/01/organization-logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#121212": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://thewaltdisneycompany.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://thewaltdisneycompany.com/",
+    "searchAliases": [
+      "Disney",
+      "Walt Disney",
+      "Disney corporate",
+      "Disney+",
+      "Walt Disney Studios",
+      "Pixar",
+      "Marvel Studios",
+      "ABC News",
+      "ESPN",
+      "20th Century Studios"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Disney",
+          "Walt Disney",
+          "Disney+",
+          "Walt Disney Studios",
+          "Pixar",
+          "Marvel Studios",
+          "ABC News",
+          "ESPN",
+          "20th Century Studios"
+        ],
+        "url": "https://thewaltdisneycompany.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "foxCorporation",
+    "slug": "fox-corporation",
+    "label": "Fox Corporation",
+    "integrationNames": [
+      "Fox Corporation"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.foxcorporation.com/wp-content/themes/foxcorporation/images/fox-logo-white.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#003b67": "#59809C"
+    },
+    "logoDarkColors": {
+      "#003b67": "#59809C"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.foxcorporation.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.foxcorporation.com/wp-content/themes/foxcorporation/images/fox-logo-white.png",
+    "searchAliases": [
+      "Fox Corp",
+      "Fox",
+      "Fox News"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Fox Corp",
+          "Fox News"
+        ],
+        "url": "https://www.foxcorporation.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "nbcuniversal",
+    "slug": "nbcuniversal",
+    "label": "NBCUniversal",
+    "integrationNames": [
+      "NBCUniversal"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn2.nbcuni.com/NBCUniversal/NBCUniversal_H-color-neg.png?VersionId=RWlVD5Y7W1YRiKd4Vf0gb48YdCFdJeob",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f98e00": "#f98e00",
+      "#ffc900": "#ffc900",
+      "#0095d9": "#0095d9",
+      "#e6003d": "#EA295C",
+      "#00b74f": "#00b74f",
+      "#6e2387": "#9C68AD"
+    },
+    "logoDarkColors": {
+      "#f98e00": "#f98e00",
+      "#ffc900": "#ffc900",
+      "#0095d9": "#0095d9",
+      "#111111": "#F5F7FA",
+      "#e6003d": "#EA295C",
+      "#00b74f": "#00b74f",
+      "#6e2387": "#9C68AD"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.nbcuniversal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn2.nbcuni.com/NBCUniversal/NBCUniversal_H-color-neg.png?VersionId=RWlVD5Y7W1YRiKd4Vf0gb48YdCFdJeob",
+    "searchAliases": [
+      "NBC Universal",
+      "NBCU",
+      "Comcast",
+      "Universal Pictures",
+      "DreamWorks",
+      "Sky",
+      "Sky News",
+      "Xfinity"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Comcast",
+          "NBC Universal",
+          "Universal Pictures",
+          "DreamWorks",
+          "Sky",
+          "Sky News",
+          "Xfinity"
+        ],
+        "url": "https://corporate.comcast.com/company",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "skydance",
+    "slug": "skydance",
+    "label": "Skydance",
+    "integrationNames": [
+      "Skydance"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cms-corp.paramount.com/sites/g/files/dxjhpe411/files/2026-10/favicon_192x192.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#171341": "#171341",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#171341": "#F5F7FA",
+      "#ffffff": "#ffffff"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://skydance.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cms-corp.paramount.com/sites/g/files/dxjhpe411/files/2026-10/Skydance_Logo_Black.png",
+    "searchAliases": [
+      "Skydance Corporation",
+      "Paramount Skydance",
+      "Paramount Global",
+      "Paramount Pictures",
+      "Paramount+",
+      "Warner Bros Entertainment",
+      "Warner Bros. Discovery",
+      "HBO",
+      "CNN"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Skydance Corporation",
+          "Paramount Skydance",
+          "Paramount Global",
+          "Paramount Pictures",
+          "Paramount+",
+          "Warner Bros Entertainment",
+          "Warner Bros. Discovery",
+          "HBO",
+          "CNN"
+        ],
+        "url": "https://cms-corp.paramount.com/news/press/paramount-completes-acquisition-of-warner-bros-discovery-creating-a-new-global-entertainment-leader-skydance",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "versant",
+    "slug": "versant",
+    "label": "Versant",
+    "integrationNames": [
+      "Versant"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.versantmedia.com/versantmedia/Versantlogo.svg?VersionId=QCB.PNl9FVXxjVtak1VB1Foc56BiPjJg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#8A96AE": "#8A96AE"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#8A96AE": "#8A96AE"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.versantmedia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.versantmedia.com/versantmedia/Versantlogo.svg?VersionId=QCB.PNl9FVXxjVtak1VB1Foc56BiPjJg"
+  },
+  {
+    "name": "hearst",
+    "slug": "hearst",
+    "label": "Hearst",
+    "integrationNames": [
+      "Hearst"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bd/HEARST_H_logo_%282023%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2D75B9": "#3D7FBE",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2D75B9": "#3D7FBE",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.hearst.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/bd/HEARST_H_logo_%282023%29.svg"
+  },
+  {
+    "name": "advance",
+    "slug": "advance",
+    "label": "Advance",
+    "integrationNames": [
+      "Advance"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "http://static1.squarespace.com/static/5cd2f9dbebfc7fd7777477a9/t/5d485f016a57ad0001e184aa/1565024003049/Advance+Logo.png?format=1500w",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0064ff": "#1B74FF",
+      "#0088ff": "#0088ff",
+      "#2ae75a": "#2ae75a",
+      "#b8f028": "#b8f028",
+      "#111111": "#F5F7FA",
+      "#eefc22": "#eefc22",
+      "#00b4d8": "#00b4d8",
+      "#7bdc55": "#7bdc55",
+      "#00e366": "#00e366"
+    },
+    "logoDarkColors": {
+      "#0064ff": "#1B74FF",
+      "#0088ff": "#0088ff",
+      "#2ae75a": "#2ae75a",
+      "#b8f028": "#b8f028",
+      "#111111": "#F5F7FA",
+      "#eefc22": "#eefc22",
+      "#00b4d8": "#00b4d8",
+      "#7bdc55": "#7bdc55",
+      "#00e366": "#00e366"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.advance.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "http://static1.squarespace.com/static/5cd2f9dbebfc7fd7777477a9/t/5d485f016a57ad0001e184aa/1565024003049/Advance+Logo.png?format=1500w",
+    "searchAliases": [
+      "Advance Publications"
+    ],
+    "monoInkScale": 1.4
+  },
+  {
+    "name": "condeNast",
+    "slug": "conde-nast",
+    "label": "Condé Nast",
+    "integrationNames": [
+      "Condé Nast"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.condenast.com/favicon-196x196.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f3f3f3": "#f3f3f3",
+      "#8e8e8e": "#8e8e8e",
+      "#4d4d4d": "#4d4d4d",
+      "#0d0d0d": "#0d0d0d",
+      "#000000": "#000000",
+      "#ffffff": "#ffffff",
+      "#282828": "#282828",
+      "#d1d1d1": "#d1d1d1"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#181818": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.condenast.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.condenast.com/images/logos/cn-black.svg",
+    "searchAliases": [
+      "Conde Nast"
+    ]
+  },
+  {
+    "name": "axelSpringer",
+    "slug": "axel-springer",
+    "label": "Axel Springer",
+    "integrationNames": [
+      "Axel Springer"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.axelspringer.com/data/uploads/2019/05/axelspringer_logo_long_black-ink_srgb.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0000ff": "#6767FF",
+      "#050505": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0000ff": "#6767FF",
+      "#050505": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.axelspringer.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.axelspringer.com/data/uploads/2019/05/axelspringer_logo_long_black-ink_srgb.png",
+    "searchAliases": [
+      "Axel Springer SE",
+      "Die Welt"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Die Welt"
+        ],
+        "url": "https://www.axelspringer.com/en/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "thomsonReuters",
+    "slug": "thomson-reuters",
+    "label": "Thomson Reuters",
+    "integrationNames": [
+      "Thomson Reuters"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://app-data.gcs.trstatic.net/wel-trdotcom/static/tr-logo-schema.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#fa6400": "#fa6400"
+    },
+    "logoDarkColors": {
+      "#fa6400": "#fa6400",
+      "#666666": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.thomsonreuters.com/en.html",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://app-data.gcs.trstatic.net/wel-trdotcom/static/tr-logo-schema.png"
+  },
+  {
+    "name": "bloomberg",
+    "slug": "bloomberg",
+    "label": "Bloomberg",
+    "integrationNames": [
+      "Bloomberg"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.bloomberg.com/company/content/themes/company2019/public/assets/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.bloomberg.com/company/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.bloomberg.com/company/content/themes/company2019/public/assets/logo.svg"
+  },
+  {
+    "name": "dowJones",
+    "slug": "dow-jones",
+    "label": "Dow Jones",
+    "integrationNames": [
+      "Dow Jones"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.dowjones.com/wp-content/uploads/2025/07/favicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#132b43": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#132B43": "#F5F7FA"
+    },
+    "logoNotes": "Current native Dow Jones header wordmark and corporate D symbol.",
+    "brandWebsite": "https://www.dowjones.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Dow Jones & Company",
+      "News Corp",
+      "News Corporation",
+      "News UK",
+      "News Corp Australia",
+      "The Wall Street Journal",
+      "HarperCollins",
+      "The Times"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "News Corp",
+          "News Corporation",
+          "News UK",
+          "News Corp Australia",
+          "The Wall Street Journal",
+          "HarperCollins",
+          "The Times"
+        ],
+        "url": "https://newscorp.com/news-corp-businesses-and-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://www.dowjones.com/wp-content/themes/dowjones/css/global.css"
+  },
+  {
+    "name": "gannett",
+    "slug": "gannett",
+    "label": "Gannett",
+    "integrationNames": [
+      "Gannett"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/GCI-e564d3d4.svg?t=1744211499&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0046FF": "#3B71FF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0046FF": "#3B71FF"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.gannett.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/GCI_BIG-0951495e.svg?t=1744211499&download=true"
+  },
+  {
+    "name": "nexstarMediaGroup",
+    "slug": "nexstar-media-group",
+    "label": "Nexstar Media Group",
+    "integrationNames": [
+      "Nexstar Media Group"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.nexstar.tv/wp-content/uploads/2016/08/nexstarMG_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#a99b6c": "#a99b6c",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#a99b6c": "#a99b6c",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.nexstar.tv/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.nexstar.tv/wp-content/uploads/2016/08/nexstarMG_logo.png",
+    "monoInkScale": 2
+  },
+  {
+    "name": "sinclair",
+    "slug": "sinclair",
+    "label": "Sinclair",
+    "integrationNames": [
+      "Sinclair"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/SBGI-90eaabe4.svg?t=1720244493&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://sbgi.net/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/SBGI_BIG-2b7911e8.svg?t=1720244493&download=true"
+  },
+  {
+    "name": "grayMedia",
+    "slug": "gray-media",
+    "label": "Gray Media",
+    "integrationNames": [
+      "Gray Media"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://graymedia.com/assets/img-v2/icons/apple-touch-icon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#5b447e": "#85749F",
+      "#ffc522": "#ffc522",
+      "#0070b6": "#2082BF",
+      "#e71a35": "#E93048",
+      "#72aa86": "#72aa86",
+      "#147bb7": "#2182BB",
+      "#0795d4": "#0795d4",
+      "#03a2dd": "#03a2dd"
+    },
+    "logoDarkColors": {
+      "#E31937": "#E6354F",
+      "#009DDC": "#009DDC",
+      "#0255A3": "#4180BA",
+      "#0F4C8C": "#537FAD",
+      "#111111": "#F5F7FA",
+      "#FFC425": "#FFC425",
+      "#005DAA": "#3780BC",
+      "#00AFDA": "#00AFDA",
+      "#005CA8": "#3880BB",
+      "#0D9CD8": "#0D9CD8"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://graymedia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://graymedia.com/assets/img-v2/logos/GRAY-NYSE-LOGO.svg"
+  },
+  {
+    "name": "eWScripps",
+    "slug": "e-w-scripps",
+    "label": "E. W. Scripps",
+    "integrationNames": [
+      "E. W. Scripps"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://scripps.com/wp-content/uploads/2020/04/Scripps-logo-lighthouse-blue-no-crop-no-Give-light.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#171717": "#F5F7FA",
+      "#003e7e": "#557FA9"
+    },
+    "logoDarkColors": {
+      "#171717": "#F5F7FA",
+      "#003e7e": "#557FA9"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://scripps.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://scripps.com/wp-content/uploads/2020/04/Scripps-logo-lighthouse-blue-no-crop-no-Give-light.jpg",
+    "searchAliases": [
+      "Scripps",
+      "E. W. Scripps Company"
+    ],
+    "monoInkScale": 1.1435
+  },
+  {
+    "name": "coxMediaGroup",
+    "slug": "cox-media-group",
+    "label": "Cox Media Group",
+    "integrationNames": [
+      "Cox Media Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.cmg.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#076A8A": "#34859F",
+      "#F7942D": "#F7942D",
+      "#F26336": "#F26336",
+      "#A7A9AC": "#A7A9AC",
+      "#1DAEE5": "#1DAEE5",
+      "#FFC429": "#FFC429"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#076A8A": "#34859F",
+      "#F7942D": "#F7942D",
+      "#F26336": "#F26336",
+      "#A7A9AC": "#A7A9AC",
+      "#1DAEE5": "#1DAEE5",
+      "#FFC429": "#FFC429"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.coxmediagroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.cmg.com/"
+  },
+  {
+    "name": "libertyGlobal",
+    "slug": "liberty-global",
+    "label": "Liberty Global",
+    "integrationNames": [
+      "Liberty Global"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.libertyglobal.com/wp-content/themes/Liberty%20Global%202022/assets/img/logo-small-orange.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#fdebe0": "#fdebe0",
+      "#ee742b": "#ee742b",
+      "#f5ae83": "#f5ae83",
+      "#f9cdb3": "#f9cdb3",
+      "#ffffff": "#ffffff",
+      "#fefaf7": "#fefaf7",
+      "#f29862": "#f29862",
+      "#ef7e3a": "#ef7e3a"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#EE742B": "#EE742B",
+      "#111111": "#111111"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.libertyglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.libertyglobal.com/wp-content/themes/Liberty%20Global%202022/assets/img/liberty-logo-orange.svg"
+  },
+  {
+    "name": "libertyMedia",
+    "slug": "liberty-media",
+    "label": "Liberty Media",
+    "integrationNames": [
+      "Liberty Media"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://d1io3yog0oux5.cloudfront.net/_2809a6546b7ce06c80a5f20b64b77a45/libertymedia/files/theme/images/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#070606": "#070606",
+      "#EAEAEA": "#EAEAEA",
+      "#FFFFFF": "#FFFFFF",
+      "#FAFAFA": "#FAFAFA",
+      "#F8F8F8": "#F8F8F8",
+      "#E8E8E8": "#E8E8E8",
+      "#A6A6A6": "#A6A6A6",
+      "#F7F7F7": "#F7F7F7",
+      "#000000": "#000000",
+      "#D4D4D4": "#D4D4D4",
+      "#C9C9C9": "#C9C9C9",
+      "#E4E4E4": "#E4E4E4",
+      "#ABABAB": "#ABABAB",
+      "#D1D1D1": "#D1D1D1",
+      "#F0F0F0": "#F0F0F0",
+      "#F3F3F3": "#F3F3F3",
+      "#EEEEEE": "#EEEEEE",
+      "#D9D9D9": "#D9D9D9",
+      "#ADADAD": "#ADADAD"
+    },
+    "logoDarkColors": {
+      "#070606": "#070606",
+      "#EAEAEA": "#EAEAEA",
+      "#FFFFFF": "#FFFFFF",
+      "#FAFAFA": "#FAFAFA",
+      "#F8F8F8": "#F8F8F8",
+      "#E8E8E8": "#E8E8E8",
+      "#A6A6A6": "#A6A6A6",
+      "#F7F7F7": "#F7F7F7",
+      "#000000": "#000000",
+      "#D4D4D4": "#D4D4D4",
+      "#C9C9C9": "#C9C9C9",
+      "#E4E4E4": "#E4E4E4",
+      "#ABABAB": "#ABABAB",
+      "#D1D1D1": "#D1D1D1",
+      "#F0F0F0": "#F0F0F0",
+      "#F3F3F3": "#F3F3F3",
+      "#EEEEEE": "#EEEEEE",
+      "#D9D9D9": "#D9D9D9",
+      "#ADADAD": "#ADADAD"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.libertymedia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://d1io3yog0oux5.cloudfront.net/_2809a6546b7ce06c80a5f20b64b77a45/libertymedia/files/theme/images/logo.svg"
+  },
+  {
+    "name": "universalMusicGroup",
+    "slug": "universal-music-group",
+    "label": "Universal Music Group",
+    "integrationNames": [
+      "Universal Music Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.universalmusic.com/wp-content/uploads/2015/09/universal-music-group-logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.universalmusic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Music & video"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.universalmusic.com/wp-content/uploads/2015/09/universal-music-group-logo.png",
+    "searchAliases": [
+      "UMG"
+    ]
+  },
+  {
+    "name": "warnerMusicGroup",
+    "slug": "warner-music-group",
+    "label": "Warner Music Group",
+    "integrationNames": [
+      "Warner Music Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/WMG-d8722229.svg?t=1720244494&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0032A0": "#597AC1"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0032A0": "#597AC1"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.wmg.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Music & video"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/WMG_BIG-8329f764.svg?t=1720244494&download=true",
+    "searchAliases": [
+      "WMG"
+    ]
+  },
+  {
+    "name": "sonyMusic",
+    "slug": "sony-music",
+    "label": "Sony Music",
+    "integrationNames": [
+      "Sony Music"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn-p.smehost.net/sites/fd05a75e01604d70b122e9e1bef31d6a/wp-content/uploads/cropped-SM_Primary_RedandBlack_RGB_Logo_notext-270x270.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF0000": "#FF0000",
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FF0000": "#FF0000",
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.sonymusic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Music & video"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.sonymusic.de/",
+    "searchAliases": [
+      "Sony",
+      "Sony Group",
+      "Sony Pictures",
+      "PlayStation"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Sony",
+          "Sony Group",
+          "Sony Pictures",
+          "PlayStation"
+        ],
+        "url": "https://www.sony.com/en/SonyInfo/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "monoInkScale": 1.1039
+  },
+  {
+    "name": "rtlGroup",
+    "slug": "rtl-group",
+    "label": "RTL Group",
+    "integrationNames": [
+      "RTL Group"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://company.rtl.com/en/homepage/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#FBAA4B": "#FBAA4B",
+      "#00857C": "#0B8A82",
+      "#E55200": "#E55200"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#FBAA4B": "#FBAA4B",
+      "#00857C": "#0B8A82",
+      "#E55200": "#E55200"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://company.rtl.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://company.rtl.com/en/homepage/",
+    "searchAliases": [
+      "Bertelsmann",
+      "RTL",
+      "Fremantle",
+      "Penguin Books"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Bertelsmann",
+          "RTL",
+          "Fremantle",
+          "Penguin Books"
+        ],
+        "url": "https://www.bertelsmann.com/divisions/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "RTL",
+          "Fremantle"
+        ],
+        "url": "https://company.rtl.com/en/business-units/overview/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "prosiebensat1",
+    "slug": "prosiebensat1",
+    "label": "ProSiebenSat.1",
+    "integrationNames": [
+      "ProSiebenSat.1"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.prosiebensat1.com/en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.prosiebensat1.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.prosiebensat1.com/en",
+    "searchAliases": [
+      "ProSiebenSat.1 Media SE",
+      "ProSiebenSat1",
+      "MFE",
+      "MediaForEurope",
+      "Mediaset",
+      "MFE – MediaForEurope",
+      "ProSieben"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "MFE",
+          "MediaForEurope",
+          "Mediaset",
+          "MFE – MediaForEurope",
+          "ProSieben"
+        ],
+        "url": "https://www.mfemediaforeurope.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "ProSiebenSat1",
+          "ProSieben"
+        ],
+        "url": "https://www.prosiebensat1.com/en/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "mfe",
+    "slug": "mfe",
+    "label": "MFE – MediaForEurope",
+    "integrationNames": [
+      "MFE – MediaForEurope"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.mfemediaforeurope.com/assets/img/logo-mfe.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#007aff": "#007aff",
+      "#111111": "#F5F7FA",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#007aff": "#007aff",
+      "#111111": "#F5F7FA",
+      "#ffffff": "#ffffff"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.mfemediaforeurope.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.mfemediaforeurope.com/assets/img/logo-mfe.png",
+    "searchAliases": [
+      "MediaForEurope",
+      "MFE MediaForEurope",
+      "Mediaset",
+      "MFE",
+      "ProSiebenSat.1",
+      "ProSieben"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "MFE",
+          "MediaForEurope",
+          "Mediaset",
+          "ProSiebenSat.1",
+          "ProSieben"
+        ],
+        "url": "https://www.mfemediaforeurope.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "monoInkScale": 2
+  },
+  {
+    "name": "canalPlus",
+    "slug": "canal-plus",
+    "label": "CANAL+",
+    "integrationNames": [
+      "CANAL+"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.canalplusgroup.com/favicons/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#111111": "#111111",
+      "#000000": "#000000"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.canalplusgroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.canalplusgroup.com/fr",
+    "searchAliases": [
+      "Canal+",
+      "Canal Plus"
+    ]
+  },
+  {
+    "name": "vivendi",
+    "slug": "vivendi",
+    "label": "Vivendi",
+    "integrationNames": [
+      "Vivendi"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/VIV.PA-44a12352.svg?t=1720244494&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#7E0C6E": "#AC62A1",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#7E0C6E": "#AC62A1",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.vivendi.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/VIV.PA_BIG-1f9c9049.svg?t=1720244494&download=true"
+  },
+  {
+    "name": "lagardere",
+    "slug": "lagardere",
+    "label": "Lagardère",
+    "integrationNames": [
+      "Lagardère"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.lagardere.com/wp-content/uploads/2022/05/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E5006D": "#E82180",
+      "#111111": "#F5F7FA",
+      "#003063": "#617F9E"
+    },
+    "logoDarkColors": {
+      "#E5006D": "#E82180",
+      "#111111": "#F5F7FA",
+      "#003063": "#617F9E"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lagardere.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.lagardere.com/wp-content/uploads/2022/05/logo.svg"
+  },
+  {
+    "name": "banijay",
+    "slug": "banijay",
+    "label": "Banijay Group",
+    "integrationNames": [
+      "Banijay Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.banijay.com/wp-content/themes/banijay/assets/images/banijay-entertainment-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Shared Banijay B symbol, in the corporate group’s black color. A verified outlined corporate lockup is not yet included. A verified matching full logo is not included; logo variants are unavailable.",
+    "brandWebsite": "https://group.banijay.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Banijay",
+      "FL Entertainment"
+    ]
+  },
+  {
+    "name": "fremantle",
+    "slug": "fremantle",
+    "label": "Fremantle",
+    "integrationNames": [
+      "Fremantle"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://fremantle.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://fremantle.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://fremantle.com/",
+    "searchAliases": [
+      "Bertelsmann",
+      "RTL Group",
+      "RTL",
+      "Penguin Books"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Bertelsmann",
+          "RTL Group",
+          "RTL",
+          "Penguin Books"
+        ],
+        "url": "https://www.bertelsmann.com/divisions/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "aliases": [
+          "RTL Group",
+          "RTL"
+        ],
+        "url": "https://company.rtl.com/en/business-units/overview/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "schibsted",
+    "slug": "schibsted",
+    "label": "Schibsted",
+    "integrationNames": [
+      "Schibsted"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://schibsted.com/apple-touch-icon-1024x1024.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://schibsted.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://schibsted.com/wp-content/themes/scom/assets/img/Schibsted-logo-medium-white.svg"
+  },
+  {
+    "name": "bonnier",
+    "slug": "bonnier",
+    "label": "Bonnier",
+    "integrationNames": [
+      "Bonnier"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.bonnier.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.bonnier.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.bonnier.com/"
+  },
+  {
+    "name": "egmont",
+    "slug": "egmont",
+    "label": "Egmont",
+    "integrationNames": [
+      "Egmont"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://brandcenter.egmont.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.egmont.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://brandcenter.egmont.com/"
+  },
+  {
+    "name": "sanoma",
+    "slug": "sanoma",
+    "label": "Sanoma",
+    "integrationNames": [
+      "Sanoma"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.sanoma.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.sanoma.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.sanoma.com/"
+  },
+  {
+    "name": "prisa",
+    "slug": "prisa",
+    "label": "PRISA",
+    "integrationNames": [
+      "PRISA"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.prisa.com/wp-content/uploads/2024/01/logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#3d9775": "#3d9775",
+      "#4a4a30": "#F5F7FA",
+      "#b3c633": "#b3c633",
+      "#b4a40a": "#b4a40a",
+      "#565129": "#F5F7FA",
+      "#3e570f": "#6F824C",
+      "#4a5e01": "#73823A",
+      "#c60559": "#D54583"
+    },
+    "logoDarkColors": {
+      "#3d9775": "#3d9775",
+      "#4a4a30": "#F5F7FA",
+      "#b3c633": "#b3c633",
+      "#b4a40a": "#b4a40a",
+      "#565129": "#F5F7FA",
+      "#3e570f": "#6F824C",
+      "#4a5e01": "#73823A",
+      "#c60559": "#D54583"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.prisa.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.prisa.com/wp-content/uploads/2024/01/logo.png",
+    "searchAliases": [
+      "El País"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "El País"
+        ],
+        "url": "https://www.prisa.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "grupoPlaneta",
+    "slug": "grupo-planeta",
+    "label": "Grupo Planeta",
+    "integrationNames": [
+      "Grupo Planeta"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://planetaes.cdnstatics2.com/cdn/ff/Z43fCtbWM10Qfj-KBWSjpX-MmjBizeu9h6OELPjMM7Q/1761034750/public/grupo-planeta.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0053A1": "#4280B9",
+      "#111111": "#F5F7FA",
+      "#23378B": "#6C79B1",
+      "#2FB4E9": "#2FB4E9",
+      "#0098D8": "#0098D8",
+      "#2B2A7F": "#7777AD",
+      "#0070BA": "#1F81C2"
+    },
+    "logoDarkColors": {
+      "#0053A1": "#4280B9",
+      "#111111": "#F5F7FA",
+      "#23378B": "#6C79B1",
+      "#2FB4E9": "#2FB4E9",
+      "#0098D8": "#0098D8",
+      "#2B2A7F": "#7777AD",
+      "#0070BA": "#1F81C2"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.planeta.es/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://planetaes.cdnstatics2.com/cdn/ff/Z43fCtbWM10Qfj-KBWSjpX-MmjBizeu9h6OELPjMM7Q/1761034750/public/grupo-planeta.svg",
+    "searchAliases": [
+      "Planeta Group"
+    ]
+  },
+  {
+    "name": "grupoGlobo",
+    "slug": "grupo-globo",
+    "label": "Grupo Globo",
+    "integrationNames": [
+      "Grupo Globo"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://grupoglobo.globo.com/images/logo-globo-azul.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1958EA": "#4175EE"
+    },
+    "logoDarkColors": {
+      "#1958EA": "#4175EE"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://grupoglobo.globo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://grupoglobo.globo.com/images/logo-globo-azul.svg",
+    "searchAliases": [
+      "O Globo"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "O Globo"
+        ],
+        "url": "https://grupoglobo.globo.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "grupoClarin",
+    "slug": "grupo-clarin",
+    "label": "Grupo Clarín",
+    "integrationNames": [
+      "Grupo Clarín"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://grupoclarin.com/images/logofull.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#005487": "#4582A7"
+    },
+    "logoDarkColors": {
+      "#005487": "#4582A7"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://grupoclarin.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://grupoclarin.com/images/logofull.svg",
+    "searchAliases": [
+      "Grupo Clarin"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Grupo Clarin"
+        ],
+        "url": "https://grupoclarin.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "jiostar",
+    "slug": "jiostar",
+    "label": "JioStar",
+    "integrationNames": [
+      "JioStar"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.jiostar.com/jiostar/wp-content/uploads/2025/08/JioStar_Logo.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e6007e": "#e6007e",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#e6007e": "#e6007e",
+      "#111111": "#F5F7FA",
+      "#ffffff": "#ffffff"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.jiostar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.jiostar.com/jiostar/wp-content/uploads/2025/08/JioStar_Logo.jpg",
+    "searchAliases": [
+      "Jio Star"
+    ]
+  },
+  {
+    "name": "network18",
+    "slug": "network18",
+    "label": "Network18",
+    "integrationNames": [
+      "Network18"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nw18.com/images/Navbar/Network18logo_W.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f91925": "#f91925",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#f91925": "#f91925",
+      "#ffffff": "#ffffff"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.nw18.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.nw18.com/images/Navbar/Network18logo_W.png"
+  },
+  {
+    "name": "timesGroup",
+    "slug": "times-group",
+    "label": "The Times Group",
+    "integrationNames": [
+      "The Times Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.timesgroup.com/images/Times_Logo_Black.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#040404": "#F5F7FA",
+      "#2a2a2a": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#090909": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#040404": "#F5F7FA",
+      "#080808": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#2a2a2a": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.timesgroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.timesgroup.com/images/Times_Logo_Black.png",
+    "searchAliases": [
+      "Bennett Coleman",
+      "BCCL",
+      "The Times Group India",
+      "The Times of India"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Bennett Coleman",
+          "BCCL",
+          "The Times of India"
+        ],
+        "url": "https://www.timesgroup.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "zeeEntertainment",
+    "slug": "zee-entertainment",
+    "label": "Zee Entertainment",
+    "integrationNames": [
+      "Zee Entertainment"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/ZEEL.NS-d955c629.svg?t=1745035718&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#4A2B92": "#8570B5",
+      "#6E4BA5": "#8A6EB7",
+      "#111111": "#F5F7FA",
+      "#2A2266": "#7C77A1"
+    },
+    "logoDarkColors": {
+      "#4A2B92": "#8570B5",
+      "#6E4BA5": "#8A6EB7",
+      "#111111": "#F5F7FA",
+      "#2A2266": "#7C77A1"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.zee.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/ZEEL.NS-d955c629.svg?t=1745035718&download=true",
+    "searchAliases": [
+      "Zee",
+      "Zee Entertainment Enterprises",
+      "ZEEL"
+    ]
+  },
+  {
+    "name": "sunGroup",
+    "slug": "sun-group",
+    "label": "Sun Group",
+    "integrationNames": [
+      "Sun Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.sun.in/images/spritesrc/common.gif",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f4b51f": "#f4b51f",
+      "#898989": "#898989"
+    },
+    "logoDarkColors": {
+      "#f4b51f": "#f4b51f",
+      "#898989": "#898989"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.sun.in/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.sun.in/images/spritesrc/common.gif"
+  },
+  {
+    "name": "mbcGroup",
+    "slug": "mbc-group",
+    "label": "MBC Group",
+    "integrationNames": [
+      "MBC Group"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.mbc.net/_next/static/media/Logo.9759c558.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.mbc.net/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.mbc.net/_next/static/media/Logo.9759c558.svg"
+  },
+  {
+    "name": "srmg",
+    "slug": "srmg",
+    "label": "SRMG",
+    "integrationNames": [
+      "SRMG"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.srmg.com/images/logo-white.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.srmg.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.srmg.com/images/logo-white.svg",
+    "searchAliases": [
+      "Saudi Research and Media Group"
+    ]
+  },
+  {
+    "name": "alJazeeraMediaNetwork",
+    "slug": "al-jazeera-media-network",
+    "label": "Al Jazeera Media Network",
+    "integrationNames": [
+      "Al Jazeera Media Network"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://network.aljazeera.net/themes/custom/partner/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#DBA200": "#DBA200"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined corporate artwork from published brand assets. A verified matching full logo is not included; logo variants are unavailable.",
+    "brandWebsite": "https://network.aljazeera.net/en",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Al Jazeera",
+      "Aljazeera"
+    ]
+  },
+  {
+    "name": "nineEntertainment",
+    "slug": "nine-entertainment",
+    "label": "Nine Entertainment",
+    "integrationNames": [
+      "Nine Entertainment"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/6/63/Nine_Entertainment_logo_%282025%29.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#36D0F8": "#36D0F8",
+      "#3067D9": "#4778DD"
+    },
+    "logoDarkColors": {
+      "#36D0F8": "#36D0F8",
+      "#3067D9": "#4778DD"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.nineforbrands.com.au/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/6/63/Nine_Entertainment_logo_%282025%29.png",
+    "searchAliases": [
+      "Nine",
+      "Nine Entertainment Co",
+      "The Age",
+      "The Sydney Morning Herald"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Nine",
+          "The Age",
+          "The Sydney Morning Herald"
+        ],
+        "url": "https://www.nineforbrands.com.au/our-brands/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "sevenWestMedia",
+    "slug": "seven-west-media",
+    "label": "Seven West Media",
+    "integrationNames": [
+      "Seven West Media"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://sevenwestmedia.com.au/wp-content/uploads/2025/03/Icon-SWM.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1C67A7": "#4180B6",
+      "#E5001E": "#EA2E47"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined corporate artwork from published brand assets. A verified matching full logo is not included; logo variants are unavailable.",
+    "brandWebsite": "https://www.sevenwestmedia.com.au/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "mediacorp",
+    "slug": "mediacorp",
+    "label": "Mediacorp",
+    "integrationNames": [
+      "Mediacorp"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.mediacorp.sg/sites/corporate/themes/mc_corporate_theme/images/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#002561": "#667CA0",
+      "#392E91": "#7B74B6",
+      "#BE1E2D": "#CD535E",
+      "#9BC35B": "#9BC35B",
+      "#73AB57": "#73AB57",
+      "#F6921E": "#F6921E",
+      "#111111": "#F5F7FA",
+      "#007250": "#2D8B6F",
+      "#49BFB5": "#49BFB5",
+      "#572690": "#8E6DB4",
+      "#00654A": "#3B8874",
+      "#CA098C": "#D53BA4",
+      "#3DB2B6": "#3DB2B6",
+      "#007ABA": "#1183BE",
+      "#BCD75F": "#BCD75F",
+      "#2E3191": "#7476B6",
+      "#EF8420": "#EF8420",
+      "#0071BB": "#1D81C3",
+      "#3C8A51": "#3D8B52",
+      "#871A8E": "#AB5FB0",
+      "#EB008B": "#EB068E",
+      "#452F91": "#8172B4",
+      "#FAAF40": "#FAAF40",
+      "#1C8FB9": "#1C8FB9",
+      "#B3D25E": "#B3D25E",
+      "#DB6026": "#DB6026",
+      "#C5372D": "#CD544B"
+    },
+    "logoDarkColors": {
+      "#002561": "#667CA0",
+      "#392E91": "#7B74B6",
+      "#BE1E2D": "#CD535E",
+      "#9BC35B": "#9BC35B",
+      "#73AB57": "#73AB57",
+      "#F6921E": "#F6921E",
+      "#111111": "#F5F7FA",
+      "#007250": "#2D8B6F",
+      "#49BFB5": "#49BFB5",
+      "#572690": "#8E6DB4",
+      "#00654A": "#3B8874",
+      "#CA098C": "#D53BA4",
+      "#3DB2B6": "#3DB2B6",
+      "#007ABA": "#1183BE",
+      "#BCD75F": "#BCD75F",
+      "#2E3191": "#7476B6",
+      "#EF8420": "#EF8420",
+      "#0071BB": "#1D81C3",
+      "#3C8A51": "#3D8B52",
+      "#871A8E": "#AB5FB0",
+      "#EB008B": "#EB068E",
+      "#452F91": "#8172B4",
+      "#FAAF40": "#FAAF40",
+      "#1C8FB9": "#1C8FB9",
+      "#B3D25E": "#B3D25E",
+      "#DB6026": "#DB6026",
+      "#C5372D": "#CD544B"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.mediacorp.sg/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Film & television"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.mediacorp.sg/sites/corporate/themes/mc_corporate_theme/images/logo.svg",
+    "monoInkScale": 1.1087
+  },
+  {
+    "name": "sphMedia",
+    "slug": "sph-media",
+    "label": "SPH Media",
+    "integrationNames": [
+      "SPH Media"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://static.sph.com.sg/uploads/2024/05/favicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#123bb9": "#5B78CF"
+    },
+    "logoDarkColors": {
+      "#123bb9": "#5B78CF"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.sph.com.sg/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://static.sph.com.sg/uploads/2024/05/favicon.png",
+    "searchAliases": [
+      "Singapore Press Holdings",
+      "SPH",
+      "The Straits Times"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Singapore Press Holdings",
+          "The Straits Times"
+        ],
+        "url": "https://www.sph.com.sg/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "wpp",
+    "slug": "wpp",
+    "label": "WPP",
+    "integrationNames": [
+      "WPP"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.wpp.com/en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.wpp.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.wpp.com/en",
+    "searchAliases": [
+      "WPP plc",
+      "Ogilvy"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "WPP plc",
+          "Ogilvy"
+        ],
+        "url": "https://www.wpp.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "publicisGroupe",
+    "slug": "publicis-groupe",
+    "label": "Publicis Groupe",
+    "integrationNames": [
+      "Publicis Groupe"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.publicisgroupe.com/themes/custom/publicis/images/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#9D833E": "#9D833E",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#BA9765": "#BA9765",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.publicisgroupe.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.publicisgroupe.com/sites/default/files/mediakit/image/2019-05/logo-publicis-groupe.svg",
+    "searchAliases": [
+      "Publicis"
+    ]
+  },
+  {
+    "name": "omnicom",
+    "slug": "omnicom",
+    "label": "Omnicom",
+    "integrationNames": [
+      "Omnicom"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.omc.com/wp-content/uploads/2025/11/omnicom-logo-large-hp.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.omc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.omc.com/wp-content/uploads/2025/11/omnicom-logo-large-hp.png",
+    "searchAliases": [
+      "Omnicom Group",
+      "OMC",
+      "Interpublic Group",
+      "IPG"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Omnicom Group",
+          "Interpublic Group",
+          "IPG"
+        ],
+        "url": "https://www.omc.com/newsroom/omnicom-completes-acquisition-of-interpublic-forming-the-worlds-leading-marketing-and-sales-company-built-for-intelligent-growth-in-the-next-era/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "interpublicGroupLegacy",
+    "slug": "interpublic-group-legacy",
+    "label": "Interpublic Group (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/IPG-e6133022.svg?t=1720244492&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#052147": "#6D7D93",
+      "#111111": "#F5F7FA",
+      "#83BAD8": "#83BAD8",
+      "#095AA5": "#4280BA"
+    },
+    "logoDarkColors": {
+      "#052147": "#6D7D93",
+      "#111111": "#F5F7FA",
+      "#83BAD8": "#83BAD8",
+      "#095AA5": "#4280BA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.interpublic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/IPG-e6133022.svg?t=1720244492&download=true",
+    "searchAliases": [
+      "Interpublic Group",
+      "IPG",
+      "The Interpublic Group of Companies",
+      "Omnicom",
+      "Omnicom Group"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Omnicom",
+          "Omnicom Group",
+          "Interpublic Group",
+          "IPG"
+        ],
+        "url": "https://www.omc.com/newsroom/omnicom-completes-acquisition-of-interpublic-forming-the-worlds-leading-marketing-and-sales-company-built-for-intelligent-growth-in-the-next-era/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "legacyHistory": {
+      "summary": "Omnicom completed its acquisition of Interpublic on November 26, 2025. The IPG corporate identity is retained as legacy artwork.",
+      "sources": [
+        {
+          "url": "https://www.omc.com/newsroom/omnicom-completes-acquisition-of-interpublic-forming-the-worlds-leading-marketing-and-sales-company-built-for-intelligent-growth-in-the-next-era/",
+          "checkedOn": "2026-11-07"
+        }
+      ]
+    },
+    "successorRelationships": [
+      {
+        "relationship": "company-acquisition",
+        "relatedNames": [
+          "Omnicom"
+        ],
+        "notes": "Omnicom completed its acquisition of Interpublic on November 26, 2025. The IPG corporate identity is retained as legacy artwork.",
+        "sources": [
+          {
+            "url": "https://www.omc.com/newsroom/omnicom-completes-acquisition-of-interpublic-forming-the-worlds-leading-marketing-and-sales-company-built-for-intelligent-growth-in-the-next-era/",
+            "checkedOn": "2026-11-07"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dentsu",
+    "slug": "dentsu",
+    "label": "dentsu",
+    "integrationNames": [
+      "dentsu"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.dentsu.com/assets/images/main-logo-alt.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.dentsu.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.dentsu.com/assets/images/main-logo-alt.png"
+  },
+  {
+    "name": "havas",
+    "slug": "havas",
+    "label": "Havas",
+    "integrationNames": [
+      "Havas"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://logos-world.net/wp-content/uploads/2023/06/Havas-Logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e50019": "#EA2F44"
+    },
+    "logoDarkColors": {
+      "#e50019": "#EA2F44"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.havas.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://logos-world.net/wp-content/uploads/2023/06/Havas-Logo.png"
+  },
+  {
+    "name": "hakuhodoDyHoldings",
+    "slug": "hakuhodo-dy-holdings",
+    "label": "Hakuhodo DY Holdings",
+    "integrationNames": [
+      "Hakuhodo DY Holdings"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/2433.T_BIG-3c1dcf3c.svg?t=1785567177&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0A326D": "#637DA2"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0A326D": "#637DA2"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.hakuhodody-holdings.co.jp/english/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/2433.T_BIG-3c1dcf3c.svg?t=1785567177&download=true",
+    "searchAliases": [
+      "Hakuhodo DY",
+      "Hakuhodo"
+    ]
+  },
+  {
+    "name": "cheilWorldwide",
+    "slug": "cheil-worldwide",
+    "label": "Cheil Worldwide",
+    "integrationNames": [
+      "Cheil Worldwide"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/65d6127ff67ad3ac49205394/65d8c1417776acbcf6758d56_Cheil-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#16336B": "#6A7CA0"
+    },
+    "logoDarkColors": {
+      "#16336B": "#6A7CA0"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.cheil.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.prod.website-files.com/65d6127ff67ad3ac49205394/65d8c1417776acbcf6758d56_Cheil-Logo.svg"
+  },
+  {
+    "name": "innocean",
+    "slug": "innocean",
+    "label": "INNOCEAN",
+    "integrationNames": [
+      "INNOCEAN"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.innocean.com/#embedded-svg-60",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.innocean.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.innocean.com/#embedded-svg-60"
+  },
+  {
+    "name": "adkHoldings",
+    "slug": "adk-holdings",
+    "label": "ADK Holdings",
+    "integrationNames": [
+      "ADK Holdings"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.adk.jp/wp/wp-content/themes/adk/img/common/header_logo_en.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#857a81": "#857a81",
+      "#1b110e": "#F5F7FA",
+      "#281e1b": "#F5F7FA",
+      "#ce1c32": "#D8485A",
+      "#ca0a22": "#D8485A",
+      "#544d55": "#F5F7FA",
+      "#444040": "#F5F7FA",
+      "#2c404a": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#857a81": "#857a81",
+      "#1b110e": "#F5F7FA",
+      "#281e1b": "#F5F7FA",
+      "#ce1c32": "#D8485A",
+      "#ca0a22": "#D8485A",
+      "#544d55": "#F5F7FA",
+      "#444040": "#F5F7FA",
+      "#2c404a": "#F5F7FA"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required.",
+    "brandWebsite": "https://www.adk.jp/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.adk.jp/wp/wp-content/themes/adk/img/common/header_logo_en.svg",
+    "searchAliases": [
+      "ADK",
+      "Asatsu-DK"
+    ],
+    "monoInkScale": 1.16438
+  },
+  {
+    "name": "stagwell",
+    "slug": "stagwell",
+    "label": "Stagwell",
+    "integrationNames": [
+      "Stagwell"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://companieslogo.com/img/orig/STGW-e19b5ac3.svg?t=1720244494&download=true",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#212322": "#F5F7FA",
+      "#009CBD": "#009CBD",
+      "#111111": "#F5F7FA",
+      "#FFB81C": "#FFB81C"
+    },
+    "logoDarkColors": {
+      "#212322": "#F5F7FA",
+      "#009CBD": "#009CBD",
+      "#111111": "#F5F7FA",
+      "#FFB81C": "#FFB81C"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.stagwellglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://companieslogo.com/img/orig/STGW_BIG-d3177fd9.svg?t=1720244494&download=true"
+  },
+  {
+    "name": "s4Capital",
+    "slug": "s4-capital",
+    "label": "S4 Capital",
+    "integrationNames": [
+      "S4 Capital"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.s4capital.com/themes/custom/s4c_revamp/static//s4c-favicons/icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.s4capital.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.s4capital.com/themes/custom/s4c_revamp/static//s4c-favicons/icon.svg",
+    "searchAliases": [
+      "S4Capital",
+      "S4 Capital"
+    ]
+  },
+  {
+    "name": "bluefocus",
+    "slug": "bluefocus",
+    "label": "BlueFocus",
+    "integrationNames": [
+      "BlueFocus"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.bluefocus.com/skin/images/logo-small.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#006ab4": "#2881C0"
+    },
+    "logoDarkColors": {
+      "#006ab4": "#2881C0"
+    },
+    "logoNotes": "Published corporate artwork, vectorized from raster sources where required. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.bluefocus.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.bluefocus.com/skin/images/logo-small.png",
+    "searchAliases": [
+      "BlueFocus Communication Group",
+      "Blue Focus"
+    ]
+  },
+  {
+    "name": "serviceplanGroup",
+    "slug": "serviceplan-group",
+    "label": "Serviceplan Group",
+    "integrationNames": [
+      "Serviceplan Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.house-of-communication.com/content/dam/house-of-communication-aem/global/static/logos/black.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#535352": "#F5F7FA",
+      "#929292": "#929292",
+      "#B2B2B2": "#B2B2B2",
+      "#F0191E": "#F12126",
+      "#111111": "#F5F7FA",
+      "#2C2C2A": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#868686": "#868686",
+      "#1D1D1B": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#535352": "#F5F7FA",
+      "#929292": "#929292",
+      "#B2B2B2": "#B2B2B2",
+      "#F0191E": "#F12126",
+      "#111111": "#F5F7FA",
+      "#2C2C2A": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#868686": "#868686",
+      "#1D1D1B": "#F5F7FA"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.serviceplan.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.house-of-communication.com/content/dam/house-of-communication-aem/global/static/logos/black.svg",
+    "searchAliases": [
+      "Serviceplan",
+      "House of Communication"
+    ]
+  },
+  {
+    "name": "plusCompany",
+    "slug": "plus-company",
+    "label": "Plus Company",
+    "integrationNames": [
+      "Plus Company"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://pluscompany.com/en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F05C8E": "#F05C8E",
+      "#F599B9": "#F599B9",
+      "#F42D20": "#F42D20",
+      "#111111": "#F5F7FA",
+      "#46A048": "#46A048",
+      "#95E6EF": "#95E6EF",
+      "#594A99": "#7F74B0",
+      "#51D4E1": "#51D4E1",
+      "#FFC30F": "#FFC30F"
+    },
+    "logoDarkColors": {
+      "#F05C8E": "#F05C8E",
+      "#F599B9": "#F599B9",
+      "#F42D20": "#F42D20",
+      "#111111": "#F5F7FA",
+      "#46A048": "#46A048",
+      "#95E6EF": "#95E6EF",
+      "#594A99": "#7F74B0",
+      "#51D4E1": "#51D4E1",
+      "#FFC30F": "#FFC30F"
+    },
+    "logoNotes": "Outlined corporate artwork from published brand assets.",
+    "brandWebsite": "https://www.pluscompany.com/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://pluscompany.com/en",
+    "monoInkScale": 1.38587
   }
 ]

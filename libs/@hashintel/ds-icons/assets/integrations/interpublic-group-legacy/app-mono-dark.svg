@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="interpublic-group-legacy-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="interpublic-group-legacy-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="interpublic-group-legacy-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#interpublic-group-legacy-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#interpublic-group-legacy-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#interpublic-group-legacy-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="interpublic-group-legacy-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240722847912 -0.809807059392 -0.0817506567227 0 1.13228056403" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#interpublic-group-legacy-app-mono-dark-mono)"><defs><clipPath id="interpublic-group-legacy-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#interpublic-group-legacy-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.75979 -1.36952 1564.52291 776.1915" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+	<g id="interpublic-group-legacy-app-mono-dark-Layer">
+		<g>
+			<g>
+				<path id="interpublic-group-legacy-app-mono-dark-dkafa" fill-rule="evenodd" d="m838.9 195c-21.3 37.3-36.2 78-44.1 120.2-7.9 42.3-8.7 85.6-2.2 128.1 6.4 42.6 19.8 83.7 39.9 121.8q-15.7 7.4-32 13-16.4 5.6-33.2 9.3-16.9 3.8-34.1 5.6-17.1 1.9-34.4 1.8l-153.4 0.2v161.7h-0.2v0.1h-208.1v-751.3h357.3q1.3 0 2.6 0 1.3 0 2.7 0 1.3 0.1 2.6 0.1 1.3 0.1 2.6 0.2c55 2 104.9 16.4 147.4 40.6q9.3 4.8 18.3 10.4 8.9 5.5 17.4 11.7 8.6 6.2 16.6 13.1 8 6.8 15.5 14.2c-32.4 28.3-59.8 61.8-81.2 99.2zm-44.5 104.5c0-83.8-59.3-119.2-116.8-119.2v-0.2h-132.2v240h136.6c3.1 0 6-0.1 8.9-0.2 56.4-4.5 103.5-38.5 103.5-120.4z" fill="#83BAD8" />
+			</g>
+			<g>
+				<path id="interpublic-group-legacy-app-mono-dark-dkafb" d="m1559.4 362.4q-0.3-3.8-0.5-7.6-0.3-3.8-0.7-7.5-0.4-3.8-0.8-7.6-0.5-3.8-1-7.5c-0.7-5.9-1.2-9.6-1.2-9.6v-0.1h-260.8-82.3-23.9v175.1h132c-45.4 59.4-122.3 85.5-194.5 65.8-72.2-19.6-125.3-81-134.3-155.3-9-74.3 27.9-146.6 93.3-183 65.3-36.3 146.2-29.4 204.5 17.5l0.8 0.4 153.9-132.7c-143.9-141.3-372.4-147.6-523.8-14.5 42.2 42.3 73.8 103.6 76.3 192.3 0.2 3.4 0.2 6.9 0.3 10.4l0.1 1v0.2c0 2 0.1 3.9 0.1 6 0 115.2-66.2 212.6-164.4 259.4 64.6 122.9 193.5 206.9 341.7 206.9 148 0 276.7-83.8 341.4-206.3q0 0 0 0.1 0 0 0 0.1 0 0 0.1 0.1 0 0.1 0 0.1 7.8-14.3 13.8-29.4 6.9-16.3 12.3-33.1 5.4-16.9 9.2-34.2 3.8-17.3 6-34.8 2.2-17.6 2.8-35.3 0.1-1.7 0.2-3.4 0.1-1.7 0.1-3.4 0.1-1.7 0.2-3.5 0-1.7 0-3.4c0-7.4-0.4-15.4-0.9-23.2z" fill="#095AA5" />
+			</g>
+			<g>
+				<path id="interpublic-group-legacy-app-mono-dark-dkafc" d="m996.9 305.7c0-2.1-0.1-4.1-0.1-6v-0.2l-0.1-1c0-3.5-0.1-7-0.3-10.4-2.5-88.7-34.1-150.1-76.3-192.3-32.4 28.3-59.8 61.8-81.2 99.2-21.3 37.3-36.2 78-44.1 120.2-7.9 42.3-8.7 85.6-2.2 128.1 6.4 42.6 19.8 83.7 39.9 121.8 98.2-46.8 164.4-144.2 164.4-259.4z" fill="#052147" />
+			</g>
+			<g>
+				<path id="interpublic-group-legacy-app-mono-dark-dkafd" d="m0 7.3l0.9 749.5h206.7l-0.8-749.5z" fill="#83BAD8" />
+			</g>
+		</g>
+	</g>
+</svg></g></g></svg>
